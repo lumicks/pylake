@@ -1,0 +1,21 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Sources
+*.h text
+*.c text
+*.hpp text
+*.cpp text
+*.py text
+*.cmake text
+
+# Documents
+*.md text
+*.txt text
+
+# Declare files that will always have CRLF line endings on checkout
+*.sln text eol=crlf merge=union
+*.vcxproj text eol=crlf merge=union
+*.vcxproj.filters text eol=crlf merge=union
+*.iss text eol=crlf merge=union
+*.bat text eol=crlf merge=union
