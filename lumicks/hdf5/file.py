@@ -1,6 +1,9 @@
 import h5py
+from typing import Dict
+
 from .group import Group
 from .channel import make_continuous_channel, make_timeseries_channel
+from .kymo import Kymo
 
 
 class File(Group):
@@ -155,3 +158,7 @@ class File(Group):
     @property
     def blue_photons(self):
         return self._get_photon_count("Blue")
+
+    @property
+    def kymos(self) -> Dict[str, Kymo]:
+        return {name: Kymo(dset, self) for name, dset in self.h5["Kymograph"].items()}
