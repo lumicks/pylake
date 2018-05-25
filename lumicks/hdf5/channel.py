@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class Slice:
@@ -55,6 +54,8 @@ class Slice:
             return Slice(self.data[idx], self.timestamps[idx])
 
     def plot(self, **kwargs):
+        import matplotlib.pyplot as plt
+
         seconds = (self.timestamps - self.timestamps[0]) / 1e9
         plt.plot(seconds, self.data, **kwargs)
         plt.xlabel(self.labels.get("x", "Time") + " (s)")

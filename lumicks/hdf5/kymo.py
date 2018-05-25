@@ -1,14 +1,6 @@
 import json
 import math
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-
-linear_colormaps = {
-    "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
-    "green": LinearSegmentedColormap.from_list("green", colors=[(0, 0, 0), (0, 1, 0)]),
-    "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
-}
 
 
 def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
@@ -124,6 +116,8 @@ class Kymo:
         return np.stack(color_channels).T
 
     def _plot(self, image, **kwargs):
+        import matplotlib.pyplot as plt
+
         width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
@@ -138,6 +132,14 @@ class Kymo:
         plt.title(self.name)
 
     def _plot_color(self, color, **kwargs):
+        from matplotlib.colors import LinearSegmentedColormap
+
+        linear_colormaps = {
+            "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
+            "green": LinearSegmentedColormap.from_list("green", colors=[(0, 0, 0), (0, 1, 0)]),
+            "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
+        }
+
         image = getattr(self, f"{color}_image").T
         self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
 
