@@ -25,14 +25,14 @@ def h5_file(tmpdir_factory):
         dset.attrs["Stop time (ns)"] = start + len(data) * dt
         dset.attrs["Sample rate (Hz)"] = 1 / dt * 1e9
 
-    make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5))
-    make_continuous_channel("Force HF", "Force 1y", 1, 10, np.arange(5, 10))
+    make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5.0))
+    make_continuous_channel("Force HF", "Force 1y", 1, 10, np.arange(5.0, 10.0))
 
     def make_timeseries_channel(group, name, data):
         if group not in mock_file:
             mock_file.create_group(group)
 
-        compound_type = np.dtype([("Timestamp", int), ("Value", float)])
+        compound_type = np.dtype([("Timestamp", np.int64), ("Value", float)])
         mock_file[group][name] = np.array(data, compound_type)
 
     make_timeseries_channel("Force LF", "Force 1x", [(1, 1.1), (2, 2.1)])

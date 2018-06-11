@@ -63,6 +63,39 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
         """The moment this file was exported"""
         return self.h5.attrs["Export time (ns)"]
 
+    def __repr__(self):
+        return f"lumicks.hdf5.File('{self.h5.filename}')"
+
+    def __str__(self):
+        """Show a quick ASCII overview of the file's contents"""
+        def print_attributes(file):
+            r = "File root metadata:\n"
+            for key, value in self.h5.attrs.items():
+                r += f"- {key}: {value}\n"
+            return r
+
+        def print_dataset(dset, name, indent):
+            space = " " * indent
+            r = f"{space}{name}:\n"
+            r += f"{space}- Data type: {dset.dtype}\n"
+            r += f"{space}- Size: {dset.size}\n"
+            return r
+
+        def print_group(group, name="", indent=-2):
+            r = ""
+            if name:
+                more = ":" if len(group) != 0 else ""
+                r += f"{' ' * indent}{name}{more}\n"
+
+            for key, item in group.items():
+                if isinstance(item, h5py.Dataset):
+                    r += print_dataset(item, key, indent + 2)
+                else:
+                    r += print_group(item, key, indent + 2)
+            return r
+
+        return print_attributes(self.h5) + "\n" + print_group(self.h5)
+
     def _get_force(self, n, xy):
         return make_continuous_channel(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
 
