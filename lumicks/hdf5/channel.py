@@ -35,7 +35,7 @@ class Slice:
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
         if len(self) == 0:
-            return Slice([], [])
+            return Slice([], [], self.labels)
 
         if isinstance(item, slice):
             if item.step is not None:
@@ -48,10 +48,10 @@ class Slice:
                 stop = self.timestamps[-1] + 1
 
             idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
-            return Slice(self.data[idx], self.timestamps[idx])
+            return Slice(self.data[idx], self.timestamps[idx], self.labels)
         else:
             idx = np.argwhere(self.timestamps == item)
-            return Slice(self.data[idx], self.timestamps[idx])
+            return Slice(self.data[idx], self.timestamps[idx], self.labels)
 
     def plot(self, **kwargs):
         import matplotlib.pyplot as plt
