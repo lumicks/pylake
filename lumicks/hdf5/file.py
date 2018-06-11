@@ -3,6 +3,7 @@ from typing import Dict
 
 from .channel import make_continuous_channel, make_timeseries_channel
 from .detail.mixin import Force, DownsampledFD, PhotonCounts
+from .fdcurve import FDCurve
 from .group import Group
 from .kymo import Kymo
 
@@ -112,3 +113,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
     @property
     def kymos(self) -> Dict[str, Kymo]:
         return {name: Kymo(dset, self) for name, dset in self.h5["Kymograph"].items()}
+
+    @property
+    def fdcurves(self) -> Dict[str, FDCurve]:
+        return {name: FDCurve(dset, self) for name, dset in self.h5["FD Curve"].items()}
