@@ -78,7 +78,7 @@ class Kymo(PhotonCounts):
         self.file = file
 
     def _get_photon_count(self, name):
-        return getattr(self.file, f"{name}_photons".lower())[self.start:self.stop]
+        return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     @property
     def has_fluorescence(self) -> bool:
@@ -98,15 +98,18 @@ class Kymo(PhotonCounts):
 
     @property
     def red_image(self):
-        return reconstruct_image(self.red_photons.data, self.infowave.data, self.pixels_per_line)
+        return reconstruct_image(self.red_photon_count.data, self.infowave.data,
+                                 self.pixels_per_line)
 
     @property
     def green_image(self):
-        return reconstruct_image(self.green_photons.data, self.infowave.data, self.pixels_per_line)
+        return reconstruct_image(self.green_photon_count.data, self.infowave.data,
+                                 self.pixels_per_line)
 
     @property
     def blue_image(self):
-        return reconstruct_image(self.blue_photons.data, self.infowave.data, self.pixels_per_line)
+        return reconstruct_image(self.blue_photon_count.data, self.infowave.data,
+                                 self.pixels_per_line)
 
     @property
     def rgb_image(self):

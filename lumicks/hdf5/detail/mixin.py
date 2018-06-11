@@ -119,13 +119,13 @@ class PhotonCounts:
         raise NotImplementedError
 
     @property
-    def red_photons(self) -> Slice:
+    def red_photon_count(self) -> Slice:
         return _try_get_or_empty(self._get_photon_count, "Red")
 
     @property
-    def green_photons(self) -> Slice:
+    def green_photon_count(self) -> Slice:
         return _try_get_or_empty(self._get_photon_count, "Green")
 
     @property
-    def blue_photons(self) -> Slice:
+    def blue_photon_count(self) -> Slice:
         return _try_get_or_empty(self._get_photon_count, "Blue")

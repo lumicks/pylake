@@ -66,7 +66,7 @@ def test_photon_count():
 
     a = Mapping()
     for name in properties:
-        assert getattr(a, f"{name}_photons") == f"{name}"
+        assert getattr(a, f"{name}_photon_count") == f"{name}"
 
     class Empty(mixin.PhotonCounts):
         def _get_photon_count(self, name):
@@ -74,4 +74,4 @@ def test_photon_count():
 
     b = Empty()
     for name in properties:
-        assert not getattr(b, f"{name}_photons")
+        assert not getattr(b, f"{name}_photon_count")
