@@ -2,6 +2,8 @@ import json
 import math
 import numpy as np
 
+from .detail.mixin import PhotonCounts
+
 
 def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     """Reconstruct a scan or kymograph image from raw data
@@ -53,7 +55,7 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     return pixels.reshape(-1, pixels_per_line)
 
 
-class Kymo:
+class Kymo(PhotonCounts):
     """A Kymograph exported from Bluelake
 
     Parameters
@@ -70,6 +72,9 @@ class Kymo:
         self.json = json.loads(h5py_dset.value)["value0"]
         self.file = file
 
+    def _get_photon_count(self, name):
+        return getattr(self.file, f"{name}_photons".lower())[self.start:self.stop]
+
     @property
     def has_fluorescence(self) -> bool:
         return self.json["fluorescence"]
@@ -85,18 +90,6 @@ class Kymo:
     @property
     def pixels_per_line(self):
         return self.json["scan volume"]["scan axes"][0]["num of pixels"]
-
-    @property
-    def red_photons(self):
-        return self.file.red_photons[self.start:self.stop]
-
-    @property
-    def green_photons(self):
-        return self.file.green_photons[self.start:self.stop]
-
-    @property
-    def blue_photons(self):
-        return self.file.blue_photons[self.start:self.stop]
 
     @property
     def red_image(self):

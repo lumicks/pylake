@@ -1,12 +1,13 @@
 import h5py
 from typing import Dict
 
-from .group import Group
 from .channel import make_continuous_channel, make_timeseries_channel
+from .detail.mixin import Force, DownsampledFD, PhotonCounts
+from .group import Group
 from .kymo import Kymo
 
 
-class File(Group):
+class File(Group, Force, DownsampledFD, PhotonCounts):
     """A convenient HDF5 file wrapper for reading data exported from Bluelake
 
     Parameters
@@ -65,99 +66,15 @@ class File(Group):
     def _get_force(self, n, xy):
         return make_continuous_channel(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
 
-    @property
-    def force1x(self):
-        return self._get_force(1, "x")
-
-    @property
-    def force1y(self):
-        return self._get_force(1, "y")
-
-    @property
-    def force2x(self):
-        return self._get_force(2, "x")
-
-    @property
-    def force2y(self):
-        return self._get_force(2, "y")
-
-    @property
-    def force3x(self):
-        return self._get_force(3, "x")
-
-    @property
-    def force3y(self):
-        return self._get_force(3, "y")
-
-    @property
-    def force4x(self):
-        return self._get_force(4, "x")
-
-    @property
-    def force4y(self):
-        return self._get_force(4, "y")
-
     def _get_downsampled_force(self, n, xy):
         return make_timeseries_channel(self.h5["Force LF"][f"Force {n}{xy}"], "Force (pN)")
-
-    @property
-    def downsampled_force1x(self):
-        return self._get_downsampled_force(1, "x")
-
-    @property
-    def downsampled_force1y(self):
-        return self._get_downsampled_force(1, "y")
-
-    @property
-    def downsampled_force2x(self):
-        return self._get_downsampled_force(2, "x")
-
-    @property
-    def downsampled_force2y(self):
-        return self._get_downsampled_force(2, "y")
-
-    @property
-    def downsampled_force3x(self):
-        return self._get_downsampled_force(3, "x")
-
-    @property
-    def downsampled_force3y(self):
-        return self._get_downsampled_force(3, "y")
-
-    @property
-    def downsampled_force4x(self):
-        return self._get_downsampled_force(4, "x")
-
-    @property
-    def downsampled_force4y(self):
-        return self._get_downsampled_force(4, "y")
 
     def _get_distance(self, n):
         return make_timeseries_channel(self.h5["Distance"][f"Distance {n}"],
                                        r"Distance ($\mu$m)")
 
-    @property
-    def distance1(self):
-        return self._get_distance(1)
-
-    @property
-    def distance2(self):
-        return self._get_distance(2)
-
     def _get_photon_count(self, name):
         return make_continuous_channel(self.h5["Photon count"][name], "Photon count")
-
-    @property
-    def red_photons(self):
-        return self._get_photon_count("Red")
-
-    @property
-    def green_photons(self):
-        return self._get_photon_count("Green")
-
-    @property
-    def blue_photons(self):
-        return self._get_photon_count("Blue")
 
     @property
     def kymos(self) -> Dict[str, Kymo]:
