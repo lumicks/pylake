@@ -1,3 +1,4 @@
+import enum
 import json
 import math
 import numpy as np
@@ -25,20 +26,24 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     np.ndarray
     """
     assert data.size == infowave.size
-    code = {"discard": 0, "use": 1, "pixel_boundary": 2}
+
+    class Code(enum.IntEnum):
+        discard = 0
+        use = 1
+        pixel_boundary = 2
 
     # Example infowave:
     #  1 0 0 1 0 1 2 0 1 0 0 1 0 1 0 1 0 0 1 0 2 0 1 0 1 0 0 1 0 1 0 1 2 1 0 0 1
     #              ^ <-----------------------> ^                       ^
     #                       one pixel
-    valid_idx = infowave != code["discard"]
+    valid_idx = infowave != Code.discard
     infowave = infowave[valid_idx]
 
     # After discard:
     #  1 1 1 2 1 1 1 1 1 2 1 1 1 1 1 2 1 1 1
     #        ^ <-------> ^           ^
     #         pixel_size (i.e. data samples per pixel)
-    pixel_sizes = np.diff(np.flatnonzero(infowave == code["pixel_boundary"]))
+    pixel_sizes = np.diff(np.flatnonzero(infowave == Code.pixel_boundary))
     pixel_size = pixel_sizes[0]
     # For now we assume that every pixel consists of the same number of samples
     assert np.all(pixel_sizes == pixel_size)
