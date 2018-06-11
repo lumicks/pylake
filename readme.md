@@ -68,7 +68,10 @@ f1x_timestamps = h5file.force1x.timestamps
 plt.plot(f1x_timestamps, f1x_data)
 ```
 
-### Kymographs
+### Scans and kymographs
+
+The following code uses kymographs as an example. 
+Scans work the same way -- just substitute `h5file.kymos` with `h5file.scans`.
 
 ```python
 # Plot all kymographs in a file

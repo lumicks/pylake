@@ -1,5 +1,5 @@
 import numpy as np
-from lumicks.hdf5.kymo import reconstruct_image
+from lumicks.hdf5.detail.image import reconstruct_image
 
 
 def test_reconstruct():

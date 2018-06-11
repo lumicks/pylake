@@ -7,6 +7,7 @@ from .detail.mixin import Force, DownsampledFD, PhotonCounts
 from .fdcurve import FDCurve
 from .group import Group
 from .kymo import Kymo
+from .scan import Scan
 
 
 class File(Group, Force, DownsampledFD, PhotonCounts):
@@ -132,6 +133,10 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
     @property
     def kymos(self) -> Dict[str, Kymo]:
         return {name: Kymo(dset, self) for name, dset in self.h5["Kymograph"].items()}
+
+    @property
+    def scans(self) -> Dict[str, Scan]:
+        return {name: Scan(dset, self) for name, dset in self.h5["Scan"].items()}
 
     @property
     def fdcurves(self) -> Dict[str, FDCurve]:
