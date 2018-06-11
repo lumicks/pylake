@@ -57,6 +57,22 @@ class DownsampledFD:
         raise NotImplementedError
 
     @property
+    def downsampled_force1(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 1, "")
+
+    @property
+    def downsampled_force2(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 2, "")
+
+    @property
+    def downsampled_force3(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 3, "")
+
+    @property
+    def downsampled_force4(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 4, "")
+
+    @property
     def downsampled_force1x(self) -> Slice:
         return _try_get_or_empty(self._get_downsampled_force, 1, "x")
 

@@ -4,6 +4,10 @@ from .detail.mixin import DownsampledFD
 class FDCurve(DownsampledFD):
     """An FD curve exported from Bluelake
 
+    By default, the primary force and distance channels are `downsampled_force2`
+    and `distance1`. Alternatives can be selected using `FDCurve.with_channels()`.
+    Note that it does not modify the FD curve in place but returns a copy.
+
     Parameters
     ----------
     h5py_dset : h5py.Dataset
@@ -11,7 +15,7 @@ class FDCurve(DownsampledFD):
     file : lumicks.hdf5.File
         The parent file. Used to loop up channel data.
     """
-    def __init__(self, h5py_dset, file, force="1x", distance="1"):
+    def __init__(self, h5py_dset, file, force="2", distance="1"):
         self.dset = h5py_dset
         self.start = h5py_dset.attrs["Start time (ns)"]
         self.stop = h5py_dset.attrs["Stop time (ns)"]

@@ -1,7 +1,8 @@
 import h5py
+import numpy as np
 from typing import Dict
 
-from .channel import make_continuous_channel, make_timeseries_channel
+from .channel import make_continuous_channel, make_timeseries_channel, Slice
 from .detail.mixin import Force, DownsampledFD, PhotonCounts
 from .fdcurve import FDCurve
 from .group import Group
@@ -101,7 +102,25 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
         return make_continuous_channel(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
 
     def _get_downsampled_force(self, n, xy):
-        return make_timeseries_channel(self.h5["Force LF"][f"Force {n}{xy}"], "Force (pN)")
+        group = self.h5["Force LF"]
+
+        def make(channel):
+            return make_timeseries_channel(group[channel], "Force (pN)")
+
+        if xy:  # An x or y component of the downsampled force is easy
+            return make(f"Force {n}{xy}")
+
+        # Sum force channels can have inconsistent names
+        if f"Force {n}" in group:
+            return make(f"Force {n}")
+        elif f"Trap {n}" in group:
+            return make(f"Trap {n}")
+
+        # If it's completely missing, we can reconstruct it from the x and y components
+        fx = make(f"Force {n}x")
+        fy = make(f"Force {n}y")
+        return Slice(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps,
+                     labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"})
 
     def _get_distance(self, n):
         return make_timeseries_channel(self.h5["Distance"][f"Distance {n}"],

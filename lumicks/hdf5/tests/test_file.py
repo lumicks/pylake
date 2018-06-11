@@ -29,6 +29,13 @@ def test_channels(h5_file):
     assert f.downsampled_force1x.labels["y"] == "Force (pN)"
     assert f.downsampled_force1x.labels["title"] == "Force LF/Force 1x"
 
+    vsum_force = np.sqrt(f.downsampled_force1x.data**2 + f.downsampled_force1y.data**2)
+    assert np.allclose(f.downsampled_force1.data, vsum_force)
+    assert np.allclose(f.downsampled_force1.timestamps, [1, 2])
+    assert "x" not in f.downsampled_force1.labels
+    assert f.downsampled_force1.labels["y"] == "Force (pN)"
+    assert f.downsampled_force1.labels["title"] == "Force LF/Force 1"
+
 
 def test_repr_and_str(h5_file):
     f = hdf5.File.from_h5py(h5_file)
