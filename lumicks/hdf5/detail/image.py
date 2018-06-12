@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 
-def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
+def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, reduce=np.sum):
     """Reconstruct a scan or kymograph image from raw data
 
     Parameters
@@ -14,6 +14,8 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
         The famous infowave.
     pixels_per_line : int
         The number of pixels on the fast axis of the scan.
+    lines_per_frame : Optional[int]
+        The number of pixels on the slow axis of the scan. Only needed for multi-frame scans.
     reduce : callable
         A function which reduces multiple sample into a pixel. Usually `np.sum`
         for photon counts and `np.mean` for force samples.
@@ -53,8 +55,13 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     data.resize(round_up(data.size, pixel_size))
 
     pixels = reduce(data.reshape(-1, pixel_size), axis=1)
-    pixels.resize(round_up(pixels.size, pixels_per_line))
-    return pixels.reshape(-1, pixels_per_line)
+
+    if lines_per_frame is None:
+        pixels.resize(round_up(pixels.size, pixels_per_line))
+        return pixels.reshape(-1, pixels_per_line)
+    else:
+        pixels.resize(round_up(pixels.size, pixels_per_line * lines_per_frame))
+        return pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
 
 
 def save_tiff(image, filename, dtype, clip=False):

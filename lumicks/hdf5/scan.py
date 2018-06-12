@@ -1,4 +1,7 @@
+import numpy as np
+
 from .kymo import Kymo
+from .detail.image import reconstruct_image
 
 
 class Scan(Kymo):
@@ -13,21 +16,26 @@ class Scan(Kymo):
     """
     def __init__(self, h5py_dset, file):
         super().__init__(h5py_dset, file)
+        self.num_frames = self.json["scan count"]
+        if self.num_frames == 0:
+            # For continuous scans this number is dynamic
+            # TODO: this is not an efficient way to determine the total number of frames
+            self.num_frames = self._image("red").shape[0]
 
     @property
-    def red_image(self):
-        return super().red_image.T
+    def lines_per_frame(self):
+        return self.json["scan volume"]["scan axes"][1]["num of pixels"]
 
-    @property
-    def green_image(self):
-        return super().green_image.T
-
-    @property
-    def blue_image(self):
-        return super().blue_image.T
+    def _image(self, color):
+        return reconstruct_image(getattr(self, f"{color}_photon_count").data, self.infowave.data,
+                                 self.pixels_per_line, self.lines_per_frame)
 
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
+
+        frame = np.clip(kwargs.pop("frame", 1), 1, self.num_frames)
+        if self.num_frames != 1:
+            image = image[frame - 1]
 
         x_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
         y_um = self.json["scan volume"]["scan axes"][1]["scan width (um)"]
@@ -39,4 +47,7 @@ class Scan(Kymo):
         plt.imshow(image, **{**default_kwargs, **kwargs})
         plt.xlabel(r"x ($\mu$m)")
         plt.ylabel(r"y ($\mu$m)")
-        plt.title(self.name)
+        if self.num_frames == 1:
+            plt.title(self.name)
+        else:
+            plt.title(f"{self.name} [frame {frame}/{self.num_frames}]")

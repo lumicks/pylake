@@ -41,24 +41,25 @@ class Kymo(PhotonCounts):
     def pixels_per_line(self):
         return self.json["scan volume"]["scan axes"][0]["num of pixels"]
 
+    def _image(self, color):
+        return reconstruct_image(getattr(self, f"{color}_photon_count").data, self.infowave.data,
+                                 self.pixels_per_line).T
+
     @property
     def red_image(self):
-        return reconstruct_image(self.red_photon_count.data, self.infowave.data,
-                                 self.pixels_per_line)
+        return self._image("red")
 
     @property
     def green_image(self):
-        return reconstruct_image(self.green_photon_count.data, self.infowave.data,
-                                 self.pixels_per_line)
+        return self._image("green")
 
     @property
     def blue_image(self):
-        return reconstruct_image(self.blue_photon_count.data, self.infowave.data,
-                                 self.pixels_per_line)
+        return self._image("blue")
 
     @property
     def rgb_image(self):
-        color_channels = [getattr(self, f"{color}_image") for color in ("red", "green", "blue")]
+        color_channels = [getattr(self, f"{color}_image").T for color in ("red", "green", "blue")]
         return np.stack(color_channels).T
 
     def _plot(self, image, **kwargs):
@@ -86,7 +87,7 @@ class Kymo(PhotonCounts):
             "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
         }
 
-        image = getattr(self, f"{color}_image").T
+        image = getattr(self, f"{color}_image")
         self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
 
     def plot_red(self, **kwargs):

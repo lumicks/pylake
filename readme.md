@@ -97,3 +97,12 @@ plt.plot(photons.timestamps, photons.data)
 # Saving photon counts to TIFF
 kymo.save_tiff("kymograph.tiff")
 ```
+
+```python
+scan = h5file.scans["name"]
+
+# A scan can have multiple frames
+print(scan.num_frames)
+print(scan.blue_image.shape)  # (self.num_frames, h, w) -> single color channel
+print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
+```

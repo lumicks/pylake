@@ -17,6 +17,20 @@ def test_reconstruct():
     assert np.all(image == [[4, 8], [12, 0]])
 
 
+def test_reconstruct_multiframe():
+    size = 100
+    infowave = np.ones(size)
+    infowave[::10] = 2
+    the_data = np.arange(size)
+
+    assert reconstruct_image(the_data, infowave, 5).shape == (2, 5)
+    assert reconstruct_image(the_data, infowave, 2).shape == (5, 2)
+    assert reconstruct_image(the_data, infowave, 1).shape == (10, 1)
+    assert reconstruct_image(the_data, infowave, 2, 2).shape == (3, 2, 2)
+    assert reconstruct_image(the_data, infowave, 2, 3).shape == (2, 3, 2)
+    assert reconstruct_image(the_data, infowave, 2, 5).shape == (5, 2)
+
+
 def test_tiff(tmpdir):
     shape = (10, 10, 3)
     image16 = np.random.randint(0, 32000, shape)
