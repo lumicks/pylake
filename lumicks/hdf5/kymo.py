@@ -2,7 +2,7 @@ import json
 import numpy as np
 
 from .detail.mixin import PhotonCounts
-from .detail.image import reconstruct_image
+from .detail.image import reconstruct_image, save_tiff
 
 
 class Kymo(PhotonCounts):
@@ -130,3 +130,18 @@ class Kymo(PhotonCounts):
         image = self.rgb_image
         image = image / np.max(image)
         self._plot(image, **kwargs)
+
+    def save_tiff(self, filename, dtype=np.uint16, clip=False):
+        """Save the RGB photon counts to a TIFF image
+
+        Parameters
+        ----------
+        filename : str
+            The name of the TIFF file where the image will be saved.
+        dtype : np.dtype
+            The data type of a single color channel in the resulting image.
+        clip : bool
+            If enabled, the photon count data will be clipped to fit into the desired `dtype`.
+            This option is disabled by default: an error will be raise if the data does not fit.
+        """
+        save_tiff(self.rgb_image, filename, dtype, clip)

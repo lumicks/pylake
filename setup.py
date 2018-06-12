@@ -50,6 +50,6 @@ setup(
 
     packages=find_packages(exclude=['test*']),
     install_requires=['pytest>=3.5, <4.0', 'h5py>=2.7, <3.0', 'numpy>=1.14, <2',
-                      'matplotlib>=2.2, <3'],
+                      'matplotlib>=2.2, <3', 'tifffile>=0.14, <1'],
     zip_safe=False,
 )

@@ -93,4 +93,7 @@ plt.imshow(rgb)
 # Low-level raw data
 photons = kymo.red_photons
 plt.plot(photons.timestamps, photons.data)
+
+# Saving photon counts to TIFF
+kymo.save_tiff("kymograph.tiff")
 ```

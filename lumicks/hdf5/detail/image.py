@@ -55,3 +55,31 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     pixels = reduce(data.reshape(-1, pixel_size), axis=1)
     pixels.resize(round_up(pixels.size, pixels_per_line))
     return pixels.reshape(-1, pixels_per_line)
+
+
+def save_tiff(image, filename, dtype, clip=False):
+        """Save an RGB `image` to TIFF
+
+        This is a thin wrapper around `tifffile` with additional safety checks
+
+        Parameters
+        ----------
+        image : np.array
+            Image data. An RGB image is expected to have `shape == (w, h, 3)`.
+        filename : str
+            The name of the TIFF file where the image will be saved.
+        dtype : np.dtype
+            The data type of a single color channel in the resulting image.
+        clip : bool
+            If enabled, the photon count data will be clipped to fit into the desired `dtype`.
+            This option is disabled by default: an error will be raise if the data does not fit.
+        """
+        import tifffile
+
+        iinfo = np.iinfo(dtype)
+        if not clip and (np.min(image) < iinfo.min or np.max(image) > iinfo.max):
+            raise RuntimeError(f"Can't safely export image with `dtype={dtype.__name__}` channels."
+                               f" Switch to a larger `dtype` in order to safely store everything"
+                               f" or pass `force=True` to clip the data.")
+
+        tifffile.imsave(filename, image.astype(dtype))

@@ -1,5 +1,7 @@
+import pytest
 import numpy as np
-from lumicks.hdf5.detail.image import reconstruct_image
+
+from lumicks.hdf5.detail.image import reconstruct_image, save_tiff
 
 
 def test_reconstruct():
@@ -13,3 +15,16 @@ def test_reconstruct():
     image = reconstruct_image(the_data, infowave, 2)
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
+
+
+def test_tiff(tmpdir):
+    shape = (10, 10, 3)
+    image16 = np.random.randint(0, 32000, shape)
+
+    save_tiff(image16, str(tmpdir.join("1")), dtype=np.uint16)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        save_tiff(image16, str(tmpdir.join("2")), dtype=np.uint8)
+    assert "Can't safely export image with `dtype=uint8` channels" in str(excinfo.value)
+
+    save_tiff(image16, str(tmpdir.join("3")), dtype=np.uint8, clip=True)
