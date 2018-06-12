@@ -9,6 +9,8 @@ from .group import Group
 from .kymo import Kymo
 from .scan import Scan
 
+__all__ = ["File"]
+
 
 class File(Group, Force, DownsampledFD, PhotonCounts):
     """A convenient HDF5 file wrapper for reading data exported from Bluelake
