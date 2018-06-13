@@ -68,6 +68,29 @@ f1x_timestamps = h5file.force1x.timestamps
 plt.plot(f1x_timestamps, f1x_data)
 ```
 
+### Slicing data channels
+
+```python
+# Take the entire channel
+everything = h5file.force1x
+everything.plot()
+
+# Get the data between 1 and 1.5 seconds
+part = h5file.force1x['1s':'1.5s']
+part.plot()
+# Or manually
+f1x_data = part.data
+f1x_timestamps = part.timestamps
+plt.plot(f1x_timestamps, f1x_data)
+
+# More slicing examples
+a = h5file.force1x[:'-5s']  # everything except the last 5 seconds
+b = h5file.force1x['-1m':]  # take the last minute
+c = h5file.force1x['-1m':'-500ms']  # last minute except the last 0.5 seconds
+d = h5file.force1x['1.2s':'-4s']  # between 1.2 seconds and 4 seconds from the end
+e = h5file.force1x['5.7m':'1h 40m']  # 5.7 minutes to an hour and 40 minutes
+```
+
 ### Scans and kymographs
 
 The following code uses kymographs as an example. 

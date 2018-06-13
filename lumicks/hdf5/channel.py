@@ -1,5 +1,7 @@
 import numpy as np
 
+from .detail.timeindex import to_timestamp
+
 
 class Slice:
     """A lazily evaluated* slice of a timeline channel
@@ -37,20 +39,24 @@ class Slice:
         if len(self) == 0:
             return Slice([], [], self.labels)
 
+        first = self.timestamps[0]
+        after_last = self.timestamps[-1] + 1
+
         if isinstance(item, slice):
             if item.step is not None:
-                raise IndexError("Slice steps are currently not supported")
+                raise IndexError("Slice steps are not supported")
 
             start, stop = item.start, item.stop
             if start is None:
-                start = self.timestamps[0]
+                start = first
             if stop is None:
-                stop = self.timestamps[-1] + 1
+                stop = after_last
+            start, stop = (to_timestamp(v, first, after_last) for v in (start, stop))
 
             idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
             return Slice(self.data[idx], self.timestamps[idx], self.labels)
         else:
-            idx = np.argwhere(self.timestamps == item)
+            idx = np.argwhere(self.timestamps == to_timestamp(item, first, after_last))
             return Slice(self.data[idx], self.timestamps[idx], self.labels)
 
     def plot(self, **kwargs):
