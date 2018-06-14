@@ -12,6 +12,22 @@ def test_slice_properties():
     assert len(s) == 0
 
 
+def test_labels():
+    """Slicing must preserve labels"""
+    size = 5
+    labels = {"x": "distance", "y": "force"}
+    s = channel.Slice(np.random.rand(size), np.random.rand(size), labels)
+    assert s.labels == labels
+    assert s[:].labels == labels
+    assert s[:0].labels == labels
+    assert s[:10].labels == labels
+
+    s = channel.Slice([], [], labels)
+    assert len(s) == 0
+    assert s.labels == labels
+    assert s[:].labels == labels
+
+
 def test_indexing():
     """The default integer indices are in timestamps (ns)"""
     s = channel.Slice([14, 15, 16, 17], [4, 5, 6, 7])

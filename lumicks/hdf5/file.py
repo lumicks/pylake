@@ -1,12 +1,15 @@
 import h5py
+import numpy as np
 from typing import Dict
 
+from .channel import make_continuous_channel, make_timeseries_channel, Slice
+from .detail.mixin import Force, DownsampledFD, PhotonCounts
+from .fdcurve import FDCurve
 from .group import Group
-from .channel import make_continuous_channel, make_timeseries_channel
 from .kymo import Kymo
 
 
-class File(Group):
+class File(Group, Force, DownsampledFD, PhotonCounts):
     """A convenient HDF5 file wrapper for reading data exported from Bluelake
 
     Parameters
@@ -62,103 +65,74 @@ class File(Group):
         """The moment this file was exported"""
         return self.h5.attrs["Export time (ns)"]
 
+    def __repr__(self):
+        return f"lumicks.hdf5.File('{self.h5.filename}')"
+
+    def __str__(self):
+        """Show a quick ASCII overview of the file's contents"""
+        def print_attributes(file):
+            r = "File root metadata:\n"
+            for key, value in self.h5.attrs.items():
+                r += f"- {key}: {value}\n"
+            return r
+
+        def print_dataset(dset, name, indent):
+            space = " " * indent
+            r = f"{space}{name}:\n"
+            r += f"{space}- Data type: {dset.dtype}\n"
+            r += f"{space}- Size: {dset.size}\n"
+            return r
+
+        def print_group(group, name="", indent=-2):
+            r = ""
+            if name:
+                more = ":" if len(group) != 0 else ""
+                r += f"{' ' * indent}{name}{more}\n"
+
+            for key, item in group.items():
+                if isinstance(item, h5py.Dataset):
+                    r += print_dataset(item, key, indent + 2)
+                else:
+                    r += print_group(item, key, indent + 2)
+            return r
+
+        return print_attributes(self.h5) + "\n" + print_group(self.h5)
+
     def _get_force(self, n, xy):
         return make_continuous_channel(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
 
-    @property
-    def force1x(self):
-        return self._get_force(1, "x")
-
-    @property
-    def force1y(self):
-        return self._get_force(1, "y")
-
-    @property
-    def force2x(self):
-        return self._get_force(2, "x")
-
-    @property
-    def force2y(self):
-        return self._get_force(2, "y")
-
-    @property
-    def force3x(self):
-        return self._get_force(3, "x")
-
-    @property
-    def force3y(self):
-        return self._get_force(3, "y")
-
-    @property
-    def force4x(self):
-        return self._get_force(4, "x")
-
-    @property
-    def force4y(self):
-        return self._get_force(4, "y")
-
     def _get_downsampled_force(self, n, xy):
-        return make_timeseries_channel(self.h5["Force LF"][f"Force {n}{xy}"], "Force (pN)")
+        group = self.h5["Force LF"]
 
-    @property
-    def downsampled_force1x(self):
-        return self._get_downsampled_force(1, "x")
+        def make(channel):
+            return make_timeseries_channel(group[channel], "Force (pN)")
 
-    @property
-    def downsampled_force1y(self):
-        return self._get_downsampled_force(1, "y")
+        if xy:  # An x or y component of the downsampled force is easy
+            return make(f"Force {n}{xy}")
 
-    @property
-    def downsampled_force2x(self):
-        return self._get_downsampled_force(2, "x")
+        # Sum force channels can have inconsistent names
+        if f"Force {n}" in group:
+            return make(f"Force {n}")
+        elif f"Trap {n}" in group:
+            return make(f"Trap {n}")
 
-    @property
-    def downsampled_force2y(self):
-        return self._get_downsampled_force(2, "y")
-
-    @property
-    def downsampled_force3x(self):
-        return self._get_downsampled_force(3, "x")
-
-    @property
-    def downsampled_force3y(self):
-        return self._get_downsampled_force(3, "y")
-
-    @property
-    def downsampled_force4x(self):
-        return self._get_downsampled_force(4, "x")
-
-    @property
-    def downsampled_force4y(self):
-        return self._get_downsampled_force(4, "y")
+        # If it's completely missing, we can reconstruct it from the x and y components
+        fx = make(f"Force {n}x")
+        fy = make(f"Force {n}y")
+        return Slice(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps,
+                     labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"})
 
     def _get_distance(self, n):
         return make_timeseries_channel(self.h5["Distance"][f"Distance {n}"],
                                        r"Distance ($\mu$m)")
 
-    @property
-    def distance1(self):
-        return self._get_distance(1)
-
-    @property
-    def distance2(self):
-        return self._get_distance(2)
-
     def _get_photon_count(self, name):
         return make_continuous_channel(self.h5["Photon count"][name], "Photon count")
 
     @property
-    def red_photons(self):
-        return self._get_photon_count("Red")
-
-    @property
-    def green_photons(self):
-        return self._get_photon_count("Green")
-
-    @property
-    def blue_photons(self):
-        return self._get_photon_count("Blue")
-
-    @property
     def kymos(self) -> Dict[str, Kymo]:
         return {name: Kymo(dset, self) for name, dset in self.h5["Kymograph"].items()}
+
+    @property
+    def fdcurves(self) -> Dict[str, FDCurve]:
+        return {name: FDCurve(dset, self) for name, dset in self.h5["FD Curve"].items()}

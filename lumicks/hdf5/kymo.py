@@ -1,6 +1,9 @@
+import enum
 import json
 import math
 import numpy as np
+
+from .detail.mixin import PhotonCounts
 
 
 def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
@@ -23,20 +26,24 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     np.ndarray
     """
     assert data.size == infowave.size
-    code = {"discard": 0, "use": 1, "pixel_boundary": 2}
+
+    class Code(enum.IntEnum):
+        discard = 0
+        use = 1
+        pixel_boundary = 2
 
     # Example infowave:
     #  1 0 0 1 0 1 2 0 1 0 0 1 0 1 0 1 0 0 1 0 2 0 1 0 1 0 0 1 0 1 0 1 2 1 0 0 1
     #              ^ <-----------------------> ^                       ^
     #                       one pixel
-    valid_idx = infowave != code["discard"]
+    valid_idx = infowave != Code.discard
     infowave = infowave[valid_idx]
 
     # After discard:
     #  1 1 1 2 1 1 1 1 1 2 1 1 1 1 1 2 1 1 1
     #        ^ <-------> ^           ^
     #         pixel_size (i.e. data samples per pixel)
-    pixel_sizes = np.diff(np.flatnonzero(infowave == code["pixel_boundary"]))
+    pixel_sizes = np.diff(np.flatnonzero(infowave == Code.pixel_boundary))
     pixel_size = pixel_sizes[0]
     # For now we assume that every pixel consists of the same number of samples
     assert np.all(pixel_sizes == pixel_size)
@@ -53,7 +60,7 @@ def reconstruct_image(data, infowave, pixels_per_line, reduce=np.sum):
     return pixels.reshape(-1, pixels_per_line)
 
 
-class Kymo:
+class Kymo(PhotonCounts):
     """A Kymograph exported from Bluelake
 
     Parameters
@@ -69,6 +76,9 @@ class Kymo:
         self.name = h5py_dset.name.split("/")[-1]
         self.json = json.loads(h5py_dset.value)["value0"]
         self.file = file
+
+    def _get_photon_count(self, name):
+        return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     @property
     def has_fluorescence(self) -> bool:
@@ -87,28 +97,19 @@ class Kymo:
         return self.json["scan volume"]["scan axes"][0]["num of pixels"]
 
     @property
-    def red_photons(self):
-        return self.file.red_photons[self.start:self.stop]
-
-    @property
-    def green_photons(self):
-        return self.file.green_photons[self.start:self.stop]
-
-    @property
-    def blue_photons(self):
-        return self.file.blue_photons[self.start:self.stop]
-
-    @property
     def red_image(self):
-        return reconstruct_image(self.red_photons.data, self.infowave.data, self.pixels_per_line)
+        return reconstruct_image(self.red_photon_count.data, self.infowave.data,
+                                 self.pixels_per_line)
 
     @property
     def green_image(self):
-        return reconstruct_image(self.green_photons.data, self.infowave.data, self.pixels_per_line)
+        return reconstruct_image(self.green_photon_count.data, self.infowave.data,
+                                 self.pixels_per_line)
 
     @property
     def blue_image(self):
-        return reconstruct_image(self.blue_photons.data, self.infowave.data, self.pixels_per_line)
+        return reconstruct_image(self.blue_photon_count.data, self.infowave.data,
+                                 self.pixels_per_line)
 
     @property
     def rgb_image(self):
