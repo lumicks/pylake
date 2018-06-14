@@ -25,12 +25,6 @@ class Slice:
         self.timestamps = np.asarray(timestamps)
         self.labels = labels or {}
 
-    def __array__(self):
-        """Coerce this slice into an `np.ndarray` of data values (no timestamps)"""
-        # TODO: Currently, this just returns pre-formed data array, but it should eventually
-        #       do lazy evaluation by only loading timeline data here on demand.
-        return self.data
-
     def __len__(self):
         return len(self.data)
 

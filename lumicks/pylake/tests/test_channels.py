@@ -105,14 +105,6 @@ def test_time_indexing():
     assert len(s['1s':'2h'].data) == 0
 
 
-def test_asarray():
-    """Slices can be given to numpy functions"""
-    s = channel.Slice([14, 15, 16, 17], [4, 5, 6, 7])
-
-    np.testing.assert_equal(np.asarray(s), s.data)
-    assert np.sum(s) == np.sum(s.data)
-
-
 def test_inspections(h5_file):
     assert channel.is_continuous_channel(h5_file["Force HF"]["Force 1x"]) is True
     assert channel.is_continuous_channel(h5_file["Force LF"]["Force 1x"]) is False
