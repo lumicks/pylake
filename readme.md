@@ -68,7 +68,10 @@ f1x_timestamps = h5file.force1x.timestamps
 plt.plot(f1x_timestamps, f1x_data)
 ```
 
-### Kymographs
+### Scans and kymographs
+
+The following code uses kymographs as an example. 
+Scans work the same way -- just substitute `h5file.kymos` with `h5file.scans`.
 
 ```python
 # Plot all kymographs in a file
@@ -90,4 +93,16 @@ plt.imshow(rgb)
 # Low-level raw data
 photons = kymo.red_photons
 plt.plot(photons.timestamps, photons.data)
+
+# Saving photon counts to TIFF
+kymo.save_tiff("kymograph.tiff")
+```
+
+```python
+scan = h5file.scans["name"]
+
+# A scan can have multiple frames
+print(scan.num_frames)
+print(scan.blue_image.shape)  # (self.num_frames, h, w) -> single color channel
+print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
 ```
