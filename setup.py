@@ -31,6 +31,7 @@ setup(
     version=info['__version__'],
     description=info['__summary__'],
     long_description=read("readme.md"),
+    long_description_content_type="text/markdown",
     url=info['__url__'],
     license=info['__license__'],
     keywords="",
@@ -49,6 +50,7 @@ setup(
     ],
 
     packages=PEP420PackageFinder.find(include=["lumicks.*"]),
+    python_requires='>=3.6',
     install_requires=['pytest>=3.5, <4.0', 'h5py>=2.7, <3.0', 'numpy>=1.14, <2',
                       'matplotlib>=2.2, <3'],
     zip_safe=False,
