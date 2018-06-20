@@ -1,6 +1,6 @@
 import os
 import sys
-from setuptools import setup, find_packages
+from setuptools import setup, PEP420PackageFinder
 from setuptools.command.egg_info import manifest_maker
 
 if sys.version_info[:2] < (3, 6):
@@ -48,7 +48,7 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
     ],
 
-    packages=find_packages(exclude=['test*']),
+    packages=PEP420PackageFinder.find(include=["lumicks.*"]),
     install_requires=['pytest>=3.5, <4.0', 'h5py>=2.7, <3.0', 'numpy>=1.14, <2',
                       'matplotlib>=2.2, <3'],
     zip_safe=False,
