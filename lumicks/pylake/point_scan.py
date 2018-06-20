@@ -10,7 +10,7 @@ class PointScan(PhotonCounts):
     ----------
     h5py_dset : h5py.Dataset
         The original HDF5 dataset containing the point scan
-    file : lumicks.hdf5.File
+    file : lumicks.pylake.File
         The parent file. Used to look up channel data.
     """
     def __init__(self, h5py_dset, file):

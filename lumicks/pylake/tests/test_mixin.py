@@ -1,4 +1,4 @@
-from lumicks.hdf5.detail import mixin
+from lumicks.pylake.detail import mixin
 import itertools
 
 

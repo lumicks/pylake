@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from lumicks.hdf5.detail.image import reconstruct_image, save_tiff
+from lumicks.pylake.detail.image import reconstruct_image, save_tiff
 
 
 def test_reconstruct():

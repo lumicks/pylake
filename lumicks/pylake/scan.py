@@ -11,7 +11,7 @@ class Scan(Kymo):
     ----------
     h5py_dset : h5py.Dataset
         The original HDF5 dataset containing kymo information
-    file : lumicks.hdf5.File
+    file : lumicks.pylake.File
         The parent file. Used to loop up channel data
     """
     def __init__(self, h5py_dset, file):

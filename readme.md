@@ -1,27 +1,27 @@
-# Lumicks Python toolbox
+# Lumicks pylake 
 
-This is a Python package with various tools for Bluelake.
+This Python package includes data analysis tools for Bluelake HDF5 data.
 
 ## Install
 
 For general use, all you need to do is enter the following on the command line:
 
 ```bash
-pip install lumicks
+pip install lumicks.pylake
 ```
 
 To upgrade to the latest version:
 
 ```bash
-pip install -U lumicks
+pip install -U lumicks.pylake
 ```
 
 ## Reading HDF5 files
 
 ```python
-import lumicks
+from lumicks import pylake
 
-h5file = lumicks.hdf5.File("example.h5")
+h5file = pylake.File("example.h5")
 ```
 
 ### FD curves

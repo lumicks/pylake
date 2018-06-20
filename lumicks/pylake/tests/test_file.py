@@ -1,10 +1,10 @@
 import numpy as np
-from lumicks import hdf5
+from lumicks import pylake
 from textwrap import dedent
 
 
 def test_attributes(h5_file):
-    f = hdf5.File.from_h5py(h5_file)
+    f = pylake.File.from_h5py(h5_file)
 
     assert type(f.bluelake_version) is str
     assert f.format_version == 1
@@ -15,7 +15,7 @@ def test_attributes(h5_file):
 
 
 def test_channels(h5_file):
-    f = hdf5.File.from_h5py(h5_file)
+    f = pylake.File.from_h5py(h5_file)
 
     assert np.allclose(f.force1x.data, [0, 1, 2, 3, 4])
     assert np.allclose(f.force1x.timestamps, [1, 11, 21, 31, 41])
@@ -38,9 +38,9 @@ def test_channels(h5_file):
 
 
 def test_repr_and_str(h5_file):
-    f = hdf5.File.from_h5py(h5_file)
+    f = pylake.File.from_h5py(h5_file)
 
-    assert repr(f) == f"lumicks.hdf5.File('{h5_file.filename}')"
+    assert repr(f) == f"lumicks.pylake.File('{h5_file.filename}')"
     assert str(f) == dedent("""\
         File root metadata:
         - Bluelake version: unknown

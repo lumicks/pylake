@@ -24,7 +24,9 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
     Examples
     --------
     ```
-    file = lumicks.hdf5.File("example.h5")
+    from lumicks import pylake
+
+    file = pylake.File("example.h5")
     file.force1x.plot()
     file.kymos["name"].plot()
     ```
@@ -70,7 +72,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
         return self.h5.attrs["Export time (ns)"]
 
     def __repr__(self):
-        return f"lumicks.hdf5.File('{self.h5.filename}')"
+        return f"lumicks.pylake.File('{self.h5.filename}')"
 
     def __str__(self):
         """Show a quick ASCII overview of the file's contents"""

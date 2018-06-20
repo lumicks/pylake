@@ -5,7 +5,7 @@ import pytest
 
 @pytest.fixture(scope="session")
 def h5_file(tmpdir_factory):
-    tmpdir = tmpdir_factory.mktemp("hdf5")
+    tmpdir = tmpdir_factory.mktemp("pylake")
     mock_file = h5py.File(tmpdir.join("tmp.h5"), 'w')
 
     mock_file.attrs["Bluelake version"] = "unknown"

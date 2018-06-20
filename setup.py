@@ -10,7 +10,7 @@ if sys.version_info[:2] < (3, 6):
 
 def about(package):
     ret = {}
-    filename = os.path.join(os.path.dirname(__file__), package, "__about__.py")
+    filename = os.path.join(os.path.dirname(__file__), package.replace(".", "/"), "__about__.py")
     with open(filename, 'rb') as file:
         exec(compile(file.read(), filename, 'exec'), ret)
     return ret
@@ -24,7 +24,7 @@ def read(filename):
         return f.read()
 
 
-info = about("lumicks")
+info = about("lumicks.pylake")
 manifest_maker.template = "setup.manifest"
 setup(
     name=info['__title__'],

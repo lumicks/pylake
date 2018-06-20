@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from lumicks.hdf5 import channel
+from lumicks.pylake import channel
 
 
 def test_slice_properties():

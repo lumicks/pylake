@@ -1,7 +1,7 @@
 import pytest
 import re
 
-from lumicks.hdf5.detail.timeindex import regex_template, regex, Timeindex
+from lumicks.pylake.detail.timeindex import regex_template, regex, Timeindex
 
 
 def test_regex_template():
