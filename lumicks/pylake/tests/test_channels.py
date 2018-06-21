@@ -7,12 +7,15 @@ def test_slice_properties():
     size = 5
     s = channel.Slice(channel.Timeseries(np.random.rand(size), np.random.rand(size)))
     assert len(s) == size
+    assert s.sample_rate is None
 
-    s = channel.Slice(channel.Continuous(np.random.rand(size), 0, 1))
+    s = channel.Slice(channel.Continuous(np.random.rand(size), start=0, dt=1))
     assert len(s) == size
+    assert s.sample_rate == 1e9
 
     s = channel.empty_slice
     assert len(s) == 0
+    assert s.sample_rate is None
 
 
 def test_labels():
@@ -151,22 +154,27 @@ def test_channel(h5_file):
 
 def test_downsampling():
     s = channel.Slice(channel.Continuous([14, 15, 16, 17], start=40, dt=10))
+    assert s.sample_rate == 1e8
 
     s2 = s.downsampled_by(2)
     np.testing.assert_allclose(s2.data, 14.5, 16.5)
     np.testing.assert_allclose(s2.timestamps, [45, 65])
+    assert s2.sample_rate == 0.5e8
 
     s4 = s.downsampled_by(4)
     np.testing.assert_allclose(s4.data, 15.5)
     np.testing.assert_allclose(s4.timestamps, [55])
+    assert s4.sample_rate == 0.25e8
 
     s3 = s.downsampled_by(3)
     np.testing.assert_allclose(s3.data, 15)
     np.testing.assert_allclose(s3.timestamps, [50])
+    assert s3.sample_rate == 33333333
 
     s22 = s2.downsampled_by(2)
     np.testing.assert_allclose(s22.data, 15.5)
     np.testing.assert_allclose(s22.timestamps, [55])
+    assert s22.sample_rate == 0.25e8
 
     with pytest.raises(ValueError):
         s.downsampled_by(-1)

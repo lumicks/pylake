@@ -62,6 +62,14 @@ class Slice:
         """Absolute timestamps (since epoch) which correspond to the channel data"""
         return self._src.timestamps
 
+    @property
+    def sample_rate(self) -> int:
+        """The data frequency for continuous data sources or `None` if it's variable"""
+        try:
+            return self._src.sample_rate
+        except AttributeError:
+            return None
+
     def downsampled_by(self, factor, reduce=np.mean):
         """Return a copy of this slice which is downsampled by `factor`
 
@@ -127,6 +135,10 @@ class Continuous:
     @property
     def timestamps(self):
         return np.arange(self.start, self.stop, self.dt)
+
+    @property
+    def sample_rate(self):
+        return int(1e9 / self.dt)
 
     def slice(self, start, stop):
         # TODO: should be lazily evaluated
