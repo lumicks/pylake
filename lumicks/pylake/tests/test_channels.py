@@ -147,3 +147,28 @@ def test_channel(h5_file):
     downsampled = channel.make_timeseries_channel(h5_file["Force LF"]["Force 1x"])
     assert np.allclose(downsampled.data, [1.1, 2.1])
     assert np.allclose(downsampled.timestamps, [1, 2])
+
+
+def test_downsampling():
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], start=40, dt=10))
+
+    s2 = s.downsampled_by(2)
+    np.testing.assert_allclose(s2.data, 14.5, 16.5)
+    np.testing.assert_allclose(s2.timestamps, [45, 65])
+
+    s4 = s.downsampled_by(4)
+    np.testing.assert_allclose(s4.data, 15.5)
+    np.testing.assert_allclose(s4.timestamps, [55])
+
+    s3 = s.downsampled_by(3)
+    np.testing.assert_allclose(s3.data, 15)
+    np.testing.assert_allclose(s3.timestamps, [50])
+
+    s22 = s2.downsampled_by(2)
+    np.testing.assert_allclose(s22.data, 15.5)
+    np.testing.assert_allclose(s22.timestamps, [55])
+
+    with pytest.raises(ValueError):
+        s.downsampled_by(-1)
+    with pytest.raises(TypeError):
+        s.downsampled_by(1.5)

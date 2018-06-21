@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 from .detail.timeindex import to_timestamp
@@ -45,7 +46,11 @@ class Slice:
             stop = src_stop
         start, stop = (to_timestamp(v, src_start, src_stop) for v in (start, stop))
 
-        return self.__class__(self._src.slice(start, stop), self.labels)
+        return self._with_data_source(self._src.slice(start, stop))
+
+    def _with_data_source(self, data_source):
+        """Return a copy of this slice with a different data source, but keep other properties"""
+        return self.__class__(data_source, self.labels)
 
     @property
     def data(self):
@@ -57,6 +62,20 @@ class Slice:
         """Absolute timestamps (since epoch) which correspond to the channel data"""
         return self._src.timestamps
 
+    def downsampled_by(self, factor, reduce=np.mean):
+        """Return a copy of this slice which is downsampled by `factor`
+
+        Parameters
+        ----------
+        factor : int
+            The size and sample rate of the data will be divided by this factor.
+        reduce : callable
+            The `numpy` function which is going to reduce multiple samples into one.
+            The default is `np.mean`, but `np.sum` could also be appropriate for some
+            cases, e.g. photon counts.
+        """
+        return self._with_data_source(self._src.downsampled_by(factor, reduce))
+
     def plot(self, **kwargs):
         """A simple line plot to visualize the data over time"""
         import matplotlib.pyplot as plt
@@ -66,6 +85,15 @@ class Slice:
         plt.xlabel(self.labels.get("x", "Time") + " (s)")
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
+
+
+def _downsample(data, factor, reduce):
+    def round_down(size, n):
+        """Round down `size` to the nearest multiple of `n`"""
+        return int(math.floor(size / n)) * n
+
+    data = data[:round_down(data.size, factor)]
+    return reduce(data.reshape(-1, factor), axis=1)
 
 
 class Continuous:
@@ -105,6 +133,10 @@ class Continuous:
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
         return self.__class__(self.data[idx], max(start, self.start), self.dt)
 
+    def downsampled_by(self, factor, reduce):
+        return self.__class__(_downsample(self.data, factor, reduce),
+                              start=self.start + self.dt * (factor - 1) // 2, dt=self.dt * factor)
+
 
 class Timeseries:
     """A source of time series data for a timeline slice
@@ -136,6 +168,9 @@ class Timeseries:
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
         return self.__class__(self.data[idx], self.timestamps[idx])
+
+    def downsampled_by(self, factor, reduce):
+        raise NotImplementedError("Downsampling is currently not available for time series data")
 
 
 class Empty:
