@@ -1,6 +1,10 @@
 FD curves
 =========
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 The following code loads an HDF5 file and lists all of the FD curves inside of it::
 
     from lumicks import pylake

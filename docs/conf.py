@@ -51,6 +51,7 @@ extensions = [
     'sphinx.ext.todo',
     'numpydoc',
     'matplotlib.sphinxext.plot_directive',
+    'nbexport'
 ]
 
 autodoc_member_order = 'groupwise'
@@ -78,6 +79,12 @@ from lumicks import pylake
 """
 plot_rcparams = {}
 plot_apply_rcparams = False
+
+nbexport_pre_code = plot_pre_code + """
+%matplotlib inline
+"""
+nbexport_baseurl = ""
+nbexport_execute = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

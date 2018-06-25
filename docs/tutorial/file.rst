@@ -1,6 +1,10 @@
 Files and channels
 ==================
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 Opening a Bluelake HDF5 file is very simple::
 
     from lumicks import pylake

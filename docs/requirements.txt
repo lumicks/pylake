@@ -1,5 +1,6 @@
 matplotlib
 nbconvert
+nbformat
 numpy
 numpydoc
 recommonmark

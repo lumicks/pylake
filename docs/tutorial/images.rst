@@ -1,6 +1,10 @@
 Confocal images
 ===============
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 The following code uses scans as an example.
 Kymographs work the same way -- just substitute `file.scans` with `file.kymos`.
 To load an HDF5 file and lists all of the scans inside of it, run::
