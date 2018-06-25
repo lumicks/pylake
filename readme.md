@@ -108,7 +108,7 @@ for name, kymo in h5file.kymos.items():
     kymo.plot_rgb()
     plt.savefig(name)
 
-# Pick a single FD curve
+# Pick a single kymograph
 kymo = h5file.kymos["name"]
 # Plot a single color channel
 kymo.plot_red()

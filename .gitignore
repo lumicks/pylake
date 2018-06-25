@@ -4,6 +4,8 @@
 build/
 dist/
 venv/
+docs/changelog.md
+docs/_api/
 
 __pycache__/
 *.py[cod]

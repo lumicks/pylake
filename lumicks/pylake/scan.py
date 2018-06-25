@@ -22,6 +22,10 @@ class Scan(Kymo):
             # TODO: this is not an efficient way to determine the total number of frames
             self.num_frames = self._image("red").shape[0]
 
+    def __repr__(self):
+        name = self.__class__.__name__
+        return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
+
     @property
     def lines_per_frame(self):
         return self.json["scan volume"]["scan axes"][1]["num of pixels"]

@@ -1,0 +1,8 @@
+matplotlib
+nbconvert
+numpy
+numpydoc
+recommonmark
+scipy
+sphinx
+sphinx_rtd_theme

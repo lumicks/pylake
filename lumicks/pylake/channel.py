@@ -85,7 +85,13 @@ class Slice:
         return self._with_data_source(self._src.downsampled_by(factor, reduce))
 
     def plot(self, **kwargs):
-        """A simple line plot to visualize the data over time"""
+        """A simple line plot to visualize the data over time
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
         import matplotlib.pyplot as plt
 
         seconds = (self.timestamps - self.timestamps[0]) / 1e9

@@ -22,6 +22,10 @@ class Kymo(PhotonCounts):
         self.json = json.loads(h5py_dset.value)["value0"]
         self.file = file
 
+    def __repr__(self):
+        name = self.__class__.__name__
+        return f"{name}(pixels={self.pixels_per_line})"
+
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 

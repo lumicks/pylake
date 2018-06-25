@@ -23,13 +23,13 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
 
     Examples
     --------
-    ```
-    from lumicks import pylake
+    ::
 
-    file = pylake.File("example.h5")
-    file.force1x.plot()
-    file.kymos["name"].plot()
-    ```
+        from lumicks import pylake
+
+        file = pylake.File("example.h5")
+        file.force1x.plot()
+        file.kymos["name"].plot()
     """
     def __init__(self, filename):
         super().__init__(h5py.File(filename, 'r'))
