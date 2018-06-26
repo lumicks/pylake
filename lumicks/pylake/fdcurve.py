@@ -1,4 +1,6 @@
+import numpy as np
 from copy import copy
+from .channel import Slice, Timeseries
 from .detail.mixin import DownsampledFD
 
 
@@ -42,6 +44,32 @@ class FDCurve(DownsampledFD):
         new_copy._force_cache = None
         new_copy._distance_cache = None
         return new_copy
+
+    def __sub__(self, baseline):
+        """Subtract FD curve `baseline` from `self`
+
+        The resulting FD curve will be clipped to the distance range of `baseline`.
+        The `baseline` force will be interpolated (using `scipy.interpolate.interp1d()`)
+        onto the distance points of `self`.
+        """
+        from scipy.interpolate import interp1d
+
+        baseline_distance = baseline.d.data
+        baseline_force = baseline.f.data
+
+        clipped_idx = np.logical_and(np.min(baseline_distance) <= self.d.data,
+                                     self.d.data <= np.max(baseline_distance))
+        distance = self.d.data[clipped_idx]
+        force = self.f.data[clipped_idx]
+        timestamps = self.f.timestamps[clipped_idx]
+
+        interpolated_baseline_force = interp1d(baseline_distance, baseline_force)
+        new_force = force - interpolated_baseline_force(distance)
+
+        new_fd = copy(self)
+        new_fd._force_cache = Slice(Timeseries(new_force, timestamps), self.f.labels)
+        new_fd._distance_cache = Slice(Timeseries(distance, timestamps), self.d.labels)
+        return new_fd
 
     def _get_downsampled_force(self, n, xy):
         return getattr(self.file, f"downsampled_force{n}{xy}")[self.start:self.stop]
