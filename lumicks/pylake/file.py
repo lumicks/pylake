@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from typing import Dict
 
-from .channel import make_continuous_channel, make_timeseries_channel, Slice
+from .channel import make_continuous_channel, make_timeseries_channel, Slice, Timeseries
 from .detail.mixin import Force, DownsampledFD, PhotonCounts
 from .fdcurve import FDCurve
 from .group import Group
@@ -125,7 +125,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
         # If it's completely missing, we can reconstruct it from the x and y components
         fx = make(f"Force {n}x")
         fy = make(f"Force {n}y")
-        return Slice(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps,
+        return Slice(Timeseries(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps),
                      labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"})
 
     def _get_distance(self, n):

@@ -1,5 +1,5 @@
 """Mixin class which add properties for predefined channels"""
-from ..channel import Slice
+from ..channel import Slice, empty_slice
 
 
 def _try_get_or_empty(f, *args, **kwargs):
@@ -7,7 +7,7 @@ def _try_get_or_empty(f, *args, **kwargs):
     try:
         return f(*args, **kwargs)
     except KeyError:
-        return Slice([], [])
+        return empty_slice
 
 
 class Force:
