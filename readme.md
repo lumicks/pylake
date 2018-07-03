@@ -53,6 +53,12 @@ plt.plot(force.timestamps, force.data)
 
 # By default `f` is `downsampled_force2` and `d` is `distance1`
 altenative_fd = fd.with_channels(force='1x', distance='2')
+
+# Baseline subtraction
+fd_baseline = h5file.fdcurves["Baseline"]
+fd_measured = h5file.fdcurves["Measurement"]
+fd = fd_measured - fd_baseline
+fd.plot_scatter()
 ```
 
 ### Force vs. time

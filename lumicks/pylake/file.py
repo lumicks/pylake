@@ -149,4 +149,4 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
 
     @property
     def fdcurves(self) -> Dict[str, FDCurve]:
-        return {name: FDCurve(dset, self) for name, dset in self.h5["FD Curve"].items()}
+        return {name: FDCurve.from_dset(dset, self) for name, dset in self.h5["FD Curve"].items()}
