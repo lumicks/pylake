@@ -45,6 +45,10 @@ class Kymo(PhotonCounts):
         return reconstruct_image(getattr(self, f"{color}_photon_count").data, self.infowave.data,
                                  self.pixels_per_line).T
 
+    def _timestamps(self, sample_timestamps):
+        return reconstruct_image(sample_timestamps, self.infowave.data,
+                                 self.pixels_per_line, reduce=np.mean).T
+
     @property
     def red_image(self):
         return self._image("red")
@@ -61,6 +65,20 @@ class Kymo(PhotonCounts):
     def rgb_image(self):
         color_channels = [getattr(self, f"{color}_image").T for color in ("red", "green", "blue")]
         return np.stack(color_channels).T
+
+    @property
+    def timestamps(self) -> np.ndarray:
+        """Timestamps for image pixels, not for samples
+
+        The returned array has the same shape as the `*_image` arrays.
+        """
+        # Uses the timestamps from the first non-zero-sized photon channel
+        photon_counts = self.red_photon_count, self.green_photon_count, self.blue_photon_count
+        for photon_count in photon_counts:
+            if len(photon_count) == 0:
+                continue
+            return self._timestamps(photon_count.timestamps)
+        raise RuntimeError("Can't get pixel timestamps if there are no pixels")
 
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt

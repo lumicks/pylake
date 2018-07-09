@@ -30,6 +30,10 @@ class Scan(Kymo):
         return reconstruct_image(getattr(self, f"{color}_photon_count").data, self.infowave.data,
                                  self.pixels_per_line, self.lines_per_frame)
 
+    def _timestamps(self, sample_timestamps):
+        return reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
+                                 self.lines_per_frame, reduce=np.mean)
+
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
