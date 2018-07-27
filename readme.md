@@ -1,5 +1,8 @@
 # Lumicks pylake 
 
+[![Build Status](https://travis-ci.org/lumicks/pylake.svg?branch=master)](https://travis-ci.org/lumicks/pylake)
+[![Documentation Status](https://readthedocs.org/projects/lumicks-pylake/badge/?version=latest)](https://lumicks-pylake.readthedocs.io/en/latest/?badge=latest)
+
 This Python package includes data analysis tools for Bluelake HDF5 data.
 
 ## Install
