@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0 | In development
+
+* TIFF scan exports now default to using 32bit floats
+
 ## v0.2.0 | 2018-07-27
 
 * Channel slices can be downsampled: `lf_force = hf_force.downsampled_by(factor=20)`

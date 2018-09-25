@@ -154,7 +154,7 @@ class Kymo(PhotonCounts):
         image = image / np.max(image)
         self._plot(image, **kwargs)
 
-    def save_tiff(self, filename, dtype=np.uint16, clip=False):
+    def save_tiff(self, filename, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image
 
         Parameters
