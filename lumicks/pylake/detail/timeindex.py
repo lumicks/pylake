@@ -3,14 +3,14 @@ import re
 __all__ = ["Timeindex", "to_timestamp"]
 
 # It's impossible to see, but this regex matches a floating point number and suffix
-regex_template = "((?P<{suffix}>\d*\.?\d+)\s*{suffix})?"
+regex_template = r"((?P<{suffix}>\d*\.?\d+)\s*{suffix})?"
 
 # Day, hour, minute, second, millisecond, microsecond, nanosecond
 units = ["d", "h", "m", "s", "ms", "us", "ns"]
 
 # Matches strings like "1s 216ms", "-1m 30s", "-1.4s", "2.7h"
 regex = re.compile(
-    "^(?P<sign>-?)" + "\s*".join(regex_template.format(suffix=u) for u in units) + "$"
+    "^(?P<sign>-?)" + r"\s*".join(regex_template.format(suffix=u) for u in units) + "$"
 )
 
 ns = 1
