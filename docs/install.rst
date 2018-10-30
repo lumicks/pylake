@@ -23,7 +23,7 @@ If you are new to Python/SciPy, more detailed installation instructions are avai
 Anaconda
 --------
 
-.. _Anaconda: https://www.continuum.io/downloads
+.. _Anaconda: https://www.anaconda.com/download/
 .. _conda-forge: https://conda-forge.org
 
 The easiest way to install Python and SciPy is with `Anaconda`_, a free scientific Python distribution for Windows, Linux and Mac.
