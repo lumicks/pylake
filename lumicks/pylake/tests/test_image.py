@@ -31,14 +31,30 @@ def test_reconstruct_multiframe():
     assert reconstruct_image(the_data, infowave, 2, 5).shape == (5, 2)
 
 
-def test_tiff(tmpdir):
-    shape = (10, 10, 3)
-    image16 = np.random.randint(0, 32000, shape)
-
+def test_int_tiff(tmpdir):
+    image16 = np.ones(shape=(10, 10, 3)) * np.iinfo(np.uint16).max
     save_tiff(image16, str(tmpdir.join("1")), dtype=np.uint16)
+    save_tiff(image16, str(tmpdir.join("2")), dtype=np.float32)
+    save_tiff(image16, str(tmpdir.join("3")), dtype=np.uint8, clip=True)
 
     with pytest.raises(RuntimeError) as excinfo:
-        save_tiff(image16, str(tmpdir.join("2")), dtype=np.uint8)
+        save_tiff(image16, str(tmpdir.join("4")), dtype=np.uint8)
     assert "Can't safely export image with `dtype=uint8` channels" in str(excinfo.value)
 
-    save_tiff(image16, str(tmpdir.join("3")), dtype=np.uint8, clip=True)
+    with pytest.raises(RuntimeError) as excinfo:
+        save_tiff(image16, str(tmpdir.join("5")), dtype=np.float16)
+    assert "Can't safely export image with `dtype=float16` channels" in str(excinfo.value)
+
+
+def test_float_tiff(tmpdir):
+    image32 = np.ones(shape=(10, 10, 3)) * np.finfo(np.float32).max
+    save_tiff(image32, str(tmpdir.join("1")), dtype=np.float32)
+    save_tiff(image32, str(tmpdir.join("2")), dtype=np.float16, clip=True)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        save_tiff(image32, str(tmpdir.join("3")), dtype=np.float16)
+    assert "Can't safely export image with `dtype=float16` channels" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        save_tiff(image32, str(tmpdir.join("1")), dtype=np.uint16)
+    assert "Can't safely export image with `dtype=uint16` channels" in str(excinfo.value)

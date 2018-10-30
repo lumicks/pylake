@@ -83,8 +83,8 @@ def save_tiff(image, filename, dtype, clip=False):
         """
         import tifffile
 
-        iinfo = np.iinfo(dtype)
-        if not clip and (np.min(image) < iinfo.min or np.max(image) > iinfo.max):
+        info = np.finfo(dtype) if np.dtype(dtype).kind == "f" else np.iinfo(dtype)
+        if not clip and (np.min(image) < info.min or np.max(image) > info.max):
             raise RuntimeError(f"Can't safely export image with `dtype={dtype.__name__}` channels."
                                f" Switch to a larger `dtype` in order to safely store everything"
                                f" or pass `force=True` to clip the data.")
