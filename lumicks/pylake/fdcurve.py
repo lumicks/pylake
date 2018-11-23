@@ -1,6 +1,6 @@
 import numpy as np
 from copy import copy
-from .channel import Slice, Timeseries
+from .channel import Slice, TimeSeries
 from .detail.mixin import DownsampledFD
 
 
@@ -67,8 +67,8 @@ class FDCurve(DownsampledFD):
         new_force = force - interpolated_baseline_force(distance)
 
         new_fd = copy(self)
-        new_fd._force_cache = Slice(Timeseries(new_force, timestamps), self.f.labels)
-        new_fd._distance_cache = Slice(Timeseries(distance, timestamps), self.d.labels)
+        new_fd._force_cache = Slice(TimeSeries(new_force, timestamps), self.f.labels)
+        new_fd._distance_cache = Slice(TimeSeries(distance, timestamps), self.d.labels)
         return new_fd
 
     def _get_downsampled_force(self, n, xy):

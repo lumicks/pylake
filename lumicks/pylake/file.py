@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from typing import Dict
 
-from .channel import make_continuous_channel, make_timeseries_channel, Slice, Timeseries
+from .channel import Slice, Continuous, TimeSeries
 from .detail.mixin import Force, DownsampledFD, PhotonCounts
 from .fdcurve import FDCurve
 from .group import Group
@@ -33,6 +33,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
     """
     def __init__(self, filename):
         super().__init__(h5py.File(filename, 'r'))
+    # TODO(onno) Check version tag when loading file
 
     @classmethod
     def from_h5py(cls, h5py_file):
@@ -105,13 +106,13 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
         return print_attributes(self.h5) + "\n" + print_group(self.h5)
 
     def _get_force(self, n, xy):
-        return make_continuous_channel(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
+        return Continuous.from_dataset(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
 
         def make(channel):
-            return make_timeseries_channel(group[channel], "Force (pN)")
+            return TimeSeries.from_dataset(group[channel], "Force (pN)")
 
         if xy:  # An x or y component of the downsampled force is easy
             return make(f"Force {n}{xy}")
@@ -125,15 +126,15 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
         # If it's completely missing, we can reconstruct it from the x and y components
         fx = make(f"Force {n}x")
         fy = make(f"Force {n}y")
-        return Slice(Timeseries(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps),
+        return Slice(TimeSeries(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps),
                      labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"})
 
     def _get_distance(self, n):
-        return make_timeseries_channel(self.h5["Distance"][f"Distance {n}"],
+        return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"],
                                        r"Distance ($\mu$m)")
 
     def _get_photon_count(self, name):
-        return make_continuous_channel(self.h5["Photon count"][name], "Photon count")
+        return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count")
 
     @property
     def kymos(self) -> Dict[str, Kymo]:
