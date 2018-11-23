@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 from typing import Dict
 
-from .channel import Slice, Continuous, TimeSeries, TimeTags
-from .detail.mixin import Force, DownsampledFD, PhotonCounts
+from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
+from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .fdcurve import FDCurve
 from .group import Group
 from .kymo import Kymo
@@ -13,7 +13,7 @@ from .scan import Scan
 __all__ = ["File"]
 
 
-class File(Group, Force, DownsampledFD, PhotonCounts):
+class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     """A convenient HDF5 file wrapper for reading data exported from Bluelake
 
     Parameters
@@ -135,6 +135,9 @@ class File(Group, Force, DownsampledFD, PhotonCounts):
 
     def _get_photon_count(self, name):
         return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count")
+
+    def _get_photon_time_tags(self, name):
+        return TimeTags.from_dataset(self.h5["Photon Time Tags"][name], "Photon time tags")
 
     @property
     def kymos(self) -> Dict[str, Kymo]:
