@@ -14,7 +14,7 @@ class Slice:
     Parameters
     ----------
     data_source : Any
-        A slice data source. Can be `Continuous`, `TimeSeries`,
+        A slice data source. Can be `Continuous`, `TimeSeries`, 'TimeTags',
         or any other source which conforms to the same interface.
     labels : Dict[str, str]
         Plot labels: "x", "y", "title".
@@ -203,6 +203,45 @@ class TimeSeries:
         raise NotImplementedError("Downsampling is currently not available for time series data")
 
 
+class TimeTags:
+    """A source of time tag data for a timeline slice
+
+    Parameters
+    ----------
+    data : array_like
+        Anything that's convertible to an `np.ndarray`
+    start : int
+        Timestamp of the start of the channel slice
+    stop : int
+        Timestamp of the end of the channel slice
+    """
+    def __init__(self, data, start=None, stop=None):
+        self.data = np.asarray(data, dtype=np.int64)
+        self.start = start if start is not None else \
+            (self.data[0] if self.data.size > 0 else 0)
+        self.stop = stop if stop is not None else \
+            (self.data[-1]+1 if self.data.size > 0 else 0)
+
+    def __len__(self):
+        return self.data.size
+
+    @staticmethod
+    def from_dataset(dset, y_label="y"):
+        return Slice(TimeTags(dset.value))
+
+    @property
+    def timestamps(self):
+        # For time tag data, the data is the timestamps!
+        return self.data
+
+    def slice(self, start, stop):
+        idx = np.logical_and(start <= self.data, self.data < stop)
+        return self.__class__(self.data[idx], min(start, stop), max(start, stop))
+
+    def downsampled_by(self, factor, reduce):
+        raise NotImplementedError("Downsampling is not available for time tag data")
+
+
 class Empty:
     """A lightweight source of no data
 
@@ -225,7 +264,20 @@ empty_slice = Slice(Empty())
 
 
 def channel_class(dset):
-    if dset.dtype.fields is None:
+    """Figure out the right channel source class given an HDF5 dataset"""
+    if "Kind" in dset.attrs:
+        # Bluelake HDF5 files >=v2 mark channels with a "Kind" attribute:
+        kind = dset.attrs["Kind"]
+        if kind == b"TimeTags":
+            return TimeTags
+        elif kind == b"TimeSeries":
+            return TimeSeries
+        elif kind == b"Continuous":
+            return Continuous
+        else:
+            raise RuntimeError("Unknown channel kind " + str(kind))
+    # For compatibility with Bluelake HDF5 files v1:
+    elif dset.dtype.fields is None:
         return Continuous
     else:
         return TimeSeries

@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from typing import Dict
 
-from .channel import Slice, Continuous, TimeSeries
+from .channel import Slice, Continuous, TimeSeries, TimeTags
 from .detail.mixin import Force, DownsampledFD, PhotonCounts
 from .fdcurve import FDCurve
 from .group import Group
