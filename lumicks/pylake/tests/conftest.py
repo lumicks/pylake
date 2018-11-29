@@ -3,39 +3,84 @@ import numpy as np
 import pytest
 
 
-@pytest.fixture(scope="session")
-def h5_file(tmpdir_factory):
-    tmpdir = tmpdir_factory.mktemp("pylake")
-    mock_file = h5py.File(tmpdir.join("tmp.h5"), 'w')
+# We generate mock data files for different versions of the Bluelake HDF5 file
+# format:
 
-    mock_file.attrs["Bluelake version"] = "unknown"
-    mock_file.attrs["File format version"] = 1
-    mock_file.attrs["Experiment"] = ""
-    mock_file.attrs["Description"] = ""
-    mock_file.attrs["GUID"] = ""
-    mock_file.attrs["Export time (ns)"] = -1
+class MockDataFile_v1:
 
-    def make_continuous_channel(group, name, start, dt, data):
-        if group not in mock_file:
-            mock_file.create_group(group)
+    def __init__(self, file):
+        self.file = h5py.File(file)
 
-        mock_file[group][name] = data
-        dset = mock_file[group][name]
+    def get_file_format_version(self):
+        return 1
+
+    def write_metadata(self):
+        self.file.attrs["Bluelake version"] = "unknown"
+        self.file.attrs["File format version"] = self.get_file_format_version()
+        self.file.attrs["Experiment"] = ""
+        self.file.attrs["Description"] = ""
+        self.file.attrs["GUID"] = ""
+        self.file.attrs["Export time (ns)"] = -1
+
+    def make_continuous_channel(self, group, name, start, dt, data):
+        if group not in self.file:
+            self.file.create_group(group)
+
+        self.file[group][name] = data
+        dset = self.file[group][name]
         dset.attrs["Start time (ns)"] = start
         dset.attrs["Stop time (ns)"] = start + len(data) * dt
         dset.attrs["Sample rate (Hz)"] = 1 / dt * 1e9
+        return dset
 
-    make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5.0))
-    make_continuous_channel("Force HF", "Force 1y", 1, 10, np.arange(5.0, 10.0))
-
-    def make_timeseries_channel(group, name, data):
-        if group not in mock_file:
-            mock_file.create_group(group)
+    def make_timeseries_channel(self, group, name, data):
+        if group not in self.file:
+            self.file.create_group(group)
 
         compound_type = np.dtype([("Timestamp", np.int64), ("Value", float)])
-        mock_file[group][name] = np.array(data, compound_type)
+        self.file[group][name] = np.array(data, compound_type)
+        dset = self.file[group][name]
+        return dset
 
-    make_timeseries_channel("Force LF", "Force 1x", [(1, 1.1), (2, 2.1)])
-    make_timeseries_channel("Force LF", "Force 1y", [(1, 1.2), (2, 2.2)])
+    def make_timetags_channel(self, group, name, data):
+        raise NotImplementedError
 
-    return mock_file
+
+class MockDataFile_v2(MockDataFile_v1):
+
+    def get_file_format_version(self):
+        return 2
+
+    def make_continuous_channel(self, group, name, start, dt, data):
+        dset = super().make_continuous_channel(group, name, start, dt, data)
+        dset.attrs["Kind"] = b"Continuous"
+
+    def make_timeseries_channel(self, group, name, data):
+        dset = super().make_timeseries_channel(group, name, data)
+        dset.attrs["Kind"] = b"TimeSeries"
+
+    def make_timetags_channel(self, group, name, data):
+        if group not in self.file:
+            self.file.create_group(group)
+
+        self.file[group][name] = data
+        dset = self.file[group][name]
+        dset.attrs["Kind"] = b"TimeTags"
+        return dset
+
+
+@pytest.fixture(scope="session", params=[MockDataFile_v1, MockDataFile_v2])
+def h5_file(tmpdir_factory, request):
+    mock_class = request.param
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join("%s.h5" % mock_class.__class__.__name__))
+    mock_file.write_metadata()
+
+    mock_file.make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5.0))
+    mock_file.make_continuous_channel("Force HF", "Force 1y", 1, 10, np.arange(5.0, 10.0))
+
+    mock_file.make_timeseries_channel("Force LF", "Force 1x", [(1, 1.1), (2, 2.1)])
+    mock_file.make_timeseries_channel("Force LF", "Force 1y", [(1, 1.2), (2, 2.2)])
+
+    return mock_file.file

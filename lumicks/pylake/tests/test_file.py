@@ -7,7 +7,7 @@ def test_attributes(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
     assert type(f.bluelake_version) is str
-    assert f.format_version == 1
+    assert f.format_version in [1, 2]
     assert type(f.experiment) is str
     assert type(f.description) is str
     assert type(f.guid) is str
@@ -41,27 +41,28 @@ def test_repr_and_str(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
     assert repr(f) == f"lumicks.pylake.File('{h5_file.filename}')"
-    assert str(f) == dedent("""\
-        File root metadata:
-        - Bluelake version: unknown
-        - File format version: 1
-        - Experiment: 
-        - Description: 
-        - GUID: 
-        - Export time (ns): -1
-    
-        Force HF:
-          Force 1x:
-          - Data type: float64
-          - Size: 5
-          Force 1y:
-          - Data type: float64
-          - Size: 5
-        Force LF:
-          Force 1x:
-          - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
-          - Size: 2
-          Force 1y:
-          - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
-          - Size: 2
-    """)
+    if f.format_version == 1:
+        assert str(f) == dedent("""\
+            File root metadata:
+            - Bluelake version: unknown
+            - File format version: 1
+            - Experiment: 
+            - Description: 
+            - GUID: 
+            - Export time (ns): -1
+        
+            Force HF:
+              Force 1x:
+              - Data type: float64
+              - Size: 5
+              Force 1y:
+              - Data type: float64
+              - Size: 5
+            Force LF:
+              Force 1x:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+              Force 1y:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+        """)
