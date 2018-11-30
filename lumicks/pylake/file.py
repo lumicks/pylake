@@ -31,15 +31,28 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         file.force1x.plot()
         file.kymos["name"].plot()
     """
+
+    SUPPORTED_FILE_FORMAT_VERSIONS = [1, 2]
+
     def __init__(self, filename):
         super().__init__(h5py.File(filename, 'r'))
-    # TODO(onno) Check version tag when loading file
+        self._check_file_format()
+
+    def _check_file_format(self):
+        if "Bluelake version" not in self.h5.attrs:
+            raise Exception("Invalid HDF5 file: no Bluelake version tag found")
+        if "File format version" not in self.h5.attrs:
+            raise Exception("Invalid HDF5 file: no file format version tag found")
+        ff_version = int(self.h5.attrs["File format version"])
+        if ff_version not in File.SUPPORTED_FILE_FORMAT_VERSIONS:
+            raise Exception(f"Unsupported Bluelake file format version {ff_version}")
 
     @classmethod
     def from_h5py(cls, h5py_file):
         """Directly load an existing `h5py.File`"""
         new_file = cls.__new__(cls)
         new_file.h5 = h5py_file
+        new_file._check_file_format()
         return new_file
 
     @property

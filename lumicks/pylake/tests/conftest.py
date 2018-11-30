@@ -89,3 +89,15 @@ def h5_file(tmpdir_factory, request):
             np.arange(10, 100, step=10, dtype=np.int64))
 
     return mock_file.file
+
+
+@pytest.fixture(scope="session")
+def h5_file_invalid_version(tmpdir_factory):
+    tmpdir = tmpdir_factory.mktemp("pylake")
+
+    mock_file = h5py.File(tmpdir.join("invalid.h5"))
+    mock_file.attrs["Bluelake version"] = "unknown"
+    mock_file.attrs["File format version"] = 254
+
+    return mock_file
+

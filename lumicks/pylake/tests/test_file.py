@@ -1,5 +1,6 @@
 import numpy as np
 from lumicks import pylake
+import pytest
 from textwrap import dedent
 
 
@@ -66,3 +67,8 @@ def test_repr_and_str(h5_file):
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
               - Size: 2
         """)
+
+
+def test_invalid_file_format(h5_file_invalid_version):
+    with pytest.raises(Exception):
+        f = pylake.File.from_h5py(h5_file_invalid_version)
