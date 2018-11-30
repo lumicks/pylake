@@ -83,4 +83,9 @@ def h5_file(tmpdir_factory, request):
     mock_file.make_timeseries_channel("Force LF", "Force 1x", [(1, 1.1), (2, 2.1)])
     mock_file.make_timeseries_channel("Force LF", "Force 1y", [(1, 1.2), (2, 2.2)])
 
+    if mock_class == MockDataFile_v2:
+        mock_file.make_timetags_channel(
+            "Photon Time Tags", "Red",
+            np.arange(10, 100, step=10, dtype=np.int64))
+
     return mock_file.file

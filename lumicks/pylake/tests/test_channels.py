@@ -13,6 +13,11 @@ def test_slice_properties():
     assert len(s) == size
     assert s.sample_rate == 1e9
 
+    size = 10
+    s = channel.Slice(channel.TimeTags(np.arange(0, size, dtype=np.int64)))
+    assert len(s) == size
+    assert s.sample_rate is None
+
     s = channel.empty_slice
     assert len(s) == 0
     assert s.sample_rate is None
@@ -98,6 +103,28 @@ def test_continuous_idexing():
     assert len(s[1:2].timestamps) == 0
 
 
+def test_timetags_indexing():
+    s = channel.Slice(channel.TimeTags([10, 20, 30, 40, 50, 60]))
+    np.testing.assert_equal(s[0:100].data, [10, 20, 30, 40, 50, 60])
+    np.testing.assert_equal(s[10:100].data, [10, 20, 30, 40, 50, 60])
+    np.testing.assert_equal(s[15:100].data, [20, 30, 40, 50, 60])
+    np.testing.assert_equal(s[10:60].data, [10, 20, 30, 40, 50])
+    np.testing.assert_equal(s[10:55].data, [10, 20, 30, 40, 50])
+    np.testing.assert_equal(s[11:50].data, [20, 30, 40])
+    np.testing.assert_equal(s[20:].data, [20, 30, 40, 50, 60])
+    np.testing.assert_equal(s[:50].data, [10, 20, 30, 40])
+
+    with pytest.raises(IndexError) as exc:
+        assert s[1]
+    assert str(exc.value) == "Scalar indexing is not supported, only slicing"
+    with pytest.raises(IndexError) as exc:
+        assert s[1:2:3]
+    assert str(exc.value) == "Slice steps are not supported"
+
+    s = channel.Slice(channel.TimeTags([]))
+    assert len(s[10:30].data) == 0
+
+
 def test_time_indexing():
     """String time-based indexing"""
     s = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1400, 2500, 16e6, 34e9, 122 * 1e9]))
@@ -140,6 +167,8 @@ def test_time_indexing():
 def test_inspections(h5_file):
     assert channel.channel_class(h5_file["Force HF"]["Force 1x"]) == channel.Continuous
     assert channel.channel_class(h5_file["Force LF"]["Force 1x"]) == channel.TimeSeries
+    if "Photon Time Tags" in h5_file:
+        assert channel.channel_class(h5_file["Photon Time Tags"]["Red"]) == channel.TimeTags
 
 
 def test_channel(h5_file):
@@ -150,6 +179,11 @@ def test_channel(h5_file):
     downsampled = channel.TimeSeries.from_dataset(h5_file["Force LF"]["Force 1x"])
     assert np.allclose(downsampled.data, [1.1, 2.1])
     assert np.allclose(downsampled.timestamps, [1, 2])
+
+    if "Photon Time Tags" in h5_file:
+        timetags = channel.TimeTags.from_dataset(h5_file["Photon Time Tags"]["Red"])
+        assert np.all(np.equal(timetags.data, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
+        assert np.all(np.equal(timetags.timestamps, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
 
 
 def test_downsampling():
