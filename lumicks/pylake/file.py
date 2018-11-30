@@ -39,7 +39,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     def from_h5py(cls, h5py_file):
         """Directly load an existing `h5py.File`"""
         new_file = cls.__new__(cls)
-        super(cls, new_file).__init__(h5py_file)
+        new_file.h5 = h5py_file
         return new_file
 
     @property
