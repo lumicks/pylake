@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0 | In development
+
+* 
+
 ## v0.3.0 | 2018-12-04
 
 * TIFF scan exports now default to using 32bit floats
