@@ -1,5 +1,5 @@
 import h5py
-from .channel import is_continuous_channel, make_continuous_channel, make_timeseries_channel
+from .channel import channel_class
 
 
 class Group:
@@ -19,7 +19,5 @@ class Group:
         if type(thing) is h5py.Group:
             return Group(thing)
         else:
-            if is_continuous_channel(thing):
-                return make_continuous_channel(thing)
-            else:
-                return make_timeseries_channel(thing)
+            cls = channel_class(thing)
+            return cls.from_dataset(thing)

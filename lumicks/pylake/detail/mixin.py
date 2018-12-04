@@ -129,3 +129,21 @@ class PhotonCounts:
     @property
     def blue_photon_count(self) -> Slice:
         return _try_get_or_empty(self._get_photon_count, "Blue")
+
+
+class PhotonTimeTags:
+    """Red, green, and blue photon time tag channels"""
+    def _get_photon_time_tags(self, name):
+        raise NotImplementedError
+
+    @property
+    def red_photon_time_tags(self) -> Slice:
+        return _try_get_or_empty(self._get_photon_time_tags, "Red")
+
+    @property
+    def green_photon_time_tags(self) -> Slice:
+        return _try_get_or_empty(self._get_photon_time_tags, "Green")
+
+    @property
+    def blue_photon_time_tags(self) -> Slice:
+        return _try_get_or_empty(self._get_photon_time_tags, "Blue")

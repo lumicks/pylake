@@ -8,14 +8,14 @@ class Slice:
     """A lazily evaluated slice of a timeline/HDF5 channel
 
     Users will only ever get these as a result of slicing a timeline/HDF5
-    channel or slicing another slice (via this classes `__getitem__`), i.e.
+    channel or slicing another slice (via this class' `__getitem__`), i.e.
     the `__init__` method will never be invoked by users.
 
     Parameters
     ----------
     data_source : Any
-        A slice data source. Can be `Continuous`, `TimeSeries` or any other source
-        which conforms to the same interface.
+        A slice data source. Can be `Continuous`, `TimeSeries`, 'TimeTags',
+        or any other source which conforms to the same interface.
     labels : Dict[str, str]
         Plot labels: "x", "y", "title".
     """
@@ -132,6 +132,13 @@ class Continuous:
     def __len__(self):
         return len(self._src_data)
 
+    @staticmethod
+    def from_dataset(dset, y_label="y"):
+        start = dset.attrs["Start time (ns)"]
+        dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
+        return Slice(Continuous(dset.value, start, dt),
+                     labels={"title": dset.name.strip("/"), "y": y_label})
+
     @property
     def data(self):
         if self._cached_data is None:
@@ -156,7 +163,7 @@ class Continuous:
                               start=self.start + self.dt * (factor - 1) // 2, dt=self.dt * factor)
 
 
-class Timeseries:
+class TimeSeries:
     """A source of time series data for a timeline slice
 
     Parameters
@@ -175,6 +182,11 @@ class Timeseries:
     def __len__(self):
         return len(self.data)
 
+    @staticmethod
+    def from_dataset(dset, y_label="y"):
+        return Slice(TimeSeries(dset["Value"], dset["Timestamp"]),
+                     labels={"title": dset.name.strip("/"), "y": y_label})
+
     @property
     def start(self):
         return self.timestamps[0]
@@ -191,10 +203,49 @@ class Timeseries:
         raise NotImplementedError("Downsampling is currently not available for time series data")
 
 
+class TimeTags:
+    """A source of time tag data for a timeline slice
+
+    Parameters
+    ----------
+    data : array_like
+        Anything that's convertible to an `np.ndarray`
+    start : int
+        Timestamp of the start of the channel slice
+    stop : int
+        Timestamp of the end of the channel slice
+    """
+    def __init__(self, data, start=None, stop=None):
+        self.data = np.asarray(data, dtype=np.int64)
+        self.start = start if start is not None else \
+            (self.data[0] if self.data.size > 0 else 0)
+        self.stop = stop if stop is not None else \
+            (self.data[-1]+1 if self.data.size > 0 else 0)
+
+    def __len__(self):
+        return self.data.size
+
+    @staticmethod
+    def from_dataset(dset, y_label="y"):
+        return Slice(TimeTags(dset.value))
+
+    @property
+    def timestamps(self):
+        # For time tag data, the data is the timestamps!
+        return self.data
+
+    def slice(self, start, stop):
+        idx = np.logical_and(start <= self.data, self.data < stop)
+        return self.__class__(self.data[idx], min(start, stop), max(start, stop))
+
+    def downsampled_by(self, factor, reduce):
+        raise NotImplementedError("Downsampling is not available for time tag data")
+
+
 class Empty:
     """A lightweight source of no data
 
-    Both `Continuous` and `Timeseries` can be empty, but this is a lighter
+    Both `Continuous` and `TimeSeries` can be empty, but this is a lighter
     class which can be returned an empty slice from properties.
     """
     def __len__(self):
@@ -212,20 +263,23 @@ class Empty:
 empty_slice = Slice(Empty())
 
 
-def is_continuous_channel(dset):
-    """Continuous channels consist of simple (non-compound) types"""
-    return dset.dtype.fields is None
+def channel_class(dset):
+    """Figure out the right channel source class given an HDF5 dataset"""
+    if "Kind" in dset.attrs:
+        # Bluelake HDF5 files >=v2 mark channels with a "Kind" attribute:
+        kind = dset.attrs["Kind"]
+        if kind == b"TimeTags":
+            return TimeTags
+        elif kind == b"TimeSeries":
+            return TimeSeries
+        elif kind == b"Continuous":
+            return Continuous
+        else:
+            raise RuntimeError("Unknown channel kind " + str(kind))
+    # For compatibility with Bluelake HDF5 files v1:
+    elif dset.dtype.fields is None:
+        return Continuous
+    else:
+        return TimeSeries
 
 
-def make_continuous_channel(dset, y_label="y"):
-    """Generate timestamps based on start/stop time and the sample rate"""
-    start = dset.attrs["Start time (ns)"]
-    dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
-    return Slice(Continuous(dset.value, start, dt),
-                 labels={"title": dset.name.strip("/"), "y": y_label})
-
-
-def make_timeseries_channel(dset, y_label="y"):
-    """Just real all the data"""
-    return Slice(Timeseries(dset["Value"], dset["Timestamp"]),
-                 labels={"title": dset.name.strip("/"), "y": y_label})
