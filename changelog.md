@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.3.0 | In development
+## v0.3.0 | 2018-12-04
 
 * TIFF scan exports now default to using 32bit floats
 * Support for photon time tag data has been added (Bluelake version 1.5.0 and higher, HDF5 file format version 2)
