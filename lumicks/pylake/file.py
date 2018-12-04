@@ -154,16 +154,24 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     @property
     def kymos(self) -> Dict[str, Kymo]:
+        if "Kymograph" not in self.h5:
+            return dict()
         return {name: Kymo(dset, self) for name, dset in self.h5["Kymograph"].items()}
 
     @property
     def point_scans(self) -> Dict[str, Scan]:
+        if "Point Scan" not in self.h5:
+            return dict()
         return {name: PointScan(dset, self) for name, dset in self.h5["Point Scan"].items()}
 
     @property
     def scans(self) -> Dict[str, Scan]:
+        if "Scan" not in self.h5:
+            return dict()
         return {name: Scan(dset, self) for name, dset in self.h5["Scan"].items()}
 
     @property
     def fdcurves(self) -> Dict[str, FDCurve]:
+        if "FD Curve" not in self.h5:
+            return dict()
         return {name: FDCurve.from_dset(dset, self) for name, dset in self.h5["FD Curve"].items()}

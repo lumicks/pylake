@@ -4,6 +4,7 @@
 
 * TIFF scan exports now default to using 32bit floats
 * Support for photon time tag data has been added (Bluelake version 1.5.0 and higher, HDF5 file format version 2)
+* File properties like `File.kymos`, `File.scans` now return empty `dict` objects instead of an error if there are no such items in the file
 
 ## v0.2.0 | 2018-07-27
 
