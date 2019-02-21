@@ -19,3 +19,5 @@
 *.vcxproj.filters text eol=crlf merge=union
 *.iss text eol=crlf merge=union
 *.bat text eol=crlf merge=union
+*.png filter=lfs diff=lfs merge=lfs -text
+*.ipynb filter=lfs diff=lfs merge=lfs -text

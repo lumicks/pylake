@@ -49,6 +49,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
+    'sphinx.ext.mathjax',
     'numpydoc',
     'matplotlib.sphinxext.plot_directive',
     'nbexport'
