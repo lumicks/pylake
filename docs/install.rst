@@ -1,5 +1,5 @@
-Installation
-============
+Installation of Python
+======================
 
 .. _Python: https://www.python.org/
 .. _SciPy: http://www.scipy.org/

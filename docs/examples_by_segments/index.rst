@@ -3,13 +3,11 @@ Examples by Applications
 
 This section contains sample scripts to analyze data from different applications.
 
-
-This uses the common scientific package aliases: `np` and `plt`.
-These import conventions are used consistently in the tutorial.
+You can find application notes for all these segments `here <https://lumicks.com/applications/all/>`_.
 
 
 .. toctree::
-    :caption: Contents
+    :caption: Segments
     :numbered:
     :maxdepth: 1
 

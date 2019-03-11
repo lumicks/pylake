@@ -18,6 +18,7 @@ where you can also post any questions, comments or issues that you might have.
     :caption: User guide
     :maxdepth: 2
 
+    load_files/load_files
     install
     tutorial/index
     examples_by_segments/index

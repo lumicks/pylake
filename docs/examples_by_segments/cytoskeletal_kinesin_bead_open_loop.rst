@@ -8,7 +8,7 @@ After this, the cycles starts again with Kinesins pulling the bead out of the ce
 
 With the IRM, you can see unlabeled microtubules and the kinesin-coated bead on top of one of them.
 
-.. image:: bead_on_MT.png
+.. image:: cytoskeletal_kinesin_bead_open_loop_bead_on_MT.png
 
 
 
@@ -102,7 +102,7 @@ Plot force in x and y::
     plt.xlabel('Time (s)')
     plt.ylabel('Force Y (pN)')
 
-.. image:: kinesin_bead_open_loop_fig1.png
+.. image:: cytoskeletal_kinesin_bead_open_loop_fig1.png
 
 We can clearly see that the bead was moving in the y direction, so for now we're just going to work with that. Later I have an example of how to deal with a bead moving at an angle, like at 45 degrees.
 
@@ -140,7 +140,7 @@ Plot the original force and the downsampled rate::
     plt.legend()
     plt.grid()
 
-.. image:: kinesin_bead_open_loop_fig2.png
+.. image:: cytoskeletal_kinesin_bead_open_loop_fig2.png
 
 Displacement versus Time
 -----------------------------
@@ -184,7 +184,7 @@ Calculate and plot displacement versus time::
 
     plt.grid()
 
-.. image:: kinesin_bead_open_loop_fig3.png
+.. image:: cytoskeletal_kinesin_bead_open_loop_fig3.png
 
 Distance and Force versus Time on Same Graph
 -----------------------------------------------------
@@ -221,7 +221,7 @@ Plot::
     ax2.set_ylim(ylim2)
     ax1.set_xlim([0, 5])
 
-.. image:: kinesin_bead_open_loop_fig4.png
+.. image:: cytoskeletal_kinesin_bead_open_loop_fig4.png
 
 X vs Y Position of the Bead
 ----------------------------
@@ -236,6 +236,6 @@ To get an idea in which direction the microtubule was oriented, which direction 
     plt.xlabel('x-position (nm)')
     plt.grid()
 
-.. image:: kinesin_bead_open_loop_fig5.png
+.. image:: cytoskeletal_kinesin_bead_open_loop_fig5.png
 
 
