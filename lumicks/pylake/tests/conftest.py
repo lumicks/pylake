@@ -53,7 +53,7 @@ class MockDataFile_v2(MockDataFile_v1):
 
     def make_continuous_channel(self, group, name, start, dt, data):
         dset = super().make_continuous_channel(group, name, start, dt, data)
-        dset.attrs["Kind"] = b"Continuous"
+        dset.attrs["Kind"] = "Continuous"
 
     def make_timeseries_channel(self, group, name, data):
         dset = super().make_timeseries_channel(group, name, data)
@@ -65,7 +65,7 @@ class MockDataFile_v2(MockDataFile_v1):
 
         self.file[group][name] = data
         dset = self.file[group][name]
-        dset.attrs["Kind"] = b"TimeTags"
+        dset.attrs["Kind"] = "TimeTags"
         return dset
 
 

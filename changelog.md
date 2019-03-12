@@ -1,8 +1,8 @@
 # Changelog
 
-## v0.4.0 | In development
+## v0.3.1 | In development
 
-* 
+* Fixed `Unknown channel kind` error with the v2 file format
 
 ## v0.3.0 | 2018-12-04
 

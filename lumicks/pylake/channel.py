@@ -268,16 +268,19 @@ def channel_class(dset):
     if "Kind" in dset.attrs:
         # Bluelake HDF5 files >=v2 mark channels with a "Kind" attribute:
         kind = dset.attrs["Kind"]
-        if kind == b"TimeTags":
+        if isinstance(kind, bytes):
+            kind = kind.decode()
+
+        if kind == "TimeTags":
             return TimeTags
-        elif kind == b"TimeSeries":
+        elif kind == "TimeSeries":
             return TimeSeries
-        elif kind == b"Continuous":
+        elif kind == "Continuous":
             return Continuous
         else:
             raise RuntimeError("Unknown channel kind " + str(kind))
-    # For compatibility with Bluelake HDF5 files v1:
     elif dset.dtype.fields is None:
+        # For compatibility with Bluelake HDF5 files v1
         return Continuous
     else:
         return TimeSeries
