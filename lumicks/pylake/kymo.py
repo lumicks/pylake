@@ -19,7 +19,7 @@ class Kymo(PhotonCounts):
         self.start = h5py_dset.attrs["Start time (ns)"]
         self.stop = h5py_dset.attrs["Stop time (ns)"]
         self.name = h5py_dset.name.split("/")[-1]
-        self.json = json.loads(h5py_dset.value)["value0"]
+        self.json = json.loads(h5py_dset[()])["value0"]
         self.file = file
 
     def __repr__(self):

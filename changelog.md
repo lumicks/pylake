@@ -3,6 +3,7 @@
 ## v0.3.1 | In development
 
 * Fixed `Unknown channel kind` error with the v2 file format
+* Fixed deprecation warnings with h5py v2.9
 
 ## v0.3.0 | 2018-12-04
 
