@@ -90,9 +90,9 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def __str__(self):
         """Show a quick ASCII overview of the file's contents"""
-        def print_attributes(file):
+        def print_attributes(h5file):
             r = "File root metadata:\n"
-            for key, value in self.h5.attrs.items():
+            for key, value in sorted(h5file.attrs.items()):
                 r += f"- {key}: {value}\n"
             return r
 
@@ -109,7 +109,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
                 more = ":" if len(group) != 0 else ""
                 r += f"{' ' * indent}{name}{more}\n"
 
-            for key, item in group.items():
+            for key, item in sorted(group.items()):
                 if isinstance(item, h5py.Dataset):
                     r += print_dataset(item, key, indent + 2)
                 else:

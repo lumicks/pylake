@@ -54,11 +54,11 @@ def test_repr_and_str(h5_file):
         assert str(f) == dedent("""\
             File root metadata:
             - Bluelake version: unknown
-            - File format version: 1
-            - Experiment: 
             - Description: 
-            - GUID: 
+            - Experiment: 
             - Export time (ns): -1
+            - File format version: 1
+            - GUID: 
         
             Force HF:
               Force 1x:
