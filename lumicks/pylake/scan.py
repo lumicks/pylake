@@ -17,6 +17,8 @@ class Scan(Kymo):
     def __init__(self, h5py_dset, file):
         super().__init__(h5py_dset, file)
         self._num_frames = self.json["scan count"]
+        if len(self.json["scan volume"]["scan axes"]) > 2:
+            raise RuntimeError("3D scans are not supported")
 
     def __repr__(self):
         name = self.__class__.__name__
