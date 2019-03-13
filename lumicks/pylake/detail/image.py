@@ -68,10 +68,10 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
     #  1 1 1 2 1 1 1 1 1 2 1 1 1 1 1 2 1 1 1
     #        ^ <-------> ^           ^
     #         pixel_size (i.e. data samples per pixel)
-    pixel_sizes = np.diff(np.flatnonzero(infowave == InfowaveCode.pixel_boundary))
-    pixel_size = pixel_sizes[0]
-    # For now we assume that every pixel consists of the same number of samples
-    assert np.all(pixel_sizes == pixel_size)
+    # This should be:
+    #   pixel_sizes = np.diff(np.flatnonzero(infowave == InfowaveCode.pixel_boundary))
+    # But for now we assume that every pixel consists of the same number of samples
+    pixel_size = np.argmax(infowave) + 1
 
     def round_up(size, n):
         """Round up `size` to the nearest multiple of `n`"""

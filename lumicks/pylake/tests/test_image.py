@@ -20,7 +20,7 @@ def test_reconstruct():
 def test_reconstruct_multiframe():
     size = 100
     infowave = np.ones(size)
-    infowave[::10] = 2
+    infowave[9::10] = 2
     the_data = np.arange(size)
 
     assert reconstruct_image(the_data, infowave, 5).shape == (2, 5)
