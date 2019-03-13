@@ -21,6 +21,7 @@ class Kymo(PhotonCounts):
         self.name = h5py_dset.name.split("/")[-1]
         self.json = json.loads(h5py_dset[()])["value0"]
         self.file = file
+        self._cache = {}
 
     def __repr__(self):
         name = self.__class__.__name__
@@ -46,8 +47,11 @@ class Kymo(PhotonCounts):
         return self.json["scan volume"]["scan axes"][0]["num of pixels"]
 
     def _image(self, color):
-        return reconstruct_image(getattr(self, f"{color}_photon_count").data, self.infowave.data,
-                                 self.pixels_per_line).T
+        if color not in self._cache:
+            photon_counts = getattr(self, f"{color}_photon_count").data
+            self._cache[color] = reconstruct_image(photon_counts, self.infowave.data,
+                                                   self.pixels_per_line).T
+        return self._cache[color]
 
     def _timestamps(self, sample_timestamps):
         return reconstruct_image(sample_timestamps, self.infowave.data,
