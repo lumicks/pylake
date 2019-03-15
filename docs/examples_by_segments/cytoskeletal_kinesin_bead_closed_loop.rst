@@ -1,6 +1,11 @@
 Force Clamp - Kinesin Attached to a Bead Walking on Microtubule
 ===============================================================
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
+
 In this assay we had microtubules on the surface. We trapped beads with Kinesin (molecular motor) and had ATP inside the assay. As we lowered the kinesin-coated beads on top of a microtubule, it attached to it and started stepping on the microtubule. Kinesins were pulling the bead out of the center of the trap and thus increasing the force on the bead.
 
 At a certain (set) force, we turn the force clamp on and the nanostage moves towards the motion of the bead. Now the force stays constant, and we get an idea of how the motor steps by looking at the motion of the nanostage.

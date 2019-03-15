@@ -1,6 +1,10 @@
 Kinesin Attached to a Bead Walking on Microtubule
 =================================================
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 
 In this assay we had microtubules on the surface. We trapped beads with Kinesin (molecular motor) and had ATP inside the assay. As we lowered the kinesin-coated beads on top of a microtubule, it attached to it and started stepping on them. Kinesins were pulling the bead out of the center of the trap and thus increasing the force on the bead. At one point the kinesins couldn't keep up with this increased force and the bead construct snapped back to its original position.
 

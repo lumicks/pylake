@@ -1,5 +1,10 @@
 Python
-======
+=========
+
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 
 The script for this page with sample data can be downloaded from here.
 
@@ -24,7 +29,7 @@ Load libraries so that you can analyze the exported data::
     import matplotlib.pyplot as plt 
 
 Load Files
-----------
+------------
 
 To load one file, we need to run the following lines of code::
 
@@ -47,7 +52,7 @@ In Python, we can also get a list of all the files in one folder, and we can sto
 
 
 List the Content of a File 
---------------------------
+-----------------------------
 
 We can view the structure of a loaded file like this::
 
@@ -100,7 +105,7 @@ There are two types of variables in these files in general:
 Let's look at the first type.
 
 Access Time-Traces / Channels
-----------------------
+------------------------------
     
 .. image:: python_force.png
 
@@ -182,7 +187,7 @@ We can also get the RAW data out and plot them ourselves::
 .. image:: python_fig4.png
 
 Plot Force-Distance Curve
--------------------------
+----------------------------
 
 
 We can make the same plot as before with the obtained data::
@@ -200,7 +205,7 @@ We can make the same plot as before with the obtained data::
 .. image:: python_fig5.png
 
 Access Events (e.g. calibration)
--------------------------
+----------------------------------
 
 These are the second type of variables, that are recorded at one point in time and not continuously.
 

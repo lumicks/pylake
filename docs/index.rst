@@ -21,6 +21,7 @@ where you can also post any questions, comments or issues that you might have.
     load_files/load_files
     install
     tutorial/index
+    :maxdepth: 3
     examples_by_segments/index
 
 
