@@ -154,9 +154,14 @@ class Continuous:
         return int(1e9 / self.dt)
 
     def slice(self, start, stop):
-        # TODO: should be lazily evaluated
-        idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
-        return self.__class__(self.data[idx], max(start, self.start), self.dt)
+        def to_index(t):
+            """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
+            return (t - self.start + self.dt - 1) // self.dt
+
+        start = max(start, self.start)
+        start_idx = to_index(start)
+        stop_idx = to_index(stop)
+        return self.__class__(self.data[start_idx:stop_idx], start, self.dt)
 
     def downsampled_by(self, factor, reduce):
         return self.__class__(_downsample(self.data, factor, reduce),

@@ -3,6 +3,37 @@ import math
 import numpy as np
 
 
+class InfowaveCode(enum.IntEnum):
+    discard = 0  # this data sample does not contain useful information
+    use = 1  # useful data to be used to form a pixel
+    pixel_boundary = 2  # useful data and marks the last data sample in a pixel
+
+
+def reconstruct_num_frames(infowave, pixels_per_line, lines_per_frame):
+    """Reconstruct the number of frames in a continuous scan
+
+    Unfortunately, continuous scans do not store the number of frames as part of their
+    metadata (instead the number is zero) so we must reconstruct this number based on
+    the infowave.
+
+    Parameters
+    ----------
+    infowave : array_like
+        The famous infowave.
+    pixels_per_line : int
+        The number of pixels on the fast axis of the scan.
+    lines_per_frame : int
+        The number of pixels on the slow axis of the scan. Only needed for multi-frame scans.
+
+    Returns
+    -------
+    int
+    """
+    num_pixels = np.count_nonzero(infowave == InfowaveCode.pixel_boundary)
+    pixels_per_frames = pixels_per_line * lines_per_frame
+    return math.ceil(num_pixels / pixels_per_frames)
+
+
 def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, reduce=np.sum):
     """Reconstruct a scan or kymograph image from raw data
 
@@ -26,26 +57,21 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
     """
     assert data.size == infowave.size
 
-    class Code(enum.IntEnum):
-        discard = 0
-        use = 1
-        pixel_boundary = 2
-
     # Example infowave:
     #  1 0 0 1 0 1 2 0 1 0 0 1 0 1 0 1 0 0 1 0 2 0 1 0 1 0 0 1 0 1 0 1 2 1 0 0 1
     #              ^ <-----------------------> ^                       ^
     #                       one pixel
-    valid_idx = infowave != Code.discard
+    valid_idx = infowave != InfowaveCode.discard
     infowave = infowave[valid_idx]
 
     # After discard:
     #  1 1 1 2 1 1 1 1 1 2 1 1 1 1 1 2 1 1 1
     #        ^ <-------> ^           ^
     #         pixel_size (i.e. data samples per pixel)
-    pixel_sizes = np.diff(np.flatnonzero(infowave == Code.pixel_boundary))
-    pixel_size = pixel_sizes[0]
-    # For now we assume that every pixel consists of the same number of samples
-    assert np.all(pixel_sizes == pixel_size)
+    # This should be:
+    #   pixel_sizes = np.diff(np.flatnonzero(infowave == InfowaveCode.pixel_boundary))
+    # But for now we assume that every pixel consists of the same number of samples
+    pixel_size = np.argmax(infowave) + 1
 
     def round_up(size, n):
         """Round up `size` to the nearest multiple of `n`"""

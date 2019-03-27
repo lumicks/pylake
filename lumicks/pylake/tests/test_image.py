@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from lumicks.pylake.detail.image import reconstruct_image, save_tiff
+from lumicks.pylake.detail.image import reconstruct_image, reconstruct_num_frames, save_tiff
 
 
 def test_reconstruct():
@@ -20,7 +20,7 @@ def test_reconstruct():
 def test_reconstruct_multiframe():
     size = 100
     infowave = np.ones(size)
-    infowave[::10] = 2
+    infowave[9::10] = 2
     the_data = np.arange(size)
 
     assert reconstruct_image(the_data, infowave, 5).shape == (2, 5)
@@ -29,6 +29,10 @@ def test_reconstruct_multiframe():
     assert reconstruct_image(the_data, infowave, 2, 2).shape == (3, 2, 2)
     assert reconstruct_image(the_data, infowave, 2, 3).shape == (2, 3, 2)
     assert reconstruct_image(the_data, infowave, 2, 5).shape == (5, 2)
+
+    assert reconstruct_num_frames(infowave, 2, 2) == 3
+    assert reconstruct_num_frames(infowave, 2, 3) == 2
+    assert reconstruct_num_frames(infowave, 2, 5) == 1
 
 
 def test_int_tiff(tmpdir):

@@ -1,7 +1,7 @@
 import numpy as np
 
 from .kymo import Kymo
-from .detail.image import reconstruct_image
+from .detail.image import reconstruct_image, reconstruct_num_frames
 
 
 class Scan(Kymo):
@@ -16,23 +16,31 @@ class Scan(Kymo):
     """
     def __init__(self, h5py_dset, file):
         super().__init__(h5py_dset, file)
-        self.num_frames = self.json["scan count"]
-        if self.num_frames == 0:
-            # For continuous scans this number is dynamic
-            # TODO: this is not an efficient way to determine the total number of frames
-            self.num_frames = self._image("red").shape[0]
+        self._num_frames = self.json["scan count"]
+        if len(self.json["scan volume"]["scan axes"]) > 2:
+            raise RuntimeError("3D scans are not supported")
 
     def __repr__(self):
         name = self.__class__.__name__
         return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
 
     @property
+    def num_frames(self):
+        if self._num_frames == 0:
+            self._num_frames = reconstruct_num_frames(self.infowave.data, self.pixels_per_line,
+                                                      self.lines_per_frame)
+        return self._num_frames
+
+    @property
     def lines_per_frame(self):
         return self.json["scan volume"]["scan axes"][1]["num of pixels"]
 
     def _image(self, color):
-        return reconstruct_image(getattr(self, f"{color}_photon_count").data, self.infowave.data,
-                                 self.pixels_per_line, self.lines_per_frame)
+        if color not in self._cache:
+            photon_counts = getattr(self, f"{color}_photon_count").data
+            self._cache[color] = reconstruct_image(photon_counts, self.infowave.data,
+                                                   self.pixels_per_line, self.lines_per_frame)
+        return self._cache[color]
 
     def _timestamps(self, sample_timestamps):
         return reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
