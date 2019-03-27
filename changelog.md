@@ -1,7 +1,9 @@
 # Changelog
 
-## v0.3.1 | In development
+## v0.3.1 | 2019-03-27
 
+* Loading scans and kymographs is now much faster
+* Improved perfomance of slicing continuous channels
 * Fixed `Unknown channel kind` error with the v2 file format
 * Fixed deprecation warnings with h5py v2.9
 
