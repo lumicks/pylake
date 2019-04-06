@@ -33,6 +33,13 @@ version = '.'.join(pylake.__version__.split('.')[:2])
 # The full version, including alpha/beta/rc tags
 release = pylake.__version__
 
+# Make sure we have git-lfs support on rtd
+if os.environ.get('READTHEDOCS', None):
+    from git_lfs import fetch
+
+    docs_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(docs_dir)
+    fetch(project_dir)
 
 # -- General configuration ------------------------------------------------
 
