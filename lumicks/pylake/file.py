@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from typing import Dict
 
-from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
+from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class, ContinuousCalibrated
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .fdcurve import FDCurve
 from .group import Group
@@ -119,7 +119,21 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         return print_attributes(self.h5) + "\n" + print_group(self.h5)
 
     def _get_force(self, n, xy):
-        return Continuous.from_dataset(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
+        # Fetch and parse force calibration from the hdf5 file
+        def parse_force_calibration(cdata, n, xy):
+            calibration_data = cdata
+            calibration_src = []
+            for i, v in enumerate(calibration_data):
+                calibration_src.append(dict(calibration_data[v][f"Force {n}{xy}"].attrs))
+
+            # Sort by time
+            calibration_src = sorted(calibration_src, key=lambda x: x["Stop time (ns)"])
+
+            return calibration_src
+
+        slice = ContinuousCalibrated.from_dataset(self.h5["Force HF"][f"Force {n}{xy}"], parse_force_calibration(self.h5["Calibration"], n, xy), "Force (pN)")
+
+        return slice
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]

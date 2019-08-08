@@ -63,6 +63,14 @@ class Slice:
         return self._src.timestamps
 
     @property
+    def calibration(self) -> list:
+        """Calibration data for this channel"""
+        try:
+            return self._src.calibration
+        except AttributeError:
+            return None
+
+    @property
     def sample_rate(self) -> int:
         """The data frequency for continuous data sources or `None` if it's variable"""
         try:
@@ -246,6 +254,61 @@ class TimeTags:
     def downsampled_by(self, factor, reduce):
         raise NotImplementedError("Downsampling is not available for time tag data")
 
+class ContinuousCalibrated(Continuous):
+    """A source of continuous data with calibration metadata
+
+    Parameters
+    ----------
+    data : array_like
+        Anything that's convertible to an `np.ndarray`.
+    calibration: list of dictionaries
+        Contains calibration data
+    start : int
+        Timestamp of the first data point.
+    dt : int
+        Delta between two timestamps. Constant for the entire data range.
+    """
+    def __init__(self, data, calibration, start, dt):
+        Continuous.__init__(self, data, start, dt)
+        self._calibration = self.__class__._filter_calibration( calibration, self.start, self.stop )
+
+    @property
+    def calibration(self):
+        return self._calibration
+
+    # Filter calibration data
+    def _filter_calibration(calibration, start_idx, stop_idx):
+        timestamp = lambda x: x["Stop time (ns)"];
+
+        calibration_items = [calibration[0]]
+        for i, v in enumerate(calibration):
+            ts = timestamp(v)
+            if ts < start_idx:
+                calibration_items[0] = v
+            elif ts <= stop_idx:
+                calibration_items.append(v)
+            else:
+                # Since the list is sorted, we can early out
+                break
+
+        return calibration_items
+
+    def slice(self, start, stop):
+        def to_index(t):
+            """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
+            return (t - self.start + self.dt - 1) // self.dt
+
+        start = max(start, self.start)
+        start_idx = to_index(start)
+        stop_idx = to_index(stop)
+        return self.__class__(self.data[start_idx:stop_idx], self.__class__._filter_calibration(self.calibration, start_idx, stop_idx), start, self.dt)
+
+    @staticmethod
+    def from_dataset(dset, calibration, y_label="y"):
+        start = dset.attrs["Start time (ns)"]
+        dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
+        return Slice(ContinuousCalibrated(dset[()], calibration, start, dt),
+                     labels={"title": dset.name.strip("/"), "y": y_label})
 
 class Empty:
     """A lightweight source of no data
@@ -289,5 +352,3 @@ def channel_class(dset):
         return Continuous
     else:
         return TimeSeries
-
-
