@@ -102,6 +102,11 @@ def test_continuous_idexing():
     assert len(s[1:2].data) == 0
     assert len(s[1:2].timestamps) == 0
 
+    # Regression test for slicing within timestep
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], 4, 2))
+    assert s[5:15].timestamps[0] == 6
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], -4, 2))
+    assert s[-3:].timestamps[0] == -2
 
 def test_timetags_indexing():
     s = channel.Slice(channel.TimeTags([10, 20, 30, 40, 50, 60]))
