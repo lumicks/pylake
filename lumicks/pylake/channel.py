@@ -272,7 +272,6 @@ class ContinuousCalibrated(Continuous):
     def __init__(self, data, calibration, start, dt):
         Continuous.__init__(self, data, start, dt)
         self._calibration = calibration
-        #self._calibration = self.__class__._filter_calibration( calibration, self.start, self.stop )
 
     @property
     def calibration(self):
@@ -310,7 +309,9 @@ class ContinuousCalibrated(Continuous):
         return self.__class__(self.data[start_idx:stop_idx], self._calibration, start, self.dt)
 
     @staticmethod
-    def from_dataset(dset, calibration, y_label="y"):
+    def from_dataset(dset, y_label="y", calibration=None):
+        if calibration is None:
+            calibration = {}
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
         return Slice(ContinuousCalibrated(dset[()], calibration, start, dt),
