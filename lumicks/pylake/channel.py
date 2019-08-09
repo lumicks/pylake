@@ -68,7 +68,7 @@ class Slice:
         try:
             return self._src.calibration
         except AttributeError:
-            return None
+            return []
 
     @property
     def sample_rate(self) -> int:
@@ -254,6 +254,7 @@ class TimeTags:
     def downsampled_by(self, factor, reduce):
         raise NotImplementedError("Downsampling is not available for time tag data")
 
+
 class ContinuousCalibrated(Continuous):
     """A source of continuous data with calibration metadata
 
@@ -270,22 +271,27 @@ class ContinuousCalibrated(Continuous):
     """
     def __init__(self, data, calibration, start, dt):
         Continuous.__init__(self, data, start, dt)
-        self._calibration = self.__class__._filter_calibration( calibration, self.start, self.stop )
+        self._calibration = calibration
+        #self._calibration = self.__class__._filter_calibration( calibration, self.start, self.stop )
 
     @property
     def calibration(self):
-        return self._calibration
+        return self.__class__._filter_calibration(self._calibration, self.start, self.stop)
 
-    # Filter calibration data
-    def _filter_calibration(calibration, start_idx, stop_idx):
-        timestamp = lambda x: x["Stop time (ns)"];
+    """Filter calibration data based on time stamp range [ns]"""
+    @staticmethod
+    def _filter_calibration(calibration, start, stop):
+        def timestamp(x):
+            return x['Stop time (ns)']
 
+        # Sort by time
+        calibration = sorted(calibration, key=timestamp)
         calibration_items = [calibration[0]]
         for i, v in enumerate(calibration):
             ts = timestamp(v)
-            if ts < start_idx:
+            if ts <= start:
                 calibration_items[0] = v
-            elif ts <= stop_idx:
+            elif ts < stop:
                 calibration_items.append(v)
             else:
                 # Since the list is sorted, we can early out
@@ -301,7 +307,7 @@ class ContinuousCalibrated(Continuous):
         start = max(start, self.start)
         start_idx = to_index(start)
         stop_idx = to_index(stop)
-        return self.__class__(self.data[start_idx:stop_idx], self.__class__._filter_calibration(self.calibration, start_idx, stop_idx), start, self.dt)
+        return self.__class__(self.data[start_idx:stop_idx], self._calibration, start, self.dt)
 
     @staticmethod
     def from_dataset(dset, calibration, y_label="y"):
