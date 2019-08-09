@@ -3,6 +3,55 @@ import numpy as np
 from lumicks.pylake import channel
 
 
+def test_calibration():
+    mock_calibration = [
+        {'Calibration Data': 50, 'Stop time (ns)': 50},
+        {'Calibration Data': 20, 'Stop time (ns)': 20},
+        {'Calibration Data': 30, 'Stop time (ns)': 30},
+        {'Calibration Data': 40, 'Stop time (ns)': 40},
+        {'Calibration Data': 80, 'Stop time (ns)': 80},
+        {'Calibration Data': 90, 'Stop time (ns)': 90},
+        {'Calibration Data': 120, 'Stop time (ns)': 120},
+    ]
+
+    # Channel should have calibration points 40, 50 since this is the only area that has force data.
+    cc = channel.Slice(channel.ContinuousCalibrated([14, 15, 16, 17], mock_calibration, 40, 10))
+    assert len(cc.calibration) == 2
+    assert cc.calibration[0]["Calibration Data"] == 40
+    assert cc.calibration[1]["Calibration Data"] == 50
+
+    # Channel should have calibration points 40, 50, 80, 90, 120
+    # and time points 40, 50, ... 130
+    cc = channel.Slice(channel.ContinuousCalibrated([14, 15, 16, 17, 18, 19, 20, 21, 22], mock_calibration, 40, 10))
+    assert len(cc.calibration) == 5
+
+    calibration = cc[50:80].calibration
+    assert len(calibration) == 1
+    assert calibration[0]["Calibration Data"] == 50
+
+    calibration = cc[50:90].calibration
+    assert len(calibration) == 2
+    assert calibration[0]["Calibration Data"] == 50
+    assert calibration[1]["Calibration Data"] == 80
+
+    # Check whether slice nesting works for calibration data
+    # :120 => keeps 40, 50, 80, 90
+    nested_slice = cc[:120]
+    assert len(nested_slice.calibration) == 4
+    assert nested_slice.calibration[0]["Calibration Data"] == 40
+    assert nested_slice.calibration[1]["Calibration Data"] == 50
+    assert nested_slice.calibration[2]["Calibration Data"] == 80
+    assert nested_slice.calibration[3]["Calibration Data"] == 90
+    nested_slice = nested_slice[:90]
+    assert len(nested_slice.calibration) == 3
+
+    # 120 and up results in calibration point 120.
+    # This case would be 80 if calibration data would be sliced every time, rather than filtered only when requested.
+    nested_slice = nested_slice[120:]
+    assert len(nested_slice.calibration) == 1
+    assert nested_slice.calibration[0]["Calibration Data"] == 120
+
+
 def test_slice_properties():
     size = 5
     s = channel.Slice(channel.TimeSeries(np.random.rand(size), np.random.rand(size)))
