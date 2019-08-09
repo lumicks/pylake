@@ -121,16 +121,21 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     def _get_force(self, n, xy):
         # Fetch and parse force calibration from the hdf5 file
         def parse_force_calibration(cdata, n, xy):
-            calibration_data = cdata
             calibration_src = []
-            for i, v in enumerate(calibration_data):
-                calibration_src.append(dict(calibration_data[v][f"Force {n}{xy}"].attrs))
+            for i, v in enumerate(cdata):
+                calibration_src.append(dict(cdata[v][f"Force {n}{xy}"].attrs))
 
             return calibration_src
 
-        slice = ContinuousCalibrated.from_dataset(self.h5["Force HF"][f"Force {n}{xy}"], parse_force_calibration(self.h5["Calibration"], n, xy), "Force (pN)")
+        force_group = self.h5["Force HF"][f"Force {n}{xy}"]
+        if "Calibration" in self.h5.keys():
+            calibration_data = parse_force_calibration(self.h5["Calibration"], n, xy)
+        else:
+            calibration_data = {}
 
-        return slice
+        continuous_calibrated_slice = ContinuousCalibrated.from_dataset(force_group, calibration_data, "Force (pN)")
+
+        return continuous_calibrated_slice
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
