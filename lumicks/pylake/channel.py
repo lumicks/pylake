@@ -2,6 +2,7 @@ import math
 import numpy as np
 
 from .detail.timeindex import to_timestamp
+from .calibration import ForceCalibration
 
 
 class Slice:
@@ -202,11 +203,17 @@ class TimeSeries:
 
     @property
     def start(self):
-        return self.timestamps[0]
+        if len(self.timestamps) > 0:
+            return self.timestamps[0]
+        else:
+            raise IndexError("Start of empty time series is undefined")
 
     @property
     def stop(self):
-        return self.timestamps[-1] + 1
+        if len(self.timestamps) > 0:
+            return self.timestamps[-1] + 1
+        else:
+            raise IndexError("End of empty time series is undefined")
 
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
@@ -255,7 +262,7 @@ class TimeTags:
         raise NotImplementedError("Downsampling is not available for time tag data")
 
 
-class ContinuousCalibrated(Continuous):
+class ContinuousCalibrated(Continuous, ForceCalibration):
     """A source of continuous data with calibration metadata
 
     Parameters
@@ -271,32 +278,14 @@ class ContinuousCalibrated(Continuous):
     """
     def __init__(self, data, calibration, start, dt):
         Continuous.__init__(self, data, start, dt)
-        self._calibration = calibration
+        ForceCalibration.__init__(self, calibration)
 
     @property
     def calibration(self):
-        return self.__class__._filter_calibration(self._calibration, self.start, self.stop)
-
-    """Filter calibration data based on time stamp range [ns]"""
-    @staticmethod
-    def _filter_calibration(calibration, start, stop):
-        def timestamp(x):
-            return x['Stop time (ns)']
-
-        # Sort by time
-        calibration = sorted(calibration, key=timestamp)
-        calibration_items = [calibration[0]]
-        for i, v in enumerate(calibration):
-            ts = timestamp(v)
-            if ts <= start:
-                calibration_items[0] = v
-            elif ts < stop:
-                calibration_items.append(v)
-            else:
-                # Since the list is sorted, we can early out
-                break
-
-        return calibration_items
+        """Calibration data for this channel"""
+        """Calibration data slicing is deferred until calibration is requested to avoid"""
+        """slicing values that may be needed."""
+        return ForceCalibration._filter_calibration(self._calibration, self.start, self.stop)
 
     def slice(self, start, stop):
         def to_index(t):
@@ -316,6 +305,49 @@ class ContinuousCalibrated(Continuous):
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
         return Slice(ContinuousCalibrated(dset[()], calibration, start, dt),
                      labels={"title": dset.name.strip("/"), "y": y_label})
+
+
+class TimeSeriesCalibrated(TimeSeries, ForceCalibration):
+    """A source of continuous data with calibration metadata
+
+    Parameters
+    ----------
+    data : array_like
+        Anything that's convertible to an `np.ndarray`.
+    timestamps : array_like
+        An array of integer timestamps.
+    calibration: list of dictionaries
+        Contains calibration data
+    """
+
+    def downsampled_by(self, factor, reduce):
+        pass
+
+    def __init__(self, data, timestamps, calibration):
+        TimeSeries.__init__(self, data, timestamps)
+        ForceCalibration.__init__(self, calibration)
+
+    @property
+    def calibration(self):
+        """Calibration data for this channel"""
+        """Calibration data slicing is deferred until calibration is requested to avoid"""
+        """slicing values that may be needed."""
+        if len(self.timestamps) > 0:
+            return ForceCalibration._filter_calibration(self._calibration, self.start, self.stop)
+        else:
+            return {}
+
+    def slice(self, start, stop):
+        idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
+        return self.__class__(self.data[idx], self.timestamps[idx], self.calibration)
+
+    @staticmethod
+    def from_dataset(dset, y_label="y", calibration=None):
+        if calibration is None:
+            calibration = {}
+        return Slice(TimeSeriesCalibrated(dset["Value"], dset["Timestamp"], calibration),
+                     labels={"title": dset.name.strip("/"), "y": y_label})
+
 
 class Empty:
     """A lightweight source of no data

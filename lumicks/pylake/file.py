@@ -2,7 +2,8 @@ import h5py
 import numpy as np
 from typing import Dict
 
-from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class, ContinuousCalibrated
+from .calibration import ForceCalibration
+from .channel import Slice, Continuous, TimeSeries, TimeSeriesCalibrated, TimeTags, channel_class, ContinuousCalibrated
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .fdcurve import FDCurve
 from .group import Group
@@ -118,33 +119,18 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
         return print_attributes(self.h5) + "\n" + print_group(self.h5)
 
-    def _get__force_calibration(self, n, xy):
-        """Fetch the force calibration data from the HDF5 file"""
-        def parse_force_calibration(cdata, force_idx, force_axis) -> list:
-            calibration_src = []
-            for i, v in enumerate(cdata):
-                calibration_src.append(dict(cdata[v][f"Force {force_idx}{force_axis}"].attrs))
-
-            return calibration_src
-
-        if "Calibration" in self.h5.keys():
-            calibration_data = parse_force_calibration(self.h5["Calibration"], n, xy)
-        else:
-            calibration_data = {}
-
-        return calibration_data
-
     def _get_force(self, n, xy):
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]
-        calibration_data = self._get__force_calibration(n, xy)
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
         return ContinuousCalibrated.from_dataset(force_group, "Force (pN)", calibration_data)
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
         def make(channel):
-            return TimeSeries.from_dataset(group[channel], "Force (pN)")
+            return TimeSeriesCalibrated.from_dataset(group[channel], "Force (pN)", calibration_data)
 
         if xy:  # An x or y component of the downsampled force is easy
             return make(f"Force {n}{xy}")
