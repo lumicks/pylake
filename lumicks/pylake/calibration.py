@@ -6,18 +6,29 @@ class ForceCalibration:
 
     Parameters
     ----------
-    calibration data : named tuple containing
-        time_field - Name of the field used for time
-        list of dictionaries containing the raw calibration attribute data
+    calibration: named tuple containing
+        time_field : name of the field used for time
+        items : list of dictionaries containing the raw calibration attribute data
     """
     def __init__(self, calibration):
+        if not calibration:
+            raise ValueError("Missing argument calibration")
+
+        if not hasattr(calibration, "items"):
+            raise TypeError("Calibration structure is missing items field")
+
+        if not hasattr(calibration, "time_field"):
+            raise TypeError("Calibration structure is missing time_field field")
+
         self._calibration = calibration
 
     """filter calibration data based on time stamp range [ns]"""
     @staticmethod
     def _filter_calibration(calibration, start, stop):
+        assert calibration
+
         if len(calibration.items) == 0:
-            return {}
+            return []
 
         def timestamp(x):
             return x[calibration.time_field]
@@ -57,6 +68,7 @@ class ForceCalibration:
         else:
             return AttributeError("No calibration data available")
 
+    @staticmethod
     def from_dataset(hdf5, n, xy, time_field='Stop time (ns)'):
         """Fetch the force calibration data from the HDF5 file"""
         def parse_force_calibration(cdata, force_idx, force_axis) -> list:
@@ -78,6 +90,6 @@ class ForceCalibration:
         else:
             calibration_data = namedtuple("Calibration", {"time_field", "items"})
             calibration_data.time_field = time_field
-            calibration_data.items = {}
+            calibration_data.items = []
 
         return calibration_data

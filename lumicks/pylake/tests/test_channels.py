@@ -52,6 +52,11 @@ def test_calibration_timeseries_channels():
     # This slices off everything
     nested_slice = nested_slice[120:]
     assert len(nested_slice.calibration) == 0
+    assert type(nested_slice.calibration) is list
+
+    with pytest.raises(ValueError):
+        channel.TimeSeriesCalibrated([14, 15, 16, 17], [40, 50, 60, 70], None)
+
 
 def test_calibration_continuous_channels():
     mock_calibration = namedtuple("Calibration", {"time_field", "items"})
@@ -104,6 +109,8 @@ def test_calibration_continuous_channels():
     assert len(nested_slice.calibration) == 1
     assert nested_slice.calibration[0]["Calibration Data"] == 120
 
+    with pytest.raises(ValueError):
+        channel.ContinuousCalibrated([14, 15, 16, 17], None, 40, 10)
 
 def test_slice_properties():
     size = 5

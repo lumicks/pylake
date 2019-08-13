@@ -269,8 +269,9 @@ class ContinuousCalibrated(Continuous, ForceCalibration):
     ----------
     data : array_like
         Anything that's convertible to an `np.ndarray`.
-    calibration: list of dictionaries
-        Contains calibration data
+    calibration: named tuple containing
+        time_field : name of the field used for time
+        items : list of dictionaries containing the raw calibration attribute data
     start : int
         Timestamp of the first data point.
     dt : int
@@ -299,8 +300,6 @@ class ContinuousCalibrated(Continuous, ForceCalibration):
 
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
-        if calibration is None:
-            calibration = {}
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
         return Slice(ContinuousCalibrated(dset[()], calibration, start, dt),
@@ -316,8 +315,9 @@ class TimeSeriesCalibrated(TimeSeries, ForceCalibration):
         Anything that's convertible to an `np.ndarray`.
     timestamps : array_like
         An array of integer timestamps.
-    calibration: list of dictionaries
-        Contains calibration data
+    calibration: named tuple containing
+        time_field : name of the field used for time
+        items : list of dictionaries containing the raw calibration attribute data
     """
 
     def downsampled_by(self, factor, reduce):
@@ -335,7 +335,7 @@ class TimeSeriesCalibrated(TimeSeries, ForceCalibration):
         if len(self.timestamps) > 0:
             return self.filter_calibration(self.start, self.stop)
         else:
-            return {}
+            return []
 
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
@@ -343,8 +343,6 @@ class TimeSeriesCalibrated(TimeSeries, ForceCalibration):
 
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
-        if calibration is None:
-            calibration = {}
         return Slice(TimeSeriesCalibrated(dset["Value"], dset["Timestamp"], calibration),
                      labels={"title": dset.name.strip("/"), "y": y_label})
 
