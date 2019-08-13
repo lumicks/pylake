@@ -112,6 +112,7 @@ def test_calibration_continuous_channels():
     with pytest.raises(ValueError):
         channel.ContinuousCalibrated([14, 15, 16, 17], None, 40, 10)
 
+
 def test_slice_properties():
     size = 5
     s = channel.Slice(channel.TimeSeries(np.random.rand(size), np.random.rand(size)))
