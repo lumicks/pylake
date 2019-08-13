@@ -1,17 +1,21 @@
 import pytest
 import numpy as np
+from collections import namedtuple
 from lumicks.pylake import channel
 
 
 def test_calibration_timeseries_channels():
-    mock_calibration = [
-        {'Calibration Data': 50, 'Stop time (ns)': 50},
-        {'Calibration Data': 20, 'Stop time (ns)': 20},
-        {'Calibration Data': 30, 'Stop time (ns)': 30},
-        {'Calibration Data': 40, 'Stop time (ns)': 40},
-        {'Calibration Data': 80, 'Stop time (ns)': 80},
-        {'Calibration Data': 90, 'Stop time (ns)': 90},
-        {'Calibration Data': 120, 'Stop time (ns)': 120},
+    mock_calibration = namedtuple("Calibration", {"time_field", "items"})
+
+    mock_calibration.time_field = 'Stop time (ns)'
+    mock_calibration.items = [
+        {'Calibration Data': 50, mock_calibration.time_field: 50},
+        {'Calibration Data': 20, mock_calibration.time_field: 20},
+        {'Calibration Data': 30, mock_calibration.time_field: 30},
+        {'Calibration Data': 40, mock_calibration.time_field: 40},
+        {'Calibration Data': 80, mock_calibration.time_field: 80},
+        {'Calibration Data': 90, mock_calibration.time_field: 90},
+        {'Calibration Data': 120, mock_calibration.time_field: 120},
     ]
 
     # Channel should have calibration points 40, 50 since this is the only area that has force data.
@@ -45,16 +49,22 @@ def test_calibration_timeseries_channels():
     nested_slice = nested_slice[:90]
     assert len(nested_slice.calibration) == 3
 
+    # This slices off everything
+    nested_slice = nested_slice[120:]
+    assert len(nested_slice.calibration) == 0
 
 def test_calibration_continuous_channels():
-    mock_calibration = [
-        {'Calibration Data': 50, 'Stop time (ns)': 50},
-        {'Calibration Data': 20, 'Stop time (ns)': 20},
-        {'Calibration Data': 30, 'Stop time (ns)': 30},
-        {'Calibration Data': 40, 'Stop time (ns)': 40},
-        {'Calibration Data': 80, 'Stop time (ns)': 80},
-        {'Calibration Data': 90, 'Stop time (ns)': 90},
-        {'Calibration Data': 120, 'Stop time (ns)': 120},
+    mock_calibration = namedtuple("Calibration", {"time_field", "items"})
+
+    mock_calibration.time_field = 'Stop time (ns)'
+    mock_calibration.items = [
+        {'Calibration Data': 50, mock_calibration.time_field: 50},
+        {'Calibration Data': 20, mock_calibration.time_field: 20},
+        {'Calibration Data': 30, mock_calibration.time_field: 30},
+        {'Calibration Data': 40, mock_calibration.time_field: 40},
+        {'Calibration Data': 80, mock_calibration.time_field: 80},
+        {'Calibration Data': 90, mock_calibration.time_field: 90},
+        {'Calibration Data': 120, mock_calibration.time_field: 120},
     ]
 
     # Channel should have calibration points 40, 50 since this is the only area that has force data.

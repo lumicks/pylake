@@ -127,10 +127,13 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
-        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
         def make(channel):
-            return TimeSeriesCalibrated.from_dataset(group[channel], "Force (pN)", calibration_data)
+            if xy:
+                calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+                return TimeSeriesCalibrated.from_dataset(group[channel], "Force (pN)", calibration_data)
+            else:
+                return TimeSeries.from_dataset(group[channel], "Force (pN)")
 
         if xy:  # An x or y component of the downsampled force is easy
             return make(f"Force {n}{xy}")

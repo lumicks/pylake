@@ -38,6 +38,15 @@ def test_channels(h5_file):
     assert f.downsampled_force1.labels["title"] == "Force LF/Force 1"
 
 
+def test_calibration(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+
+    if f.format_version == 2:
+        assert len(f.force1x.calibration) == 2
+        assert len(f.downsampled_force1.calibration) == 0
+        assert len(f.downsampled_force1x.calibration) == 1
+
+
 def test_properties(h5_file):
     f = pylake.File.from_h5py(h5_file)
     assert f.kymos == {}

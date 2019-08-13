@@ -285,7 +285,7 @@ class ContinuousCalibrated(Continuous, ForceCalibration):
         """Calibration data for this channel"""
         """Calibration data slicing is deferred until calibration is requested to avoid"""
         """slicing values that may be needed."""
-        return ForceCalibration._filter_calibration(self._calibration, self.start, self.stop)
+        return self.filter_calibration(self.start, self.stop)
 
     def slice(self, start, stop):
         def to_index(t):
@@ -333,13 +333,13 @@ class TimeSeriesCalibrated(TimeSeries, ForceCalibration):
         """Calibration data slicing is deferred until calibration is requested to avoid"""
         """slicing values that may be needed."""
         if len(self.timestamps) > 0:
-            return ForceCalibration._filter_calibration(self._calibration, self.start, self.stop)
+            return self.filter_calibration(self.start, self.stop)
         else:
             return {}
 
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
-        return self.__class__(self.data[idx], self.timestamps[idx], self.calibration)
+        return self.__class__(self.data[idx], self.timestamps[idx], self._calibration)
 
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
