@@ -292,7 +292,7 @@ class ContinuousCalibrated(Continuous, ForceCalibration):
             """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
             return (t - self.start + self.dt - 1) // self.dt
 
-        start = max(start, self.start)
+        start = max(start + start % self.dt, self.start)
         start_idx = to_index(start)
         stop_idx = to_index(stop)
         return self.__class__(self.data[start_idx:stop_idx], self._calibration, start, self.dt)
