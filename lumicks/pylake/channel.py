@@ -29,6 +29,43 @@ class Slice:
     def __len__(self):
         return len(self._src)
 
+    def _validate_operator_args(self, other):
+        if type(self) != type(other):
+            raise ValueError(f"Incompatible types {self.__class__} with {other.__class__}")
+
+    def __add__(self, other):
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src + other._src)
+
+    def __sub__(self, other):
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src - other._src)
+
+    def __truediv__(self, other):
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src / other._src)
+
+    def __mul__(self, other):
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src * other._src)
+
+
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
         if not isinstance(item, slice):
@@ -144,6 +181,29 @@ class Continuous:
         self.stop = start + len(data) * dt
         self.dt = dt
 
+    def _validate_operator_args(self, other):
+        if type(self) != type(other):
+            raise ValueError(f"Incompatible types {self.__class__} with {other.__class__}")
+
+        if len(self.data) != len(other.data):
+            raise ValueError(f"{self.__class__}: Incompatible data length {len(self.data)} with {len(other.data)}")
+
+    def __sub__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data - other.data, self.start, self.dt)
+
+    def __add__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data + other.data, self.start, self.dt)
+
+    def __mul__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data * other.data, self.start, self.dt)
+
+    def __truediv__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data / other.data, self.start, self.dt)
+
     def __len__(self):
         return len(self._src_data)
 
@@ -198,6 +258,29 @@ class TimeSeries:
         # TODO: should be lazily evaluated
         self.data = np.asarray(data)
         self.timestamps = np.asarray(timestamps)
+
+    def _validate_operator_args(self, other):
+        if type(self) != type(other):
+            raise ValueError(f"Incompatible types {self.__class__} with {other.__class__}")
+
+        if len(self.data) != len(other.data):
+            raise ValueError(f"{self.__class__}: Incompatible data length {len(self.data)} with {len(other.data)}")
+
+    def __sub__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data - other.data, self.timestamps)
+
+    def __add__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data + other.data, self.timestamps)
+
+    def __mul__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data * other.data, self.timestamps)
+
+    def __truediv__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data / other.data, self.timestamps)
 
     def __len__(self):
         return len(self.data)
@@ -284,7 +367,6 @@ class Empty:
     @property
     def timestamps(self):
         return np.empty(0)
-
 
 empty_slice = Slice(Empty())
 
