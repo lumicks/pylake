@@ -29,33 +29,42 @@ class Slice:
     def __len__(self):
         return len(self._src)
 
-    def _unpack_other(self, other):
-        if isinstance(other, self.__class__):
-            return other._src.data
-        else:
-            return other
+    def _validate_operator_args(self, other):
+        if type(self) != type(other):
+            raise ValueError(f"Incompatible types {self.__class__} with {other.__class__}")
 
     def __add__(self, other):
-        return Slice(self._src._with_data_source(self._src.data + self._unpack_other(other)))
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src + other._src)
 
     def __sub__(self, other):
-        return Slice(self._src._with_data_source(self._src.data - self._unpack_other(other)))
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src - other._src)
 
     def __truediv__(self, other):
-        return Slice(self._src._with_data_source(self._src.data / self._unpack_other(other)))
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src / other._src)
 
     def __mul__(self, other):
-        return Slice(self._src._with_data_source(self._src.data * self._unpack_other(other)))
+        """
+        :type other: Slice
+        :rtype Slice:
+        """
+        self._validate_operator_args(other)
+        return Slice(self._src * other._src)
 
-    def __rtruediv__(self, other):
-        return Slice(self._src._with_data_source(self._unpack_other(other)/self._src.data))
-
-    def __rsub__(self, other):
-        return Slice(self._src._with_data_source(self._unpack_other(other)-self._src.data))
-
-    # These commute
-    __rmul__ = __mul__
-    __radd__ = __add__
 
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
@@ -169,6 +178,29 @@ class Continuous:
         self.stop = start + len(data) * dt
         self.dt = dt
 
+    def _validate_operator_args(self, other):
+        if type(self) != type(other):
+            raise ValueError(f"Incompatible types {self.__class__} with {other.__class__}")
+
+        if len(self.data) != len(other.data):
+            raise ValueError(f"{self.__class__}: Incompatible data length {len(self.data)} with {len(other.data)}")
+
+    def __sub__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data - other.data, self.start, self.dt)
+
+    def __add__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data + other.data, self.start, self.dt)
+
+    def __mul__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data * other.data, self.start, self.dt)
+
+    def __truediv__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data / other.data, self.start, self.dt)
+
     def __len__(self):
         return len(self._src_data)
 
@@ -226,6 +258,29 @@ class TimeSeries:
         # TODO: should be lazily evaluated
         self.data = np.asarray(data)
         self.timestamps = np.asarray(timestamps)
+
+    def _validate_operator_args(self, other):
+        if type(self) != type(other):
+            raise ValueError(f"Incompatible types {self.__class__} with {other.__class__}")
+
+        if len(self.data) != len(other.data):
+            raise ValueError(f"{self.__class__}: Incompatible data length {len(self.data)} with {len(other.data)}")
+
+    def __sub__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data - other.data, self.timestamps)
+
+    def __add__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data + other.data, self.timestamps)
+
+    def __mul__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data * other.data, self.timestamps)
+
+    def __truediv__(self, other):
+        self._validate_operator_args(other)
+        return self.__class__(self.data / other.data, self.timestamps)
 
     def __len__(self):
         return len(self.data)
