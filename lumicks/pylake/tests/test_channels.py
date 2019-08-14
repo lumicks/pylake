@@ -3,6 +3,52 @@ import numpy as np
 from lumicks.pylake import channel
 
 
+def test_arithmetic_operations():
+    cc1 = channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1)
+    cc2 = channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1)
+    cc3 = channel.Continuous([1, 1, 3, 1, 5, 6], start=0, dt=1)
+
+    assert np.allclose((cc1 - cc2).data, [0, 1, 0, 3, 0])
+    assert np.allclose((cc1 + cc2).data, [2, 3, 6, 5, 10])
+    assert np.allclose((cc1 * cc2).data, [1, 2, 9, 4, 25])
+    assert np.allclose((cc1 / cc2).data, [1, 2, 1, 4, 1])
+    with pytest.raises(ValueError):
+        cc1 - cc3
+
+    scc1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1))
+    scc2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1))
+    scc3 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5, 6], start=0, dt=1))
+
+    assert np.allclose((scc1 - scc2).data, [0, 1, 0, 3, 0])
+    assert np.allclose((scc1 + scc2).data, [2, 3, 6, 5, 10])
+    assert np.allclose((scc1 * scc2).data, [1, 2, 9, 4, 25])
+    assert np.allclose((scc1 / scc2).data, [1, 2, 1, 4, 1])
+    with pytest.raises(ValueError):
+        scc1 - scc3
+
+    cc1 = channel.TimeSeries([1, 2, 3, 4, 5], [1, 2, 3, 4, 5])
+    cc2 = channel.TimeSeries([1, 1, 3, 1, 5], [1, 2, 3, 4, 5])
+    cc3 = channel.TimeSeries([1, 1, 3, 1, 5, 6], [1, 2, 3, 4, 5, 6])
+
+    assert np.allclose((cc1 - cc2).data, [0, 1, 0, 3, 0])
+    assert np.allclose((cc1 + cc2).data, [2, 3, 6, 5, 10])
+    assert np.allclose((cc1 * cc2).data, [1, 2, 9, 4, 25])
+    assert np.allclose((cc1 / cc2).data, [1, 2, 1, 4, 1])
+    with pytest.raises(ValueError):
+        cc1 - cc3
+
+    scc1 = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
+    scc2 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5], [1, 2, 3, 4, 5]))
+    scc3 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5, 6], [1, 2, 3, 4, 5, 6]))
+
+    assert np.allclose((scc1 - scc2).data, [0, 1, 0, 3, 0])
+    assert np.allclose((scc1 + scc2).data, [2, 3, 6, 5, 10])
+    assert np.allclose((scc1 * scc2).data, [1, 2, 9, 4, 25])
+    assert np.allclose((scc1 / scc2).data, [1, 2, 1, 4, 1])
+    with pytest.raises(ValueError):
+        scc1 - scc3
+
+
 def test_slice_properties():
     size = 5
     s = channel.Slice(channel.TimeSeries(np.random.rand(size), np.random.rand(size)))
