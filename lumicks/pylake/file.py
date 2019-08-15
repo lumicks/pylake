@@ -3,7 +3,7 @@ import numpy as np
 from typing import Dict
 
 from .calibration import ForceCalibration
-from .channel import Slice, Continuous, TimeSeries, TimeSeriesCalibrated, TimeTags, channel_class, ContinuousCalibrated
+from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .fdcurve import FDCurve
 from .group import Group
@@ -121,17 +121,17 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def _get_force(self, n, xy):
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]
-        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+        calibration_data = ForceCalibration(ForceCalibration.from_dataset(self.h5, n, xy))
 
-        return ContinuousCalibrated.from_dataset(force_group, "Force (pN)", calibration_data)
+        return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
 
         def make(channel):
             if xy:
-                calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
-                return TimeSeriesCalibrated.from_dataset(group[channel], "Force (pN)", calibration_data)
+                calibration_data = ForceCalibration(ForceCalibration.from_dataset(self.h5, n, xy))
+                return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data)
             else:
                 return TimeSeries.from_dataset(group[channel], "Force (pN)")
 

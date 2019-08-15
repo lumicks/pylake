@@ -131,21 +131,22 @@ class Continuous:
     dt : int
         Delta between two timestamps. Constant for the entire data range.
     """
-    def __init__(self, data, start, dt):
+    def __init__(self, data, start, dt, calibration=None):
         self._src_data = data
         self._cached_data = None
         self.start = start
         self.stop = start + len(data) * dt
         self.dt = dt
+        self._calibration = calibration
 
     def __len__(self):
         return len(self._src_data)
 
     @staticmethod
-    def from_dataset(dset, y_label="y"):
+    def from_dataset(dset, y_label="y", calibration=None):
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
-        return Slice(Continuous(dset[()], start, dt),
+        return Slice(Continuous(dset[()], start, dt, calibration),
                      labels={"title": dset.name.strip("/"), "y": y_label})
 
     @property
@@ -159,6 +160,12 @@ class Continuous:
         return np.arange(self.start, self.stop, self.dt)
 
     @property
+    def calibration(self):
+        """Calibration data slicing is deferred until calibration is requested to avoid
+        slicing values that may be needed."""
+        return self._calibration.filter_calibration(self.start, self.stop)
+
+    @property
     def sample_rate(self):
         return int(1e9 / self.dt)
 
@@ -167,10 +174,10 @@ class Continuous:
             """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
             return (t - self.start + self.dt - 1) // self.dt
 
-        start = max(start, self.start)
+        start = max(start + start % self.dt, self.start)
         start_idx = to_index(start)
         stop_idx = to_index(stop)
-        return self.__class__(self.data[start_idx:stop_idx], start, self.dt)
+        return self.__class__(self.data[start_idx:stop_idx], start, self.dt, self._calibration)
 
     def downsampled_by(self, factor, reduce):
         return self.__class__(_downsample(self.data, factor, reduce),
@@ -187,18 +194,19 @@ class TimeSeries:
     timestamps : array_like
         An array of integer timestamps.
     """
-    def __init__(self, data, timestamps):
+    def __init__(self, data, timestamps, calibration=None):
         assert len(data) == len(timestamps)
         # TODO: should be lazily evaluated
         self.data = np.asarray(data)
         self.timestamps = np.asarray(timestamps)
+        self._calibration = calibration
 
     def __len__(self):
         return len(self.data)
 
     @staticmethod
-    def from_dataset(dset, y_label="y"):
-        return Slice(TimeSeries(dset["Value"], dset["Timestamp"]),
+    def from_dataset(dset, y_label="y", calibration=None):
+        return Slice(TimeSeries(dset["Value"], dset["Timestamp"], calibration),
                      labels={"title": dset.name.strip("/"), "y": y_label})
 
     @property
@@ -215,9 +223,18 @@ class TimeSeries:
         else:
             raise IndexError("End of empty time series is undefined")
 
+    @property
+    def calibration(self):
+        """Calibration data slicing is deferred until calibration is requested to avoid
+        slicing values that may be needed."""
+        if len(self.timestamps) > 0:
+            return self._calibration.filter_calibration(self.start, self.stop)
+        else:
+            return []
+
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
-        return self.__class__(self.data[idx], self.timestamps[idx])
+        return self.__class__(self.data[idx], self.timestamps[idx], self._calibration)
 
     def downsampled_by(self, factor, reduce):
         raise NotImplementedError("Downsampling is currently not available for time series data")
@@ -260,91 +277,6 @@ class TimeTags:
 
     def downsampled_by(self, factor, reduce):
         raise NotImplementedError("Downsampling is not available for time tag data")
-
-
-class ContinuousCalibrated(Continuous, ForceCalibration):
-    """A source of continuous data with calibration metadata
-
-    Parameters
-    ----------
-    data : array_like
-        Anything that's convertible to an `np.ndarray`.
-    calibration: named tuple containing
-        time_field : name of the field used for time
-        items : list of dictionaries containing the raw calibration attribute data
-    start : int
-        Timestamp of the first data point.
-    dt : int
-        Delta between two timestamps. Constant for the entire data range.
-    """
-    def __init__(self, data, calibration, start, dt):
-        Continuous.__init__(self, data, start, dt)
-        ForceCalibration.__init__(self, calibration)
-
-    @property
-    def calibration(self):
-        """Calibration data for this channel"""
-        """Calibration data slicing is deferred until calibration is requested to avoid"""
-        """slicing values that may be needed."""
-        return self.filter_calibration(self.start, self.stop)
-
-    def slice(self, start, stop):
-        def to_index(t):
-            """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
-            return (t - self.start + self.dt - 1) // self.dt
-
-        start = max(start + start % self.dt, self.start)
-        start_idx = to_index(start)
-        stop_idx = to_index(stop)
-        return self.__class__(self.data[start_idx:stop_idx], self._calibration, start, self.dt)
-
-    @staticmethod
-    def from_dataset(dset, y_label="y", calibration=None):
-        start = dset.attrs["Start time (ns)"]
-        dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
-        return Slice(ContinuousCalibrated(dset[()], calibration, start, dt),
-                     labels={"title": dset.name.strip("/"), "y": y_label})
-
-
-class TimeSeriesCalibrated(TimeSeries, ForceCalibration):
-    """A source of continuous data with calibration metadata
-
-    Parameters
-    ----------
-    data : array_like
-        Anything that's convertible to an `np.ndarray`.
-    timestamps : array_like
-        An array of integer timestamps.
-    calibration: named tuple containing
-        time_field : name of the field used for time
-        items : list of dictionaries containing the raw calibration attribute data
-    """
-
-    def downsampled_by(self, factor, reduce):
-        pass
-
-    def __init__(self, data, timestamps, calibration):
-        TimeSeries.__init__(self, data, timestamps)
-        ForceCalibration.__init__(self, calibration)
-
-    @property
-    def calibration(self):
-        """Calibration data for this channel"""
-        """Calibration data slicing is deferred until calibration is requested to avoid"""
-        """slicing values that may be needed."""
-        if len(self.timestamps) > 0:
-            return self.filter_calibration(self.start, self.stop)
-        else:
-            return []
-
-    def slice(self, start, stop):
-        idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
-        return self.__class__(self.data[idx], self.timestamps[idx], self._calibration)
-
-    @staticmethod
-    def from_dataset(dset, y_label="y", calibration=None):
-        return Slice(TimeSeriesCalibrated(dset["Value"], dset["Timestamp"], calibration),
-                     labels={"title": dset.name.strip("/"), "y": y_label})
 
 
 class Empty:
