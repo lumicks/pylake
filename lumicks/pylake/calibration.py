@@ -22,9 +22,9 @@ def _filter_calibration(calibration, start, stop):
 
     calibration.items = sorted(calibration.items, key=timestamp)
 
-    calibration_items = [x for x in calibration.items if start <= timestamp(x) < stop]
+    calibration_items = [x for x in calibration.items if start < timestamp(x) < stop]
     pre = [x for x in calibration.items if timestamp(x) <= start]
-    if pre and (not calibration_items or start < timestamp(calibration_items[0])):
+    if pre:
         calibration_items.insert(0, pre[-1])
 
     return calibration_items
@@ -36,7 +36,6 @@ class ForceCalibration:
     Parameters
     ----------
     calibration: Calibration
-        Calibration information
     """
     def __init__(self, calibration):
         if not calibration:
