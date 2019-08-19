@@ -47,6 +47,16 @@ class Slice:
     def __mul__(self, other):
         return Slice(self._src._with_data_source(self._src.data * self._unpack_other(other)))
 
+    def __rtruediv__(self, other):
+        return Slice(self._src._with_data_source(self._unpack_other(other)/self._src.data))
+
+    def __rsub__(self, other):
+        return Slice(self._src._with_data_source(self._unpack_other(other)-self._src.data))
+
+    # These commute
+    __rmul__ = __mul__
+    __radd__ = __add__
+
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
         if not isinstance(item, slice):

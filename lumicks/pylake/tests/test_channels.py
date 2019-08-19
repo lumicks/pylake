@@ -200,26 +200,26 @@ def test_arithmetic_operations():
         scc1 - scc3
 
     # Tests using arithmetic with a scalar
-    assert np.allclose(scc1.data * 2, [2, 4, 6, 8, 10])
-    assert np.allclose(scc1.data + 2, [3, 4, 5, 6, 7])
-    assert np.allclose(scc1.data - 2, [-1, 0, 1, 2, 3])
-    assert np.allclose(scc1.data / 2, [.5, 1, 1.5, 2, 2.5])
-    assert np.allclose(2 * scc1.data, [2, 4, 6, 8, 10])
-    assert np.allclose(2 + scc1.data, [3, 4, 5, 6, 7])
-    assert np.allclose(2 + 2 * scc1.data, [4, 6, 8, 10, 12])
-    assert np.allclose(2 * scc1.data + 2, [4, 6, 8, 10, 12])
+    assert np.allclose((scc1 * 2).data, [2, 4, 6, 8, 10])
+    assert np.allclose((scc1 + 2).data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 - 2).data, [-1, 0, 1, 2, 3])
+    assert np.allclose((scc1 / 2).data, [.5, 1, 1.5, 2, 2.5])
+    assert np.allclose((2 * scc1).data, [2, 4, 6, 8, 10])
+    assert np.allclose((2 + scc1).data, [3, 4, 5, 6, 7])
+    assert np.allclose((2 + 2 * scc1).data, [4, 6, 8, 10, 12])
+    assert np.allclose((2 * scc1).data + 2, [4, 6, 8, 10, 12])
 
     # Tests with raw list
-    assert np.allclose(scc1.data * [2, 2, 2, 2, 2], [2, 4, 6, 8, 10])
-    assert np.allclose(scc1.data + [2, 2, 2, 2, 2], [3, 4, 5, 6, 7])
-    assert np.allclose(scc1.data - [2, 2, 2, 2, 2], [-1, 0, 1, 2, 3])
-    assert np.allclose(scc1.data / [2, 2, 2, 2, 2], [.5, 1, 1.5, 2, 2.5])
+    assert np.allclose((scc1 * [2, 2, 2, 2, 2]).data, [2, 4, 6, 8, 10])
+    assert np.allclose((scc1 + [2, 2, 2, 2, 2]).data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 - [2, 2, 2, 2, 2]).data, [-1, 0, 1, 2, 3])
+    assert np.allclose((scc1 / [2, 2, 2, 2, 2]).data, [.5, 1, 1.5, 2, 2.5])
 
     # Tests with raw numpy array
-    assert np.allclose(scc1.data * np.array([2, 2, 2, 2, 2]), [2, 4, 6, 8, 10])
-    assert np.allclose(scc1.data + np.array([2, 2, 2, 2, 2]), [3, 4, 5, 6, 7])
-    assert np.allclose(scc1.data - np.array([2, 2, 2, 2, 2]), [-1, 0, 1, 2, 3])
-    assert np.allclose(scc1.data / np.array([2, 2, 2, 2, 2]), [.5, 1, 1.5, 2, 2.5])
+    assert np.allclose((scc1 * np.array([2, 2, 2, 2, 2])).data, [2, 4, 6, 8, 10])
+    assert np.allclose((scc1 + np.array([2, 2, 2, 2, 2])).data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 - np.array([2, 2, 2, 2, 2])).data, [-1, 0, 1, 2, 3])
+    assert np.allclose((scc1 / np.array([2, 2, 2, 2, 2])).data, [.5, 1, 1.5, 2, 2.5])
 
     scc1 = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
     scc2 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5], [1, 2, 3, 4, 5]))
@@ -233,24 +233,30 @@ def test_arithmetic_operations():
         scc1 - scc3
 
     # Tests using arithmetic with a scalar
-    assert np.allclose(scc1.data * 2, [2, 4, 6, 8, 10])
-    assert np.allclose(scc1.data + 2, [3, 4, 5, 6, 7])
-    assert np.allclose(scc1.data - 2, [-1, 0, 1, 2, 3])
-    assert np.allclose(scc1.data / 2, [.5, 1, 1.5, 2, 2.5])
-    assert np.allclose(2 * scc1.data, [2, 4, 6, 8, 10])
-    assert np.allclose(2 + scc1.data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 * 2).data, [2, 4, 6, 8, 10])
+    assert np.allclose((scc1 + 2).data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 - 2).data, [-1, 0, 1, 2, 3])
+    assert np.allclose((scc1 / 2).data, [.5, 1, 1.5, 2, 2.5])
+    assert np.allclose((2 * scc1).data, [2, 4, 6, 8, 10])
+    assert np.allclose((2 + scc1).data, [3, 4, 5, 6, 7])
 
     # Tests with raw list
-    assert np.allclose(scc1.data * [2, 2, 2, 2, 2], [2, 4, 6, 8, 10])
-    assert np.allclose(scc1.data + [2, 2, 2, 2, 2], [3, 4, 5, 6, 7])
-    assert np.allclose(scc1.data - [2, 2, 2, 2, 2], [-1, 0, 1, 2, 3])
-    assert np.allclose(scc1.data / [2, 2, 2, 2, 2], [.5, 1, 1.5, 2, 2.5])
+    assert np.allclose((scc1 * [2, 2, 2, 2, 2]).data, [2, 4, 6, 8, 10])
+    assert np.allclose((scc1 + [2, 2, 2, 2, 2]).data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 - [2, 2, 2, 2, 2]).data, [-1, 0, 1, 2, 3])
+    assert np.allclose((scc1 / [2, 2, 2, 2, 2]).data, [.5, 1, 1.5, 2, 2.5])
+
+    # Tests with raw list
+    assert np.allclose(([2, 2, 2, 2, 2] * scc1).data, [2*1, 2*2, 2*3, 2*4, 2*5])
+    assert np.allclose(([2, 2, 2, 2, 2] + scc1).data, [2+1, 2+2, 2+3, 2+4, 2+5])
+    assert np.allclose(([2, 2, 2, 2, 2] / scc1).data, [2/1, 2/2, 2/3, 2/4, 2/5])
+    assert np.allclose(([2, 2, 2, 2, 2] - scc1).data, [2-1, 2-2, 2-3, 2-4, 2-5])
 
     # Tests with raw numpy array
-    assert np.allclose(scc1.data * np.array([2, 2, 2, 2, 2]), [2, 4, 6, 8, 10])
-    assert np.allclose(scc1.data + np.array([2, 2, 2, 2, 2]), [3, 4, 5, 6, 7])
-    assert np.allclose(scc1.data - np.array([2, 2, 2, 2, 2]), [-1, 0, 1, 2, 3])
-    assert np.allclose(scc1.data / np.array([2, 2, 2, 2, 2]), [.5, 1, 1.5, 2, 2.5])
+    assert np.allclose((scc1 * np.array([2, 2, 2, 2, 2])).data, [2, 4, 6, 8, 10])
+    assert np.allclose((scc1 + np.array([2, 2, 2, 2, 2])).data, [3, 4, 5, 6, 7])
+    assert np.allclose((scc1 - np.array([2, 2, 2, 2, 2])).data, [-1, 0, 1, 2, 3])
+    assert np.allclose((scc1 / np.array([2, 2, 2, 2, 2])).data, [.5, 1, 1.5, 2, 2.5])
 
     # In principle cross-class operators should be allowed as long as the units are compatible
     scc1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1))
