@@ -231,7 +231,6 @@ def test_timetags_indexing():
 def test_time_indexing():
     """String time-based indexing"""
     s = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1400, 2500, 16e6, 34e9, 122 * 1e9]))
-
     # --> in time indices: ['0ns', '1100ns', '15.9986ms', '33.99s', '2m 2s']
 
     def assert_equal(actual, expected):

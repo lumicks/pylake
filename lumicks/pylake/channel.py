@@ -252,8 +252,8 @@ class TimeTags:
         return self.data.size
 
     @staticmethod
-    def from_dataset(dset, y_label="y", calibration=None):
-        return Slice(TimeTags(dset[()]), calibration=calibration)
+    def from_dataset(dset, y_label="y"):
+        return Slice(TimeTags(dset[()]))
 
     @property
     def timestamps(self):
