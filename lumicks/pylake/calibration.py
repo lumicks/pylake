@@ -38,9 +38,6 @@ class ForceCalibration:
     calibration: Calibration
     """
     def __init__(self, calibration):
-        if not calibration:
-            raise ValueError("Missing argument calibration")
-
         self._src = calibration
 
     def filter_calibration(self, start, stop):
