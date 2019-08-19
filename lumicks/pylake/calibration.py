@@ -20,10 +20,10 @@ def _filter_calibration(calibration, start, stop):
     def timestamp(x):
         return x[calibration.time_field]
 
-    calibration.items = sorted(calibration.items, key=timestamp)
+    items = sorted(calibration.items, key=timestamp)
 
-    calibration_items = [x for x in calibration.items if start < timestamp(x) < stop]
-    pre = [x for x in calibration.items if timestamp(x) <= start]
+    calibration_items = [x for x in items if start < timestamp(x) < stop]
+    pre = [x for x in items if timestamp(x) <= start]
     if pre:
         calibration_items.insert(0, pre[-1])
 
@@ -46,12 +46,12 @@ class ForceCalibration:
     def filter_calibration(self, start, stop):
         """Filter calibration based on time stamp range
 
-            Parameters
-            ----------
-            start : int
-                time stamp at start [ns]
-            stop  : int
-                time stamp at stop [ns]"""
+        Parameters
+        ----------
+        start : int
+            time stamp at start [ns]
+        stop  : int
+            time stamp at stop [ns]"""
         return _filter_calibration(self._src, start, stop)
 
     @property
@@ -67,9 +67,7 @@ class ForceCalibration:
     def from_dataset(hdf5, n, xy, time_field='Stop time (ns)'):
         """Fetch the force calibration data from the HDF5 file"""
         def parse_force_calibration(cdata, force_idx, force_axis) -> list:
-            calibration = Calibration
-            calibration.time_field = time_field
-            calibration.items = []
+            calibration = Calibration(time_field=time_field, items=[])
             for v in cdata:
                 attrs = cdata[v][f"Force {force_idx}{force_axis}"].attrs
                 if time_field in attrs.keys():
@@ -83,8 +81,6 @@ class ForceCalibration:
             else:
                 raise NotImplementedError("Calibration is currently only implemented for single axis data")
         else:
-            calibration_data = Calibration
-            calibration_data.time_field = time_field
-            calibration_data.items = []
+            calibration_data = Calibration(time_field=time_field, items=[])
 
         return calibration_data

@@ -1,33 +1,32 @@
 import pytest
 import numpy as np
-from collections import namedtuple
 from lumicks.pylake import channel
-from lumicks.pylake.calibration import ForceCalibration
+from lumicks.pylake.calibration import ForceCalibration, Calibration
 
 
 def test_calibration_timeseries_channels():
-    mock_calibration = namedtuple("Calibration", {"time_field", "items"})
-
-    mock_calibration.time_field = 'Stop time (ns)'
-    mock_calibration.items = [
-        {'Calibration Data': 50, mock_calibration.time_field: 50},
-        {'Calibration Data': 20, mock_calibration.time_field: 20},
-        {'Calibration Data': 30, mock_calibration.time_field: 30},
-        {'Calibration Data': 40, mock_calibration.time_field: 40},
-        {'Calibration Data': 80, mock_calibration.time_field: 80},
-        {'Calibration Data': 90, mock_calibration.time_field: 90},
-        {'Calibration Data': 120, mock_calibration.time_field: 120},
-    ]
+    time_field = 'Stop time (ns)'
+    mock_calibration = Calibration(time_field=time_field,
+                                   items=[
+                                       {'Calibration Data': 50, time_field: 50},
+                                       {'Calibration Data': 20, time_field: 20},
+                                       {'Calibration Data': 30, time_field: 30},
+                                       {'Calibration Data': 40, time_field: 40},
+                                       {'Calibration Data': 80, time_field: 80},
+                                       {'Calibration Data': 90, time_field: 90},
+                                       {'Calibration Data': 120, time_field: 120},
+                                   ])
 
     # Channel should have calibration points 40, 50 since this is the only area that has force data.
-    cc = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [40, 50, 60, 70], ForceCalibration(mock_calibration)))
+    cc = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [40, 50, 60, 70]),
+                       calibration=ForceCalibration(mock_calibration))
     assert len(cc.calibration) == 2
     assert cc.calibration[0]["Calibration Data"] == 40
     assert cc.calibration[1]["Calibration Data"] == 50
 
     data = np.arange(14, 23, 1)
     time = np.arange(40, 130, 10)
-    cc = channel.Slice(channel.TimeSeries(data, time, ForceCalibration(mock_calibration)))
+    cc = channel.Slice(channel.TimeSeries(data, time), calibration=ForceCalibration(mock_calibration))
     assert len(cc.calibration) == 5
 
     calibration = cc[50:80].calibration
@@ -57,28 +56,27 @@ def test_calibration_timeseries_channels():
 
 
 def test_calibration_continuous_channels():
-    mock_calibration = namedtuple("Calibration", {"time_field", "items"})
-
-    mock_calibration.time_field = 'Stop time (ns)'
-    mock_calibration.items = [
-        {'Calibration Data': 50, mock_calibration.time_field: 50},
-        {'Calibration Data': 20, mock_calibration.time_field: 20},
-        {'Calibration Data': 30, mock_calibration.time_field: 30},
-        {'Calibration Data': 40, mock_calibration.time_field: 40},
-        {'Calibration Data': 80, mock_calibration.time_field: 80},
-        {'Calibration Data': 90, mock_calibration.time_field: 90},
-        {'Calibration Data': 120, mock_calibration.time_field: 120},
-    ]
+    time_field = 'Stop time (ns)'
+    mock_calibration = Calibration(time_field=time_field,
+                                   items=[
+                                       {'Calibration Data': 50, time_field: 50},
+                                       {'Calibration Data': 20, time_field: 20},
+                                       {'Calibration Data': 30, time_field: 30},
+                                       {'Calibration Data': 40, time_field: 40},
+                                       {'Calibration Data': 80, time_field: 80},
+                                       {'Calibration Data': 90, time_field: 90},
+                                       {'Calibration Data': 120, time_field: 120},
+                                   ])
 
     # Channel should have calibration points 40, 50 since this is the only area that has force data.
-    cc = channel.Slice(channel.Continuous([14, 15, 16, 17], 40, 10, ForceCalibration(mock_calibration)))
+    cc = channel.Slice(channel.Continuous([14, 15, 16, 17], 40, 10), calibration=ForceCalibration(mock_calibration))
     assert len(cc.calibration) == 2
     assert cc.calibration[0]["Calibration Data"] == 40
     assert cc.calibration[1]["Calibration Data"] == 50
 
     # Channel should have calibration points 40, 50, 80, 90, 120
     # and time points 40, 50, ... 120
-    cc = channel.Slice(channel.Continuous(np.arange(14, 23, 1), 40, 10, ForceCalibration(mock_calibration)))
+    cc = channel.Slice(channel.Continuous(np.arange(14, 23, 1), 40, 10), calibration=ForceCalibration(mock_calibration))
     assert len(cc.calibration) == 5
 
     calibration = cc[50:80].calibration
@@ -233,6 +231,7 @@ def test_timetags_indexing():
 def test_time_indexing():
     """String time-based indexing"""
     s = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1400, 2500, 16e6, 34e9, 122 * 1e9]))
+
     # --> in time indices: ['0ns', '1100ns', '15.9986ms', '33.99s', '2m 2s']
 
     def assert_equal(actual, expected):

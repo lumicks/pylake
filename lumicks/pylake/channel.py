@@ -19,10 +19,12 @@ class Slice:
         or any other source which conforms to the same interface.
     labels : Dict[str, str]
         Plot labels: "x", "y", "title".
+    calibration: ForceCalibration
     """
-    def __init__(self, data_source, labels=None):
+    def __init__(self, data_source, labels=None, calibration=None):
         self._src = data_source
         self.labels = labels or {}
+        self._calibration = calibration
 
     def __len__(self):
         return len(self._src)
@@ -51,7 +53,7 @@ class Slice:
 
     def _with_data_source(self, data_source):
         """Return a copy of this slice with a different data source, but keep other properties"""
-        return self.__class__(data_source, self.labels)
+        return self.__class__(data_source, self.labels, self._calibration)
 
     @property
     def data(self):
@@ -65,10 +67,14 @@ class Slice:
 
     @property
     def calibration(self) -> list:
-        """Calibration data for this channel"""
-        try:
-            return self._src.calibration
-        except AttributeError:
+        """Calibration data slicing is deferred until calibration is requested to avoid
+        slicing values that may be needed."""
+        if self._calibration:
+            try:
+                return self._calibration.filter_calibration(self._src.start, self._src.stop)
+            except IndexError:
+                return []
+        else:
             return []
 
     @property
@@ -131,13 +137,12 @@ class Continuous:
     dt : int
         Delta between two timestamps. Constant for the entire data range.
     """
-    def __init__(self, data, start, dt, calibration=None):
+    def __init__(self, data, start, dt):
         self._src_data = data
         self._cached_data = None
         self.start = start
         self.stop = start + len(data) * dt
         self.dt = dt
-        self._calibration = calibration
 
     def __len__(self):
         return len(self._src_data)
@@ -146,8 +151,8 @@ class Continuous:
     def from_dataset(dset, y_label="y", calibration=None):
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
-        return Slice(Continuous(dset[()], start, dt, calibration),
-                     labels={"title": dset.name.strip("/"), "y": y_label})
+        return Slice(Continuous(dset[()], start, dt),
+                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
 
     @property
     def data(self):
@@ -158,12 +163,6 @@ class Continuous:
     @property
     def timestamps(self):
         return np.arange(self.start, self.stop, self.dt)
-
-    @property
-    def calibration(self):
-        """Calibration data slicing is deferred until calibration is requested to avoid
-        slicing values that may be needed."""
-        return self._calibration.filter_calibration(self.start, self.stop)
 
     @property
     def sample_rate(self):
@@ -177,7 +176,7 @@ class Continuous:
         start = max(start + start % self.dt, self.start)
         start_idx = to_index(start)
         stop_idx = to_index(stop)
-        return self.__class__(self.data[start_idx:stop_idx], start, self.dt, self._calibration)
+        return self.__class__(self.data[start_idx:stop_idx], start, self.dt)
 
     def downsampled_by(self, factor, reduce):
         return self.__class__(_downsample(self.data, factor, reduce),
@@ -194,20 +193,19 @@ class TimeSeries:
     timestamps : array_like
         An array of integer timestamps.
     """
-    def __init__(self, data, timestamps, calibration=None):
+    def __init__(self, data, timestamps):
         assert len(data) == len(timestamps)
         # TODO: should be lazily evaluated
         self.data = np.asarray(data)
         self.timestamps = np.asarray(timestamps)
-        self._calibration = calibration
 
     def __len__(self):
         return len(self.data)
 
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
-        return Slice(TimeSeries(dset["Value"], dset["Timestamp"], calibration),
-                     labels={"title": dset.name.strip("/"), "y": y_label})
+        return Slice(TimeSeries(dset["Value"], dset["Timestamp"]),
+                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
 
     @property
     def start(self):
@@ -223,18 +221,9 @@ class TimeSeries:
         else:
             raise IndexError("End of empty time series is undefined")
 
-    @property
-    def calibration(self):
-        """Calibration data slicing is deferred until calibration is requested to avoid
-        slicing values that may be needed."""
-        if len(self.timestamps) > 0:
-            return self._calibration.filter_calibration(self.start, self.stop)
-        else:
-            return []
-
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
-        return self.__class__(self.data[idx], self.timestamps[idx], self._calibration)
+        return self.__class__(self.data[idx], self.timestamps[idx])
 
     def downsampled_by(self, factor, reduce):
         raise NotImplementedError("Downsampling is currently not available for time series data")
@@ -263,8 +252,8 @@ class TimeTags:
         return self.data.size
 
     @staticmethod
-    def from_dataset(dset, y_label="y"):
-        return Slice(TimeTags(dset[()]))
+    def from_dataset(dset, y_label="y", calibration=None):
+        return Slice(TimeTags(dset[()]), calibration=calibration)
 
     @property
     def timestamps(self):
