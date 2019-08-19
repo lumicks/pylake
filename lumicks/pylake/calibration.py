@@ -51,15 +51,6 @@ class ForceCalibration:
             time stamp at stop [ns]"""
         return _filter_calibration(self._src, start, stop)
 
-    @property
-    def calibration(self):
-        """Calibration data for this channel
-
-        Calibration data slicing is deferred until calibration is requested to avoid
-        slicing values that may be needed.
-        """
-        return self.filter_calibration(self.start, self.stop)
-
     @staticmethod
     def from_dataset(hdf5, n, xy, time_field='Stop time (ns)'):
         """Fetch the force calibration data from the HDF5 file"""
