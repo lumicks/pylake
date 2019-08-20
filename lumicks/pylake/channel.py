@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+from .detail.units import determine_unit
 from .detail.timeindex import to_timestamp
 from .calibration import ForceCalibration
 
@@ -21,9 +22,10 @@ class Slice:
         Plot labels: "x", "y", "title".
     calibration: ForceCalibration
     """
-    def __init__(self, data_source, labels=None, calibration=None):
+    def __init__(self, data_source, labels=None, calibration=None, unit=None):
         self._src = data_source
         self.labels = labels or {}
+        self.unit = unit
         self._calibration = calibration
 
     def __len__(self):
@@ -35,23 +37,34 @@ class Slice:
         else:
             return other
 
+    def compare_unit(self, other, operation):
+        other_unit = getattr(other, "unit", None)
+        if other_unit:
+            return determine_unit(self.unit, other_unit, operation)
+
     def __add__(self, other):
-        return Slice(self._src._with_data_source(self._src.data + self._unpack_other(other)))
+        unit = self.compare_unit(other, 'add')
+        return Slice(self._src._with_data_source(self._src.data + self._unpack_other(other)), unit=unit)
 
     def __sub__(self, other):
-        return Slice(self._src._with_data_source(self._src.data - self._unpack_other(other)))
+        unit = self.compare_unit(other, 'sub')
+        return Slice(self._src._with_data_source(self._src.data - self._unpack_other(other)), unit=unit)
 
     def __truediv__(self, other):
-        return Slice(self._src._with_data_source(self._src.data / self._unpack_other(other)))
+        unit = self.compare_unit(other, 'div')
+        return Slice(self._src._with_data_source(self._src.data / self._unpack_other(other)), unit=unit)
 
     def __mul__(self, other):
-        return Slice(self._src._with_data_source(self._src.data * self._unpack_other(other)))
+        unit = self.compare_unit(other, 'mul')
+        return Slice(self._src._with_data_source(self._src.data * self._unpack_other(other)), unit=unit)
 
     def __rtruediv__(self, other):
-        return Slice(self._src._with_data_source(self._unpack_other(other)/self._src.data))
+        unit = self.compare_unit(other, 'div')
+        return Slice(self._src._with_data_source(self._unpack_other(other)/self._src.data), unit=unit)
 
     def __rsub__(self, other):
-        return Slice(self._src._with_data_source(self._unpack_other(other)-self._src.data))
+        unit = self.compare_unit(other, 'sub')
+        return Slice(self._src._with_data_source(self._unpack_other(other)-self._src.data), unit=unit)
 
     # These commute
     __rmul__ = __mul__
@@ -76,9 +89,12 @@ class Slice:
 
         return self._with_data_source(self._src.slice(start, stop))
 
-    def _with_data_source(self, data_source):
+    def _with_data_source(self, data_source, unit=None):
         """Return a copy of this slice with a different data source, but keep other properties"""
-        return self.__class__(data_source, self.labels, self._calibration)
+        if not unit:
+            unit = self.unit
+
+        return self.__class__(data_source, self.labels, self._calibration, unit)
 
     @property
     def data(self):
@@ -176,11 +192,11 @@ class Continuous:
         return self.__class__(data, self.start, self.dt)
 
     @staticmethod
-    def from_dataset(dset, y_label="y", calibration=None):
+    def from_dataset(dset, y_label="y", calibration=None, unit=None):
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
         return Slice(Continuous(dset[()], start, dt),
-                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
+                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration, unit=unit)
 
     @property
     def data(self):
@@ -234,9 +250,9 @@ class TimeSeries:
         return self.__class__(data, self.timestamps)
 
     @staticmethod
-    def from_dataset(dset, y_label="y", calibration=None):
+    def from_dataset(dset, y_label="y", calibration=None, unit=None):
         return Slice(TimeSeries(dset["Value"], dset["Timestamp"]),
-                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
+                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration, unit=unit)
 
     @property
     def start(self):

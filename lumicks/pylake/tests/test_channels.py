@@ -4,6 +4,40 @@ from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
 
 
+def test_units():
+    pn1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1), unit="pN")
+    pn2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="pN")
+    nd1 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="dimensionless")
+    nd2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="dimensionless")
+
+    assert (pn1 + pn2).unit == "pN"
+    assert (pn1 - pn2).unit == "pN"
+    assert (pn1 / pn2).unit == "dimensionless"
+    assert (pn1 / nd1).unit == "pN"
+    assert (pn1 * nd1).unit == "pN"
+    assert (nd1 + nd2).unit == "dimensionless"
+
+    with pytest.raises(TypeError):
+        pn1 + nd1
+
+    with pytest.raises(TypeError):
+        pn1 - nd1
+
+    with pytest.raises(TypeError):
+        nd1 + pn1
+
+    with pytest.raises(TypeError):
+        nd1 - pn1
+
+    with pytest.raises(NotImplementedError):
+        nd1 / pn1
+
+    with pytest.raises(NotImplementedError):
+        nd1 / pn1
+
+    with pytest.raises(NotImplementedError):
+        pn1 * pn1
+
 def test_calibration_timeseries_channels():
     time_field = 'Stop time (ns)'
     mock_calibration = ForceCalibration(time_field=time_field,

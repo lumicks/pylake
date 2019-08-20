@@ -123,7 +123,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]
         calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
-        return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
+        return Continuous.from_dataset(force_group, "Force (pN)", calibration_data, unit="pN")
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
@@ -131,9 +131,9 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         def make(channel):
             if xy:
                 calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
-                return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data)
+                return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data, unit="pN")
             else:
-                return TimeSeries.from_dataset(group[channel], "Force (pN)")
+                return TimeSeries.from_dataset(group[channel], "Force (pN)", unit="pN")
 
         if xy:  # An x or y component of the downsampled force is easy
             return make(f"Force {n}{xy}")
@@ -148,14 +148,14 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         fx = make(f"Force {n}x")
         fy = make(f"Force {n}y")
         return Slice(TimeSeries(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps),
-                     labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"})
+                     labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"}, unit="pN")
 
     def _get_distance(self, n):
         return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"],
-                                       r"Distance ($\mu$m)")
+                                       r"Distance ($\mu$m)", unit="micrometer")
 
     def _get_photon_count(self, name):
-        return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count")
+        return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count", unit="count")
 
     def _get_photon_time_tags(self, name):
         return TimeTags.from_dataset(self.h5["Photon Time Tags"][name], "Photon time tags")
