@@ -121,7 +121,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def _get_force(self, n, xy):
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]
-        calibration_data = ForceCalibration(ForceCalibration.from_dataset(self.h5, n, xy))
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
@@ -130,7 +130,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
         def make(channel):
             if xy:
-                calibration_data = ForceCalibration(ForceCalibration.from_dataset(self.h5, n, xy))
+                calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
                 return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data)
             else:
                 return TimeSeries.from_dataset(group[channel], "Force (pN)")

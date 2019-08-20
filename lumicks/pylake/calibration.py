@@ -1,26 +1,12 @@
-from collections import namedtuple
-
-"""A source of calibration data
-
-Parameters
-----------
-time_field : string
-    name of the field used for time
-items : list
-    list of dictionaries containing raw calibration attribute data
-"""
-Calibration = namedtuple("Calibration", {"time_field", "items"})
-
-
-def _filter_calibration(calibration, start, stop):
+def _filter_calibration(time_field, items, start, stop):
     """filter calibration data based on time stamp range [ns]"""
-    if len(calibration.items) == 0:
+    if len(items) == 0:
         return []
 
     def timestamp(x):
-        return x[calibration.time_field]
+        return x[time_field]
 
-    items = sorted(calibration.items, key=timestamp)
+    items = sorted(items, key=timestamp)
 
     calibration_items = [x for x in items if start < timestamp(x) < stop]
     pre = [x for x in items if timestamp(x) <= start]
@@ -35,10 +21,18 @@ class ForceCalibration:
 
     Parameters
     ----------
-    calibration: Calibration
+    A source of calibration data
+
+    Parameters
+    ----------
+    time_field : string
+        name of the field used for time
+    items : list
+        list of dictionaries containing raw calibration attribute data
     """
-    def __init__(self, calibration):
-        self._src = calibration
+    def __init__(self, time_field, items):
+        self._time_field = time_field
+        self._items = items
 
     def filter_calibration(self, start, stop):
         """Filter calibration based on time stamp range
@@ -49,17 +43,19 @@ class ForceCalibration:
             time stamp at start [ns]
         stop  : int
             time stamp at stop [ns]"""
-        return _filter_calibration(self._src, start, stop)
+        return _filter_calibration(self._time_field, self._items, start, stop)
 
     @staticmethod
     def from_dataset(hdf5, n, xy, time_field='Stop time (ns)'):
         """Fetch the force calibration data from the HDF5 file"""
         def parse_force_calibration(cdata, force_idx, force_axis) -> list:
-            calibration = Calibration(time_field=time_field, items=[])
+            items = []
             for v in cdata:
                 attrs = cdata[v][f"Force {force_idx}{force_axis}"].attrs
                 if time_field in attrs.keys():
-                    calibration.items.append(dict(attrs))
+                    items.append(dict(attrs))
+
+            calibration = ForceCalibration(time_field=time_field, items=items)
 
             return calibration
 
@@ -69,6 +65,6 @@ class ForceCalibration:
             else:
                 raise NotImplementedError("Calibration is currently only implemented for single axis data")
         else:
-            calibration_data = Calibration(time_field=time_field, items=[])
+            calibration_data = ForceCalibration(time_field=time_field, items=[])
 
         return calibration_data
