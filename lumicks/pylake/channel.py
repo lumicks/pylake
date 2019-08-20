@@ -2,6 +2,7 @@ import math
 import numpy as np
 
 from .detail.timeindex import to_timestamp
+from .calibration import ForceCalibration
 
 
 class Slice:
@@ -18,10 +19,12 @@ class Slice:
         or any other source which conforms to the same interface.
     labels : Dict[str, str]
         Plot labels: "x", "y", "title".
+    calibration: ForceCalibration
     """
-    def __init__(self, data_source, labels=None):
+    def __init__(self, data_source, labels=None, calibration=None):
         self._src = data_source
         self.labels = labels or {}
+        self._calibration = calibration
 
     def __len__(self):
         return len(self._src)
@@ -50,7 +53,7 @@ class Slice:
 
     def _with_data_source(self, data_source):
         """Return a copy of this slice with a different data source, but keep other properties"""
-        return self.__class__(data_source, self.labels)
+        return self.__class__(data_source, self.labels, self._calibration)
 
     @property
     def data(self):
@@ -61,6 +64,18 @@ class Slice:
     def timestamps(self):
         """Absolute timestamps (since epoch) which correspond to the channel data"""
         return self._src.timestamps
+
+    @property
+    def calibration(self) -> list:
+        """Calibration data slicing is deferred until calibration is requested to avoid
+        slicing values that may be needed."""
+        if self._calibration:
+            try:
+                return self._calibration.filter_calibration(self._src.start, self._src.stop)
+            except IndexError:
+                return []
+        else:
+            return []
 
     @property
     def sample_rate(self) -> int:
@@ -133,11 +148,11 @@ class Continuous:
         return len(self._src_data)
 
     @staticmethod
-    def from_dataset(dset, y_label="y"):
+    def from_dataset(dset, y_label="y", calibration=None):
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
         return Slice(Continuous(dset[()], start, dt),
-                     labels={"title": dset.name.strip("/"), "y": y_label})
+                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
 
     @property
     def data(self):
@@ -188,17 +203,23 @@ class TimeSeries:
         return len(self.data)
 
     @staticmethod
-    def from_dataset(dset, y_label="y"):
+    def from_dataset(dset, y_label="y", calibration=None):
         return Slice(TimeSeries(dset["Value"], dset["Timestamp"]),
-                     labels={"title": dset.name.strip("/"), "y": y_label})
+                     labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
 
     @property
     def start(self):
-        return self.timestamps[0]
+        if len(self.timestamps) > 0:
+            return self.timestamps[0]
+        else:
+            raise IndexError("Start of empty time series is undefined")
 
     @property
     def stop(self):
-        return self.timestamps[-1] + 1
+        if len(self.timestamps) > 0:
+            return self.timestamps[-1] + 1
+        else:
+            raise IndexError("End of empty time series is undefined")
 
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
@@ -289,5 +310,3 @@ def channel_class(dset):
         return Continuous
     else:
         return TimeSeries
-
-

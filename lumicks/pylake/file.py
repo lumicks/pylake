@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 from typing import Dict
 
+from .calibration import ForceCalibration
 from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .fdcurve import FDCurve
@@ -119,13 +120,20 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         return print_attributes(self.h5) + "\n" + print_group(self.h5)
 
     def _get_force(self, n, xy):
-        return Continuous.from_dataset(self.h5["Force HF"][f"Force {n}{xy}"], "Force (pN)")
+        force_group = self.h5["Force HF"][f"Force {n}{xy}"]
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+
+        return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
     def _get_downsampled_force(self, n, xy):
         group = self.h5["Force LF"]
 
         def make(channel):
-            return TimeSeries.from_dataset(group[channel], "Force (pN)")
+            if xy:
+                calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+                return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data)
+            else:
+                return TimeSeries.from_dataset(group[channel], "Force (pN)")
 
         if xy:  # An x or y component of the downsampled force is easy
             return make(f"Force {n}{xy}")

@@ -51,6 +51,23 @@ class MockDataFile_v2(MockDataFile_v1):
     def get_file_format_version(self):
         return 2
 
+    def make_calibration_data(self, calibration_idx, group, attributes):
+        if "Calibration" not in self.file:
+            self.file.create_group("Calibration")
+
+        # Numeric value converted to string
+        if calibration_idx not in self.file["Calibration"]:
+            self.file["Calibration"].create_group(calibration_idx)
+
+        # e.g. Force 1x, Force 1y ... etc
+        if group not in self.file["Calibration"][calibration_idx]:
+            self.file["Calibration"][calibration_idx].create_group(group)
+
+        # Attributes
+        field = self.file["Calibration"][calibration_idx][group]
+        for i, v in attributes.items():
+            field.attrs[i] = v
+
     def make_continuous_channel(self, group, name, start, dt, data):
         dset = super().make_continuous_channel(group, name, start, dt, data)
         dset.attrs["Kind"] = "Continuous"
@@ -87,6 +104,16 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_timetags_channel(
             "Photon Time Tags", "Red",
             np.arange(10, 100, step=10, dtype=np.int64))
+
+        calibration_time_field = "Stop time (ns)"
+        mock_file.make_calibration_data("1", "Force 1x", {calibration_time_field: 0})
+        mock_file.make_calibration_data("2", "Force 1x", {calibration_time_field: 1})
+        mock_file.make_calibration_data("3", "Force 1x", {calibration_time_field: 10})
+        mock_file.make_calibration_data("4", "Force 1x", {calibration_time_field: 100})
+        mock_file.make_calibration_data("1", "Force 1y", {calibration_time_field: 0})
+        mock_file.make_calibration_data("2", "Force 1y", {calibration_time_field: 1})
+        mock_file.make_calibration_data("3", "Force 1y", {calibration_time_field: 10})
+        mock_file.make_calibration_data("4", "Force 1y", {calibration_time_field: 100})
 
     return mock_file.file
 
