@@ -15,6 +15,7 @@ def test_units():
     assert (pn1 / pn2).unit == "dimensionless"
     assert (pn1 / nd1).unit == "pN"
     assert (pn1 * nd1).unit == "pN"
+    assert (nd1 * pn1).unit == "pN"
     assert (nd1 + nd2).unit == "dimensionless"
 
     with pytest.raises(TypeError):
