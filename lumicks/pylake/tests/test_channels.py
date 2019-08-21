@@ -9,6 +9,7 @@ def test_units():
     pn2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="pN")
     nd1 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="dimensionless")
     nd2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="dimensionless")
+    ap = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="apples")
 
     assert (pn1 + pn2).unit == "pN"
     assert (pn1 - pn2).unit == "pN"
@@ -17,6 +18,18 @@ def test_units():
     assert (pn1 * nd1).unit == "pN"
     assert (nd1 * pn1).unit == "pN"
     assert (nd1 + nd2).unit == "dimensionless"
+
+    with pytest.raises(TypeError):
+        pn1 + ap
+
+    with pytest.raises(TypeError):
+        pn1 - ap
+
+    with pytest.raises(NotImplementedError):
+        pn1 * ap
+
+    with pytest.raises(NotImplementedError):
+        pn1 / ap
 
     with pytest.raises(TypeError):
         pn1 + nd1
@@ -38,6 +51,7 @@ def test_units():
 
     with pytest.raises(NotImplementedError):
         pn1 * pn1
+
 
 def test_calibration_timeseries_channels():
     time_field = 'Stop time (ns)'

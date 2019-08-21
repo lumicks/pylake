@@ -1,6 +1,7 @@
 
 au = "dimensionless"
 
+
 def determine_unit(unit1, unit2, operation):
     """Compares units. Raises exception when units are not easily converted or incompatible.
 
