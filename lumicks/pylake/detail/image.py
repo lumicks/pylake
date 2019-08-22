@@ -90,29 +90,38 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
         return pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
 
 
-def save_tiff(image, filename, dtype, clip=False):
-        """Save an RGB `image` to TIFF
+def save_tiff(image, filename, dtype, clip=False, pixel_size=0.0, pixel_time=0.0):
+    """Save an RGB `image` to TIFF
 
-        This is a thin wrapper around `tifffile` with additional safety checks
+    This is a thin wrapper around `tifffile` with additional safety checks
 
-        Parameters
-        ----------
-        image : np.array
-            Image data. An RGB image is expected to have `shape == (w, h, 3)`.
-        filename : str
-            The name of the TIFF file where the image will be saved.
-        dtype : np.dtype
-            The data type of a single color channel in the resulting image.
-        clip : bool
-            If enabled, the photon count data will be clipped to fit into the desired `dtype`.
-            This option is disabled by default: an error will be raise if the data does not fit.
-        """
-        import tifffile
+    Parameters
+    ----------
+    image : np.array
+        Image data. An RGB image is expected to have `shape == (w, h, 3)`.
+    filename : str
+        The name of the TIFF file where the image will be saved.
+    dtype : np.dtype
+        The data type of a single color channel in the resulting image.
+    clip : bool
+        If enabled, the photon count data will be clipped to fit into the desired `dtype`.
+        This option is disabled by default: an error will be raise if the data does not fit.
+    pixel_size : float
+        Pixel size [nm]
+    pixel_time: float
+        How long does pixel acquisition take [ms]
+    """
+    import tifffile
 
-        info = np.finfo(dtype) if np.dtype(dtype).kind == "f" else np.iinfo(dtype)
-        if not clip and (np.min(image) < info.min or np.max(image) > info.max):
-            raise RuntimeError(f"Can't safely export image with `dtype={dtype.__name__}` channels."
-                               f" Switch to a larger `dtype` in order to safely store everything"
-                               f" or pass `force=True` to clip the data.")
+    info = np.finfo(dtype) if np.dtype(dtype).kind == "f" else np.iinfo(dtype)
+    if not clip and (np.min(image) < info.min or np.max(image) > info.max):
+        raise RuntimeError(f"Can't safely export image with `dtype={dtype.__name__}` channels."
+                           f" Switch to a larger `dtype` in order to safely store everything"
+                           f" or pass `force=True` to clip the data.")
 
-        tifffile.imsave(filename, image.astype(dtype))
+    # TIFF only supports centimeters and inches as valid units
+    pixel_size = float(pixel_size) * 1e-7       # nm => cm
+    pixel_time = pixel_time * 1e-3              # ms => s
+
+    tifffile.imsave(filename, image.astype(dtype), resolution=(1/pixel_size, 1/pixel_size, "CENTIMETER"),
+                    metadata={'PixelTime': pixel_time})

@@ -171,4 +171,7 @@ class Kymo(PhotonCounts):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
-        save_tiff(self.rgb_image, filename, dtype, clip)
+        pixel_size = self.json["scan volume"]["scan axes"][0]["pixel size (nm)"]
+        pixel_time = self.json["scan volume"]["pixel time (ms)"]
+
+        save_tiff(self.rgb_image, filename, dtype, clip, pixel_size, pixel_time)
