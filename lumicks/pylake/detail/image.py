@@ -90,7 +90,7 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
         return pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
 
 
-def save_tiff(image, filename, dtype, clip=False, pixel_size=0.0, pixel_time=0.0):
+def save_tiff(image, filename, dtype, clip=False, pixel_size=1.0, pixel_time=1.0):
     """Save an RGB `image` to TIFF
 
     This is a thin wrapper around `tifffile` with additional safety checks

@@ -36,9 +36,20 @@ def test_reconstruct_multiframe():
 
 
 def test_int_tiff(tmpdir):
+    def grab_tags(file):
+        import tifffile
+
+        with tifffile.TiffFile(file) as tif:
+            tiff_tags = {}
+            for tag in tif.pages[0].tags.values():
+                name, value = tag.name, tag.value
+                tiff_tags[name] = value
+
+            return tiff_tags
+
     image16 = np.ones(shape=(10, 10, 3)) * np.iinfo(np.uint16).max
-    save_tiff(image16, str(tmpdir.join("1")), dtype=np.uint16)
-    save_tiff(image16, str(tmpdir.join("2")), dtype=np.float32)
+    save_tiff(image16, str(tmpdir.join("1")), dtype=np.uint16, pixel_size=1.0, pixel_time=1.0)
+    save_tiff(image16, str(tmpdir.join("2")), dtype=np.float32, pixel_size=5.0, pixel_time=5.0)
     save_tiff(image16, str(tmpdir.join("3")), dtype=np.uint8, clip=True)
 
     with pytest.raises(RuntimeError) as excinfo:
@@ -48,6 +59,18 @@ def test_int_tiff(tmpdir):
     with pytest.raises(RuntimeError) as excinfo:
         save_tiff(image16, str(tmpdir.join("5")), dtype=np.float16)
     assert "Can't safely export image with `dtype=float16` channels" in str(excinfo.value)
+
+    tags = grab_tags(str(tmpdir.join("1")))
+    assert str(tags['ResolutionUnit']) == "RESUNIT.CENTIMETER"
+    assert tags['ImageDescription'] == '{"PixelTime": 0.001, "shape": [10, 10, 3]}'
+    assert np.allclose(tags['XResolution'][0], 10000000)
+    assert np.allclose(tags['YResolution'][0], 10000000)
+
+    tags = grab_tags(str(tmpdir.join("2")))
+    assert str(tags['ResolutionUnit']) == "RESUNIT.CENTIMETER"
+    assert tags['ImageDescription'] == '{"PixelTime": 0.005, "shape": [10, 10, 3]}'
+    assert np.allclose(tags['XResolution'][0], 2000000)
+    assert np.allclose(tags['YResolution'][0], 2000000)
 
 
 def test_float_tiff(tmpdir):
