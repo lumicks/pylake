@@ -124,4 +124,5 @@ def save_tiff(image, filename, dtype, clip=False, pixel_size=1.0, pixel_time=1.0
     pixel_time = pixel_time * 1e-3              # ms => s
 
     tifffile.imsave(filename, image.astype(dtype), resolution=(1/pixel_size, 1/pixel_size, "CENTIMETER"),
-                    metadata={'PixelTime': pixel_time})
+                    metadata={'PixelTime': pixel_time, 'PixelTimeUnit': 's'})
+

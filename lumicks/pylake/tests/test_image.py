@@ -38,12 +38,16 @@ def test_reconstruct_multiframe():
 def test_int_tiff(tmpdir):
     def grab_tags(file):
         import tifffile
+        from ast import literal_eval
 
         with tifffile.TiffFile(file) as tif:
             tiff_tags = {}
             for tag in tif.pages[0].tags.values():
                 name, value = tag.name, tag.value
-                tiff_tags[name] = value
+                try:
+                    tiff_tags[name] = literal_eval(value)
+                except ValueError:
+                    tiff_tags[name] = value
 
             return tiff_tags
 
@@ -62,13 +66,17 @@ def test_int_tiff(tmpdir):
 
     tags = grab_tags(str(tmpdir.join("1")))
     assert str(tags['ResolutionUnit']) == "RESUNIT.CENTIMETER"
-    assert tags['ImageDescription'] == '{"PixelTime": 0.001, "shape": [10, 10, 3]}'
+    assert np.allclose(tags['ImageDescription']['PixelTime'], 0.001)
+    assert tags['ImageDescription']['PixelTimeUnit'] == "s"
+    assert np.allclose(tags['ImageDescription']['shape'], [10, 10, 3])
     assert np.allclose(tags['XResolution'][0], 10000000)
     assert np.allclose(tags['YResolution'][0], 10000000)
 
     tags = grab_tags(str(tmpdir.join("2")))
     assert str(tags['ResolutionUnit']) == "RESUNIT.CENTIMETER"
-    assert tags['ImageDescription'] == '{"PixelTime": 0.005, "shape": [10, 10, 3]}'
+    assert np.allclose(tags['ImageDescription']['PixelTime'], 0.005)
+    assert tags['ImageDescription']['PixelTimeUnit'] == "s"
+    assert np.allclose(tags['ImageDescription']['shape'], [10, 10, 3])
     assert np.allclose(tags['XResolution'][0], 2000000)
     assert np.allclose(tags['YResolution'][0], 2000000)
 
