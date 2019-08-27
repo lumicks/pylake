@@ -2,7 +2,7 @@ import json
 import numpy as np
 
 from .detail.mixin import PhotonCounts
-from .detail.image import reconstruct_image, save_tiff
+from .detail.image import reconstruct_image, save_tiff, ImageMetaData
 
 
 class Kymo(PhotonCounts):
@@ -171,7 +171,6 @@ class Kymo(PhotonCounts):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
-        pixel_size = self.json["scan volume"]["scan axes"][0]["pixel size (nm)"]
-        pixel_time = self.json["scan volume"]["pixel time (ms)"]
+        metadata = ImageMetaData.from_dataset(self.json)
 
-        save_tiff(self.rgb_image, filename, dtype, clip, pixel_size, pixel_time)
+        save_tiff(self.rgb_image, filename, dtype, clip, metadata)

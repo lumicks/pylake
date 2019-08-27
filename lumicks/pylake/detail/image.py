@@ -3,6 +3,60 @@ import math
 import numpy as np
 
 
+class ImageMetaData:
+    """Image metadata
+
+    Parameters
+    ----------
+    pixel_size_x : float
+        Horizontal pixel size [nm]
+    pixel_size_y : float
+        Vertical pixel size [nm]
+        When omitted, assumed to be identical to pixel_size_x
+    pixel_time : float
+        How long does pixel acquisition take [ms]
+    """""
+    def __init__(self, pixel_size_x=1.0, pixel_size_y=None, pixel_time=1.0):
+        self._pixel_time = pixel_time
+        self._pixel_size_x = pixel_size_x
+        if pixel_size_y:
+            self._pixel_size_y = pixel_size_y
+        else:
+            self._pixel_size_y = pixel_size_x
+
+    @staticmethod
+    def from_dataset(json=None):
+        """
+        Fetch metadata from json structure
+
+        Parameters
+        ----------
+        json : json structure containing kymograph metadata
+        """
+        if json:
+            pixel_size = json["scan volume"]["scan axes"][0]["pixel size (nm)"]
+            pixel_time = json["scan volume"]["pixel time (ms)"]
+            return ImageMetaData(pixel_size_x=pixel_size, pixel_time=pixel_time)
+        else:
+            return ImageMetaData()
+
+    @property
+    def resolution(self):
+        """
+        :return: X, Y resolution in pixels per cm followed by unit specification accepted by Tifffile
+        """
+        # TIFF only supports centimeters and inches as valid units, hence we convert from nm => cm
+        return 1e7 / self._pixel_size_x, 1e7 / self._pixel_size_y, "CENTIMETER"
+
+    @property
+    def metadata(self):
+        """
+        :return: Dictionary with metadata
+        """
+        pixel_time = self._pixel_time * 1e-3  # ms => s
+        return {'PixelTime': pixel_time, 'PixelTimeUnit': 's'}
+
+
 class InfowaveCode(enum.IntEnum):
     discard = 0  # this data sample does not contain useful information
     use = 1  # useful data to be used to form a pixel
@@ -90,7 +144,7 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
         return pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
 
 
-def save_tiff(image, filename, dtype, clip=False, pixel_size=1.0, pixel_time=1.0):
+def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetaData()):
     """Save an RGB `image` to TIFF
 
     This is a thin wrapper around `tifffile` with additional safety checks
@@ -106,10 +160,7 @@ def save_tiff(image, filename, dtype, clip=False, pixel_size=1.0, pixel_time=1.0
     clip : bool
         If enabled, the photon count data will be clipped to fit into the desired `dtype`.
         This option is disabled by default: an error will be raise if the data does not fit.
-    pixel_size : float
-        Pixel size [nm]
-    pixel_time: float
-        How long does pixel acquisition take [ms]
+    metadata : ImageMetaData
     """
     import tifffile
 
@@ -119,10 +170,6 @@ def save_tiff(image, filename, dtype, clip=False, pixel_size=1.0, pixel_time=1.0
                            f" Switch to a larger `dtype` in order to safely store everything"
                            f" or pass `force=True` to clip the data.")
 
-    # TIFF only supports centimeters and inches as valid units
-    pixel_size = float(pixel_size) * 1e-7       # nm => cm
-    pixel_time = pixel_time * 1e-3              # ms => s
-
-    tifffile.imsave(filename, image.astype(dtype), resolution=(1/pixel_size, 1/pixel_size, "CENTIMETER"),
-                    metadata={'PixelTime': pixel_time, 'PixelTimeUnit': 's'})
+    tifffile.imsave(filename, image.astype(dtype), resolution=metadata.resolution,
+                    metadata=metadata.metadata)
 

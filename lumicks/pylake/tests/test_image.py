@@ -1,7 +1,34 @@
 import pytest
 import numpy as np
 
-from lumicks.pylake.detail.image import reconstruct_image, reconstruct_num_frames, save_tiff
+from lumicks.pylake.detail.image import reconstruct_image, reconstruct_num_frames, save_tiff, ImageMetaData
+
+def test_metadata_from_json():
+    json = { 'cereal_class_version': 1,
+             'fluorescence': True,
+             'force': False,
+             'scan count': 0,
+             'scan volume': {'center point (um)': {'x': 58.075877109272604,
+                                                   'y': 31.978375270573267,
+                                                   'z': 0},
+                             'cereal_class_version': 1,
+                             'pixel time (ms)': 0.5,
+                             'scan axes': [{'axis': 0,
+                                            'cereal_class_version': 1,
+                                            'num of pixels': 240,
+                                            'pixel size (nm)': 150,
+                                            'scan time (ms)': 0,
+                                            'scan width (um)': 36.07468112612217}]}}
+
+    image_metadata = ImageMetaData.from_dataset(json)
+
+    res = image_metadata.resolution
+    assert np.isclose(res[0], 1e7 / 150)
+    assert np.isclose(res[1], 1e7 / 150)
+    assert res[2] == 'CENTIMETER'
+
+    assert np.isclose(image_metadata.metadata['PixelTime'], .0005)
+    assert image_metadata.metadata['PixelTimeUnit'] == 's'
 
 
 def test_reconstruct():
@@ -52,8 +79,8 @@ def test_int_tiff(tmpdir):
             return tiff_tags
 
     image16 = np.ones(shape=(10, 10, 3)) * np.iinfo(np.uint16).max
-    save_tiff(image16, str(tmpdir.join("1")), dtype=np.uint16, pixel_size=1.0, pixel_time=1.0)
-    save_tiff(image16, str(tmpdir.join("2")), dtype=np.float32, pixel_size=5.0, pixel_time=5.0)
+    save_tiff(image16, str(tmpdir.join("1")), dtype=np.uint16, metadata=ImageMetaData(pixel_size_x=1.0, pixel_time=1.0))
+    save_tiff(image16, str(tmpdir.join("2")), dtype=np.float32, metadata=ImageMetaData(pixel_size_x=5.0, pixel_time=5.0))
     save_tiff(image16, str(tmpdir.join("3")), dtype=np.uint8, clip=True)
 
     with pytest.raises(RuntimeError) as excinfo:
