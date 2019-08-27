@@ -60,11 +60,11 @@ class Slice:
 
     def __rtruediv__(self, other):
         unit = self.compare_unit(other, 'div')
-        return Slice(self._src._with_data_source(self._unpack_other(other)/self._src.data), unit=unit)
+        return Slice(self._src._with_data_source(self._unpack_other(other) / self._src.data), unit=unit)
 
     def __rsub__(self, other):
         unit = self.compare_unit(other, 'sub')
-        return Slice(self._src._with_data_source(self._unpack_other(other)-self._src.data), unit=unit)
+        return Slice(self._src._with_data_source(self._unpack_other(other) - self._src.data), unit=unit)
 
     # These commute
     __rmul__ = __mul__
