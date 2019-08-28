@@ -14,25 +14,24 @@ def determine_unit(unit1, unit2, operation):
     operation: string
         Operation to be performed on the unit.
     """
-    output_unit = None
     if operation == "add" or operation == "sub":
         if unit1 == unit2:
-            output_unit = unit1
+            return unit1
         else:
             raise TypeError(f"Addition / Subtraction not valid between different units {unit1} and {unit2}")
     elif operation == "div":
         if unit2 == au:
-            output_unit = unit1
+            return unit1
         elif unit1 == unit2:
-            output_unit = au
+            return au
         else:
             raise NotImplementedError(f"Division not implemented between units {unit1} and {unit2}")
     elif operation == "mul":
         if unit2 == au:
-            output_unit = unit1
+            return unit1
         elif unit1 == au:
-            output_unit = unit2
+            return unit2
         else:
             raise NotImplementedError(f"Multiplication not implemented between units {unit1} and {unit2}")
 
-    return output_unit
+    raise RuntimeError(f"Unknown operation {operation} between {unit1} and {unit2}")

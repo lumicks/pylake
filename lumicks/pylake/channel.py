@@ -37,33 +37,33 @@ class Slice:
         else:
             return other
 
-    def compare_unit(self, other, operation):
+    def _determine_unit(self, other, operation):
         other_unit = getattr(other, "unit", None)
         if other_unit:
             return determine_unit(self.unit, other_unit, operation)
 
     def __add__(self, other):
-        unit = self.compare_unit(other, 'add')
+        unit = self._determine_unit(other, 'add')
         return Slice(self._src._with_data_source(self._src.data + self._unpack_other(other)), unit=unit)
 
     def __sub__(self, other):
-        unit = self.compare_unit(other, 'sub')
+        unit = self._determine_unit(other, 'sub')
         return Slice(self._src._with_data_source(self._src.data - self._unpack_other(other)), unit=unit)
 
     def __truediv__(self, other):
-        unit = self.compare_unit(other, 'div')
+        unit = self._determine_unit(other, 'div')
         return Slice(self._src._with_data_source(self._src.data / self._unpack_other(other)), unit=unit)
 
     def __mul__(self, other):
-        unit = self.compare_unit(other, 'mul')
+        unit = self._determine_unit(other, 'mul')
         return Slice(self._src._with_data_source(self._src.data * self._unpack_other(other)), unit=unit)
 
     def __rtruediv__(self, other):
-        unit = self.compare_unit(other, 'div')
+        unit = self._determine_unit(other, 'div')
         return Slice(self._src._with_data_source(self._unpack_other(other) / self._src.data), unit=unit)
 
     def __rsub__(self, other):
-        unit = self.compare_unit(other, 'sub')
+        unit = self._determine_unit(other, 'sub')
         return Slice(self._src._with_data_source(self._unpack_other(other) - self._src.data), unit=unit)
 
     # These commute
