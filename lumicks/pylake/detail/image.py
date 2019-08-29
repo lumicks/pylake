@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 
-class ImageMetaData:
+class ImageMetadata:
     """Image metadata
 
     Parameters
@@ -25,34 +25,31 @@ class ImageMetaData:
             self._pixel_size_y = pixel_size_x
 
     @staticmethod
-    def from_dataset(json=None):
+    def from_dataset(json):
         """
         Fetch metadata from json structure
 
         Parameters
         ----------
-        json : json structure containing kymograph metadata
+        json : dict
+            json structure containing kymograph metadata
         """
         if json:
             pixel_size = json["scan volume"]["scan axes"][0]["pixel size (nm)"]
             pixel_time = json["scan volume"]["pixel time (ms)"]
-            return ImageMetaData(pixel_size_x=pixel_size, pixel_time=pixel_time)
+            return ImageMetadata(pixel_size_x=pixel_size, pixel_time=pixel_time)
         else:
-            return ImageMetaData()
+            return ImageMetadata()
 
     @property
     def resolution(self):
-        """
-        :return: X, Y resolution in pixels per cm followed by unit specification accepted by Tifffile
-        """
+        """X, Y resolution in pixels per cm followed by unit specification accepted by Tifffile"""
         # TIFF only supports centimeters and inches as valid units, hence we convert from nm => cm
         return 1e7 / self._pixel_size_x, 1e7 / self._pixel_size_y, "CENTIMETER"
 
     @property
     def metadata(self):
-        """
-        :return: Dictionary with metadata
-        """
+        """Dictionary with metadata"""
         pixel_time = self._pixel_time * 1e-3  # ms => s
         return {'PixelTime': pixel_time, 'PixelTimeUnit': 's'}
 
@@ -144,7 +141,7 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
         return pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
 
 
-def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetaData()):
+def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
     """Save an RGB `image` to TIFF
 
     This is a thin wrapper around `tifffile` with additional safety checks
@@ -160,7 +157,7 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetaData()):
     clip : bool
         If enabled, the photon count data will be clipped to fit into the desired `dtype`.
         This option is disabled by default: an error will be raise if the data does not fit.
-    metadata : ImageMetaData
+    metadata : ImageMetadata
     """
     import tifffile
 
