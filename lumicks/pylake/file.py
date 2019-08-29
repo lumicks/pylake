@@ -3,7 +3,7 @@ import numpy as np
 from typing import Dict
 
 from .calibration import ForceCalibration
-from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
+from .channel import Slice, Continuous, TimeSeries, TimeTags
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .fdcurve import FDCurve
 from .group import Group
@@ -152,7 +152,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def _get_distance(self, n):
         return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"],
-                                       r"Distance ($\mu$m)", unit="micrometer")
+                                       r"Distance ($\mu$m)", unit="µm")
 
     def _get_photon_count(self, name):
         return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count", unit="count")

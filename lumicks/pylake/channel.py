@@ -39,8 +39,7 @@ class Slice:
 
     def _determine_unit(self, other, operation):
         other_unit = getattr(other, "unit", None)
-        if other_unit:
-            return determine_unit(self.unit, other_unit, operation)
+        return determine_unit(self.unit, other_unit, operation)
 
     def __add__(self, other):
         unit = self._determine_unit(other, 'add')

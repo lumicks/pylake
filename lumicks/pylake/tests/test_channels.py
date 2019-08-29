@@ -19,6 +19,15 @@ def test_units():
     assert (nd1 * pn1).unit == "pN"
     assert (nd1 + nd2).unit == "dimensionless"
 
+    assert (pn1 + 5).unit == "pN"
+    assert (5 + pn1).unit == "pN"
+    assert ((5/pn1) + pn1).unit == "pN"
+    assert (pn1 + (5 / pn1)).unit == "pN"
+    assert not (pn1 / (5 / pn1)).unit
+    assert not (pn1 / 5).unit
+    assert not (5 / pn1).unit
+    assert not (5 * pn1).unit
+
     with pytest.raises(TypeError):
         pn1 + ap
 
