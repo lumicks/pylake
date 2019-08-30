@@ -2,22 +2,23 @@ import pytest
 import numpy as np
 from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
+from lumicks.pylake.detail.units import dimensionless
 
 
 def test_units():
     pn1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1), unit="pN")
     pn2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="pN")
-    nd1 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="dimensionless")
-    nd2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="dimensionless")
+    nd1 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit=dimensionless)
+    nd2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit=dimensionless)
     ap = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="apples")
 
     assert (pn1 + pn2).unit == "pN"
     assert (pn1 - pn2).unit == "pN"
-    assert (pn1 / pn2).unit == "dimensionless"
+    assert (pn1 / pn2).unit == dimensionless
     assert (pn1 / nd1).unit == "pN"
     assert (pn1 * nd1).unit == "pN"
     assert (nd1 * pn1).unit == "pN"
-    assert (nd1 + nd2).unit == "dimensionless"
+    assert (nd1 + nd2).unit == dimensionless
 
     assert (pn1 + 5).unit == "pN"
     assert (5 + pn1).unit == "pN"

@@ -3,8 +3,16 @@ dimensionless = "dimensionless"
 
 
 def determine_unit(unit1, unit2, operation):
-    """Compares units. Raises exception when units are not easily converted or incompatible. None is considered an
-    unknown unit.
+    """Determines the return unit of an operation. Raises exception when units are not easily converted or incompatible.
+
+    None is considered an unknown unit. Data types with unknown units will default to unit type None. For addition and
+    subtraction the unit type of None can be inferred as being the unit type of the other operand (as this is the only
+    valid option). For other operations, the unit cannot be inferred when one of the operands is unknown. As such,
+    these operands will return None (unknown unit).
+
+    Dimensionless is a special unit that indicates that a property has no units. For dimensionless quantities the rules
+    are clear as it just behaves like a regular unit. This special case allows us to incorporate some additional options
+    for operands, but will become superfluous if an external unit bookkeeping library is used.
 
     Parameters
     ----------
