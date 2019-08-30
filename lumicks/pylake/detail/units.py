@@ -40,19 +40,19 @@ def determine_unit(unit1, unit2, operation):
     elif operation == "div":
         if unit2 == dimensionless:
             return unit1
-        elif unit1 == unit2:
-            return dimensionless
         elif not unit1 or not unit2:
             return None
+        elif unit1 == unit2:
+            return dimensionless
         else:
             raise NotImplementedError(f"Division not implemented between units {unit1} and {unit2}")
     elif operation == "mul":
         if unit2 == dimensionless:
             return unit1
-        elif unit1 == dimensionless:
-            return unit2
         elif not unit1 or not unit2:
             return None
+        elif unit1 == dimensionless:
+            return unit2
         else:
             raise NotImplementedError(f"Multiplication not implemented between units {unit1} and {unit2}")
 
