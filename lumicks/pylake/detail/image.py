@@ -85,6 +85,24 @@ def reconstruct_num_frames(infowave, pixels_per_line, lines_per_frame):
     return math.ceil(num_pixels / pixels_per_frames)
 
 
+def line_timestamps_image(time_stamps, infowave, pixels_per_line):
+    """Determine the starting timestamps for lines in the kymograph
+
+    Parameters
+    ----------
+    time_stamps : array_like
+        Timestamps corresponding to the infowave.
+    infowave : array_like
+        The infamous infowave.
+    pixels_per_line : int
+        The number of pixels on the fast axis of the scan.
+    """
+    pixel_start_idx = np.flatnonzero(infowave == InfowaveCode.pixel_boundary)
+    pixel_start_idx = np.concatenate(([0], pixel_start_idx + 1))
+
+    return time_stamps[pixel_start_idx[0:-1:pixels_per_line]]
+
+
 def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, reduce=np.sum):
     """Reconstruct a scan or kymograph image from raw data
 
@@ -93,7 +111,7 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
     data : array_like
         Raw data to use for the reconstruction. E.g. photon counts or force samples.
     infowave : array_like
-        The famous infowave.
+        The infamous infowave.
     pixels_per_line : int
         The number of pixels on the fast axis of the scan.
     lines_per_frame : Optional[int]
