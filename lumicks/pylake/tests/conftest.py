@@ -148,8 +148,8 @@ def h5_file(tmpdir_factory, request):
                                 '"cereal_class_version": 1, '\
                                 '"pixel time (ms)": 0.2, '\
                                 '"scan axes": ['\
-                                    '{"'\
-                                        'axis": 0, '\
+                                    '{'\
+                                        '"axis": 0, '\
                                         '"cereal_class_version": 1, '\
                                         '"num of pixels": 5, '\
                                         '"pixel size (nm)": 10, '\
@@ -161,11 +161,13 @@ def h5_file(tmpdir_factory, request):
                         '}'\
                     '}'
 
-        mock_file.make_continuous_channel("Photon count", "Red", 1, 1, counts)
-        mock_file.make_continuous_channel("Info wave", "Info wave", 1, 1, infowave)
+        # Generate lines at 1 Hz
+        freq = int(1e9/16)
+        mock_file.make_continuous_channel("Photon count", "Red", int(20e9), freq, counts)
+        mock_file.make_continuous_channel("Info wave", "Info wave", int(20e9), freq, infowave)
         ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
-        ds.attrs["Start time (ns)"] = 1
-        ds.attrs["Stop time (ns)"] = 100
+        ds.attrs["Start time (ns)"] = int(20e9)
+        ds.attrs["Stop time (ns)"] = int(20e9+len(infowave)*freq)
 
     return mock_file.file
 

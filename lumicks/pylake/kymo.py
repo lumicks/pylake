@@ -53,9 +53,20 @@ class Kymo(PhotonCounts):
         line_timestamps = np.append(line_timestamps, timestamps[-1])
 
         i_min = np.searchsorted(line_timestamps, start, side='left')
-        i_max = np.searchsorted(line_timestamps, stop, side='left') - 1
+        i_max = np.searchsorted(line_timestamps, stop, side='left')
 
-        return Kymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_max], self.json)
+        if i_min >= len(line_timestamps):
+            raise IndexError(f"Slice selection out of range ({(start-self.start)/1e9} sec >= {(self.stop-self.start)/1e9} sec)")
+
+        if i_min >= i_max:
+            raise IndexError(f"Slice would result in empty slice. Valid slice range is from {(start-self.start)/1e9} sec to {(self.stop-self.start)/1e9} sec")
+
+        if i_max < len(line_timestamps):
+            stop = line_timestamps[i_max]
+
+        start = line_timestamps[i_min]
+
+        return Kymo(self.name, self.file, start, stop, self.json)
 
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
