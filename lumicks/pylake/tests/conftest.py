@@ -76,6 +76,15 @@ class MockDataFile_v2(MockDataFile_v1):
         dset = super().make_timeseries_channel(group, name, data)
         dset.attrs["Kind"] = b"TimeSeries"
 
+    def make_json_data(self, group, name, data):
+        if group not in self.file:
+            self.file.create_group(group)
+
+        compound_type = np.dtype([("Timestamp", np.int64), ("Value", float)])
+        self.file[group][name] = self.file.create_dataset("value0", data=data)
+        dset = self.file[group][name]
+        return dset
+
     def make_timetags_channel(self, group, name, data):
         if group not in self.file:
             self.file.create_group(group)
@@ -114,6 +123,49 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data("2", "Force 1y", {calibration_time_field: 1})
         mock_file.make_calibration_data("3", "Force 1y", {calibration_time_field: 10})
         mock_file.make_calibration_data("4", "Force 1y", {calibration_time_field: 100})
+
+        counts = [2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0,
+                  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 8, 0,
+                  0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 8, 0]
+
+        infowave = [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                    0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
+                    1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                    0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
+
+        json_string = '{"value0": {'\
+                          '"cereal_class_version": 1, '\
+                          '"fluorescence": true, '\
+                          '"force": false, '\
+                          '"scan count": 0, '\
+                          '"scan volume": {"'\
+                                'center point (um)": {'\
+                                    '"x": 58.075877109272604, '\
+                                    '"y": 31.978375270573267, '\
+                                    '"z": 0'\
+                                '}, '\
+                                '"cereal_class_version": 1, '\
+                                '"pixel time (ms)": 0.2, '\
+                                '"scan axes": ['\
+                                    '{"'\
+                                        'axis": 0, '\
+                                        '"cereal_class_version": 1, '\
+                                        '"num of pixels": 5, '\
+                                        '"pixel size (nm)": 10, '\
+                                        '"scan time (ms)": 0, '\
+                                        '"scan width (um)": 36.07468112612217'\
+                                    '}'\
+                                ']'\
+                            '}'\
+                        '}'\
+                    '}'
+
+        mock_file.make_continuous_channel("Photon count", "Red", 1, 1, counts)
+        mock_file.make_continuous_channel("Info wave", "Info wave", 1, 1, infowave)
+        ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
+        ds.attrs["Start time (ns)"] = 1
+        ds.attrs["Stop time (ns)"] = 100
 
     return mock_file.file
 
