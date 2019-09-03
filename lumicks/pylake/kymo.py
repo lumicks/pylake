@@ -146,8 +146,7 @@ class Kymo(PhotonCounts):
         width_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
-        x_lims = extract_custom_property(kwargs, "xlim")
-        y_lims = extract_custom_property(kwargs, "ylim")
+        x_lims, y_lims = [extract_custom_property(kwargs, f) for f in ("xlim", "ylim")]
 
         default_kwargs = dict(
             extent=[0, duration, 0, width_um],
