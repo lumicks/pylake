@@ -143,9 +143,7 @@ class Kymo(PhotonCounts):
                 Field to look for
             """
             if field in args:
-                tmp = args[field]
-                args.pop(field)
-                return tmp
+                return args.pop(field)
             return None
 
         width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
