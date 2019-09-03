@@ -1,6 +1,7 @@
 import numpy as np
 from lumicks import pylake
 import pytest
+from lumicks.pylake.kymo import EmptyKymo
 
 
 def test_kymo_slicing(h5_file):
@@ -49,8 +50,22 @@ def test_kymo_slicing(h5_file):
         assert sliced.red_image.shape == (5, 4)
         assert np.allclose(sliced.red_image.data, kymo_reference[:, 0:10])
 
-        with pytest.raises(IndexError):
-            kymo["5s":]
+        empty_kymograph = kymo["3s":"2s"]
+        assert isinstance(empty_kymograph, EmptyKymo)
 
-        with pytest.raises(IndexError):
-            kymo["3s":"2s"]
+        empty_kymograph = kymo["5s":]
+        assert isinstance(empty_kymograph, EmptyKymo)
+
+        with pytest.raises(RuntimeError):
+            empty_kymograph.timestamps
+
+        with pytest.raises(RuntimeError):
+            empty_kymograph.save_tiff("test")
+
+        assert empty_kymograph.red_image.shape == (5, 0)
+        assert empty_kymograph.has_fluorescence
+        assert not empty_kymograph.has_force
+        assert empty_kymograph.infowave.data.size == 0
+        assert empty_kymograph.pixels_per_line == 5
+        assert empty_kymograph.red_image.size == 0
+        assert empty_kymograph.rgb_image.size == 0

@@ -56,10 +56,10 @@ class Kymo(PhotonCounts):
         i_max = np.searchsorted(line_timestamps, stop, side='left')
 
         if i_min >= len(line_timestamps):
-            raise IndexError(f"Slice selection out of range ({(start-self.start)/1e9} sec >= {(self.stop-self.start)/1e9} sec)")
+            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.json)
 
         if i_min >= i_max:
-            raise IndexError(f"Slice would result in empty slice. Valid slice range is from {(start-self.start)/1e9} sec to {(self.stop-self.start)/1e9} sec")
+            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.json)
 
         if i_max < len(line_timestamps):
             stop = line_timestamps[i_max]
@@ -236,7 +236,10 @@ class Kymo(PhotonCounts):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
-        save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.json))
+        if self.rgb_image.size > 0:
+            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.json))
+        else:
+            raise RuntimeError("Can't export TIFF if there are no pixels")
 
     @staticmethod
     def from_dataset(h5py_dset, file):
@@ -255,4 +258,15 @@ class Kymo(PhotonCounts):
         name = h5py_dset.name.split("/")[-1]
         json_data = json.loads(h5py_dset[()])["value0"]
         return Kymo(name, file, start, stop, json_data)
+
+
+class EmptyKymo(Kymo):
+    def plot_rgb(self):
+        raise RuntimeError("Cannot plot empty kymograph")
+
+    def _plot(self, image, **kwargs):
+        raise RuntimeError("Cannot plot empty kymograph")
+
+    def _image(self, color):
+        return np.empty((self.pixels_per_line, 0))
 
