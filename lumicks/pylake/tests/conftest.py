@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import pytest
+import json
 
 
 # We generate mock data files for different versions of the Bluelake HDF5 file
@@ -134,40 +135,44 @@ def h5_file(tmpdir_factory, request):
                     1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
                     0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
 
-        json_string = '{"value0": {'\
-                          '"cereal_class_version": 1, '\
-                          '"fluorescence": true, '\
-                          '"force": false, '\
-                          '"scan count": 0, '\
-                          '"scan volume": {"'\
-                                'center point (um)": {'\
-                                    '"x": 58.075877109272604, '\
-                                    '"y": 31.978375270573267, '\
-                                    '"z": 0'\
-                                '}, '\
-                                '"cereal_class_version": 1, '\
-                                '"pixel time (ms)": 0.2, '\
-                                '"scan axes": ['\
-                                    '{'\
-                                        '"axis": 0, '\
-                                        '"cereal_class_version": 1, '\
-                                        '"num of pixels": 5, '\
-                                        '"pixel size (nm)": 10, '\
-                                        '"scan time (ms)": 0, '\
-                                        '"scan width (um)": 36.07468112612217'\
-                                    '}'\
-                                ']'\
-                            '}'\
-                        '}'\
-                    '}'
+        json_dict = {
+            "value0": {
+                "cereal_class_version": 1,
+                "fluorescence": True,
+                "force": False,
+                "scan count": 0,
+                "scan volume": {
+                    "center point (um)": {
+                        "x": 58.075877109272604,
+                        "y": 31.978375270573267,
+                        "z": 0
+                    },
+                    "cereal_class_version": 1,
+                    "pixel time (ms)": 0.2,
+                    "scan axes": [
+                        {
+                            "axis": 0,
+                            "cereal_class_version": 1,
+                            "num of pixels": 5,
+                            "pixel size (nm)": 10,
+                            "scan time (ms)": 0,
+                            "scan width (um)": 36.07468112612217
+                        }
+                    ]
+                }
+            }
+        }
+
+        enc = json.JSONEncoder()
+        json_string = enc.encode(json_dict)
 
         # Generate lines at 1 Hz
-        freq = int(1e9/16)
+        freq = int(1e9 / 16)
         mock_file.make_continuous_channel("Photon count", "Red", int(20e9), freq, counts)
         mock_file.make_continuous_channel("Info wave", "Info wave", int(20e9), freq, infowave)
         ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
         ds.attrs["Start time (ns)"] = int(20e9)
-        ds.attrs["Stop time (ns)"] = int(20e9+len(infowave)*freq)
+        ds.attrs["Stop time (ns)"] = int(20e9 + len(infowave) * freq)
 
     return mock_file.file
 

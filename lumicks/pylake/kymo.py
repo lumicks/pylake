@@ -19,14 +19,14 @@ class Kymo(PhotonCounts):
         Start point in the relevant info wave.
     stop : int
         End point in the relevant info wave.
-    json : dict
+    metadata : dict
         Dictionary containing kymograph-specific metadata.
     """
-    def __init__(self, name, file, start, stop, json):
+    def __init__(self, name, file, start, stop, metadata):
         self.start = start
         self.stop = stop
         self.name = name
-        self.json = json
+        self.metadata = metadata
         self.file = file
         self._cache = {}
 
@@ -41,11 +41,8 @@ class Kymo(PhotonCounts):
         if item.step is not None:
             raise IndexError("Slice steps are not supported")
 
-        start, stop = item.start, item.stop
-        if start is None:
-            start = self.start
-        if stop is None:
-            stop = self.stop
+        start = self.start if item.start is None else item.start
+        stop = self.stop if item.stop is None else item.stop
         start, stop = (to_timestamp(v, self.start, self.stop) for v in (start, stop))
 
         timestamps = self.infowave.timestamps
@@ -56,28 +53,28 @@ class Kymo(PhotonCounts):
         i_max = np.searchsorted(line_timestamps, stop, side='left')
 
         if i_min >= len(line_timestamps):
-            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.json)
+            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.metadata)
 
         if i_min >= i_max:
-            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.json)
+            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.metadata)
 
         if i_max < len(line_timestamps):
             stop = line_timestamps[i_max]
 
         start = line_timestamps[i_min]
 
-        return Kymo(self.name, self.file, start, stop, self.json)
+        return Kymo(self.name, self.file, start, stop, self.metadata)
 
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     @property
     def has_fluorescence(self) -> bool:
-        return self.json["fluorescence"]
+        return self.metadata["fluorescence"]
 
     @property
     def has_force(self) -> bool:
-        return self.json["force"]
+        return self.metadata["force"]
 
     @property
     def infowave(self):
@@ -85,7 +82,7 @@ class Kymo(PhotonCounts):
 
     @property
     def pixels_per_line(self):
-        return self.json["scan volume"]["scan axes"][0]["num of pixels"]
+        return self.metadata["scan volume"]["scan axes"][0]["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -132,7 +129,7 @@ class Kymo(PhotonCounts):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        def fetch_custom_property(args, field):
+        def extract_custom_property(args, field):
             """Grabs a field from the input arguments and consumes it.
 
             Parameters
@@ -146,16 +143,16 @@ class Kymo(PhotonCounts):
                 return args.pop(field)
             return None
 
-        width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
+        width_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
+
+        x_lims = extract_custom_property(kwargs, "xlim")
+        y_lims = extract_custom_property(kwargs, "ylim")
 
         default_kwargs = dict(
             extent=[0, duration, 0, width_um],
             aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
         )
-
-        x_lims = fetch_custom_property(kwargs, "xlim")
-        y_lims = fetch_custom_property(kwargs, "ylim")
 
         plt.imshow(image, **{**default_kwargs, **kwargs})
         plt.xlabel("time (s)")
@@ -235,7 +232,7 @@ class Kymo(PhotonCounts):
             This option is disabled by default: an error will be raise if the data does not fit.
         """
         if self.rgb_image.size > 0:
-            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.json))
+            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.metadata))
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
 
