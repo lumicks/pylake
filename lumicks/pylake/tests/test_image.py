@@ -33,7 +33,7 @@ def test_metadata_from_json():
 
 def test_timestamps_image():
     infowave = np.array([0, 1, 0, 1, 1, 0, 2, 1, 0, 1,  0,  0,  1,  2,  1,  1,  1, 2])
-    time = np.array(    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+    time = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
 
     line_stamps = line_timestamps_image(time, infowave, 5)
     assert line_stamps.shape == (1,)
@@ -86,7 +86,7 @@ def test_int_tiff(tmpdir):
                 name, value = tag.name, tag.value
                 try:
                     tiff_tags[name] = literal_eval(value)
-                except ValueError:
+                except (ValueError, SyntaxError):
                     tiff_tags[name] = value
 
             return tiff_tags
