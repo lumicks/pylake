@@ -129,29 +129,15 @@ class Kymo(PhotonCounts):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        def extract_custom_property(args, field):
-            """Grabs a field from the input arguments and consumes it.
-
-            Parameters
-            ----------
-            args : dict
-                Dictionary with function arguments
-            field : string
-                Field to look for
-            """
-            if field in args:
-                return args.pop(field)
-            return None
-
         width_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
-
-        x_lims, y_lims = [extract_custom_property(kwargs, f) for f in ("xlim", "ylim")]
 
         default_kwargs = dict(
             extent=[0, duration, 0, width_um],
             aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
         )
+
+        x_lims, y_lims = [kwargs.pop(f, None) for f in ("xlim", "ylim")]
 
         plt.imshow(image, **{**default_kwargs, **kwargs})
         plt.xlabel("time (s)")
