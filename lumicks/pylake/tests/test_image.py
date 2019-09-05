@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
+from lumicks.pylake.detail.image import reconstruct_image, reconstruct_num_frames, save_tiff, ImageMetadata, line_timestamps_image
 
-from lumicks.pylake.detail.image import reconstruct_image, reconstruct_num_frames, save_tiff, ImageMetadata
 
 def test_metadata_from_json():
     json = { 'cereal_class_version': 1,
@@ -29,6 +29,19 @@ def test_metadata_from_json():
 
     assert np.isclose(image_metadata.metadata['PixelTime'], .0005)
     assert image_metadata.metadata['PixelTimeUnit'] == 's'
+
+
+def test_timestamps_image():
+    infowave = np.array([0, 1, 0, 1, 1, 0, 2, 1, 0, 1,  0,  0,  1,  2,  1,  1,  1, 2])
+    time = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+
+    line_stamps = line_timestamps_image(time, infowave, 5)
+    assert line_stamps.shape == (1,)
+    assert np.all(line_stamps == [1])
+
+    line_stamps = line_timestamps_image(time, infowave, 2)
+    assert line_stamps.shape == (2,)
+    assert np.all(line_stamps == [1, 15])
 
 
 def test_reconstruct():
@@ -73,7 +86,7 @@ def test_int_tiff(tmpdir):
                 name, value = tag.name, tag.value
                 try:
                     tiff_tags[name] = literal_eval(value)
-                except ValueError:
+                except (ValueError, SyntaxError):
                     tiff_tags[name] = value
 
             return tiff_tags

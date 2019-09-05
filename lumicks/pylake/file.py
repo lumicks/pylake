@@ -164,7 +164,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     def kymos(self) -> Dict[str, Kymo]:
         if "Kymograph" not in self.h5:
             return dict()
-        return {name: Kymo(dset, self) for name, dset in self.h5["Kymograph"].items()}
+        return {name: Kymo.from_dataset(dset, self) for name, dset in self.h5["Kymograph"].items()}
 
     @property
     def point_scans(self) -> Dict[str, Scan]:

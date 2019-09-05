@@ -2,7 +2,8 @@ import json
 import numpy as np
 
 from .detail.mixin import PhotonCounts
-from .detail.image import reconstruct_image, save_tiff, ImageMetadata
+from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image
+from .detail.timeindex import to_timestamp
 
 
 class Kymo(PhotonCounts):
@@ -10,16 +11,22 @@ class Kymo(PhotonCounts):
 
     Parameters
     ----------
-    h5py_dset : h5py.Dataset
-        The original HDF5 dataset containing kymo information
+    name : str
+        Kymograph name
     file : lumicks.pylake.File
-        The parent file. Used to loop up channel data
+        Parent file. Contains the channel data.
+    start : int
+        Start point in the relevant info wave.
+    stop : int
+        End point in the relevant info wave.
+    metadata : dict
+        Dictionary containing kymograph-specific metadata.
     """
-    def __init__(self, h5py_dset, file):
-        self.start = h5py_dset.attrs["Start time (ns)"]
-        self.stop = h5py_dset.attrs["Stop time (ns)"]
-        self.name = h5py_dset.name.split("/")[-1]
-        self.json = json.loads(h5py_dset[()])["value0"]
+    def __init__(self, name, file, start, stop, metadata):
+        self.start = start
+        self.stop = stop
+        self.name = name
+        self.metadata = metadata
         self.file = file
         self._cache = {}
 
@@ -27,16 +34,47 @@ class Kymo(PhotonCounts):
         name = self.__class__.__name__
         return f"{name}(pixels={self.pixels_per_line})"
 
+    def __getitem__(self, item):
+        """All indexing is in timestamp units (ns)"""
+        if not isinstance(item, slice):
+            raise IndexError("Scalar indexing is not supported, only slicing")
+        if item.step is not None:
+            raise IndexError("Slice steps are not supported")
+
+        start = self.start if item.start is None else item.start
+        stop = self.stop if item.stop is None else item.stop
+        start, stop = (to_timestamp(v, self.start, self.stop) for v in (start, stop))
+
+        timestamps = self.infowave.timestamps
+        line_timestamps = line_timestamps_image(timestamps, self.infowave.data, self.pixels_per_line)
+        line_timestamps = np.append(line_timestamps, timestamps[-1])
+
+        i_min = np.searchsorted(line_timestamps, start, side='left')
+        i_max = np.searchsorted(line_timestamps, stop, side='left')
+
+        if i_min >= len(line_timestamps):
+            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.metadata)
+
+        if i_min >= i_max:
+            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.metadata)
+
+        if i_max < len(line_timestamps):
+            stop = line_timestamps[i_max]
+
+        start = line_timestamps[i_min]
+
+        return Kymo(self.name, self.file, start, stop, self.metadata)
+
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     @property
     def has_fluorescence(self) -> bool:
-        return self.json["fluorescence"]
+        return self.metadata["fluorescence"]
 
     @property
     def has_force(self) -> bool:
-        return self.json["force"]
+        return self.metadata["force"]
 
     @property
     def infowave(self):
@@ -44,7 +82,7 @@ class Kymo(PhotonCounts):
 
     @property
     def pixels_per_line(self):
-        return self.json["scan volume"]["scan axes"][0]["num of pixels"]
+        return self.metadata["scan volume"]["scan axes"][0]["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -91,7 +129,7 @@ class Kymo(PhotonCounts):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
+        width_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
         default_kwargs = dict(
@@ -99,10 +137,17 @@ class Kymo(PhotonCounts):
             aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
         )
 
+        x_lims, y_lims = [kwargs.pop(f, None) for f in ("xlim", "ylim")]
+
         plt.imshow(image, **{**default_kwargs, **kwargs})
         plt.xlabel("time (s)")
         plt.ylabel(r"position ($\mu$m)")
         plt.title(self.name)
+
+        if x_lims:
+            plt.gca().set_xlim(x_lims)
+        if y_lims:
+            plt.gca().set_ylim(y_lims)
 
     def _plot_color(self, color, **kwargs):
         from matplotlib.colors import LinearSegmentedColormap
@@ -171,5 +216,37 @@ class Kymo(PhotonCounts):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
+        if self.rgb_image.size > 0:
+            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.metadata))
+        else:
+            raise RuntimeError("Can't export TIFF if there are no pixels")
 
-        save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.json))
+    @staticmethod
+    def from_dataset(h5py_dset, file):
+        """
+        Construct Kymograph class from dataset.
+
+        Parameters
+        ----------
+        h5py_dset : h5py.Dataset
+            The original HDF5 dataset containing kymo information
+        file : lumicks.pylake.File
+            The parent file. Used to loop up channel data
+        """
+        start = h5py_dset.attrs["Start time (ns)"]
+        stop = h5py_dset.attrs["Stop time (ns)"]
+        name = h5py_dset.name.split("/")[-1]
+        json_data = json.loads(h5py_dset[()])["value0"]
+        return Kymo(name, file, start, stop, json_data)
+
+
+class EmptyKymo(Kymo):
+    def plot_rgb(self):
+        raise RuntimeError("Cannot plot empty kymograph")
+
+    def _plot(self, image, **kwargs):
+        raise RuntimeError("Cannot plot empty kymograph")
+
+    def _image(self, color):
+        return np.empty((self.pixels_per_line, 0))
+

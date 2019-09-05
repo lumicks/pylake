@@ -4,6 +4,14 @@ import pytest
 from textwrap import dedent
 
 
+def test_kymos(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+        assert kymo.pixels_per_line == 5
+        assert np.allclose(kymo.red_image, np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]))
+
+
 def test_attributes(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
@@ -59,7 +67,10 @@ def test_calibration(h5_file):
 
 def test_properties(h5_file):
     f = pylake.File.from_h5py(h5_file)
-    assert f.kymos == {}
+    if f.format_version == 1:
+        assert f.kymos == {}
+    else:
+        assert len(f.kymos) == 1
     assert f.scans == {}
     assert f.point_scans == {}
     assert f.fdcurves == {}

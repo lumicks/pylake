@@ -42,11 +42,8 @@ class Slice:
         src_start = self._src.start
         src_stop = self._src.stop
 
-        start, stop = item.start, item.stop
-        if start is None:
-            start = src_start
-        if stop is None:
-            stop = src_stop
+        start = src_start if item.start is None else item.start
+        stop = src_stop if item.stop is None else item.stop
         start, stop = (to_timestamp(v, src_start, src_stop) for v in (start, stop))
 
         return self._with_data_source(self._src.slice(start, stop))
