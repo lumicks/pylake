@@ -221,8 +221,8 @@ class Kymo(PhotonCounts):
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
 
-    @staticmethod
-    def from_dataset(h5py_dset, file):
+    @classmethod
+    def from_dataset(cls, h5py_dset, file):
         """
         Construct Kymograph class from dataset.
 
@@ -237,7 +237,7 @@ class Kymo(PhotonCounts):
         stop = h5py_dset.attrs["Stop time (ns)"]
         name = h5py_dset.name.split("/")[-1]
         json_data = json.loads(h5py_dset[()])["value0"]
-        return Kymo(name, file, start, stop, json_data)
+        return cls(name, file, start, stop, json_data)
 
 
 class EmptyKymo(Kymo):
