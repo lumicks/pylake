@@ -176,7 +176,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     def scans(self) -> Dict[str, Scan]:
         if "Scan" not in self.h5:
             return dict()
-        return {name: Scan(dset, self) for name, dset in self.h5["Scan"].items()}
+        return {name: Scan.from_dataset(dset, self) for name, dset in self.h5["Scan"].items()}
 
     @property
     def fdcurves(self) -> Dict[str, FDCurve]:

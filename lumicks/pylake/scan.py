@@ -1,3 +1,4 @@
+import json
 import numpy as np
 
 from .kymo import Kymo
@@ -14,15 +15,18 @@ class Scan(Kymo):
     file : lumicks.pylake.File
         The parent file. Used to loop up channel data
     """
-    def __init__(self, h5py_dset, file):
-        super().__init__(h5py_dset, file)
-        self._num_frames = self.json["scan count"]
-        if len(self.json["scan volume"]["scan axes"]) > 2:
+    def __init__(self, name, file, start, stop, metadata):
+        super().__init__( name, file, start, stop, metadata)
+        self._num_frames = self.metadata["scan count"]
+        if len(self.metadata["scan volume"]["scan axes"]) > 2:
             raise RuntimeError("3D scans are not supported")
 
     def __repr__(self):
         name = self.__class__.__name__
         return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
+
+    def __getitem__(self, item):
+        raise NotImplementedError("Indexing and slicing are not implemented for scans")
 
     @property
     def num_frames(self):
@@ -33,7 +37,7 @@ class Scan(Kymo):
 
     @property
     def lines_per_frame(self):
-        return self.json["scan volume"]["scan axes"][1]["num of pixels"]
+        return self.metadata["scan volume"]["scan axes"][1]["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -53,8 +57,8 @@ class Scan(Kymo):
         if self.num_frames != 1:
             image = image[frame - 1]
 
-        x_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
-        y_um = self.json["scan volume"]["scan axes"][1]["scan width (um)"]
+        x_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
+        y_um = self.metadata["scan volume"]["scan axes"][1]["scan width (um)"]
         default_kwargs = dict(
             extent=[0, x_um, 0, y_um],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um)

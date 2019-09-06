@@ -81,10 +81,11 @@ class MockDataFile_v2(MockDataFile_v1):
         if group not in self.file:
             self.file.create_group(group)
 
-        compound_type = np.dtype([("Timestamp", np.int64), ("Value", float)])
-        self.file[group][name] = self.file.create_dataset("value0", data=data)
-        dset = self.file[group][name]
-        return dset
+        data_location = group + "_" + name
+        self.file.create_group(data_location)
+
+        self.file[group][name] = self.file[data_location].create_dataset("value0", data=data)
+        return self.file[group][name]
 
     def make_timetags_channel(self, group, name, data):
         if group not in self.file:
@@ -135,7 +136,9 @@ def h5_file(tmpdir_factory, request):
                     1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
                     0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
 
-        json_dict = {
+        enc = json.JSONEncoder()
+
+        json_string = enc.encode({
             "value0": {
                 "cereal_class_version": 1,
                 "fluorescence": True,
@@ -161,16 +164,55 @@ def h5_file(tmpdir_factory, request):
                     ]
                 }
             }
-        }
-
-        enc = json.JSONEncoder()
-        json_string = enc.encode(json_dict)
+        })
 
         # Generate lines at 1 Hz
         freq = int(1e9 / 16)
         mock_file.make_continuous_channel("Photon count", "Red", int(20e9), freq, counts)
+        mock_file.make_continuous_channel("Photon count", "Green", int(20e9), freq, counts)
+        mock_file.make_continuous_channel("Photon count", "Blue", int(20e9), freq, counts)
         mock_file.make_continuous_channel("Info wave", "Info wave", int(20e9), freq, infowave)
         ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
+        ds.attrs["Start time (ns)"] = int(20e9)
+        ds.attrs["Stop time (ns)"] = int(20e9 + len(infowave) * freq)
+
+        json_string = enc.encode({
+            "value0": {
+                "cereal_class_version": 1,
+                "fluorescence": True,
+                "force": False,
+                "scan count": 0,
+                "scan volume": {
+                    "center point (um)": {
+                        "x": 58.075877109272604,
+                        "y": 31.978375270573267,
+                        "z": 0
+                    },
+                    "cereal_class_version": 1,
+                    "pixel time (ms)": 0.2,
+                    "scan axes": [
+                        {
+                            "axis": 0,
+                            "cereal_class_version": 1,
+                            "num of pixels": 5,
+                            "pixel size (nm)": 10,
+                            "scan time (ms)": 0,
+                            "scan width (um)": 36.07468112612217
+                        },
+                        {
+                            "axis": 1,
+                            "cereal_class_version": 1,
+                            "num of pixels": 4,
+                            "pixel size (nm)": 10,
+                            "scan time (ms)": 0,
+                            "scan width (um)": 36.07468112612217
+                        }
+                    ]
+                }
+            }
+        })
+
+        ds = mock_file.make_json_data("Scan", "Scan1", json_string)
         ds.attrs["Start time (ns)"] = int(20e9)
         ds.attrs["Stop time (ns)"] = int(20e9 + len(infowave) * freq)
 
