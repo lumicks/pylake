@@ -19,14 +19,14 @@ class Kymo(PhotonCounts):
         Start point in the relevant info wave.
     stop : int
         End point in the relevant info wave.
-    metadata : dict
+    json : dict
         Dictionary containing kymograph-specific metadata.
     """
-    def __init__(self, name, file, start, stop, metadata):
+    def __init__(self, name, file, start, stop, json):
         self.start = start
         self.stop = stop
         self.name = name
-        self.metadata = metadata
+        self.json = json
         self.file = file
         self._cache = {}
 
@@ -53,28 +53,28 @@ class Kymo(PhotonCounts):
         i_max = np.searchsorted(line_timestamps, stop, side='left')
 
         if i_min >= len(line_timestamps):
-            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.metadata)
+            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.json)
 
         if i_min >= i_max:
-            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.metadata)
+            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.json)
 
         if i_max < len(line_timestamps):
             stop = line_timestamps[i_max]
 
         start = line_timestamps[i_min]
 
-        return Kymo(self.name, self.file, start, stop, self.metadata)
+        return Kymo(self.name, self.file, start, stop, self.json)
 
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     @property
     def has_fluorescence(self) -> bool:
-        return self.metadata["fluorescence"]
+        return self.json["fluorescence"]
 
     @property
     def has_force(self) -> bool:
-        return self.metadata["force"]
+        return self.json["force"]
 
     @property
     def infowave(self):
@@ -82,7 +82,7 @@ class Kymo(PhotonCounts):
 
     @property
     def pixels_per_line(self):
-        return self.metadata["scan volume"]["scan axes"][0]["num of pixels"]
+        return self.json["scan volume"]["scan axes"][0]["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -129,7 +129,7 @@ class Kymo(PhotonCounts):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
+        width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
         default_kwargs = dict(
@@ -217,7 +217,7 @@ class Kymo(PhotonCounts):
             This option is disabled by default: an error will be raise if the data does not fit.
         """
         if self.rgb_image.size > 0:
-            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.metadata))
+            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.json))
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
 

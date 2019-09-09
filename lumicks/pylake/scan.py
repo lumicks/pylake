@@ -10,15 +10,21 @@ class Scan(Kymo):
 
     Parameters
     ----------
-    h5py_dset : h5py.Dataset
-        The original HDF5 dataset containing kymo information
+    name : str
+        Kymograph name
     file : lumicks.pylake.File
-        The parent file. Used to loop up channel data
+        Parent file. Contains the channel data.
+    start : int
+        Start point in the relevant info wave.
+    stop : int
+        End point in the relevant info wave.
+    json : dict
+        Dictionary containing kymograph-specific metadata.
     """
-    def __init__(self, name, file, start, stop, metadata):
-        super().__init__( name, file, start, stop, metadata)
-        self._num_frames = self.metadata["scan count"]
-        if len(self.metadata["scan volume"]["scan axes"]) > 2:
+    def __init__(self, name, file, start, stop, json):
+        super().__init__( name, file, start, stop, json)
+        self._num_frames = self.json["scan count"]
+        if len(self.json["scan volume"]["scan axes"]) > 2:
             raise RuntimeError("3D scans are not supported")
 
     def __repr__(self):
@@ -37,7 +43,7 @@ class Scan(Kymo):
 
     @property
     def lines_per_frame(self):
-        return self.metadata["scan volume"]["scan axes"][1]["num of pixels"]
+        return self.json["scan volume"]["scan axes"][1]["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -57,8 +63,8 @@ class Scan(Kymo):
         if self.num_frames != 1:
             image = image[frame - 1]
 
-        x_um = self.metadata["scan volume"]["scan axes"][0]["scan width (um)"]
-        y_um = self.metadata["scan volume"]["scan axes"][1]["scan width (um)"]
+        x_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
+        y_um = self.json["scan volume"]["scan axes"][1]["scan width (um)"]
         default_kwargs = dict(
             extent=[0, x_um, 0, y_um],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um)
