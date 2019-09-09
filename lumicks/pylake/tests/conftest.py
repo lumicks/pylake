@@ -10,7 +10,7 @@ import json
 class MockDataFile_v1:
 
     def __init__(self, file):
-        self.file = h5py.File(file)
+        self.file = h5py.File(file, 'w')
 
     def get_file_format_version(self):
         return 1
@@ -223,7 +223,7 @@ def h5_file(tmpdir_factory, request):
 def h5_file_invalid_version(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp("pylake")
 
-    mock_file = h5py.File(tmpdir.join("invalid.h5"))
+    mock_file = h5py.File(tmpdir.join("invalid.h5"), 'w')
     mock_file.attrs["Bluelake version"] = "unknown"
     mock_file.attrs["File format version"] = 254
 
