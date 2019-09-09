@@ -137,17 +137,10 @@ class Kymo(PhotonCounts):
             aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
         )
 
-        x_lims, y_lims = [kwargs.pop(f, None) for f in ("xlim", "ylim")]
-
         plt.imshow(image, **{**default_kwargs, **kwargs})
         plt.xlabel("time (s)")
         plt.ylabel(r"position ($\mu$m)")
         plt.title(self.name)
-
-        if x_lims:
-            plt.gca().set_xlim(x_lims)
-        if y_lims:
-            plt.gca().set_ylim(y_lims)
 
     def _plot_color(self, color, **kwargs):
         from matplotlib.colors import LinearSegmentedColormap
