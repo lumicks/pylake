@@ -43,7 +43,4 @@ class Group:
         """Return type name and members of the group"""
         name = self.__class__.__name__
         members = ''.join(f"{e}, " for e in self.keys())
-        if members:
-            return f"{name} (members: {members[:-2]})"
-        else:
-            return f"{name}"
+        return f"{name} (members: {members[:-2]})"
