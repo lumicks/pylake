@@ -87,6 +87,18 @@ def test_properties(h5_file):
     assert f.fdcurves == {}
 
 
+def test_groups(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 1:
+        assert set(f.keys()) == set(f.h5.keys())
+        assert str(f["Force HF"]) == "Group (members: Force 1x, Force 1y)"
+
+        t = []
+        for name in f.keys():
+            t.append(name)
+        assert set(t) == set(f.keys())
+
+
 def test_repr_and_str(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
