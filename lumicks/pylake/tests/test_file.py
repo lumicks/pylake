@@ -93,13 +93,13 @@ def test_groups(h5_file):
         assert set(f.keys()) == set(f.h5.keys())
         assert str(f["Force HF"]) == "Group (members: Force 1x, Force 1y)"
 
-        for x in range(0, 1):
+        for x in range(0, 2):
             t = []
             for name in f:
                 t.append(name)
             assert set(t) == set(f.keys())
 
-        for x in range(0, 1):
+        for x in range(0, 2):
             t = []
             for name in f["Force HF"]:
                 t.append(name)
