@@ -91,18 +91,14 @@ def test_groups(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 1:
         assert set(f.keys()) == set(f.h5.keys())
-        assert str(f["Force HF"]) == "Group (members: Force 1x, Force 1y)"
+        assert str(f["Force HF"]) == "{'Force 1x', 'Force 1y'}"
 
         for x in range(0, 2):
-            t = []
-            for name in f:
-                t.append(name)
+            t = [name for name in f]
             assert set(t) == set(f.keys())
 
         for x in range(0, 2):
-            t = []
-            for name in f["Force HF"]:
-                t.append(name)
+            t = [name for name in f["Force HF"]]
             assert set(t) == set(["Force 1x", "Force 1y"])
 
 

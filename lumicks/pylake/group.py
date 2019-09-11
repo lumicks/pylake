@@ -12,7 +12,6 @@ class Group:
     """
     def __init__(self, h5py_group):
         self.h5 = h5py_group
-        self._idx = -1
 
     def __getitem__(self, item):
         """Return a subgroup or a bluelake timeline channel"""
@@ -25,22 +24,15 @@ class Group:
 
     def keys(self):
         """Return group names at this level"""
-        return list(self.h5.keys())
+        return self.h5.keys()
 
     def __iter__(self):
-        self._idx = -1
-        return self
+        return self.h5.__iter__()
 
     def __next__(self):
-        """Return key names for the iterator analogously to HDF5"""
-        if self._idx >= len(self.keys()) - 1:
-            raise StopIteration
-
-        self._idx += 1
-        return self.keys()[self._idx]
+        return self.h5.__next__()
 
     def __repr__(self):
-        """Return type name and members of the group"""
-        name = self.__class__.__name__
-        members = ''.join(f"{e}, " for e in self.keys())
-        return f"{name} (members: {members[:-2]})"
+        """Return formatted representation of group keys"""
+        group_keys = ", ".join(f"'{k}'" for k in self.keys())
+        return f"{{{group_keys}}}"
