@@ -1,12 +1,12 @@
 import math
 import numpy as np
 
-from .detail.units import determine_unit
+from .detail.units import determine_unit, WithUnit
 from .detail.timeindex import to_timestamp
 from .calibration import ForceCalibration
 
 
-class Slice:
+class Slice(WithUnit):
     """A lazily evaluated slice of a timeline/HDF5 channel
 
     Users will only ever get these as a result of slicing a timeline/HDF5
@@ -23,46 +23,35 @@ class Slice:
     calibration: ForceCalibration
     """
     def __init__(self, data_source, labels=None, calibration=None, unit=None):
-        self._src = data_source
         self.labels = labels or {}
-        self.unit = unit
         self._calibration = calibration
+        WithUnit.__init__(self, data_source, unit)
 
     def __len__(self):
         return len(self._src)
 
-    def _unpack_other(self, other):
-        if isinstance(other, self.__class__):
-            return other._src.data
-        else:
-            return other
-
-    def _determine_unit(self, other, operation):
-        other_unit = getattr(other, "unit", None)
-        return determine_unit(self.unit, other_unit, operation)
-
     def __add__(self, other):
-        unit = self._determine_unit(other, 'add')
+        unit = self._determine_unit(self, other, 'add')
         return Slice(self._src._with_data_source(self._src.data + self._unpack_other(other)), unit=unit)
 
     def __sub__(self, other):
-        unit = self._determine_unit(other, 'sub')
+        unit = self._determine_unit(self, other, 'sub')
         return Slice(self._src._with_data_source(self._src.data - self._unpack_other(other)), unit=unit)
 
     def __truediv__(self, other):
-        unit = self._determine_unit(other, 'div')
+        unit = self._determine_unit(self, other, 'div')
         return Slice(self._src._with_data_source(self._src.data / self._unpack_other(other)), unit=unit)
 
     def __mul__(self, other):
-        unit = self._determine_unit(other, 'mul')
+        unit = self._determine_unit(self, other, 'mul')
         return Slice(self._src._with_data_source(self._src.data * self._unpack_other(other)), unit=unit)
 
     def __rtruediv__(self, other):
-        unit = self._determine_unit(other, 'div')
+        unit = self._determine_unit(other, self, 'div')
         return Slice(self._src._with_data_source(self._unpack_other(other) / self._src.data), unit=unit)
 
     def __rsub__(self, other):
-        unit = self._determine_unit(other, 'sub')
+        unit = self._determine_unit(self, other, 'sub')
         return Slice(self._src._with_data_source(self._unpack_other(other) - self._src.data), unit=unit)
 
     # These commute

@@ -41,18 +41,3 @@ def test_determine_unit():
     with pytest.raises(NotImplementedError):
         determine_unit(dimensionless, "pN", "div")
     assert determine_unit("pN", dimensionless, "mul") == "pN"
-
-    assert determine_unit("pN", None, "add") == "pN"
-    assert determine_unit("pN", None, "sub") == "pN"
-    assert not determine_unit("pN", None, "div")
-    assert not determine_unit("pN", None, "mul")
-
-    assert determine_unit(None, "pN", "add") == "pN"
-    assert determine_unit(None, "pN", "sub") == "pN"
-    assert not determine_unit(None, "pN", "div")
-    assert not determine_unit(None, "pN", "mul")
-
-    assert not determine_unit(None, None, "add")
-    assert not determine_unit(None, None, "sub")
-    assert not determine_unit(None, None, "div")
-    assert not determine_unit(None, None, "mul")

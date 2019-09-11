@@ -2,68 +2,72 @@ import pytest
 import numpy as np
 from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
-from lumicks.pylake.detail.units import dimensionless
+from lumicks.pylake.detail.units import dimensionless, WithUnit
 
 
 def test_units():
-    pn1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1), unit="pN")
-    pn2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="pN")
-    nd1 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit=dimensionless)
-    nd2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit=dimensionless)
-    ap = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="apples")
-
-    assert (pn1 + pn2).unit == "pN"
-    assert (pn1 - pn2).unit == "pN"
-    assert (pn1 / pn2).unit == dimensionless
-    assert (pn1 / nd1).unit == "pN"
-    assert (pn1 * nd1).unit == "pN"
-    assert (nd1 * pn1).unit == "pN"
-    assert (nd1 + nd2).unit == dimensionless
-
-    assert (pn1 + 5).unit == "pN"
-    assert (5 + pn1).unit == "pN"
-    assert ((5/pn1) + pn1).unit == "pN"
-    assert (pn1 + (5 / pn1)).unit == "pN"
-    assert not (pn1 / (5 / pn1)).unit
-    assert not (pn1 / 5).unit
-    assert not (5 / pn1).unit
-    assert not (5 * pn1).unit
-
-    with pytest.raises(TypeError):
-        pn1 + ap
-
-    with pytest.raises(TypeError):
-        pn1 - ap
-
-    with pytest.raises(NotImplementedError):
-        pn1 * ap
-
-    with pytest.raises(NotImplementedError):
-        pn1 / ap
-
-    with pytest.raises(TypeError):
-        pn1 + nd1
-
-    with pytest.raises(TypeError):
-        pn1 - nd1
-
-    with pytest.raises(TypeError):
-        nd1 + pn1
-
-    with pytest.raises(TypeError):
-        nd1 - pn1
-
-    with pytest.raises(NotImplementedError):
-        nd1 / pn1
-
-    with pytest.raises(NotImplementedError):
-        nd1 / pn1
-
-    with pytest.raises(NotImplementedError):
-        pn1 * pn1
+    ref_pn = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1), unit="pN")
 
     with pytest.raises(RuntimeError):
-        pn1._determine_unit(pn2, "invalid_operation")
+        WithUnit._determine_unit(ref_pn, ref_pn, "invalid_operation")
+
+    def test_operations_with_units(Q):
+        dim_less = WithUnit(Q, dimensionless)
+        pn = WithUnit(Q, "pN")
+        apples = WithUnit(Q, "apples")
+        slice_dim_less = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit=dimensionless)
+        slice_pn = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit="pN")
+
+        assert (ref_pn + pn).unit == "pN"
+        assert (ref_pn / pn).unit == dimensionless
+
+        assert (ref_pn + slice_pn).unit == "pN"
+        assert (ref_pn - slice_pn).unit == "pN"
+        assert (ref_pn / slice_pn).unit == dimensionless
+        assert (ref_pn / slice_dim_less).unit == "pN"
+        assert (ref_pn * slice_dim_less).unit == "pN"
+        assert (slice_dim_less * ref_pn).unit == "pN"
+        assert (slice_dim_less + slice_dim_less).unit == dimensionless
+
+        with pytest.raises(TypeError):
+            ref_pn + apples
+        with pytest.raises(TypeError):
+            ref_pn - apples
+        with pytest.raises(TypeError):
+            ref_pn + dim_less
+        with pytest.raises(TypeError):
+            ref_pn - dim_less
+        with pytest.raises(TypeError):
+            dim_less + ref_pn
+        with pytest.raises(TypeError):
+            dim_less - ref_pn
+
+        with pytest.raises(NotImplementedError):
+            dim_less / ref_pn   # [1/pN]
+        with pytest.raises(NotImplementedError):
+            ref_pn * pn         # [pN**2]
+        with pytest.raises(NotImplementedError):
+            pn * ref_pn         # [pN**2]
+        with pytest.raises(NotImplementedError):
+            ref_pn * apples     # [pN*apples]
+        with pytest.raises(NotImplementedError):
+            ref_pn / apples     # [pN/apples]
+
+        assert (ref_pn * dim_less).unit == "pN"
+        assert (ref_pn / dim_less).unit == "pN"
+
+    test_operations_with_units(5)
+    test_operations_with_units(np.array([1, 2, 3, 4, 5]))
+    test_operations_with_units([1, 2, 3, 4, 5])
+    test_operations_with_units(ref_pn)
+
+    with pytest.raises(TypeError):
+        (ref_pn + 5).unit
+    with pytest.raises(TypeError):
+        (5 + ref_pn).unit
+    with pytest.raises(NotImplementedError):
+        (5/ref_pn).unit  # 1/pN
+    assert (5 * ref_pn).unit == "pN"
 
 
 def test_calibration_timeseries_channels():
@@ -185,38 +189,45 @@ def test_arithmetic_operations():
         assert np.allclose((2 * scc1).data, [2, 4, 6, 8, 10])
         assert np.allclose((2 + scc1).data, [3, 4, 5, 6, 7])
         assert np.allclose((2 + 2 * scc1).data, [4, 6, 8, 10, 12])
-        assert np.allclose((2 * scc1).data + 2, [4, 6, 8, 10, 12])
+        assert np.allclose((2 / scc1).data, [2/1, 2/2, 2/3, 2/4, 2/5])
 
-        # Tests with raw list (right)
-        assert np.allclose((scc1 * [2, 2, 2, 2, 2]).data, [2, 4, 6, 8, 10])
-        assert np.allclose((scc1 + [2, 2, 2, 2, 2]).data, [3, 4, 5, 6, 7])
-        assert np.allclose((scc1 - [2, 2, 2, 2, 2]).data, [-1, 0, 1, 2, 3])
-        assert np.allclose((scc1 / [2, 2, 2, 2, 2]).data, [.5, 1, 1.5, 2, 2.5])
+        def test_left(test_list):
+            assert np.allclose((scc1 * test_list).data, [2, 4, 6, 8, 10])
+            assert np.allclose((scc1 + test_list).data, [3, 4, 5, 6, 7])
+            assert np.allclose((scc1 - test_list).data, [-1, 0, 1, 2, 3])
+            assert np.allclose((scc1 / test_list).data, [.5, 1, 1.5, 2, 2.5])
 
         # Tests with raw list (left)
-        assert np.allclose(([2, 2, 2, 2, 2] * scc1).data, [2*1, 2*2, 2*3, 2*4, 2*5])
-        assert np.allclose(([2, 2, 2, 2, 2] + scc1).data, [2+1, 2+2, 2+3, 2+4, 2+5])
-        assert np.allclose(([2, 2, 2, 2, 2] / scc1).data, [2/1, 2/2, 2/3, 2/4, 2/5])
-        assert np.allclose(([2, 2, 2, 2, 2] - scc1).data, [2-1, 2-2, 2-3, 2-4, 2-5])
+        def test_right(test_list):
+            assert np.allclose((test_list * scc1).data, [2*1, 2*2, 2*3, 2*4, 2*5])
+            assert np.allclose((test_list + scc1).data, [2+1, 2+2, 2+3, 2+4, 2+5])
+            assert np.allclose((test_list / scc1).data, [2/1, 2/2, 2/3, 2/4, 2/5])
+            assert np.allclose((test_list - scc1).data, [2-1, 2-2, 2-3, 2-4, 2-5])
 
-        # Tests with raw numpy array
-        assert np.allclose((scc1 * np.array([2, 2, 2, 2, 2])).data, [2, 4, 6, 8, 10])
-        assert np.allclose((scc1 + np.array([2, 2, 2, 2, 2])).data, [3, 4, 5, 6, 7])
-        assert np.allclose((scc1 - np.array([2, 2, 2, 2, 2])).data, [-1, 0, 1, 2, 3])
-        assert np.allclose((scc1 / np.array([2, 2, 2, 2, 2])).data, [.5, 1, 1.5, 2, 2.5])
+        tester = WithUnit([2, 2, 2, 2, 2], dimensionless)
+        test_left(tester)
+        test_right(tester)
 
-    scc1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1))
-    scc2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1))
-    scc3 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5, 6], start=0, dt=1))
+        tester = WithUnit(np.array([2, 2, 2, 2, 2]), dimensionless)
+        test_left(tester)
+        test_right(tester)
+
+        tester = WithUnit(2, dimensionless)
+        test_left(tester)
+        test_right(tester)
+
+    scc1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1), unit=dimensionless)
+    scc2 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5], start=0, dt=1), unit=dimensionless)
+    scc3 = channel.Slice(channel.Continuous([1, 1, 3, 1, 5, 6], start=0, dt=1), unit=dimensionless)
     test_arithmetic(scc1, scc2, scc3)
 
-    scc1 = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
-    scc2 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5], [1, 2, 3, 4, 5]))
-    scc3 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5, 6], [1, 2, 3, 4, 5, 6]))
+    scc1 = channel.Slice(channel.TimeSeries([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]), unit=dimensionless)
+    scc2 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5], [1, 2, 3, 4, 5]), unit=dimensionless)
+    scc3 = channel.Slice(channel.TimeSeries([1, 1, 3, 1, 5, 6], [1, 2, 3, 4, 5, 6]), unit=dimensionless)
     test_arithmetic(scc1, scc2, scc3)
 
     # In principle cross-class operators should be allowed as long as the units are compatible
-    scc1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1))
+    scc1 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5], start=0, dt=1), unit=dimensionless)
     assert np.allclose((scc1 - scc2).data, [0, 1, 0, 3, 0])
     assert np.allclose((scc1 + scc2).data, [2, 3, 6, 5, 10])
     assert np.allclose((scc1 * scc2).data, [1, 2, 9, 4, 25])
@@ -243,6 +254,21 @@ def test_slice_properties():
     s = channel.empty_slice
     assert len(s) == 0
     assert s.sample_rate is None
+
+
+def test_slice_units():
+    """Slicing must preserve units"""
+    size = 5
+    labels = {"x": "distance", "y": "force"}
+    s = channel.Slice(channel.TimeSeries(np.random.rand(size), np.random.rand(size)), labels, unit="pN")
+    assert s.unit == "pN"
+    assert s[:].unit == "pN"
+    assert s[:0].unit == "pN"
+    assert s[:10].unit == "pN"
+
+    s = channel.Slice(channel.TimeSeries([], []), labels, unit="pN")
+    assert s.unit == "pN"
+    assert s[:].unit == "pN"
 
 
 def test_labels():
