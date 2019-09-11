@@ -22,10 +22,6 @@ class Group:
             cls = channel_class(thing)
             return cls.from_dataset(thing)
 
-    def keys(self):
-        """Return group names at this level"""
-        return self.h5.keys()
-
     def __iter__(self):
         return self.h5.__iter__()
 
@@ -34,5 +30,5 @@ class Group:
 
     def __repr__(self):
         """Return formatted representation of group keys"""
-        group_keys = ", ".join(f"'{k}'" for k in self.keys())
+        group_keys = ", ".join(f"'{k}'" for k in self.h5)
         return f"{{{group_keys}}}"
