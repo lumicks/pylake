@@ -21,3 +21,14 @@ class Group:
         else:
             cls = channel_class(thing)
             return cls.from_dataset(thing)
+
+    def __iter__(self):
+        return self.h5.__iter__()
+
+    def __next__(self):
+        return self.h5.__next__()
+
+    def __repr__(self):
+        """Return formatted representation of group keys"""
+        group_keys = ", ".join(f"'{k}'" for k in self.h5)
+        return f"{{{group_keys}}}"
