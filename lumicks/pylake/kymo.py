@@ -68,6 +68,13 @@ class Kymo(PhotonCounts):
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
+    def _get_axis_metadata(self, axis=0):
+        for cur_axis in self.json["scan volume"]["scan axes"]:
+            if cur_axis["axis"] == axis:
+                return cur_axis
+        else:
+            raise RuntimeError(f"Invalid axis {axis} specified")
+
     @property
     def has_fluorescence(self) -> bool:
         return self.json["fluorescence"]
@@ -82,7 +89,7 @@ class Kymo(PhotonCounts):
 
     @property
     def pixels_per_line(self):
-        return self.json["scan volume"]["scan axes"][0]["num of pixels"]
+        return self._get_axis_metadata(0)["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -129,7 +136,7 @@ class Kymo(PhotonCounts):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
+        width_um = self._get_axis_metadata(0)["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
         default_kwargs = dict(
