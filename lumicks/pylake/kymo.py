@@ -69,11 +69,8 @@ class Kymo(PhotonCounts):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     def _get_axis_metadata(self, axis=0):
-        for cur_axis in self.json["scan volume"]["scan axes"]:
-            if cur_axis["axis"] == axis:
-                return cur_axis
-        else:
-            raise RuntimeError(f"Invalid axis {axis} specified")
+        [return_axis] = (cur_axis for cur_axis in self.json["scan volume"]["scan axes"] if cur_axis["axis"] == axis)
+        return return_axis
 
     @property
     def has_fluorescence(self) -> bool:
