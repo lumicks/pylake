@@ -4,6 +4,7 @@ import numpy as np
 from .detail.mixin import PhotonCounts
 from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image
 from .detail.timeindex import to_timestamp
+from .detail.utilities import first
 
 
 class Kymo(PhotonCounts):
@@ -69,8 +70,7 @@ class Kymo(PhotonCounts):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
     def _get_axis_metadata(self, axis=0):
-        [return_axis] = (cur_axis for cur_axis in self.json["scan volume"]["scan axes"] if cur_axis["axis"] == axis)
-        return return_axis
+        return first(self.json["scan volume"]["scan axes"], lambda x: x["axis"] == axis)
 
     @property
     def has_fluorescence(self) -> bool:
