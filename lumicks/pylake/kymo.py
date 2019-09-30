@@ -4,6 +4,7 @@ import numpy as np
 from .detail.mixin import PhotonCounts
 from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image
 from .detail.timeindex import to_timestamp
+from .detail.utilities import first
 
 
 class Kymo(PhotonCounts):
@@ -68,6 +69,9 @@ class Kymo(PhotonCounts):
     def _get_photon_count(self, name):
         return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
+    def _get_axis_metadata(self, axis=0):
+        return first(self.json["scan volume"]["scan axes"], lambda x: x["axis"] == axis)
+
     @property
     def has_fluorescence(self) -> bool:
         return self.json["fluorescence"]
@@ -82,7 +86,7 @@ class Kymo(PhotonCounts):
 
     @property
     def pixels_per_line(self):
-        return self.json["scan volume"]["scan axes"][0]["num of pixels"]
+        return self._get_axis_metadata(0)["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -129,7 +133,7 @@ class Kymo(PhotonCounts):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
+        width_um = self._get_axis_metadata(0)["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
         default_kwargs = dict(

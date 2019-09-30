@@ -43,7 +43,7 @@ class Scan(Kymo):
 
     @property
     def lines_per_frame(self):
-        return self.json["scan volume"]["scan axes"][1]["num of pixels"]
+        return self._get_axis_metadata(1)["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -63,8 +63,8 @@ class Scan(Kymo):
         if self.num_frames != 1:
             image = image[frame - 1]
 
-        x_um = self.json["scan volume"]["scan axes"][0]["scan width (um)"]
-        y_um = self.json["scan volume"]["scan axes"][1]["scan width (um)"]
+        x_um = self._get_axis_metadata(0)["scan width (um)"]
+        y_um = self._get_axis_metadata(1)["scan width (um)"]
         default_kwargs = dict(
             extent=[0, x_um, 0, y_um],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um)

@@ -192,17 +192,17 @@ def h5_file(tmpdir_factory, request):
                     "pixel time (ms)": 0.2,
                     "scan axes": [
                         {
-                            "axis": 0,
+                            "axis": 1,
                             "cereal_class_version": 1,
-                            "num of pixels": 5,
+                            "num of pixels": 4,
                             "pixel size (nm)": 10,
                             "scan time (ms)": 0,
                             "scan width (um)": 36.07468112612217
                         },
                         {
-                            "axis": 1,
+                            "axis": 0,
                             "cereal_class_version": 1,
-                            "num of pixels": 4,
+                            "num of pixels": 5,
                             "pixel size (nm)": 10,
                             "scan time (ms)": 0,
                             "scan width (um)": 36.07468112612217
