@@ -1,7 +1,6 @@
 
 def first(iterable, condition=lambda x: True):
-    """
-    Returns the first item in the `iterable` that satisfies the `condition`.
+    """Return the first item in the `iterable` that satisfies the `condition`.
 
     If the condition is not given, returns the first item of the iterable.
 
