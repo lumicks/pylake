@@ -99,6 +99,20 @@ class Kymo(PhotonCounts):
         return reconstruct_image(sample_timestamps, self.infowave.data,
                                  self.pixels_per_line, reduce=np.mean).T
 
+    def _force_image(self, channel):
+        if channel not in self._cache:
+            force = self.file["Force HF"][channel].data
+            self._cache[channel] = reconstruct_image(force[:self.infowave.data.size], self.infowave.data, 
+                                    self.pixels_per_line, reduce=np.mean).T
+        return self._cache[channel]
+
+    def _power_image(self, channel):
+        if channel not in self._cache:
+            force = self.file["Diagnostics"][channel].data
+            self._cache[channel] = reconstruct_image(force[:self.infowave.data.size], self.infowave.data, 
+                                    self.pixels_per_line, reduce=np.mean).T
+        return self._cache[channel]
+
     @property
     def red_image(self):
         return self._image("red")
@@ -116,6 +130,30 @@ class Kymo(PhotonCounts):
         color_channels = [getattr(self, f"{color}_image").T for color in ("red", "green", "blue")]
         return np.stack(color_channels).T
 
+    @property
+    def force1x_image(self):
+        return self._force_image("Force 1x")
+
+    @property
+    def force1y_image(self):
+        return self._force_image("Force 1y")
+
+    @property
+    def force2x_image(self):
+        return self._force_image("Force 2x")
+
+    @property
+    def force2y_image(self):
+        return self._force_image("Force 2y")
+
+    @property
+    def power1_image(self):
+        return self._power_image("Trap power 1")    
+
+    @property
+    def power2_image(self):
+        return self._power_image("Trap power 2")
+    
     @property
     def timestamps(self) -> np.ndarray:
         """Timestamps for image pixels, not for samples
@@ -158,6 +196,11 @@ class Kymo(PhotonCounts):
         image = getattr(self, f"{color}_image")
         self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
 
+    def _plot_force(self, force, **kwargs):
+        image = getattr(self, f"{force}_image")
+        self._plot(image, **kwargs)
+
+
     def plot_red(self, **kwargs):
         """Plot an image of the red photon channel
 
@@ -199,6 +242,47 @@ class Kymo(PhotonCounts):
         image = self.rgb_image
         image = image / np.max(image)
         self._plot(image, **kwargs)
+
+
+    def plot_force1x(self, **kwargs):
+        """Plot an image of the force 1x channel
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to `~matplotlib.pyplot.imshow`.
+        """
+        self._plot(self.force1x_image,**kwargs)
+    
+    def plot_force1y(self, **kwargs):
+        """Plot an image of the force 1y channel
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to `~matplotlib.pyplot.imshow`.
+        """
+        self._plot(self.force1y_image,**kwargs)
+
+    def plot_force2x(self, **kwargs):
+        """Plot an image of the force 2x channel
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to `~matplotlib.pyplot.imshow`.
+        """
+        self._plot(self.force2x_image,**kwargs)
+    
+    def plot_force2y(self, **kwargs):
+        """Plot an image of the force 2yy channel
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to `~matplotlib.pyplot.imshow`.
+        """
+        self._plot(self.force2y_image,**kwargs)
 
     def save_tiff(self, filename, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image

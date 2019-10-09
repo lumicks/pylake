@@ -52,6 +52,21 @@ class Scan(Kymo):
                                                    self.pixels_per_line, self.lines_per_frame)
         return self._cache[color]
 
+    def _force_image(self, channel): 
+        if channel not in self._cache:
+            force = self.file["Force HF"][channel].data
+            self._cache[channel] = reconstruct_image(force[:self.infowave.data.size], self.infowave.data, 
+                                    self.pixels_per_line, self.lines_per_frame, reduce=np.mean)
+        return self._cache[channel]
+
+    def _power_image(self, channel): 
+        if channel not in self._cache:
+            force = self.file["Diagnostics"][channel].data
+            self._cache[channel] = reconstruct_image(force[:self.infowave.data.size], self.infowave.data, 
+                                    self.pixels_per_line, self.lines_per_frame, reduce=np.mean)
+        return self._cache[channel]
+
+
     def _timestamps(self, sample_timestamps):
         return reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
                                  self.lines_per_frame, reduce=np.mean)
