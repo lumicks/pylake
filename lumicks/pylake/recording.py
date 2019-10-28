@@ -31,6 +31,10 @@ class TiffFrame:
         timestamp_string = re.search(r'^\d+:(\d+)$', self._src.tags['DateTime'].value)
         return np.int64(timestamp_string.group(1)) if timestamp_string else None
 
+    @property
+    def time_slice(self):
+        return slice(self.start, self.stop)
+
 
 class TiffStack:
     """TIFF images exported from Bluelake
@@ -89,6 +93,12 @@ class Recording:
             if item >= self.stop_idx or item < self.start_idx:
                 raise IndexError("Index out of bounds")
             return Recording(self.src, self.name, item, item + 1)
+
+    def __iter__(self):
+        idx = 0
+        while idx < self.num_frames:
+            yield self.get_frame(idx)
+            idx += 1
 
     @staticmethod
     def from_file(image_name):
@@ -220,9 +230,17 @@ class Recording:
         fig.canvas.mpl_connect('button_press_event', select_frame)
 
     @property
-    def time_slice(self):
-        return slice(self.src.get_frame(self.start_idx).start, self.src.get_frame(self.stop_idx-1).stop)
-
-    @property
     def num_frames(self):
         return self.stop_idx - self.start_idx
+
+    @property
+    def start(self):
+        return self.get_frame(0).start
+
+    @property
+    def stop(self):
+        return self.get_frame(self.num_frames - 1).stop
+
+    @property
+    def slices(self):
+        return [img_idx.time_slice for img_idx in self]

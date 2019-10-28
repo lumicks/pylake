@@ -56,17 +56,32 @@ def test_recording():
     with pytest.raises(IndexError):
         recording[1:2].get_frame(1).stop
 
+    # Integration test whether slicing from the recording object actually provides you with correct slices
+    assert (np.allclose(recording[2:5].start, 30))
+    assert (np.allclose(recording[2:5].stop, 58))
+
+    # Test iterations
+    assert (np.allclose([x.start for x in recording], [10, 20, 30, 40, 50, 60]))
+    assert (np.allclose([x.start for x in recording[1:]], [20, 30, 40, 50, 60]))
+    assert (np.allclose([x.start for x in recording[:-1]], [10, 20, 30, 40, 50]))
+    assert (np.allclose([x.start for x in recording[2:4]], [30, 40]))
+    assert (np.allclose([x.start for x in recording[2]], [30]))
+
 
 def test_correlation():
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 10, 2))
+
+    # Test image stack without dead time
+    fake_tiff = TiffStack(MockTiff([["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]]))
+    recording = Recording(fake_tiff)
+    assert (np.allclose(np.hstack([cc[x.time_slice].data for x in recording[2:4]]), np.arange(30, 50, 2)))
+
+    # Test image stack with dead time
     fake_tiff = TiffStack(MockTiff([["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]))
     recording = Recording(fake_tiff)
 
-    # Integration test whether slicing from the recording object actually provides you with correct slices
-    assert(np.allclose(cc[recording[2:5].time_slice].timestamps, np.arange(30, 58, 2)))
-    assert(np.allclose(cc[recording[0].time_slice].timestamps, np.arange(10, 18, 2)))
-    assert(np.allclose(cc[recording[2:5][0].time_slice].timestamps, np.arange(30, 38, 2)))
-    assert(np.allclose(cc[recording[2:5][1].time_slice].timestamps, np.arange(40, 48, 2)))
+    assert (np.allclose(np.hstack([cc[x.time_slice].data for x in recording[2:4]]),
+                        np.hstack([np.arange(30, 38, 2), np.arange(40, 48, 2)])))
 
     # Unit test which tests whether we obtain an appropriately downsampled time series when ask for downsampling of a
     # slice based on a recording.
