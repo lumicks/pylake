@@ -54,6 +54,9 @@ def test_recording():
     assert(recording[2:5][1:3].get_frame(1).start == 50)
 
     with pytest.raises(IndexError):
+        recording[::2]
+
+    with pytest.raises(IndexError):
         recording[1:2].get_frame(1).stop
 
     # Integration test whether slicing from the recording object actually provides you with correct slices
