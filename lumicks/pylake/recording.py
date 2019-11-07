@@ -65,20 +65,14 @@ class Recording:
 
     Parameters
     ----------
-    data : TiffStack
-        TiffStack object.
-    name : str
-        Plot label of the recording
-    start_idx : int
-        Index at the first frame.
-    stop_idx: int
-        Index beyond the last frame.
+    image_name : str
+        Filename for the image stack.
     """
-    def __init__(self, data, name=None, start_idx=0, stop_idx=None):
-        self.src = data
-        self.name = name
-        self.start_idx = start_idx
-        self.stop_idx = (self.src.num_frames if stop_idx is None else stop_idx)
+    def __init__(self, image_name):
+        self.src = TiffStack.from_file(image_name)
+        self.name = os.path.splitext(os.path.basename(image_name))[0]
+        self.start_idx = 0
+        self.stop_idx = self.src.num_frames
 
     def __getitem__(self, item):
         """All indexing is in frames"""
@@ -87,38 +81,48 @@ class Recording:
                 raise IndexError("Slice steps are not supported")
 
             start, stop, _ = item.indices(self.num_frames)
-            return Recording(self.src, self.name, self.start_idx + start, self.start_idx + stop)
+            return Recording.from_data(self.src, self.name, self.start_idx + start, self.start_idx + stop)
         else:
             item = self.start_idx + item if item >= 0 else self.stop_idx + item
             if item >= self.stop_idx or item < self.start_idx:
                 raise IndexError("Index out of bounds")
-            return Recording(self.src, self.name, item, item + 1)
+            return Recording.from_data(self.src, self.name, item, item + 1)
 
     def __iter__(self):
         idx = 0
         while idx < self.num_frames:
-            yield self.get_frame(idx)
+            yield self._get_frame(idx)
             idx += 1
 
-    @staticmethod
-    def from_file(image_name):
-        """Construct recording from file
+    @classmethod
+    def from_data(cls, data, name=None, start_idx=0, stop_idx=None):
+        """Construct recording from image stack object
 
         Parameters
         ----------
-        image_name : str
-            Filename for the image stack.
+        data : TiffStack
+            TiffStack object.
+        name : str
+            Plot label of the recording
+        start_idx : int
+            Index at the first frame.
+        stop_idx: int
+            Index beyond the last frame.
         """
-        return Recording(TiffStack.from_file(image_name), os.path.splitext(os.path.basename(image_name))[0])
+        new_recording = cls.__new__(cls)
+        new_recording.src = data
+        new_recording.name = name
+        new_recording.start_idx = start_idx
+        new_recording.stop_idx = (new_recording.src.num_frames if stop_idx is None else stop_idx)
+        return new_recording
 
-    def plot(self,  **kwargs):
+    def plot(self, frame=0, **kwargs):
         import matplotlib.pyplot as plt
 
         default_kwargs = dict(
             cmap='gray'
         )
 
-        frame = np.clip(kwargs.pop("frame", 0), 0, self.num_frames)
         image = self.get_frame(frame).data
         plt.imshow(image, **{**default_kwargs, **kwargs})
 
@@ -127,7 +131,7 @@ class Recording:
         else:
             plt.title(f"{self.name} [frame {frame}/{self.num_frames}]")
 
-    def get_frame(self, frame=0):
+    def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:
             raise IndexError("Frame index out of range")
         return self.src.get_frame(self.start_idx + frame)
@@ -189,7 +193,7 @@ class Recording:
         import matplotlib.pyplot as plt
 
         downsampled = self.downsample_channel(channel_slice, reduce, where='left')
-        fetched_frame = self.get_frame(self.start_idx + frame)
+        fetched_frame = self._get_frame(self.start_idx + frame)
         aspect_ratio = fetched_frame.data.shape[0] / np.max([fetched_frame.data.shape])
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=plt.figaspect(aspect_ratio/2))
@@ -219,7 +223,7 @@ class Recording:
             if not event.canvas.widgetlock.locked() and event.inaxes == ax1:
                 time = event.xdata * 1e9 + t0
                 for img_idx in np.arange(self.start_idx, self.stop_idx):
-                    current_frame = self.get_frame(self.start_idx + img_idx)
+                    current_frame = self._get_frame(self.start_idx + img_idx)
 
                     if current_frame.start < time < current_frame.stop:
                         poly.remove()
@@ -234,13 +238,13 @@ class Recording:
         return self.stop_idx - self.start_idx
 
     @property
+    def raw(self):
+        return [self._get_frame(idx) for idx in range(self.num_frames)]
+
+    @property
     def start(self):
-        return self.get_frame(0).start
+        return self._get_frame(0).start
 
     @property
     def stop(self):
-        return self.get_frame(self.num_frames - 1).stop
-
-    @property
-    def slices(self):
-        return [img_idx.time_slice for img_idx in self]
+        return self._get_frame(self.num_frames - 1).stop

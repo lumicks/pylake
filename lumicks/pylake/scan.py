@@ -56,10 +56,10 @@ class Scan(Kymo):
         return reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
                                  self.lines_per_frame, reduce=np.mean)
 
-    def _plot(self, image, **kwargs):
+    def _plot(self, image, frame=1, **kwargs):
         import matplotlib.pyplot as plt
 
-        frame = np.clip(kwargs.pop("frame", 1), 1, self.num_frames)
+        frame = np.clip(frame, 1, self.num_frames)
         if self.num_frames != 1:
             image = image[frame - 1]
 
