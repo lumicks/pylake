@@ -62,19 +62,12 @@ class Model:
     def parameter_names(self):
         return np.copy(self._parameter_names)
 
-    @property
-    def parameter_count(self):
-        return len(self._parameter_names)
-
 
 class Parameter:
     def __init__(self, value=0.0, lb=-np.inf, ub=np.inf):
         self.value = value
         self.lb = lb
         self.ub = ub
-
-    def __set__(self, value):
-        self.value = value
 
     def __repr__(self):
         return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lb: {self.lb}, ub: {self.ub})"
@@ -86,6 +79,12 @@ class Parameter:
 class Parameters:
     def __init__(self):
         self._src = OrderedDict()
+
+    def __iter__(self):
+        return self._src.__iter__()
+
+    def items(self):
+        return self._src.items()
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -164,19 +163,6 @@ class FitObject:
         for key, value in kwargs.items():
             if key in transformed:
                 transformed[key] = value
-            else:
-                raise KeyError(f"Parameter {key} to be substituted not found in model.")
-
-        return transformed
-
-    @staticmethod
-    def parse_transformation_old(parameters, **kwargs):
-        transformed = deepcopy(parameters)
-        for key, value in kwargs.items():
-            if key in parameters:
-                indices = [i for i, e in enumerate(parameters) if e == key]
-                for idx in indices:
-                    transformed[idx] = value
             else:
                 raise KeyError(f"Parameter {key} to be substituted not found in model.")
 
@@ -264,14 +250,15 @@ class FitObject:
         self._check_rebuild()
         return len(self._parameters)
 
-    def fit(self):
+    def fit(self, **kwargs):
         parameter_vector = self.parameters.values
         lb = self.parameters.lb
         ub = self.parameters.ub
 
         result = optim.least_squares(self._evaluate_model, parameter_vector,
                                      jac=self._evaluate_jacobian if self.model.has_jacobian else "2-point",
-                                     bounds=(lb, ub), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-10, verbose=2)
+                                     bounds=(lb, ub), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-10, **kwargs)
+
         parameter_names = self.parameters.keys
         parameter_vector = result.x
 
@@ -302,7 +289,7 @@ class FitObject:
             p_indices = condition.p_indices
             for data in data_sets:
                 data_set = self._data[data]
-                sensitivities = self.model.jacobian(data_set.x, p_local)
+                sensitivities = np.transpose(self.model.jacobian(data_set.x, p_local))
                 n_res = sensitivities.shape[0]
 
                 jacobian[residual_idx:residual_idx + n_res, p_indices] = \
@@ -331,7 +318,6 @@ class Data:
     def condition_string(self):
         return '|'.join(str(x) for x in self.transformations.values())
 
-    # This can be generalized to handle more complex parameter transformations
     @property
     def parameter_names(self):
         return [x for x in self.transformations.values() if isinstance(x, str)]
@@ -343,8 +329,6 @@ class Condition:
         self.p_external = np.array([True if isinstance(x, str) else False for x in self.transformed])
         self.p_local = np.array([0.0 if isinstance(x, str) else x for x in self.transformed])
         self.p_reference = [x for x in self.transformed if isinstance(x, str)]
-
-        # p_indices is critical to test
         self.p_indices = [global_dictionary[key] for key in self.p_reference]
 
     @property

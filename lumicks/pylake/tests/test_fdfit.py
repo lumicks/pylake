@@ -14,46 +14,36 @@ def tests_fit_object():
         FitObject.parse_transformation(pars, blap='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
 
 
-#def test_fit_object():
-#    assert(FitObject.parse_transformation(['blip', 'foo', 'blip'], blip=5) == [5, 'foo', 5])
-#    assert(FitObject.parse_transformation(['blip', 'foo', 'blip'], foo='new_foo') == ['blip', 'new_foo', 'blip'])
-#    assert(FitObject.parse_transformation(['blip', 'foo', 'foo', 'blip'], foo='new_foo') ==
-#           ['blip', 'new_foo', 'new_foo', 'blip'])
-
-
-def test_link_generation():
-    #data_sets = Data()
-
-    #FitObject.build_conditions()
-    def _build_conditions(data_sets):
-        pass;
-
-
 def test_parameters():
     params = Parameters()
     params.set_parameters(['alpha', 'beta', 'gamma'])
-    assert (params['beta'].value == 0)
+    assert (params['beta'].value == 0.0)
 
-    params['beta'].value = 5
-    assert (np.allclose(params.values, [0, 5, 0]))
+    params['beta'].value = 5.0
+    assert (np.allclose(params.values, [0.0, 5.0, 0.0]))
 
     params.set_parameters(['alpha', 'beta', 'gamma', 'delta'])
-    assert (params['beta'].value == 5)
-    assert (np.allclose(params.values, [0, 5, 0, 0]))
+    assert (params['beta'].value == 5.0)
+    assert (np.allclose(params.values, [0.0, 5.0, 0.0, 0.0]))
 
-    params['gamma'].value = 6
-    params['delta'].value = 7
-    params['gamma'].lb = -4
-    params['gamma'].ub = 5
-    assert (np.allclose(params.values, [0, 5, 6, 7]))
-    assert (np.allclose(params.lb, [-np.inf, -np.inf, -4, -np.inf]))
-    assert (np.allclose(params.ub, [np.inf, np.inf, 5, np.inf]))
-    assert(len(params) == 4)
+    params['gamma'].value = 6.0
+    params['delta'] = 7.0
+    params['gamma'].lb = -4.0
+    params['gamma'].ub = 5.0
+    assert (np.allclose(params.values, [0.0, 5.0, 6.0, 7.0]))
+    assert (np.allclose(params.lb, [-np.inf, -np.inf, -4.0, -np.inf]))
+    assert (np.allclose(params.ub, [np.inf, np.inf, 5.0, np.inf]))
 
+    assert(len(params) == 4.0)
     params.set_parameters(['alpha', 'beta', 'delta'])
-    assert (np.allclose(params.values, [0, 5, 7]))
-    assert(len(params) == 3)
+    assert (np.allclose(params.values, [0.0, 5.0, 7.0]))
+    assert ([p for p in params] == ['alpha', 'beta', 'delta'])
+    assert(len(params) == 3.0)
 
+    for i, p in params.items():
+        p.value = 1.0
+
+    assert (np.allclose(params.values, [1.0, 1.0, 1.0]))
 
 def test_transformation_parser():
     parameter_names = ['gamma', 'alpha', 'beta', 'delta']
@@ -92,5 +82,47 @@ def test_models():
 
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
     assert(Model(tWLC, tWLC_jac).verify_jacobian(independent, parameters))
-
     assert(np.allclose(WLC(invWLC(3, 5, 5, 5), 5, 5, 5), 3))
+
+
+def test_integration_test_fitting():
+    def linear(x, a, b):
+        f = a * x + b
+        return f
+
+    def linear_jac(x, a, b):
+        jacobian = np.vstack((x, np.ones(len(x))))
+        return jacobian
+
+    def linear_jac_wrong(x, a, b):
+        jacobian = np.vstack((np.ones(len(x)), x))
+        return jacobian
+
+    assert Model(linear, linear_jac).has_jacobian
+    assert not Model(linear).has_jacobian
+
+    with pytest.raises(RuntimeError):
+        model = Model(linear, linear_jac_wrong)
+        model.verify_jacobian([1, 2, 3], [1, 1])
+
+    model = Model(linear, linear_jac)
+    fit = FitObject(model)
+    x = np.arange(3)
+    for i in np.arange(3):
+        y = 4.0*x*i + 5.0
+        fit.load_data(x, y, a=f"slope_{i}")
+
+    y = 4.0*x + 10.0
+    fit.load_data(x, y, a="slope_1", b="b_2")
+    fit.fit()
+
+    assert(len(fit.parameters.values) == 5)
+    assert(len(fit.parameters) == 5)
+    assert(fit.n_residuals == 12)
+    assert(fit.n_parameters == 5)
+
+    assert(np.isclose(fit.parameters["slope_0"].value, 0))
+    assert(np.isclose(fit.parameters["slope_1"].value, 4))
+    assert(np.isclose(fit.parameters["slope_2"].value, 8))
+    assert(np.isclose(fit.parameters["b"].value, 5))
+    assert(np.isclose(fit.parameters["b_2"].value, 10))
