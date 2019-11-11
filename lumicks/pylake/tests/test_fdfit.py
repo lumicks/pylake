@@ -84,6 +84,9 @@ def test_models():
     assert(Model(tWLC, tWLC_jac).verify_jacobian(independent, parameters))
     assert(np.allclose(WLC(invWLC(3, 5, 5, 5), 5, 5, 5), 3))
 
+    parameters = [1.0, 1.0, 1.0, 1.0, .1, 1.0, .5, 4.11]
+    tWLC(invtWLC(np.arange(0.0001, .005, .001), *parameters), *parameters)
+
 
 def test_integration_test_fitting():
     def linear(x, a, b):

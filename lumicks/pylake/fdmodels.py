@@ -1,6 +1,37 @@
 from lumicks.pylake.fdfit import Model
 import numpy as np
 import inspect
+import scipy.optimize as optim
+
+
+def force_model(model_type):
+    """Generate a force model.
+
+    Parameters
+    ----------
+    model_type : str
+        Specifies which model to return. Valid options are:
+        - WLC
+            Odijk's Worm-Like Chain model
+        - tWLC
+            Twistable Worm-Like Chain model
+        - FJC
+            Freely Jointed Chain model
+        - invWLC
+            Inverted Worm-Like Chain model
+    """
+    if model_type == "WLC":
+        return Model(WLC, WLC_jac)
+    elif model_type == "tWLC":
+        return Model(tWLC, tWLC_jac)
+    elif model_type == "FJC":
+        return Model(FJC, FJC_jac)
+    elif model_type == "invWLC":
+        return Model(invWLC, invWLC_jac)
+    elif model_type == "invtWLC":
+        return Model(invtWLC)
+    else:
+        raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC.")
 
 
 def WLC(F, Lp, Lc, St, kT = 4.11):
@@ -95,7 +126,7 @@ def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
                       -0.5 * x1 + x11 * x3 + 1.0,
                       -C * C * F * Lc * x12,
                       Lc * (F * x11 - F * x12 * x4),
-                      x15 * x13 * x8 ** 1.0,
+                      x15 * x13 * x8,
                       x15 * x13 * x14 * x7 * x9,
                       g1 * x15 * x13 * x14 * x9 * x6,
                       -x2 / kT))
@@ -180,19 +211,23 @@ def invWLC(d, Lp, Lc, St, kT = 4.11):
     x10 = x1 * x13   # Lc ** 6
     x3 = x10 * x10   # Lc ** 12
     x2 = 1.0 / (Lp * x1)
-    x4 = Lp ** 5 * St ** 5 * kT
+    lp2 = Lp * Lp
+    lp3 = Lp * lp2
+    lp4 = lp2 * lp2
+    x4 = Lp * lp4 * St ** 5 * kT
     x5 = 16.0 * x4
     x6 = 48.0 * x4
     x8 = d * d
     x7 = x8 * d
     x9 = np.sqrt(-Lc*x10*x13 * d * x6 + x10*x13 * x6 * x8 - x10 * x16 * x5 * x7 +
-                 27.0 * Lp ** 4 * St ** 4 * kT ** 2 * x3 + x3 * x5)
-    x11 = Lp * Lp * Lp * St * St * St
+                 27.0 * lp4 * St * St * St * St * kT * kT * x3 + x3 * x5)
+    x11 = lp3 * St * St * St
     x12 = 8.0 * x11
     x14 = 24.0 * x11
-    x15 = Lp * Lp * St * St
-    x17 = -Lc ** 5 * d * x14 + 27.0 * kT * x10 * x15 + x10 * x12 - x12 * x16 * x7 + x13 * x14 * x8
+    x15 = lp2 * St * St
+    x17 = -Lc * x13 * d * x14 + 27.0 * kT * x10 * x15 + x10 * x12 - x12 * x16 * x7 + x13 * x14 * x8
     x18 = 16.0 * x15
+
     return -(1.0/24.0) * x2 * (x17 + 3.0 * np.sqrt(3.0) * x9) ** (-1.0/3.0) * \
             (32.0 * d * x15 * x16 - x1 * x18 * x8 - x13 * x18) + \
             (1.0/6.0) * x2 * (x17 + 3.0 * np.sqrt(3.0) * x9) ** (1.0/3.0) + \
@@ -317,6 +352,7 @@ def invWLC_jac(d, Lp, Lc, St, kT = 4.11):
     x114 = 54.0 * x100 * x15 * x39 - x101 * x113 * x84 - x112 * x25 * x85 + x112 * x26 + x113 * x25 * x86
     x115 = 9.0 * x48
     x116 = kT * x26 * x29 + x110 * x34 + 8.0 * x18 - x22 * x54 - x32 * x50
+
     return [-x11 * x12 * x8 - (1.0/6.0) * x57 * x58 + x58 * x67 * x72 -
             x69 * (-x59 * x60 - x60 * x64 + x61 * x62) +
             x9 * (x2 - x5) + x90 * (x74 + x76 - x78 - x79 + x80 + x87 * x89) -
@@ -330,3 +366,55 @@ def invWLC_jac(d, Lp, Lc, St, kT = 4.11):
             x92 * (-x105 - x107 + x108 + x109 - x111 - x114 * x91),
             x90 * (x115 + x116 * x89) - x92 * (-x115 - x116 * x91)]
 
+
+def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    """
+    Inverted Twistable Worm-like Chain model
+
+    References:
+       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
+          twist under tension, Nature Physics 7, 731-736 (2011).
+
+    Parameters
+    ----------
+    d : array_like
+        distance [um]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    St : float
+        stretching modulus [pN]
+    C : float
+        twist rigidity [pN nm^2]
+    g0 : float
+        twist stretch coupling [pN Nm]
+    g1 : float
+        twist stretch coupling [nm]
+    Fc : float
+        critical force for twist stretch coupling [pN]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11) [pN nm]
+    """
+    def jac(F):
+        x0 = 1.0 / F
+        x1 = F > Fc
+        x2 = F <= Fc
+        x3 = g0 + g1 * (F * x1 + Fc * x2)
+        x4 = x3 * x3
+        x5 = 1.0 / (C * St - x4)
+
+        # The derivative terms were omitted since they are incompatible with a smooth optimization algorithm.
+        # Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * (F * Derivative(x1, F) + Fc * Derivative(x2, F) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
+        return np.diag(Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp)))
+
+    def fn(f_trial):
+        res = tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT) - d
+        return res
+
+    f_min = 0
+    f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
+    result = optim.least_squares(fn, .5*(f_max+f_min)*np.ones(d.shape), jac=jac,
+                                 bounds=(f_min, f_max), method='trf', ftol=1e-09, xtol=1e-09, gtol=1e-10)
+
+    return result.x
