@@ -1,7 +1,9 @@
+from lumicks.pylake.fdfit import Model
 import numpy as np
+import inspect
 
 
-def WLC(F, Lp, Lc, S, kT = 4.11):
+def WLC(F, Lp, Lc, St, kT = 4.11):
     """
     Odijk's Worm-like Chain model
 
@@ -19,15 +21,23 @@ def WLC(F, Lp, Lc, S, kT = 4.11):
         persistence length [nm]
     Lc : float
         contour length [um]
-    S : float
+    St : float
         stretching modulus [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    return Lc * (1.0 - 1.0/2.0*np.sqrt(kT/(F*Lp)) + F/S)
+    return Lc * (1.0 - 1.0/2.0*np.sqrt(kT/(F*Lp)) + F/St)
 
 
-def tWLC(F, Lp, Lc, S, C, g0, g1, Fc, kT=4.11):
+def WLC_jac(F, Lp, Lc, St, kT=4.11):
+    sqrt_term = np.sqrt(kT / (F * Lp))
+    return np.vstack((0.25 * Lc * sqrt_term / Lp,
+                     F / St - 0.5 * sqrt_term + 1.0,
+                     -F * Lc / (St * St),
+                     -0.25 * Lc * sqrt_term / kT))
+
+
+def tWLC(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """
     Twistable Worm-like Chain model
 
@@ -43,7 +53,7 @@ def tWLC(F, Lp, Lc, S, C, g0, g1, Fc, kT=4.11):
         persistence length [nm]
     Lc : float
         contour length [um]
-    S : float
+    St : float
         stretching modulus [pN]
     C : float
         twist rigidity [pN nm^2]
@@ -58,12 +68,47 @@ def tWLC(F, Lp, Lc, S, C, g0, g1, Fc, kT=4.11):
     """
     g = np.zeros(np.size(F))
     g[F < Fc] = g0 + g1 * Fc
-    g[F >= Fc] = g0 + g1 * F(F >= Fc)
+    g[F >= Fc] = g0 + g1 * F[F >= Fc]
 
-    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (F * Lp)) + (C / (-g ** 2.0 + S * C)) * F)
+    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (F * Lp)) + (C / (-g ** 2.0 + St * C)) * F)
 
 
-def FJC(F, Lp, Lc, S, kT=4.11):
+def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    x0 = 1.0 / Lp
+    x1 = np.sqrt(kT * x0 / F)
+    x2 = 0.25 * Lc * x1
+    x3 = C * F
+    x4 = C * St
+    x5 = F > Fc
+    x6 = F <= Fc
+    x7 = F * x5 + Fc * x6
+    x8 = g0 + g1 * x7
+    x9 = x8 ** 2.0
+    x10 = x4 - x9
+    x11 = 1.0 / x10
+    x12 = x10 ** (-2)
+    x13 = 2.0 * Lc * x3
+    x14 = 1.0 / x8
+    x15 = x11 * x11
+
+    return np.vstack((x0 * x2,
+                      -0.5 * x1 + x11 * x3 + 1.0,
+                      -C * C * F * Lc * x12,
+                      Lc * (F * x11 - F * x12 * x4),
+                      x15 * x13 * x8 ** 1.0,
+                      x15 * x13 * x14 * x7 * x9,
+                      g1 * x15 * x13 * x14 * x9 * x6,
+                      -x2 / kT))
+
+    # Not continuous derivatives were removed from the 8th parameter derivative:
+    # Original derivative was: g1 * x11 ** 2 * x13 * x14 * x9 * (F * Derivative(x5, Fc) + Fc * Derivative(x6, Fc) + x6)
+
+
+def coth(x):
+    return np.cosh(x)/np.sinh(x)
+
+
+def FJC(F, Lp, Lc, St, kT=4.11):
     """
     Freely-Jointed Chain
 
@@ -82,15 +127,30 @@ def FJC(F, Lp, Lc, S, kT=4.11):
         persistence length [nm]
     Lc : float
         contour length [um]
-    S : float
+    St : float
         elastic modulus [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    return Lc * (np.coth(2.0*F * Lp / kT) - kT / (2.0 * F * Lp)) * (1.0 + F/S)
+    return Lc * (coth(2.0*F * Lp / kT) - kT / (2.0 * F * Lp)) * (1.0 + F/St)
 
 
-def invWLC(d, Lp, Lc, S, kT = 4.11):
+def FJC_jac(F, Lp, Lc, St, kT=4.11):
+    x0 = 0.5 / F
+    x1 = 2.0 * F / kT
+    x2 = Lp * x1
+    x3 = np.sinh(x2) ** (-2)
+    x4 = F / St + 1.0
+    x5 = Lc * x4
+    x6 = x0 / Lp
+    x7 = -kT * x6 + coth(x2)
+    return np.vstack((x5 * (-x1 * x3 + kT * x0 / (Lp * Lp)),
+                      x4 * x7,
+                      -F * Lc * x7 / (St*St),
+                      x5 * (2.0 * F * Lp * x3 / (kT*kT) - x6)))
+
+
+def invWLC(d, Lp, Lc, St, kT = 4.11):
     """
     Inverted Odijk's Worm-like Chain model
 
@@ -108,35 +168,165 @@ def invWLC(d, Lp, Lc, S, kT = 4.11):
         persistence length [nm]
     Lc : float
         contour length [um]
-    S : float
+    St : float
         stretching modulus [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    return ((2.0 * (Lp * Lc * S * d - Lp * S * Lc ** 2.0)) / (3.0 * Lp * Lc ** 2.0) -
-             (-16.0 * Lp ** 2.0 * S ** 2.0 * (d * d) * Lc ** 2.0 +
-            32.0 * Lp ** 2.0 * S ** 2.0 * d * Lc ** 3.0 - 16.0 * Lp ** 2.0 * S ** 2.0 * Lc ** 4.0) /
-            (24.0 * Lp * Lc ** 2.0 * (-8.0 * Lp ** 3.0 * S ** 3.0 * (d * d * d) * Lc ** 3.0 +
-            24.0 * Lp ** 3.0 * S ** 3.0 * (d * d) * Lc ** 4.0 -
-            24.0 * Lp ** 3.0 * S ** 3.0 * d * Lc ** 5.0 +
-            27.0 * kT * Lp ** 2.0 * S ** 2.0 * Lc ** 6.0 + 8.0 * Lp ** 3.0 * S ** 3.0 * Lc ** 6.0 +
-            3.0 * np.sqrt(3.0) *
-            np.sqrt(-16.0 * kT * Lp ** 5.0 * S ** 5.0 * (d * d * d) * Lc ** 9.0 +
-            48.0 * kT * Lp ** 5. * S ** 5. * (d * d) * Lc ** 10.0 -
-            48.0 * kT * Lp ** 5. * S ** 5. * d * Lc ** 11.0 +
-            27.0 * kT ** 2. * Lp ** 4. * S ** 4.0 * Lc ** 12.0 +
-            16.0 * kT * Lp ** 5. * S ** 5. * Lc ** 12)) ** (1.0 / 3.0)) +
-            (1.0 / (6. * Lp * Lc * Lc)) *
-            (-8.0 * Lp ** 3. * S ** 3. * (d * d * d) * Lc * Lc * Lc +
-            24.0 * Lp ** 3. * S ** 3. * (d * d) * Lc * Lc * Lc * Lc -
-            24.0 * Lp ** 3. * S ** 3. * d * Lc * Lc * Lc * Lc * Lc +
-            27.0 * kT * Lp ** 2. * S ** 2.0 * Lc * Lc * Lc * Lc * Lc * Lc +
-            8.0 * Lp ** 3. * S ** 3. * Lc * Lc * Lc * Lc * Lc * Lc +
-            3.0 * np.sqrt(3) *
-            np.sqrt(-16. * kT * Lp ** 5. * S ** 5. * (d * d * d) * Lc ** 9.0 +
-            48.0 * kT * Lp ** 5. * S ** 5. * (d * d) * Lc ** 10.0 -
-            48.0 * kT * Lp ** 5. * S ** 5. * d * Lc ** 11.0 +
-            27.0 * kT ** 2. * Lp ** 4. * S ** 4. * Lc ** 12.0 +
-            16.0 * kT * Lp ** 5. * S ** 5. * Lc ** 12.0)) ** (1. / 3.0)
-            )
+    x0 = 2.0 * Lp * St
+    x1 = Lc * Lc
+    x16 = x1 * Lc    # Lc ** 3
+    x13 = Lc * x16   # Lc ** 4
+    x10 = x1 * x13   # Lc ** 6
+    x3 = x10 * x10   # Lc ** 12
+    x2 = 1.0 / (Lp * x1)
+    x4 = Lp ** 5 * St ** 5 * kT
+    x5 = 16.0 * x4
+    x6 = 48.0 * x4
+    x8 = d * d
+    x7 = x8 * d
+    x9 = np.sqrt(-Lc*x10*x13 * d * x6 + x10*x13 * x6 * x8 - x10 * x16 * x5 * x7 +
+                 27.0 * Lp ** 4 * St ** 4 * kT ** 2 * x3 + x3 * x5)
+    x11 = Lp * Lp * Lp * St * St * St
+    x12 = 8.0 * x11
+    x14 = 24.0 * x11
+    x15 = Lp * Lp * St * St
+    x17 = -Lc ** 5 * d * x14 + 27.0 * kT * x10 * x15 + x10 * x12 - x12 * x16 * x7 + x13 * x14 * x8
+    x18 = 16.0 * x15
+    return -(1.0/24.0) * x2 * (x17 + 3.0 * np.sqrt(3.0) * x9) ** (-1.0/3.0) * \
+            (32.0 * d * x15 * x16 - x1 * x18 * x8 - x13 * x18) + \
+            (1.0/6.0) * x2 * (x17 + 3.0 * np.sqrt(3.0) * x9) ** (1.0/3.0) + \
+            (1.0/3.0) * x2 * (Lc * d * x0 - x0 * x1)
+
+
+def invWLC_jac(d, Lp, Lc, St, kT = 4.11):
+    x0 = Lc * St
+    x1 = 2.0 * d
+    x2 = x0 * x1
+    x3 = Lc * Lc
+    x49 = Lc * x3  # Lc^3
+    x44 = x3 * x3  # Lc^4
+    x52 = x3 * x49   # Lc^5
+    x41 = x49 * x49  # Lc^6
+    x31 = x41 * x49  # Lc^9
+    x33 = Lc * x31   # Lc^10
+    x20 = Lc * x33   # Lc^11
+    x15 = x41 * x41  # Lc^12
+    x4 = 2.0 * x3
+    x5 = St * x4
+    x6 = 1.0 / Lp
+    x7 = 1.0 / x3
+    x8 = (1.0/3.0) * x7
+    x9 = x6 * x8
+    x10 = Lp * Lp
+    x38 = Lp * x10   # Lp^3
+    x28 = x10 * x10  # Lp^4
+    x14 = Lp * x28   # Lp^5
+    x11 = 1.0 / x10
+    x12 = Lp * x2 - Lp * x5
+    x13 = np.sqrt(3)
+    x46 = St * St
+    x39 = St * x46   # St ** 3
+    x25 = x46 * x46  # St ** 4
+    x16 = x46 * x39  # St ** 5
+    x17 = x15 * x16
+    x18 = x14 * x17
+    x19 = 16.0 * kT
+    x21 = x14 * x16
+    x22 = x20 * x21
+    x23 = kT * x22
+    x24 = kT * kT
+    x26 = x15 * x25
+    x27 = x24 * x26
+    x29 = 27.0 * x28
+    x35 = d * d
+    x30 = d * x35  # d^3
+    x32 = x21 * x31
+    x34 = x21 * x33
+    x36 = kT * x35
+    x37 = np.sqrt(-48.0 * d * x23 + x18 * x19 - x19 * x30 * x32 + x27 * x29 + 48.0 * x34 * x36)
+    x40 = x38 * x39
+    x42 = 8.0 * x41
+    x43 = x35 * x40
+    x45 = 24.0 * x44
+    x47 = x10 * x46
+    x48 = x41 * x47
+    x50 = 8.0 * x30
+    x51 = x49 * x50
+    x53 = x40 * x52
+    x54 = 24.0 * d
+    x55 = 27.0 * kT * x48 + x40 * x42 - x40 * x51 + x43 * x45 - x53 * x54
+    x56 = 3.0 * x13 * x37 + x55
+    x57 = x56 ** (1.0/3.0)
+    x58 = x11 * x7
+    x59 = x44 * x46
+    x60 = 32.0 * Lp
+    x61 = Lp * x46
+    x62 = 64.0 * d * x49
+    x63 = x3 * x35
+    x64 = x46 * x63
+    x65 = 3.0 * np.sqrt(3.0) * x37 + x55
+    x66 = x65 ** (-(1.0/3.0))
+    x67 = (1.0/24.0) * x66
+    x68 = x6 * x7
+    x69 = x67 * x68
+    x70 = 16.0 * x10
+    x71 = x47 * x49
+    x72 = 32.0 * d * x71 - x59 * x70 - x64 * x70
+    x73 = 18.0 * kT * x41
+    x74 = x61 * x73
+    x75 = x10 * x39
+    x76 = x42 * x75
+    x77 = x52 * x54
+    x78 = x75 * x77
+    x79 = x51 * x75
+    x80 = x35 * x45 * x75
+    x81 = 40.0 * kT
+    x82 = x28 * x81
+    x83 = 120.0 * x16 * x28
+    x84 = d * kT
+    x85 = x30 * x31
+    x86 = x33 * x36
+    x87 = -x16 * x82 * x85 + x17 * x82 - x20 * x83 * x84 + 54.0 * x27 * x38 + x83 * x86
+    x88 = 1.0 / x37
+    x89 = 1.0 * x13 * x88
+    x90 = (1.0/6.0) * x56 ** (-(2.0/3.0)) * x68
+    x91 = np.sqrt(3) * x88
+    x92 = (1.0/24.0) * x65 ** (-(4.0/3.0)) * x68 * x72
+    x93 = Lp * x1
+    x94 = x6 / x49
+    x95 = 16.0 * x53
+    x96 = 40.0 * d * x40 * x44
+    x97 = 54.0 * kT * x47 * x52
+    x98 = x3 * x40 * x50
+    x99 = 32.0 * x43 * x49
+    x100 = x24 * x28
+    x101 = x20 * x25
+    x102 = -72.0 * Lc ** 8 * kT * x21 * x30 + 162.0 * x100 * x101 + 96.0 * x23 + 240.0 * x32 * x36 - 264.0 * x34 * x84
+    x103 = St * x10
+    x104 = 32.0 * x103
+    x105 = x103 * x73
+    x106 = x38 * x46
+    x107 = x106 * x42
+    x108 = x106 * x77
+    x109 = x106 * x51
+    x110 = 24.0 * x35
+    x111 = x110 * x38 * x59
+    x112 = x14 * x81
+    x113 = 120.0 * x14
+    x114 = 54.0 * x100 * x15 * x39 - x101 * x113 * x84 - x112 * x25 * x85 + x112 * x26 + x113 * x25 * x86
+    x115 = 9.0 * x48
+    x116 = kT * x26 * x29 + x110 * x34 + 8.0 * x18 - x22 * x54 - x32 * x50
+    return [-x11 * x12 * x8 - (1.0/6.0) * x57 * x58 + x58 * x67 * x72 -
+            x69 * (-x59 * x60 - x60 * x64 + x61 * x62) +
+            x9 * (x2 - x5) + x90 * (x74 + x76 - x78 - x79 + x80 + x87 * x89) -
+            x92 * (-x74 - x76 + x78 + x79 - x80 - x87 * x91),
+            -(2.0/3.0) * x12 * x94 - (1.0/3.0) * x57 * x94 + (1.0/12.0) * x66 * x72 * x94 -
+            x69 * (-32.0 * Lc * x35 * x47 + 96.0 * d * x3 * x47 - 64.0 * x71) +
+            x9 * (-4.0 * Lp * x0 + St * x93) + x90 * (x102 * x89 + x95 - x96 + x97 - x98 + x99) -
+            x92 * (-x102 * x91 - x95 + x96 - x97 + x98 - x99),
+            -x69 * (x103 * x62 - x104 * x44 - x104 * x63) + x9 * (Lc * x93 - Lp * x4) +
+            x90 * (x105 + x107 - x108 - x109 + x111 + x114 * x89) -
+            x92 * (-x105 - x107 + x108 + x109 - x111 - x114 * x91),
+            x90 * (x115 + x116 * x89) - x92 * (-x115 - x116 * x91)]
 

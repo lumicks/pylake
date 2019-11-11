@@ -1,4 +1,5 @@
-from lumicks.pylake.fdfit import FitObject, Parameters, Condition, Data
+from lumicks.pylake.fdfit import FitObject, Parameters, Condition, Data, Model
+from lumicks.pylake.fdmodels import *
 from collections import OrderedDict
 import pytest
 import numpy as np
@@ -23,7 +24,7 @@ def tests_fit_object():
 def test_link_generation():
     #data_sets = Data()
 
-    FitObject.build_conditions()
+    #FitObject.build_conditions()
     def _build_conditions(data_sets):
         pass;
 
@@ -45,13 +46,12 @@ def test_parameters():
     params['gamma'].lb = -4
     params['gamma'].ub = 5
     assert (np.allclose(params.values, [0, 5, 6, 7]))
+    assert (np.allclose(params.lb, [-np.inf, -np.inf, -4, -np.inf]))
+    assert (np.allclose(params.ub, [np.inf, np.inf, 5, np.inf]))
     assert(len(params) == 4)
 
     params.set_parameters(['alpha', 'beta', 'delta'])
     assert (np.allclose(params.values, [0, 5, 7]))
-
-    assert (np.allclose(params.lb, [0, 0, -4, 0]))
-    assert (np.allclose(params.lb, [0, 0, 5, 0]))
     assert(len(params) == 3)
 
 
@@ -82,3 +82,15 @@ def test_condition_struct():
     assert (list(c.transformed) == ['gamma_specific', 'alpha', 'beta_specific', 5, 'zeta'])
     assert (np.allclose(c.get_local_parameters(parameter_vector), [10, 4, 12, 5, 14]))
 
+
+def test_models():
+    independent = np.arange(.2, 1, .01)
+    parameters = [5, 5, 5, 4.11]
+    assert(Model(WLC, WLC_jac).verify_jacobian(independent, parameters))
+    assert(Model(invWLC, invWLC_jac).verify_jacobian(independent, parameters))
+    assert(Model(FJC, FJC_jac).verify_jacobian(independent, parameters))
+
+    parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
+    assert(Model(tWLC, tWLC_jac).verify_jacobian(independent, parameters))
+
+    assert(np.allclose(WLC(invWLC(3, 5, 5, 5), 5, 5, 5), 3))

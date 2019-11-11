@@ -14,15 +14,49 @@ class Model:
         if jacobian:
             self._jacobian = jacobian
 
+    @staticmethod
+    def _sanitize_input_types(data, parameter_vector):
+        data = np.array(data).astype(float)
+        parameter_vector = np.array(parameter_vector).astype(float)
+        return data, parameter_vector
+
     def __call__(self, data, parameter_vector):
+        data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
         return self.model_function(data, *parameter_vector)
 
     def jacobian(self, data, parameter_vector):
+        data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
         return self._jacobian(data, *parameter_vector)
 
     @property
     def has_jacobian(self):
         return hasattr(self, "_jacobian")
+
+    def numerical_jacobian(self, data, parameter_vector, dx=1e-6):
+        data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
+
+        reference_evaluation = self(data, parameter_vector)
+        finite_difference_jacobian = np.zeros((len(parameter_vector), len(data)))
+        for i in np.arange(len(parameter_vector)):
+            parameters = np.copy(parameter_vector)
+            parameters[i] = parameters[i] + dx
+            finite_difference_jacobian[i, :] = (self(data, parameters) - reference_evaluation) / dx
+
+        return finite_difference_jacobian
+
+    def verify_jacobian(self, data, parameters):
+        jacobian = self.jacobian(data, parameters)
+        numerical_jacobian = self.numerical_jacobian(data, parameters)
+
+        is_close = np.allclose(jacobian, numerical_jacobian)
+        if not is_close:
+            maxima = np.max(jacobian - numerical_jacobian, axis=1)
+            for i, v in enumerate(maxima):
+                print(f"Parameter {self._parameter_names[i]}({i}): {v}")
+
+            raise RuntimeError('Numerical Jacobian did not pass.')
+
+        return is_close
 
     @property
     def parameter_names(self):
@@ -34,7 +68,7 @@ class Model:
 
 
 class Parameter:
-    def __init__(self, value=1.0, lb=-np.inf, ub=np.inf):
+    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf):
         self.value = value
         self.lb = lb
         self.ub = ub
@@ -246,7 +280,6 @@ class FitObject:
 
     def _evaluate_model(self, parameter_values):
         self._check_rebuild()
-
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
         for condition, data_sets in zip(self._conditions, self._data_link):
@@ -261,9 +294,6 @@ class FitObject:
         return residual
 
     def _evaluate_jacobian(self, parameter_values):
-        if not self.model.has_jacobian:
-            raise RuntimeError("No jacobian supplied")
-
         self._check_rebuild()
         residual_idx = 0
         jacobian = np.zeros((self.n_residuals, self.n_parameters))
