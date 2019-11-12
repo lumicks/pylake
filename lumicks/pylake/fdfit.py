@@ -35,20 +35,31 @@ class Model:
     def numerical_jacobian(self, data, parameter_vector, dx=1e-6):
         data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
 
-        reference_evaluation = self(data, parameter_vector)
         finite_difference_jacobian = np.zeros((len(parameter_vector), len(data)))
         for i in np.arange(len(parameter_vector)):
             parameters = np.copy(parameter_vector)
             parameters[i] = parameters[i] + dx
-            finite_difference_jacobian[i, :] = (self(data, parameters) - reference_evaluation) / dx
+            up = self(data, parameters)
+            parameters[i] = parameters[i] - 2.0 * dx
+            down = self(data, parameters)
+            finite_difference_jacobian[i, :] = (up - down) / (2.0*dx)
 
         return finite_difference_jacobian
 
-    def verify_jacobian(self, data, parameters):
+    def verify_jacobian(self, data, parameters, plot=False, **kwargs):
         jacobian = self.jacobian(data, parameters)
         numerical_jacobian = self.numerical_jacobian(data, parameters)
 
-        is_close = np.allclose(jacobian, numerical_jacobian)
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.subplot(2, 1, 1)
+            plt.plot(np.transpose(jacobian))
+            plt.plot(np.transpose(numerical_jacobian), '--')
+            plt.legend(('Analytical', 'Numerical'))
+            plt.subplot(2, 1, 2)
+            plt.plot(np.transpose(jacobian - numerical_jacobian))
+
+        is_close = np.allclose(jacobian, numerical_jacobian, **kwargs)
         if not is_close:
             maxima = np.max(jacobian - numerical_jacobian, axis=1)
             for i, v in enumerate(maxima):
