@@ -12,13 +12,17 @@ def force_model(model_type):
     model_type : str
         Specifies which model to return. Valid options are:
         - WLC
-            Odijk's Worm-Like Chain model
+            Odijk's Worm-Like Chain model with F as independent parameter
         - tWLC
-            Twistable Worm-Like Chain model
+            Twistable Worm-Like Chain model with F as independent parameter
         - FJC
-            Freely Jointed Chain model
+            Freely Jointed Chain model with F as independent parameter
         - invWLC
-            Inverted Worm-Like Chain model
+            Inverted Worm-Like Chain model with d as independent parameter
+        - invtWLC
+            Inverted Twistable Worm-Like Chain model with d as independent parameter
+        - invFJC
+            Inverted Freely Joint Chain model with d as independent parameter
     """
     if model_type == "WLC":
         return Model(WLC, WLC_jac)
@@ -29,9 +33,70 @@ def force_model(model_type):
     elif model_type == "invWLC":
         return Model(invWLC, invWLC_jac)
     elif model_type == "invtWLC":
-        return Model(invtWLC)
+        return Model(invtWLC, invtWLC_jac)
+    elif model_type == "invFJC":
+        return Model(invFJC, invFJC_jac)
     else:
-        raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC.")
+        raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, invFJC.")
+
+
+def invert_function(d, initial, f_min, f_max, model_function, derivative_function):
+    """This function inverts a function using a least squares optimizer.
+
+    Parameters
+    ----------
+    d : array_like
+        old independent parameter
+    initial : array_like
+        initial guess for the optimization procedure
+    f_min : float
+        minimum bound for inverted parameter
+    f_max : float
+        maximum bound for inverted parameter
+    model_function : callable
+        non-inverted model function
+    derivative_function : callable
+        model derivative with respect to the independent variable (returns an element per data point)
+    """
+    result = optim.least_squares(lambda f_trial: model_function(f_trial) - d, initial,
+                                 jac=lambda f_trial: np.diag(derivative_function(f_trial)),
+                                 bounds=(f_min, f_max), method='trf', ftol=1e-09, xtol=1e-09, gtol=1e-10)
+
+    return result.x
+
+
+def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_function):
+    """This function computes the jacobian of the model when the model has been inverted with respect to the independent
+    variable.
+
+    The Jacobian of the function with one variable inverted is related to the original Jacobian
+    The transformation Jacobian is structured as follows:
+
+    [  dy/da   dy/db   dy/dc  ]
+    [   0        1       0    ]
+    [   0        0       1    ]
+
+    The inverse of this Jacobian provides us with the actual parameters that we are interested in. It is given by:
+    [ (dy/da)^-1  -(dy/db)(dy/da)^-1    -(dy/dc)(dy/da)^-1 ]
+    [    0                1                     0          ]
+    [    0                0                     1          ]
+
+    Parameters
+    ----------
+    d : values for the old independent variable
+    inverted_model_function : callable
+        inverted model function (model with the dependent and independent variable exchanged)
+    jacobian_function : callable
+        derivatives of the non-inverted model
+    derivative_function : callable
+        derivative of the non-inverted model w.r.t. the independent variable
+    """
+    F = inverted_model_function(d)
+    jacobian = jacobian_function(F)
+    inverted_dyda = np.tile(1.0 / derivative_function(F), (jacobian.shape[0], 1))
+    jacobian = -jacobian * inverted_dyda
+
+    return jacobian
 
 
 def WLC(F, Lp, Lc, St, kT = 4.11):
@@ -163,7 +228,7 @@ def FJC(F, Lp, Lc, St, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    return Lc * (coth(2.0*F * Lp / kT) - kT / (2.0 * F * Lp)) * (1.0 + F/St)
+    return Lc * (coth(2.0 * F * Lp / kT) - kT / (2.0 * F * Lp)) * (1.0 + F/St)
 
 
 def FJC_jac(F, Lp, Lc, St, kT=4.11):
@@ -367,6 +432,20 @@ def invWLC_jac(d, Lp, Lc, St, kT = 4.11):
             x90 * (x115 + x116 * x89) - x92 * (-x115 - x116 * x91)]
 
 
+def tWLC_derivative(F, Lp, Lc, St, C, g0, g1, Fc, kT):
+    """Derivative of the tWLC model w.r.t. the independent variable"""
+    x0 = 1.0 / F
+    x1 = F > Fc
+    x2 = F <= Fc
+    x3 = g0 + g1 * (F * x1 + Fc * x2)
+    x4 = x3 * x3
+    x5 = 1.0 / (C * St - x4)
+
+    # The derivative terms were omitted since they are incompatible with a smooth optimization algorithm.
+    # Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * (F * Derivative(x1, F) + Fc * Derivative(x2, F) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
+    return Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp))
+
+
 def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """
     Inverted Twistable Worm-like Chain model
@@ -396,25 +475,67 @@ def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11) [pN nm]
     """
-    def jac(F):
-        x0 = 1.0 / F
-        x1 = F > Fc
-        x2 = F <= Fc
-        x3 = g0 + g1 * (F * x1 + Fc * x2)
-        x4 = x3 * x3
-        x5 = 1.0 / (C * St - x4)
-
-        # The derivative terms were omitted since they are incompatible with a smooth optimization algorithm.
-        # Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * (F * Derivative(x1, F) + Fc * Derivative(x2, F) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
-        return np.diag(Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp)))
-
-    def fn(f_trial):
-        res = tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT) - d
-        return res
-
     f_min = 0
     f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
-    result = optim.least_squares(fn, .5*(f_max+f_min)*np.ones(d.shape), jac=jac,
-                                 bounds=(f_min, f_max), method='trf', ftol=1e-09, xtol=1e-09, gtol=1e-10)
 
-    return result.x
+    return invert_function(d, .5 * (f_min+f_max) * np.ones(d.shape), f_min, f_max,
+                           lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                           lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
+
+
+def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return invert_jacobian(d,
+                           lambda f_trial: invtWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                           lambda f_trial: tWLC_jac(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                           lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
+
+
+def FJC_derivative(F, Lp, Lc, St, kT=4.11):
+    """Derivative of the FJC model w.r.t. the independent variable"""
+    x0 = 1.0/St
+    x1 = 2.0*Lp/kT
+    x2 = F*x1
+    x3 = 0.5*kT/Lp
+    sh = np.sinh(x2)
+
+    return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1/np.sinh(x2)**2 + x3/F**2)
+
+
+def invFJC(d, Lp, Lc, St, kT=4.11):
+    """
+    Inverted Freely-Jointed Chain
+
+    References:
+       1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
+          Elastic Response of Individual Double-Stranded and Single-Stranded
+          DNA Molecules, Science 271, 795-799 (1996).
+       2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+          DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    d : array_like
+        distance [um]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    St : float
+        elastic modulus [pN]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+    """
+    f_min = 0
+    f_max = np.inf  # Above this force the model loses its validity
+
+    return invert_function(d, np.ones(d.shape), f_min, f_max,
+                           lambda f_trial: FJC(f_trial, Lp, Lc, St, kT),
+                           lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
+
+
+def invFJC_jac(d, Lp, Lc, St, kT=4.11):
+    return invert_jacobian(d,
+                           lambda f_trial: invFJC(f_trial, Lp, Lc, St, kT),
+                           lambda f_trial: FJC_jac(f_trial, Lp, Lc, St, kT),
+                           lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
+
