@@ -153,6 +153,17 @@ class Recording:
             Where to put the final time point.
             'center' time point is put at start + stop / 2
             'left' time point is put at start
+
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            file = pylake.File("example.h5")
+            recording = pylake.Recording("example.tiff")
+            recording.downsample_channel(file.force1x)
         """
         return channel_slice.downsampled_over(self.timestamps, reduce, where)
 
@@ -179,8 +190,8 @@ class Recording:
             from lumicks import pylake
 
             file = pylake.File("example.h5")
-            images = pylake.Recording.from_file("example.tiff")
-            images.plot_correlated(file.force1x, frame=5)
+            recording = pylake.Recording("example.tiff")
+            recording.plot_correlated(file.force1x, frame=5)
         """
         import matplotlib.pyplot as plt
 
