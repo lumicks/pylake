@@ -96,3 +96,9 @@ def test_correlation():
     ch = recording[1:4].downsample_channel(cc)
     assert (np.allclose(ch.data, [np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2)), np.mean(np.arange(40, 48, 2))]))
     assert (np.allclose(ch.timestamps, [(20 + 28) / 2, (30 + 38) / 2, (40 + 48) / 2]))
+
+    assert (recording[0].raw.start == 10)
+    assert (recording[1].raw.start == 20)
+    assert (recording[1:3][0].raw.start == 20)
+    assert (recording[1:3].raw[0].start == 20)
+    assert (recording[1:3].raw[1].start == 30)

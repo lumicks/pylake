@@ -154,15 +154,7 @@ class Recording:
             'center' time point is put at start + stop / 2
             'left' time point is put at start
         """
-        t = np.zeros(self.num_frames)
-        d = np.zeros(self.num_frames)
-        for i, img_idx in enumerate(np.arange(self.start_idx, self.stop_idx)):
-            start, stop = (self.src.get_frame(img_idx).start, self.src.get_frame(img_idx).stop)
-            subset = channel_slice[start:stop]
-            t[i] = (start + stop) // 2 if where == 'center' else start
-            d[i] = reduce(subset.data)
-
-        return Slice(TimeSeries(d, t), channel_slice.labels)
+        return channel_slice.downsampled_over(self.timestamps, reduce, where)
 
     def plot_correlated(self, channel_slice, frame=0, reduce=np.mean):
         """Downsample channel on a frame by frame basis. The downsampling function (e.g. np.mean) is evaluated for the
@@ -251,3 +243,7 @@ class Recording:
     @property
     def stop(self):
         return self._get_frame(self.num_frames - 1).stop
+
+    @property
+    def timestamps(self):
+        return [(self._get_frame(idx).start, self._get_frame(idx).stop) for idx in range(self.num_frames)]
