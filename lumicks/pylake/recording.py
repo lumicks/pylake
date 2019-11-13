@@ -239,7 +239,10 @@ class Recording:
 
     @property
     def raw(self):
-        return [self._get_frame(idx) for idx in range(self.num_frames)]
+        if self.num_frames > 1:
+            return [self._get_frame(idx) for idx in range(self.num_frames)]
+        else:
+            return self._get_frame(0)
 
     @property
     def start(self):
