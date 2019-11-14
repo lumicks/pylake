@@ -8,9 +8,17 @@ from itertools import chain
 
 
 class Model:
-    def __init__(self, model_function, jacobian=None):
+    def __init__(self, model_function, jacobian=None, **kwargs):
         self.model_function = model_function
-        self._parameter_names = inspect.getfullargspec(model_function).args[1:]
+        parameter_names = inspect.getfullargspec(model_function).args[1:]
+        self._parameters = OrderedDict(zip(parameter_names, [None] * len(parameter_names)))
+
+        for key, value in kwargs.items():
+            if key in self._parameters:
+                self._parameters[key] = value
+            else:
+                raise KeyError(f"Model does not contain parameter {key}")
+
         if jacobian:
             self._jacobian = jacobian
 
@@ -23,6 +31,10 @@ class Model:
     def __call__(self, data, parameter_vector):
         data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
         return self.model_function(data, *parameter_vector)
+
+    def get_default(self, key):
+        from copy import deepcopy
+        return deepcopy(self._parameters[key])
 
     def jacobian(self, data, parameter_vector):
         data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
@@ -63,7 +75,7 @@ class Model:
         if not is_close:
             maxima = np.max(jacobian - numerical_jacobian, axis=1)
             for i, v in enumerate(maxima):
-                print(f"Parameter {self._parameter_names[i]}({i}): {v}")
+                print(f"Parameter {self.parameter_names[i]}({i}): {v}")
 
             raise RuntimeError('Numerical Jacobian did not pass.')
 
@@ -71,14 +83,19 @@ class Model:
 
     @property
     def parameter_names(self):
-        return np.copy(self._parameter_names)
+        return [x for x in self._parameters.keys()]
 
 
 class Parameter:
-    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf):
+    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None):
         self.value = value
         self.lb = lb
         self.ub = ub
+        self.vary = vary
+        if init:
+            self.init = init
+        else:
+            self.init = self.value
 
     def __repr__(self):
         return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lb: {self.lb}, ub: {self.ub})"
@@ -118,16 +135,18 @@ class Parameters:
 
         return return_str
 
-    def set_parameters(self, parameters):
-        """Rebuild the parameter vector. Note that this can potentially alter the parameter order if the strings are given
-        in a different order.
+    def set_parameters(self, parameters, defaults):
+        """Rebuild the parameter vector. Note that this can potentially alter the parameter order if the strings are
+        given in a different order.
 
         Parameters
         ----------
         parameters : list of str
             parameter names
+        defaults : Parameter or None
+            default parameter objects
         """
-        new_parameters = OrderedDict(zip(parameters, [Parameter() for x in range(len(parameters))]))
+        new_parameters = OrderedDict(zip(parameters, [Parameter() if x is None else x for x in defaults]))
         for key, value in self._src.items():
             if key in new_parameters:
                 new_parameters[key] = value
@@ -223,11 +242,15 @@ class FitObject:
         """This function generates the global parameter list from the parameters of the individual submodels.
         It also generates unique conditions from the data specification."""
         parameter_names = [name for data in self._data for name in data.parameter_names]
-        parameter_names = unique(parameter_names)
-        parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
+
+        unique_parameter_names = unique(parameter_names)
+        parameter_lookup = OrderedDict(zip(unique_parameter_names, np.arange(len(unique_parameter_names))))
+
+        defaults = [self.model.get_default(name) for data in self._data for name in data.source_parameter_names]
+        defaults = [defaults[parameter_names.index(l)] for l in unique_parameter_names]
 
         self._conditions, self._data_link = self._build_conditions(self._data, parameter_lookup)
-        self._parameters.set_parameters(parameter_names)
+        self._parameters.set_parameters(unique_parameter_names, defaults)
 
         self._built = True
 
@@ -331,8 +354,17 @@ class Data:
 
     @property
     def parameter_names(self):
+        """
+        Parameter names for free parameters after transformation
+        """
         return [x for x in self.transformations.values() if isinstance(x, str)]
 
+    @property
+    def source_parameter_names(self):
+        """
+        Parameter names for free parameters after transformation
+        """
+        return [x for x, y in self.transformations.items() if isinstance(y, str)]
 
 class Condition:
     def __init__(self, transformations, global_dictionary):

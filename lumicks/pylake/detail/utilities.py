@@ -23,6 +23,9 @@ def unique(input_list):
 
 
 def unique_idx(input_list):
+    """
+    Determine unique elements of a list and return indices which reconstruct the original list from the unique elements.
+    """
     unique_list = []
     [unique_list.append(x) for x in input_list if x not in unique_list]
     inverse_list = [unique_list.index(l) for l in input_list]

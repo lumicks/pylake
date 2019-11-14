@@ -1,4 +1,4 @@
-from lumicks.pylake.fdfit import FitObject, Parameters, Condition, Data, Model
+from lumicks.pylake.fdfit import FitObject, Parameter, Parameters, Condition, Data, Model
 from lumicks.pylake.fdmodels import *
 from collections import OrderedDict
 import pytest
@@ -16,13 +16,13 @@ def tests_fit_object():
 
 def test_parameters():
     params = Parameters()
-    params.set_parameters(['alpha', 'beta', 'gamma'])
+    params.set_parameters(['alpha', 'beta', 'gamma'], [None]*3)
     assert (params['beta'].value == 0.0)
 
     params['beta'].value = 5.0
     assert (np.allclose(params.values, [0.0, 5.0, 0.0]))
 
-    params.set_parameters(['alpha', 'beta', 'gamma', 'delta'])
+    params.set_parameters(['alpha', 'beta', 'gamma', 'delta'], [None]*4)
     assert (params['beta'].value == 5.0)
     assert (np.allclose(params.values, [0.0, 5.0, 0.0, 0.0]))
 
@@ -35,7 +35,7 @@ def test_parameters():
     assert (np.allclose(params.ub, [np.inf, np.inf, 5.0, np.inf]))
 
     assert(len(params) == 4.0)
-    params.set_parameters(['alpha', 'beta', 'delta'])
+    params.set_parameters(['alpha', 'beta', 'delta'], [None]*3)
     assert (np.allclose(params.values, [0.0, 5.0, 7.0]))
     assert ([p for p in params] == ['alpha', 'beta', 'delta'])
     assert(len(params) == 3.0)
@@ -44,6 +44,7 @@ def test_parameters():
         p.value = 1.0
 
     assert (np.allclose(params.values, [1.0, 1.0, 1.0]))
+
 
 def test_transformation_parser():
     parameter_names = ['gamma', 'alpha', 'beta', 'delta']
@@ -74,18 +75,25 @@ def test_condition_struct():
 
 
 def test_models():
-    independent = np.arange(.2, 1, .01)
+    independent = np.arange(0.001, .9, .01)
     parameters = [5, 5, 5, 4.11]
     assert(Model(WLC, WLC_jac).verify_jacobian(independent, parameters))
     assert(Model(invWLC, invWLC_jac).verify_jacobian(independent, parameters))
-    assert(Model(FJC, FJC_jac).verify_jacobian(independent, parameters))
+    assert(Model(FJC, FJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
+    assert(Model(invFJC, invFJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
 
+    # Check the tWLC and inverted tWLC model
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
     assert(Model(tWLC, tWLC_jac).verify_jacobian(independent, parameters))
-    assert(np.allclose(WLC(invWLC(3, 5, 5, 5), 5, 5, 5), 3))
+    assert (Model(invtWLC, invtWLC_jac).verify_jacobian(independent, parameters))
 
+    # Check whether the inverted models invert correctly
+    parameters = [5.0, 5.0, 5.0]
+    assert (np.allclose(WLC(invWLC(3, *parameters), *parameters), 3))
+    parameters = [5.0, 15.0, 1.0, 4.11]
+    assert (np.allclose(FJC(invFJC(independent, *parameters), *parameters), independent))
     parameters = [1.0, 1.0, 1.0, 1.0, .1, 1.0, .5, 4.11]
-    tWLC(invtWLC(np.arange(0.0001, .005, .001), *parameters), *parameters)
+    assert(np.allclose(tWLC(invtWLC(independent, *parameters), *parameters), independent))
 
 
 def test_integration_test_fitting():
@@ -129,3 +137,23 @@ def test_integration_test_fitting():
     assert(np.isclose(fit.parameters["slope_2"].value, 8))
     assert(np.isclose(fit.parameters["b"].value, 5))
     assert(np.isclose(fit.parameters["b_2"].value, 10))
+
+
+def test_model_defaults():
+    def g(data, mu, sig, a, b, c, d, e, f, q):
+        return (data - mu) * 2
+
+    M = Model(g, f=Parameter(5))
+    F = FitObject(M)
+    F.load_data([1, 2, 3], [2, 3, 4])
+    F.load_data([1, 2, 3], [2, 3, 4], f='f_new')
+    F._rebuild_structure()
+
+    assert (F.parameters["a"].value == Parameter().value)
+    assert (F.parameters["f_new"].value == 5)
+    assert (F.parameters["f"].value == 5)
+
+    # Check whether each parameter is actually unique
+    F.parameters["f_new"] = 6
+    assert (F.parameters["f_new"].value == 6)
+    assert (F.parameters["f"].value == 5)

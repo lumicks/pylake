@@ -1,4 +1,4 @@
-from lumicks.pylake.fdfit import Model
+from lumicks.pylake.fdfit import Model, Parameter
 import numpy as np
 import inspect
 import scipy.optimize as optim
@@ -12,30 +12,31 @@ def force_model(model_type):
     model_type : str
         Specifies which model to return. Valid options are:
         - WLC
-            Odijk's Worm-Like Chain model with F as independent parameter
+            Odijk's Extensible Worm-Like Chain model with F as independent parameter
         - tWLC
             Twistable Worm-Like Chain model with F as independent parameter
         - FJC
             Freely Jointed Chain model with F as independent parameter
         - invWLC
-            Inverted Worm-Like Chain model with d as independent parameter
+            Inverted Extensible Worm-Like Chain model with d as independent parameter
         - invtWLC
             Inverted Twistable Worm-Like Chain model with d as independent parameter
         - invFJC
             Inverted Freely Joint Chain model with d as independent parameter
     """
+    kT_default = Parameter(value=4.11, lb=0, ub=8, vary=False)
     if model_type == "WLC":
-        return Model(WLC, WLC_jac)
+        return Model(WLC, WLC_jac, kT=kT_default)
     elif model_type == "tWLC":
-        return Model(tWLC, tWLC_jac)
+        return Model(tWLC, tWLC_jac, kT=kT_default)
     elif model_type == "FJC":
-        return Model(FJC, FJC_jac)
+        return Model(FJC, FJC_jac, kT=kT_default)
     elif model_type == "invWLC":
-        return Model(invWLC, invWLC_jac)
+        return Model(invWLC, invWLC_jac, kT=kT_default)
     elif model_type == "invtWLC":
-        return Model(invtWLC, invtWLC_jac)
+        return Model(invtWLC, invtWLC_jac, kT=kT_default)
     elif model_type == "invFJC":
-        return Model(invFJC, invFJC_jac)
+        return Model(invFJC, invFJC_jac, kT=kT_default)
     else:
         raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, invFJC.")
 
@@ -101,7 +102,7 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
 
 def WLC(F, Lp, Lc, St, kT = 4.11):
     """
-    Odijk's Worm-like Chain model
+    Odijk's Extensible Worm-like Chain model
 
     References:
       1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
@@ -538,4 +539,3 @@ def invFJC_jac(d, Lp, Lc, St, kT=4.11):
                            lambda f_trial: invFJC(f_trial, Lp, Lc, St, kT),
                            lambda f_trial: FJC_jac(f_trial, Lp, Lc, St, kT),
                            lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
-
