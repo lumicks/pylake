@@ -162,6 +162,10 @@ class Parameters:
         return np.array([param.value for param in self._src.values()])
 
     @property
+    def fitted(self):
+        return np.array([param.vary for param in self._src.values()])
+
+    @property
     def lb(self):
         return np.array([param.lb for param in self._src.values()])
 
@@ -284,33 +288,66 @@ class FitObject:
         self._check_rebuild()
         return len(self._parameters)
 
+    def plot_data(self, idx=None):
+        import matplotlib.pyplot as plt
+
+        for data_idx in idx if idx else np.arange(len(self._data)):
+            data = self._data[data_idx]
+            plt.plot(data.x, data.y)
+
+    def plot_model(self, idx=None):
+        import matplotlib.pyplot as plt
+        def intersection(l1, l2):
+            return [value for value in l1 if value in l2]
+
+        if not idx:
+            idx = np.arange(len(self._data))
+
+        for condition, data_sets in zip(self._conditions, self._data_link):
+            p_local = condition.get_local_parameters(self.parameters.values)
+            [plt.plot(self._data[value].x, self.model(self._data[value].x, p_local)) for value in idx if value in self._data_link]
+
     def fit(self, **kwargs):
         parameter_vector = self.parameters.values
+        fitted = self.parameters.fitted
         lb = self.parameters.lb
         ub = self.parameters.ub
 
-        result = optim.least_squares(self._evaluate_model, parameter_vector,
-                                     jac=self._evaluate_jacobian if self.model.has_jacobian else "2-point",
-                                     bounds=(lb, ub), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-10, **kwargs)
+        def residual(parameters):
+            parameter_vector[fitted] = parameters
+            return self._calculate_residual(parameter_vector)
+
+        def jacobian(parameters):
+            parameter_vector[fitted] = parameters
+            return self._evaluate_jacobian(parameter_vector)[:, fitted]
+
+        result = optim.least_squares(residual, parameter_vector[fitted],
+                                     jac=jacobian if self.model.has_jacobian else "2-point",
+                                     bounds=(lb[fitted], ub[fitted]),
+                                     method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-10, **kwargs)
 
         parameter_names = self.parameters.keys
-        parameter_vector = result.x
+        parameter_vector[fitted] = result.x
 
         for name, value in zip(parameter_names, parameter_vector):
             self.parameters[name] = value
 
-    def _evaluate_model(self, parameter_values):
+    def _calculate_residual(self, parameter_values=[]):
         self._check_rebuild()
+
+        if len(parameter_values) == 0:
+            parameter_values = self.parameters.values
+
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
         for condition, data_sets in zip(self._conditions, self._data_link):
             p_local = condition.get_local_parameters(parameter_values)
             for data in data_sets:
-                 data_set = self._data[data]
-                 y_model = self.model(data_set.x, p_local)
+                data_set = self._data[data]
+                y_model = self.model(data_set.x, p_local)
 
-                 residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
-                 residual_idx += len(y_model)
+                residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
+                residual_idx += len(y_model)
 
         return residual
 
@@ -332,6 +369,29 @@ class FitObject:
                 residual_idx += n_res
 
         return jacobian
+
+    @property
+    def sigma(self):
+        """Error variance of the data points. Ideally, this will eventually depend on the exact error model used. For
+        now, we use the a-posteriori variance estimate based on the residual."""
+        res = self._calculate_residual()
+        return np.sqrt(np.var(res)) * np.ones(len(res))
+
+    @property
+    def log_likelihood(self):
+        res = self._calculate_residual()
+        sigma = self.sigma
+
+        n = len(res)
+        return - (n/2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) - sum((res/sigma)**2) / 2.0
+
+    @property
+    def AICc(self):
+        self._check_rebuild()
+        k = sum(self.parameters.fitted)
+        n = len(self._calculate_residual())
+        LL = self.log_likelihood
+        return 2.0 * k - 2.0 * LL + (2.0 * k * k + 2.0 * k)/(n - k - 1.0)
 
 
 class Data:
