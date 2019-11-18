@@ -24,19 +24,22 @@ def force_model(model_type):
         - invFJC
             Inverted Freely Joint Chain model with d as independent parameter
     """
-    kT_default = Parameter(value=4.11, lb=0, ub=8, vary=False)
+    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=True)
+    Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf, vary=True)
+    Lc_default = Parameter(value=30.0, lb=0.0, ub=np.inf, vary=True)
+    St_default = Parameter(value=750.0, lb=0.0, ub=np.inf, vary=False)
     if model_type == "WLC":
-        return Model(WLC, WLC_jac, kT=kT_default)
+        return Model(WLC, WLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "tWLC":
-        return Model(tWLC, tWLC_jac, kT=kT_default)
+        return Model(tWLC, tWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "FJC":
-        return Model(FJC, FJC_jac, kT=kT_default)
+        return Model(FJC, FJC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invWLC":
-        return Model(invWLC, invWLC_jac, kT=kT_default)
+        return Model(invWLC, invWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invtWLC":
-        return Model(invtWLC, invtWLC_jac, kT=kT_default)
+        return Model(invtWLC, invtWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invFJC":
-        return Model(invFJC, invFJC_jac, kT=kT_default)
+        return Model(invFJC, invFJC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     else:
         raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, invFJC.")
 
@@ -271,22 +274,21 @@ def invWLC(d, Lp, Lc, St, kT = 4.11):
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
     x0 = 2.0 * Lp * St
-    x1 = Lc * Lc
+    x1 = Lc * Lc     # Lc ** 2
     x16 = x1 * Lc    # Lc ** 3
     x13 = Lc * x16   # Lc ** 4
     x10 = x1 * x13   # Lc ** 6
-    x3 = x10 * x10   # Lc ** 12
     x2 = 1.0 / (Lp * x1)
     lp2 = Lp * Lp
     lp3 = Lp * lp2
     lp4 = lp2 * lp2
-    x4 = Lp * lp4 * St ** 5 * kT
-    x5 = 16.0 * x4
-    x6 = 48.0 * x4
+    x4 = Lp * St * kT
     x8 = d * d
     x7 = x8 * d
-    x9 = np.sqrt(-Lc*x10*x13 * d * x6 + x10*x13 * x6 * x8 - x10 * x16 * x5 * x7 +
-                 27.0 * lp4 * St * St * St * St * kT * kT * x3 + x3 * x5)
+    sqrt_arg = x4 * (48.0 * x8 - 16.0 * x7 / Lc + 16.0 * x1 - Lc * d * 48.0) + 27.0 * kT * kT * x1
+    if np.any(sqrt_arg < 0):
+        return np.inf * np.ones(len(d))
+    x9 = St**2 * lp2 * x16 * x1 * np.sqrt(sqrt_arg)
     x11 = lp3 * St * St * St
     x12 = 8.0 * x11
     x14 = 24.0 * x11
