@@ -207,6 +207,7 @@ class FitObject:
 
         parameter_list = FitObject.parse_transformation(self.model.parameter_names, **kwargs)
         self._data.append(Data(x, y, parameter_list))
+        return self
 
     @staticmethod
     def _build_conditions(data_sets, parameter_lookup):
@@ -381,17 +382,20 @@ class FitObject:
     def log_likelihood(self):
         res = self._calculate_residual()
         sigma = self.sigma
-
-        n = len(res)
-        return - (n/2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) - sum((res/sigma)**2) / 2.0
+        return - (self.n_residuals/2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) - sum((res/sigma)**2) / 2.0
 
     @property
-    def AICc(self):
+    def aic(self):
         self._check_rebuild()
         k = sum(self.parameters.fitted)
-        n = len(self._calculate_residual())
         LL = self.log_likelihood
-        return 2.0 * k - 2.0 * LL + (2.0 * k * k + 2.0 * k)/(n - k - 1.0)
+        return 2.0 * k - 2.0 * LL
+
+    @property
+    def aicc(self):
+        aic = self.aic
+        k = sum(self.parameters.fitted)
+        return aic + (2.0 * k * k + 2.0 * k)/(self.n_residuals - k - 1.0)
 
 
 class Data:
