@@ -2,7 +2,7 @@ from .__about__ import (__author__, __copyright__, __doc__, __email__, __license
                         __title__, __url__, __version__)
 
 from .file import *
-from .recording import Recording
+from .correlated_stack import CorrelatedStack
 
 
 def pytest(args=None, plugins=None):

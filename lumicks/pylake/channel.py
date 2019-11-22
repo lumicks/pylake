@@ -108,9 +108,12 @@ class Slice:
             from lumicks import pylake
 
             file = pylake.File("example.h5")
-            recording = pylake.Recording("example.tiff")
-            file.force1x.downsampled_over(recording.timestamps)
+            stack = pylake.CorrelatedStack("example.tiff")
+            file.force1x.downsampled_over(stack.timestamps)
         """
+        if where != 'center' and where != 'left':
+            raise ValueError("Invalid argument for where. Valid options are center and left")
+
         t = np.zeros(len(range_list))
         d = np.zeros(len(range_list))
         for i, time_range in enumerate(range_list):

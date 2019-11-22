@@ -60,13 +60,31 @@ class TiffStack:
         return len(self._src.pages)
 
 
-class Recording:
-    """Recording obtained with Bluelake
+class CorrelatedStack:
+    """CorrelatedStack obtained with Bluelake.
 
     Parameters
     ----------
     image_name : str
-        Filename for the image stack.
+        Filename for the image stack. Typically a TIFF file recorded from a camera in Bluelake.
+
+    Examples
+    --------
+    ::
+
+        Loading a stack.
+            from lumicks import pylake
+            stack = pylake.CorrelatedStack.from_file("example.tiff")
+
+        Making a plot where force is correlated to images in the stack.
+            file = pylake.File("example.h5")
+            stack.plot_correlated(file.force1x)
+
+        Determine the force trace averaged over frame 2...9.
+            file.force1x.downsampled_over(stack[2:10].timestamps)
+
+        Alternatively
+            stack[2:10].downsample_channel(file.force1x)
     """
     def __init__(self, image_name):
         self.src = TiffStack.from_file(image_name)
@@ -81,12 +99,12 @@ class Recording:
                 raise IndexError("Slice steps are not supported")
 
             start, stop, _ = item.indices(self.num_frames)
-            return Recording.from_data(self.src, self.name, self.start_idx + start, self.start_idx + stop)
+            return CorrelatedStack.from_data(self.src, self.name, self.start_idx + start, self.start_idx + stop)
         else:
             item = self.start_idx + item if item >= 0 else self.stop_idx + item
             if item >= self.stop_idx or item < self.start_idx:
                 raise IndexError("Index out of bounds")
-            return Recording.from_data(self.src, self.name, item, item + 1)
+            return CorrelatedStack.from_data(self.src, self.name, item, item + 1)
 
     def __iter__(self):
         idx = 0
@@ -96,25 +114,25 @@ class Recording:
 
     @classmethod
     def from_data(cls, data, name=None, start_idx=0, stop_idx=None):
-        """Construct recording from image stack object
+        """Construct CorrelatedStack from image stack object
 
         Parameters
         ----------
         data : TiffStack
             TiffStack object.
         name : str
-            Plot label of the recording
+            Plot label of the correlated stack
         start_idx : int
             Index at the first frame.
         stop_idx: int
             Index beyond the last frame.
         """
-        new_recording = cls.__new__(cls)
-        new_recording.src = data
-        new_recording.name = name
-        new_recording.start_idx = start_idx
-        new_recording.stop_idx = (new_recording.src.num_frames if stop_idx is None else stop_idx)
-        return new_recording
+        new_correlated_stack = cls.__new__(cls)
+        new_correlated_stack.src = data
+        new_correlated_stack.name = name
+        new_correlated_stack.start_idx = start_idx
+        new_correlated_stack.stop_idx = (new_correlated_stack.src.num_frames if stop_idx is None else stop_idx)
+        return new_correlated_stack
 
     def plot(self, frame=0, **kwargs):
         import matplotlib.pyplot as plt
@@ -162,8 +180,8 @@ class Recording:
             from lumicks import pylake
 
             file = pylake.File("example.h5")
-            recording = pylake.Recording("example.tiff")
-            recording.downsample_channel(file.force1x)
+            stack = pylake.CorrelatedStack("example.tiff")
+            stack.downsample_channel(file.force1x)
         """
         return channel_slice.downsampled_over(self.timestamps, reduce, where)
 
@@ -190,8 +208,8 @@ class Recording:
             from lumicks import pylake
 
             file = pylake.File("example.h5")
-            recording = pylake.Recording("example.tiff")
-            recording.plot_correlated(file.force1x, frame=5)
+            stack = pylake.CorrelatedStack("example.tiff")
+            stack.plot_correlated(file.force1x, frame=5)
         """
         import matplotlib.pyplot as plt
 
