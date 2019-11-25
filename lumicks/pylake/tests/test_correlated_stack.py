@@ -78,27 +78,27 @@ def test_correlation():
     # Test image stack without dead time
     fake_tiff = TiffStack(MockTiff([["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]]))
     stack = CorrelatedStack.from_data(fake_tiff)
-    assert (np.allclose(np.hstack([cc[x.time_slice].data for x in stack[2:4]]), np.arange(30, 50, 2)))
+    assert (np.allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]), np.arange(30, 50, 2)))
 
     # Test image stack with dead time
     fake_tiff = TiffStack(MockTiff([["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]))
     stack = CorrelatedStack.from_data(fake_tiff)
 
-    assert (np.allclose(np.hstack([cc[x.time_slice].data for x in stack[2:4]]),
+    assert (np.allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]),
                         np.hstack([np.arange(30, 38, 2), np.arange(40, 48, 2)])))
 
     # Unit test which tests whether we obtain an appropriately downsampled time series when ask for downsampling of a
     # slice based on a stack.
-    ch = stack[0:3].downsample_channel(cc)
+    ch = cc.downsampled_over(stack[0:3].timestamps)
     assert(np.allclose(ch.data, [np.mean(np.arange(10, 18, 2)), np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2))]))
     assert (np.allclose(ch.timestamps, [(10 + 18) / 2, (20 + 28) / 2, (30 + 38) / 2]))
 
-    ch = stack[1:4].downsample_channel(cc)
+    ch = cc.downsampled_over(stack[1:4].timestamps)
     assert (np.allclose(ch.data, [np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2)), np.mean(np.arange(40, 48, 2))]))
     assert (np.allclose(ch.timestamps, [(20 + 28) / 2, (30 + 38) / 2, (40 + 48) / 2]))
 
     with pytest.raises(ValueError):
-        stack.downsample_channel(cc, where='up')
+        cc.downsampled_over(cc, where='up')
 
     assert (stack[0].raw.start == 10)
     assert (stack[1].raw.start == 20)

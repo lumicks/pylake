@@ -31,10 +31,6 @@ class TiffFrame:
         timestamp_string = re.search(r'^\d+:(\d+)$', self._src.tags['DateTime'].value)
         return np.int64(timestamp_string.group(1)) if timestamp_string else None
 
-    @property
-    def time_slice(self):
-        return slice(self.start, self.stop)
-
 
 class TiffStack:
     """TIFF images exported from Bluelake
@@ -154,37 +150,6 @@ class CorrelatedStack:
             raise IndexError("Frame index out of range")
         return self.src.get_frame(self.start_idx + frame)
 
-    def downsample_channel(self, channel_slice, reduce=np.mean, where='center'):
-        """Downsample channel on a frame by frame basis. The downsampling function (e.g. np.mean) is evaluated for the
-        time between a start and end time of a frame. A list is returned that contains the data corresponding to each
-        frame.
-
-        Parameters
-        ----------
-        channel_slice : pylake.channel.Slice
-            Data slice that we with to downsample.
-        reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            The default is `np.mean`, but `np.sum` could also be appropriate for some
-            cases, e.g. photon counts.
-        where : str
-            Where to put the final time point.
-            'center' time point is put at start + stop / 2
-            'left' time point is put at start
-
-
-        Examples
-        --------
-        ::
-
-            from lumicks import pylake
-
-            file = pylake.File("example.h5")
-            stack = pylake.CorrelatedStack("example.tiff")
-            stack.downsample_channel(file.force1x)
-        """
-        return channel_slice.downsampled_over(self.timestamps, reduce, where)
-
     def plot_correlated(self, channel_slice, frame=0, reduce=np.mean):
         """Downsample channel on a frame by frame basis. The downsampling function (e.g. np.mean) is evaluated for the
         time between a start and end time of a frame.
@@ -213,7 +178,7 @@ class CorrelatedStack:
         """
         import matplotlib.pyplot as plt
 
-        downsampled = self.downsample_channel(channel_slice, reduce, where='left')
+        downsampled = channel_slice.downsampled_over(self.timestamps, where='left')
         fetched_frame = self._get_frame(self.start_idx + frame)
         aspect_ratio = fetched_frame.data.shape[0] / np.max([fetched_frame.data.shape])
 
