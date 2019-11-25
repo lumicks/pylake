@@ -78,9 +78,6 @@ class CorrelatedStack:
 
         Determine the force trace averaged over frame 2...9.
             file.force1x.downsampled_over(stack[2:10].timestamps)
-
-        Alternatively
-            stack[2:10].downsample_channel(file.force1x)
     """
     def __init__(self, image_name):
         self.src = TiffStack.from_file(image_name)
