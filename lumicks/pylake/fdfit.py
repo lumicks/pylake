@@ -22,6 +22,17 @@ class Model:
         if jacobian:
             self._jacobian = jacobian
 
+    def __add__(self, other):
+        """
+        Add two model outputs to form a new model.
+
+        Parameters
+        ----------
+        other: Model
+        """
+
+        return CompositeModel(self, other)
+
     @staticmethod
     def _sanitize_input_types(data, parameter_vector):
         data = np.array(data).astype(float)
@@ -84,6 +95,44 @@ class Model:
     @property
     def parameter_names(self):
         return [x for x in self._parameters.keys()]
+
+
+class CompositeModel(Model):
+    def __init__(self, lhs, rhs):
+        """
+        Add two model outputs to form a new model.
+
+        Parameters
+        ----------
+        lhs: Model
+        rhs: Model
+        """
+        self.lhs = lhs
+        self.rhs = rhs
+
+        self._parameters = OrderedDict()
+        for i, v in self.lhs._parameters.items():
+            self._parameters[i] = v
+        for i, v in self.rhs._parameters.items():
+            self._parameters[i] = v
+
+        parameters_lhs = list(self.lhs._parameters.keys())
+        parameters_rhs = list(self.rhs._parameters.keys())
+        parameters_all = list(self._parameters.keys())
+
+        self.lhs_parameters = [True if x in parameters_lhs else False for x in parameters_all]
+        self.rhs_parameters = [True if x in parameters_rhs else False for x in parameters_all]
+
+    def __call__(self, data, parameter_vector):
+        return self.lhs(data, parameter_vector[self.lhs_parameters]) + \
+            self.rhs(data, parameter_vector[self.rhs_parameters])
+
+    def jacobian(self, data, parameter_vector):
+        jacobian = np.zeros((len(parameter_vector), len(data)))
+        jacobian[self.lhs_parameters, :] += self.lhs.jacobian(data, parameter_vector[self.lhs_parameters])
+        jacobian[self.rhs_parameters, :] += self.rhs.jacobian(data, parameter_vector[self.rhs_parameters])
+
+        return jacobian
 
 
 class Parameter:
@@ -294,7 +343,7 @@ class FitObject:
 
         for data_idx in idx if idx else np.arange(len(self._data)):
             data = self._data[data_idx]
-            plt.plot(data.x, data.y)
+            plt.plot(data.x, data.y, '.')
 
     def plot_model(self, idx=None):
         import matplotlib.pyplot as plt
@@ -306,7 +355,8 @@ class FitObject:
 
         for condition, data_sets in zip(self._conditions, self._data_link):
             p_local = condition.get_local_parameters(self.parameters.values)
-            [plt.plot(self._data[value].x, self.model(self._data[value].x, p_local)) for value in idx if value in self._data_link]
+            [plt.plot(np.sort(self._data[value].x), self.model(np.sort(self._data[value].x), p_local))
+             for value in idx if value in self._data_link]
 
     def fit(self, **kwargs):
         parameter_vector = self.parameters.values
@@ -335,7 +385,6 @@ class FitObject:
 
     def _calculate_residual(self, parameter_values=[]):
         self._check_rebuild()
-
         if len(parameter_values) == 0:
             parameter_values = self.parameters.values
 
@@ -352,8 +401,11 @@ class FitObject:
 
         return residual
 
-    def _evaluate_jacobian(self, parameter_values):
+    def _evaluate_jacobian(self, parameter_values=[]):
         self._check_rebuild()
+        if len(parameter_values) == 0:
+            parameter_values = self.parameters.values
+
         residual_idx = 0
         jacobian = np.zeros((self.n_residuals, self.n_parameters))
         for condition, data_sets in zip(self._conditions, self._data_link):
@@ -397,6 +449,21 @@ class FitObject:
         k = sum(self.parameters.fitted)
         return aic + (2.0 * k * k + 2.0 * k)/(self.n_residuals - k - 1.0)
 
+    @property
+    def bic(self):
+        k = sum(self.parameters.fitted)
+        return k * np.log(self.n_residuals) - 2.0 * self.log_likelihood
+
+    @property
+    def cov(self):
+        """
+        Returns the inverse of the approximate Hessian. This approximation is valid when the residuals of the fitting
+        problem are small.
+        """
+        J = self._evaluate_jacobian()
+        J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
+        return np.linalg.inv(np.transpose(J).dot(J))
+
 
 class Data:
     def __init__(self, x, y, transformations):
@@ -429,6 +496,7 @@ class Data:
         Parameter names for free parameters after transformation
         """
         return [x for x, y in self.transformations.items() if isinstance(y, str)]
+
 
 class Condition:
     def __init__(self, transformations, global_dictionary):

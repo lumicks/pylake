@@ -28,6 +28,8 @@ def force_model(model_type):
     Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf, vary=True)
     Lc_default = Parameter(value=30.0, lb=0.0, ub=np.inf, vary=True)
     St_default = Parameter(value=750.0, lb=0.0, ub=np.inf, vary=False)
+    if model_type == "offset":
+        return Model(offset_model, offset_model_jac, offset=Parameter(value=0, lb=0.0, ub=np.inf, vary=True))
     if model_type == "WLC":
         return Model(WLC, WLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "tWLC":
@@ -42,6 +44,21 @@ def force_model(model_type):
         return Model(invFJC, invFJC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     else:
         raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, invFJC.")
+
+
+def offset_model(x, offset):
+    """Offset on the the model output."""
+    return offset * np.ones(x.shape)
+
+
+def offset_model_jac(x, offset):
+    """Offset on the model output."""
+    return np.ones((1, len(x)))
+
+
+def independent_offset():
+    """Adds an offset on the independent variable of a model."""
+    pass;
 
 
 def invert_function(d, initial, f_min, f_max, model_function, derivative_function):
