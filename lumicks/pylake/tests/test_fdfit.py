@@ -1,4 +1,5 @@
-from lumicks.pylake.fdfit import FitObject, Parameter, Parameters, Condition, Data, Model
+from lumicks.pylake.fdfit import FitObject, Parameter, Parameters, Condition, Data, Model, parse_transformation, \
+    _generate_conditions
 from lumicks.pylake.fdmodels import *
 from collections import OrderedDict
 import pytest
@@ -7,11 +8,11 @@ import numpy as np
 
 def tests_fit_object():
     pars = ['blip', 'foo']
-    FitObject.parse_transformation(pars, foo='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
-    FitObject.parse_transformation(pars, foo = 5) == OrderedDict((('blip', 'blip'), ('foo', 5)))
+    parse_transformation(pars, foo='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
+    parse_transformation(pars, foo = 5) == OrderedDict((('blip', 'blip'), ('foo', 5)))
 
     with pytest.raises(KeyError):
-        FitObject.parse_transformation(pars, blap='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
+        parse_transformation(pars, blap='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
 
 
 def test_parameters():
@@ -49,20 +50,51 @@ def test_parameters():
 def test_transformation_parser():
     parameter_names = ['gamma', 'alpha', 'beta', 'delta']
     parameters = OrderedDict(zip(parameter_names, parameter_names))
-    post_parameters = FitObject.parse_transformation(parameters, gamma='gamma_specific', beta='beta_specific')
+    post_parameters = parse_transformation(parameters, gamma='gamma_specific', beta='beta_specific')
     assert (post_parameters['gamma'] == 'gamma_specific')
     assert (post_parameters['alpha'] == 'alpha')
     assert (post_parameters['beta'] == 'beta_specific')
     assert (post_parameters['delta'] == 'delta')
 
     with pytest.raises(KeyError):
-        FitObject.parse_transformation(parameters, doesnotexist='yep')
+        parse_transformation(parameters, doesnotexist='yep')
+
+
+def test_build_conditions():
+    parameter_names = ['a', 'b', 'c']
+    parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
+    d1 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d2 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d3 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+
+    assert _generate_conditions([d1, d2, d3], parameter_lookup, parameter_names)
+
+    # Tests whether we pick up when a parameter that's generated in a transformation doesn't actually exist in the
+    # combined model
+    d4 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_should_not_exist'))
+    with pytest.raises(AssertionError):
+        assert _generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
+
+    # Tests whether we pick up on when a parameter exists in the model, but there's no transformation for it.
+    d5 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    parameter_names = ['a', 'b', 'c', 'i_am_new']
+    parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
+    with pytest.raises(AssertionError):
+        assert _generate_conditions([d1, d2, d5], parameter_lookup, parameter_names)
+
+    # Verify that the data gets linked up to the correct conditions
+    d1 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d2 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d6 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_am_new'))
+    conditions, data_link = _generate_conditions([d1, d2, d6], parameter_lookup, parameter_names)
+    assert np.all(data_link[0] == [0, 1])
+    assert np.all(data_link[1] == [2])
 
 
 def test_condition_struct():
     parameter_names = ['gamma', 'alpha', 'beta', 'delta', 'gamma_specific', 'beta_specific', 'zeta']
     parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
-    parameter_trafos = FitObject.parse_transformation(['gamma', 'alpha', 'beta', 'delta', 'zeta'],
+    parameter_trafos = parse_transformation(['gamma', 'alpha', 'beta', 'delta', 'zeta'],
                                                       gamma='gamma_specific', delta=5, beta='beta_specific')
     parameter_vector = np.array([2, 4, 6, 8, 10, 12, 14])
 
@@ -147,7 +179,7 @@ def test_model_defaults():
     F = FitObject(M)
     F.load_data([1, 2, 3], [2, 3, 4])
     F.load_data([1, 2, 3], [2, 3, 4], f='f_new')
-    F._rebuild_structure()
+    F._build_model()
 
     assert (F.parameters["a"].value == Parameter().value)
     assert (F.parameters["f_new"].value == 5)
@@ -189,6 +221,7 @@ def test_model_composition():
 
     assert (M1 + M2).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
     assert (M2 + M1).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
+    assert (M2 + M1 + M2).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
 
     t = np.arange(0, 2, .1)
     with pytest.raises(RuntimeError):
@@ -198,13 +231,12 @@ def test_model_composition():
         (M2 + Model(f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
     assert (InverseModel(Model(f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(Model(f, f_jac, derivative=f_der) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(Model(f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
 
     with pytest.raises(RuntimeError):
-        assert (InverseModel(Model(f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-
+        assert (InverseModel(Model(f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+                                                                                            verbose=False)
     with pytest.raises(RuntimeError):
-        assert (InverseModel(Model(f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-
-    #assert (InverseModel(Model(f, f_jac, derivative=f_der) + M2)).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
-
-    #with pytest.raises(RuntimeError):
+        assert (InverseModel(Model(f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+                                                                                            verbose=False)

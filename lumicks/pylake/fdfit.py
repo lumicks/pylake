@@ -8,6 +8,60 @@ import scipy.optimize as optim
 from itertools import chain
 
 
+def parse_transformation(parameters, **kwargs):
+    transformed = OrderedDict(zip(parameters, parameters))
+
+    for key, value in kwargs.items():
+        if key in transformed:
+            transformed[key] = value
+        else:
+            raise KeyError(f"Parameter {key} to be substituted not found in model.")
+
+    return transformed
+
+
+def _generate_conditions(data_sets, parameter_lookup, model_parameters):
+    """
+    This function builds a list of unique conditions from a list of data sets and a list of index lists which link back
+    the individual data fields to their simulation conditions.
+
+    Parameters
+    ----------
+    data_sets : list of Data
+        References to data
+    parameter_lookup: OrderedDict[str, int]
+        Lookup table for looking up parameter indices by name
+    model_parameters: list of str
+        Base model parameter names
+    """
+    # Quickly concatenate the parameter transformations corresponding to this condition
+    str_conditions = []
+    for data_set in data_sets:
+        str_conditions.append(data_set.condition_string)
+
+        assert set(data_set.transformations.keys()) == set(model_parameters), \
+            "Source parameters in data parameter transformations are incompatible with the specified model parameters."
+
+        assert set(data_set.transformations.values()).issubset(parameter_lookup.keys()), \
+            "Parameter transformations contain transformed parameter names that are not in the combined parameter list."
+
+    # Determine unique parameter conditions and the indices to get the appropriate unique condition from data index.
+    unique_condition_strings, indices = unique_idx(str_conditions)
+    indices = np.array(indices)
+
+    data_link = []
+    for condition_idx in np.arange(len(unique_condition_strings)):
+        data_indices, = np.nonzero(np.equal(indices, condition_idx))
+        data_link.append(data_indices)
+
+    conditions = []
+    for idx in data_link:
+        transformations = data_sets[idx[0]].transformations
+        conditions.append(Condition(transformations, parameter_lookup))
+
+    return conditions, data_link
+
+
 def invert_function(d, initial, f_min, f_max, model_function, derivative_function=None):
     """This function inverts a function using a least squares optimizer. For models where this is required, this is the
     most time consuming step.
@@ -371,60 +425,14 @@ class FitObject:
 
         self._invalidate_build()
 
-    @staticmethod
-    def parse_transformation(parameters, **kwargs):
-        transformed = OrderedDict(zip(parameters, parameters))
-
-        for key, value in kwargs.items():
-            if key in transformed:
-                transformed[key] = value
-            else:
-                raise KeyError(f"Parameter {key} to be substituted not found in model.")
-
-        return transformed
-
     def load_data(self, x, y, **kwargs):
         self._invalidate_build()
 
-        parameter_list = FitObject.parse_transformation(self.model.parameter_names, **kwargs)
+        parameter_list = parse_transformation(self.model.parameter_names, **kwargs)
         self._data.append(Data(x, y, parameter_list))
         return self
 
-    @staticmethod
-    def _build_conditions(data_sets, parameter_lookup):
-        """
-        This function builds a list of unique conditions from a list of data sets and a list of index lists which link
-        back the individual data fields to their simulation conditions.
-
-        Parameters
-        ----------
-        data_sets : list of Data
-            References to data
-        parameter_lookup: OrderedDict[str, int]
-            Lookup table for looking up parameter indices by name
-        """
-        # Quickly concatenate the parameter transformations corresponding to this condition
-        str_conditions = []
-        for data_set in data_sets:
-            str_conditions.append(data_set.condition_string)
-
-        # Determine unique parameter conditions and the indices to get the appropriate unique condition from data index.
-        unique_condition_strings, indices = unique_idx(str_conditions)
-        indices = np.array(indices)
-
-        data_link = []
-        for condition_idx in np.arange(len(unique_condition_strings)):
-            data_indices, = np.nonzero(np.equal(indices, condition_idx))
-            data_link.append(data_indices)
-
-        conditions = []
-        for idx in data_link:
-            transformations = data_sets[idx[0]].transformations
-            conditions.append(Condition(transformations, parameter_lookup))
-
-        return conditions, data_link
-
-    def _rebuild_structure(self):
+    def _build_model(self):
         """This function generates the global parameter list from the parameters of the individual submodels.
         It also generates unique conditions from the data specification."""
         parameter_names = [name for data in self._data for name in data.parameter_names]
@@ -435,10 +443,9 @@ class FitObject:
         defaults = [self.model.get_default(name) for data in self._data for name in data.source_parameter_names]
         defaults = [defaults[parameter_names.index(l)] for l in unique_parameter_names]
 
-        self._conditions, self._data_link = self._build_conditions(self._data, parameter_lookup)
+        self._conditions, self._data_link = _generate_conditions(self._data, parameter_lookup,
+                                                                 self.model.parameter_names)
         self._parameters.set_parameters(unique_parameter_names, defaults)
-
-        self._built = True
 
     def _check_rebuild(self):
         """
@@ -446,7 +453,8 @@ class FitObject:
         needs to be rebuilt.
         """
         if not self._built:
-            self._rebuild_structure()
+            self._build_model()
+            self._built = True
 
     def _invalidate_build(self):
         self._built = False
