@@ -1,5 +1,6 @@
 import inspect
 import numpy as np
+import scipy as sp
 from .detail.utilities import unique, unique_idx
 from collections import OrderedDict
 from copy import deepcopy
@@ -7,8 +8,75 @@ import scipy.optimize as optim
 from itertools import chain
 
 
+def invert_function(d, initial, f_min, f_max, model_function, derivative_function=None):
+    """This function inverts a function using a least squares optimizer. For models where this is required, this is the
+    most time consuming step.
+
+    Parameters
+    ----------
+    d : array_like
+        old independent parameter
+    initial : array_like
+        initial guess for the optimization procedure
+    f_min : float
+        minimum bound for inverted parameter
+    f_max : float
+        maximum bound for inverted parameter
+    model_function : callable
+        non-inverted model function
+    derivative_function : callable
+        model derivative with respect to the independent variable (returns an element per data point)
+    """
+    def jacobian(f_trial):
+        return sp.sparse.diags(derivative_function(f_trial), offsets=0)
+
+    jac = jacobian if derivative_function else "2-point"
+
+    result = optim.least_squares(lambda f_trial: model_function(f_trial) - d, initial, jac=jac,
+                                 jac_sparsity=sp.sparse.identity(len(d)),
+                                 bounds=(f_min, f_max), method='trf', ftol=1e-06, xtol=1e-06, gtol=1e-6)
+
+    return result.x
+
+
+def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_function):
+    """This function computes the jacobian of the model when the model has been inverted with respect to the independent
+    variable.
+
+    The Jacobian of the function with one variable inverted is related to the original Jacobian
+    The transformation Jacobian is structured as follows:
+
+    [  dy/dF   dy/db   dy/dc  ]
+    [   0        1       0    ]
+    [   0        0       1    ]
+
+    The inverse of this Jacobian provides us with the actual parameters that we are interested in. It is given by:
+    [ (dy/da)^-1  -(dy/db)(dy/dF)^-1    -(dy/dc)(dy/dF)^-1 ]
+    [    0                1                     0          ]
+    [    0                0                     1          ]
+
+    Parameters
+    ----------
+    d : values for the old independent variable
+    inverted_model_function : callable
+        inverted model function (model with the dependent and independent variable exchanged)
+    jacobian_function : callable
+        derivatives of the non-inverted model
+    derivative_function : callable
+        derivative of the non-inverted model w.r.t. the independent variable
+    """
+    F = inverted_model_function(d)
+    jacobian = jacobian_function(F)
+    derivative = derivative_function(F)
+    inverse = 1.0/derivative
+    inverted_dyda = np.tile(inverse, (jacobian.shape[0], 1))
+    jacobian = -jacobian * inverted_dyda
+
+    return jacobian
+
+
 class Model:
-    def __init__(self, model_function, jacobian=None, **kwargs):
+    def __init__(self, model_function, jacobian=None, derivative=None, **kwargs):
         self.model_function = model_function
         parameter_names = inspect.getfullargspec(model_function).args[1:]
         self._parameters = OrderedDict(zip(parameter_names, [None] * len(parameter_names)))
@@ -19,8 +87,8 @@ class Model:
             else:
                 raise KeyError(f"Model does not contain parameter {key}")
 
-        if jacobian:
-            self._jacobian = jacobian
+        self._jacobian = jacobian
+        self._derivative = derivative
 
     def __add__(self, other):
         """
@@ -47,46 +115,62 @@ class Model:
         from copy import deepcopy
         return deepcopy(self._parameters[key])
 
-    def jacobian(self, data, parameter_vector):
-        data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
-        return self._jacobian(data, *parameter_vector)
+    def jacobian(self, independent, parameter_vector):
+        if self.has_jacobian:
+            independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+            return self._jacobian(independent, *parameter_vector)
+        else:
+            raise RuntimeError("Jacobian was requested but not supplied in the model.")
+
+    def derivative(self, independent, parameter_vector):
+        independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+        return self._derivative(independent, *parameter_vector)
 
     @property
     def has_jacobian(self):
-        return hasattr(self, "_jacobian")
+        if self._jacobian:
+            return True
 
-    def numerical_jacobian(self, data, parameter_vector, dx=1e-6):
-        data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
+    def numerical_jacobian(self, independent, parameter_vector, dx=1e-6):
+        independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
 
-        finite_difference_jacobian = np.zeros((len(parameter_vector), len(data)))
+        finite_difference_jacobian = np.zeros((len(parameter_vector), len(independent)))
         for i in np.arange(len(parameter_vector)):
             parameters = np.copy(parameter_vector)
             parameters[i] = parameters[i] + dx
-            up = self(data, parameters)
+            up = self(independent, parameters)
             parameters[i] = parameters[i] - 2.0 * dx
-            down = self(data, parameters)
+            down = self(independent, parameters)
             finite_difference_jacobian[i, :] = (up - down) / (2.0*dx)
 
         return finite_difference_jacobian
 
-    def verify_jacobian(self, data, parameters, plot=False, **kwargs):
-        jacobian = self.jacobian(data, parameters)
-        numerical_jacobian = self.numerical_jacobian(data, parameters)
+    def verify_jacobian(self, independent, parameters, plot=False, verbose=True, **kwargs):
+        if len(parameters) != len(self._parameters):
+            raise ValueError("Parameter vector has invalid length. "
+                             f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
+
+        independent, parameters = self._sanitize_input_types(independent, parameters)
+
+        jacobian = self.jacobian(independent, parameters)
+        numerical_jacobian = self.numerical_jacobian(independent, parameters)
 
         if plot:
             import matplotlib.pyplot as plt
             plt.subplot(2, 1, 1)
-            plt.plot(np.transpose(jacobian))
-            plt.plot(np.transpose(numerical_jacobian), '--')
-            plt.legend(('Analytical', 'Numerical'))
+            l1 = plt.plot(independent, np.transpose(jacobian))
+            l2 = plt.plot(independent, np.transpose(numerical_jacobian), '--')
+            plt.legend([l1[0], l2[0]], ('Analytical', 'Numerical'))
             plt.subplot(2, 1, 2)
-            plt.plot(np.transpose(jacobian - numerical_jacobian))
+            plt.plot(independent, np.transpose(jacobian - numerical_jacobian))
 
         is_close = np.allclose(jacobian, numerical_jacobian, **kwargs)
+
         if not is_close:
-            maxima = np.max(jacobian - numerical_jacobian, axis=1)
-            for i, v in enumerate(maxima):
-                print(f"Parameter {self.parameter_names[i]}({i}): {v}")
+            if verbose:
+                maxima = np.max(jacobian - numerical_jacobian, axis=1)
+                for i, v in enumerate(maxima):
+                    print(f"Parameter {self.parameter_names[i]}({i}): {v}")
 
             raise RuntimeError('Numerical Jacobian did not pass.')
 
@@ -97,10 +181,47 @@ class Model:
         return [x for x in self._parameters.keys()]
 
 
+class InverseModel(Model):
+    def __init__(self, model):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        model: Model
+        """
+        self.model = model
+
+    def __call__(self, data, parameter_vector):
+        f_min = -np.inf
+        f_max = np.inf
+        initial = np.ones(data.shape)
+
+        return invert_function(data, initial, f_min, f_max,
+                               lambda f_trial: self.model(f_trial, parameter_vector),  # Forward model
+                               lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+
+    @property
+    def has_jacobian(self):
+        """Does the model have sufficient information to determine its inverse numerically?
+        This requires a Jacobian and a derivative w.r.t. independent variable."""
+        return True
+
+    def jacobian(self, data, parameter_vector):
+        return invert_jacobian(data,
+                               lambda f_trial: self(f_trial, parameter_vector),  # Inverse model (me)
+                               lambda f_trial: self.model.jacobian(f_trial, parameter_vector),
+                               lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+
+    @property
+    def _parameters(self):
+        return self.model._parameters
+
+
 class CompositeModel(Model):
     def __init__(self, lhs, rhs):
         """
-        Add two model outputs to form a new model.
+        Combine two model outputs to form a new model (addition).
 
         Parameters
         ----------
@@ -127,12 +248,23 @@ class CompositeModel(Model):
         return self.lhs(data, parameter_vector[self.lhs_parameters]) + \
             self.rhs(data, parameter_vector[self.rhs_parameters])
 
-    def jacobian(self, data, parameter_vector):
-        jacobian = np.zeros((len(parameter_vector), len(data)))
-        jacobian[self.lhs_parameters, :] += self.lhs.jacobian(data, parameter_vector[self.lhs_parameters])
-        jacobian[self.rhs_parameters, :] += self.rhs.jacobian(data, parameter_vector[self.rhs_parameters])
+    @property
+    def has_jacobian(self):
+        return self.lhs.has_jacobian and self.rhs.has_jacobian
 
-        return jacobian
+    def jacobian(self, data, parameter_vector):
+        if self.has_jacobian:
+            jacobian = np.zeros((len(parameter_vector), len(data)))
+            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(data, parameter_vector[self.lhs_parameters])
+            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(data, parameter_vector[self.rhs_parameters])
+
+            return jacobian
+
+    def derivative(self, data, parameter_vector):
+        lhs_derivative = self.lhs.derivative(data, parameter_vector[self.lhs_parameters])
+        rhs_derivative = self.rhs.derivative(data, parameter_vector[self.rhs_parameters])
+
+        return lhs_derivative + rhs_derivative
 
 
 class Parameter:
@@ -347,6 +479,8 @@ class FitObject:
 
     def plot_model(self, idx=None):
         import matplotlib.pyplot as plt
+        self._check_rebuild()
+
         def intersection(l1, l2):
             return [value for value in l1 if value in l2]
 
@@ -375,7 +509,7 @@ class FitObject:
         result = optim.least_squares(residual, parameter_vector[fitted],
                                      jac=jacobian if self.model.has_jacobian else "2-point",
                                      bounds=(lb[fitted], ub[fitted]),
-                                     method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-10, **kwargs)
+                                     method='trf', ftol=1e-06, xtol=1e-06, gtol=1e-8, **kwargs)
 
         parameter_names = self.parameters.keys
         parameter_vector[fitted] = result.x

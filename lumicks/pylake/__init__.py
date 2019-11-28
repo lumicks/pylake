@@ -2,6 +2,8 @@ from .__about__ import (__author__, __copyright__, __doc__, __email__, __license
                         __title__, __url__, __version__)
 
 from .file import *
+from .fdmodels import force_model
+from .fdfit import FitObject
 
 
 def pytest(args=None, plugins=None):

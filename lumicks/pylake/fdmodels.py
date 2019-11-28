@@ -1,4 +1,4 @@
-from lumicks.pylake.fdfit import Model, Parameter
+from lumicks.pylake.fdfit import Model, Parameter, invert_function, invert_jacobian, InverseModel
 import numpy as np
 import inspect
 import scipy.optimize as optim
@@ -24,24 +24,41 @@ def force_model(model_type):
         - invFJC
             Inverted Freely Joint Chain model with d as independent parameter
     """
-    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=True)
+    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=False)
     Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf, vary=True)
-    Lc_default = Parameter(value=30.0, lb=0.0, ub=np.inf, vary=True)
-    St_default = Parameter(value=750.0, lb=0.0, ub=np.inf, vary=False)
+    Lc_default = Parameter(value=16.0, lb=0.0, ub=np.inf, vary=True)
+    St_default = Parameter(value=750.0, lb=0.0, ub=np.inf, vary=True)
     if model_type == "offset":
-        return Model(offset_model, offset_model_jac, offset=Parameter(value=0, lb=0.0, ub=np.inf, vary=True))
+        return Model(offset_model, offset_model_jac, derivative=offset_model_derivative,
+                     offset=Parameter(value=0, lb=0.0, ub=np.inf, vary=True))
     if model_type == "WLC":
-        return Model(WLC, WLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        return Model(WLC, WLC_jac, derivative=WLC_derivative,
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "tWLC":
-        return Model(tWLC, tWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        return Model(tWLC, tWLC_jac, derivative=tWLC_derivative,
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
+                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, vary=True),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, vary=True),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, vary=True),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, vary=True),
+                     )
     elif model_type == "FJC":
-        return Model(FJC, FJC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        return Model(FJC, FJC_jac, derivative=FJC_derivative,
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invWLC":
         return Model(invWLC, invWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        #return InverseModel(force_model("WLC"))
     elif model_type == "invtWLC":
-        return Model(invtWLC, invtWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        return Model(invtWLC, invtWLC_jac, derivative=tWLC_derivative,
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
+                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, vary=True),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, vary=True),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, vary=True),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, vary=True),
+                     )
+        #return InverseModel(force_model("tWLC"))
     elif model_type == "invFJC":
-        return Model(invFJC, invFJC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        return InverseModel(force_model("FJC"))
     else:
         raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, invFJC.")
 
@@ -56,68 +73,9 @@ def offset_model_jac(x, offset):
     return np.ones((1, len(x)))
 
 
-def independent_offset():
-    """Adds an offset on the independent variable of a model."""
-    pass;
-
-
-def invert_function(d, initial, f_min, f_max, model_function, derivative_function):
-    """This function inverts a function using a least squares optimizer.
-
-    Parameters
-    ----------
-    d : array_like
-        old independent parameter
-    initial : array_like
-        initial guess for the optimization procedure
-    f_min : float
-        minimum bound for inverted parameter
-    f_max : float
-        maximum bound for inverted parameter
-    model_function : callable
-        non-inverted model function
-    derivative_function : callable
-        model derivative with respect to the independent variable (returns an element per data point)
-    """
-    result = optim.least_squares(lambda f_trial: model_function(f_trial) - d, initial,
-                                 jac=lambda f_trial: np.diag(derivative_function(f_trial)),
-                                 bounds=(f_min, f_max), method='trf', ftol=1e-09, xtol=1e-09, gtol=1e-10)
-
-    return result.x
-
-
-def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_function):
-    """This function computes the jacobian of the model when the model has been inverted with respect to the independent
-    variable.
-
-    The Jacobian of the function with one variable inverted is related to the original Jacobian
-    The transformation Jacobian is structured as follows:
-
-    [  dy/da   dy/db   dy/dc  ]
-    [   0        1       0    ]
-    [   0        0       1    ]
-
-    The inverse of this Jacobian provides us with the actual parameters that we are interested in. It is given by:
-    [ (dy/da)^-1  -(dy/db)(dy/da)^-1    -(dy/dc)(dy/da)^-1 ]
-    [    0                1                     0          ]
-    [    0                0                     1          ]
-
-    Parameters
-    ----------
-    d : values for the old independent variable
-    inverted_model_function : callable
-        inverted model function (model with the dependent and independent variable exchanged)
-    jacobian_function : callable
-        derivatives of the non-inverted model
-    derivative_function : callable
-        derivative of the non-inverted model w.r.t. the independent variable
-    """
-    F = inverted_model_function(d)
-    jacobian = jacobian_function(F)
-    inverted_dyda = np.tile(1.0 / derivative_function(F), (jacobian.shape[0], 1))
-    jacobian = -jacobian * inverted_dyda
-
-    return jacobian
+def offset_model_derivative(x, offset):
+    """Offset on the model output."""
+    return np.zeros(len(x))
 
 
 def WLC(F, Lp, Lc, St, kT = 4.11):
@@ -187,7 +145,7 @@ def tWLC(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     g[F < Fc] = g0 + g1 * Fc
     g[F >= Fc] = g0 + g1 * F[F >= Fc]
 
-    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (F * Lp)) + (C / (-g ** 2.0 + St * C)) * F)
+    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (F * Lp)) + (C / (-g * g + St * C)) * F)
 
 
 def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
@@ -200,7 +158,7 @@ def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     x6 = F <= Fc
     x7 = F * x5 + Fc * x6
     x8 = g0 + g1 * x7
-    x9 = x8 ** 2.0
+    x9 = x8 * x8
     x10 = x4 - x9
     x11 = 1.0 / x10
     x12 = x10 ** (-2)
@@ -452,6 +410,11 @@ def invWLC_jac(d, Lp, Lc, St, kT = 4.11):
             x90 * (x115 + x116 * x89) - x92 * (-x115 - x116 * x91)]
 
 
+def WLC_derivative(F, Lp, Lc, St, kT = 4.11):
+    x0 = 1.0 / F
+    return Lc * (0.25 * x0 * np.sqrt(kT * x0 / Lp) + 1.0 / St)
+
+
 def tWLC_derivative(F, Lp, Lc, St, C, g0, g1, Fc, kT):
     """Derivative of the tWLC model w.r.t. the independent variable"""
     x0 = 1.0 / F
@@ -464,6 +427,17 @@ def tWLC_derivative(F, Lp, Lc, St, C, g0, g1, Fc, kT):
     # The derivative terms were omitted since they are incompatible with a smooth optimization algorithm.
     # Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * (F * Derivative(x1, F) + Fc * Derivative(x2, F) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
     return Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp))
+
+
+def FJC_derivative(F, Lp, Lc, St, kT=4.11):
+    """Derivative of the FJC model w.r.t. the independent variable"""
+    x0 = 1.0/St
+    x1 = 2.0*Lp/kT
+    x2 = F*x1
+    x3 = 0.5*kT/Lp
+    sh = np.sinh(x2)
+
+    return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1/np.sinh(x2)**2 + x3/F**2)
 
 
 def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
@@ -498,7 +472,7 @@ def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     f_min = 0
     f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
 
-    return invert_function(d, .5 * (f_min+f_max) * np.ones(d.shape), f_min, f_max,
+    return invert_function(d, np.ones(d.shape), f_min, f_max,
                            lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
                            lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
 
@@ -508,17 +482,6 @@ def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
                            lambda f_trial: invtWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
                            lambda f_trial: tWLC_jac(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
                            lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
-
-
-def FJC_derivative(F, Lp, Lc, St, kT=4.11):
-    """Derivative of the FJC model w.r.t. the independent variable"""
-    x0 = 1.0/St
-    x1 = 2.0*Lp/kT
-    x2 = F*x1
-    x3 = 0.5*kT/Lp
-    sh = np.sinh(x2)
-
-    return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1/np.sinh(x2)**2 + x3/F**2)
 
 
 def invFJC(d, Lp, Lc, St, kT=4.11):

@@ -75,7 +75,7 @@ def test_condition_struct():
 
 
 def test_models():
-    independent = np.arange(0.001, .9, .01)
+    independent = np.arange(0.05, 2, .01)
     parameters = [5, 5, 5, 4.11]
     assert(Model(WLC, WLC_jac).verify_jacobian(independent, parameters))
     assert(Model(invWLC, invWLC_jac).verify_jacobian(independent, parameters))
@@ -92,7 +92,7 @@ def test_models():
     assert (np.allclose(WLC(invWLC(3, *parameters), *parameters), 3))
     parameters = [5.0, 15.0, 1.0, 4.11]
     assert (np.allclose(FJC(invFJC(independent, *parameters), *parameters), independent))
-    parameters = [1.0, 1.0, 1.0, 1.0, .1, 1.0, .5, 4.11]
+    parameters = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
     assert(np.allclose(tWLC(invtWLC(independent, *parameters), *parameters), independent))
 
 
@@ -157,3 +157,54 @@ def test_model_defaults():
     F.parameters["f_new"] = 6
     assert (F.parameters["f_new"].value == 6)
     assert (F.parameters["f"].value == 5)
+
+
+def test_model_composition():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def f_jac_wrong(x, a, b):
+        return np.vstack((np.zeros((1, len(x))), x))
+
+    def g(x, a, b, d):
+        return a - b * x + d * x * x
+
+    def g_jac(x, a, b, d):
+        return np.vstack((np.ones((1, len(x))), -x, x * x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def f_der_wrong(x, a, b):
+        return np.ones((len(x)))
+
+    def g_der(x, a, b, d):
+        return - b * np.ones((len(x))) + 2.0 * d * x
+
+    M1 = Model(f, f_jac, derivative=f_der)
+    M2 = Model(g, g_jac, derivative=g_der)
+
+    assert (M1 + M2).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
+    assert (M2 + M1).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
+
+    t = np.arange(0, 2, .1)
+    with pytest.raises(RuntimeError):
+        (Model(f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+
+    with pytest.raises(RuntimeError):
+        (M2 + Model(f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+
+    assert (InverseModel(Model(f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+
+    with pytest.raises(RuntimeError):
+        assert (InverseModel(Model(f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+
+    with pytest.raises(RuntimeError):
+        assert (InverseModel(Model(f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+
+    #assert (InverseModel(Model(f, f_jac, derivative=f_der) + M2)).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
+
+    #with pytest.raises(RuntimeError):
