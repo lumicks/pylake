@@ -4,11 +4,13 @@ import inspect
 import scipy.optimize as optim
 
 
-def force_model(model_type):
+def force_model(name, model_type):
     """Generate a force model.
 
     Parameters
     ----------
+    name : str
+        Name to identify the model by (e.g. "DNA"). This name gets prefixed to the non-shared parameters.
     model_type : str
         Specifies which model to return. Valid options are:
         - WLC
@@ -24,41 +26,41 @@ def force_model(model_type):
         - invFJC
             Inverted Freely Joint Chain model with d as independent parameter
     """
-    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=False)
-    Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf, vary=True)
-    Lc_default = Parameter(value=16.0, lb=0.0, ub=np.inf, vary=True)
-    St_default = Parameter(value=750.0, lb=0.0, ub=np.inf, vary=True)
+    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=False, shared=True)
+    Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf)
+    Lc_default = Parameter(value=16.0, lb=0.0, ub=np.inf)
+    St_default = Parameter(value=750.0, lb=0.0, ub=np.inf)
     if model_type == "offset":
-        return Model(offset_model, offset_model_jac, derivative=offset_model_derivative,
-                     offset=Parameter(value=0, lb=0.0, ub=np.inf, vary=True))
+        return Model(name, offset_model, offset_model_jac, derivative=offset_model_derivative,
+                     offset=Parameter(value=0, lb=-np.inf, ub=np.inf))
     if model_type == "WLC":
-        return Model(WLC, WLC_jac, derivative=WLC_derivative,
+        return Model(name, WLC, WLC_jac, derivative=WLC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "tWLC":
-        return Model(tWLC, tWLC_jac, derivative=tWLC_derivative,
+        return Model(name, tWLC, tWLC_jac, derivative=tWLC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, vary=True),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, vary=True),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, vary=True),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, vary=True),
+                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0),
                      )
     elif model_type == "FJC":
-        return Model(FJC, FJC_jac, derivative=FJC_derivative,
+        return Model(name, FJC, FJC_jac, derivative=FJC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invWLC":
-        return Model(invWLC, invWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+        return Model(name, invWLC, invWLC_jac, kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
         #return InverseModel(force_model("WLC"))
     elif model_type == "invtWLC":
-        return Model(invtWLC, invtWLC_jac, derivative=tWLC_derivative,
+        return Model(name, invtWLC, invtWLC_jac, derivative=tWLC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, vary=True),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, vary=True),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, vary=True),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, vary=True),
+                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0),
                      )
         #return InverseModel(force_model("tWLC"))
     elif model_type == "invFJC":
-        return InverseModel(force_model("FJC"))
+        return InverseModel(force_model(name, "FJC"))
     else:
         raise ValueError("Invalid model selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, invFJC.")
 

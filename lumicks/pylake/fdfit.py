@@ -130,16 +130,23 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
 
 
 class Model:
-    def __init__(self, model_function, jacobian=None, derivative=None, **kwargs):
+    def __init__(self, name, model_function, jacobian=None, derivative=None, **kwargs):
+        def formatter(x):
+            return f"{name}_{x}"
+
+        self.name = name
         self.model_function = model_function
         parameter_names = inspect.getfullargspec(model_function).args[1:]
-        self._parameters = OrderedDict(zip(parameter_names, [None] * len(parameter_names)))
 
-        for key, value in kwargs.items():
-            if key in self._parameters:
-                self._parameters[key] = value
+        self._parameters = OrderedDict()
+        for key in parameter_names:
+            if key in kwargs:
+                if kwargs[key].shared:
+                    self._parameters[key] = kwargs[key]
+                else:
+                    self._parameters[formatter(key)] = kwargs[key]
             else:
-                raise KeyError(f"Model does not contain parameter {key}")
+                self._parameters[formatter(key)] = None
 
         self._jacobian = jacobian
         self._derivative = derivative
@@ -322,18 +329,27 @@ class CompositeModel(Model):
 
 
 class Parameter:
-    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None):
+    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None, shared=False):
+        """Model parameter
+
+        value: float
+        lb, ub: float
+        vary: boolean
+        init: float
+        shared: boolean
+        """
         self.value = value
         self.lb = lb
         self.ub = ub
         self.vary = vary
+        self.shared = shared
         if init:
             self.init = init
         else:
             self.init = self.value
 
     def __repr__(self):
-        return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lb: {self.lb}, ub: {self.ub})"
+        return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lb: {self.lb}, ub: {self.ub}, vary: {self.vary})"
 
     def __str__(self):
         return self.__repr__()
@@ -366,7 +382,7 @@ class Parameters:
     def __str__(self):
         return_str = ""
         for key, param in self._src.items():
-            return_str = return_str + f"{key}      {param.value}\n"
+            return_str = return_str + f"{key}      {param.value} {param.vary}\n"
 
         return return_str
 
