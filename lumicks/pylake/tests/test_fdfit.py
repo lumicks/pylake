@@ -109,15 +109,15 @@ def test_condition_struct():
 def test_models():
     independent = np.arange(0.05, 2, .01)
     parameters = [5, 5, 5, 4.11]
-    assert(Model(WLC, WLC_jac).verify_jacobian(independent, parameters))
-    assert(Model(invWLC, invWLC_jac).verify_jacobian(independent, parameters))
-    assert(Model(FJC, FJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
-    assert(Model(invFJC, invFJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
+    assert(Model("M", WLC, WLC_jac).verify_jacobian(independent, parameters))
+    assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters))
+    assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
+    assert(Model("M", invFJC, invFJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
 
     # Check the tWLC and inverted tWLC model
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
-    assert(Model(tWLC, tWLC_jac).verify_jacobian(independent, parameters))
-    assert (Model(invtWLC, invtWLC_jac).verify_jacobian(independent, parameters))
+    assert(Model("M", tWLC, tWLC_jac).verify_jacobian(independent, parameters))
+    assert (Model("M", invtWLC, invtWLC_jac).verify_jacobian(independent, parameters))
 
     # Check whether the inverted models invert correctly
     parameters = [5.0, 5.0, 5.0]
@@ -141,22 +141,22 @@ def test_integration_test_fitting():
         jacobian = np.vstack((np.ones(len(x)), x))
         return jacobian
 
-    assert Model(linear, linear_jac).has_jacobian
-    assert not Model(linear).has_jacobian
+    assert Model("M", linear, linear_jac).has_jacobian
+    assert not Model("M", linear).has_jacobian
 
     with pytest.raises(RuntimeError):
-        model = Model(linear, linear_jac_wrong)
+        model = Model("M", linear, linear_jac_wrong)
         model.verify_jacobian([1, 2, 3], [1, 1])
 
-    model = Model(linear, linear_jac)
-    fit = FitObject(model)
+    model = Model("M", linear, linear_jac)
     x = np.arange(3)
     for i in np.arange(3):
         y = 4.0*x*i + 5.0
-        fit.load_data(x, y, a=f"slope_{i}")
+        model.load_data(x, y, M_a=f"slope_{i}")
+    fit = FitObject(model)
 
     y = 4.0*x + 10.0
-    fit.load_data(x, y, a="slope_1", b="b_2")
+    model.load_data(x, y, M_a="slope_1", M_b="M_b_2")
     fit.fit()
 
     assert(len(fit.parameters.values) == 5)
@@ -167,28 +167,28 @@ def test_integration_test_fitting():
     assert(np.isclose(fit.parameters["slope_0"].value, 0))
     assert(np.isclose(fit.parameters["slope_1"].value, 4))
     assert(np.isclose(fit.parameters["slope_2"].value, 8))
-    assert(np.isclose(fit.parameters["b"].value, 5))
-    assert(np.isclose(fit.parameters["b_2"].value, 10))
+    assert(np.isclose(fit.parameters["M_b"].value, 5))
+    assert(np.isclose(fit.parameters["M_b_2"].value, 10))
 
 
 def test_model_defaults():
     def g(data, mu, sig, a, b, c, d, e, f, q):
         return (data - mu) * 2
 
-    M = Model(g, f=Parameter(5))
+    M = Model("M", g, f=Parameter(5))
+    M.load_data([1, 2, 3], [2, 3, 4])
+    M.load_data([1, 2, 3], [2, 3, 4], M_f='f_new')
     F = FitObject(M)
-    F.load_data([1, 2, 3], [2, 3, 4])
-    F.load_data([1, 2, 3], [2, 3, 4], f='f_new')
-    F._build_model()
+    F._build_fitobject()
 
-    assert (F.parameters["a"].value == Parameter().value)
+    assert (F.parameters["M_a"].value == Parameter().value)
     assert (F.parameters["f_new"].value == 5)
-    assert (F.parameters["f"].value == 5)
+    assert (F.parameters["M_f"].value == 5)
 
     # Check whether each parameter is actually unique
     F.parameters["f_new"] = 6
     assert (F.parameters["f_new"].value == 6)
-    assert (F.parameters["f"].value == 5)
+    assert (F.parameters["M_f"].value == 5)
 
 
 def test_model_composition():
@@ -216,8 +216,8 @@ def test_model_composition():
     def g_der(x, a, b, d):
         return - b * np.ones((len(x))) + 2.0 * d * x
 
-    M1 = Model(f, f_jac, derivative=f_der)
-    M2 = Model(g, g_jac, derivative=g_der)
+    M1 = Model("M", f, f_jac, derivative=f_der)
+    M2 = Model("M", g, g_jac, derivative=g_der)
 
     assert (M1 + M2).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
     assert (M2 + M1).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
@@ -225,18 +225,18 @@ def test_model_composition():
 
     t = np.arange(0, 2, .1)
     with pytest.raises(RuntimeError):
-        (Model(f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+        (Model("M", f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
     with pytest.raises(RuntimeError):
-        (M2 + Model(f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+        (M2 + Model("M", f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
-    assert (InverseModel(Model(f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert InverseModel(Model(f, f_jac, derivative=f_der) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert InverseModel(Model(f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
 
     with pytest.raises(RuntimeError):
-        assert (InverseModel(Model(f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+        assert (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
                                                                                             verbose=False)
     with pytest.raises(RuntimeError):
-        assert (InverseModel(Model(f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+        assert (InverseModel(Model("M", f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
                                                                                             verbose=False)

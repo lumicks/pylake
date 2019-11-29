@@ -15,7 +15,8 @@ def parse_transformation(parameters, **kwargs):
         if key in transformed:
             transformed[key] = value
         else:
-            raise KeyError(f"Parameter {key} to be substituted not found in model.")
+            raise KeyError(f"Parameter {key} to be substituted not found in model. Valid keys for this model are: "
+                           f"{[x for x in transformed.keys()]}.")
 
     return transformed
 
@@ -131,6 +132,35 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
 
 class Model:
     def __init__(self, name, model_function, jacobian=None, derivative=None, **kwargs):
+        """
+        This function creates a model. A Model must be named, and this name will appear in the model parameters.
+
+        Parameters
+        ----------
+        name: str
+            Name for the model. This name will be prefixed to the model parameter names.
+        model_function: callable
+            Function containing the model function. Must return the model prediction given values for the independent
+            variable and parameters.
+        jacobian: callable (optional)
+            Function which computes the first order derivatives with respect to the parameters for this model.
+            When supplied, this function is used to speed up the optimization considerably.
+        derivative: callable (optional)
+            Function which computes the first order derivative with respect to the independent parameter. When supplied
+            this speeds up model inversions considerably.
+        **kwargs
+            Key pairs containing parameter defaults. For instance, Lc=Parameter(...)
+        """
+        import types
+        assert isinstance(name, str), "First argument must be a model name."
+        assert isinstance(model_function, types.FunctionType), "Model must be a callable."
+
+        if jacobian:
+            assert isinstance(jacobian, types.FunctionType), "Jacobian must be a callable."
+
+        if derivative:
+            assert isinstance(derivative, types.FunctionType), "Derivative must be a callable."
+
         def formatter(x):
             return f"{name}_{x}"
 
@@ -141,6 +171,7 @@ class Model:
         self._parameters = OrderedDict()
         for key in parameter_names:
             if key in kwargs:
+                assert isinstance(kwargs[key], Parameter), "Passed a non-parameter as model default."
                 if kwargs[key].shared:
                     self._parameters[key] = kwargs[key]
                 else:
@@ -150,6 +181,9 @@ class Model:
 
         self._jacobian = jacobian
         self._derivative = derivative
+        self._data = []
+        self._conditions = []
+        self._built = False
 
     def __add__(self, other):
         """
@@ -172,9 +206,10 @@ class Model:
         data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
         return self.model_function(data, *parameter_vector)
 
-    def get_default(self, key):
+    @property
+    def _defaults(self):
         from copy import deepcopy
-        return deepcopy(self._parameters[key])
+        return [deepcopy(self._parameters[name]) for data in self._data for name in data.source_parameter_names]
 
     def jacobian(self, independent, parameter_vector):
         if self.has_jacobian:
@@ -191,6 +226,46 @@ class Model:
     def has_jacobian(self):
         if self._jacobian:
             return True
+
+    @property
+    def n_residuals(self):
+        count = 0
+        for data in self._data:
+            count += len(data.independent)
+
+        return count
+
+    def _calculate_residual(self, global_parameter_values):
+        residual_idx = 0
+        residual = np.zeros(self.n_residuals)
+        for condition, data_sets in zip(self._conditions, self._data_link):
+            p_local = condition.get_local_parameters(global_parameter_values)
+            for data in data_sets:
+                data_set = self._data[data]
+                y_model = self(data_set.x, p_local)
+
+                residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
+                residual_idx += len(y_model)
+
+        return residual
+
+    def _calculate_jacobian(self, global_parameter_values):
+        residual_idx = 0
+        jacobian = np.zeros((self.n_residuals, len(global_parameter_values)))
+        for condition, data_sets in zip(self._conditions, self._data_link):
+            p_local = condition.get_local_parameters(global_parameter_values)
+            p_indices = condition.p_indices
+            for data in data_sets:
+                data_set = self._data[data]
+                sensitivities = np.transpose(self.jacobian(data_set.x, p_local))
+                n_res = sensitivities.shape[0]
+
+                jacobian[residual_idx:residual_idx + n_res, p_indices] = \
+                    jacobian[residual_idx:residual_idx + n_res, p_indices] - sensitivities
+
+                residual_idx += n_res
+
+        return jacobian
 
     def numerical_jacobian(self, independent, parameter_vector, dx=1e-6):
         independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
@@ -241,6 +316,50 @@ class Model:
     def parameter_names(self):
         return [x for x in self._parameters.keys()]
 
+    def _invalidate_build(self):
+        self._built = False
+
+    @property
+    def dirty(self):
+        return not self._built
+
+    def load_data(self, x, y, **kwargs):
+        self._invalidate_build()
+        parameter_list = parse_transformation(self.parameter_names, **kwargs)
+        self._data.append(Data(x, y, parameter_list))
+        return self
+
+    @property
+    def _transformed_parameters(self):
+        """Retrieves the full list of parameters and defaults post-transformation used by this model. This includes the
+        parameters for all the data-sets in the model."""
+        return [name for data in self._data for name in data.parameter_names]
+
+    def _build_model(self, parameter_lookup):
+        self._conditions, self._data_link = _generate_conditions(self._data, parameter_lookup,
+                                                                 self.parameter_names)
+
+    def _plot_data(self, idx=None):
+        import matplotlib.pyplot as plt
+
+        for data_idx in idx if idx else np.arange(len(self._data)):
+            data = self._data[data_idx]
+            plt.plot(data.x, data.y, '.')
+
+    def _plot_model(self, global_parameters, idx=None):
+        import matplotlib.pyplot as plt
+
+        def intersection(l1, l2):
+            return [value for value in l1 if value in l2]
+
+        if not idx:
+            idx = np.arange(len(self._data))
+
+        for condition, data_sets in zip(self._conditions, self._data_link):
+            p_local = condition.get_local_parameters(global_parameters)
+            [plt.plot(np.sort(self._data[value].x), self(np.sort(self._data[value].x), p_local))
+             for value in idx if value in self._data_link]
+
 
 class InverseModel(Model):
     def __init__(self, model):
@@ -252,6 +371,8 @@ class InverseModel(Model):
         model: Model
         """
         self.model = model
+        self._data = []
+        self._conditions = []
 
     def __call__(self, data, parameter_vector):
         f_min = -np.inf
@@ -304,6 +425,9 @@ class CompositeModel(Model):
 
         self.lhs_parameters = [True if x in parameters_lhs else False for x in parameters_all]
         self.rhs_parameters = [True if x in parameters_rhs else False for x in parameters_all]
+
+        self._data = []
+        self._conditions = []
 
     def __call__(self, data, parameter_vector):
         return self.lhs(data, parameter_vector[self.lhs_parameters]) + \
@@ -431,92 +555,77 @@ class FitObject:
     A fit object builds the linkages required to propagate parameters used in sub-models to a global parameter vector
     used by the optimization algorithm.
     """
-    def __init__(self, model):
-        self.model = model
-        self._data = []
-        self._conditions = []
+    def __init__(self, *args):
+        self.models = [M for M in args]
         self._data_link = None
         self._parameters = Parameters()
         self._current_new_idx = 0
-
+        self._built = False
         self._invalidate_build()
 
-    def load_data(self, x, y, **kwargs):
-        self._invalidate_build()
-
-        parameter_list = parse_transformation(self.model.parameter_names, **kwargs)
-        self._data.append(Data(x, y, parameter_list))
-        return self
-
-    def _build_model(self):
+    def _build_fitobject(self):
         """This function generates the global parameter list from the parameters of the individual submodels.
         It also generates unique conditions from the data specification."""
-        parameter_names = [name for data in self._data for name in data.parameter_names]
-
-        unique_parameter_names = unique(parameter_names)
+        all_parameter_names = [p for M in self.models for p in M._transformed_parameters]
+        all_defaults = [d for M in self.models for d in M._defaults]
+        unique_parameter_names = unique(all_parameter_names)
         parameter_lookup = OrderedDict(zip(unique_parameter_names, np.arange(len(unique_parameter_names))))
+        defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
 
-        defaults = [self.model.get_default(name) for data in self._data for name in data.source_parameter_names]
-        defaults = [defaults[parameter_names.index(l)] for l in unique_parameter_names]
+        for M in self.models:
+            M._build_model(parameter_lookup) #all_parameter_names
 
-        self._conditions, self._data_link = _generate_conditions(self._data, parameter_lookup,
-                                                                 self.model.parameter_names)
         self._parameters.set_parameters(unique_parameter_names, defaults)
+        self._built = True
 
-    def _check_rebuild(self):
+    def _rebuild(self):
         """
         Checks whether the model state is up to date. Any user facing methods should ideally check whether the model
         needs to be rebuilt.
         """
-        if not self._built:
-            self._build_model()
-            self._built = True
+        if self.dirty:
+            self._build_fitobject()
 
     def _invalidate_build(self):
         self._built = False
 
     @property
+    def dirty(self):
+        dirty = not self._built
+        for M in self.models:
+            dirty = dirty or M.dirty
+
+        return dirty
+
+    @property
     def n_residuals(self):
-        self._check_rebuild()
+        self._rebuild()
         count = 0
-        for data in self._data:
-            count += len(data.independent)
+        for M in self.models:
+            count += M.n_residuals
 
         return count
 
+    def has_jacobian(self):
+        has_jacobian = True
+        for M in self.models:
+            has_jacobian = has_jacobian and M.has_jacobian()
+
+        return has_jacobian
+
     @property
     def parameters(self):
-        self._check_rebuild()
+        self._rebuild()
         return self._parameters
 
     @property
     def n_parameters(self):
-        self._check_rebuild()
+        self._rebuild()
         return len(self._parameters)
 
-    def plot_data(self, idx=None):
-        import matplotlib.pyplot as plt
-
-        for data_idx in idx if idx else np.arange(len(self._data)):
-            data = self._data[data_idx]
-            plt.plot(data.x, data.y, '.')
-
-    def plot_model(self, idx=None):
-        import matplotlib.pyplot as plt
-        self._check_rebuild()
-
-        def intersection(l1, l2):
-            return [value for value in l1 if value in l2]
-
-        if not idx:
-            idx = np.arange(len(self._data))
-
-        for condition, data_sets in zip(self._conditions, self._data_link):
-            p_local = condition.get_local_parameters(self.parameters.values)
-            [plt.plot(np.sort(self._data[value].x), self.model(np.sort(self._data[value].x), p_local))
-             for value in idx if value in self._data_link]
-
     def fit(self, **kwargs):
+        self._rebuild()
+
         parameter_vector = self.parameters.values
         fitted = self.parameters.fitted
         lb = self.parameters.lb
@@ -528,10 +637,10 @@ class FitObject:
 
         def jacobian(parameters):
             parameter_vector[fitted] = parameters
-            return self._evaluate_jacobian(parameter_vector)[:, fitted]
+            return self._calculate_jacobian(parameter_vector)[:, fitted]
 
         result = optim.least_squares(residual, parameter_vector[fitted],
-                                     jac=jacobian if self.model.has_jacobian else "2-point",
+                                     jac=jacobian if self.has_jacobian else "2-point",
                                      bounds=(lb[fitted], ub[fitted]),
                                      method='trf', ftol=1e-06, xtol=1e-06, gtol=1e-8, **kwargs)
 
@@ -542,42 +651,32 @@ class FitObject:
             self.parameters[name] = value
 
     def _calculate_residual(self, parameter_values=[]):
-        self._check_rebuild()
+        self._rebuild()
         if len(parameter_values) == 0:
             parameter_values = self.parameters.values
 
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
-        for condition, data_sets in zip(self._conditions, self._data_link):
-            p_local = condition.get_local_parameters(parameter_values)
-            for data in data_sets:
-                data_set = self._data[data]
-                y_model = self.model(data_set.x, p_local)
-
-                residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
-                residual_idx += len(y_model)
+        for M in self.models:
+            current_residual = M._calculate_residual(parameter_values)
+            current_n = len(current_residual)
+            residual[residual_idx:residual_idx + current_n] = current_residual
+            residual_idx += current_n
 
         return residual
 
-    def _evaluate_jacobian(self, parameter_values=[]):
-        self._check_rebuild()
+    def _calculate_jacobian(self, parameter_values=[]):
+        self._rebuild()
         if len(parameter_values) == 0:
             parameter_values = self.parameters.values
 
         residual_idx = 0
-        jacobian = np.zeros((self.n_residuals, self.n_parameters))
-        for condition, data_sets in zip(self._conditions, self._data_link):
-            p_local = condition.get_local_parameters(parameter_values)
-            p_indices = condition.p_indices
-            for data in data_sets:
-                data_set = self._data[data]
-                sensitivities = np.transpose(self.model.jacobian(data_set.x, p_local))
-                n_res = sensitivities.shape[0]
-
-                jacobian[residual_idx:residual_idx + n_res, p_indices] = \
-                    jacobian[residual_idx:residual_idx + n_res, p_indices] - sensitivities
-
-                residual_idx += n_res
+        jacobian = np.zeros((self.n_residuals, len(parameter_values)))
+        for M in self.models:
+            current_jacobian = M._calculate_jacobian(parameter_values)
+            current_n = current_jacobian.shape[0]
+            jacobian[residual_idx:residual_idx + current_n, :] = current_jacobian
+            residual_idx += current_n
 
         return jacobian
 
@@ -596,7 +695,7 @@ class FitObject:
 
     @property
     def aic(self):
-        self._check_rebuild()
+        self._rebuild()
         k = sum(self.parameters.fitted)
         LL = self.log_likelihood
         return 2.0 * k - 2.0 * LL
@@ -618,9 +717,21 @@ class FitObject:
         Returns the inverse of the approximate Hessian. This approximation is valid when the residuals of the fitting
         problem are small.
         """
-        J = self._evaluate_jacobian()
+        J = self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
         return np.linalg.inv(np.transpose(J).dot(J))
+
+    def plot_data(self):
+        self._rebuild()
+
+        for M in self.models:
+            M._plot_data()
+
+    def plot_model(self):
+        self._rebuild()
+
+        for M in self.models:
+            M._plot_model(self.parameters.values)
 
 
 class Data:
