@@ -63,6 +63,19 @@ def _generate_conditions(data_sets, parameter_lookup, model_parameters):
     return conditions, data_link
 
 
+def numerical_jacobian(fn, independent, parameter_vector, dx=1e-6):
+    finite_difference_jacobian = np.zeros((len(parameter_vector), len(independent)))
+    for i in np.arange(len(parameter_vector)):
+        parameters = np.copy(parameter_vector)
+        parameters[i] = parameters[i] + dx
+        up = fn(independent, parameters)
+        parameters[i] = parameters[i] - 2.0 * dx
+        down = fn(independent, parameters)
+        finite_difference_jacobian[i, :] = (up - down) / (2.0*dx)
+
+    return finite_difference_jacobian
+
+
 def invert_function(d, initial, f_min, f_max, model_function, derivative_function=None):
     """This function inverts a function using a least squares optimizer. For models where this is required, this is the
     most time consuming step.
@@ -89,7 +102,7 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
 
     result = optim.least_squares(lambda f_trial: model_function(f_trial) - d, initial, jac=jac,
                                  jac_sparsity=sp.sparse.identity(len(d)),
-                                 bounds=(f_min, f_max), method='trf', ftol=1e-06, xtol=1e-06, gtol=1e-6)
+                                 bounds=(f_min, f_max), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-8)
 
     return result.x
 
@@ -209,7 +222,10 @@ class Model:
     @property
     def _defaults(self):
         from copy import deepcopy
-        return [deepcopy(self._parameters[name]) for data in self._data for name in data.source_parameter_names]
+        if self._data:
+            return [deepcopy(self._parameters[name]) for data in self._data for name in data.source_parameter_names]
+        else:
+            return [deepcopy(self._parameters[name]) for name in self.parameter_names]
 
     def jacobian(self, independent, parameter_vector):
         if self.has_jacobian:
@@ -267,20 +283,6 @@ class Model:
 
         return jacobian
 
-    def numerical_jacobian(self, independent, parameter_vector, dx=1e-6):
-        independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
-
-        finite_difference_jacobian = np.zeros((len(parameter_vector), len(independent)))
-        for i in np.arange(len(parameter_vector)):
-            parameters = np.copy(parameter_vector)
-            parameters[i] = parameters[i] + dx
-            up = self(independent, parameters)
-            parameters[i] = parameters[i] - 2.0 * dx
-            down = self(independent, parameters)
-            finite_difference_jacobian[i, :] = (up - down) / (2.0*dx)
-
-        return finite_difference_jacobian
-
     def verify_jacobian(self, independent, parameters, plot=False, verbose=True, **kwargs):
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
@@ -289,22 +291,22 @@ class Model:
         independent, parameters = self._sanitize_input_types(independent, parameters)
 
         jacobian = self.jacobian(independent, parameters)
-        numerical_jacobian = self.numerical_jacobian(independent, parameters)
+        jacobian_fd = numerical_jacobian(self, independent, parameters)
 
         if plot:
             import matplotlib.pyplot as plt
             plt.subplot(2, 1, 1)
             l1 = plt.plot(independent, np.transpose(jacobian))
-            l2 = plt.plot(independent, np.transpose(numerical_jacobian), '--')
+            l2 = plt.plot(independent, np.transpose(jacobian_fd), '--')
             plt.legend([l1[0], l2[0]], ('Analytical', 'Numerical'))
             plt.subplot(2, 1, 2)
-            plt.plot(independent, np.transpose(jacobian - numerical_jacobian))
+            plt.plot(independent, np.transpose(jacobian - jacobian_fd))
 
-        is_close = np.allclose(jacobian, numerical_jacobian, **kwargs)
+        is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
 
         if not is_close:
             if verbose:
-                maxima = np.max(jacobian - numerical_jacobian, axis=1)
+                maxima = np.max(jacobian - jacobian_fd, axis=1)
                 for i, v in enumerate(maxima):
                     print(f"Parameter {self.parameter_names[i]}({i}): {v}")
 
@@ -333,7 +335,10 @@ class Model:
     def _transformed_parameters(self):
         """Retrieves the full list of parameters and defaults post-transformation used by this model. This includes the
         parameters for all the data-sets in the model."""
-        return [name for data in self._data for name in data.parameter_names]
+        if self._data:
+            return [name for data in self._data for name in data.parameter_names]
+        else:
+            return self.parameter_names
 
     def _build_model(self, parameter_lookup):
         self._conditions, self._data_link = _generate_conditions(self._data, parameter_lookup,
@@ -358,7 +363,7 @@ class Model:
         for condition, data_sets in zip(self._conditions, self._data_link):
             p_local = condition.get_local_parameters(global_parameters)
             [plt.plot(np.sort(self._data[value].x), self(np.sort(self._data[value].x), p_local))
-             for value in idx if value in self._data_link]
+             for value in idx if value in data_sets]
 
 
 class InverseModel(Model):
@@ -373,6 +378,7 @@ class InverseModel(Model):
         self.model = model
         self._data = []
         self._conditions = []
+        self._built = False
 
     def __call__(self, data, parameter_vector):
         f_min = -np.inf
@@ -428,6 +434,7 @@ class CompositeModel(Model):
 
         self._data = []
         self._conditions = []
+        self._built = False
 
     def __call__(self, data, parameter_vector):
         return self.lhs(data, parameter_vector[self.lhs_parameters]) + \
@@ -573,7 +580,7 @@ class FitObject:
         defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
 
         for M in self.models:
-            M._build_model(parameter_lookup) #all_parameter_names
+            M._build_model(parameter_lookup)
 
         self._parameters.set_parameters(unique_parameter_names, defaults)
         self._built = True
