@@ -63,14 +63,14 @@ def _generate_conditions(data_sets, parameter_lookup, model_parameters):
     return conditions, data_link
 
 
-def numerical_jacobian(fn, independent, parameter_vector, dx=1e-6):
-    finite_difference_jacobian = np.zeros((len(parameter_vector), len(independent)))
+def numerical_jacobian(fn, parameter_vector, dx=1e-6):
+    finite_difference_jacobian = np.zeros((len(parameter_vector), len(fn(parameter_vector))))
     for i in np.arange(len(parameter_vector)):
         parameters = np.copy(parameter_vector)
         parameters[i] = parameters[i] + dx
-        up = fn(independent, parameters)
+        up = fn(parameters)
         parameters[i] = parameters[i] - 2.0 * dx
-        down = fn(independent, parameters)
+        down = fn(parameters)
         finite_difference_jacobian[i, :] = (up - down) / (2.0*dx)
 
     return finite_difference_jacobian
@@ -215,9 +215,9 @@ class Model:
         parameter_vector = np.array(parameter_vector).astype(float)
         return data, parameter_vector
 
-    def __call__(self, data, parameter_vector):
-        data, parameter_vector = self._sanitize_input_types(data, parameter_vector)
-        return self.model_function(data, *parameter_vector)
+    def __call__(self, independent, parameter_vector):
+        data, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+        return self.model_function(independent, *parameter_vector)
 
     @property
     def _defaults(self):
@@ -291,7 +291,7 @@ class Model:
         independent, parameters = self._sanitize_input_types(independent, parameters)
 
         jacobian = self.jacobian(independent, parameters)
-        jacobian_fd = numerical_jacobian(self, independent, parameters)
+        jacobian_fd = numerical_jacobian(lambda parameter_values: self(independent, parameter_values), parameters)
 
         if plot:
             import matplotlib.pyplot as plt
@@ -502,6 +502,8 @@ class Parameters:
 
         if item in self._src:
             return self._src[item]
+        else:
+            raise IndexError(f"Parameter {item} does not exist.")
 
     def __setitem__(self, item, value):
         if item in self._src:
@@ -512,8 +514,9 @@ class Parameters:
 
     def __str__(self):
         return_str = ""
+        maxlen = np.max([len(x) for x in self._src.keys()])
         for key, param in self._src.items():
-            return_str = return_str + f"{key}      {param.value} {param.vary}\n"
+            return_str = return_str + ("{:"+f"{maxlen+1}"+"s} {:1.4e} {:1d}\n").format(key, param.value, param.vary)
 
         return return_str
 
@@ -633,6 +636,10 @@ class FitObject:
     def fit(self, **kwargs):
         self._rebuild()
 
+        assert self.n_residuals > 0, "This model has no data associated with it. Did you accidentally load data into " \
+                                     "the wrong model?"
+        assert self.n_parameters > 0, "This model has no parameters. There is nothing to fit."
+
         parameter_vector = self.parameters.values
         fitted = self.parameters.fitted
         lb = self.parameters.lb
@@ -649,7 +656,7 @@ class FitObject:
         result = optim.least_squares(residual, parameter_vector[fitted],
                                      jac=jacobian if self.has_jacobian else "2-point",
                                      bounds=(lb[fitted], ub[fitted]),
-                                     method='trf', ftol=1e-06, xtol=1e-06, gtol=1e-8, **kwargs)
+                                     method='trf', ftol=1e-8, xtol=1e-8, gtol=1e-8, **kwargs)
 
         parameter_names = self.parameters.keys
         parameter_vector[fitted] = result.x
@@ -686,6 +693,35 @@ class FitObject:
             residual_idx += current_n
 
         return jacobian
+
+    def verify_jacobian(self, parameters, plot=False, verbose=True, **kwargs):
+        if len(parameters) != len(self._parameters):
+            raise ValueError("Parameter vector has invalid length. "
+                             f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
+
+        jacobian = self._calculate_jacobian(parameters).transpose()
+        jacobian_fd = numerical_jacobian(self._calculate_residual, parameters)
+
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.subplot(2, 1, 1)
+            l1 = plt.plot(np.transpose(jacobian))
+            l2 = plt.plot(np.transpose(jacobian_fd), '--')
+            plt.legend([l1[0], l2[0]], ('Analytical', 'Numerical'))
+            plt.subplot(2, 1, 2)
+            plt.plot(np.transpose(jacobian - jacobian_fd))
+
+        is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
+
+        if not is_close:
+            if verbose:
+                maxima = np.max(jacobian - jacobian_fd, axis=1)
+                for i, v in enumerate(maxima):
+                    print(f"Parameter {self.parameter_names[i]}({i}): {v}")
+
+            raise RuntimeError('Numerical Jacobian did not pass.')
+
+        return is_close
 
     @property
     def sigma(self):
@@ -734,11 +770,18 @@ class FitObject:
         for M in self.models:
             M._plot_data()
 
-    def plot_model(self):
+    def plot_model(self, **kwargs):
         self._rebuild()
 
+        parameters = self.parameters
+
+        if kwargs:
+            parameters = deepcopy(parameters)
+            for key, value in kwargs.items():
+                parameters[key] = value
+
         for M in self.models:
-            M._plot_model(self.parameters.values)
+            M._plot_model(parameters.values)
 
 
 class Data:
