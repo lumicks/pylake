@@ -82,6 +82,48 @@ class Slice:
         except AttributeError:
             return None
 
+    def downsampled_over(self, range_list, reduce=np.mean, where='center'):
+        """Downsample channel data based on timestamp ranges. The downsampling function (e.g. np.mean) is evaluated for
+        the time between a start and end time of each block. A list is returned that contains the data corresponding to
+        each block.
+
+        Parameters
+        ----------
+        range_list : list of tuples
+            A list of (start, stop) tuples indicating over which ranges to apply the function.
+            Start and stop have to be specified in nanoseconds.
+        reduce : callable
+            The `numpy` function which is going to reduce multiple samples into one.
+            The default is `np.mean`, but `np.sum` could also be appropriate for some
+            cases, e.g. photon counts.
+        where : str
+            Where to put the final time point.
+            'center' time point is put at start + stop / 2
+            'left' time point is put at start
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            file = pylake.File("example.h5")
+            stack = pylake.CorrelatedStack("example.tiff")
+            file.force1x.downsampled_over(stack.timestamps)
+        """
+        if where != 'center' and where != 'left':
+            raise ValueError("Invalid argument for where. Valid options are center and left")
+
+        t = np.zeros(len(range_list))
+        d = np.zeros(len(range_list))
+        for i, time_range in enumerate(range_list):
+            start, stop = time_range
+            subset = self[start:stop]
+            t[i] = (start + stop) // 2 if where == 'center' else start
+            d[i] = reduce(subset.data)
+
+        return Slice(TimeSeries(d, t), self.labels)
+
     def downsampled_by(self, factor, reduce=np.mean):
         """Return a copy of this slice which is downsampled by `factor`
 
