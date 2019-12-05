@@ -111,6 +111,13 @@ class Slice:
             stack = pylake.CorrelatedStack("example.tiff")
             file.force1x.downsampled_over(stack.timestamps)
         """
+        if not isinstance(range_list, list):
+            raise TypeError("Did not pass timestamps to range_list.")
+
+        assert len(range_list[0]) == 2, "Did not pass timestamps to range_list."
+        assert self._src.start < range_list[-1][1], "No overlap between CorrelatedStack and selected channel."
+        assert self._src.stop > range_list[0][0], "No overlap between CorrelatedStack and selected channel"
+
         if where != 'center' and where != 'left':
             raise ValueError("Invalid argument for where. Valid options are center and left")
 
