@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.0 | 2019-12-05
+
+* Add calibration data as attribute of force channels.
+* Take into account slicing of channels when returning force calibration data.
+* Fixed slicing behaviour when slicing continuous time channels within a timestep.
+* Export pixel size and dwell time to TIFFs exported with pylake.
+* Implement slicing for kymographs.
+* Show keys in a group when printing the group.
+* Allow iteration over groups.
+* Fix bug which could cause axes to be inverted for images reconstructed in pylake.
+* Add functionality to correlate images recorded from cameras with timeline data.
+
 ## v0.3.1 | 2019-03-27
 
 * Loading scans and kymographs is now much faster
