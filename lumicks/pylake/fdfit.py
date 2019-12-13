@@ -1,7 +1,7 @@
 import inspect
 import numpy as np
 import scipy as sp
-from .detail.utilities import unique, unique_idx
+from .detail.utilities import unique, unique_idx, optimal_plot_layout, print_styled
 from collections import OrderedDict
 from copy import deepcopy
 import scipy.optimize as optim
@@ -143,6 +143,19 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
     return jacobian
 
 
+def invert_derivative(d, inverted_model_function, derivative_function):
+    """
+    Calculates the derivative of the inverted function.
+    Parameters
+    ----------
+    d : values for the old independent variable
+    inverted_model_function : callable
+        inverted model function (model with the dependent and independent variable exchanged)
+    derivative_function : callable
+        derivative of the non-inverted model w.r.t. the independent variable
+    """
+    return 1.0 / derivative_function(inverted_model_function(d))
+
 class Model:
     def __init__(self, name, model_function, jacobian=None, derivative=None, **kwargs):
         """
@@ -196,7 +209,7 @@ class Model:
         self._derivative = derivative
         self._data = []
         self._conditions = []
-        self._built = False
+        self._built = None
 
     def __add__(self, other):
         """
@@ -210,13 +223,13 @@ class Model:
         return CompositeModel(self, other)
 
     @staticmethod
-    def _sanitize_input_types(data, parameter_vector):
-        data = np.array(data).astype(float)
+    def _sanitize_input_types(independent, parameter_vector):
+        independent = np.array(independent).astype(float)
         parameter_vector = np.array(parameter_vector).astype(float)
-        return data, parameter_vector
+        return independent, parameter_vector
 
     def __call__(self, independent, parameter_vector):
-        data, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+        independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
         return self.model_function(independent, *parameter_vector)
 
     @property
@@ -232,15 +245,23 @@ class Model:
             independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
             return self._jacobian(independent, *parameter_vector)
         else:
-            raise RuntimeError("Jacobian was requested but not supplied in the model.")
+            raise RuntimeError(f"Jacobian was requested but not supplied in model {self.name}.")
 
     def derivative(self, independent, parameter_vector):
-        independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
-        return self._derivative(independent, *parameter_vector)
+        if self.has_derivative:
+            independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+            return self._derivative(independent, *parameter_vector)
+        else:
+            raise RuntimeError(f"Derivative was requested but not supplied in model {self.name}.")
 
     @property
     def has_jacobian(self):
         if self._jacobian:
+            return True
+
+    @property
+    def has_derivative(self):
+        if self._derivative:
             return True
 
     @property
@@ -295,22 +316,23 @@ class Model:
 
         if plot:
             import matplotlib.pyplot as plt
-            plt.subplot(2, 1, 1)
-            l1 = plt.plot(independent, np.transpose(jacobian))
-            l2 = plt.plot(independent, np.transpose(jacobian_fd), '--')
-            plt.legend([l1[0], l2[0]], ('Analytical', 'Numerical'))
-            plt.subplot(2, 1, 2)
-            plt.plot(independent, np.transpose(jacobian - jacobian_fd))
+            n_x, n_y = optimal_plot_layout(len(self.parameters))
+            for i_parameter, parameter in enumerate(self.parameters):
+                plt.subplot(n_x, n_y, i_parameter)
+                l1 = plt.plot(independent, np.transpose(jacobian[i_parameter, :]))
+                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_parameter, :]), '--')
+                plt.title(parameter)
+                plt.legend({'Analytic', 'FD'})
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
-
         if not is_close:
             if verbose:
                 maxima = np.max(jacobian - jacobian_fd, axis=1)
                 for i, v in enumerate(maxima):
-                    print(f"Parameter {self.parameter_names[i]}({i}): {v}")
-
-            raise RuntimeError('Numerical Jacobian did not pass.')
+                    if np.allclose(jacobian[i, :], jacobian_fd[i, :]):
+                        print(f"Parameter {self.parameter_names[i]}({i}): {v}")
+                    else:
+                        print_styled('warning', f'Parameter {self.parameter_names[i]}({i}): {v}')
 
         return is_close
 
@@ -321,9 +343,8 @@ class Model:
     def _invalidate_build(self):
         self._built = False
 
-    @property
-    def dirty(self):
-        return not self._built
+    def built_against(self, fit_object):
+        return self._built == fit_object
 
     def load_data(self, x, y, **kwargs):
         self._invalidate_build()
@@ -340,9 +361,11 @@ class Model:
         else:
             return self.parameter_names
 
-    def _build_model(self, parameter_lookup):
+    def _build_model(self, parameter_lookup, fit_object):
         self._conditions, self._data_link = _generate_conditions(self._data, parameter_lookup,
                                                                  self.parameter_names)
+
+        self._built = fit_object
 
     def _plot_data(self, idx=None):
         import matplotlib.pyplot as plt
@@ -366,6 +389,64 @@ class Model:
              for value in idx if value in data_sets]
 
 
+class SubtractIndependentOffset(Model):
+    def __init__(self, model, parameter_name='independent_offset'):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        model: Model
+        """
+        self.model = model
+        offset_name = self.model.name + '_' + parameter_name
+
+        self.name = self.model.name + "(x-d)"
+        self._parameters = OrderedDict()
+        self._parameters[offset_name] = None
+        for i, v in self.model._parameters.items():
+            self._parameters[i] = v
+
+        parameters_parent = list(self.model._parameters.keys())
+        parameters_rhs = [offset_name]
+        parameters_all = list(self._parameters.keys())
+
+        self.model_parameters = [parameters_all.index(par) for par in parameters_parent]
+        self.offset_parameter = [parameters_all.index(par) for par in parameters_rhs]
+
+        self._data = []
+        self._conditions = []
+        self._built = None
+
+    def __call__(self, independent, parameter_vector):
+        return self.model(independent - parameter_vector[self.offset_parameter],
+                          parameter_vector[self.model_parameters])
+
+    @property
+    def has_jacobian(self):
+        return self.model.has_jacobian
+
+    @property
+    def has_derivative(self):
+        return self.model.has_derivative
+
+    def jacobian(self, independent, parameter_vector):
+        if self.has_jacobian:
+            with_offset = independent - parameter_vector[self.offset_parameter]
+            jacobian = np.zeros((len(parameter_vector), len(with_offset)))
+            jacobian[self.model_parameters, :] += self.model.jacobian(with_offset,
+                                                                      parameter_vector[self.model_parameters])
+            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset,
+                                                                         parameter_vector[self.model_parameters])
+
+            return jacobian
+
+    def derivative(self, independent, parameter_vector):
+        if self.has_derivative:
+            with_offset = independent - parameter_vector[self.offset_parameter]
+            return self.model.derivative(with_offset, parameter_vector[self.model_parameters])
+
+
 class InverseModel(Model):
     def __init__(self, model):
         """
@@ -379,13 +460,14 @@ class InverseModel(Model):
         self._data = []
         self._conditions = []
         self._built = False
+        self.name = "inv(" + model.name + ")"
 
-    def __call__(self, data, parameter_vector):
-        f_min = -np.inf
+    def __call__(self, independent, parameter_vector):
+        f_min = 0
         f_max = np.inf
-        initial = np.ones(data.shape)
+        initial = np.ones(independent.shape)
 
-        return invert_function(data, initial, f_min, f_max,
+        return invert_function(independent, initial, f_min, f_max,
                                lambda f_trial: self.model(f_trial, parameter_vector),  # Forward model
                                lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
@@ -393,13 +475,24 @@ class InverseModel(Model):
     def has_jacobian(self):
         """Does the model have sufficient information to determine its inverse numerically?
         This requires a Jacobian and a derivative w.r.t. independent variable."""
-        return True
+        return self.model.has_jacobian and self.model.has_derivative
 
-    def jacobian(self, data, parameter_vector):
-        return invert_jacobian(data,
+    @property
+    def has_derivative(self):
+        return False
+
+    def jacobian(self, independent, parameter_vector):
+        """Jacobian of the inverted model"""
+        return invert_jacobian(independent,
                                lambda f_trial: self(f_trial, parameter_vector),  # Inverse model (me)
                                lambda f_trial: self.model.jacobian(f_trial, parameter_vector),
                                lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+
+    def derivative(self, independent, parameter_vector):
+        """Derivative of the inverted model"""
+        return invert_derivative(independent,
+                                 lambda f_trial: self(f_trial, parameter_vector),  # Inverse model (me)
+                                 lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
     @property
     def _parameters(self):
@@ -419,6 +512,7 @@ class CompositeModel(Model):
         self.lhs = lhs
         self.rhs = rhs
 
+        self.name = self.lhs.name + "_with_" + self.rhs.name
         self._parameters = OrderedDict()
         for i, v in self.lhs._parameters.items():
             self._parameters[i] = v
@@ -429,34 +523,41 @@ class CompositeModel(Model):
         parameters_rhs = list(self.rhs._parameters.keys())
         parameters_all = list(self._parameters.keys())
 
-        self.lhs_parameters = [True if x in parameters_lhs else False for x in parameters_all]
-        self.rhs_parameters = [True if x in parameters_rhs else False for x in parameters_all]
+        self.lhs_parameters = [parameters_all.index(par) for par in parameters_lhs]
+        self.rhs_parameters = [parameters_all.index(par) for par in parameters_rhs]
 
         self._data = []
         self._conditions = []
         self._built = False
 
-    def __call__(self, data, parameter_vector):
-        return self.lhs(data, parameter_vector[self.lhs_parameters]) + \
-            self.rhs(data, parameter_vector[self.rhs_parameters])
+    def __call__(self, independent, parameter_vector):
+        lhs_residual = self.lhs(independent, parameter_vector[self.lhs_parameters])
+        rhs_residual = self.rhs(independent, parameter_vector[self.rhs_parameters])
+
+        return lhs_residual + rhs_residual
 
     @property
     def has_jacobian(self):
         return self.lhs.has_jacobian and self.rhs.has_jacobian
 
-    def jacobian(self, data, parameter_vector):
+    @property
+    def has_derivative(self):
+        return self.lhs.has_derivative and self.rhs.has_derivative
+
+    def jacobian(self, independent, parameter_vector):
         if self.has_jacobian:
-            jacobian = np.zeros((len(parameter_vector), len(data)))
-            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(data, parameter_vector[self.lhs_parameters])
-            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(data, parameter_vector[self.rhs_parameters])
+            jacobian = np.zeros((len(parameter_vector), len(independent)))
+            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(independent, parameter_vector[self.lhs_parameters])
+            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(independent, parameter_vector[self.rhs_parameters])
 
             return jacobian
 
-    def derivative(self, data, parameter_vector):
-        lhs_derivative = self.lhs.derivative(data, parameter_vector[self.lhs_parameters])
-        rhs_derivative = self.rhs.derivative(data, parameter_vector[self.rhs_parameters])
+    def derivative(self, independent, parameter_vector):
+        if self.has_derivative:
+            lhs_derivative = self.lhs.derivative(independent, parameter_vector[self.lhs_parameters])
+            rhs_derivative = self.rhs.derivative(independent, parameter_vector[self.rhs_parameters])
 
-        return lhs_derivative + rhs_derivative
+            return lhs_derivative + rhs_derivative
 
 
 class Parameter:
@@ -573,6 +674,11 @@ class FitObject:
         self._built = False
         self._invalidate_build()
 
+    def add_model(self, model):
+        self.models.append(model)
+        self._built = False
+        self._invalidate_build()
+
     def _build_fitobject(self):
         """This function generates the global parameter list from the parameters of the individual submodels.
         It also generates unique conditions from the data specification."""
@@ -583,7 +689,7 @@ class FitObject:
         defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
 
         for M in self.models:
-            M._build_model(parameter_lookup)
+            M._build_model(parameter_lookup, self)
 
         self._parameters.set_parameters(unique_parameter_names, defaults)
         self._built = True
@@ -603,7 +709,7 @@ class FitObject:
     def dirty(self):
         dirty = not self._built
         for M in self.models:
-            dirty = dirty or M.dirty
+            dirty = dirty or M.built_against(self)
 
         return dirty
 
@@ -644,6 +750,11 @@ class FitObject:
         fitted = self.parameters.fitted
         lb = self.parameters.lb
         ub = self.parameters.ub
+
+        out_of_bounds = np.logical_or(parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted])
+        if np.any(out_of_bounds):
+            raise ValueError(f"Initial parameters {self.parameters.keys[fitted][out_of_bounds]} are outside the "
+                             f"parameter bounds. Please set value, lb or ub for these parameters to consistent values.")
 
         def residual(parameters):
             parameter_vector[fitted] = parameters
@@ -694,7 +805,7 @@ class FitObject:
 
         return jacobian
 
-    def verify_jacobian(self, parameters, plot=False, verbose=True, **kwargs):
+    def verify_jacobian(self, parameters, plot=0, verbose=True, **kwargs):
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
@@ -704,22 +815,24 @@ class FitObject:
 
         if plot:
             import matplotlib.pyplot as plt
-            plt.subplot(2, 1, 1)
-            l1 = plt.plot(np.transpose(jacobian))
-            l2 = plt.plot(np.transpose(jacobian_fd), '--')
-            plt.legend([l1[0], l2[0]], ('Analytical', 'Numerical'))
-            plt.subplot(2, 1, 2)
-            plt.plot(np.transpose(jacobian - jacobian_fd))
+            n_x, n_y = optimal_plot_layout(len(self.parameters))
+            for i_parameter, parameter in enumerate(self.parameters):
+                plt.subplot(n_x, n_y, i_parameter + 1)
+                l1 = plt.plot(np.transpose(jacobian[i_parameter, :]))
+                l2 = plt.plot(np.transpose(jacobian_fd[i_parameter, :]), '--')
+                plt.title(parameter)
+                plt.legend({'Analytic', 'FD'})
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
-
         if not is_close:
+            parameter_names = list(self.parameters.keys)
             if verbose:
                 maxima = np.max(jacobian - jacobian_fd, axis=1)
                 for i, v in enumerate(maxima):
-                    print(f"Parameter {self.parameter_names[i]}({i}): {v}")
-
-            raise RuntimeError('Numerical Jacobian did not pass.')
+                    if np.allclose(jacobian[i, :], jacobian_fd[i, :]):
+                        print(f"Parameter {parameter_names[i]}({i}): {v}")
+                    else:
+                        print_styled('warning', f'Parameter {parameter_names[i]}({i}): {v}')
 
         return is_close
 
@@ -760,9 +873,17 @@ class FitObject:
         Returns the inverse of the approximate Hessian. This approximation is valid when the residuals of the fitting
         problem are small.
         """
-        J = self._calculate_jacobian()
+        J = 2 * self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
         return np.linalg.inv(np.transpose(J).dot(J))
+
+    @property
+    def asymptotic_ci(self, mode="chi2"):
+        cov_est = self.cov()
+
+    def plot(self, **kwargs):
+        self.plot_data()
+        self.plot_model(**kwargs)
 
     def plot_data(self):
         self._rebuild()
@@ -770,19 +891,31 @@ class FitObject:
         for M in self.models:
             M._plot_data()
 
-    def plot_model(self, **kwargs):
-        self._rebuild()
-
+    def _override_parameters(self, **kwargs):
         parameters = self.parameters
-
         if kwargs:
             parameters = deepcopy(parameters)
             for key, value in kwargs.items():
-                parameters[key] = value
+                if key in parameters:
+                    parameters[key] = value
+
+        return parameters, kwargs
+
+    def plot_model(self, **kwargs):
+        self._rebuild()
+        parameters, kwargs = self._override_parameters(**kwargs)
 
         for M in self.models:
             M._plot_model(parameters.values)
 
+
+    def plot_model_recursive(self, **kwargs):
+        self._rebuild()
+
+        parameters, kwargs = self._override_parameters(**kwargs)
+
+        for M in self.models:
+            M._plot_model_recursive(parameters.values)
 
 class Data:
     def __init__(self, x, y, transformations):

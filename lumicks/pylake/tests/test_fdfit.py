@@ -1,5 +1,5 @@
 from lumicks.pylake.fdfit import FitObject, Parameter, Parameters, Condition, Data, Model, parse_transformation, \
-    _generate_conditions
+    _generate_conditions, SubtractIndependentOffset
 from lumicks.pylake.fdmodels import *
 from collections import OrderedDict
 import pytest
@@ -144,9 +144,8 @@ def test_integration_test_fitting():
     assert Model("M", linear, linear_jac).has_jacobian
     assert not Model("M", linear).has_jacobian
 
-    with pytest.raises(RuntimeError):
-        model = Model("M", linear, linear_jac_wrong)
-        model.verify_jacobian([1, 2, 3], [1, 1])
+    model = Model("M", linear, linear_jac_wrong)
+    assert not model.verify_jacobian([1, 2, 3], [1, 1])
 
     model = Model("M", linear, linear_jac)
     x = np.arange(3)
@@ -201,11 +200,11 @@ def test_model_composition():
     def f_jac_wrong(x, a, b):
         return np.vstack((np.zeros((1, len(x))), x))
 
-    def g(x, a, b, d):
+    def g(x, a, d, b):
         return a - b * x + d * x * x
 
-    def g_jac(x, a, b, d):
-        return np.vstack((np.ones((1, len(x))), -x, x * x))
+    def g_jac(x, a, d, b):
+        return np.vstack((np.ones((1, len(x))), x * x, -x))
 
     def f_der(x, a, b):
         return b * np.ones((len(x)))
@@ -213,30 +212,39 @@ def test_model_composition():
     def f_der_wrong(x, a, b):
         return np.ones((len(x)))
 
-    def g_der(x, a, b, d):
+    def g_der(x, a, d, b):
         return - b * np.ones((len(x))) + 2.0 * d * x
 
     M1 = Model("M", f, f_jac, derivative=f_der)
     M2 = Model("M", g, g_jac, derivative=g_der)
 
-    assert (M1 + M2).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
-    assert (M2 + M1).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
-    assert (M2 + M1 + M2).verify_jacobian(np.arange(0, 2, .1), [1, 2, 3])
-
     t = np.arange(0, 2, .1)
-    with pytest.raises(RuntimeError):
-        (Model("M", f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
-    with pytest.raises(RuntimeError):
-        (M2 + Model("M", f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    # Check actual composition
+    # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
+    assert np.allclose((M1 + M2)(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
+        "Model composition returns invalid function evaluation (parameter order issue?)"
+
+    # Check self-consistency of the Jacobians
+    assert (M1 + M2).verify_jacobian(t, [1, 2, 3])
+    assert (M2 + M1).verify_jacobian(t, [1, 2, 3])
+    assert (M2 + M1 + M2).verify_jacobian(t, [1, 2, 3])
+
+    assert not (Model("M", f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    assert not (M2 + Model("M", f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
     assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
 
-    with pytest.raises(RuntimeError):
-        assert (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
-                                                                                            verbose=False)
-    with pytest.raises(RuntimeError):
-        assert (InverseModel(Model("M", f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
-                                                                                            verbose=False)
+    assert not (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+                                                                                                 verbose=False)
+    assert not (InverseModel(Model("M", f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+                                                                                                 verbose=False)
+
+    M1 = SubtractIndependentOffset(force_model("DNA", "invWLC"), "d_offset") + force_model("f", "offset")
+    M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
+    t = np.array([.19, .2, .3])
+    p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
+    p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
+    assert np.allclose(M1(t, p1), M2(t, p2))
