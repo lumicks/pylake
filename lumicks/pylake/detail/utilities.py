@@ -33,15 +33,10 @@ def unique_idx(input_list):
 
 
 def optimal_plot_layout(n_plots):
-    # Find list of divisors leading to integer value
     import numpy as np
-    c = np.array([d if np.floor(n_plots / d) == n_plots / d else 0 for d in np.arange(n_plots)])
-    n_y = np.argmin(abs(c - n_plots / c))
-    n_x = n_plots / n_y
 
-    if n_x == n_plots:
-        n_x = np.ceil(np.sqrt(n_plots))
-        n_y = np.ceil(n_plots/n_x)
+    n_x = np.ceil(np.sqrt(n_plots))
+    n_y = np.ceil(n_plots/n_x)
 
     return n_x, n_y
 
