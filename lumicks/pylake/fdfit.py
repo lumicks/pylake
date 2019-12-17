@@ -294,7 +294,7 @@ class Model:
             p_indices = condition.p_indices
             for data in data_sets:
                 data_set = self._data[data]
-                sensitivities = np.transpose(self.jacobian(data_set.x, p_local))
+                sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data_set.x, p_local)))
                 n_res = sensitivities.shape[0]
 
                 jacobian[residual_idx:residual_idx + n_res, p_indices] = \
@@ -976,14 +976,23 @@ class Data:
 class Condition:
     def __init__(self, transformations, global_dictionary):
         self.transformations = deepcopy(transformations)
+
+        # Which sensitivities actually need to be exported?
         self.p_external = np.array([True if isinstance(x, str) else False for x in self.transformed])
+
+        # Which sensitivities are local (set to a fixed local value)?
         self.p_local = np.array([0.0 if isinstance(x, str) else x for x in self.transformed])
+
         self.p_reference = [x for x in self.transformed if isinstance(x, str)]
+        # p_indices map internal sensitivities to the global parameters
         self.p_indices = [global_dictionary[key] for key in self.p_reference]
 
     @property
     def transformed(self):
         return self.transformations.values()
+
+    def localize_sensitivities(self, sensitivities):
+        return sensitivities[:, self.p_external]
 
     def get_local_parameters(self, par_global):
         self.p_local[self.p_external] = par_global[self.p_indices]

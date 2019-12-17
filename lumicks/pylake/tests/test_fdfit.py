@@ -90,6 +90,10 @@ def test_build_conditions():
     assert np.all(data_link[0] == [0, 1])
     assert np.all(data_link[1] == [2])
 
+    # Test whether a parameter transformation to a value doesn't lead to an error
+    d4 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c=5))
+    assert _generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
+
 
 def test_condition_struct():
     parameter_names = ['gamma', 'alpha', 'beta', 'delta', 'gamma_specific', 'beta_specific', 'zeta']
@@ -169,6 +173,14 @@ def test_integration_test_fitting():
     assert(np.isclose(fit.parameters["M_b"].value, 5))
     assert(np.isclose(fit.parameters["M_b_2"].value, 10))
 
+    # Verify that fixed parameters are correctly removed from sub-models
+    model = Model("M", linear, linear_jac)
+    model.load_data(x, 4.0*x + 5.0, M_a=4)
+    model.load_data(x, 8.0*x + 10.0, M_b=10)
+    fit = FitObject(model)
+    fit.fit()
+    assert (np.isclose(fit.parameters["M_b"].value, 5))
+    assert (np.isclose(fit.parameters["M_a"].value, 8))
 
 def test_model_defaults():
     def g(data, mu, sig, a, b, c, d, e, f, q):
