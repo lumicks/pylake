@@ -258,7 +258,6 @@ def invWLC(d, Lp, Lc, St, kT = 4.11):
     x2 = 1.0 / (Lp * x1)
     lp2 = Lp * Lp
     lp3 = Lp * lp2
-    lp4 = lp2 * lp2
     x4 = Lp * St * kT
     x8 = d * d
     x7 = x8 * d

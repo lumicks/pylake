@@ -5,7 +5,6 @@ from .detail.utilities import unique, unique_idx, optimal_plot_layout, print_sty
 from collections import OrderedDict
 from copy import deepcopy
 import scipy.optimize as optim
-from itertools import chain
 
 
 def parse_transformation(parameters, **kwargs):
@@ -43,7 +42,8 @@ def _generate_conditions(data_sets, parameter_lookup, model_parameters):
         assert set(data_set.transformations.keys()) == set(model_parameters), \
             "Source parameters in data parameter transformations are incompatible with the specified model parameters."
 
-        assert set(data_set.transformations.values()).issubset(parameter_lookup.keys()), \
+        target_parameters = [x for x in data_set.transformations.values() if isinstance(x, str)]
+        assert set(target_parameters).issubset(parameter_lookup.keys()), \
             "Parameter transformations contain transformed parameter names that are not in the combined parameter list."
 
     # Determine unique parameter conditions and the indices to get the appropriate unique condition from data index.
@@ -399,7 +399,7 @@ class SubtractIndependentOffset(Model):
         model: Model
         """
         self.model = model
-        offset_name = self.model.name + '_' + parameter_name
+        offset_name = parameter_name
 
         self.name = self.model.name + "(x-d)"
         self._parameters = OrderedDict()
@@ -564,6 +564,8 @@ class Parameter:
     def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None, shared=False):
         """Model parameter
 
+        Parameters
+        ----------
         value: float
         lb, ub: float
         vary: boolean
@@ -593,6 +595,26 @@ class Parameters:
 
     def __iter__(self):
         return self._src.__iter__()
+
+    def __lshift__(self, other):
+        """
+        Set parameters
+
+        Parameters
+        ----------
+        other: Parameters
+        """
+        if isinstance(other, Parameters):
+            found = False
+            for key, param in other._src.items():
+                if key in self._src:
+                    self._src[key] = param
+                    found = True
+
+            if not found:
+                raise RuntimeError("Tried to set parameters which do not exist in the target model.")
+        else:
+            raise RuntimeError("Attempt to stream non-parameter list to parameter list.")
 
     def items(self):
         return self._src.items()
@@ -709,7 +731,7 @@ class FitObject:
     def dirty(self):
         dirty = not self._built
         for M in self.models:
-            dirty = dirty or M.built_against(self)
+            dirty = dirty or not M.built_against(self)
 
         return dirty
 
@@ -722,10 +744,11 @@ class FitObject:
 
         return count
 
+    @property
     def has_jacobian(self):
         has_jacobian = True
         for M in self.models:
-            has_jacobian = has_jacobian and M.has_jacobian()
+            has_jacobian = has_jacobian and M.has_jacobian
 
         return has_jacobian
 
@@ -742,8 +765,7 @@ class FitObject:
     def fit(self, **kwargs):
         self._rebuild()
 
-        assert self.n_residuals > 0, "This model has no data associated with it. Did you accidentally load data into " \
-                                     "the wrong model?"
+        assert self.n_residuals > 0, "This model has no data associated with it."
         assert self.n_parameters > 0, "This model has no parameters. There is nothing to fit."
 
         parameter_vector = self.parameters.values
@@ -917,10 +939,11 @@ class FitObject:
         for M in self.models:
             M._plot_model_recursive(parameters.values)
 
+
 class Data:
     def __init__(self, x, y, transformations):
-        self.x = x
-        self.y = y
+        self.x = np.array(x)
+        self.y = np.array(y)
         self.transformations = transformations
 
     @property
