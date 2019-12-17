@@ -148,30 +148,17 @@ Once you access the raw data, those are regular arrays which use regular array i
     channel_slice = file.force1x['1.5s':'20s']  # timestamps
     data_slice = file.force1x.data[20:40]  # indices into the array
 
-Calibration for force slices can be found by checking the calibration member::
+Calibrations
+------------
 
-    file.force1x.calibration
+Calibration information for force channels can be found by checking the calibration member. This gives a list of calibrations::
 
+    >>> print(file.force1x.calibration)
+    [{'Kind': 'Discard all calibration data', 'Offset (pN)': 0.0, 'Response (pN/V)': 1.0, 'Sign': 1.0, 'Start time (ns)': 0, 'Stop time (ns)': 0}]
 
-CorrelatedStacks
-----------------
+The actual values can be obtained from the list as follows, where the index refers to the calibration entry and the name to the actual field value::
 
-Bluelake has the ability to export videos from the camera's.
-These videos can be opened and sliced using `CorrelatedStack`::
+    >>> file.force1x.calibration[0]["Offset (pN)"]
+    0.0
 
-    stack = pylake.CorrelatedStack.from_file("example.tiff")  # Loading a stack.
-    stack_slice = stack[2:10]  # Grab frame 2 to 9
-
-Quite often, it is interesting to correlate events on the camera's to `channel` data.
-To quickly explore the correlation between images in a `CorrelatedStack` and channel data
-you can use the following function::
-
-    # Making a plot where force is correlated to images in the stack.
-    stack.plot_correlated(file.force1x)
-
-In some cases, additional processing may be needed, and we desire to have the data
-downsampled over the video frames. This can be done using the function `Slice.downsampled_over`
-using timestamps obtained from the `CorrelatedStack`::
-
-    # Determine the force trace averaged over frame 2...9.
-    file.force1x.downsampled_over(stack[2:10].timestamps)
+If we slice a force channel, we only obtain the calibrations relevant for the selected region.

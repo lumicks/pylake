@@ -72,7 +72,7 @@ class CorrelatedStack:
         from lumicks import pylake
 
         # Loading a stack.
-        stack = pylake.CorrelatedStack.from_file("example.tiff")
+        stack = pylake.CorrelatedStack("example.tiff")
 
         # Making a plot where force is correlated to images in the stack.
         file = pylake.File("example.h5")
