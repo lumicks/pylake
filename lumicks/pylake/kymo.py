@@ -164,7 +164,7 @@ class Kymo(PhotonCounts):
         Parameters
         ----------
         **kwargs
-            Forwarded to `~matplotlib.pyplot.imshow`.
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self._plot_color("red", **kwargs)
 
@@ -174,7 +174,7 @@ class Kymo(PhotonCounts):
         Parameters
         ----------
         **kwargs
-            Forwarded to `~matplotlib.pyplot.imshow`.
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self._plot_color("green", **kwargs)
 
@@ -184,7 +184,7 @@ class Kymo(PhotonCounts):
         Parameters
         ----------
         **kwargs
-            Forwarded to `~matplotlib.pyplot.imshow`.
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self._plot_color("blue", **kwargs)
 
@@ -194,7 +194,7 @@ class Kymo(PhotonCounts):
         Parameters
         ----------
         **kwargs
-            Forwarded to `~matplotlib.pyplot.imshow`.
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         image = self.rgb_image
         image = image / np.max(image)

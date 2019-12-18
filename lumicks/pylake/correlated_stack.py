@@ -57,7 +57,8 @@ class TiffStack:
 
 
 class CorrelatedStack:
-    """CorrelatedStack obtained with Bluelake.
+    """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various formats. These can be
+    opened and correlated to timeline data using CorrelatedStack.
 
     Parameters
     ----------
@@ -68,16 +69,17 @@ class CorrelatedStack:
     --------
     ::
 
-        Loading a stack.
-            from lumicks import pylake
-            stack = pylake.CorrelatedStack.from_file("example.tiff")
+        from lumicks import pylake
 
-        Making a plot where force is correlated to images in the stack.
-            file = pylake.File("example.h5")
-            stack.plot_correlated(file.force1x)
+        # Loading a stack.
+        stack = pylake.CorrelatedStack("example.tiff")
 
-        Determine the force trace averaged over frame 2...9.
-            file.force1x.downsampled_over(stack[2:10].timestamps)
+        # Making a plot where force is correlated to images in the stack.
+        file = pylake.File("example.h5")
+        stack.plot_correlated(file.force1x)
+
+        # Determine the force trace averaged over frame 2...9.
+        file.force1x.downsampled_over(stack[2:10].timestamps)
     """
     def __init__(self, image_name):
         self.src = TiffStack.from_file(image_name)
@@ -128,6 +130,15 @@ class CorrelatedStack:
         return new_correlated_stack
 
     def plot(self, frame=0, **kwargs):
+        """Plot image from image stack
+
+        Parameters
+        ----------
+        frame : int, optional
+            Index of the frame to plot.
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
+        """
         import matplotlib.pyplot as plt
 
         default_kwargs = dict(
@@ -148,8 +159,9 @@ class CorrelatedStack:
         return self.src.get_frame(self.start_idx + frame)
 
     def plot_correlated(self, channel_slice, frame=0, reduce=np.mean):
-        """Downsample channel on a frame by frame basis. The downsampling function (e.g. np.mean) is evaluated for the
-        time between a start and end time of a frame.
+        """Downsample channel on a frame by frame basis and plot the results. The downsampling function (e.g. np.mean)
+        is evaluated for the time between a start and end time of a frame. Note: In environments which support
+        interactive figures (e.g. jupyter notebook with ipywidgets or interactive python) this plot will be interactive.
 
         Parameters
         ----------
@@ -158,9 +170,9 @@ class CorrelatedStack:
         frame : int
             Frame to show.
         reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            The default is `np.mean`, but `np.sum` could also be appropriate for some
-            cases, e.g. photon counts.
+            The function which is going to reduce multiple samples into one. The default is
+            :func:`numpy.mean`, but :func:`numpy.sum` could also be appropriate for some cases
+            e.g. photon counts.
 
 
         Examples
@@ -218,10 +230,12 @@ class CorrelatedStack:
 
     @property
     def num_frames(self):
+        """Number of frames in the stack."""
         return self.stop_idx - self.start_idx
 
     @property
     def raw(self):
+        """Raw frame data."""
         if self.num_frames > 1:
             return [self._get_frame(idx) for idx in range(self.num_frames)]
         else:
@@ -229,12 +243,15 @@ class CorrelatedStack:
 
     @property
     def start(self):
+        """Starting time stamp of the stack."""
         return self._get_frame(0).start
 
     @property
     def stop(self):
+        """Final time stamp of the stack."""
         return self._get_frame(self.num_frames - 1).stop
 
     @property
     def timestamps(self):
+        """List of time stamps."""
         return [(self._get_frame(idx).start, self._get_frame(idx).stop) for idx in range(self.num_frames)]

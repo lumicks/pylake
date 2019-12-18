@@ -97,8 +97,17 @@ def test_correlation():
     assert (np.allclose(ch.data, [np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2)), np.mean(np.arange(40, 48, 2))]))
     assert (np.allclose(ch.timestamps, [(20 + 28) / 2, (30 + 38) / 2, (40 + 48) / 2]))
 
+    with pytest.raises(TypeError):
+        cc.downsampled_over(stack[1:4])
+
     with pytest.raises(ValueError):
-        cc.downsampled_over(cc, where='up')
+        cc.downsampled_over(stack[1:4].timestamps, where='up')
+
+    with pytest.raises(AssertionError):
+        cc["0ns":"20ns"].downsampled_over(stack[3:4].timestamps)
+
+    with pytest.raises(AssertionError):
+        cc["40ns":"70ns"].downsampled_over(stack[0:1].timestamps)
 
     assert (stack[0].raw.start == 10)
     assert (stack[1].raw.start == 20)

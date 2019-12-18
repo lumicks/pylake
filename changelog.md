@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.4.0 | 2019-12-05
+
+* Add calibration data as attribute of force channels (see docs tutorials section: Files and Channels).
+* Fixed bug which produced shifted timestamps when slicing continuous channel with time values between two data points.
+* Export pixel size and dwell time to exported TIFFs.
+* Implement slicing for kymographs (see docs tutorials section: Kymographs).
+* Show keys in a group when printing the group.
+* Allow iteration over groups.
+* Fix bug which could cause axes to be inverted for reconstructed images.
+* Add functionality to correlate images recorded from cameras with timeline data (see docs tutorial section: Correlated stacks).
+
 ## v0.3.1 | 2019-03-27
 
 * Loading scans and kymographs is now much faster

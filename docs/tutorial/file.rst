@@ -147,3 +147,18 @@ Once you access the raw data, those are regular arrays which use regular array i
 
     channel_slice = file.force1x['1.5s':'20s']  # timestamps
     data_slice = file.force1x.data[20:40]  # indices into the array
+
+Calibrations
+------------
+
+Calibration information for force channels can be found by checking the calibration member. This gives a list of calibrations::
+
+    >>> print(file.force1x.calibration)
+    [{'Kind': 'Discard all calibration data', 'Offset (pN)': 0.0, 'Response (pN/V)': 1.0, 'Sign': 1.0, 'Start time (ns)': 0, 'Stop time (ns)': 0}]
+
+The actual values can be obtained from the list as follows, where the index refers to the calibration entry and the name to the actual field value::
+
+    >>> file.force1x.calibration[0]["Offset (pN)"]
+    0.0
+
+If we slice a force channel, we only obtain the calibrations relevant for the selected region.
