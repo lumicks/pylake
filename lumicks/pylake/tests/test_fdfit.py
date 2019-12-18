@@ -103,9 +103,9 @@ def test_condition_struct():
     parameter_vector = np.array([2, 4, 6, 8, 10, 12, 14])
 
     c = Condition(parameter_trafos, parameter_lookup)
-    assert (np.allclose(c.p_local, [0, 0, 0, 5, 0]))
+    assert (np.all(c.p_local == [None, None, None, 5, None]))
     assert (np.allclose(parameter_vector[c.p_indices], [10, 4, 12, 14]))
-    assert (np.all(c.p_external == np.array([True, True, True, False, True])))
+    assert (np.all(c.p_external == np.array([0, 1, 2, 4])))
     assert (list(c.transformed) == ['gamma_specific', 'alpha', 'beta_specific', 5, 'zeta'])
     assert (np.allclose(c.get_local_parameters(parameter_vector), [10, 4, 12, 5, 14]))
 

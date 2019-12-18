@@ -408,11 +408,10 @@ class SubtractIndependentOffset(Model):
             self._parameters[i] = v
 
         parameters_parent = list(self.model._parameters.keys())
-        parameters_rhs = [offset_name]
         parameters_all = list(self._parameters.keys())
 
         self.model_parameters = [parameters_all.index(par) for par in parameters_parent]
-        self.offset_parameter = [parameters_all.index(par) for par in parameters_rhs]
+        self.offset_parameter = parameters_all.index(offset_name)
 
         self._data = []
         self._conditions = []
@@ -420,7 +419,7 @@ class SubtractIndependentOffset(Model):
 
     def __call__(self, independent, parameter_vector):
         return self.model(independent - parameter_vector[self.offset_parameter],
-                          parameter_vector[self.model_parameters])
+                          [parameter_vector[x] for x in self.model_parameters])
 
     @property
     def has_jacobian(self):
@@ -434,10 +433,10 @@ class SubtractIndependentOffset(Model):
         if self.has_jacobian:
             with_offset = independent - parameter_vector[self.offset_parameter]
             jacobian = np.zeros((len(parameter_vector), len(with_offset)))
-            jacobian[self.model_parameters, :] += self.model.jacobian(with_offset,
-                                                                      parameter_vector[self.model_parameters])
-            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset,
-                                                                         parameter_vector[self.model_parameters])
+            jacobian[self.model_parameters, :] += self.model.jacobian(with_offset, [parameter_vector[x] for x in
+                                                                                    self.model_parameters])
+            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset, [parameter_vector[x] for x in
+                                                                                       self.model_parameters])
 
             return jacobian
 
@@ -531,8 +530,8 @@ class CompositeModel(Model):
         self._built = False
 
     def __call__(self, independent, parameter_vector):
-        lhs_residual = self.lhs(independent, parameter_vector[self.lhs_parameters])
-        rhs_residual = self.rhs(independent, parameter_vector[self.rhs_parameters])
+        lhs_residual = self.lhs(independent, [parameter_vector[x] for x in self.lhs_parameters])
+        rhs_residual = self.rhs(independent, [parameter_vector[x] for x in self.rhs_parameters])
 
         return lhs_residual + rhs_residual
 
@@ -547,15 +546,17 @@ class CompositeModel(Model):
     def jacobian(self, independent, parameter_vector):
         if self.has_jacobian:
             jacobian = np.zeros((len(parameter_vector), len(independent)))
-            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(independent, parameter_vector[self.lhs_parameters])
-            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(independent, parameter_vector[self.rhs_parameters])
+            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(independent, [parameter_vector[x] for x in
+                                                                                self.lhs_parameters])
+            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(independent, [parameter_vector[x] for x in
+                                                                                self.rhs_parameters])
 
             return jacobian
 
     def derivative(self, independent, parameter_vector):
         if self.has_derivative:
-            lhs_derivative = self.lhs.derivative(independent, parameter_vector[self.lhs_parameters])
-            rhs_derivative = self.rhs.derivative(independent, parameter_vector[self.rhs_parameters])
+            lhs_derivative = self.lhs.derivative(independent, [parameter_vector[x] for x in self.lhs_parameters])
+            rhs_derivative = self.rhs.derivative(independent, [parameter_vector[x] for x in self.rhs_parameters])
 
             return lhs_derivative + rhs_derivative
 
@@ -978,14 +979,17 @@ class Condition:
         self.transformations = deepcopy(transformations)
 
         # Which sensitivities actually need to be exported?
-        self.p_external = np.array([True if isinstance(x, str) else False for x in self.transformed])
+        self.p_external = np.flatnonzero([True if isinstance(x, str) else False for x in self.transformed])
+
+        # p_global_indices contains a list with indices for each parameter that is mapped to the globals
+        self.p_global_indices = np.array([global_dictionary.get(key, None) for key in self.transformed])
+
+        # p_indices map internal sensitivities to the global parameters.
+        # Note that they are part of the public interface.
+        self.p_indices = [x for x in self.p_global_indices if x is not None]
 
         # Which sensitivities are local (set to a fixed local value)?
-        self.p_local = np.array([0.0 if isinstance(x, str) else x for x in self.transformed])
-
-        self.p_reference = [x for x in self.transformed if isinstance(x, str)]
-        # p_indices map internal sensitivities to the global parameters
-        self.p_indices = [global_dictionary[key] for key in self.p_reference]
+        self.p_local = np.array([None if isinstance(x, str) else x for x in self.transformed])
 
     @property
     def transformed(self):
@@ -995,5 +999,4 @@ class Condition:
         return sensitivities[:, self.p_external]
 
     def get_local_parameters(self, par_global):
-        self.p_local[self.p_external] = par_global[self.p_indices]
-        return self.p_local
+        return [par_global[a] if a is not None else b for a, b in zip(self.p_global_indices, self.p_local)]
