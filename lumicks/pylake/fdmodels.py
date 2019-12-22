@@ -278,6 +278,7 @@ def invWLC(d, Lp, Lc, St, kT = 4.11):
             (1.0/3.0) * x2 * (Lc * d * x0 - x0 * x1)
 
 
+# HC SVNT DRACONES
 def invWLC_jac(d, Lp, Lc, St, kT=4.11):
     x0 = Lc * St
     x1 = 2.0 * d

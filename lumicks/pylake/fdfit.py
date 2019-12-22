@@ -7,6 +7,71 @@ from copy import deepcopy
 import scipy.optimize as optim
 
 
+def parameter_trace(model, parameters, inverted_parameter, independent, dependent, **kwargs):
+    """Invert the model with respect to one parameter. This function fits a unique parameter for every data point in
+    this data-set while keeping all other parameters fixed. This can be used to for example invert the model with
+    respect to the contour length or some other parameter.
+
+    Parameters
+    ----------
+    model : Model
+        Fitting model.
+    parameters : Parameters
+        Model parameters.
+    inverted_parameter : str
+        Parameter to invert.
+    independent : array_like
+        vector of values for the independent variable
+    dependent: array_like
+        vector of values for the dependent variable
+    **kwargs
+        parameter renames (e.g. protein_Lc="protein_Lc_1")
+
+    Examples
+    --------
+    ::
+        # Define the model to be fitted
+        M_protein = force_model("protein", "invWLC") + force_model("f", "offset")
+
+        # Fit the overall model first
+        M_protein.load_data(distances_corrected, forces)
+        protein_fit = FitObject(M_protein)
+        protein_fit.fit()
+
+        # Calculate a per datapoint contour length
+        lcs = parameter_trace(M_protein, protein_fit.parameters, "protein_Lc", distances, forces)
+    """
+    import scipy as sp
+
+    parameter_names = list(parse_transformation(model.parameter_names, **kwargs).keys())
+    assert inverted_parameter in parameters, "Inverted parameter not in model parameter vector."
+    for key in parameter_names:
+        assert key in parameters, f"Missing parameter {key} in supplied parameter vector."
+
+    # Grab reference parameter vector and index for the parameter list
+    parameter_vector = [parameters[key].value for key in parameter_names]
+    lb = parameters[inverted_parameter].lb
+    ub = parameters[inverted_parameter].ub
+    inverted_parameter_index = parameter_names.index(inverted_parameter)
+
+    def residual(inverted_parameter_values):
+        parameter_vector[inverted_parameter_index] = inverted_parameter_values
+        return dependent - model(independent, parameter_vector)
+
+    def jacobian(inverted_parameter_values):
+        parameter_vector[inverted_parameter_index] = inverted_parameter_values
+        return -sp.sparse.diags(model.jacobian(independent, parameter_vector)[inverted_parameter_index, :], offsets=0)
+
+    initial_estimate = np.ones(independent.shape) * parameter_vector[inverted_parameter_index]
+
+    jac = jacobian if model.has_jacobian else "2-point"
+    result = optim.least_squares(residual, initial_estimate, jac=jac,
+                                 jac_sparsity=sp.sparse.identity(len(independent)),
+                                 bounds=(lb, ub), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-8, verbose=2)
+
+    return result.x
+
+
 def parse_transformation(parameters, **kwargs):
     transformed = OrderedDict(zip(parameters, parameters))
 
@@ -223,13 +288,12 @@ class Model:
         return CompositeModel(self, other)
 
     @staticmethod
-    def _sanitize_input_types(independent, parameter_vector):
+    def _sanitize_input_types(independent):
         independent = np.array(independent).astype(float)
-        parameter_vector = np.array(parameter_vector).astype(float)
-        return independent, parameter_vector
+        return independent
 
     def __call__(self, independent, parameter_vector):
-        independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+        independent = self._sanitize_input_types(independent)
         return self.model_function(independent, *parameter_vector)
 
     @property
@@ -242,14 +306,14 @@ class Model:
 
     def jacobian(self, independent, parameter_vector):
         if self.has_jacobian:
-            independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+            independent = self._sanitize_input_types(independent)
             return self._jacobian(independent, *parameter_vector)
         else:
             raise RuntimeError(f"Jacobian was requested but not supplied in model {self.name}.")
 
     def derivative(self, independent, parameter_vector):
         if self.has_derivative:
-            independent, parameter_vector = self._sanitize_input_types(independent, parameter_vector)
+            independent = self._sanitize_input_types(independent)
             return self._derivative(independent, *parameter_vector)
         else:
             raise RuntimeError(f"Derivative was requested but not supplied in model {self.name}.")
@@ -309,7 +373,7 @@ class Model:
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
 
-        independent, parameters = self._sanitize_input_types(independent, parameters)
+        independent = self._sanitize_input_types(independent)
 
         jacobian = self.jacobian(independent, parameters)
         jacobian_fd = numerical_jacobian(lambda parameter_values: self(independent, parameter_values), parameters)

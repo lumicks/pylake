@@ -238,9 +238,9 @@ def test_model_composition():
         "Model composition returns invalid function evaluation (parameter order issue?)"
 
     # Check self-consistency of the Jacobians
-    assert (M1 + M2).verify_jacobian(t, [1, 2, 3])
-    assert (M2 + M1).verify_jacobian(t, [1, 2, 3])
-    assert (M2 + M1 + M2).verify_jacobian(t, [1, 2, 3])
+    assert (M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
 
     assert not (Model("M", f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
     assert not (M2 + Model("M", f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
