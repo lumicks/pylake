@@ -219,7 +219,9 @@ class Continuous:
             """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
             return (t - self.start + self.dt - 1) // self.dt
 
-        start = max(start + start % self.dt, self.start)
+        fraction = (start - self.start) % self.dt
+        start = max(start if fraction == 0 else start + self.dt - fraction, self.start)
+
         start_idx = to_index(start)
         stop_idx = to_index(stop)
         return self.__class__(self.data[start_idx:stop_idx], start, self.dt)
