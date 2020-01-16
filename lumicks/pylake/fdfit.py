@@ -167,7 +167,7 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
 
     result = optim.least_squares(lambda f_trial: model_function(f_trial) - d, initial, jac=jac,
                                  jac_sparsity=sp.sparse.identity(len(d)),
-                                 bounds=(f_min, f_max), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-8)
+                                 bounds=(f_min, f_max), method='trf', ftol=1e-06, xtol=1e-08, gtol=1e-8)
 
     return result.x
 
@@ -336,6 +336,14 @@ class Model:
 
         return count
 
+    @property
+    def max_x(self):
+        return np.max([np.max(d.x) for d in self._data])
+
+    @property
+    def max_y(self):
+        return np.max([np.max(d.y) for d in self._data])
+
     def _calculate_residual(self, global_parameter_values):
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
@@ -410,10 +418,10 @@ class Model:
     def built_against(self, fit_object):
         return self._built == fit_object
 
-    def load_data(self, x, y, **kwargs):
+    def load_data(self, x, y, name="", **kwargs):
         self._invalidate_build()
         parameter_list = parse_transformation(self.parameter_names, **kwargs)
-        self._data.append(Data(x, y, parameter_list))
+        self._data.append(Data(name, x, y, parameter_list))
         return self
 
     @property
@@ -434,9 +442,16 @@ class Model:
     def _plot_data(self, idx=None):
         import matplotlib.pyplot as plt
 
+        names = []
+        handles = []
         for data_idx in idx if idx else np.arange(len(self._data)):
             data = self._data[data_idx]
-            plt.plot(data.x, data.y, '.')
+            handle, = plt.plot(data.x, data.y, '.')
+            handles.append(handle)
+            names.append(data.name)
+
+        plt.legend(handles, names)
+
 
     def _plot_model(self, global_parameters, idx=None):
         import matplotlib.pyplot as plt
@@ -487,7 +502,7 @@ class SubtractIndependentOffset(Model):
 
     @property
     def has_jacobian(self):
-        return self.model.has_jacobian
+        return self.model.has_jacobian and self.has_derivative
 
     @property
     def has_derivative(self):
@@ -526,11 +541,11 @@ class InverseModel(Model):
         self.name = "inv(" + model.name + ")"
 
     def __call__(self, independent, parameter_vector):
-        f_min = 0
-        f_max = np.inf
+        independent_min = 0
+        independent_max = np.inf
         initial = np.ones(independent.shape)
 
-        return invert_function(independent, initial, f_min, f_max,
+        return invert_function(independent, initial, independent_min, independent_max,
                                lambda f_trial: self.model(f_trial, parameter_vector),  # Forward model
                                lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
@@ -827,22 +842,126 @@ class FitObject:
         self._rebuild()
         return len(self._parameters)
 
-    def fit(self, **kwargs):
-        self._rebuild()
+    def profile_likelihood(self, parameter_name, min_step=1e-4, max_step=1.0, num_steps=100, step_factor=2.0,
+                           min_chi2_step=0.01, max_chi2_step=0.2, termination_significance=.99, confidence_level=.95):
 
-        assert self.n_residuals > 0, "This model has no data associated with it."
-        assert self.n_parameters > 0, "This model has no parameters. There is nothing to fit."
+        from scipy.stats import chi2
 
-        parameter_vector = self.parameters.values
-        fitted = self.parameters.fitted
-        lb = self.parameters.lb
-        ub = self.parameters.ub
+        if parameter_name not in self.parameters:
+            raise KeyError(f"Parameter {parameter_name} not present in fitting object.")
 
-        out_of_bounds = np.logical_or(parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted])
-        if np.any(out_of_bounds):
-            raise ValueError(f"Initial parameters {self.parameters.keys[fitted][out_of_bounds]} are outside the "
-                             f"parameter bounds. Please set value, lb or ub for these parameters to consistent values.")
+        if not self.parameters[parameter_name].vary:
+            raise RuntimeError(f"Parameter {parameter_name} is fixed in the fitting object.")
 
+        assert max_step > min_step
+        assert max_chi2_step > min_chi2_step
+
+        n_dof = 1
+        termination_level = chi2.ppf(termination_significance, n_dof)
+        confidence_level = chi2.ppf(confidence_level, n_dof)
+        max_chi2_step_size = max_chi2_step * confidence_level
+        min_chi2_step_size = min_chi2_step * confidence_level
+        sigma = self.sigma
+
+        def trial(parameters=[]):
+            return - 2.0 * self.log_likelihood(parameters, sigma)
+
+        def do_step(chi2_last, parameter_vector, step_direction, current_step_size, sign):
+            """
+            Parameters
+            ----------
+            chi2_last: float
+                previous chi squared value
+            parameter_vector: array_like
+                current parameter vector
+            step_direction: array_like
+                normalized direction in parameter space in which steps are taken
+            current_step_size: float
+                current step size
+            sign: float
+                sign of the stepping mechanism
+            """
+            # Determine an appropriate step size based on chi2 increase
+            adjust_trial = True
+            just_shrunk = False
+            while adjust_trial:
+                p_trial = parameter_vector + sign * current_step_size * step_direction
+                chi2_trial = trial(p_trial)
+
+                chi2_change = chi2_trial - chi2_last
+                if chi2_change < min_chi2_step_size:
+                    # Do not increase the step-size if we just shrunk. We already know it's going to be bad and we'd
+                    # just be looping forever.
+                    if not just_shrunk:
+                        adjust_trial = True
+                        current_step_size = current_step_size * step_factor
+                        if current_step_size > max_step:
+                            current_step_size = max_step
+                            adjust_trial = False
+                    else:
+                        adjust_trial = False
+                elif chi2_change > max_chi2_step_size:
+                    adjust_trial = True
+                    just_shrunk = True
+                    current_step_size = current_step_size / step_factor
+                    if current_step_size < min_step:
+                        print("Warning: Step size set to minimum step size.")
+                        current_step_size = min_step
+                        adjust_trial = False
+                else:
+                    adjust_trial = False
+                    just_shrunk = False
+
+            return current_step_size, parameter_vector + sign * current_step_size * step_direction
+
+        current_step_size = 1.0  # TODO: Better initial step size, maybe based on local Hessian approximation
+        profiled_parameter_index = list(self.parameters.keys).index(parameter_name)
+        parameter_vector, fitted, lb, ub = self._prepare_fit()
+        fitted[profiled_parameter_index] = 0
+        min_step = min_step * parameter_vector[profiled_parameter_index]
+        max_step = max_step * parameter_vector[profiled_parameter_index]
+        chi2_last = trial()
+
+        step = 0
+        step_direction = np.zeros(parameter_vector.shape)
+        step_direction[profiled_parameter_index] = 1.0
+
+        chi2s = []
+        parameter_values = []
+        p_next = parameter_vector
+        while step < .5 * num_steps:
+            current_step_size, p_next = do_step(chi2_last, p_next, step_direction, current_step_size, -1)
+            p_next = self._fit(p_next, lb, ub, fitted, verbose=2)
+            chi2s.append(trial(p_next))
+            parameter_values.append(p_next[profiled_parameter_index])
+            step += 1
+
+        chi2s.reverse()
+        parameter_values.reverse()
+        p_next = parameter_vector
+        while step < num_steps:
+            current_step_size, p_next = do_step(chi2_last, p_next, step_direction, current_step_size, 1)
+            p_next = self._fit(p_next, lb, ub, fitted)
+            chi2s.append(trial(p_next))
+            parameter_values.append(p_next[profiled_parameter_index])
+            step += 1
+
+        return chi2s, parameter_values
+
+    def _fit(self, parameter_vector, lb, ub, fitted, **kwargs):
+        """Fit the model
+
+        Parameters
+        ----------
+        parameter_vector: array_like
+            List of parameters
+        lb: array_like
+            list of lower parameter bounds
+        ub: array_like
+            list of lower parameter bounds
+        fitted: array_like
+            list of which parameters are fitted
+        """
         def residual(parameters):
             parameter_vector[fitted] = parameters
             return self._calculate_residual(parameter_vector)
@@ -856,9 +975,29 @@ class FitObject:
                                      bounds=(lb[fitted], ub[fitted]),
                                      method='trf', ftol=1e-8, xtol=1e-8, gtol=1e-8, **kwargs)
 
-        parameter_names = self.parameters.keys
         parameter_vector[fitted] = result.x
 
+        return parameter_vector
+
+    def _prepare_fit(self):
+        """Checks whether the model is ready for fitting and returns the current parameter values, which parameters are
+        fitted and the parameter bounds."""
+        self._rebuild()
+        assert self.n_residuals > 0, "This model has no data associated with it."
+        assert self.n_parameters > 0, "This model has no parameters. There is nothing to fit."
+        return self.parameters.values, self.parameters.fitted, self.parameters.lb, self.parameters.ub
+
+    def fit(self, **kwargs):
+        parameter_vector, fitted, lb, ub = self._prepare_fit()
+
+        out_of_bounds = np.logical_or(parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted])
+        if np.any(out_of_bounds):
+            raise ValueError(f"Initial parameters {self.parameters.keys[fitted][out_of_bounds]} are outside the "
+                             f"parameter bounds. Please set value, lb or ub for these parameters to consistent values.")
+
+        parameter_vector = self._fit(parameter_vector, lb, ub, fitted, **kwargs)
+
+        parameter_names = self.parameters.keys
         for name, value in zip(parameter_names, parameter_vector):
             self.parameters[name] = value
 
@@ -930,17 +1069,17 @@ class FitObject:
         res = self._calculate_residual()
         return np.sqrt(np.var(res)) * np.ones(len(res))
 
-    @property
-    def log_likelihood(self):
-        res = self._calculate_residual()
-        sigma = self.sigma
+    def log_likelihood(self, parameters=[], sigma=None):
+        """The model residual is given by chi squared = -2 log(L)"""
+        res = self._calculate_residual(parameters)
+        sigma = sigma if np.any(sigma) else self.sigma
         return - (self.n_residuals/2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) - sum((res/sigma)**2) / 2.0
 
     @property
     def aic(self):
         self._rebuild()
         k = sum(self.parameters.fitted)
-        LL = self.log_likelihood
+        LL = self.log_likelihood()
         return 2.0 * k - 2.0 * LL
 
     @property
@@ -952,7 +1091,7 @@ class FitObject:
     @property
     def bic(self):
         k = sum(self.parameters.fitted)
-        return k * np.log(self.n_residuals) - 2.0 * self.log_likelihood
+        return k * np.log(self.n_residuals) - 2.0 * self.log_likelihood()
 
     @property
     def cov(self):
@@ -960,7 +1099,7 @@ class FitObject:
         Returns the inverse of the approximate Hessian. This approximation is valid when the residuals of the fitting
         problem are small.
         """
-        J = 2 * self._calculate_jacobian()
+        J = self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
         return np.linalg.inv(np.transpose(J).dot(J))
 
@@ -995,7 +1134,6 @@ class FitObject:
         for M in self.models:
             M._plot_model(parameters.values)
 
-
     def plot_model_recursive(self, **kwargs):
         self._rebuild()
 
@@ -1006,9 +1144,10 @@ class FitObject:
 
 
 class Data:
-    def __init__(self, x, y, transformations):
+    def __init__(self, name, x, y, transformations):
         self.x = np.array(x)
         self.y = np.array(y)
+        self.name = name
         self.transformations = transformations
 
     @property
