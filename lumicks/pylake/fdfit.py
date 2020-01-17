@@ -5,6 +5,7 @@ from .detail.utilities import unique, unique_idx, optimal_plot_layout, print_sty
 from collections import OrderedDict
 from copy import deepcopy
 import scipy.optimize as optim
+from .profile_likelihood import ProfileLikelihood1D
 
 
 def parameter_trace(model, parameters, inverted_parameter, independent, dependent, **kwargs):
@@ -845,8 +846,6 @@ class FitObject:
     def profile_likelihood(self, parameter_name, min_step=1e-4, max_step=1.0, num_steps=100, step_factor=2.0,
                            min_chi2_step=0.01, max_chi2_step=0.2, termination_significance=.99, confidence_level=.95):
 
-        from scipy.stats import chi2
-
         if parameter_name not in self.parameters:
             raise KeyError(f"Parameter {parameter_name} not present in fitting object.")
 
@@ -856,97 +855,18 @@ class FitObject:
         assert max_step > min_step
         assert max_chi2_step > min_chi2_step
 
-        n_dof = 1
-        termination_level = chi2.ppf(termination_significance, n_dof)
-        confidence_level = chi2.ppf(confidence_level, n_dof)
-        max_chi2_step_size = max_chi2_step * confidence_level
-        min_chi2_step_size = min_chi2_step * confidence_level
+        profile = ProfileLikelihood1D(parameter_name, min_step, max_step, step_factor, min_chi2_step, max_chi2_step,
+                                      termination_significance, confidence_level, 1)
+
         sigma = self.sigma
 
         def trial(parameters=[]):
             return - 2.0 * self.log_likelihood(parameters, sigma)
 
-        def do_step(chi2_last, parameter_vector, step_direction, current_step_size, sign):
-            """
-            Parameters
-            ----------
-            chi2_last: float
-                previous chi squared value
-            parameter_vector: array_like
-                current parameter vector
-            step_direction: array_like
-                normalized direction in parameter space in which steps are taken
-            current_step_size: float
-                current step size
-            sign: float
-                sign of the stepping mechanism
-            """
-            # Determine an appropriate step size based on chi2 increase
-            adjust_trial = True
-            just_shrunk = False
-            while adjust_trial:
-                p_trial = parameter_vector + sign * current_step_size * step_direction
-                chi2_trial = trial(p_trial)
+        profile.extend_profile(trial, self._fit, self.parameters, 100, True)
+        profile.extend_profile(trial, self._fit, self.parameters, 100, False)
 
-                chi2_change = chi2_trial - chi2_last
-                if chi2_change < min_chi2_step_size:
-                    # Do not increase the step-size if we just shrunk. We already know it's going to be bad and we'd
-                    # just be looping forever.
-                    if not just_shrunk:
-                        adjust_trial = True
-                        current_step_size = current_step_size * step_factor
-                        if current_step_size > max_step:
-                            current_step_size = max_step
-                            adjust_trial = False
-                    else:
-                        adjust_trial = False
-                elif chi2_change > max_chi2_step_size:
-                    adjust_trial = True
-                    just_shrunk = True
-                    current_step_size = current_step_size / step_factor
-                    if current_step_size < min_step:
-                        print("Warning: Step size set to minimum step size.")
-                        current_step_size = min_step
-                        adjust_trial = False
-                else:
-                    adjust_trial = False
-                    just_shrunk = False
-
-            return current_step_size, parameter_vector + sign * current_step_size * step_direction
-
-        current_step_size = 1.0  # TODO: Better initial step size, maybe based on local Hessian approximation
-        profiled_parameter_index = list(self.parameters.keys).index(parameter_name)
-        parameter_vector, fitted, lb, ub = self._prepare_fit()
-        fitted[profiled_parameter_index] = 0
-        min_step = min_step * parameter_vector[profiled_parameter_index]
-        max_step = max_step * parameter_vector[profiled_parameter_index]
-        chi2_last = trial()
-
-        step = 0
-        step_direction = np.zeros(parameter_vector.shape)
-        step_direction[profiled_parameter_index] = 1.0
-
-        chi2s = []
-        parameter_values = []
-        p_next = parameter_vector
-        while step < .5 * num_steps:
-            current_step_size, p_next = do_step(chi2_last, p_next, step_direction, current_step_size, -1)
-            p_next = self._fit(p_next, lb, ub, fitted, verbose=2)
-            chi2s.append(trial(p_next))
-            parameter_values.append(p_next[profiled_parameter_index])
-            step += 1
-
-        chi2s.reverse()
-        parameter_values.reverse()
-        p_next = parameter_vector
-        while step < num_steps:
-            current_step_size, p_next = do_step(chi2_last, p_next, step_direction, current_step_size, 1)
-            p_next = self._fit(p_next, lb, ub, fitted)
-            chi2s.append(trial(p_next))
-            parameter_values.append(p_next[profiled_parameter_index])
-            step += 1
-
-        return chi2s, parameter_values
+        return profile
 
     def _fit(self, parameter_vector, lb, ub, fitted, **kwargs):
         """Fit the model
