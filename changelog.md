@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.4.0 | 2019-12-05
+## v0.4.0 | 2020-01-21
 
 * Add calibration data as attribute of force channels (see docs tutorials section: Files and Channels).
 * Fixed bug which produced shifted timestamps when slicing continuous channel with time values between two data points.
