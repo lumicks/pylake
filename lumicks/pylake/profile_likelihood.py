@@ -1,12 +1,11 @@
 from scipy.stats import chi2
 import numpy as np
-from dataclasses import dataclass
+from typing import NamedTuple
 import matplotlib.pyplot as plt
 from .detail.utilities import clamp_step
 
 
-@dataclass
-class StepConfig:
+class StepConfig(NamedTuple):
     """
     min_abs_step: float
         minimal step size in parameter space
@@ -32,8 +31,7 @@ class StepConfig:
     ub: np.array
 
 
-@dataclass
-class ScanConfig:
+class ScanConfig(NamedTuple):
     """
     lb: np.array
         optimization lower bound
@@ -53,8 +51,7 @@ class ScanConfig:
     termination_level: float
 
 
-@dataclass
-class ProfileInfo:
+class ProfileInfo(NamedTuple):
     minimum_chi2: float
     profiled_parameter_index: int
     delta_chi2: float
