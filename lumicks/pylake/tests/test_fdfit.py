@@ -1,15 +1,22 @@
-from lumicks.pylake.fdfit import FitObject, Parameter, Parameters, Condition, Data, Model, parse_transformation, \
-    _generate_conditions, SubtractIndependentOffset
-from lumicks.pylake.fdmodels import *
+from ..fitting.fitobject import FitObject
+from ..fitting.parameters import Parameters
+from ..fitting.fitdata import Condition, FitData
+from ..fitting.detail.utilities import parse_transformation, unique_idx, clamp_step
+from ..fitting.detail.link_functions import generate_conditions
+from ..fitting.fitobject import FitObject
+
+from ..fitting.fdmodels import *
 from collections import OrderedDict
 import pytest
 import numpy as np
 
+# TODO: invert_derivative is NOT tested!
+
 
 def tests_fit_object():
     pars = ['blip', 'foo']
-    parse_transformation(pars, foo='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
-    parse_transformation(pars, foo = 5) == OrderedDict((('blip', 'blip'), ('foo', 5)))
+    assert parse_transformation(pars, foo='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
+    assert parse_transformation(pars, foo = 5) == OrderedDict((('blip', 'blip'), ('foo', 5)))
 
     with pytest.raises(KeyError):
         parse_transformation(pars, blap='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
@@ -63,36 +70,36 @@ def test_transformation_parser():
 def test_build_conditions():
     parameter_names = ['a', 'b', 'c']
     parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
-    d1 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d2 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d3 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d1 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d2 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d3 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
 
-    assert _generate_conditions([d1, d2, d3], parameter_lookup, parameter_names)
+    assert generate_conditions([d1, d2, d3], parameter_lookup, parameter_names)
 
     # Tests whether we pick up when a parameter that's generated in a transformation doesn't actually exist in the
     # combined model
-    d4 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_should_not_exist'))
+    d4 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_should_not_exist'))
     with pytest.raises(AssertionError):
-        assert _generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
+        assert generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
 
     # Tests whether we pick up on when a parameter exists in the model, but there's no transformation for it.
-    d5 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d5 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
     parameter_names = ['a', 'b', 'c', 'i_am_new']
     parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
     with pytest.raises(AssertionError):
-        assert _generate_conditions([d1, d2, d5], parameter_lookup, parameter_names)
+        assert generate_conditions([d1, d2, d5], parameter_lookup, parameter_names)
 
     # Verify that the data gets linked up to the correct conditions
-    d1 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d2 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d6 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_am_new'))
-    conditions, data_link = _generate_conditions([d1, d2, d6], parameter_lookup, parameter_names)
+    d1 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d2 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d6 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_am_new'))
+    conditions, data_link = generate_conditions([d1, d2, d6], parameter_lookup, parameter_names)
     assert np.all(data_link[0] == [0, 1])
     assert np.all(data_link[1] == [2])
 
     # Test whether a parameter transformation to a value doesn't lead to an error
-    d4 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c=5))
-    assert _generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
+    d4 = FitData("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c=5))
+    assert generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
 
 
 def test_condition_struct():
@@ -253,10 +260,75 @@ def test_model_composition():
                                                                                                  verbose=False)
     assert not (InverseModel(Model("M", f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
                                                                                                  verbose=False)
-
-    M1 = SubtractIndependentOffset(force_model("DNA", "invWLC"), "d_offset") + force_model("f", "offset")
+    M1 = force_model("DNA", "invWLC").subtract_offset("d_offset") + force_model("f", "offset")
     M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
     assert np.allclose(M1(t, p1), M2(t, p2))
+
+
+def test_unique_idx():
+    uiq, inv = unique_idx(['str', 'str', 'hmm', 'potato', 'hmm', 'str'])
+    assert(uiq == ['str', 'hmm', 'potato'])
+    assert(inv == [0, 0, 1, 2, 1, 0])
+
+
+def test_clamp_vector():
+    # Positive quadrant
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([-2, -4]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([0.5, 0.0]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([-4, -4]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([0, 0]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([4, 4]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([2, 2]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([2, 4]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([1.5, 2]))
+
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([-2, 4]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([0.5, 2]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([2, -4]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([1.5, 0]))
+
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([0, .5]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([1.0, 1.5]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([.5, 0]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([1.5, 1]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([-.5, 0]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([0.5, 1]))
+    assert np.allclose(clamp_step(np.array([1, 1]), np.array([-.5, -.5]), np.array([0, 0]), np.array([2, 2]))[0],
+                       np.array([0.5, 0.5]))
+    assert np.allclose(clamp_step(np.array([3, 3]), np.array([-.5, 0.0]), np.array([2, 2]), np.array([4, 4]))[0],
+                       np.array([2.5, 3.0]))
+    assert np.allclose(clamp_step(np.array([3, 3]), np.array([-10.0, 0.0]), np.array([2, 2]), np.array([4, 4]))[0],
+                       np.array([2.0, 3.0]))
+
+    # Negative quadrant
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([-2, -4]), np.array([-2, -2]), np.array([0, 0]))[0],
+                       np.array([-1.5, -2]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([-4, -4]), np.array([-2, -2]), np.array([0, 0]))[0],
+                       np.array([-2, -2]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([4, 4]), np.array([-2, -2]), np.array([0, 0]))[0],
+                       np.array([0, 0]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([2, 4]), np.array([-2, -2]), np.array([0, 0]))[0],
+                       np.array([-0.5, 0]))
+
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([-2, 4]), np.array([-2, -2]), np.array([0, 0]))[0],
+                       np.array([-1.5, 0.0]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([2, -4]), np.array([-2, -2]), np.array([0, 0]))[0],
+                       np.array([-0.5, -2]))
+
+    # Both quadrants
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([-2, -4]), np.array([-2, -2]), np.array([2, 2]))[0],
+                       np.array([-1.5, -2]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([-4, -4]), np.array([-2, -2]), np.array([2, 2]))[0],
+                       np.array([-2, -2]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([4, 4]), np.array([-2, -2]), np.array([2, 2]))[0],
+                       np.array([2, 2]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([2, 4]), np.array([-2, -2]), np.array([2, 2]))[0],
+                       np.array([-1.0+2.0*(3.0/4.0), 2]))
+
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([-2, 4]), np.array([-2, -2]), np.array([2, 2]))[0],
+                       np.array([-2.0, 1.0]))
+    assert np.allclose(clamp_step(np.array([-1, -1]), np.array([2, -4]), np.array([-2, -2]), np.array([2, 2]))[0],
+                       np.array([-0.5, -2.0]))
