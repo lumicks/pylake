@@ -2,6 +2,7 @@ from scipy.stats import chi2
 import numpy as np
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
+from .detail.utilities import clamp_step
 
 
 @dataclass
@@ -17,12 +18,18 @@ class StepConfig:
         minimal step size in chi-squared space
     max_chi2_step_size: float
         maximal step size in chi-squared space
+    lb: array_like
+        minimal values the parameters can take
+    ub: array_like
+        maximal value the parameter can take
     """
     min_abs_step: float
     max_abs_step: float
     step_factor: float
     min_chi2_step_size: float
     max_chi2_step_size: float
+    lb: np.array
+    ub: np.array
 
 
 @dataclass
@@ -78,9 +85,14 @@ def do_step(chi2_function, step_direction_function, chi2_last, parameter_vector,
     # Determine an appropriate step size based on chi2 increase
     adjust_trial = True
     just_shrunk = False
+    current_step_size = np.min([current_step_size, step_config.max_abs_step])
+
     step_direction = step_direction_function()
     while adjust_trial:
-        p_trial = parameter_vector + step_sign * current_step_size * step_direction
+        p_trial, clamped = clamp_step(parameter_vector, step_sign * current_step_size * step_direction,
+                                      step_config.lb, step_config.ub)
+
+        just_shrunk = just_shrunk or clamped
         chi2_trial = chi2_function(p_trial)
 
         chi2_change = chi2_trial - chi2_last
@@ -107,10 +119,11 @@ def do_step(chi2_function, step_direction_function, chi2_last, parameter_vector,
             adjust_trial = False
             just_shrunk = False
 
-    return current_step_size, parameter_vector + step_sign * current_step_size * step_direction
+    return current_step_size, p_trial
 
 
-def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vector, num_steps, step_sign, scan_config):
+def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vector, num_steps, step_sign, scan_config,
+                          verbose):
     """Makes a 1D scan, optimizing parameters at every level.
 
     Parameters
@@ -129,6 +142,8 @@ def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vect
         direction in which to step (-1 or 1)
     scan_config: ScanConfig
         configuration for a line scan
+    verbose: bool
+        produce verbose output
     """
     current_step_size = 1
     step = 0
@@ -142,6 +157,10 @@ def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vect
         chi2_last = chi2_function(p_next)
         chi2_list.append(chi2_last)
         parameter_vectors.append(p_next)
+
+        if verbose:
+            print(f"Iteration {step}: Step size: {current_step_size}, p_next: {p_next}")
+
         step += 1
         if chi2_last > scan_config.termination_level:
             break
@@ -149,9 +168,21 @@ def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vect
     return np.array(chi2_list), np.vstack(parameter_vectors)
 
 
+def find_crossing(x, y, crossing):
+    indices, = np.where(y >= crossing)
+
+    if np.any(indices):
+        index = indices[0]
+        if index > 0:
+            x1, x2, y1, y2 = x[index - 1], x[index], y[index - 1], y[index]
+
+        dydx = (y2 - y1) / (x2 - x1)
+        return x1 + (crossing - y1) / dydx
+
+
 class ProfileLikelihood1D:
-    def __init__(self, parameter_name, min_step=1e-4, max_step=1.0, step_factor=2.0, min_chi2_step=0.01,
-                 max_chi2_step=0.2, termination_significance=.99, confidence_level=.95, num_dof=1):
+    def __init__(self, parameter_name, min_step=1e-4, max_step=1.0, step_factor=2.0, min_chi2_step=0.05,
+                 max_chi2_step=0.5, termination_significance=.99, confidence_level=.95, num_dof=1):
         self.parameter_name = parameter_name
 
         # These are the user exposed options. They can be modified by the user in the struct if desired. THey are parsed
@@ -187,11 +218,13 @@ class ProfileLikelihood1D:
         def step_direction_function():
             return step_direction
 
-        step_config = StepConfig(min_abs_step=options["min_step"] * parameters[parameter_name].value,
-                                 max_abs_step=options["max_step"] * parameters[parameter_name].value,
+        step_config = StepConfig(min_abs_step=options["min_step"] * np.abs(parameters[parameter_name].value),
+                                 max_abs_step=options["max_step"] * np.abs(parameters[parameter_name].value),
                                  step_factor=options["step_factor"],
                                  min_chi2_step_size=options["min_chi2_step"] * self.profile_info.delta_chi2,
-                                 max_chi2_step_size=options["max_chi2_step"] * self.profile_info.delta_chi2)
+                                 max_chi2_step_size=options["max_chi2_step"] * self.profile_info.delta_chi2,
+                                 lb=parameters.lb,
+                                 ub=parameters.ub)
 
         def step_function(chi2_last, parameter_vector, current_step_size, step_sign):
             return do_step(chi2_function, step_direction_function, chi2_last, parameter_vector, current_step_size,
@@ -204,14 +237,14 @@ class ProfileLikelihood1D:
                                  termination_level=self.profile_info.minimum_chi2 +
                                                    chi2.ppf(options["termination_significance"], options["num_dof"]))
 
-        def scan_direction(chi2_last, parameter_vector, step_sign, num_steps):
+        def scan_direction(chi2_last, parameter_vector, step_sign, num_steps, verbose):
             return scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vector, num_steps, step_sign,
-                                         scan_config)
+                                         scan_config, verbose)
 
         return scan_direction
 
     # TODO: Add mechanism which stores a hash coming from the FitObject and validates it against what's already done
-    def extend_profile(self, chi2_function, fit_function, parameters, num_steps, forward):
+    def extend_profile(self, chi2_function, fit_function, parameters, num_steps, forward, verbose):
         scan_direction = self.prepare_profile(chi2_function, fit_function, parameters, self.parameter_name)
 
         field = "fwd" if forward else "bwd"
@@ -221,53 +254,59 @@ class ProfileLikelihood1D:
         chi2_list = self._chi2[field] if field in self._chi2 else [self.profile_info.minimum_chi2]
         chi2_last = chi2_list[-1]
 
-        chi2_new, parameters_new = scan_direction(chi2_last, initial_parameters, 1 if forward else -1, num_steps)
+        chi2_new, parameters_new = scan_direction(chi2_last, initial_parameters, 1 if forward else -1, num_steps,
+                                                  verbose)
 
         self._parameters[field] = np.vstack((parameter_vectors, parameters_new))
         self._chi2[field] = np.hstack((chi2_list, chi2_new))
 
-    def _calc_ci(self):
-        def find_crossing(x, y, crossing):
-            print(y)
-            indices, = np.where(y >= crossing)
-
-            if np.any(indices):
-                index = indices[0]
-                if index > 0:
-                    x1, x2, y1, y2 = x[index-1], x[index], y[index-1], y[index]
-
-                dydx = (y2 - y1) / (x2 - x1)
-                return x1 + (crossing - y1) / dydx
-
+    @property
+    def lb(self):
         cutoff = self.profile_info.minimum_chi2 + self.profile_info.delta_chi2
         p_index = self.profile_info.profiled_parameter_index
-        x_min = find_crossing(self._parameters["bwd"][:, p_index], self._chi2["bwd"], cutoff)
-        x_max = find_crossing(self._parameters["fwd"][:, p_index], self._chi2["fwd"], cutoff)
-        return x_min, x_max
+        return find_crossing(self._parameters["bwd"][:, p_index], self._chi2["bwd"], cutoff)
 
-    def plot(self):
+    @property
+    def ub(self):
+        cutoff = self.profile_info.minimum_chi2 + self.profile_info.delta_chi2
+        p_index = self.profile_info.profiled_parameter_index
+        return find_crossing(self._parameters["fwd"][:, p_index], self._chi2["fwd"], cutoff)
+
+    @property
+    def parameters(self):
+        return np.vstack((np.flipud(self._parameters["bwd"]), self._parameters["fwd"]))
+
+    @property
+    def chi2(self):
+        return np.hstack((np.flipud(self._chi2["bwd"]), self._chi2["fwd"]))
+
+    @property
+    def p(self):
+        return self.parameters[:, self.profile_info.profiled_parameter_index]
+
+    def plot(self, **kwargs):
         dash_length = 5
-        chi2_list = np.hstack((np.flipud(self._chi2["bwd"]), self._chi2["fwd"]))
-        parameters = np.vstack((np.flipud(self._parameters["bwd"]), self._parameters["fwd"]))
-
-        ci_min, ci_max = self._calc_ci()
-
-        plt.figure()
-        plt.subplot(2, 1, 1)
-        independent = parameters[:, self.profile_info.profiled_parameter_index]
-        plt.plot(independent, chi2_list)
+        plt.plot(self.p, self.chi2, **kwargs)
         confidence_chi2 = self.profile_info.minimum_chi2 + self.profile_info.delta_chi2
         plt.axhline(y=confidence_chi2, linewidth=1, color='k', dashes=[dash_length, dash_length])
-        plt.axvline(x=ci_min, linewidth=1, color='k', dashes=[dash_length, dash_length])
-        plt.axvline(x=ci_max, linewidth=1, color='k', dashes=[dash_length, dash_length])
 
-        plt.text(min(independent), confidence_chi2, f"{self.profile_info.confidence_level * 100}%")
-        plt.ylabel('$\chi^2$')
+        ci_min, ci_max = self.lb, self.ub
+        if ci_min:
+            plt.axvline(x=ci_min, linewidth=1, color='k', dashes=[dash_length, dash_length])
+        if ci_max:
+            plt.axvline(x=ci_max, linewidth=1, color='k', dashes=[dash_length, dash_length])
+
+        plt.text(min(self.p), confidence_chi2, f"{self.profile_info.confidence_level * 100}%")
+        plt.ylabel('$\\chi^2$')
         plt.xlabel(self.parameter_name)
+        plt.ylim([self.profile_info.minimum_chi2 - .1 * self.profile_info.delta_chi2,
+                  self.profile_info.minimum_chi2 + 1.1 * self.profile_info.delta_chi2])
 
-        plt.subplot(2, 1, 2)
+    def plot_relations(self, **kwargs):
+        parameters = self.parameters
         other = [x for x in range(parameters.shape[1]) if x != self.profile_info.profiled_parameter_index]
-        line_handles = plt.plot(parameters[:, self.profile_info.profiled_parameter_index], parameters[:, other])
+        line_handles = plt.plot(parameters[:, self.profile_info.profiled_parameter_index], self.parameters[:, other],
+                                **kwargs)
         plt.ylabel('Other parameter value')
         plt.xlabel(self.parameter_name)
         plt.legend(line_handles, [self.profile_info.parameter_names[idx] for idx in other])

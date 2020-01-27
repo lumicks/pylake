@@ -210,6 +210,17 @@ def test_continuous_idexing():
     assert s[5:15].timestamps[0] == 6
     s = channel.Slice(channel.Continuous([14, 15, 16, 17], -4, 2))
     assert s[-3:].timestamps[0] == -2
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], 4, 3))
+    assert s[3:15].timestamps[0] == 4
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], 4, 3))
+    assert s[4:15].timestamps[0] == 4
+    assert s[5:15].timestamps[0] == 7
+    assert s[6:15].timestamps[0] == 7
+    assert s[7:15].timestamps[0] == 7
+    assert s[8:15].timestamps[0] == 10
+    assert s[6:14].timestamps[-1] == 13
+    assert s[6:13].timestamps[-1] == 10
+
 
 def test_timetags_indexing():
     s = channel.Slice(channel.TimeTags([10, 20, 30, 40, 50, 60]))

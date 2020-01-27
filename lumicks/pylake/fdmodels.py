@@ -13,16 +13,18 @@ def force_model(name, model_type):
         Name to identify the model by (e.g. "DNA"). This name gets prefixed to the non-shared parameters.
     model_type : str
         Specifies which model to return. Valid options are:
+        - Marko_Siggia
+            Margo Siggia's Worm-like Chain model with d as dependent parameter (useful for F < 10 pN).
         - WLC
-            Odijk's Extensible Worm-Like Chain model with F as independent parameter
+            Odijk's Extensible Worm-Like Chain model with F as independent parameter (useful for 10 pN < F < 30 pN)
         - tWLC
-            Twistable Worm-Like Chain model with F as independent parameter
+            Twistable Worm-Like Chain model with F as independent parameter (useful for 10 pN < F)
         - FJC
             Freely Jointed Chain model with F as independent parameter
         - invWLC
-            Inverted Extensible Worm-Like Chain model with d as independent parameter
+            Inverted Extensible Worm-Like Chain model with d as independent parameter (useful for 10 pN < F < 30 pN)
         - invtWLC
-            Inverted Twistable Worm-Like Chain model with d as independent parameter
+            Inverted Twistable Worm-Like Chain model with d as independent parameter (useful for 10 pN < F)
         - invFJC
             Inverted Freely Joint Chain model with d as independent parameter
     """
@@ -33,6 +35,9 @@ def force_model(name, model_type):
     if model_type == "offset":
         return Model(name, offset_model, offset_model_jac, derivative=offset_model_derivative,
                      offset=Parameter(value=0, lb=-np.inf, ub=np.inf))
+    if model_type == "Marko_Siggia":
+        return Model(name, Marko_Siggia, Marko_Siggia_jac, derivative=Marko_Siggia_derivative,
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default)
     if model_type == "WLC":
         return Model(name, WLC, WLC_jac, derivative=WLC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
@@ -49,11 +54,15 @@ def force_model(name, model_type):
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invWLC":
         return Model(name, invWLC, invWLC_jac, derivative=invWLC_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
+                     Fc=Parameter(value=30.6, lb=0.0, ub=100.0),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0))
     elif model_type == "invtWLC":
         return Model(name, invtWLC, invtWLC_jac,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0),
+                     Fc=Parameter(value=30.6, lb=0.0, ub=100.0),
                      C=Parameter(value=440.0, lb=0.0, ub=50000.0),
                      g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
                      g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0),
@@ -78,6 +87,29 @@ def offset_model_jac(x, offset):
 def offset_model_derivative(x, offset):
     """Offset on the model output."""
     return np.zeros(len(x))
+
+
+def Marko_Siggia(d, Lp, Lc, kT):
+    """
+    Markov Siggia's Worm-like Chain model based on only entropic contributions. Valid for F < 10 pN).
+
+    References:
+        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
+        8759-8770 (1995).
+    """
+    d_div_Lc = d / Lc
+    return (kT/Lp) * .25 * (1.0-d_div_Lc)**(-2) + d_div_Lc - .25
+
+
+def Marko_Siggia_jac(d, Lp, Lc, kT):
+    d_div_Lc = d / Lc
+    return [-0.25 * kT / (Lp ** 2 * (1.0 - d_div_Lc) ** 2),
+            -d_div_Lc ** 2 - 0.5 * d * kT / (Lc ** 2 * Lp * (1.0 - d_div_Lc) ** 3),
+            0.25 / (Lp * (1.0 - d_div_Lc) ** 2)]
+
+
+def Marko_Siggia_derivative(d, Lp, Lc, kT):
+    return [1/Lc + 0.5*kT/(Lc*Lp*(1.0 - d/Lc)**3)]
 
 
 def WLC(F, Lp, Lc, St, kT = 4.11):

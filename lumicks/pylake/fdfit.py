@@ -42,8 +42,6 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
         # Calculate a per datapoint contour length
         lcs = parameter_trace(M_protein, protein_fit.parameters, "protein_Lc", distances, forces)
     """
-    import scipy as sp
-
     parameter_names = list(parse_transformation(model.parameter_names, **kwargs).keys())
     assert inverted_parameter in parameters, "Inverted parameter not in model parameter vector."
     for key in parameter_names:
@@ -658,6 +656,7 @@ class Parameter:
         self.ub = ub
         self.vary = vary
         self.shared = shared
+        self.profile = None
         if init:
             self.init = init
         else:
@@ -720,7 +719,7 @@ class Parameters:
         return_str = ""
         maxlen = np.max([len(x) for x in self._src.keys()])
         for key, param in self._src.items():
-            return_str = return_str + ("{:"+f"{maxlen+1}"+"s} {:1.4e} {:1d}\n").format(key, param.value, param.vary)
+            return_str = return_str + ("{:"+f"{maxlen+1}"+"s} {:+1.4e} {:1d} [{:+1.4e}, {:+1.4e}]\n").format(key, param.value, param.vary, param.lb, param.ub)
 
         return return_str
 
@@ -844,7 +843,39 @@ class FitObject:
         return len(self._parameters)
 
     def profile_likelihood(self, parameter_name, min_step=1e-4, max_step=1.0, num_steps=100, step_factor=2.0,
-                           min_chi2_step=0.01, max_chi2_step=0.2, termination_significance=.99, confidence_level=.95):
+                           min_chi2_step=0.05, max_chi2_step=.25, termination_significance=.99, confidence_level=.95,
+                           verbose=False):
+        """Calculate a profile likelihood. This method traces an optimal path through parameter space in order to
+        estimate parameter confidence intervals. It iteratively performs a step for the profiled parameter, then fixes
+        that parameter and re-optimizes all the other parameters.
+
+        Parameters
+        ----------
+        parameter_name: str
+            Which parameter to evaluate a profile likelihood for.
+        min_step: float
+            Minimum step size. This is multiplied by the current parameter value to come to a minimum step size used
+            in the step-size estimation procedure (default: 1e-4).
+        max_step: float
+            Maximum step size (default: 1.0).
+        num_steps: integer
+            Number of steps to take (default: 100).
+        step_factor: float
+            Which factor to change the step-size by when step-size is too large or too small (default: 2).
+        min_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the step results in a fit
+            change smaller than this threshold, the step-size will be increased.
+        max_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the step results in a fit
+            change bigger than this threshold, the step-size will be reduced.
+        termination_significance: float
+            Significance level for terminating the parameter scan. When the fit quality exceeds the
+            termination_significance confidence level, it stops scanning.
+        confidence_level: float
+            Significance level for the chi squared test.
+        verbose: bool
+            Controls the verbosity of the output.
+        """
 
         if parameter_name not in self.parameters:
             raise KeyError(f"Parameter {parameter_name} not present in fitting object.")
@@ -863,8 +894,10 @@ class FitObject:
         def trial(parameters=[]):
             return - 2.0 * self.log_likelihood(parameters, sigma)
 
-        profile.extend_profile(trial, self._fit, self.parameters, 100, True)
-        profile.extend_profile(trial, self._fit, self.parameters, 100, False)
+        profile.extend_profile(trial, self._fit, self.parameters, num_steps, True, verbose)
+        profile.extend_profile(trial, self._fit, self.parameters, num_steps, False, verbose)
+
+        self.parameters[parameter_name].profile = profile
 
         return profile
 
@@ -1021,11 +1054,7 @@ class FitObject:
         """
         J = self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
-        return np.linalg.inv(np.transpose(J).dot(J))
-
-    @property
-    def asymptotic_ci(self, mode="chi2"):
-        cov_est = self.cov()
+        return np.linalg.pinv(np.transpose(J).dot(J))
 
     def plot(self, **kwargs):
         self.plot_data()

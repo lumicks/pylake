@@ -63,35 +63,35 @@ def test_transformation_parser():
 def test_build_conditions():
     parameter_names = ['a', 'b', 'c']
     parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
-    d1 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d2 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d3 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d1 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d2 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d3 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
 
     assert _generate_conditions([d1, d2, d3], parameter_lookup, parameter_names)
 
     # Tests whether we pick up when a parameter that's generated in a transformation doesn't actually exist in the
     # combined model
-    d4 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_should_not_exist'))
+    d4 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_should_not_exist'))
     with pytest.raises(AssertionError):
         assert _generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
 
     # Tests whether we pick up on when a parameter exists in the model, but there's no transformation for it.
-    d5 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d5 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
     parameter_names = ['a', 'b', 'c', 'i_am_new']
     parameter_lookup = OrderedDict(zip(parameter_names, np.arange(len(parameter_names))))
     with pytest.raises(AssertionError):
         assert _generate_conditions([d1, d2, d5], parameter_lookup, parameter_names)
 
     # Verify that the data gets linked up to the correct conditions
-    d1 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d2 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
-    d6 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_am_new'))
+    d1 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d2 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names))
+    d6 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c='i_am_new'))
     conditions, data_link = _generate_conditions([d1, d2, d6], parameter_lookup, parameter_names)
     assert np.all(data_link[0] == [0, 1])
     assert np.all(data_link[1] == [2])
 
     # Test whether a parameter transformation to a value doesn't lead to an error
-    d4 = Data([1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c=5))
+    d4 = Data("name", [1, 2, 3], [1, 2, 3], parse_transformation(parameter_names, c=5))
     assert _generate_conditions([d1, d2, d4], parameter_lookup, parameter_names)
 
 

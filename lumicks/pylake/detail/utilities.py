@@ -1,3 +1,4 @@
+import numpy as np
 
 def first(iterable, condition=lambda x: True):
     """Return the first item in the `iterable` that satisfies the `condition`.
@@ -53,3 +54,19 @@ def print_styled(style, print_string, **kwargs):
     }
     if style in print_dict:
         print(print_dict[style] + print_string + '\033[0m')
+
+
+def clamp_step(x_origin, x_step, lb, ub):
+    """Shortens a step to stay within some box constraints."""
+    alpha_ub = np.inf * np.ones(x_step.shape)
+    alpha_lb = -np.inf * np.ones(x_step.shape)
+
+    mask = x_step != 0
+    alpha_ub[mask] = (ub[mask] - x_origin[mask]) / x_step[mask]
+    alpha_lb[mask] = (lb[mask] - x_origin[mask]) / x_step[mask]
+
+    scaling = np.min(np.maximum(alpha_ub, alpha_lb))
+    if abs(scaling) > 1.0:
+        scaling = 1.0
+
+    return x_origin + scaling * x_step, scaling != 1.0
