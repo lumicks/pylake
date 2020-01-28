@@ -238,7 +238,6 @@ def test_model_composition():
 
     M1 = Model("M", f, f_jac, derivative=f_der)
     M2 = Model("M", g, g_jac, derivative=g_der)
-
     t = np.arange(0, 2, .5)
 
     # Check actual composition
@@ -254,23 +253,25 @@ def test_model_composition():
     assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
     assert (M2 + M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
 
-    assert not (Model("M", f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
-    assert not (M2 + Model("M", f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    M1_wrong_jacobian = Model("M", f, f_jac_wrong, derivative=f_der)
+    M1_wrong_derivative = Model("M", f, f_jac, derivative=f_der_wrong)
+    assert not (M1_wrong_jacobian + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    assert not (M2 + M1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
-    assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
-                                                                                       verbose=False)
-    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0],
-                                                                                          verbose=False)
-    assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
-    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
-    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert (InverseModel(M1) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(M1 + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(M1 + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
 
-    assert not (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
-                                                                                                 verbose=False)
-    assert not (InverseModel(Model("M", f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
-                                                                                                 verbose=False)
-    assert not (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert (InverseModel(M1) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(M1 + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(M1 + M2 + M1).verify_derivative(t, [-1.0, 2.0, 3.0])
+
+    assert not (InverseModel(M1_wrong_derivative) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(M1_wrong_jacobian) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(M1_wrong_derivative) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+
+    assert M1.subtract_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert M1.subtract_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
 
     M1 = force_model("DNA", "invWLC").subtract_offset("d_offset") + force_model("f", "offset")
     M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
@@ -385,3 +386,4 @@ def test_clamp_vector():
                        np.array([-2.0, 1.0]))
     assert np.allclose(clamp_step(np.array([-1, -1]), np.array([2, -4]), np.array([-2, -2]), np.array([2, 2]))[0],
                        np.array([-0.5, -2.0]))
+

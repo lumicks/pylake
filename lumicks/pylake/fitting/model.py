@@ -444,5 +444,4 @@ class SubtractIndependentOffset(Model):
     def derivative(self, independent, parameter_vector):
         if self.has_derivative:
             with_offset = independent - parameter_vector[self.offset_parameter]
-            return self.model.derivative(with_offset, parameter_vector[self.model_parameters])
-
+            return self.model.derivative(with_offset, [parameter_vector[x] for x in self.model_parameters])
