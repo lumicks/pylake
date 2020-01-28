@@ -3,6 +3,10 @@ import scipy as sp
 import scipy.optimize as optim
 
 
+def numerical_diff(fn, x, dx=1e-6):
+    return (fn(x + dx) - fn(x - dx)) / (2.0 * dx)
+
+
 def numerical_jacobian(fn, parameter_vector, dx=1e-6):
     finite_difference_jacobian = np.zeros((len(parameter_vector), len(fn(parameter_vector))))
     for i in np.arange(len(parameter_vector)):

@@ -39,7 +39,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
         lcs = parameter_trace(M_protein, protein_fit.parameters, "protein_Lc", distances, forces)
     """
     parameter_names = list(parse_transformation(model.parameter_names, **kwargs).keys())
-    assert inverted_parameter in parameters, "Inverted parameter not in model parameter vector."
+    assert inverted_parameter in parameters, f"Inverted parameter not in model parameter vector {parameters}."
     for key in parameter_names:
         assert key in parameters, f"Missing parameter {key} in supplied parameter vector."
 
@@ -62,6 +62,6 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
     jac = jacobian if model.has_jacobian else "2-point"
     result = optim.least_squares(residual, initial_estimate, jac=jac,
                                  jac_sparsity=sp.sparse.identity(len(independent)),
-                                 bounds=(lb, ub), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-8, verbose=2)
+                                 bounds=(lb, ub), method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-8)
 
     return result.x
