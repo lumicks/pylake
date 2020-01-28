@@ -4,6 +4,7 @@ from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.utilities import parse_transformation, unique_idx, clamp_step
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitobject import FitObject
+from ..fitting.detail.parameter_trace import parameter_trace
 
 from ..fitting.fdmodels import *
 from collections import OrderedDict
@@ -118,7 +119,7 @@ def test_condition_struct():
 
 
 def test_models():
-    independent = np.arange(0.05, 2, .01)
+    independent = np.arange(0.05, 2, .5)
     parameters = [5, 5, 5, 4.11]
     assert(Model("M", WLC, WLC_jac).verify_jacobian(independent, parameters))
     assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters))
@@ -189,6 +190,7 @@ def test_integration_test_fitting():
     assert (np.isclose(fit.parameters["M_b"].value, 5))
     assert (np.isclose(fit.parameters["M_a"].value, 8))
 
+
 def test_model_defaults():
     def g(data, mu, sig, a, b, c, d, e, f, q):
         return (data - mu) * 2
@@ -237,35 +239,86 @@ def test_model_composition():
     M1 = Model("M", f, f_jac, derivative=f_der)
     M2 = Model("M", g, g_jac, derivative=g_der)
 
-    t = np.arange(0, 2, .1)
+    t = np.arange(0, 2, .5)
 
     # Check actual composition
     # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
     assert np.allclose((M1 + M2)(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
         "Model composition returns invalid function evaluation (parameter order issue?)"
 
-    # Check self-consistency of the Jacobians
+    # Check correctness of the Jacobians and derivatives
     assert (M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
     assert (M2 + M1).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1).verify_derivative(t, [1.0, 2.0, 3.0])
     assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
 
     assert not (Model("M", f, f_jac_wrong, derivative=f_der) + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
     assert not (M2 + Model("M", f, f_jac_wrong, derivative=f_der)).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
-    assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
+                                                                                       verbose=False)
     assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0],
+                                                                                          verbose=False)
+    assert (InverseModel(Model("M", f, f_jac, derivative=f_der)) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(Model("M", f, f_jac, derivative=f_der) + M2 + M1).verify_derivative(t, [-1.0, 2.0, 3.0])
 
     assert not (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
                                                                                                  verbose=False)
     assert not (InverseModel(Model("M", f, f_jac_wrong, derivative=f_der)) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0],
                                                                                                  verbose=False)
+    assert not (InverseModel(Model("M", f, f_jac, derivative=f_der_wrong)) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+
     M1 = force_model("DNA", "invWLC").subtract_offset("d_offset") + force_model("f", "offset")
     M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
     assert np.allclose(M1(t, p1), M2(t, p2))
+
+
+def test_parameter_inversion():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def g(x, a, d, b):
+        return a - b * x + d * x * x
+
+    def g_jac(x, a, d, b):
+        return np.vstack((np.ones((1, len(x))), x * x, -x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def g_der(x, a, d, b):
+        return - b * np.ones((len(x))) + 2.0 * d * x
+
+    x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    a_true = 5.0
+    b_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
+    f_data = f(x, a_true, b_true)
+    model = Model("f", f, f_jac, f_der)
+    fit_object = FitObject(model)
+    fit_object.parameters["f_a"].value = a_true
+    fit_object.parameters["f_b"].value = 1.0
+    assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_b', x, f_data), b_true)
+
+    a_true = 5.0
+    b_true = 3.0
+    d_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
+    f_plus_g_data = f(x, a_true, b_true) + g(x, a_true, d_true, b_true)
+    model = Model("f", f, f_jac, f_der) + Model("f", g, g_jac, g_der)
+    fit_object = FitObject(model)
+    fit_object.parameters["f_a"].value = a_true
+    fit_object.parameters["f_b"].value = b_true
+    fit_object.parameters["f_d"].value = 1.0
+    assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_d', x, f_plus_g_data), d_true)
 
 
 def test_unique_idx():
