@@ -1,5 +1,5 @@
 from ..fitting.fitobject import FitObject
-from ..fitting.parameters import Parameters
+from ..fitting.parameters import Parameters, Parameter
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.utilities import parse_transformation, unique_idx, clamp_step
 from ..fitting.detail.link_functions import generate_conditions
@@ -10,8 +10,6 @@ from ..fitting.fdmodels import *
 from collections import OrderedDict
 import pytest
 import numpy as np
-
-# TODO: invert_derivative is NOT tested!
 
 
 def tests_fit_object():
@@ -25,13 +23,13 @@ def tests_fit_object():
 
 def test_parameters():
     params = Parameters()
-    params.set_parameters(['alpha', 'beta', 'gamma'], [None]*3)
+    params._set_parameters(['alpha', 'beta', 'gamma'], [None]*3)
     assert (params['beta'].value == 0.0)
 
     params['beta'].value = 5.0
     assert (np.allclose(params.values, [0.0, 5.0, 0.0]))
 
-    params.set_parameters(['alpha', 'beta', 'gamma', 'delta'], [None]*4)
+    params._set_parameters(['alpha', 'beta', 'gamma', 'delta'], [None]*4)
     assert (params['beta'].value == 5.0)
     assert (np.allclose(params.values, [0.0, 5.0, 0.0, 0.0]))
 
@@ -44,7 +42,7 @@ def test_parameters():
     assert (np.allclose(params.ub, [np.inf, np.inf, 5.0, np.inf]))
 
     assert(len(params) == 4.0)
-    params.set_parameters(['alpha', 'beta', 'delta'], [None]*3)
+    params._set_parameters(['alpha', 'beta', 'delta'], [None]*3)
     assert (np.allclose(params.values, [0.0, 5.0, 7.0]))
     assert ([p for p in params] == ['alpha', 'beta', 'delta'])
     assert(len(params) == 3.0)
@@ -53,6 +51,18 @@ def test_parameters():
         p.value = 1.0
 
     assert (np.allclose(params.values, [1.0, 1.0, 1.0]))
+
+    params = Parameters()
+    params._set_parameters(['alpha', 'beta', 'gamma'], [Parameter(2), Parameter(3), Parameter(4)])
+    params2 = Parameters()
+    params2._set_parameters(['gamma', 'potato', 'beta'], [Parameter(10), Parameter(11), Parameter(12)])
+    params << params2
+    assert np.allclose(params.values, [2, 12, 10])
+
+    params2 = Parameters()
+    params2._set_parameters(['spaghetti'], [Parameter(10), Parameter(12)])
+    with pytest.raises(RuntimeError):
+        params << params2
 
 
 def test_transformation_parser():
@@ -321,6 +331,68 @@ def test_parameter_inversion():
     fit_object.parameters["f_d"].value = 1.0
     assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_d', x, f_plus_g_data), d_true)
 
+
+def test_fitobject():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def f_jac_wrong(x, a, b):
+        return np.vstack((2.0*np.ones((1, len(x))), x))
+
+    x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    a_true, b_true = (5.0, 5.0)
+    f_data = f(x, a_true, b_true)
+    fit_object = FitObject(Model("f", f, f_jac, f_der).load_data(x, f_data))
+    fit_object.parameters["f_a"].value = a_true
+    fit_object.parameters["f_b"].value = b_true
+    assert fit_object.verify_jacobian(fit_object.parameters.values)
+
+    fit_object_bad = FitObject(Model("f", f, f_jac_wrong, f_der).load_data(x, f_data))
+    fit_object_bad.parameters["f_a"].value = a_true
+    fit_object_bad.parameters["f_b"].value = b_true
+    assert not fit_object_bad.verify_jacobian(fit_object_bad.parameters.values)
+
+
+def test_uncertainty_analysis():
+    x = np.arange(10)
+    y = np.array([8.24869073, 7.77648717, 11.9436565, 14.85406276, 22.73081526, 20.39692261, 32.48962353, 31.4775862,
+                  37.63807819, 40.50125925])
+
+    def quad(x, a=1, b=1, c=1):
+        return a * x * x + b * x + c
+
+    def quad_jac(x, a=1, b=1, c=1):
+        return np.vstack((x*x, x, np.ones(len(x))))
+
+    def linear(x, a=1, b=1):
+        f = a * x + b
+        return f
+
+    def linear_jac(x, a, b):
+        J = np.vstack((x, np.ones(len(x))))
+        return J
+
+    F_linear = FitObject(Model("linear", linear, linear_jac).load_data(x, y)).fit()
+    F_quad = FitObject(Model("quad", quad, quad_jac).load_data(x, y)).fit()
+
+    assert np.allclose(F_linear.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
+    assert np.allclose(F_quad.cov, np.array([[0.00973206, -0.08758855,  0.11678473],
+                                             [-0.08758855,  0.85058215, -1.33134597],
+                                             [0.11678473, -1.33134597,  3.17654476]]))
+
+    assert np.allclose(F_linear.aic, 49.652690269143434)
+    assert np.allclose(F_linear.aicc, 51.36697598342915)
+    assert np.allclose(F_linear.bic, 50.25786045513153)
+
+    assert np.allclose(F_quad.aic, 50.74643780988533)
+    assert np.allclose(F_quad.aicc, 54.74643780988533)
+    assert np.allclose(F_quad.bic, 51.654193088867466)
 
 def test_unique_idx():
     uiq, inv = unique_idx(['str', 'str', 'hmm', 'potato', 'hmm', 'str'])
