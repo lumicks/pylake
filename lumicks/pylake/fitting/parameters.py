@@ -34,7 +34,17 @@ class Parameter:
 
 class Parameters:
     """
-    Model parameters.
+    Model parameters. Internally stored as a list of Parameter.
+
+    Examples
+    --------
+    ::
+        F = FitObject(Model(my_model))
+
+        print(F.parameters)  # Prints the model parameters
+        F.parameters["test_parameter"].value = 5  # Set parameter test_parameter to 5
+
+        DNA_and_protein.parameters << DNA.parameters  # Copy the parameters from an earlier fit into the combined model.
     """
     def __init__(self):
         self._src = OrderedDict()
@@ -44,7 +54,7 @@ class Parameters:
 
     def __lshift__(self, other):
         """
-        Set parameters
+        Sets parameters if they are found in the target parameter list.
 
         Parameters
         ----------
@@ -77,21 +87,27 @@ class Parameters:
     def __setitem__(self, item, value):
         if item in self._src:
             self._src[item].value = value
+        else:
+            raise IndexError(f"Parameter {item} not found in parameter vector {self.keys}!")
 
     def __len__(self):
         return len(self._src)
 
     def __str__(self):
         return_str = ""
-        maxlen = np.max([len(x) for x in self._src.keys()])
+        max_length = np.max([len(x) for x in self._src.keys()])
         for key, param in self._src.items():
-            return_str = return_str + ("{:"+f"{maxlen+1}"+"s} {:+1.4e} {:1d} [{:+1.4e}, {:+1.4e}]\n").format(key, param.value, param.vary, param.lb, param.ub)
+            return_str = return_str + ("{:"+f"{max_length+1}"+"s} {:+1.4e} {:1d} [{:+1.4e}, {:+1.4e}]\n").format(key, param.value, param.vary, param.lb, param.ub)
 
         return return_str
 
-    def set_parameters(self, parameters, defaults):
+    def _set_parameters(self, parameters, defaults):
         """Rebuild the parameter vector. Note that this can potentially alter the parameter order if the strings are
         given in a different order.
+
+        It mutates the parameter vector to contain the elements as specified in "parameters" with the defaults as
+        specified in defaults. If the parameter already exists in the vector nothing happens to it. If it doesn't,
+        it gets initialized to its default.
 
         Parameters
         ----------
@@ -100,7 +116,8 @@ class Parameters:
         defaults : Parameter or None
             default parameter objects
         """
-        new_parameters = OrderedDict(zip(parameters, [Parameter() if x is None else x for x in defaults]))
+        new_parameters = OrderedDict(zip(parameters, [x if isinstance(x, Parameter) else Parameter() for x in
+                                                      defaults]))
         for key, value in self._src.items():
             if key in new_parameters:
                 new_parameters[key] = value
