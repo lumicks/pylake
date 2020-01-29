@@ -13,7 +13,16 @@ from copy import deepcopy
 class Model:
     def __init__(self, name, model_function, jacobian=None, derivative=None, **kwargs):
         """
-        This function creates a model. A Model must be named, and this name will appear in the model parameters.
+        Model constructor. A Model must be named, and this name will appear in the model parameters.
+        A model contains references to data associated with the model by using the member function load_data.
+
+        Prior to fitting the model will automatically generate a list of unique conditions (defined as conditions
+        characterized by a unique set of conditions).
+
+        Ideally a jacobian and derivative w.r.t. the independent variable are provided with every model. This will
+        allow much higher performance when fitting. Jacobians and derivatives are automatically propagated to composite
+        models, inversions of models etc. provided that all participating models have jacobians and derivatives
+        specified.
 
         Parameters
         ----------
