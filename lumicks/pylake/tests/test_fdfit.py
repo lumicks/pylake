@@ -252,7 +252,7 @@ def test_model_composition():
 
     # Check actual composition
     # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
-    assert np.allclose((M1 + M2)(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
+    assert np.allclose((M1 + M2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
         "Model composition returns invalid function evaluation (parameter order issue?)"
 
     # Check correctness of the Jacobians and derivatives
@@ -288,7 +288,7 @@ def test_model_composition():
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
-    assert np.allclose(M1(t, p1), M2(t, p2))
+    assert np.allclose(M1._raw_call(t, p1), M2._raw_call(t, p2))
 
 
 def test_parameter_inversion():
@@ -357,6 +357,23 @@ def test_fitobject():
     fit_object_bad.parameters["f_a"].value = a_true
     fit_object_bad.parameters["f_b"].value = b_true
     assert not fit_object_bad.verify_jacobian(fit_object_bad.parameters.values)
+
+
+def test_model_calls():
+    def model_function(x, b, c, d):
+        return b + c * x + d * x * x
+
+    t = np.array([1.0, 2.0, 3.0])
+    model = Model("m", model_function)
+    y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
+
+    assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_c=Parameter(3), m_d=Parameter(4))),
+                       y_ref)
+
+    assert np.allclose(model(t, Parameters(m_d=Parameter(4), m_c=Parameter(3), m_b=Parameter(2))), y_ref)
+
+    with pytest.raises(IndexError):
+        assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_d=Parameter(4))), y_ref)
 
 
 def test_uncertainty_analysis():

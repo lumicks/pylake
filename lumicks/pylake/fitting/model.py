@@ -85,6 +85,12 @@ class Model:
 
         return CompositeModel(self, other)
 
+    def invert(self):
+        """
+        Invert this model (swap dependent and independent parameter).
+        """
+        return InverseModel(self)
+
     def subtract_offset(self, parameter_name="independent_offset"):
         """
         Subtract a constant offset from this model.
@@ -100,8 +106,12 @@ class Model:
         independent = np.array(independent).astype(float)
         return independent
 
-    def __call__(self, independent, parameter_vector):
+    def __call__(self, independent, parameters):
+        """Evaluate the model for specific parameters"""
         independent = self._sanitize_input_types(independent)
+        return self._raw_call(independent, np.array([parameters[name].value for name in self.parameter_names]))
+
+    def _raw_call(self, independent, parameter_vector):
         return self.model_function(independent, *parameter_vector)
 
     @property
@@ -158,7 +168,7 @@ class Model:
             p_local = condition.get_local_parameters(global_parameter_values)
             for data in data_sets:
                 data_set = self._data[data]
-                y_model = self(data_set.x, p_local)
+                y_model = self._raw_call(data_set.x, p_local)
 
                 residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
                 residual_idx += len(y_model)
@@ -189,7 +199,7 @@ class Model:
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
 
         derivative = self.derivative(independent, parameters)
-        derivative_fd = numerical_diff(lambda x: self(x, parameters), independent)
+        derivative_fd = numerical_diff(lambda x: self._raw_call(x, parameters), independent)
 
         return np.allclose(derivative, derivative_fd, **kwargs)
 
@@ -201,7 +211,7 @@ class Model:
         independent = self._sanitize_input_types(independent)
 
         jacobian = self.jacobian(independent, parameters)
-        jacobian_fd = numerical_jacobian(lambda parameter_values: self(independent, parameter_values), parameters)
+        jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values), parameters)
 
         if plot:
             import matplotlib.pyplot as plt
@@ -315,9 +325,9 @@ class CompositeModel(Model):
         self._conditions = []
         self._built = False
 
-    def __call__(self, independent, parameter_vector):
-        lhs_residual = self.lhs(independent, [parameter_vector[x] for x in self.lhs_parameters])
-        rhs_residual = self.rhs(independent, [parameter_vector[x] for x in self.rhs_parameters])
+    def _raw_call(self, independent, parameter_vector):
+        lhs_residual = self.lhs._raw_call(independent, [parameter_vector[x] for x in self.lhs_parameters])
+        rhs_residual = self.rhs._raw_call(independent, [parameter_vector[x] for x in self.rhs_parameters])
 
         return lhs_residual + rhs_residual
 
@@ -362,13 +372,13 @@ class InverseModel(Model):
         self._built = False
         self.name = "inv(" + model.name + ")"
 
-    def __call__(self, independent, parameter_vector):
+    def _raw_call(self, independent, parameter_vector):
         independent_min = 0
         independent_max = np.inf
         initial = np.ones(independent.shape)
 
         return invert_function(independent, initial, independent_min, independent_max,
-                               lambda f_trial: self.model(f_trial, parameter_vector),  # Forward model
+                               lambda f_trial: self.model._raw_call(f_trial, parameter_vector),  # Forward model
                                lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
     @property
@@ -384,14 +394,14 @@ class InverseModel(Model):
     def jacobian(self, independent, parameter_vector):
         """Jacobian of the inverted model"""
         return invert_jacobian(independent,
-                               lambda f_trial: self(f_trial, parameter_vector),  # Inverse model (me)
+                               lambda f_trial: self._raw_call(f_trial, parameter_vector),  # Inverse model (me)
                                lambda f_trial: self.model.jacobian(f_trial, parameter_vector),
                                lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
     def derivative(self, independent, parameter_vector):
         """Derivative of the inverted model"""
         return invert_derivative(independent,
-                                 lambda f_trial: self(f_trial, parameter_vector),  # Inverse model (me)
+                                 lambda f_trial: self._raw_call(f_trial, parameter_vector),  # Inverse model (me)
                                  lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
     @property
@@ -427,9 +437,9 @@ class SubtractIndependentOffset(Model):
         self._conditions = []
         self._built = None
 
-    def __call__(self, independent, parameter_vector):
-        return self.model(independent - parameter_vector[self.offset_parameter],
-                          [parameter_vector[x] for x in self.model_parameters])
+    def _raw_call(self, independent, parameter_vector):
+        return self.model._raw_call(independent - parameter_vector[self.offset_parameter],
+                                    [parameter_vector[x] for x in self.model_parameters])
 
     @property
     def has_jacobian(self):

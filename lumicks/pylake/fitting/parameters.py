@@ -46,8 +46,13 @@ class Parameters:
 
         DNA_and_protein.parameters << DNA.parameters  # Copy the parameters from an earlier fit into the combined model.
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._src = OrderedDict()
+        for key, value in kwargs.items():
+            if isinstance(value, Parameter):
+                self._src[key] = value
+            else:
+                self._src[key] = Parameter(float(value))
 
     def __iter__(self):
         return self._src.__iter__()

@@ -51,7 +51,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
 
     def residual(inverted_parameter_values):
         parameter_vector[inverted_parameter_index] = inverted_parameter_values
-        return dependent - model(independent, parameter_vector)
+        return dependent - model._raw_call(independent, parameter_vector)
 
     def jacobian(inverted_parameter_values):
         parameter_vector[inverted_parameter_index] = inverted_parameter_values
