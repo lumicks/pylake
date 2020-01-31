@@ -104,8 +104,8 @@ def Marko_Siggia(d, Lp, Lc, kT):
 
 def Marko_Siggia_jac(d, Lp, Lc, kT):
     d_div_Lc = d / Lc
-    return np.vstack((-0.25 * kT / (Lp ** 2 * (1.0 - d_div_Lc) ** 2),
-                     -d_div_Lc ** 2 - 0.5 * d * kT / (Lc ** 2 * Lp * (1.0 - d_div_Lc) ** 3),
+    return np.vstack((-0.25 * kT / (Lp * Lp * (1.0 - d_div_Lc) ** 2),
+                     -d_div_Lc / Lc - 0.5 * d * kT / (Lc ** 2 * Lp * (1.0 - d_div_Lc) ** 3),
                      0.25 / (Lp * (1.0 - d_div_Lc) ** 2)))
 
 

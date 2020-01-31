@@ -135,6 +135,7 @@ def test_models():
     assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters))
     assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
     assert(Model("M", invFJC, invFJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
+    assert(Model("M", Marko_Siggia, Marko_Siggia_jac).verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
 
     # Check the tWLC and inverted tWLC model
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]

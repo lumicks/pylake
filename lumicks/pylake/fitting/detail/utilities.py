@@ -26,8 +26,6 @@ def unique_idx(input_list):
 
 
 def optimal_plot_layout(n_plots):
-    import numpy as np
-
     n_x = np.ceil(np.sqrt(n_plots))
     n_y = np.ceil(n_plots/n_x)
 

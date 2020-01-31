@@ -215,9 +215,9 @@ class Model:
 
         if plot:
             import matplotlib.pyplot as plt
-            n_x, n_y = optimal_plot_layout(len(self.parameters))
-            for i_parameter, parameter in enumerate(self.parameters):
-                plt.subplot(n_x, n_y, i_parameter)
+            n_x, n_y = optimal_plot_layout(len(self._parameters))
+            for i_parameter, parameter in enumerate(self._parameters):
+                plt.subplot(n_x, n_y, i_parameter+1)
                 l1 = plt.plot(independent, np.transpose(jacobian[i_parameter, :]))
                 l2 = plt.plot(independent, np.transpose(jacobian_fd[i_parameter, :]), '--')
                 plt.title(parameter)
