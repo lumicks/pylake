@@ -373,6 +373,7 @@ class FitObject:
             M._plot_data()
 
     def _override_parameters(self, **kwargs):
+        from copy import deepcopy
         parameters = self.parameters
         if kwargs:
             parameters = deepcopy(parameters)
