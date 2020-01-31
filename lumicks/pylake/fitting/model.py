@@ -290,7 +290,7 @@ class Model:
 
         for condition, data_sets in zip(self._conditions, self._data_link):
             p_local = condition.get_local_parameters(global_parameters)
-            [plt.plot(np.sort(self._data[value].x), self(np.sort(self._data[value].x), p_local))
+            [plt.plot(np.sort(self._data[value].x), self._raw_call(np.sort(self._data[value].x), p_local))
              for value in idx if value in data_sets]
 
 
