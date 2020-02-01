@@ -2,10 +2,11 @@ import numpy as np
 from collections import OrderedDict
 from .parameters import Parameters
 from ..detail.utilities import unique
-from .detail.utilities import print_styled
+from .detail.utilities import print_styled, optimal_plot_layout
 import scipy.optimize as optim
 from .profile_likelihood import ProfileLikelihood1D
 from .detail.derivative_manipulation import numerical_jacobian
+import matplotlib.pyplot as plt
 
 
 class FitObject:
@@ -147,7 +148,7 @@ class FitObject:
 
         return profile
 
-    def _fit(self, parameter_vector, lb, ub, fitted, **kwargs):
+    def _fit(self, parameter_vector, lb, ub, fitted, show_fit=False, **kwargs):
         """Fit the model
 
         Parameters
@@ -158,11 +159,27 @@ class FitObject:
             list of lower parameter bounds
         ub: array_like
             list of lower parameter bounds
+        show_fit: bool
+            show fitting (slow!)
         fitted: array_like
             list of which parameters are fitted
         """
+        if show_fit:
+            fig = plt.figure()
+
         def residual(parameters):
             parameter_vector[fitted] = parameters
+
+            if show_fit:
+                parameter_names = self.parameters.keys
+                for name, value in zip(parameter_names, parameter_vector):
+                    self.parameters[name] = value
+                plt.figure(fig.number)
+                self.plot()
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+                fig.clf()
+
             return self._calculate_residual(parameter_vector)
 
         def jacobian(parameters):
@@ -186,7 +203,7 @@ class FitObject:
         assert self.n_parameters > 0, "This model has no parameters. There is nothing to fit."
         return self.parameters.values, self.parameters.fitted, self.parameters.lb, self.parameters.ub
 
-    def fit(self, **kwargs):
+    def fit(self, show_fit=False, **kwargs):
         parameter_vector, fitted, lb, ub = self._prepare_fit()
 
         out_of_bounds = np.logical_or(parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted])
@@ -194,7 +211,7 @@ class FitObject:
             raise ValueError(f"Initial parameters {self.parameters.keys[fitted][out_of_bounds]} are outside the "
                              f"parameter bounds. Please set value, lb or ub for these parameters to consistent values.")
 
-        parameter_vector = self._fit(parameter_vector, lb, ub, fitted, **kwargs)
+        parameter_vector = self._fit(parameter_vector, lb, ub, fitted, show_fit=show_fit, **kwargs)
 
         parameter_names = self.parameters.keys
         for name, value in zip(parameter_names, parameter_vector):
@@ -241,7 +258,6 @@ class FitObject:
         jacobian_fd = numerical_jacobian(self._calculate_residual, parameters)
 
         if plot:
-            import matplotlib.pyplot as plt
             n_x, n_y = optimal_plot_layout(len(self.parameters))
             for i_parameter, parameter in enumerate(self.parameters):
                 plt.subplot(n_x, n_y, i_parameter + 1)
