@@ -8,6 +8,7 @@ from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, 
 from .detail.link_functions import generate_conditions
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 
 class Model:
@@ -214,7 +215,6 @@ class Model:
         jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values), parameters)
 
         if plot:
-            import matplotlib.pyplot as plt
             n_x, n_y = optimal_plot_layout(len(self._parameters))
             for i_parameter, parameter in enumerate(self._parameters):
                 plt.subplot(n_x, n_y, i_parameter+1)
@@ -267,25 +267,37 @@ class Model:
 
         self._built = fit_object
 
-    def _plot_data(self, idx=None):
-        import matplotlib.pyplot as plt
-
+    def _plot_data(self, idx=None, **kwargs):
         names = []
         handles = []
         for data_idx in idx if idx else np.arange(len(self._data)):
             data = self._data[data_idx]
-            handle, = plt.plot(data.x, data.y, '.')
+            handle, = plt.plot(data.x, data.y, '.', **kwargs)
             handles.append(handle)
             names.append(data.name)
 
         plt.legend(handles, names)
 
-    def _plot_model(self, global_parameters):
-        import matplotlib.pyplot as plt
-
+    def _plot_model(self, global_parameters, **kwargs):
         for data in self._data:
-            x = np.sort(data.x)
-            plt.plot(x, self._raw_call(x, data.get_parameters(global_parameters)))
+            self.plot(global_parameters, data)
+
+    def plot(self, global_parameters, data, independent=None, **kwargs):
+        """Plot this model for a specific data set.
+
+        Parameters
+        ----------
+        global_parameters: Parameters
+            Global parameter set, typically obtained from a FitObject.
+        data: FitData
+            Handle to a dataset as returned by M.load_data
+        independent: array_like
+            Custom set of coordinates for the independent variable.
+        **kwargs:
+            Plot options
+        """
+        x = independent if independent else np.sort(data.x)
+        plt.plot(x, self._call(x, data.get_parameters(global_parameters)), **kwargs)
 
 
 class CompositeModel(Model):
