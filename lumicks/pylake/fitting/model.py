@@ -299,9 +299,9 @@ class Model:
         for i, data in enumerate(self._data):
             if not set_color:
                 kwargs["color"] = lighten_color(get_color(i), -.3)
-            self.plot(global_parameters, data, fmt, **kwargs)
+            self.plot(global_parameters, data, fmt=fmt, **kwargs)
 
-    def plot(self, global_parameters, data, fmt='', independent=None, **kwargs):
+    def plot(self, global_parameters, data, fmt='', independent=[], **kwargs):
         """Plot this model for a specific data set.
 
         Parameters
@@ -310,10 +310,10 @@ class Model:
             Global parameter set, typically obtained from a FitObject.
         data: FitData
             Handle to a dataset as returned by M.load_data
-        independent: array_like (optional)
-            Custom set of coordinates for the independent variable.
         fmt: str (optional)
             Plot formatting string (see matplotlib.pyplot documentation).
+        independent: array_like (optional)
+            Custom set of coordinates for the independent variable.
         **kwargs:
             Plot options
         """
