@@ -268,30 +268,40 @@ class Model:
 
         self._built = fit_object
 
-    def _plot_data(self, **kwargs):
+    def _plot_data(self, fmt='', **kwargs):
         names = []
         handles = []
-        kwargs["marker"] = kwargs.get("marker", '.')
-        kwargs["markersize"] = kwargs.get("markersize", .5)
-        set_color = kwargs.get("color")
+
+        if len(fmt) == 0:
+            kwargs["marker"] = kwargs.get("marker", '.')
+            kwargs["markersize"] = kwargs.get("markersize", .5)
+            set_color = kwargs.get("color")
+        else:
+            set_color = 1
+
         for i, data in enumerate(self._data):
             if not set_color:
                 kwargs["color"] = get_color(i)
-            handle, = plt.plot(data.x, data.y, **kwargs)
+            handle, = plt.plot(data.x, data.y, fmt, **kwargs)
             handles.append(handle)
             names.append(data.name)
 
         plt.legend(handles, names)
 
-    def _plot_model(self, global_parameters, **kwargs):
+    def _plot_model(self, global_parameters, fmt='', **kwargs):
         cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
-        set_color = kwargs.get("color")
+
+        if len(fmt) == 0:
+            set_color = kwargs.get("color")
+        else:
+            set_color = 1
+
         for i, data in enumerate(self._data):
             if not set_color:
                 kwargs["color"] = lighten_color(get_color(i), -.3)
-            self.plot(global_parameters, data, **kwargs)
+            self.plot(global_parameters, data, fmt, **kwargs)
 
-    def plot(self, global_parameters, data, independent=None, fmt='', **kwargs):
+    def plot(self, global_parameters, data, fmt='', independent=None, **kwargs):
         """Plot this model for a specific data set.
 
         Parameters

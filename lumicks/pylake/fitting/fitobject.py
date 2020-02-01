@@ -378,15 +378,15 @@ class FitObject:
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
         return np.linalg.pinv(np.transpose(J).dot(J))
 
-    def plot(self, **kwargs):
-        self.plot_data(**kwargs)
-        self.plot_model(**kwargs)
+    def plot(self, fmt='', **kwargs):
+        self.plot_data(fmt, **kwargs)
+        self.plot_model(fmt, **kwargs)
 
-    def plot_data(self, **kwargs):
+    def plot_data(self, fmt, **kwargs):
         self._rebuild()
 
         for M in self.models:
-            M._plot_data(**kwargs)
+            M._plot_data(fmt, **kwargs)
 
     def _override_parameters(self, **kwargs):
         from copy import deepcopy
@@ -399,17 +399,10 @@ class FitObject:
 
         return parameters, kwargs
 
-    def plot_model(self, **kwargs):
+    def plot_model(self, fmt='', **kwargs):
         self._rebuild()
         parameters, kwargs = self._override_parameters(**kwargs)
 
         for M in self.models:
-            M._plot_model(parameters, **kwargs)
+            M._plot_model(parameters, fmt, **kwargs)
 
-    def plot_model_recursive(self, **kwargs):
-        self._rebuild()
-
-        parameters, kwargs = self._override_parameters(**kwargs)
-
-        for M in self.models:
-            M._plot_model_recursive(parameters.values)
