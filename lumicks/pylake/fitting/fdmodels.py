@@ -35,7 +35,7 @@ def force_model(name, model_type):
     St_default = Parameter(value=1500.0, lb=0.0, ub=np.inf)
     if model_type == "offset":
         return Model(name, offset_model, offset_model_jac, derivative=offset_model_derivative,
-                     offset=Parameter(value=0, lb=-np.inf, ub=np.inf))
+                     offset=Parameter(value=0.01, lb=0, ub=np.inf))
     if model_type == "Marko_Siggia":
         return Model(name, Marko_Siggia, Marko_Siggia_jac, derivative=Marko_Siggia_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default)
