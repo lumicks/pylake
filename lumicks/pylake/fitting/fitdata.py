@@ -2,6 +2,20 @@ import numpy as np
 
 
 class FitData:
+    """
+    This class contains data to be fitted, and a set of transformations that correspond to this specific dataset. The
+    transformations are parameter mappings from the model this data is part of to the outer parameters (the ones that
+    are going to be fitted in the global fit).
+
+    Parameters
+    ----------
+    name: str
+        name of this dataset
+    x, y: array_like
+        Actual data
+    transformations: OrderedDict
+        set of transformations from internal model parameters to outer parameters
+    """
     def __init__(self, name, x, y, transformations):
         self.x = np.array(x)
         self.y = np.array(y)
@@ -19,6 +33,17 @@ class FitData:
     @property
     def condition_string(self):
         return '|'.join(str(x) for x in self.transformations.values())
+
+    def get_parameters(self, parameters):
+        """
+        This function maps parameters from a parameter vector into internal parameters for this model.
+
+        Parameters
+        ----------
+        parameters: Parameters
+            Fit parameters, typically obtained from a FitObject.
+        """
+        return [parameters[x].value if isinstance(x, str) else float(x) for x in self.transformations.values()]
 
     @property
     def parameter_names(self):
