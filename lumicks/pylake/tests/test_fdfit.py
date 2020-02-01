@@ -364,6 +364,23 @@ def test_fitobject():
     assert not fit_object_bad.verify_jacobian(fit_object_bad.parameters.values)
 
 
+def test_model_calls():
+    def model_function(x, b, c, d):
+        return b + c * x + d * x * x
+
+    t = np.array([1.0, 2.0, 3.0])
+    model = Model("m", model_function)
+    y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
+
+    assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_c=Parameter(3), m_d=Parameter(4))),
+                       y_ref)
+
+    assert np.allclose(model(t, Parameters(m_d=Parameter(4), m_c=Parameter(3), m_b=Parameter(2))), y_ref)
+
+    with pytest.raises(IndexError):
+        assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_d=Parameter(4))), y_ref)
+
+
 def test_uncertainty_analysis():
     x = np.arange(10)
     y = np.array([8.24869073, 7.77648717, 11.9436565, 14.85406276, 22.73081526, 20.39692261, 32.48962353, 31.4775862,

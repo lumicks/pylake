@@ -107,10 +107,10 @@ class Model:
         independent = np.array(independent).astype(float)
         return independent
 
-    def __call__(self, independent, parameter_vector):
+    def __call__(self, independent, parameters):
         """Evaluate the model for specific parameters"""
         independent = self._sanitize_input_types(independent)
-        return self._raw_call(independent, parameter_vector)
+        return self._raw_call(independent, np.array([parameters[name].value for name in self.parameter_names]))
 
     def _raw_call(self, independent, parameter_vector):
         return self.model_function(independent, *parameter_vector)
@@ -282,7 +282,7 @@ class Model:
         for data in self._data:
             self.plot(global_parameters, data)
 
-    def plot(self, global_parameters, data, independent=None, fmt=None, **kwargs):
+    def plot(self, global_parameters, data, independent=None, fmt='', **kwargs):
         """Plot this model for a specific data set.
 
         Parameters

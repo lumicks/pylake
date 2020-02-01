@@ -1,4 +1,6 @@
 import numpy as np
+from .parameters import Parameters
+from collections import OrderedDict
 
 
 class FitData:
@@ -43,7 +45,9 @@ class FitData:
         parameters: Parameters
             Fit parameters, typically obtained from a FitObject.
         """
-        return [parameters[x].value if isinstance(x, str) else float(x) for x in self.transformations.values()]
+        mapping = OrderedDict((key, parameters[x]) if isinstance(x, str) else (key, float(x)) for
+                              key, x in self.transformations.items())
+        return Parameters(**mapping)
 
     @property
     def parameter_names(self):
