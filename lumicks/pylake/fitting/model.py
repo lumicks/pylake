@@ -7,6 +7,7 @@ from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, 
     invert_derivative
 from .detail.link_functions import generate_conditions
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
+from ..detail.utilities import get_color, lighten_color
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
@@ -267,20 +268,28 @@ class Model:
 
         self._built = fit_object
 
-    def _plot_data(self, idx=None, **kwargs):
+    def _plot_data(self, **kwargs):
         names = []
         handles = []
-        for data_idx in idx if idx else np.arange(len(self._data)):
-            data = self._data[data_idx]
-            handle, = plt.plot(data.x, data.y, '.', **kwargs)
+        kwargs["marker"] = kwargs.get("marker", '.')
+        kwargs["markersize"] = kwargs.get("markersize", .5)
+        set_color = kwargs.get("color")
+        for i, data in enumerate(self._data):
+            if not set_color:
+                kwargs["color"] = get_color(i)
+            handle, = plt.plot(data.x, data.y, **kwargs)
             handles.append(handle)
             names.append(data.name)
 
         plt.legend(handles, names)
 
     def _plot_model(self, global_parameters, **kwargs):
-        for data in self._data:
-            self.plot(global_parameters, data)
+        cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        set_color = kwargs.get("color")
+        for i, data in enumerate(self._data):
+            if not set_color:
+                kwargs["color"] = lighten_color(get_color(i), -.3)
+            self.plot(global_parameters, data, **kwargs)
 
     def plot(self, global_parameters, data, independent=None, fmt='', **kwargs):
         """Plot this model for a specific data set.
