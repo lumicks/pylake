@@ -106,10 +106,10 @@ class Model:
         independent = np.array(independent).astype(float)
         return independent
 
-    def __call__(self, independent, parameters):
+    def __call__(self, independent, parameter_vector):
         """Evaluate the model for specific parameters"""
         independent = self._sanitize_input_types(independent)
-        return self._raw_call(independent, np.array([parameters[name].value for name in self.parameter_names]))
+        return self._raw_call(independent, parameter_vector)
 
     def _raw_call(self, independent, parameter_vector):
         return self.model_function(independent, *parameter_vector)
@@ -248,8 +248,9 @@ class Model:
     def load_data(self, x, y, name="", **kwargs):
         self._invalidate_build()
         parameter_list = parse_transformation(self.parameter_names, **kwargs)
-        self._data.append(FitData(name, x, y, parameter_list))
-        return self
+        data = FitData(name, x, y, parameter_list)
+        self._data.append(data)
+        return data
 
     @property
     def _transformed_parameters(self):
@@ -279,19 +280,12 @@ class Model:
 
         plt.legend(handles, names)
 
-    def _plot_model(self, global_parameters, idx=None):
+    def _plot_model(self, global_parameters):
         import matplotlib.pyplot as plt
 
-        def intersection(l1, l2):
-            return [value for value in l1 if value in l2]
-
-        if not idx:
-            idx = np.arange(len(self._data))
-
-        for condition, data_sets in zip(self._conditions, self._data_link):
-            p_local = condition.get_local_parameters(global_parameters)
-            [plt.plot(np.sort(self._data[value].x), self._raw_call(np.sort(self._data[value].x), p_local))
-             for value in idx if value in data_sets]
+        for data in self._data:
+            x = np.sort(data.x)
+            plt.plot(x, self._raw_call(x, data.get_parameters(global_parameters)))
 
 
 class CompositeModel(Model):
