@@ -165,7 +165,7 @@ class FitObject:
             list of which parameters are fitted
         """
         if show_fit:
-            fig = plt.figure()
+            fig = plt.gcf()
 
         def residual(parameters):
             parameter_vector[fitted] = parameters
