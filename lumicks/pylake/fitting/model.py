@@ -282,7 +282,7 @@ class Model:
         for data in self._data:
             self.plot(global_parameters, data)
 
-    def plot(self, global_parameters, data, independent=None, **kwargs):
+    def plot(self, global_parameters, data, independent=None, fmt=None, **kwargs):
         """Plot this model for a specific data set.
 
         Parameters
@@ -291,13 +291,15 @@ class Model:
             Global parameter set, typically obtained from a FitObject.
         data: FitData
             Handle to a dataset as returned by M.load_data
-        independent: array_like
+        independent: array_like (optional)
             Custom set of coordinates for the independent variable.
+        fmt: str (optional)
+            Plot formatting string (see matplotlib.pyplot documentation).
         **kwargs:
             Plot options
         """
         x = independent if independent else np.sort(data.x)
-        plt.plot(x, self(x, data.get_parameters(global_parameters)), **kwargs)
+        plt.plot(x, self(x, data.get_parameters(global_parameters)), fmt, **kwargs)
 
 
 class CompositeModel(Model):
