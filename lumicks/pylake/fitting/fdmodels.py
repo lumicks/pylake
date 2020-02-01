@@ -295,9 +295,11 @@ def invWLC(d, Lp, Lc, St, kT = 4.11):
     x8 = d * d
     x7 = x8 * d
     sqrt_arg = x4 * (48.0 * x8 - 16.0 * x7 / Lc + 16.0 * x1 - Lc * d * 48.0) + 27.0 * kT * kT * x1
-    if np.any(sqrt_arg < 0):
-        return np.inf * np.ones(len(d))
-    x9 = St**2 * lp2 * x16 * x1 * np.sqrt(sqrt_arg)
+    sqrt_fun = np.zeros(sqrt_arg.shape)
+    mask = sqrt_arg >= 0
+    sqrt_fun[mask] = np.sqrt(sqrt_arg[mask])
+    sqrt_fun[np.logical_not(mask)] = np.inf
+    x9 = St**2 * lp2 * x16 * x1 * sqrt_fun
     x11 = lp3 * St * St * St
     x12 = 8.0 * x11
     x14 = 24.0 * x11
