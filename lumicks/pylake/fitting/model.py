@@ -297,7 +297,7 @@ class Model:
             Plot options
         """
         x = independent if independent else np.sort(data.x)
-        plt.plot(x, self._call(x, data.get_parameters(global_parameters)), **kwargs)
+        plt.plot(x, self(x, data.get_parameters(global_parameters)), **kwargs)
 
 
 class CompositeModel(Model):
