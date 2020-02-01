@@ -349,32 +349,19 @@ def test_fitobject():
     x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     a_true, b_true = (5.0, 5.0)
     f_data = f(x, a_true, b_true)
-    fit_object = FitObject(Model("f", f, f_jac, f_der).load_data(x, f_data))
+    model = Model("f", f, f_jac, f_der)
+    model.load_data(x, f_data)
+    fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
     assert fit_object.verify_jacobian(fit_object.parameters.values)
 
-    fit_object_bad = FitObject(Model("f", f, f_jac_wrong, f_der).load_data(x, f_data))
+    model_bad = Model("f", f, f_jac_wrong, f_der)
+    model_bad.load_data(x, f_data)
+    fit_object_bad = FitObject(model_bad)
     fit_object_bad.parameters["f_a"].value = a_true
     fit_object_bad.parameters["f_b"].value = b_true
     assert not fit_object_bad.verify_jacobian(fit_object_bad.parameters.values)
-
-
-def test_model_calls():
-    def model_function(x, b, c, d):
-        return b + c * x + d * x * x
-
-    t = np.array([1.0, 2.0, 3.0])
-    model = Model("m", model_function)
-    y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
-
-    assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_c=Parameter(3), m_d=Parameter(4))),
-                       y_ref)
-
-    assert np.allclose(model(t, Parameters(m_d=Parameter(4), m_c=Parameter(3), m_b=Parameter(2))), y_ref)
-
-    with pytest.raises(IndexError):
-        assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_d=Parameter(4))), y_ref)
 
 
 def test_uncertainty_analysis():
@@ -396,21 +383,25 @@ def test_uncertainty_analysis():
         J = np.vstack((x, np.ones(len(x))))
         return J
 
-    F_linear = FitObject(Model("linear", linear, linear_jac).load_data(x, y)).fit()
-    F_quad = FitObject(Model("quad", quad, quad_jac).load_data(x, y)).fit()
+    linear_model = Model("linear", linear, linear_jac)
+    linear_model.load_data(x, y)
+    linear_fit = FitObject(linear_model).fit()
+    model_quad = Model("quad", quad, quad_jac)
+    model_quad.load_data(x, y)
+    quad_fit = FitObject(model_quad).fit()
 
-    assert np.allclose(F_linear.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
-    assert np.allclose(F_quad.cov, np.array([[0.00973206, -0.08758855,  0.11678473],
-                                             [-0.08758855,  0.85058215, -1.33134597],
-                                             [0.11678473, -1.33134597,  3.17654476]]))
+    assert np.allclose(linear_fit.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
+    assert np.allclose(quad_fit.cov, np.array([[0.00973206, -0.08758855,  0.11678473],
+                                               [-0.08758855,  0.85058215, -1.33134597],
+                                               [0.11678473, -1.33134597,  3.17654476]]))
 
-    assert np.allclose(F_linear.aic, 49.652690269143434)
-    assert np.allclose(F_linear.aicc, 51.36697598342915)
-    assert np.allclose(F_linear.bic, 50.25786045513153)
+    assert np.allclose(linear_fit.aic, 49.652690269143434)
+    assert np.allclose(linear_fit.aicc, 51.36697598342915)
+    assert np.allclose(linear_fit.bic, 50.25786045513153)
 
-    assert np.allclose(F_quad.aic, 50.74643780988533)
-    assert np.allclose(F_quad.aicc, 54.74643780988533)
-    assert np.allclose(F_quad.bic, 51.654193088867466)
+    assert np.allclose(quad_fit.aic, 50.74643780988533)
+    assert np.allclose(quad_fit.aicc, 54.74643780988533)
+    assert np.allclose(quad_fit.bic, 51.654193088867466)
 
 def test_unique_idx():
     uiq, inv = unique_idx(['str', 'str', 'hmm', 'potato', 'hmm', 'str'])
