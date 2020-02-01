@@ -143,8 +143,9 @@ def test_models():
     assert (Model("M", invtWLC, invtWLC_jac).verify_jacobian(independent, parameters))
 
     # Check whether the inverted models invert correctly
+    d = np.array([3.0, 4.0])
     parameters = [5.0, 5.0, 5.0]
-    assert (np.allclose(WLC(invWLC(3, *parameters), *parameters), 3))
+    assert (np.allclose(WLC(invWLC(d, *parameters), *parameters), d))
     parameters = [5.0, 15.0, 1.0, 4.11]
     assert (np.allclose(FJC(invFJC(independent, *parameters), *parameters), independent))
     parameters = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
