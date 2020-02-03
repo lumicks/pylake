@@ -38,7 +38,8 @@ class FitData:
 
     def get_parameters(self, parameters):
         """
-        This function maps parameters from a parameter vector into internal parameters for this model.
+        This function maps parameters from a global fit parameter vector into internal parameters for this model,
+        which can be used to simulate this model.
 
         Parameters
         ----------
@@ -65,6 +66,10 @@ class FitData:
 
 
 class Condition:
+    """
+    This class maintains the linkage between the index-based parameter vectors and matrices for a data-set. It is not
+    intended to be a user facing class as working with raw indices is error prone.
+    """
     def __init__(self, transformations, global_dictionary):
         from copy import deepcopy
         self.transformations = deepcopy(transformations)
@@ -76,7 +81,7 @@ class Condition:
         self.p_global_indices = np.array([global_dictionary.get(key, None) for key in self.transformed])
 
         # p_indices map internal sensitivities to the global parameters.
-        # Note that they are part of the public interface.
+        # Note that they are part of the "public" interface.
         self.p_indices = [x for x in self.p_global_indices if x is not None]
 
         # Which sensitivities are local (set to a fixed local value)?

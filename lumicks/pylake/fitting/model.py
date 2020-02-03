@@ -247,6 +247,31 @@ class Model:
         return self._built == fit_object
 
     def load_data(self, x, y, name="", **kwargs):
+        """
+        Loads a data set for this model.
+
+        Parameters
+        ----------
+        x: array_like
+            Independent variable.
+        y: array_like
+            Dependent variable.
+        name: str
+            Name of this data set.
+        **kwargs:
+            List of parameter transformations. These can be used to convert one parameter in the model, to a new
+            parameter name or constant for this specific dataset (for more information, see the examples).
+
+        Examples
+        --------
+        ::
+            dna_model = pylake.force_model("DNA", "invWLC")  # Use an inverted Odijk eWLC model.
+            dna_model.load_data(x1, y1, name="my first data set")  # Load the first dataset like that
+            dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")  # Different contour length Lc
+
+            dna_model = pylake.force_model("DNA", "invWLC")
+            dna_model.load_data(x1, y1, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
+        """
         self._invalidate_build()
         parameter_list = parse_transformation(self.parameter_names, **kwargs)
         data = FitData(name, x, y, parameter_list)
@@ -309,13 +334,24 @@ class Model:
         global_parameters: Parameters
             Global parameter set, typically obtained from a FitObject.
         data: FitData
-            Handle to a dataset as returned by M.load_data
+            Handle to a data set as returned by M.load_data
         fmt: str (optional)
             Plot formatting string (see matplotlib.pyplot documentation).
         independent: array_like (optional)
             Custom set of coordinates for the independent variable.
         **kwargs:
             Plot options
+
+        Examples
+        --------
+        ::
+            dna_model = pylake.force_model("DNA", "invWLC")  # Use an inverted Odijk eWLC model.
+            d1 = dna_model.load_data(x1, y1, name="my first data set")
+            d2 = dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
+            dna_model.plot(F.parameters, d1, fmt='k--')  # Plot model simulations for d1
+            dna_model.plot(F.parameters, d2, fmt='k--')  # Plot model simulations for d2
+
+            dna_model.plot(F.parameters, d1, independent=np.arange(1.0, 10.0, .01), fmt='k--')  # Use custom range
         """
         x = independent if np.any(independent) else np.sort(data.x)
         plt.plot(x, self(x, data.get_parameters(global_parameters)), fmt, **kwargs)
