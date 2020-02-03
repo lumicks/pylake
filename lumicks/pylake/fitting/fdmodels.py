@@ -4,6 +4,26 @@ from .detail.derivative_manipulation import invert_function, invert_jacobian
 from .model import Model, InverseModel
 import numpy as np
 
+"""The model Jacobians and derivatives were determined via symbolic differentiation; followed by common subexpression 
+elimination, both using sympy. After this, the resulting code was checked for numerical issues, which were subsequently
+removed. The code for most of the individual models was never intended to be human readable.
+
+def generate_derivatives(parameters, expression):
+    import sympy as sym
+    from sympy.parsing import sympy_parser
+
+    symbolic_parameters = [sym.Symbol(x) for x in parameters]
+    symbolic_function = sympy_parser.parse_expr(expression)
+    jacobian = [sym.diff(symbolic_function, x) for x in symbolic_parameters]
+    cse = sym.cse(jacobian)
+    print(cse[0])
+    for x in cse[0]:
+        print(str(x[0]) + ' = ' + str(x[1]))
+
+    print("return ", cse[1])
+    return jac
+"""
+
 
 def force_model(name, model_type):
     """Generate a force model.
