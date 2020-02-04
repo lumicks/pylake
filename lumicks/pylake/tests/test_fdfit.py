@@ -1,7 +1,29 @@
 from ..fitting.parameters import Parameters, Parameter
+from ..fitting.detail.utilities import parse_transformation
 
 import numpy as np
+from collections import OrderedDict
 import pytest
+
+
+def test_transformation_parser():
+    pars = ['blip', 'foo']
+    assert parse_transformation(pars, foo='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
+    assert parse_transformation(pars, foo = 5) == OrderedDict((('blip', 'blip'), ('foo', 5)))
+
+    with pytest.raises(KeyError):
+        parse_transformation(pars, blap='new_foo') == OrderedDict((('blip', 'blip'), ('foo', 'new_foo')))
+
+    parameter_names = ['gamma', 'alpha', 'beta', 'delta']
+    parameters = OrderedDict(zip(parameter_names, parameter_names))
+    post_parameters = parse_transformation(parameters, gamma='gamma_specific', beta='beta_specific')
+    assert (post_parameters['gamma'] == 'gamma_specific')
+    assert (post_parameters['alpha'] == 'alpha')
+    assert (post_parameters['beta'] == 'beta_specific')
+    assert (post_parameters['delta'] == 'delta')
+
+    with pytest.raises(KeyError):
+        parse_transformation(parameters, doesnotexist='yep')
 
 
 def test_parameters():
