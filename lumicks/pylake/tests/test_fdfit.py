@@ -2,6 +2,7 @@ from ..fitting.parameters import Parameters, Parameter
 from ..fitting.detail.utilities import parse_transformation
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
+from ..fitting.model import Model
 
 import numpy as np
 from collections import OrderedDict
@@ -120,3 +121,20 @@ def test_condition_struct():
     assert (np.all(c.p_external == np.array([0, 1, 2, 4])))
     assert (list(c.transformed) == ['gamma_specific', 'alpha', 'beta_specific', 5, 'zeta'])
     assert (np.allclose(c.get_local_parameters(parameter_vector), [10, 4, 12, 5, 14]))
+
+
+def test_model_calls():
+    def model_function(x, b, c, d):
+        return b + c * x + d * x * x
+
+    t = np.array([1.0, 2.0, 3.0])
+    model = Model("m", model_function)
+    y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
+
+    assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_c=Parameter(3), m_d=Parameter(4))),
+                       y_ref)
+
+    assert np.allclose(model(t, Parameters(m_d=Parameter(4), m_c=Parameter(3), m_b=Parameter(2))), y_ref)
+
+    with pytest.raises(IndexError):
+        assert np.allclose(model(t, Parameters(m_a=Parameter(1), m_b=Parameter(2), m_d=Parameter(4))), y_ref)
