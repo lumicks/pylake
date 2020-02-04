@@ -1,4 +1,7 @@
+from .fitdata import FitData
 from .parameters import Parameter
+from .detail.utilities import parse_transformation
+from .detail.link_functions import generate_conditions
 
 from collections import OrderedDict
 from copy import deepcopy
@@ -98,6 +101,12 @@ class Model:
     def parameter_names(self):
         return [x for x in self._parameters.keys()]
 
+    @property
+    def _transformed_parameters(self):
+        """Retrieves the full list of fitted parameters and defaults post-transformation used by this model. Includes
+        parameters for all the data-sets in the model."""
+        return [name for data in self._data for name in data.parameter_names]
+
     def jacobian(self, independent, parameter_vector):
         if self.has_jacobian:
             independent = np.array(independent).astype(float)
@@ -127,3 +136,41 @@ class Model:
 
     def built_against(self, fit_object):
         return self._built == fit_object
+
+    def load_data(self, x, y, name="", **kwargs):
+        """
+        Loads a data set for this model.
+
+        Parameters
+        ----------
+        x: array_like
+            Independent variable.
+        y: array_like
+            Dependent variable.
+        name: str
+            Name of this data set.
+        **kwargs:
+            List of parameter transformations. These can be used to convert one parameter in the model, to a new
+            parameter name or constant for this specific dataset (for more information, see the examples).
+
+        Examples
+        --------
+        ::
+            dna_model = pylake.force_model("DNA", "invWLC")  # Use an inverted Odijk eWLC model.
+            dna_model.load_data(x1, y1, name="my first data set")  # Load the first dataset like that
+            dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")  # Different contour length Lc
+
+            dna_model = pylake.force_model("DNA", "invWLC")
+            dna_model.load_data(x1, y1, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
+        """
+        self._invalidate_build()
+        parameter_list = parse_transformation(self.parameter_names, **kwargs)
+        data = FitData(name, x, y, parameter_list)
+        self._data.append(data)
+        return data
+
+    def _build_model(self, parameter_lookup, fit_object):
+        self._conditions, self._data_link = generate_conditions(self._data, parameter_lookup,
+                                                                self.parameter_names)
+
+        self._built = fit_object

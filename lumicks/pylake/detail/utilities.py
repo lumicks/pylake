@@ -14,3 +14,9 @@ def first(iterable, condition=lambda x: True):
     """
 
     return next(x for x in iterable if condition(x))
+
+
+def unique(input_list):
+    unique_list = []
+    [unique_list.append(x) for x in input_list if x not in unique_list]
+    return unique_list
