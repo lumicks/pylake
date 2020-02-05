@@ -147,3 +147,27 @@ class PhotonTimeTags:
     @property
     def blue_photon_time_tags(self) -> Slice:
         return _try_get_or_empty(self._get_photon_time_tags, "Blue")
+
+class ExcitationLaserPower:
+    """Red, green, blue, and sted laser power"""
+    def _get_laser_power(self, name):
+        power_data = self.file["Confocal diagnostics"][f"Excitation Laser {name}"]
+        # fetch the timestamp of the last datapoint before the beginning of the item
+        start_time = power_data[:self.start].timestamps[-1]
+        return power_data[start_time:self.stop]
+        
+    @property
+    def red_power(self) -> Slice:
+        return _try_get_or_empty(self._get_laser_power, "Red")
+
+    @property
+    def green_power(self) -> Slice:
+        return _try_get_or_empty(self._get_laser_power, "Green")
+
+    @property
+    def blue_power(self) -> Slice:
+        return _try_get_or_empty(self._get_laser_power, "Blue")
+
+    @property
+    def sted_power(self) -> Slice:
+        return _try_get_or_empty(self._get_laser_power, "Sted")

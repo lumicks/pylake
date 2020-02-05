@@ -2,12 +2,13 @@ import json
 import numpy as np
 
 from .detail.mixin import PhotonCounts
+from .detail.mixin import ExcitationLaserPower
 from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image
 from .detail.timeindex import to_timestamp
 from .detail.utilities import first
 
 
-class Kymo(PhotonCounts):
+class Kymo(PhotonCounts, ExcitationLaserPower):
     """A Kymograph exported from Bluelake
 
     Parameters
