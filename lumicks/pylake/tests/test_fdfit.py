@@ -5,6 +5,7 @@ from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.model import Model
 from ..fitting.fitobject import FitObject
+from ..fitting.fdmodels import *
 
 import numpy as np
 from collections import OrderedDict
@@ -349,3 +350,27 @@ def test_integration_test_fitting():
     fit.fit()
     assert (np.isclose(fit.parameters["M_b"].value, 5))
     assert (np.isclose(fit.parameters["M_a"].value, 8))
+
+
+def test_models():
+    independent = np.arange(0.05, 2, .5)
+    parameters = [5, 5, 5, 4.11]
+    assert(Model("M", WLC, WLC_jac).verify_jacobian(independent, parameters))
+    assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters))
+    assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
+    assert(Model("M", invFJC, invFJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
+    assert(Model("M", Marko_Siggia, Marko_Siggia_jac).verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
+
+    # Check the tWLC and inverted tWLC model
+    parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
+    assert(Model("M", tWLC, tWLC_jac).verify_jacobian(independent, parameters))
+    assert (Model("M", invtWLC, invtWLC_jac).verify_jacobian(independent, parameters))
+
+    # Check whether the inverted models invert correctly
+    d = np.array([3.0, 4.0])
+    parameters = [5.0, 5.0, 5.0]
+    assert (np.allclose(WLC(invWLC(d, *parameters), *parameters), d))
+    parameters = [5.0, 15.0, 1.0, 4.11]
+    assert (np.allclose(FJC(invFJC(independent, *parameters), *parameters), independent))
+    parameters = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
+    assert(np.allclose(tWLC(invtWLC(independent, *parameters), *parameters), independent))
