@@ -2,7 +2,7 @@ from .fitdata import FitData
 from .parameters import Parameter
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
-from .detail.derivative_manipulation import numerical_jacobian, numerical_diff
+from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, invert_derivative
 
 from collections import OrderedDict
 from copy import deepcopy
@@ -103,6 +103,12 @@ class Model:
         """
 
         return CompositeModel(self, other)
+
+    def invert(self):
+        """
+        Invert this model (swap dependent and independent parameter).
+        """
+        return InverseModel(self)
 
     @property
     def _defaults(self):
@@ -330,3 +336,55 @@ class CompositeModel(Model):
             rhs_derivative = self.rhs.derivative(independent, [parameter_vector[x] for x in self.rhs_parameters])
 
             return lhs_derivative + rhs_derivative
+
+
+class InverseModel(Model):
+    def __init__(self, model):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        model: Model
+        """
+        self.model = model
+        self._data = []
+        self._conditions = []
+        self._built = False
+        self.name = "inv(" + model.name + ")"
+
+    def _raw_call(self, independent, parameter_vector):
+        independent_min = 0
+        independent_max = np.inf
+        initial = np.ones(independent.shape)
+
+        return invert_function(independent, initial, independent_min, independent_max,
+                               lambda f_trial: self.model._raw_call(f_trial, parameter_vector),  # Forward model
+                               lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+
+    @property
+    def has_jacobian(self):
+        """Does the model have sufficient information to determine its inverse numerically?
+        This requires a Jacobian and a derivative w.r.t. independent variable."""
+        return self.model.has_jacobian and self.model.has_derivative
+
+    @property
+    def has_derivative(self):
+        return self.model.has_derivative
+
+    def jacobian(self, independent, parameter_vector):
+        """Jacobian of the inverted model"""
+        return invert_jacobian(independent,
+                               lambda f_trial: self._raw_call(f_trial, parameter_vector),  # Inverse model (me)
+                               lambda f_trial: self.model.jacobian(f_trial, parameter_vector),
+                               lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+
+    def derivative(self, independent, parameter_vector):
+        """Derivative of the inverted model"""
+        return invert_derivative(independent,
+                                 lambda f_trial: self._raw_call(f_trial, parameter_vector),  # Inverse model (me)
+                                 lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+
+    @property
+    def _parameters(self):
+        return self.model._parameters

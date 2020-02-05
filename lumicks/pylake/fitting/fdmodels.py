@@ -1,7 +1,7 @@
 from .model import Model
 from .parameters import Parameter
 from .detail.derivative_manipulation import invert_function, invert_jacobian
-from .model import Model
+from .model import Model, InverseModel
 import numpy as np
 
 """The model Jacobians and derivatives were determined via symbolic differentiation; followed by common subexpression

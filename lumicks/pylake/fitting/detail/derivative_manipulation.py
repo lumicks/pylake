@@ -85,3 +85,18 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
     jacobian = -jacobian * inverted_dyda
 
     return jacobian
+
+
+def invert_derivative(d, inverted_model_function, derivative_function):
+    """
+    Calculates the derivative of the inverted function.
+
+    Parameters
+    ----------
+    d : values for the old independent variable
+    inverted_model_function : callable
+        inverted model function (model with the dependent and independent variable exchanged)
+    derivative_function : callable
+        derivative of the non-inverted model w.r.t. the independent variable
+    """
+    return 1.0 / derivative_function(inverted_model_function(d))
