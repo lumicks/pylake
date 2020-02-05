@@ -1,11 +1,11 @@
-from ..fitting.parameters import Parameters, Parameter
+from ..fitting.parameters import Parameters
 from ..fitting.detail.utilities import parse_transformation
 from ..fitting.detail.utilities import unique_idx
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
-from ..fitting.model import InverseModel
 from ..fitting.fitobject import FitObject
 from ..fitting.fdmodels import *
+from ..fitting.detail.parameter_trace import parameter_trace
 
 import numpy as np
 from collections import OrderedDict
@@ -444,3 +444,46 @@ def test_model_composition():
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
     assert np.allclose(M1._raw_call(t, p1), M2._raw_call(t, p2))
+
+
+def test_parameter_inversion():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def g(x, a, d, b):
+        return a - b * x + d * x * x
+
+    def g_jac(x, a, d, b):
+        return np.vstack((np.ones((1, len(x))), x * x, -x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def g_der(x, a, d, b):
+        return - b * np.ones((len(x))) + 2.0 * d * x
+
+    x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    a_true = 5.0
+    b_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
+    f_data = f(x, a_true, b_true)
+    model = Model("f", f, f_jac, f_der)
+    model.load_data(x, f_data)
+    fit_object = FitObject(model)
+    fit_object.parameters["f_a"].value = a_true
+    fit_object.parameters["f_b"].value = 1.0
+    assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_b', x, f_data), b_true)
+
+    a_true = 5.0
+    b_true = 3.0
+    d_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
+    f_plus_g_data = f(x, a_true, b_true) + g(x, a_true, d_true, b_true)
+    model = Model("f", f, f_jac, f_der) + Model("f", g, g_jac, g_der)
+    model.load_data(x, f_data)
+    fit_object = FitObject(model)
+    fit_object.parameters["f_a"].value = a_true
+    fit_object.parameters["f_b"].value = b_true
+    fit_object.parameters["f_d"].value = 1.0
+    assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_d', x, f_plus_g_data), d_true)
