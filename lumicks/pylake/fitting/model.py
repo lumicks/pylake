@@ -2,7 +2,7 @@ from .fitdata import FitData
 from .parameters import Parameter
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
-from .detail.derivative_manipulation import numerical_jacobian
+from .detail.derivative_manipulation import numerical_jacobian, numerical_diff
 
 from collections import OrderedDict
 from copy import deepcopy
@@ -229,7 +229,6 @@ class Model:
 
         return jacobian
 
-
     def verify_jacobian(self, independent, parameters, plot=False, verbose=True, **kwargs):
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
@@ -260,6 +259,15 @@ class Model:
 
         return is_close
 
+    def verify_derivative(self, independent, parameters, **kwargs):
+        if len(parameters) != len(self._parameters):
+            raise ValueError("Parameter vector has invalid length. "
+                             f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
+
+        derivative = self.derivative(independent, parameters)
+        derivative_fd = numerical_diff(lambda x: self._raw_call(x, parameters), independent)
+
+        return np.allclose(derivative, derivative_fd, **kwargs)
 
 class CompositeModel(Model):
     def __init__(self, lhs, rhs):

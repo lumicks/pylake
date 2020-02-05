@@ -412,8 +412,11 @@ def test_model_composition():
 
     # Check correctness of the Jacobians and derivatives
     assert (M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
     assert (M2 + M1).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1).verify_derivative(t, [1.0, 2.0, 3.0])
     assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
 
     M1_wrong_jacobian = Model("M", f, f_jac_wrong, derivative=f_der)
     assert not (M1_wrong_jacobian + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
