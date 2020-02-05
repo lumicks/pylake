@@ -1,12 +1,15 @@
 from .fitdata import FitData
 from .parameters import Parameter
-from .detail.utilities import parse_transformation
+from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
+from .detail.derivative_manipulation import numerical_jacobian
 
 from collections import OrderedDict
 from copy import deepcopy
-import inspect, types
+import inspect
+import types
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Model:
@@ -122,6 +125,14 @@ class Model:
             raise RuntimeError(f"Derivative was requested but not supplied in model {self.name}.")
 
     @property
+    def n_residuals(self):
+        count = 0
+        for data in self._data:
+            count += len(data.independent)
+
+        return count
+
+    @property
     def has_jacobian(self):
         if self._jacobian:
             return True
@@ -174,3 +185,66 @@ class Model:
                                                                 self.parameter_names)
 
         self._built = fit_object
+
+    def _calculate_residual(self, global_parameter_values):
+        residual_idx = 0
+        residual = np.zeros(self.n_residuals)
+        for condition, data_sets in zip(self._conditions, self._data_link):
+            p_local = condition.get_local_parameters(global_parameter_values)
+            for data in data_sets:
+                data_set = self._data[data]
+                y_model = self._raw_call(data_set.x, p_local)
+
+                residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
+                residual_idx += len(y_model)
+
+        return residual
+
+    def _calculate_jacobian(self, global_parameter_values):
+        residual_idx = 0
+        jacobian = np.zeros((self.n_residuals, len(global_parameter_values)))
+        for condition, data_sets in zip(self._conditions, self._data_link):
+            p_local = condition.get_local_parameters(global_parameter_values)
+            p_indices = condition.p_indices
+            for data in data_sets:
+                data_set = self._data[data]
+                sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data_set.x, p_local)))
+                n_res = sensitivities.shape[0]
+
+                jacobian[residual_idx:residual_idx + n_res, p_indices] = \
+                    jacobian[residual_idx:residual_idx + n_res, p_indices] - sensitivities
+
+                residual_idx += n_res
+
+        return jacobian
+
+
+    def verify_jacobian(self, independent, parameters, plot=False, verbose=True, **kwargs):
+        if len(parameters) != len(self._parameters):
+            raise ValueError("Parameter vector has invalid length. "
+                             f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
+
+        independent = np.array(independent).astype(float)
+        jacobian = self.jacobian(independent, parameters)
+        jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values), parameters)
+
+        if plot:
+            n_x, n_y = optimal_plot_layout(len(self._parameters))
+            for i_parameter, parameter in enumerate(self._parameters):
+                plt.subplot(n_x, n_y, i_parameter+1)
+                l1 = plt.plot(independent, np.transpose(jacobian[i_parameter, :]))
+                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_parameter, :]), '--')
+                plt.title(parameter)
+                plt.legend({'Analytic', 'FD'})
+
+        is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
+        if not is_close:
+            if verbose:
+                maxima = np.max(jacobian - jacobian_fd, axis=1)
+                for i, v in enumerate(maxima):
+                    if np.allclose(jacobian[i, :], jacobian_fd[i, :]):
+                        print(f"Parameter {self.parameter_names[i]}({i}): {v}")
+                    else:
+                        print_styled('warning', f'Parameter {self.parameter_names[i]}({i}): {v}')
+
+        return is_close

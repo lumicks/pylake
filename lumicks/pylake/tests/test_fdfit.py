@@ -267,3 +267,85 @@ def test_model_fit_object_linking():
 
     assert fetch_parameters(F.parameters, F.models[1]._conditions[1].p_global_indices) == \
            ["M_mu", None, "M_q", None, "M_r"]
+
+
+def test_jacobian_test_fitobject():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def f_jac_wrong(x, a, b):
+        return np.vstack((2.0*np.ones((1, len(x))), x))
+
+    x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    a_true, b_true = (5.0, 5.0)
+    f_data = f(x, a_true, b_true)
+    model = Model("f", f, f_jac, f_der)
+    model.load_data(x, f_data)
+    fit_object = FitObject(model)
+    fit_object.parameters["f_a"].value = a_true
+    fit_object.parameters["f_b"].value = b_true
+    assert fit_object.verify_jacobian(fit_object.parameters.values)
+
+    model_bad = Model("f", f, f_jac_wrong, f_der)
+    model_bad.load_data(x, f_data)
+    fit_object_bad = FitObject(model_bad)
+    fit_object_bad.parameters["f_a"].value = a_true
+    fit_object_bad.parameters["f_b"].value = b_true
+    assert not fit_object_bad.verify_jacobian(fit_object_bad.parameters.values)
+
+
+def test_integration_test_fitting():
+    def linear(x, a, b):
+        f = a * x + b
+        return f
+
+    def linear_jac(x, a, b):
+        jacobian = np.vstack((x, np.ones(len(x))))
+        return jacobian
+
+    def linear_jac_wrong(x, a, b):
+        jacobian = np.vstack((np.ones(len(x)), x))
+        return jacobian
+
+    assert Model("M", linear, linear_jac).has_jacobian
+    assert not Model("M", linear).has_jacobian
+
+    model = Model("M", linear, linear_jac_wrong)
+    assert not model.verify_jacobian([1, 2, 3], [1, 1])
+
+    model = Model("M", linear, linear_jac)
+    x = np.arange(3)
+    for i in np.arange(3):
+        y = 4.0*x*i + 5.0
+        model.load_data(x, y, M_a=f"slope_{i}")
+    fit = FitObject(model)
+
+    y = 4.0*x + 10.0
+    model.load_data(x, y, M_a="slope_1", M_b="M_b_2")
+    fit.fit()
+
+    assert(len(fit.parameters.values) == 5)
+    assert(len(fit.parameters) == 5)
+    assert(fit.n_residuals == 12)
+    assert(fit.n_parameters == 5)
+
+    assert(np.isclose(fit.parameters["slope_0"].value, 0))
+    assert(np.isclose(fit.parameters["slope_1"].value, 4))
+    assert(np.isclose(fit.parameters["slope_2"].value, 8))
+    assert(np.isclose(fit.parameters["M_b"].value, 5))
+    assert(np.isclose(fit.parameters["M_b_2"].value, 10))
+
+    # Verify that fixed parameters are correctly removed from sub-models
+    model = Model("M", linear, linear_jac)
+    model.load_data(x, 4.0*x + 5.0, M_a=4)
+    model.load_data(x, 8.0*x + 10.0, M_b=10)
+    fit = FitObject(model)
+    fit.fit()
+    assert (np.isclose(fit.parameters["M_b"].value, 5))
+    assert (np.isclose(fit.parameters["M_a"].value, 8))

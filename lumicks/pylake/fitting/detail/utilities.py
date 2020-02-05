@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import numpy as np
 
 
 def unique_idx(input_list):
@@ -22,3 +23,24 @@ def parse_transformation(parameters, **kwargs):
                            f"{[x for x in transformed.keys()]}.")
 
     return transformed
+
+
+def optimal_plot_layout(n_plots):
+    n_x = np.ceil(np.sqrt(n_plots))
+    n_y = np.ceil(n_plots/n_x)
+
+    return n_x, n_y
+
+
+def print_styled(style, print_string, **kwargs):
+    print_dict = {
+        'header': '\033[95m',
+        'ok_blue': '\033[94m',
+        'ok_green': '\033[92m',
+        'warning': '\033[93m',
+        'fail': '\033[91m',
+        'bold': '\033[1m',
+        'underline': '\033[4m'
+    }
+    if style in print_dict:
+        print(print_dict[style] + print_string + '\033[0m')
