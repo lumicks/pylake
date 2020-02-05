@@ -3,6 +3,8 @@ from .__about__ import (__author__, __copyright__, __doc__, __email__, __license
 
 from .file import *
 from .correlated_stack import CorrelatedStack
+from .fitting.fdmodels import force_model
+from .fitting.fitobject import FitObject
 
 
 def pytest(args=None, plugins=None):
