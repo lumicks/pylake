@@ -3,7 +3,7 @@ from ..fitting.detail.utilities import parse_transformation
 from ..fitting.detail.utilities import unique_idx
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
-from ..fitting.model import Model, InverseModel
+from ..fitting.model import InverseModel
 from ..fitting.fitobject import FitObject
 from ..fitting.fdmodels import *
 
@@ -435,3 +435,12 @@ def test_model_composition():
     assert not (InverseModel(M1_wrong_jacobian) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(M1_wrong_derivative) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
 
+    assert M1.subtract_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert M1.subtract_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
+
+    M1 = force_model("DNA", "invWLC").subtract_offset("d_offset") + force_model("f", "offset")
+    M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
+    t = np.array([.19, .2, .3])
+    p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
+    p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
+    assert np.allclose(M1._raw_call(t, p1), M2._raw_call(t, p2))

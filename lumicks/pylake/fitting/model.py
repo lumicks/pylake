@@ -110,6 +110,16 @@ class Model:
         """
         return InverseModel(self)
 
+    def subtract_offset(self, parameter_name="independent_offset"):
+        """
+        Subtract a constant offset from this model.
+
+        Parameters
+        ----------
+        parameter_name: str
+        """
+        return SubtractIndependentOffset(self, parameter_name)
+
     @property
     def _defaults(self):
         if self._data:
@@ -388,3 +398,60 @@ class InverseModel(Model):
     @property
     def _parameters(self):
         return self.model._parameters
+
+
+class SubtractIndependentOffset(Model):
+    def __init__(self, model, parameter_name='independent_offset'):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        model: Model
+        """
+        self.model = model
+        offset_name = parameter_name
+
+        self.name = self.model.name + "(x-d)"
+        self._parameters = OrderedDict()
+        self._parameters[offset_name] = None
+        for i, v in self.model._parameters.items():
+            self._parameters[i] = v
+
+        parameters_parent = list(self.model._parameters.keys())
+        parameters_all = list(self._parameters.keys())
+
+        self.model_parameters = [parameters_all.index(par) for par in parameters_parent]
+        self.offset_parameter = parameters_all.index(offset_name)
+
+        self._data = []
+        self._conditions = []
+        self._built = None
+
+    def _raw_call(self, independent, parameter_vector):
+        return self.model._raw_call(independent - parameter_vector[self.offset_parameter],
+                                    [parameter_vector[x] for x in self.model_parameters])
+
+    @property
+    def has_jacobian(self):
+        return self.model.has_jacobian and self.has_derivative
+
+    @property
+    def has_derivative(self):
+        return self.model.has_derivative
+
+    def jacobian(self, independent, parameter_vector):
+        if self.has_jacobian:
+            with_offset = independent - parameter_vector[self.offset_parameter]
+            jacobian = np.zeros((len(parameter_vector), len(with_offset)))
+            jacobian[self.model_parameters, :] += self.model.jacobian(with_offset, [parameter_vector[x] for x in
+                                                                                    self.model_parameters])
+            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset, [parameter_vector[x] for x in
+                                                                                       self.model_parameters])
+
+            return jacobian
+
+    def derivative(self, independent, parameter_vector):
+        if self.has_derivative:
+            with_offset = independent - parameter_vector[self.offset_parameter]
+            return self.model.derivative(with_offset, [parameter_vector[x] for x in self.model_parameters])
