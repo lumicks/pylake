@@ -3,6 +3,7 @@ from .parameters import Parameter
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, invert_derivative
+from ..detail.utilities import get_color, lighten_color
 
 from collections import OrderedDict
 from copy import deepcopy
@@ -284,6 +285,70 @@ class Model:
         derivative_fd = numerical_diff(lambda x: self._raw_call(x, parameters), independent)
 
         return np.allclose(derivative, derivative_fd, **kwargs)
+
+    def _plot_data(self, fmt='', **kwargs):
+        names = []
+        handles = []
+
+        if len(fmt) == 0:
+            kwargs["marker"] = kwargs.get("marker", '.')
+            kwargs["markersize"] = kwargs.get("markersize", .5)
+            set_color = kwargs.get("color")
+        else:
+            set_color = 1
+
+        for i, data in enumerate(self._data):
+            if not set_color:
+                kwargs["color"] = get_color(i)
+            handle, = plt.plot(data.x, data.y, fmt, **kwargs)
+            handles.append(handle)
+            names.append(data.name)
+
+        plt.legend(handles, names)
+
+    def _plot_model(self, global_parameters, fmt='', **kwargs):
+        cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+        if len(fmt) == 0:
+            set_color = kwargs.get("color")
+        else:
+            set_color = 1
+
+        for i, data in enumerate(self._data):
+            if not set_color:
+                kwargs["color"] = lighten_color(get_color(i), -.3)
+            self.plot(global_parameters, data, fmt=fmt, **kwargs)
+
+    def plot(self, global_parameters, data, fmt='', independent=[], **kwargs):
+        """Plot this model for a specific data set.
+
+        Parameters
+        ----------
+        global_parameters: Parameters
+            Global parameter set, typically obtained from a FitObject.
+        data: FitData
+            Handle to a data set as returned by M.load_data
+        fmt: str (optional)
+            Plot formatting string (see matplotlib.pyplot documentation).
+        independent: array_like (optional)
+            Custom set of coordinates for the independent variable.
+        **kwargs:
+            Plot options
+
+        Examples
+        --------
+        ::
+            dna_model = pylake.force_model("DNA", "invWLC")  # Use an inverted Odijk eWLC model.
+            d1 = dna_model.load_data(x1, y1, name="my first data set")
+            d2 = dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
+            dna_model.plot(F.parameters, d1, fmt='k--')  # Plot model simulations for d1
+            dna_model.plot(F.parameters, d2, fmt='k--')  # Plot model simulations for d2
+
+            dna_model.plot(F.parameters, d1, independent=np.arange(1.0, 10.0, .01), fmt='k--')  # Use custom range
+        """
+        x = independent if np.any(independent) else np.sort(data.x)
+        plt.plot(x, self(x, data.get_parameters(global_parameters)), fmt, **kwargs)
+
 
 class CompositeModel(Model):
     def __init__(self, lhs, rhs):

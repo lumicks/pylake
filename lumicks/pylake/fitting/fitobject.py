@@ -220,3 +220,31 @@ class FitObject:
                         print_styled('warning', f'Parameter {parameter_names[i]}({i}): {v}')
 
         return is_close
+
+    def plot(self, fmt='', **kwargs):
+        self.plot_data(fmt, **kwargs)
+        self.plot_model(fmt, **kwargs)
+
+    def plot_data(self, fmt, **kwargs):
+        self._rebuild()
+
+        for M in self.models:
+            M._plot_data(fmt, **kwargs)
+
+    def _override_parameters(self, **kwargs):
+        from copy import deepcopy
+        parameters = self.parameters
+        if kwargs:
+            parameters = deepcopy(parameters)
+            for key, value in kwargs.items():
+                if key in parameters:
+                    parameters[key] = value
+
+        return parameters, kwargs
+
+    def plot_model(self, fmt='', **kwargs):
+        self._rebuild()
+        parameters, kwargs = self._override_parameters(**kwargs)
+
+        for M in self.models:
+            M._plot_model(parameters, fmt, **kwargs)
