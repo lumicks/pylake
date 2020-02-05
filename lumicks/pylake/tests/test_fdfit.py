@@ -487,3 +487,43 @@ def test_parameter_inversion():
     fit_object.parameters["f_b"].value = b_true
     fit_object.parameters["f_d"].value = 1.0
     assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_d', x, f_plus_g_data), d_true)
+
+
+def test_uncertainty_analysis():
+    x = np.arange(10)
+    y = np.array([8.24869073, 7.77648717, 11.9436565, 14.85406276, 22.73081526, 20.39692261, 32.48962353, 31.4775862,
+                  37.63807819, 40.50125925])
+
+    def quad(x, a=1, b=1, c=1):
+        return a * x * x + b * x + c
+
+    def quad_jac(x, a=1, b=1, c=1):
+        return np.vstack((x*x, x, np.ones(len(x))))
+
+    def linear(x, a=1, b=1):
+        f = a * x + b
+        return f
+
+    def linear_jac(x, a, b):
+        J = np.vstack((x, np.ones(len(x))))
+        return J
+
+    linear_model = Model("linear", linear, linear_jac)
+    linear_model.load_data(x, y)
+    linear_fit = FitObject(linear_model).fit()
+    model_quad = Model("quad", quad, quad_jac)
+    model_quad.load_data(x, y)
+    quad_fit = FitObject(model_quad).fit()
+
+    assert np.allclose(linear_fit.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
+    assert np.allclose(quad_fit.cov, np.array([[0.00973206, -0.08758855,  0.11678473],
+                                               [-0.08758855,  0.85058215, -1.33134597],
+                                               [0.11678473, -1.33134597,  3.17654476]]))
+
+    assert np.allclose(linear_fit.aic, 49.652690269143434)
+    assert np.allclose(linear_fit.aicc, 51.36697598342915)
+    assert np.allclose(linear_fit.bic, 50.25786045513153)
+
+    assert np.allclose(quad_fit.aic, 50.74643780988533)
+    assert np.allclose(quad_fit.aicc, 54.74643780988533)
+    assert np.allclose(quad_fit.bic, 51.654193088867466)

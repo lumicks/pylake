@@ -248,3 +248,103 @@ class FitObject:
 
         for M in self.models:
             M._plot_model(parameters, fmt, **kwargs)
+
+    @property
+    def sigma(self):
+        """Error variance of the data points."""
+        # TO DO: Ideally, this will eventually depend on the exact error model used. For now, we use the a-posteriori
+        # variance estimate based on the residual.
+        res = self._calculate_residual()
+        return np.sqrt(np.var(res)) * np.ones(len(res))
+
+    def log_likelihood(self, parameters=[], sigma=None):
+        """The model residual is given by chi squared = -2 log(L)"""
+        self._rebuild()
+        res = self._calculate_residual(parameters)
+        sigma = sigma if np.any(sigma) else self.sigma
+        return - (self.n_residuals/2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) - sum((res/sigma)**2) / 2.0
+
+    @property
+    def aic(self):
+        """
+        Calculates the Akaike Information Criterion:
+
+            AIC = 2 k - 2 ln(L)
+
+        Where:
+        k - Number of parameters
+        n - Number of observations / data points
+        L - maximized value of the likelihood function
+
+        The emphasis of this criterion is future prediction. It does not lead to consistent model selection and is more
+        prone to over-fitting than the Bayesian Information Criterion.
+
+        Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
+        Statistics & Probability Letters, 33(2), pp.201-208.
+        """
+        self._rebuild()
+        k = sum(self.parameters.fitted)
+        LL = self.log_likelihood()
+        return 2.0 * k - 2.0 * LL
+
+    @property
+    def aicc(self):
+        """
+        Calculates the Corrected Akaike Information Criterion:
+
+                          2 k^2 + 2 k
+            AICc = AIC + -------------
+                           n - k - 1
+        Where:
+        k - Number of parameters
+        n - Number of observations / data points
+        L - maximized value of the likelihood function
+
+        The emphasis of this criterion is future prediction. Compared to the AIC it should be less prone to overfitting
+        for smaller sample sizes. Analogously to the AIC, it does not lead to a consistent model selection procedure.
+
+        Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
+        Statistics & Probability Letters, 33(2), pp.201-208.
+        """
+        aic = self.aic
+        k = sum(self.parameters.fitted)
+        return aic + (2.0 * k * k + 2.0 * k)/(self.n_residuals - k - 1.0)
+
+    @property
+    def bic(self):
+        """
+        Calculates the Bayesian Information Criterion:
+
+            BIC = k ln(n) - 2 ln(L)
+
+        Where:
+        k - Number of parameters
+        n - Number of observations / data points
+        L - maximized value of the likelihood function
+
+        The emphasis of the BIC is put on parsimonious models. As such it is less prone to over-fitting. Selection via
+        BIC leads to a consistent model selection procedure, meaning that as the number of data points tends to
+        infinity, BIC will select the true model assuming the true model is in the set of selected models.
+        """
+
+        k = sum(self.parameters.fitted)
+        return k * np.log(self.n_residuals) - 2.0 * self.log_likelihood()
+
+    @property
+    def cov(self):
+        """
+        Returns the inverse of the approximate Hessian. This approximation is valid when the model fits well (small
+        residuals) and there is sufficient data to assume we're in the asymptotic regime.
+
+        It makes use of the Gauss-Newton approximation of the Hessian, which uses only the first order sensitivity
+        information. This is valid for linear problems and problems near the optimum (assuming the model fits).
+
+        Press, W.H., Teukolsky, S.A., Vetterling, W.T. and Flannery, B.P., 1988. Numerical recipes in C.
+
+        Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew, F., Bock, H.H.,
+        Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to its limit: profile likelihood
+        based model reduction. PloS one, 11(9).
+        """
+        J = self._calculate_jacobian()
+        J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
+        return np.linalg.pinv(np.transpose(J).dot(J))
