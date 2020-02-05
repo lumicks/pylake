@@ -1,9 +1,10 @@
 import json
 
 from .detail.mixin import PhotonCounts
+from .detail.mixin import ExcitationLaserPower
 
 
-class PointScan(PhotonCounts):
+class PointScan(PhotonCounts, ExcitationLaserPower):
     """A point scan exported from Bluelake
 
     Parameters
