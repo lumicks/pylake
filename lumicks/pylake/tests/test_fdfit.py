@@ -374,3 +374,47 @@ def test_models():
     assert (np.allclose(FJC(invFJC(independent, *parameters), *parameters), independent))
     parameters = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
     assert(np.allclose(tWLC(invtWLC(independent, *parameters), *parameters), independent))
+
+
+def test_model_composition():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def f_jac_wrong(x, a, b):
+        return np.vstack((np.zeros((1, len(x))), x))
+
+    def g(x, a, d, b):
+        return a - b * x + d * x * x
+
+    def g_jac(x, a, d, b):
+        return np.vstack((np.ones((1, len(x))), x * x, -x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def f_der_wrong(x, a, b):
+        return np.ones((len(x)))
+
+    def g_der(x, a, d, b):
+        return - b * np.ones((len(x))) + 2.0 * d * x
+
+    M1 = Model("M", f, f_jac, derivative=f_der)
+    M2 = Model("M", g, g_jac, derivative=g_der)
+    t = np.arange(0, 2, .5)
+
+    # Check actual composition
+    # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
+    assert np.allclose((M1 + M2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
+        "Model composition returns invalid function evaluation (parameter order issue?)"
+
+    # Check correctness of the Jacobians and derivatives
+    assert (M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
+
+    M1_wrong_jacobian = Model("M", f, f_jac_wrong, derivative=f_der)
+    assert not (M1_wrong_jacobian + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    assert not (M2 + M1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)

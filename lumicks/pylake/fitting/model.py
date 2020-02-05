@@ -93,6 +93,17 @@ class Model:
     def _raw_call(self, independent, parameter_vector):
         return self.model_function(independent, *parameter_vector)
 
+    def __add__(self, other):
+        """
+        Add two model outputs to form a new model.
+
+        Parameters
+        ----------
+        other: Model
+        """
+
+        return CompositeModel(self, other)
+
     @property
     def _defaults(self):
         if self._data:
@@ -248,3 +259,66 @@ class Model:
                         print_styled('warning', f'Parameter {self.parameter_names[i]}({i}): {v}')
 
         return is_close
+
+
+class CompositeModel(Model):
+    def __init__(self, lhs, rhs):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        lhs: Model
+        rhs: Model
+        """
+        self.lhs = lhs
+        self.rhs = rhs
+
+        self.name = self.lhs.name + "_with_" + self.rhs.name
+        self._parameters = OrderedDict()
+        for i, v in self.lhs._parameters.items():
+            self._parameters[i] = v
+        for i, v in self.rhs._parameters.items():
+            self._parameters[i] = v
+
+        parameters_lhs = list(self.lhs._parameters.keys())
+        parameters_rhs = list(self.rhs._parameters.keys())
+        parameters_all = list(self._parameters.keys())
+
+        self.lhs_parameters = [parameters_all.index(par) for par in parameters_lhs]
+        self.rhs_parameters = [parameters_all.index(par) for par in parameters_rhs]
+
+        self._data = []
+        self._conditions = []
+        self._built = False
+
+    def _raw_call(self, independent, parameter_vector):
+        lhs_residual = self.lhs._raw_call(independent, [parameter_vector[x] for x in self.lhs_parameters])
+        rhs_residual = self.rhs._raw_call(independent, [parameter_vector[x] for x in self.rhs_parameters])
+
+        return lhs_residual + rhs_residual
+
+    @property
+    def has_jacobian(self):
+        return self.lhs.has_jacobian and self.rhs.has_jacobian
+
+    @property
+    def has_derivative(self):
+        return self.lhs.has_derivative and self.rhs.has_derivative
+
+    def jacobian(self, independent, parameter_vector):
+        if self.has_jacobian:
+            jacobian = np.zeros((len(parameter_vector), len(independent)))
+            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(independent, [parameter_vector[x] for x in
+                                                                                self.lhs_parameters])
+            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(independent, [parameter_vector[x] for x in
+                                                                                self.rhs_parameters])
+
+            return jacobian
+
+    def derivative(self, independent, parameter_vector):
+        if self.has_derivative:
+            lhs_derivative = self.lhs.derivative(independent, [parameter_vector[x] for x in self.lhs_parameters])
+            rhs_derivative = self.rhs.derivative(independent, [parameter_vector[x] for x in self.rhs_parameters])
+
+            return lhs_derivative + rhs_derivative
