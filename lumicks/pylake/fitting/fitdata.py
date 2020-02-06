@@ -26,10 +26,12 @@ class FitData:
 
     @property
     def independent(self):
+        """Values for the independent variable"""
         return self.x
 
     @property
     def dependent(self):
+        """Values for the dependent variable"""
         return self.y
 
     @property

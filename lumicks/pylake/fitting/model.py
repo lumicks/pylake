@@ -86,7 +86,7 @@ class Model:
         Parameters
         ----------
         independent: array_like
-        parameters: Parameters
+        parameters: ``pylake.fitting.Parameters``
         """
         independent = np.array(independent).astype(float)
         return self._raw_call(independent, np.array([parameters[name].value for name in self.parameter_names]))
@@ -100,7 +100,14 @@ class Model:
 
         Parameters
         ----------
-        other: Model
+        other: pylake.fitting.Model
+
+        Examples
+        --------
+        ::
+            DNA_model = pylake.force_model("DNA", "invWLC")
+            protein_model = pylake.force_model("protein", "invWLC")
+            construct_model = DNA_model + protein_model
         """
 
         return CompositeModel(self, other)
@@ -139,6 +146,17 @@ class Model:
         return [name for data in self._data for name in data.parameter_names]
 
     def jacobian(self, independent, parameter_vector):
+        """
+        Return model sensitivities at specific values for the independent variable. Returns None when the model does not
+        have an appropriately defined Jacobian.
+
+        Parameters
+        ----------
+        independent: array_like
+            Values for the independent variable at which the Jacobian needs to be returned.
+        parameter_vector: array_like
+            Parameter vector at which to simulate.
+        """
         if self.has_jacobian:
             independent = np.array(independent).astype(float)
             return self._jacobian(independent, *parameter_vector)
@@ -146,6 +164,17 @@ class Model:
             raise RuntimeError(f"Jacobian was requested but not supplied in model {self.name}.")
 
     def derivative(self, independent, parameter_vector):
+        """
+        Return derivative w.r.t. the independent variable at specific values for the independent variable. Returns None
+        when the model does not have an appropriately defined derivative.
+
+        Parameters
+        ----------
+        independent: array_like
+            Values for the independent variable at which the derivative needs to be returned.
+        parameter_vector: array_like
+            Parameter vector at which to simulate.
+        """
         if self.has_derivative:
             independent = np.array(independent).astype(float)
             return self._derivative(independent, *parameter_vector)
@@ -154,6 +183,7 @@ class Model:
 
     @property
     def n_residuals(self):
+        """Number of data points loaded into this model."""
         count = 0
         for data in self._data:
             count += len(data.independent)
@@ -162,11 +192,13 @@ class Model:
 
     @property
     def has_jacobian(self):
+        """Returns true if the model can return an analytically computed Jacobian."""
         if self._jacobian:
             return True
 
     @property
     def has_derivative(self):
+        """Returns true if the model can return an analytically computed derivative w.r.t. the independent variable."""
         if self._derivative:
             return True
 
@@ -247,6 +279,23 @@ class Model:
         return jacobian
 
     def verify_jacobian(self, independent, parameters, plot=False, verbose=True, **kwargs):
+        """
+        Verify this model's Jacobian with respect to the independent variable by comparing it to the Jacobian
+        obtained with finite differencing.
+
+        Parameters
+        ----------
+        independent: array_like
+            Values for the independent variable at which to compare the Jacobian.
+        parameters: array_like
+            Parameter vector at which to compare the Jacobian.
+        plot: bool
+            Plot the results (default = False)
+        verbose: bool
+            Print the result (default = True)
+        **kwargs:
+            Forwarded to `~matplotlib.pyplot.plot`.
+        """
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
@@ -277,6 +326,18 @@ class Model:
         return is_close
 
     def verify_derivative(self, independent, parameters, **kwargs):
+        """
+        Verify this model's derivative with respect to the independent variable by comparing it to the derivative
+        obtained with finite differencing.
+
+        Parameters
+        ----------
+        independent: array_like
+            Values for the independent variable at which to compare the derivative.
+        parameters: array_like
+            Parameter vector at which to compare the derivative.
+        """
+
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")

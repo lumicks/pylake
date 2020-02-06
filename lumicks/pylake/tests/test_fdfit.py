@@ -527,3 +527,33 @@ def test_uncertainty_analysis():
     assert np.allclose(quad_fit.aic, 50.74643780988533)
     assert np.allclose(quad_fit.aicc, 54.74643780988533)
     assert np.allclose(quad_fit.bic, 51.654193088867466)
+
+
+def test_parameter_availability():
+    x = np.arange(10)
+    y = np.array([8.24869073, 7.77648717, 11.9436565, 14.85406276, 22.73081526, 20.39692261, 32.48962353, 31.4775862,
+                  37.63807819, 40.50125925])
+
+    def linear(x, a=1, b=1):
+        f = a * x + b
+        return f
+
+    def linear_jac(x, a, b):
+        J = np.vstack((x, np.ones(len(x))))
+        return J
+
+    linear_model = Model("linear", linear, linear_jac)
+    linear_fit = FitObject(linear_model)
+
+    with pytest.raises(IndexError):
+        linear_fit.parameters["linear_a"]
+
+    linear_model.load_data(x, y, linear_a=5)
+    linear_fit = FitObject(linear_model)
+
+    # Parameter linear_a is not actually a parameter in the fit object at this point (it was set to 5)
+    with pytest.raises(IndexError):
+        linear_fit.parameters["linear_a"]
+
+    linear_model.load_data(x, y)
+    assert linear_fit.parameters["linear_a"]

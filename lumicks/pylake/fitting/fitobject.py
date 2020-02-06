@@ -9,10 +9,29 @@ import matplotlib.pyplot as plt
 
 
 class FitObject:
-    """Object which is used for fitting. It is a collection of a model alongside its data.
+    """Object which is used for fitting. It is a collection of models and their data. Once data is loaded, a fit object
+    contains ``Parameters``, which can be fitted by invoking fit.
 
-    A fit object builds the linkages required to propagate parameters used in sub-models to a global parameter vector
-    used by the optimization algorithm.
+    Parameters
+    ----------
+    *args
+        Variable number of ``pylake.fitting.Model``.
+
+    Examples
+    --------
+    ::
+
+        from lumicks import pylake
+
+        dna_model = pylake.force_model("DNA", "invWLC")
+        fit = FitObject(dna_model)
+        data = dna_model.load_data(distance, force)
+
+        F.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
+        F.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+        F.fit()
+
+        dna_model.plot(F.parameters, data, fmt='k--')  # Plot the fitted model
     """
     def __init__(self, *args):
         self.models = [M for M in args]
@@ -23,6 +42,9 @@ class FitObject:
 
     @property
     def has_jacobian(self):
+        """
+        Returns true if it is possible to evaluate the Jacobian of the fit.
+        """
         has_jacobian = True
         for M in self.models:
             has_jacobian = has_jacobian and M.has_jacobian
@@ -31,6 +53,7 @@ class FitObject:
 
     @property
     def n_residuals(self):
+        """Number of data points."""
         self._rebuild()
         count = 0
         for M in self.models:
@@ -40,11 +63,13 @@ class FitObject:
 
     @property
     def n_parameters(self):
+        """Number of parameters in the FitObject"""
         self._rebuild()
         return len(self._parameters)
 
     @property
     def parameters(self):
+        """Fit parameters. See also ``pylake.fitting.Parameters``"""
         self._rebuild()
         return self._parameters
 
