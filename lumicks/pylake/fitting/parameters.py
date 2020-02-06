@@ -1,9 +1,10 @@
 import numpy as np
 from collections import OrderedDict
+from tabulate import tabulate
 
 
 class Parameter:
-    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None, shared=False):
+    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None, shared=False, unit=None):
         """Model parameter
 
         Parameters
@@ -19,6 +20,7 @@ class Parameter:
         self.ub = ub
         self.vary = vary
         self.shared = shared
+        self.unit = unit
         if init:
             self.init = init
         else:
@@ -97,16 +99,22 @@ class Parameters:
     def __len__(self):
         return len(self._src)
 
+    def _print_data(self):
+        table = [[key, par.value, f'[{par.unit}]' if par.unit else 'NA', par.vary, par.lb, par.ub] for key, par in
+                 self._src.items()]
+        header = ['Name', 'Value', 'Unit', 'Fitted', 'Lower bound', 'Upper bound']
+        return table, header
+
+    def _repr_html_(self):
+        table, header = self._print_data()
+        return tabulate(table, header, tablefmt="html")
+
     def __str__(self):
         if len(self._src) > 0:
-            return_str = ""
-            max_length = np.max([len(x) for x in self._src.keys()])
-            for key, param in self._src.items():
-                return_str = return_str + ("{:"+f"{max_length+1}"+"s} {:+1.4e} {:1d} [{:+1.4e}, {:+1.4e}]\n").format(key, param.value, param.vary, param.lb, param.ub)
+            table, header = self._print_data()
+            return tabulate(table, header)
         else:
-            return_str = "No parameters"
-
-        return return_str
+            return "No parameters"
 
     def _set_parameters(self, parameters, defaults):
         """Rebuild the parameter vector. Note that this can potentially alter the parameter order if the strings are

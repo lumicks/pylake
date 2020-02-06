@@ -49,10 +49,10 @@ def force_model(name, model_type):
         - invFJC
             Inverted Freely Joint Chain model with d as independent parameter
     """
-    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=False, shared=True)
-    Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf)
-    Lc_default = Parameter(value=16.0, lb=0.0, ub=np.inf)
-    St_default = Parameter(value=1500.0, lb=0.0, ub=np.inf)
+    kT_default = Parameter(value=4.11, lb=0.0, ub=8.0, vary=False, shared=True, unit='pN*nm')
+    Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf, unit='nm')
+    Lc_default = Parameter(value=16.0, lb=0.0, ub=np.inf, unit='micron')
+    St_default = Parameter(value=1500.0, lb=0.0, ub=np.inf, unit='pN')
     if model_type == "offset":
         return Model(name, offset_model, offset_model_jac, derivative=offset_model_derivative,
                      offset=Parameter(value=0.01, lb=0, ub=np.inf))
@@ -65,28 +65,24 @@ def force_model(name, model_type):
     elif model_type == "tWLC":
         return Model(name, tWLC, tWLC_jac, derivative=tWLC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0),
+                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, unit="pN"),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
                      )
     elif model_type == "FJC":
         return Model(name, FJC, FJC_jac, derivative=FJC_derivative,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invWLC":
         return Model(name, invWLC, invWLC_jac, derivative=invWLC_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=100.0),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0))
+                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
     elif model_type == "invtWLC":
         return Model(name, invtWLC, invtWLC_jac,
                      kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=100.0),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0),
+                     Fc=Parameter(value=30.6, lb=0.0, ub=100.0, unit="pN"),
+                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
+                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
+                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
                      )
     elif model_type == "invFJC":
         return InverseModel(force_model(name, "FJC"))
