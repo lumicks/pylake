@@ -216,22 +216,22 @@ class FitObject:
 
         return jacobian
 
-    def verify_jacobian(self, parameters, plot=0, verbose=True, **kwargs):
+    def verify_jacobian(self, parameters, plot=0, verbose=True, dx=1e-6, **kwargs):
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
 
         jacobian = self._calculate_jacobian(parameters).transpose()
-        jacobian_fd = numerical_jacobian(self._calculate_residual, parameters)
+        jacobian_fd = numerical_jacobian(self._calculate_residual, parameters, dx)
 
         if plot:
             n_x, n_y = optimal_plot_layout(len(self.parameters))
             for i_parameter, parameter in enumerate(self.parameters):
                 plt.subplot(n_x, n_y, i_parameter + 1)
-                l1 = plt.plot(np.transpose(jacobian[i_parameter, :]))
-                l2 = plt.plot(np.transpose(jacobian_fd[i_parameter, :]), '--')
+                l1 = plt.plot(np.transpose(jacobian[i_parameter, :]), linewidth=2)
+                l2 = plt.plot(np.transpose(jacobian_fd[i_parameter, :]), '--', linewidth=1)
                 plt.title(parameter)
-                plt.legend({'Analytic', 'FD'})
+                plt.legend(['Analytic', 'FD'])
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
         if not is_close:

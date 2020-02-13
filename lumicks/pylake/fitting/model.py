@@ -1,5 +1,5 @@
 from .fitdata import FitData
-from .parameters import Parameter
+from .parameters import Parameter, Parameters
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, invert_derivative
@@ -278,7 +278,7 @@ class Model:
 
         return jacobian
 
-    def verify_jacobian(self, independent, parameters, plot=False, verbose=True, **kwargs):
+    def verify_jacobian(self, independent, parameters, plot=False, verbose=True, dx=1e-6, **kwargs):
         """
         Verify this model's Jacobian with respect to the independent variable by comparing it to the Jacobian
         obtained with finite differencing.
@@ -293,6 +293,8 @@ class Model:
             Plot the results (default = False)
         verbose: bool
             Print the result (default = True)
+        dx: float
+            Finite difference excursion.
         **kwargs:
             Forwarded to `~matplotlib.pyplot.plot`.
         """
@@ -302,8 +304,10 @@ class Model:
 
         independent = np.array(independent).astype(float)
         jacobian = self.jacobian(independent, parameters)
-        jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values), parameters)
+        jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values),
+                                         parameters, dx=dx)
 
+        jacobian = np.array(jacobian)
         if plot:
             n_x, n_y = optimal_plot_layout(len(self._parameters))
             for i_parameter, parameter in enumerate(self._parameters):
@@ -325,7 +329,7 @@ class Model:
 
         return is_close
 
-    def verify_derivative(self, independent, parameters, **kwargs):
+    def verify_derivative(self, independent, parameters, dx=1e-6, **kwargs):
         """
         Verify this model's derivative with respect to the independent variable by comparing it to the derivative
         obtained with finite differencing.
@@ -336,6 +340,8 @@ class Model:
             Values for the independent variable at which to compare the derivative.
         parameters: array_like
             Parameter vector at which to compare the derivative.
+        dx: float
+            Finite difference excursion.
         """
 
         if len(parameters) != len(self._parameters):
@@ -343,7 +349,7 @@ class Model:
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
 
         derivative = self.derivative(independent, parameters)
-        derivative_fd = numerical_diff(lambda x: self._raw_call(x, parameters), independent)
+        derivative_fd = numerical_diff(lambda x: self._raw_call(x, parameters), independent, dx=dx)
 
         return np.allclose(derivative, derivative_fd, **kwargs)
 
@@ -407,6 +413,12 @@ class Model:
 
             dna_model.plot(F.parameters, d1, independent=np.arange(1.0, 10.0, .01), fmt='k--')  # Use custom range
         """
+        # Admittedly not very pythonic, but the errors you get otherwise are confusing.
+        if not isinstance(global_parameters, Parameters):
+            raise RuntimeError('Did not pass Parameters')
+        if not isinstance(data, FitData):
+            raise RuntimeError('Did not pass FitData')
+
         x = independent if np.any(independent) else np.sort(data.x)
         plt.plot(x, self(x, data.get_parameters(global_parameters)), fmt, **kwargs)
 

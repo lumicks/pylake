@@ -353,13 +353,22 @@ def test_integration_test_fitting():
 
 
 def test_models():
-    independent = np.arange(0.05, 2, .5)
-    parameters = [5, 5, 5, 4.11]
+    independent = np.arange(0.15, 2, .5)
+    parameters = [38.18281266,   0.37704827, 278.50103452,   4.11]
     assert(Model("M", WLC, WLC_jac).verify_jacobian(independent, parameters))
-    assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters))
-    assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
-    assert(Model("M", invFJC, invFJC_jac).verify_jacobian(independent, parameters, atol=1e-6))
-    assert(Model("M", Marko_Siggia, Marko_Siggia_jac).verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
+    assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters, atol=1e-5))
+    assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, dx=1e-4, atol=1e-6))
+    assert (Model("M", Marko_Siggia, Marko_Siggia_jac).verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
+
+    assert(force_model('M', 'WLC').verify_derivative(independent, parameters))
+    assert(force_model('M', 'invWLC').verify_derivative(independent, parameters))
+    assert(force_model('M', 'FJC').verify_derivative(independent, parameters, atol=1e-6))
+    assert(force_model('M', 'Marko_Siggia').verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
+
+    # The finite differencing version of the FJC performs very poorly numerically, hence the less stringent
+    # tolerances and larger dx values.
+    assert (force_model('M', 'invFJC').verify_derivative(independent, parameters, dx=1e-3, rtol=1e-2, atol=1e-6))
+    assert(Model("M", invFJC, invFJC_jac).verify_jacobian(independent, parameters, dx=1e-3, atol=1e-5, rtol=1e-2))
 
     # Check the tWLC and inverted tWLC model
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
