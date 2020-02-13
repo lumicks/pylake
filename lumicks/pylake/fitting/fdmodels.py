@@ -4,26 +4,6 @@ from .detail.derivative_manipulation import invert_function, invert_jacobian
 from .model import Model, InverseModel
 import numpy as np
 
-"""The model Jacobians and derivatives were determined via symbolic differentiation; followed by common subexpression
-elimination, both using sympy. After this, the resulting code was checked for numerical issues, which were subsequently
-removed. The code for most of the individual models was never intended to be human readable.
-
-def generate_derivatives(parameters, expression):
-    import sympy as sym
-    from sympy.parsing import sympy_parser
-
-    symbolic_parameters = [sym.Symbol(x) for x in parameters]
-    symbolic_function = sympy_parser.parse_expr(expression)
-    jacobian = [sym.diff(symbolic_function, x) for x in symbolic_parameters]
-    cse = sym.cse(jacobian)
-    print(cse[0])
-    for x in cse[0]:
-        print(str(x[0]) + ' = ' + str(x[1]))
-
-    print("return ", cse[1])
-    return jac
-"""
-
 
 def force_model(name, model_type):
     """Generate a force model.
@@ -231,7 +211,12 @@ def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 
 
 def coth(x):
-    return np.cosh(x)/np.sinh(x)
+    sol = np.ones(x.shape)
+    mask = abs(x) < 500
+    sol[mask] = np.cosh(x[mask]) / np.sinh(x[mask])  # Crude overflow protection, this limit approaches 1.0
+    mask = abs(x) < -500
+    sol[mask] = -1.0  # Crude overflow protection, this limit approaches -1.0
+    return sol
 
 
 def FJC(F, Lp, Lc, St, kT=4.11):
@@ -265,7 +250,8 @@ def FJC_jac(F, Lp, Lc, St, kT=4.11):
     x0 = 0.5 / F
     x1 = 2.0 * F / kT
     x2 = Lp * x1
-    x3 = np.sinh(x2) ** (-2)
+    x3 = np.zeros(x2.shape)
+    x3[abs(x2) < 300] = np.sinh(x2[abs(x2) < 300]) ** (-2)
     x4 = F / St + 1.0
     x5 = Lc * x4
     x6 = x0 / Lp
@@ -276,7 +262,7 @@ def FJC_jac(F, Lp, Lc, St, kT=4.11):
                       x5 * (2.0 * F * Lp * x3 / (kT*kT) - x6)))
 
 
-def invWLC(d, Lp, Lc, St, kT = 4.11):
+def invWLC(distance, Lp, Lc, St, kT=4.11):
     """
     Inverted Odijk's Worm-like Chain model
 
@@ -299,219 +285,210 @@ def invWLC(d, Lp, Lc, St, kT = 4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    x0 = 2.0 * Lp * St
-    x1 = Lc * Lc     # Lc ** 2
-    x16 = x1 * Lc    # Lc ** 3
-    x13 = Lc * x16   # Lc ** 4
-    x10 = x1 * x13   # Lc ** 6
-    x2 = 1.0 / (Lp * x1)
-    lp2 = Lp * Lp
-    lp3 = Lp * lp2
-    x4 = Lp * St * kT
-    x8 = d * d
-    x7 = x8 * d
-    sqrt_arg = x4 * (48.0 * x8 - 16.0 * x7 / Lc + 16.0 * x1 - Lc * d * 48.0) + 27.0 * kT * kT * x1
-    sqrt_fun = np.zeros(sqrt_arg.shape)
-    mask = sqrt_arg >= 0
-    sqrt_fun[mask] = np.sqrt(sqrt_arg[mask])
-    sqrt_fun[np.logical_not(mask)] = np.inf
-    x9 = St**2 * lp2 * x16 * x1 * sqrt_fun
-    x11 = lp3 * St * St * St
-    x12 = 8.0 * x11
-    x14 = 24.0 * x11
-    x15 = lp2 * St * St
-    x17 = -Lc * x13 * d * x14 + 27.0 * kT * x10 * x15 + x10 * x12 - x12 * x16 * x7 + x13 * x14 * x8
-    x18 = 16.0 * x15
+    #
+    # In short, this model was analytically solved, since it is basically a cubic equation. There are some issues
+    # with this inverted model. Its derivatives are not defined everywhere, as they contain divisions by zero in
+    # specific places due to the cube roots involved. This was worked around by preventing the denominators in these
+    # equations to go to zero by clamping them to a lower bound. This results in far better numerical behaviour than
+    # even the finite difference approximations.
+    #
+    # Define:
+    #   alpha = (distance/Lc) - 1.0
+    #   beta = 1.0 / St
+    #   gamma = kT / Lp
+    #
+    # This allows us to obtain simple polynomial coefficients for the Odijk model. We divide the polynomial by the
+    # leading coefficient to make things simpler for us. This leads to the following equations:
+    #
+    #   denom = beta ** 2.0
+    #   a = - (2.0 * alpha * beta) / denom = - 2.0 * alpha / beta
+    #   b = alpha * alpha / denom = (alpha * alpha) / (beta * beta)
+    #   c = - 0.25 * gamma / denom = - gamma / (4 * beta * beta)
+    #
+    # We can see now that parameterizing w.r.t. St is easier than b and define:
+    alpha = (distance / Lc) - 1.0
+    gamma = kT / Lp
 
-    return -(1.0/24.0) * x2 * (x17 + 3.0 * np.sqrt(3.0) * x9) ** (-1.0/3.0) * \
-            (32.0 * d * x15 * x16 - x1 * x18 * x8 - x13 * x18) + \
-            (1.0/6.0) * x2 * (x17 + 3.0 * np.sqrt(3.0) * x9) ** (1.0/3.0) + \
-            (1.0/3.0) * x2 * (Lc * d * x0 - x0 * x1)
+    a = - 2.0 * alpha * St
+    b = (alpha * alpha) * (St * St)
+    c = - 0.25 * gamma * (St * St)
 
+    # Convert the equation to a depressed cubic for p and q, which'll allow us to greatly simplify the equations
+    p = b - a * a / 3.0
+    q = 2 * a * a * a / 27.0 - a * b / 3.0 + c
+    det = q*q/4.0 + p*p*p/27.0
 
-# HC SVNT DRACONES
-def invWLC_jac(d, Lp, Lc, St, kT=4.11):
-    x0 = Lc * St
-    x1 = 2.0 * d
-    x2 = x0 * x1
-    lc2 = Lc * Lc
-    lc3 = Lc * lc2  # Lc^3
-    lc4 = lc2 * lc2  # Lc^4
-    lc5 = lc2 * lc3   # Lc^5
-    lc6 = lc3 * lc3  # Lc^6
-    lc9 = lc6 * lc3  # Lc^9
-    lc10 = Lc * lc9   # Lc^10
-    lc11 = Lc * lc10   # Lc^11
-    lc12 = lc6 * lc6  # Lc^12
-    x4 = 2.0 * lc2
-    x5 = St * x4
-    x6 = 1.0 / Lp
-    x7 = 1.0 / lc2
-    x8 = (1.0/3.0) * x7
-    x9 = x6 * x8
-    lp2 = Lp * Lp
-    lp3 = Lp * lp2   # Lp^3
-    lp4 = lp2 * lp2  # Lp^4
-    lp5 = Lp * lp4   # Lp^5
-    x11 = 1.0 / lp2
-    x12 = Lp * x2 - Lp * x5
-    x13 = np.sqrt(3)
-    st2 = St * St
-    st3 = St * st2   # St ** 3
-    st4 = st2 * st2  # St ** 4
-    st5 = st2 * st3  # St ** 5
-    lc12st5 = lc12 * st5
-    lp5lc12st5 = lp5 * lc12st5
-    x19 = 16.0 * kT
-    lp5st5 = lp5 * st5
-    lc11lp5st5 = lc11 * lp5st5
-    ktlc11lp5st5 = kT * lc11lp5st5
-    kt2 = kT * kT
-    lc12st4 = lc12 * st4
-    kt2lc12st4 = kt2 * lc12st4
-    lp4_27 = 27.0 * lp4
-    d2 = d * d
-    d3 = d * d2  # d^3
-    lp5st5lc9 = lp5st5 * lc9
-    lp5st5lc10 = lp5st5 * lc10
-    ktd2 = kT * d2
-    lpst = Lp * St
-    ktlc3lpst = kT * lc3 * lpst
-    lplc4st = lc4 * lpst
-    lpstlc = Lc * lpst
-    kt2lc4 = kT * kT * lc4
-    lpstlc2 = lc2 * lpst
-    x37 = lc4 * st2 * lp2 * np.sqrt(-48.0 * d * ktlc3lpst + lplc4st * x19 - x19 * d3 * lpstlc + kt2lc4 * 27.0 + 48.0 * lpstlc2 * ktd2)
-    x40 = lp3 * st3
-    x42 = 8.0 * lc6
-    x43 = d2 * x40
-    x45 = 24.0 * lc4
-    x47 = lp2 * st2
-    x48 = lc6 * x47
-    x50 = 8.0 * d3
-    x51 = lc3 * x50
-    x53 = x40 * lc5
-    x54 = 24.0 * d
-    x55 = 27.0 * kT * x48 + x40 * x42 - x40 * x51 + x43 * x45 - x53 * x54
-    x56 = 3.0 * x13 * x37 + x55
-    x57 = x56 ** (1.0/3.0)
-    x58 = x11 * x7
-    x59 = lc4 * st2
-    x60 = 32.0 * Lp
-    x61 = Lp * st2
-    x62 = 64.0 * d * lc3
-    x63 = lc2 * d2
-    x64 = st2 * x63
-    x65 = 3.0 * np.sqrt(3.0) * x37 + x55
-    x66 = x65 ** (-(1.0/3.0))
-    x67 = (1.0/24.0) * x66
-    x68 = x6 * x7
-    x69 = x67 * x68
-    x70 = 16.0 * lp2
-    x71 = x47 * lc3
-    x72 = 32.0 * d * x71 - x59 * x70 - x64 * x70
-    x73 = 18.0 * kT * lc6
-    x74 = x61 * x73
-    x75 = lp2 * st3
-    x76 = x42 * x75
-    x77 = lc5 * x54
-    x78 = x75 * x77
-    x79 = x51 * x75
-    x80 = d2 * x45 * x75
-    x81 = 40.0 * kT
-    x82 = lp4 * x81
-    x83 = 120.0 * st5 * lp4
-    x84 = d * kT
-    x85 = d3 * lc9
-    x86 = lc10 * ktd2
-    x87 = -st5 * x82 * x85 + lc12st5 * x82 - lc11 * x83 * x84 + 54.0 * kt2lc12st4 * lp3 + x83 * x86
-    x88 = 1.0 / x37
-    x89 = 1.0 * x13 * x88
-    x90 = (1.0/6.0) * x56 ** (-(2.0/3.0)) * x68
-    x91 = np.sqrt(3) * x88
-    x92 = (1.0/24.0) * x65 ** (-(4.0/3.0)) * x68 * x72
-    x93 = Lp * x1
-    x94 = x6 / lc3
-    x95 = 16.0 * x53
-    x96 = 40.0 * d * x40 * lc4
-    x97 = 54.0 * kT * x47 * lc5
-    x98 = lc2 * x40 * x50
-    x99 = 32.0 * x43 * lc3
-    x100 = kt2 * lp4
-    x101 = lc11 * st4
-    x102 = -72.0 * Lc ** 8 * kT * lp5st5 * d3 + 162.0 * x100 * x101 + 96.0 * ktlc11lp5st5 + 240.0 * lp5st5lc9 * ktd2 - 264.0 * lp5st5lc10 * x84
-    x103 = St * lp2
-    x104 = 32.0 * x103
-    x105 = x103 * x73
-    x106 = lp3 * st2
-    x107 = x106 * x42
-    x108 = x106 * x77
-    x109 = x106 * x51
-    x110 = 24.0 * d2
-    x111 = x110 * lp3 * x59
-    x112 = lp5 * x81
-    x113 = 120.0 * lp5
-    x114 = 54.0 * x100 * lc12 * st3 - x101 * x113 * x84 - x112 * st4 * x85 + x112 * lc12st4 + x113 * st4 * x86
-    x115 = 9.0 * x48
-    x116 = kT * lc12st4 * lp4_27 + x110 * lp5st5lc10 + 8.0 * lp5lc12st5 - lc11lp5st5 * x54 - lp5st5lc9 * x50
+    # The model changes behaviours when the discriminant equates to zero. From this point we need a different root
+    # resolution mechanism.
+    sol = np.zeros(det.shape)
+    mask = det >= 0
 
-    return [-x11 * x12 * x8 - (1.0/6.0) * x57 * x58 + x58 * x67 * x72 -
-            x69 * (-x59 * x60 - x60 * x64 + x61 * x62) +
-            x9 * (x2 - x5) + x90 * (x74 + x76 - x78 - x79 + x80 + x87 * x89) -
-            x92 * (-x74 - x76 + x78 + x79 - x80 - x87 * x91),
-            -(2.0/3.0) * x12 * x94 - (1.0/3.0) * x57 * x94 + (1.0/12.0) * x66 * x72 * x94 -
-            x69 * (-32.0 * Lc * d2 * x47 + 96.0 * d * lc2 * x47 - 64.0 * x71) +
-            x9 * (-4.0 * Lp * x0 + St * x93) + x90 * (x102 * x89 + x95 - x96 + x97 - x98 + x99) -
-            x92 * (-x102 * x91 - x95 + x96 - x97 + x98 - x99),
-            -x69 * (x103 * x62 - x104 * lc4 - x104 * x63) + x9 * (Lc * x93 - Lp * x4) +
-            x90 * (x105 + x107 - x108 - x109 + x111 + x114 * x89) -
-            x92 * (-x105 - x107 + x108 + x109 - x111 - x114 * x91),
-            x90 * (x115 + x116 * x89) - x92 * (-x115 - x116 * x91)]
+    sqrt_det = np.sqrt(det[mask])
+    t1 = -q[mask]*0.5 + sqrt_det
+    t2 = -q[mask]*0.5 - sqrt_det
+    sol[mask] = np.cbrt(t1) + np.cbrt(t2)
+
+    sqrt_minus_p = np.sqrt(-p[np.logical_not(mask)])
+    q_masked = q[np.logical_not(mask)]
+
+    s = 2.0 / np.sqrt(3.0) * sqrt_minus_p * \
+        np.cos((1.0/3.0) * np.arcsin(3.0 * np.sqrt(3.0) * q_masked / (2.0 * sqrt_minus_p**3)) + np.pi/6.0)
+
+    sol[np.logical_not(mask)] = 2.0 / np.sqrt(3.0) * sqrt_minus_p * \
+        np.cos((1.0/3.0) * np.arcsin(3.0 * np.sqrt(3.0) * q_masked / (2.0 * sqrt_minus_p**3)) + np.pi/6.0)
+
+    return sol - a / 3.0
 
 
-def invWLC_derivative(d, Lp, Lc, St, kT = 4.11):
-    x4 = d ** 3
-    x6 = d * d
-    Lc4 = Lc**4
-    St2 = St * St
-    Lp2 = Lp * Lp
-    x9 = np.sqrt(
-        27.0 * kT * kT * Lc ** 4 -
-        48.0 * d * Lc ** 3 * Lp * St * kT +
-        Lc ** 4 * 16.0 * Lp * St * kT -
-        16.0 * Lp * St * kT * x4 * Lc +
-        Lp * St * kT * x6 * 48.0 * Lc * Lc)
-    x10 = Lc ** 6
-    x11 = Lp ** 3 * St ** 3
-    x12 = 8.0 * x11
-    x13 = Lc ** 4
-    x14 = 24.0 * x11
-    x15 = Lp2 * St2
-    x16 = Lc ** 3
-    x17 = x12 * x16
-    x18 = Lc ** 5
-    x19 = -d * x14 * x18 + 27.0 * kT * x10 * x15 + x10 * x12 + x13 * x14 * x6 - x17 * x4
-    x20 = x19 + np.sqrt(3)*3 * x9 * Lc4 * St2 * Lp2
-    x21 = 32.0 * x15
-    x22 = x16 * x21
-    x23 = Lc ** 2
-    x24 = 1.0 / (Lp * x23)
-    x25 = (1.0/24.0) * x24
-    x26 = np.sqrt(3)
-    x27 = x12 * x18
-    x28 = 16.0 * x13
-    x29 = d * x11 * x28
-    x30 = x17 * x6
-    x31 = (Lc**5) * (Lp**3) * (St**3) * (
-            d * kT * 48.0 * Lc -
-            24.0 * Lc ** 2 * kT -
-            24.0 * kT * x6) / x9
+def calc_root1_invwlc(det, p, q, dp_da, dq_da, dq_db):
+    # Calculate the first root for det < 0
+    # Note that dp/dc = 0, dp_db = 1, dq_dc = 1
 
-    return -x20 ** (-4.0/3.0) * x25 * (d * x22 - 16.0 * x15 * x23 * x6 - x15 * x28) * (x27 - x29 + x30 - np.sqrt(3) * x31) - \
-           x20 ** (-1.0/3.0) * x25 * (-d * x21 * x23 + x22) + \
-           (1.0/6.0) * x24 * (x19 + 3.0 * x26 * (St2 * Lp2 * x9) * Lc4) ** (-2.0/3.0) * \
-           (1.0 * x26 * x31 - x27 + x29 - x30) + \
-           (2.0/3.0) * St / Lc
+    # There are two regimes here that need to be treated separately. Determinant >=0 and < 0.
+    sqrt_det = np.sqrt(det)
+    t1 = (sqrt_det - 0.5 * q) ** (2 / 3)
+    t2 = (-sqrt_det - 0.5 * q) ** (2 / 3)
+
+    # Derivatives of cube roots are not defined everywhere.
+    #
+    # The derivatives go over the bit where the cube roots are non-differentiable in the region of the model where it
+    # switches from entropic to enthalpic behaviour. Even the finite difference derivatives look terrible here.
+    #
+    # When we approach Lc, t2 tends to zero, which causes problems with the division later.
+    t1[abs(t1) < 1e-5] = 1e-5
+    t2[abs(t2) < 1e-5] = 1e-5
+
+    # When the discriminant goes to zero however, it means there are now repeated roots.
+    sqrt_det[abs(sqrt_det) < 1e-5] = 1e-5
+
+    # Compute all the elements required to evaluate the chain rule
+    dy_ddet = 1.0 / (6.0 * sqrt_det * t1) - 1.0 / (6.0 * sqrt_det * t2)
+    dy_dq = -1.0 / (6.0 * t1) - 1.0 / (6.0 * t2)
+    dy_da = -(1.0 / 3.0)
+
+    ddet_dp = p * p / 9.0
+    ddet_dq = 0.5 * q
+
+    # Total derivatives, terms multiplied by zero are omitted. Terms that are one are also omitted.
+    # dp_db = dq_dc = 1
+    total_dy_da = dy_ddet * ddet_dp * dp_da + dy_ddet * ddet_dq * dq_da + dy_dq * dq_da + dy_da
+    total_dy_db = dy_ddet * ddet_dp + dy_ddet * ddet_dq * dq_db + dy_dq * dq_db
+    total_dy_dc = dy_ddet * ddet_dq + dy_dq
+
+    return total_dy_da, total_dy_db, total_dy_dc
+
+
+def calc_root3_invwlc(p, q, dp_da, dq_da, dq_db):
+    # If we define:
+    #   sqmp = sqrt(-p)
+    #   F = 3 * sqrt(3) * q / (2 * sqmp**3 )
+    #
+    # Then the solution is:
+    #   2 /sqrt(3) * sqmp * cos((1/3) * asin(F) + pi/6) - a / 3
+    #
+    # Note that dp/dc = 0, dp_db = 1, dq_dc = 1
+    # The rest of this file is simply applying the chain rule.
+    sqmp = np.sqrt(-p)
+    F = 3.0 * np.sqrt(3.0) * q / (2.0 * sqmp ** 3)
+
+    dF_dsqmp = -9 * np.sqrt(3) * q / (2 * sqmp ** 4)
+    dF_dq = 3.0 * np.sqrt(3) / (2.0 * sqmp ** 3)
+    dsqmp_dp = -1.0 / (2.0 * sqmp)
+
+    arg = np.arcsin(F) / 3.0 + np.pi / 6.0
+    dy_dsqmp = 2.0 * np.sqrt(3.0) * np.cos(arg) / 3.0
+    dy_dF = -2.0 * np.sqrt(3.0) * sqmp * np.sin(arg) / (9.0 * np.sqrt(1.0 - F * F))
+    dy_da = -1.0 / 3.0
+
+    # Total derivatives
+    total_dy_da = dy_dsqmp * dsqmp_dp * dp_da + \
+        dy_dF * (dF_dsqmp * dsqmp_dp * dp_da + dF_dq * dq_da) + \
+        dy_da
+    total_dy_db = dy_dsqmp * dsqmp_dp + \
+        dy_dF * (dF_dsqmp * dsqmp_dp + dF_dq * dq_db)
+    total_dy_dc = dy_dF * dF_dq
+
+    return total_dy_da, total_dy_db, total_dy_dc
+
+
+def invwlc_root_derivatives(a, b, c):
+    """Calculate the root derivatives of a cubic polynomial with respect to the polynomial coefficients.
+
+    For a polynomial of the form:
+        x**3 + a * x**2 + b * x + c = 0
+
+    Note that this is not a general root-finding function, but tailored for use with the inverted WLC model. For det < 0
+    it returns the derivatives of the first root. For det > 0 it returns the derivatives of the third root.
+    """
+    p = b - a * a / 3.0
+    q = 2.0 * a * a * a / 27.0 - a * b / 3.0 + c
+    det = q * q / 4.0 + p * p * p / 27.0
+
+    # Determine derivatives of our transformation from polynomial coefficients to helper coordinates p and q
+    dp_da = -2.0 * a / 3.0
+    dq_da = 2.0 * a ** 2.0 / 9.0 - b / 3.0
+    dq_db = -a / 3.0
+
+    total_dy_da = np.zeros(det.shape)
+    total_dy_db = np.zeros(det.shape)
+    total_dy_dc = np.zeros(det.shape)
+
+    mask = det > 0
+    total_dy_da[mask], total_dy_db[mask], total_dy_dc[mask] = \
+        calc_root1_invwlc(det[mask], p[mask], q[mask], dp_da[mask], dq_da[mask], dq_db[mask])
+
+    nmask = np.logical_not(mask)
+    total_dy_da[nmask], total_dy_db[nmask], total_dy_dc[nmask] = \
+        calc_root3_invwlc(p[nmask], q[nmask], dp_da[nmask], dq_da[nmask], dq_db[nmask])
+
+    return total_dy_da, total_dy_db, total_dy_dc
+
+
+def invWLC_jac(distance, Lp, Lc, St, kT=4.11):
+    alpha = (distance / Lc) - 1.0
+    gamma = kT / Lp
+
+    St_squared = St * St
+    a = - 2.0 * alpha * St
+    b = (alpha * alpha) * St_squared
+    c = - 0.25 * gamma * St_squared
+
+    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c)
+
+    # Map back to our output parameters
+    da_dLc = 2.0 * St * distance / Lc ** 2
+    da_dSt = - 2.0 * alpha
+    db_dLc = -2.0 * St ** 2 * distance * alpha / Lc ** 2
+    db_dSt = 2.0 * St * alpha ** 2
+    dc_dLp = 0.25 * St_squared * kT / Lp ** 2
+    dc_dSt = -0.5 * St * gamma
+    dc_dkT = -0.25 * St_squared / Lp
+
+    # Terms multiplied by zero are omitted. Terms that are one are also omitted.
+    total_dy_dLp = total_dy_dc * dc_dLp
+    total_dy_dLc = total_dy_da * da_dLc + total_dy_db * db_dLc
+    total_dy_dSt = total_dy_da * da_dSt + total_dy_db * db_dSt + total_dy_dc * dc_dSt
+    total_dy_dkT = total_dy_dc * dc_dkT
+
+    return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
+
+
+def invWLC_derivative(distance, Lp, Lc, St, kT = 4.11):
+    alpha = (distance / Lc) - 1.0
+    gamma = kT / Lp
+
+    St_squared = St * St
+    a = - 2.0 * alpha * St
+    b = (alpha * alpha) * St_squared
+    c = - 0.25 * gamma * St_squared
+
+    total_dy_da, total_dy_db, _ = invwlc_root_derivatives(a, b, c)
+
+    # Map back to our output parameters
+    da_dd = -2.0 * St / Lc
+    db_dd = 2 * St ** 2 * (-1.0 + distance / Lc) / Lc
+
+    return total_dy_da * da_dd + total_dy_db * db_dd
 
 
 def WLC_derivative(F, Lp, Lc, St, kT = 4.11):
@@ -539,9 +516,12 @@ def FJC_derivative(F, Lp, Lc, St, kT=4.11):
     x1 = 2.0*Lp/kT
     x2 = F*x1
     x3 = 0.5*kT/Lp
-    sh = np.sinh(x2)
 
-    return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1/np.sinh(x2)**2 + x3/F**2)
+    # Overflow protection
+    sinh_term = np.zeros(x2.shape)
+    sinh_term[x2 < 300] = 1.0/np.sinh(x2[x2 < 300])**2
+
+    return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1*sinh_term + x3/F**2)
 
 
 def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
