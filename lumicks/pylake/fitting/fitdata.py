@@ -62,7 +62,7 @@ class FitData:
     @property
     def source_parameter_names(self):
         """
-        Parameter names for free parameters after transformation
+        Parameter names for free parameters before transformation
         """
         return [x for x, y in self.transformations.items() if isinstance(y, str)]
 
@@ -80,11 +80,11 @@ class Condition:
         self.p_external = np.flatnonzero([True if isinstance(x, str) else False for x in self.transformed])
 
         # p_global_indices contains a list with indices for each parameter that is mapped to the globals
-        self.p_global_indices = np.array([global_dictionary.get(key, None) for key in self.transformed])
+        self._p_global_indices = np.array([global_dictionary.get(key, None) for key in self.transformed])
 
-        # p_indices map internal sensitivities to the global parameters.
-        # Note that they are part of the "public" interface.
-        self.p_indices = [x for x in self.p_global_indices if x is not None]
+        # p_indices map internal sensitivities to the global parameters. Note that they are part of the "public"
+        # interface. Basically, it is the indices of the exported model variables in the global parameter vector.
+        self.p_indices = [x for x in self._p_global_indices if x is not None]
 
         # Which sensitivities are local (set to a fixed local value)?
         self.p_local = np.array([None if isinstance(x, str) else x for x in self.transformed])
@@ -94,7 +94,10 @@ class Condition:
         return self.transformations.values()
 
     def localize_sensitivities(self, sensitivities):
+        """Convert raw model sensitivities to external sensitivities as used by the FitObject."""
         return sensitivities[:, self.p_external]
 
     def get_local_parameters(self, par_global):
-        return [par_global[a] if a is not None else b for a, b in zip(self.p_global_indices, self.p_local)]
+        """Grab parameters required to simulate the model from the global parameter vector. Merge in the local
+        parameters as well."""
+        return [par_global[a] if a is not None else b for a, b in zip(self._p_global_indices, self.p_local)]

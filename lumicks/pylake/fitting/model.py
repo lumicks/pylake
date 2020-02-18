@@ -105,8 +105,8 @@ class Model:
         Examples
         --------
         ::
-            DNA_model = pylake.force_model("DNA", "invWLC")
-            protein_model = pylake.force_model("protein", "invWLC")
+            DNA_model = pylake.force_model("DNA", "WLC")
+            protein_model = pylake.force_model("protein", "WLC")
             construct_model = DNA_model + protein_model
         """
 
@@ -118,9 +118,9 @@ class Model:
         """
         return InverseModel(self)
 
-    def subtract_offset(self, parameter_name="independent_offset"):
+    def subtract_independent_offset(self, parameter_name="independent_offset"):
         """
-        Subtract a constant offset from this model.
+        Subtract a constant offset from independent variable of this model.
 
         Parameters
         ----------
@@ -271,8 +271,7 @@ class Model:
                 sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data_set.x, p_local)))
                 n_res = sensitivities.shape[0]
 
-                jacobian[residual_idx:residual_idx + n_res, p_indices] = \
-                    jacobian[residual_idx:residual_idx + n_res, p_indices] - sensitivities
+                jacobian[residual_idx:residual_idx + n_res, p_indices] -= sensitivities
 
                 residual_idx += n_res
 

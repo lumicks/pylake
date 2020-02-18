@@ -221,7 +221,7 @@ def test_model_fit_object_linking():
     # Check the parameters included in the model
     assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[0].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[0]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
     # Loading data should make it dirty again
@@ -232,12 +232,12 @@ def test_model_fit_object_linking():
     F._rebuild()
     assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[0].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[0]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
     assert np.allclose(F.models[0]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[1].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[0]._conditions[1]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e_new", "M_f", "M_q"]
 
     # Load data into model 2
@@ -253,20 +253,20 @@ def test_model_fit_object_linking():
     assert set(F.parameters.keys) == set(all_parameters)
     assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[0].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[0]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
     assert np.allclose(F.models[0]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[1].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[0]._conditions[1]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e_new", "M_f", "M_q"]
 
     assert np.allclose(F.models[1]._conditions[0].p_external, [0, 1, 2])
     assert np.all(F.models[1]._conditions[0].p_local == [None, None, None, 4, 6])
-    assert fetch_parameters(F.parameters, F.models[1]._conditions[0].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[1]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_e", "M_q", None, None]
 
-    assert fetch_parameters(F.parameters, F.models[1]._conditions[1].p_global_indices) == \
+    assert fetch_parameters(F.parameters, F.models[1]._conditions[1]._p_global_indices) == \
            ["M_mu", None, "M_q", None, "M_r"]
 
 
@@ -444,10 +444,10 @@ def test_model_composition():
     assert not (InverseModel(M1_wrong_jacobian) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(M1_wrong_derivative) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    assert M1.subtract_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert M1.subtract_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert M1.subtract_independent_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert M1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1 = force_model("DNA", "invWLC").subtract_offset("d_offset") + force_model("f", "offset")
+    M1 = force_model("DNA", "invWLC").subtract_independent_offset("d_offset") + force_model("f", "offset")
     M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
