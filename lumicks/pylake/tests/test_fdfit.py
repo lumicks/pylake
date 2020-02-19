@@ -354,16 +354,22 @@ def test_integration_test_fitting():
 
 def test_models():
     independent = np.arange(0.15, 2, .5)
-    parameters = [38.18281266,   0.37704827, 278.50103452,   4.11]
+    parameters = [38.18281266, 0.37704827, 278.50103452, 4.11]
     assert(Model("M", WLC, WLC_jac).verify_jacobian(independent, parameters))
     assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters, atol=1e-5))
     assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, dx=1e-4, atol=1e-6))
     assert (Model("M", Marko_Siggia, Marko_Siggia_jac).verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
+    assert (Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters, atol=1e-5))
 
     assert(force_model('M', 'WLC').verify_derivative(independent, parameters))
     assert(force_model('M', 'invWLC').verify_derivative(independent, parameters))
     assert(force_model('M', 'FJC').verify_derivative(independent, parameters, atol=1e-6))
     assert(force_model('M', 'Marko_Siggia').verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
+
+    assert(force_model('M', 'Marko_Siggia_eWLC_force').verify_jacobian(independent, parameters, dx=1e-4, rtol=1e-4))
+    assert(force_model('M', 'Marko_Siggia_eWLC_distance').verify_jacobian(independent, parameters, dx=1e-4))
+    assert(force_model('M', 'Marko_Siggia_eWLC_force').verify_derivative(independent, parameters, dx=1e-4))
+    assert(force_model('M', 'Marko_Siggia_eWLC_distance').verify_derivative(independent, parameters, dx=1e-4))
 
     # The finite differencing version of the FJC performs very poorly numerically, hence the less stringent
     # tolerances and larger dx values.
@@ -384,6 +390,11 @@ def test_models():
     parameters = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
     assert(np.allclose(tWLC(invtWLC(independent, *parameters), *parameters), independent))
 
+    independent = np.arange(0.15, 2, .5)
+    parameters = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    M_fwd = force_model('M', 'Marko_Siggia_eWLC_force')
+    M_bwd = force_model('M', 'Marko_Siggia_eWLC_distance')
+    assert np.allclose(M_bwd._raw_call(M_fwd._raw_call(independent, parameters), parameters), independent)
 
 def test_model_composition():
     def f(x, a, b):
