@@ -364,7 +364,7 @@ def test_models():
     assert(force_model('M', 'WLC').verify_derivative(independent, parameters))
     assert(force_model('M', 'invWLC').verify_derivative(independent, parameters))
     assert(force_model('M', 'FJC').verify_derivative(independent, parameters, atol=1e-6))
-    assert(force_model('M', 'Marko_Siggia').verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
+    assert(force_model('M', 'Marko_Siggia_simplified').verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
 
     assert(force_model('M', 'Marko_Siggia_eWLC_force').verify_jacobian(independent, parameters, dx=1e-4, rtol=1e-4))
     assert(force_model('M', 'Marko_Siggia_eWLC_distance').verify_jacobian(independent, parameters, dx=1e-4))

@@ -27,9 +27,9 @@ def force_model(name, model_type):
 
         Models with Force as dependent parameter
         - Marko_Siggia
-            Margo Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
+            Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
         - Marko_Siggia_eWLC_force
-            Margo Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
+            Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
         - invWLC
             Inverted Extensible Worm-Like Chain model with force as dependent parameter (useful for 10 pN < F < 30 pN)
         - invtWLC
@@ -41,50 +41,106 @@ def force_model(name, model_type):
     Lp_default = Parameter(value=40.0, lb=0.0, ub=np.inf, unit='nm')
     Lc_default = Parameter(value=16.0, lb=0.0, ub=np.inf, unit='micron')
     St_default = Parameter(value=1500.0, lb=0.0, ub=np.inf, unit='pN')
-    if model_type == "offset":
-        return Model(name, offset_model, offset_model_jac, derivative=offset_model_derivative,
-                     offset=Parameter(value=0.01, lb=0, ub=np.inf))
-    if model_type == "Marko_Siggia_eWLC_force":
-        return Model(name, marko_sigga_ewlc_solve_force, marko_sigga_ewlc_solve_force_jac,
-                     derivative=marko_sigga_ewlc_solve_force_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default)
-    if model_type == "Marko_Siggia_eWLC_distance":
-        return Model(name, marko_sigga_ewlc_solve_distance, marko_sigga_ewlc_solve_distance_jac,
-                     derivative=marko_sigga_ewlc_solve_distance_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default)
-    if model_type == "Marko_Siggia":
-        return Model(name, Marko_Siggia, Marko_Siggia_jac, derivative=Marko_Siggia_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default)
-    if model_type == "WLC":
-        return Model(name, WLC, WLC_jac, derivative=WLC_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
-    elif model_type == "tWLC":
-        return Model(name, tWLC, tWLC_jac, derivative=tWLC_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, unit="pN"),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
-                     )
-    elif model_type == "FJC":
-        return Model(name, FJC, FJC_jac, derivative=FJC_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
-    elif model_type == "invWLC":
-        return Model(name, invWLC, invWLC_jac, derivative=invWLC_derivative,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default)
-    elif model_type == "invtWLC":
-        return Model(name, invtWLC, invtWLC_jac,
-                     kT=kT_default, Lp=Lp_default, Lc=Lc_default, St=St_default,
-                     Fc=Parameter(value=30.6, lb=0.0, ub=100.0, unit="pN"),
-                     C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
-                     g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
-                     g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
-                     )
-    elif model_type == "invFJC":
-        return InverseModel(force_model(name, "FJC"))
+
+    model_options = {
+        "offset": lambda: Model(
+            name,
+            offset_model,
+            offset_model_jac,
+            derivative=offset_model_derivative,
+            offset=Parameter(value=0.01, lb=0, ub=np.inf),
+        ),
+        "Marko_Siggia_eWLC_force": lambda: Model(
+            name,
+            marko_sigga_ewlc_solve_force,
+            marko_sigga_ewlc_solve_force_jac,
+            derivative=marko_sigga_ewlc_solve_force_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+        ),
+        "Marko_Siggia_eWLC_distance": lambda: Model(
+            name,
+            marko_sigga_ewlc_solve_distance,
+            marko_sigga_ewlc_solve_distance_jac,
+            derivative=marko_sigga_ewlc_solve_distance_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+        ),
+        "Marko_Siggia_simplified": lambda: Model(
+            name,
+            Marko_Siggia,
+            Marko_Siggia_jac,
+            derivative=Marko_Siggia_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+        ),
+        "WLC": lambda: Model(
+            name,
+            WLC,
+            WLC_jac,
+            derivative=WLC_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+            St=St_default,
+        ),
+        "tWLC": lambda: Model(
+            name,
+            tWLC,
+            tWLC_jac,
+            derivative=tWLC_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+            St=St_default,
+            Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, unit="pN"),
+            C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
+            g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
+            g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
+        ),
+        "FJC": lambda: Model(
+            name,
+            FJC,
+            FJC_jac,
+            derivative=FJC_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+            St=St_default,
+        ),
+        "invWLC": lambda: Model(
+            name,
+            invWLC,
+            invWLC_jac,
+            derivative=invWLC_derivative,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+            St=St_default,
+        ),
+        "invtWLC": lambda: Model(
+            name,
+            invtWLC,
+            invtWLC_jac,
+            kT=kT_default,
+            Lp=Lp_default,
+            Lc=Lc_default,
+            St=St_default,
+            Fc=Parameter(value=30.6, lb=0.0, ub=100.0, unit="pN"),
+            C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
+            g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
+            g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
+        ),
+        "invFJC": lambda: InverseModel(force_model(name, "FJC")),
+    }
+
+    if model_type in model_options:
+        return model_options[model_type]()
     else:
-        raise ValueError(f"Invalid model {model_type} selected. Valid options are WLC, tWLC, FJC, invWLC, invtWLC, "
-                         f"invFJC.")
+        raise ValueError(f"Invalid model {model_type} selected.\n\nValid options are:\n{list(model_options.keys())}")
 
 
 def offset_model(x, offset):
@@ -111,18 +167,17 @@ def Marko_Siggia(d, Lp, Lc, kT):
         8759-8770 (1995).
     """
     d_div_Lc = d / Lc
-    return (kT/Lp) * .25 * (1.0-d_div_Lc)**(-2) + d_div_Lc - .25
+    return (kT/Lp) * (.25 * (1.0-d_div_Lc)**(-2) + d_div_Lc - .25)
 
 
 def Marko_Siggia_jac(d, Lp, Lc, kT):
-    d_div_Lc = d / Lc
-    return np.vstack((-0.25 * kT / (Lp * Lp * (1.0 - d_div_Lc) ** 2),
-                     -d_div_Lc / Lc - 0.5 * d * kT / (Lc ** 2 * Lp * (1.0 - d_div_Lc) ** 3),
-                     0.25 / (Lp * (1.0 - d_div_Lc) ** 2)))
+    return np.vstack((-0.25*Lc**2*kT/(Lp**2*(Lc - d)**2) + 0.25*kT/Lp**2 - d*kT/(Lc*Lp**2),
+                     -0.5*Lc*d*kT/(Lp*(Lc - d)**3) - d*kT/(Lc**2*Lp),
+                     0.25*Lc**2/(Lp*(Lc - d)**2) - 0.25/Lp + d/(Lc*Lp)))
 
 
 def Marko_Siggia_derivative(d, Lp, Lc, kT):
-    return 1/Lc + 0.5*kT/(Lc*Lp*(1.0 - d/Lc)**3)
+    return 0.5*Lc**2*kT/(Lp*(Lc - d)**3) + kT/(Lc*Lp)
 
 
 def WLC(F, Lp, Lc, St, kT = 4.11):
