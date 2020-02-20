@@ -215,9 +215,9 @@ class Model:
         Parameters
         ----------
         x: array_like
-            Independent variable.
+            Independent variable. NaNs are silently dropped.
         y: array_like
-            Dependent variable.
+            Dependent variable. NaNs are silently dropped.
         name: str
             Name of this data set.
         **kwargs:
@@ -234,6 +234,16 @@ class Model:
             dna_model = pylake.force_model("DNA", "invWLC")
             dna_model.load_data(x1, y1, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
         """
+        x = np.array(x)
+        y = np.array(y)
+        assert x.ndim == 1, "Independent variable should be one dimension"
+        assert y.ndim == 1, "Dependent variable should be one dimension"
+        assert len(x) == len(y), "Every value for the independent variable should have a corresponding data point"
+
+        filter_nan = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
+        y = y[filter_nan]
+        x = x[filter_nan]
+
         self._invalidate_build()
         parameter_list = parse_transformation(self.parameter_names, **kwargs)
         data = FitData(name, x, y, parameter_list)

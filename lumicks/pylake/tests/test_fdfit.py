@@ -577,3 +577,19 @@ def test_parameter_availability():
 
     linear_model.load_data(x, y)
     assert linear_fit.parameters["linear_a"]
+
+
+def test_data_loading():
+    M = Model("M", lambda x, a: a*x)
+    M.load_data([1, np.nan, 3], [2, np.nan, 4])
+    assert np.allclose(M._data[0].x, [1, 3])
+    assert np.allclose(M._data[0].y, [2, 4])
+
+    with pytest.raises(AssertionError):
+        M.load_data([1, 3], [2, 4, 5])
+
+    with pytest.raises(AssertionError):
+        M.load_data([1, 3, 5], [2, 4])
+
+    with pytest.raises(AssertionError):
+        M.load_data([[1, 3, 5]], [[2, 4, 5]])
