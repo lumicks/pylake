@@ -58,6 +58,7 @@ def force_model(name, model_type):
             kT=kT_default,
             Lp=Lp_default,
             Lc=Lc_default,
+            St=St_default,
         ),
         "Marko_Siggia_eWLC_distance": lambda: Model(
             name,
@@ -67,6 +68,7 @@ def force_model(name, model_type):
             kT=kT_default,
             Lp=Lp_default,
             Lc=Lc_default,
+            St=St_default,
         ),
         "Marko_Siggia_simplified": lambda: Model(
             name,
@@ -352,15 +354,18 @@ def solve_cubic_wlc(a, b, c, selected_root):
     sqrt_minus_p = np.sqrt(-p[np.logical_not(mask)])
     q_masked = q[np.logical_not(mask)]
 
+    asin_argument = 3.0 * np.sqrt(3.0) * q_masked / (2.0 * sqrt_minus_p ** 3)
+    asin_argument = np.clip(asin_argument, -1.0, 1.0)
+
     if selected_root == 0:
         sol[np.logical_not(mask)] = 2.0 / np.sqrt(3.0) * sqrt_minus_p * \
-            np.sin((1.0 / 3.0) * np.arcsin(3.0 * np.sqrt(3.0) * q_masked / (2.0 * sqrt_minus_p ** 3)))
+            np.sin((1.0 / 3.0) * np.arcsin(asin_argument))
     elif selected_root == 1:
         sol[np.logical_not(mask)] = - 2.0 / np.sqrt(3.0) * sqrt_minus_p * \
-            np.sin((1.0 / 3.0) * np.arcsin(3.0 * np.sqrt(3.0) * q_masked / (2.0 * sqrt_minus_p ** 3)) + np.pi/3.0)
+            np.sin((1.0 / 3.0) * np.arcsin(asin_argument) + np.pi/3.0)
     elif selected_root == 2:
         sol[np.logical_not(mask)] = 2.0 / np.sqrt(3.0) * sqrt_minus_p * \
-            np.cos((1.0/3.0) * np.arcsin(3.0 * np.sqrt(3.0) * q_masked / (2.0 * sqrt_minus_p ** 3)) + np.pi/6.0)
+            np.cos((1.0/3.0) * np.arcsin(asin_argument) + np.pi/6.0)
 
     return sol - a / 3.0
 
