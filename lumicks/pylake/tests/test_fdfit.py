@@ -390,11 +390,19 @@ def test_models():
     parameters = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
     assert(np.allclose(tWLC(invtWLC(independent, *parameters), *parameters), independent))
 
-    independent = np.arange(0.15, 2, .5)
-    parameters = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    d = np.arange(0.15, 2, .5)
+    (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)
+    parameters = [Lp, Lc, St, kT]
     M_fwd = force_model('M', 'Marko_Siggia_eWLC_force')
     M_bwd = force_model('M', 'Marko_Siggia_eWLC_distance')
-    assert np.allclose(M_bwd._raw_call(M_fwd._raw_call(independent, parameters), parameters), independent)
+    F = M_fwd._raw_call(d, parameters)
+    assert np.allclose(M_bwd._raw_call(F, parameters), d)
+
+    # Determine whether they actually fulfill the model
+    lhs = (F*Lp/kT)
+    rhs = 0.25 * (1.0 - (d/Lc) + (F/St))**(-2) - 0.25 + (d/Lc) - (F/St)
+    assert np.allclose(lhs, rhs)
+
 
 def test_model_composition():
     def f(x, a, b):

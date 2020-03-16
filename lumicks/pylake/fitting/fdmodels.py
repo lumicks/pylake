@@ -27,7 +27,7 @@ def force_model(name, model_type):
 
         Models with Force as dependent parameter
         - Marko_Siggia
-            Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
+            Simplified Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
         - Marko_Siggia_eWLC_force
             Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
         - invWLC
@@ -428,10 +428,11 @@ def calc_root1_invwlc(det, p, q, dp_da, dq_da, dq_db):
     # Calculate the first root for det < 0
     # Note that dp/dc = 0, dp_db = 1, dq_dc = 1
 
-    # There are two regimes here that need to be treated separately. Determinant >=0 and < 0.
     sqrt_det = np.sqrt(det)
-    t1 = (sqrt_det - 0.5 * q) ** (2 / 3)
-    t2 = (-sqrt_det - 0.5 * q) ** (2 / 3)
+    term1 = np.abs(sqrt_det - 0.5 * q)      # Technically, the absolute is not part of this solution.
+    term2 = np.abs(-sqrt_det - 0.5 * q)     # But it can cause numerical issues if we raise negative values to a root.
+    t1 = term1 ** (2 / 3)
+    t2 = term2 ** (2 / 3)
 
     # Derivatives of cube roots are not defined everywhere.
     #
@@ -709,38 +710,46 @@ def invFJC_jac(d, Lp, Lc, St, kT=4.11):
 
 
 def marko_sigga_ewlc_solve_force(distance, Lp, Lc, St, kT=4.11):
-    c = St ** 3 * kT * (0.75 * Lc ** 3 - 3 * Lc ** 2 * distance + 3 * Lc * distance ** 2 - distance ** 3) / (
-                Lc ** 3 * (Lp * St + kT))
-    b = St ** 2 * (Lc ** 2 * Lp * St + 3 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 6 * Lc * distance * kT +
+    """Margo-Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
+    These equations were symbolically derived. The expressions are not pretty, but they work."""
+    c = -St ** 3 * distance * kT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
+    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 4.5 * Lc * distance * kT +
                    Lp * St * distance ** 2 + 3 * distance ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
-    a = St * (2 * Lc * Lp * St + 3 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
+    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
 
     return solve_cubic_wlc(a, b, c, 2)
 
 
 def marko_sigga_ewlc_solve_force_jac(distance, Lp, Lc, St, kT=4.11):
-    c = St ** 3 * kT * (0.75 * Lc ** 3 - 3 * Lc ** 2 * distance + 3 * Lc * distance ** 2 - distance ** 3) / (
-                Lc ** 3 * (Lp * St + kT))
-    b = St ** 2 * (Lc ** 2 * Lp * St + 3 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 6 * Lc * distance * kT +
+    c = -St ** 3 * distance * kT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
+    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 4.5 * Lc * distance * kT +
                    Lp * St * distance ** 2 + 3 * distance ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
-    a = St * (2 * Lc * Lp * St + 3 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
+    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     denom1 = (Lc ** 3 * (Lp * St + kT) ** 2)
-    dc_dLc = 3 * St ** 3 * distance * kT * (Lc ** 2 - 2 * Lc * distance + distance ** 2) / (Lc ** 4 * (Lp * St + kT))
-    dc_dSt = St ** 2 * kT * (2 * Lp * St + 3 * kT) * (0.75 * Lc ** 3 - 3 * Lc ** 2 * distance + 3 * Lc * distance ** 2 - distance ** 3) / denom1
-    dc_dLp = -St ** 4 * kT * (0.75 * Lc ** 3 - 3 * Lc ** 2 * distance + 3 * Lc * distance ** 2 - distance ** 3) / denom1
-    dc_dkT = Lp * St ** 4 * (0.75 * Lc ** 3 - 3 * Lc ** 2 * distance + 3 * Lc * distance ** 2 - distance ** 3) / denom1
-    db_dLc = 2 * St ** 2 * distance * (Lc * Lp * St + 3 * Lc * kT - Lp * St * distance - 3 * distance * kT) / (Lc ** 3 * (Lp * St + kT))
-    db_dSt = 2 * St * (Lc ** 2 * Lp ** 2 * St ** 2 + 3 * Lc ** 2 * Lp * St * kT + 3 * Lc ** 2 * kT ** 2 - 2 * Lc * Lp ** 2 * St ** 2 * distance - 6 * Lc * Lp * St * distance * kT - 6 * Lc * distance * kT ** 2 + Lp ** 2 * St ** 2 * distance ** 2 + 3 * Lp * St * distance ** 2 * kT + 3 * distance ** 2 * kT ** 2) / (Lc ** 2 * (Lp ** 2 * St ** 2 + 2 * Lp * St * kT + kT ** 2))
-    db_dLp = -2 * St ** 3 * kT * (Lc ** 2 - 2 * Lc * distance + distance ** 2) / (Lc ** 2 * (Lp ** 2 * St ** 2 + 2 * Lp * St * kT + kT ** 2))
-    db_dkT = 2 * Lp * St ** 3 * (Lc ** 2 - 2 * Lc * distance + distance ** 2) / (Lc ** 2 * (Lp ** 2 * St ** 2 + 2 * Lp * St * kT + kT ** 2))
+    denom2 = (Lc * (Lp ** 2 * St ** 2 + 2.0 * Lp * St * kT + kT ** 2))
+    dkT = distance * kT
+    dc_dLc = St ** 3 * dkT * (1.5 * Lc ** 2 - 4.5 * Lc * distance + 3.0 * distance ** 2) / (Lc ** 4 * (Lp * St + kT))
+    dc_dSt = -St ** 2 * dkT * (2 * Lp * St + 3 * kT) * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / denom1
+    dc_dLp = St ** 4 * dkT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / denom1
+    dc_dkT = -Lp * St ** 4 * distance * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / denom1
+    db_dLc = St ** 2 * distance * (2.0 * Lc * Lp * St + 4.5 * Lc * kT - 2.0 * Lp * St * distance -
+                                   6.0 * distance * kT) / (Lc ** 3 * (Lp * St + kT))
+    db_dSt = St * (2.0 * Lc ** 2 * Lp ** 2 * St ** 2 + 4.5 * Lc ** 2 * Lp * St * kT + 3.0 * Lc ** 2 * kT ** 2 -
+                   4.0 * Lc * Lp ** 2 * St ** 2 * distance - 10.5 * Lc * Lp * St * distance * kT -
+                   9.0 * Lc * distance * kT ** 2 + 2.0 * Lp ** 2 * St ** 2 * distance ** 2 +
+                   6.0 * Lp * St * distance ** 2 * kT + 6.0 * distance ** 2 * kT ** 2) / (Lc * denom2)
+    db_dLp = -St ** 3 * kT * (0.5 * Lc ** 2 - 2.5 * Lc * distance + 2.0 * distance ** 2) / (Lc * denom2)
+    db_dkT = Lp * St ** 3 * (0.5 * Lc ** 2 - 2.5 * Lc * distance + 2.0 * distance ** 2) / (Lc * denom2)
     da_dLc = St * distance * (2 * Lp * St + 3 * kT) / (Lc ** 2 * (Lp * St + kT))
-    da_dSt = (2 * Lc * Lp ** 2 * St ** 2 + 4 * Lc * Lp * St * kT + 3 * Lc * kT ** 2 - 2 * Lp ** 2 * St ** 2 * distance - 4 * Lp * St * distance * kT - 3 * distance * kT ** 2) / (Lc * (Lp ** 2 * St ** 2 + 2 * Lp * St * kT + kT ** 2))
-    da_dLp = -St ** 2 * kT * (Lc - distance) / (Lc * (Lp ** 2 * St ** 2 + 2 * Lp * St * kT + kT ** 2))
-    da_dkT = Lp * St ** 2 * (Lc - distance) / (Lc * (Lp ** 2 * St ** 2 + 2 * Lp * St * kT + kT ** 2))
+    da_dSt = (-Lp * St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) +
+              (Lp * St + kT) * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance +
+                                2 * Lp * St * (Lc - distance) - 3 * distance * kT)) / (Lc * (Lp * St + kT) ** 2)
+    da_dLp = -St ** 2 * kT * (0.25 * Lc - distance) / denom2
+    da_dkT = Lp * St ** 2 * (0.25 * Lc - distance) / denom2
 
     # Terms multiplied by zero are omitted. Terms that are one are also omitted.
     total_dy_dLp = total_dy_da * da_dLp + total_dy_db * db_dLp + total_dy_dc * dc_dLp
@@ -752,53 +761,49 @@ def marko_sigga_ewlc_solve_force_jac(distance, Lp, Lc, St, kT=4.11):
 
 
 def marko_sigga_ewlc_solve_force_derivative(distance, Lp, Lc, St, kT = 4.11):
-    c = St ** 3 * kT * (0.75 * Lc ** 3 - 3 * Lc ** 2 * distance + 3 * Lc * distance ** 2 - distance ** 3) / (
-                Lc ** 3 * (Lp * St + kT))
-    b = St ** 2 * (Lc ** 2 * Lp * St + 3 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 6 * Lc * distance * kT +
+    c = -St ** 3 * distance * kT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
+    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 4.5 * Lc * distance * kT +
                    Lp * St * distance ** 2 + 3 * distance ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
-    a = St * (2 * Lc * Lp * St + 3 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
+    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
-    dc_dd = -3 * St ** 3 * kT * (Lc ** 2 - 2 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
-    db_dd = 2 * St ** 2 * (-Lc * Lp * St - 3 * Lc * kT + Lp * St * distance + 3 * distance * kT) / (
-                Lc ** 2 * (Lp * St + kT))
-    da_dd = -St * (2 * Lp * St + 3 * kT) / (Lc * (Lp * St + kT))
+    denom = (Lc * (Lp * St + kT))
+    dc_dd = -St ** 3 * kT * (1.5 * Lc ** 2 - 4.5 * Lc * distance + 3.0 * distance ** 2) / (Lc * Lc * denom)
+    db_dd = St ** 2 * (-2 * Lc * Lp * St - 4.5 * Lc * kT + 2 * Lp * St * distance + 6 * distance * kT) / (Lc * denom)
+    da_dd = -St * (2 * Lp * St + 3 * kT) / denom
 
     return total_dy_da * da_dd + total_dy_db * db_dd + total_dy_dc * dc_dd
 
 
 def marko_sigga_ewlc_solve_distance(F, Lp, Lc, St, kT=4.11):
-    c = -Lc ** 3 * (F ** 3 * Lp * St + F ** 3 * kT + 2 * F ** 2 * Lp * St ** 2 + 3 * F ** 2 * St * kT +
-                    F * Lp * St ** 3 + 3 * F * St ** 2 * kT + 0.75 * St ** 3 * kT) / (St ** 3 * kT)
-    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 6 * F * St * kT + 3 * St ** 2 * kT) \
-        / (St ** 2 * kT)
-    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 3 * Lc
+    c = -F * Lc ** 3 * (F ** 2 * Lp * St + F ** 2 * kT + 2 * F * Lp * St ** 2 + 2.25 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 4.5 * F * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
+    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 2.25 * Lc
 
     return solve_cubic_wlc(a, b, c, 1)
 
 
 def marko_sigga_ewlc_solve_distance_jac(F, Lp, Lc, St, kT=4.11):
-    c = -Lc ** 3 * (F ** 3 * Lp * St + F ** 3 * kT + 2 * F ** 2 * Lp * St ** 2 + 3 * F ** 2 * St * kT +
-                    F * Lp * St ** 3 + 3 * F * St ** 2 * kT + 0.75 * St ** 3 * kT) / (St ** 3 * kT)
-    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 6 * F * St * kT + 3 * St ** 2 * kT) \
-        / (St ** 2 * kT)
-    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 3 * Lc
+    c = -F * Lc ** 3 * (F ** 2 * Lp * St + F ** 2 * kT + 2 * F * Lp * St ** 2 + 2.25 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 4.5 * F * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
+    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 2.25 * Lc
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
 
     # Map back to our output parameters
-    dc_dLc = -Lc ** 2 * (3 * F ** 3 * Lp * St + 3 * F ** 3 * kT + 6 * F ** 2 * Lp * St ** 2 +
-                         9 * F ** 2 * St * kT + 3 * F * Lp * St ** 3 + 9 * F * St ** 2 * kT + 2.25 * St ** 3 * kT) / (St ** 3 * kT)
-    dc_dSt = F * Lc ** 3 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 6 * F * St * kT + 3 * St ** 2 * kT) / (St ** 4 * kT)
+    dc_dLc = -3 * F * Lc ** 2 * (F ** 2 * Lp * St + F ** 2 * kT + 2 * F * Lp * St ** 2 + 2.25 * F * St * kT +
+                                 Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    dc_dSt = F * Lc ** 3 * (2.0 * F ** 2 * Lp * St + 3.0 * F ** 2 * kT + 2.0 * F * Lp * St ** 2 + 4.5 * F * St * kT +
+                            1.5 * St ** 2 * kT) / (St ** 4 * kT)
     dc_dLp = -F * Lc ** 3 * (F ** 2 + 2 * F * St + St ** 2) / (St ** 2 * kT)
     dc_dkT = F * Lc ** 3 * Lp * (F ** 2 + 2 * F * St + St ** 2) / (St ** 2 * kT ** 2)
-    db_dLc = 4 * F ** 2 * Lc * Lp / (St * kT) + 6 * F ** 2 * Lc / St ** 2 + 4 * F * Lc * Lp / kT + 12 * F * Lc / St + 6 * Lc
-    db_dSt = -2 * F * Lc ** 2 * (F * Lp * St + 3 * F * kT + 3 * St * kT) / (St ** 3 * kT)
+    db_dLc = 4 * F ** 2 * Lc * Lp / (St * kT) + 6 * F ** 2 * Lc / St ** 2 + 4 * F * Lc * Lp / kT + 9.0 * F * Lc / St + 3.0 * Lc
+    db_dSt = -F * Lc ** 2 * (2.0 * F * Lp * St + 6.0 * F * kT + 4.5 * St * kT) / (St ** 3 * kT)
     db_dLp = 2 * F * Lc ** 2 * (F + St) / (St * kT)
     db_dkT = -2 * F * Lc ** 2 * Lp * (F + St) / (St * kT ** 2)
-    da_dLc = -F * Lp / kT - 3 * F / St - 3
+    da_dLc = -F * Lp / kT - 3 * F / St - 2.25
     da_dSt = 3 * F * Lc / St ** 2
     da_dLp = -F * Lc / kT
     da_dkT = F * Lc * Lp / kT ** 2
@@ -813,18 +818,19 @@ def marko_sigga_ewlc_solve_distance_jac(F, Lp, Lc, St, kT=4.11):
 
 
 def marko_sigga_ewlc_solve_distance_derivative(F, Lp, Lc, St, kT = 4.11):
-    c = -Lc ** 3 * (F ** 3 * Lp * St + F ** 3 * kT + 2 * F ** 2 * Lp * St ** 2 + 3 * F ** 2 * St * kT +
-                    F * Lp * St ** 3 + 3 * F * St ** 2 * kT + 0.75 * St ** 3 * kT) / (St ** 3 * kT)
-    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 6 * F * St * kT + 3 * St ** 2 * kT) \
-        / (St ** 2 * kT)
-    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 3 * Lc
+    Fsq = F * F
+    c = -F * Lc ** 3 * (F ** 2 * Lp * St + Fsq * kT + 2 * F * Lp * St ** 2 +
+                        2.25 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * Fsq * kT + 2 * F * Lp * St ** 2 +
+                   4.5 * F * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
+    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 2.25 * Lc
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
 
     # Map back to our output parameters
-    dc_dF = -Lc ** 3 * (3 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 4 * F * Lp * St ** 2 + 6 * F * St * kT +
-                        Lp * St ** 3 + 3 * St ** 2 * kT) / (St ** 3 * kT)
-    db_dF = 2 * Lc ** 2 * (2 * F * Lp * St + 3 * F * kT + Lp * St ** 2 + 3 * St * kT) / (St ** 2 * kT)
+    dc_dF = -Lc ** 3 * (3.0 * Fsq * Lp * St + 3.0 * Fsq * kT + 4.0 * F * Lp * St ** 2 +
+                        4.5 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    db_dF = Lc ** 2 * (4 * F * Lp * St + 6 * F * kT + 2 * Lp * St ** 2 + 4.5 * St * kT) / (St ** 2 * kT)
     da_dF = -Lc * Lp / kT - 3 * Lc / St
 
     return total_dy_da * da_dF + total_dy_db * db_dF + total_dy_dc * dc_dF
