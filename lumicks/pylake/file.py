@@ -10,6 +10,7 @@ from .group import Group
 from .kymo import Kymo
 from .point_scan import PointScan
 from .scan import Scan
+from .marker import Marker
 
 __all__ = ["File"]
 
@@ -182,3 +183,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     @property
     def fdcurves(self) -> Dict[str, FDCurve]:
         return self._get_object_dictionary("FD Curve", FDCurve)
+
+    @property
+    def markers(self) -> Dict[str, Marker]:
+        return self._get_object_dictionary("Marker", Marker)

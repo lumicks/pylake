@@ -1,5 +1,6 @@
 import numpy as np
 from lumicks import pylake
+from lumicks.pylake.marker import Marker
 import pytest
 from textwrap import dedent
 
@@ -71,6 +72,19 @@ def test_calibration(h5_file):
         assert len(f.force1x.calibration) == 2
         assert len(f.downsampled_force1.calibration) == 0
         assert len(f.downsampled_force1x.calibration) == 1
+
+
+def test_marker(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+
+    if f.format_version == 2:
+        with pytest.raises(IndexError):
+            f["Marker"]["test_marker"]
+
+        assert np.isclose(f.markers["test_marker"].start, 100)
+        assert np.isclose(f.markers["test_marker"].stop, 200)
+        assert np.isclose(f.markers["test_marker2"].start, 200)
+        assert np.isclose(f.markers["test_marker2"].stop, 300)
 
 
 def test_properties(h5_file):
