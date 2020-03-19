@@ -160,17 +160,18 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     def _get_photon_time_tags(self, name):
         return TimeTags.from_dataset(self.h5["Photon Time Tags"][name], "Photon time tags")
 
+    def _get_object_dictionary(self, field, cls):
+        if field not in self.h5:
+            return dict()
+        return {name: cls.from_dataset(dset, self) for name, dset in self.h5[field].items()}
+
     @property
     def kymos(self) -> Dict[str, Kymo]:
-        if "Kymograph" not in self.h5:
-            return dict()
-        return {name: Kymo.from_dataset(dset, self) for name, dset in self.h5["Kymograph"].items()}
+        return self._get_object_dictionary("Kymograph", Kymo)
 
     @property
     def point_scans(self) -> Dict[str, Scan]:
-        if "Point Scan" not in self.h5:
-            return dict()
-        return {name: PointScan(dset, self) for name, dset in self.h5["Point Scan"].items()}
+        return self._get_object_dictionary("Point Scan", PointScan)
 
     @property
     def scans(self) -> Dict[str, Scan]:
@@ -180,6 +181,4 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     @property
     def fdcurves(self) -> Dict[str, FDCurve]:
-        if "FD Curve" not in self.h5:
-            return dict()
-        return {name: FDCurve.from_dset(dset, self) for name, dset in self.h5["FD Curve"].items()}
+        return self._get_object_dictionary("FD Curve", FDCurve)

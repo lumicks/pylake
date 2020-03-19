@@ -31,7 +31,7 @@ class FDCurve(DownsampledFD):
         self._distance_cache = None
 
     @classmethod
-    def from_dset(cls, h5py_dset, file, **kwargs):
+    def from_dataset(cls, h5py_dset, file, **kwargs):
         return cls(file=file, start=h5py_dset.attrs["Start time (ns)"],
                    stop=h5py_dset.attrs["Stop time (ns)"], name=h5py_dset.name.split("/")[-1],
                    **kwargs)
