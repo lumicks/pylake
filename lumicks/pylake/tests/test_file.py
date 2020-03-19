@@ -135,3 +135,11 @@ def test_repr_and_str(h5_file):
 def test_invalid_file_format(h5_file_invalid_version):
     with pytest.raises(Exception):
         f = pylake.File.from_h5py(h5_file_invalid_version)
+
+
+def test_invalid_access(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+
+    if f.format_version == 2:
+        with pytest.raises(IndexError):
+            f["Kymograph"]["Kymo1"]
