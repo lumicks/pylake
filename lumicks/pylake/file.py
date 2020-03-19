@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 from typing import Dict
 
+from collections import OrderedDict
 from .calibration import ForceCalibration
 from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
@@ -48,6 +49,14 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         ff_version = int(self.h5.attrs["File format version"])
         if ff_version not in File.SUPPORTED_FILE_FORMAT_VERSIONS:
             raise Exception(f"Unsupported Bluelake file format version {ff_version}")
+
+        # List of fields which should not be accessed directly from the h5 and their actual API accessors. Note that
+        # top level fields are automatically printed when print is invoked.
+        self.redirect_list = OrderedDict([('Calibration', "force1x.calibration"),
+                                          ('Marker', "markers"),
+                                          ('FD Curve', "fdcurves"),
+                                          ('Kymograph', "kymos"),
+                                          ('Scan', "scans")])
 
     @classmethod
     def from_h5py(cls, h5py_file):
@@ -115,10 +124,23 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
                 if isinstance(item, h5py.Dataset):
                     r += print_dataset(item, key, indent + 2)
                 else:
-                    r += print_group(item, key, indent + 2)
+                    if key not in self.redirect_list:
+                        r += print_group(item, key, indent + 2)
             return r
 
-        return print_attributes(self.h5) + "\n" + print_group(self.h5)
+        def print_dicts(field_name):
+            field = getattr(self, field_name, None)
+            return f'\n.{field_name}\n' + ''.join(f'  - {key}\n' for key in field.keys()) if field else ''
+
+        def print_force(field_name):
+            field = getattr(self, field_name)
+            calibration = '  .calibration\n' if field.calibration else ''
+            return f'.{field_name}\n{calibration}' if field else ''
+
+        return print_attributes(self.h5) + "\n" + print_group(self.h5) + \
+            ''.join((print_dicts(field) for field in self.redirect_list.values())) + "\n" + \
+            ''.join((print_force(field) for field in ['force1x', 'force1y', 'force2x', 'force2y',
+                                                      'force3x', 'force3y', 'force4x', 'force4y']))
 
     def _get_force(self, n, xy):
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]

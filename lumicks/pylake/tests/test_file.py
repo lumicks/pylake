@@ -115,6 +115,24 @@ def test_groups(h5_file):
             assert set(t) == set(["Force 1x", "Force 1y"])
 
 
+def test_redirect_list(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    with pytest.raises(IndexError):
+        f["Calibration"]
+
+    with pytest.raises(IndexError):
+        f["Marker"]
+
+    with pytest.raises(IndexError):
+        f["FD Curve"]
+
+    with pytest.raises(IndexError):
+        f["Kymograph"]
+
+    with pytest.raises(IndexError):
+        f["Scan"]
+
+
 def test_repr_and_str(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
@@ -143,6 +161,67 @@ def test_repr_and_str(h5_file):
               Force 1y:
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
               - Size: 2
+            
+            .force1x
+            .force1y
+        """)
+    if f.format_version == 2:
+        assert str(f) == dedent("""\
+            File root metadata:
+            - Bluelake version: unknown
+            - Description: 
+            - Experiment: 
+            - Export time (ns): -1
+            - File format version: 2
+            - GUID: 
+            
+            Force HF:
+              Force 1x:
+              - Data type: float64
+              - Size: 5
+              Force 1y:
+              - Data type: float64
+              - Size: 5
+            Force LF:
+              Force 1x:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+              Force 1y:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+            Info wave:
+              Info wave:
+              - Data type: uint8
+              - Size: 64
+            Photon Time Tags:
+              Red:
+              - Data type: int64
+              - Size: 9
+            Photon count:
+              Blue:
+              - Data type: uint32
+              - Size: 64
+              Green:
+              - Data type: uint32
+              - Size: 64
+              Red:
+              - Data type: uint32
+              - Size: 64
+            
+            .markers
+              - test_marker
+              - test_marker2
+
+            .kymos
+              - Kymo1
+            
+            .scans
+              - Scan1
+            
+            .force1x
+              .calibration
+            .force1y
+              .calibration
         """)
 
 
