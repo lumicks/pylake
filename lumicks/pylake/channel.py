@@ -354,7 +354,14 @@ def channel_class(dset):
         else:
             raise RuntimeError("Unknown channel kind " + str(kind))
     elif dset.dtype.fields is None:
-        # For compatibility with Bluelake HDF5 files v1
-        return Continuous
+        # Version 1 Bluelake HDF5 files do not have a kind field which indicates the type of data they store. These
+        # older files typically contain either Continuous or TimeSeries channel data. Continuous channel data contains
+        # the attribute "Sample rate (Hz)". Newer Bluelake HDF5 files also have fields which do not have the kind
+        # attribute, but which are not Continuous data. Direct access to these fields is not supported as they are
+        # typically accessed through dedicated API classes.
+        if "Sample rate (Hz)" in dset.attrs.keys():
+            return Continuous
+        else:
+            raise IndexError("Direct access to this field is not supported.")
     else:
         return TimeSeries
