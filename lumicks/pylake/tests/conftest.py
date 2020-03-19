@@ -69,6 +69,16 @@ class MockDataFile_v2(MockDataFile_v1):
         for i, v in attributes.items():
             field.attrs[i] = v
 
+    def make_marker(self, marker_name, attributes):
+        if "Marker" not in self.file:
+            self.file.create_group("Marker")
+
+        if marker_name not in self.file["Marker"]:
+            dset = self.file["Marker"].create_dataset(marker_name, data=f'{{"name":"{marker_name}"}}')
+
+            for i, v in attributes.items():
+                dset.attrs[i] = v
+
     def make_continuous_channel(self, group, name, start, dt, data):
         dset = super().make_continuous_channel(group, name, start, dt, data)
         dset.attrs["Kind"] = "Continuous"
@@ -81,10 +91,7 @@ class MockDataFile_v2(MockDataFile_v1):
         if group not in self.file:
             self.file.create_group(group)
 
-        data_location = group + "_" + name
-        self.file.create_group(data_location)
-
-        self.file[group][name] = self.file[data_location].create_dataset("value0", data=data)
+        self.file[group].create_dataset(name, data=data)
         return self.file[group][name]
 
     def make_timetags_channel(self, group, name, data):
@@ -126,15 +133,18 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data("3", "Force 1y", {calibration_time_field: 10})
         mock_file.make_calibration_data("4", "Force 1y", {calibration_time_field: 100})
 
-        counts = [2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0,
-                  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 8, 0,
-                  0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 8, 0]
+        mock_file.make_marker("test_marker", {'Start time (ns)': 100, 'Stop time (ns)': 200})
+        mock_file.make_marker("test_marker2", {'Start time (ns)': 200, 'Stop time (ns)': 300})
 
-        infowave = [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
-                    0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
-                    1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
-                    0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
+        counts = np.uint32([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0,
+                            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 8, 0,
+                            0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 8, 0])
+
+        infowave = np.uint8([1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                             0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
+                             1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                             0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2])
 
         enc = json.JSONEncoder()
 
@@ -167,14 +177,14 @@ def h5_file(tmpdir_factory, request):
         })
 
         # Generate lines at 1 Hz
-        freq = int(1e9 / 16)
-        mock_file.make_continuous_channel("Photon count", "Red", int(20e9), freq, counts)
-        mock_file.make_continuous_channel("Photon count", "Green", int(20e9), freq, counts)
-        mock_file.make_continuous_channel("Photon count", "Blue", int(20e9), freq, counts)
-        mock_file.make_continuous_channel("Info wave", "Info wave", int(20e9), freq, infowave)
+        freq = 1e9 / 16
+        mock_file.make_continuous_channel("Photon count", "Red", np.int64(20e9), freq, counts)
+        mock_file.make_continuous_channel("Photon count", "Green", np.int64(20e9), freq, counts)
+        mock_file.make_continuous_channel("Photon count", "Blue", np.int64(20e9), freq, counts)
+        mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
         ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
-        ds.attrs["Start time (ns)"] = int(20e9)
-        ds.attrs["Stop time (ns)"] = int(20e9 + len(infowave) * freq)
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         json_string = enc.encode({
             "value0": {
@@ -213,8 +223,8 @@ def h5_file(tmpdir_factory, request):
         })
 
         ds = mock_file.make_json_data("Scan", "Scan1", json_string)
-        ds.attrs["Start time (ns)"] = int(20e9)
-        ds.attrs["Stop time (ns)"] = int(20e9 + len(infowave) * freq)
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
     return mock_file.file
 
