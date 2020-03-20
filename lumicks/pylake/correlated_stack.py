@@ -145,7 +145,7 @@ class CorrelatedStack:
             cmap='gray'
         )
 
-        image = self.get_frame(frame).data
+        image = self._get_frame(frame).data
         plt.imshow(image, **{**default_kwargs, **kwargs})
 
         if self.num_frames == 1:
