@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.1 | 2020-03-23
+* Drop `matplotlib` < 3 requirement.
+* Add functionality which redirects users to API when accessing particular fields, e.g. accessing `file["FD curve"]` will throw an error and redirect users to use `file.fdcurves`.
+* Add API for markers, i.e. `file.markers` returns a dictionary of markers (see docs tutorials section: Files and Channels).
+* Bugfix `CorrelatedStack.plot()` which resulted in the function throwing an error rather than showing a single frame.
+
 ## v0.4.0 | 2020-01-21
 
 * Add calibration data as attribute of force channels (see docs tutorials section: Files and Channels).
@@ -27,7 +33,7 @@
 ## v0.2.0 | 2018-07-27
 
 * Channel slices can be downsampled: `lf_force = hf_force.downsampled_by(factor=20)`
-* `FDCurve`s now support subtraction, e.g. `fd = f.fdcurves["measured"] - f.fdcurves["basline"]`
+* `FDCurve`s now support subtraction, e.g. `fd = f.fdcurves["measured"] - f.fdcurves["baseline"]`
 * Scans and kymos now have a `.timestamps` property with per-pixel timestamps with the same shape as the image arrays
 * Added Matlab compatibility examples to the repository in `examples/matlab`
 * `h5py` >= v2.8 is now required
