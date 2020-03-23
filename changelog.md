@@ -2,9 +2,10 @@
 
 ## v0.4.1 | 2020-03-23
 * Drop `matplotlib` < 3 requirement.
-* Add functionality which redirects users to API when accessing particular fields, e.g. accessing `file["FD curve"]` will throw an error and redirect users to use `file.fdcurves`.
+* Add functionality which redirects users to the API when accessing particular fields, e.g. accessing `file["FD curve"]` will throw an error and redirect users to use `file.fdcurves`.
 * Add API for markers, i.e. `file.markers` returns a dictionary of markers (see docs tutorials section: Files and Channels).
 * Bugfix `CorrelatedStack.plot()` which resulted in the function throwing an error rather than showing a single frame.
+* Add canvas draw call to `CorrelatedStack.plot_correlated()` to make sure the plot is also interactive when it is not run from an interactive notebook.
 
 ## v0.4.0 | 2020-01-21
 

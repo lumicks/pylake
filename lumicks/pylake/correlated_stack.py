@@ -224,6 +224,7 @@ class CorrelatedStack:
                         poly.remove()
                         image_object.set_data(current_frame.data)
                         poly = update_position(current_frame)
+                        fig.canvas.draw()
                         return
 
         fig.canvas.mpl_connect('button_press_event', select_frame)
