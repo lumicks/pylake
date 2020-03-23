@@ -1,4 +1,4 @@
-git-lfs
+git-lfs==1.5
 matplotlib
 nbconvert
 nbformat
