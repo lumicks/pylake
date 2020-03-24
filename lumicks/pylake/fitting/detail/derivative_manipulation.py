@@ -55,17 +55,29 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
     """This function computes the jacobian of the model when the model has been inverted with respect to the independent
     variable.
 
-    The Jacobian of the function with one variable inverted is related to the original Jacobian
-    The transformation Jacobian is structured as follows:
+    The Jacobian of the function with one variable inverted is related to the original Jacobian. This transformation
+    can be derived from the implicit function:
 
-    [  dy/dF   dy/db   dy/dc  ]
-    [   0        1       0    ]
-    [   0        0       1    ]
+    G = F - f_inverse(f(F, p), p) = 0
 
-    The inverse of this Jacobian provides us with the actual parameters that we are interested in. It is given by:
-    [ (dy/da)^-1  -(dy/db)(dy/dF)^-1    -(dy/dc)(dy/dF)^-1 ]
-    [    0                1                     0          ]
-    [    0                0                     1          ]
+    Differentiation w.r.t. p_i yields:
+
+    0 = δG / δp_i + (δG / δf_inverse(f(F, p), p)) * (δf_inverse(f(F, p), p) / δp_i)
+
+    0 = (δG / δf_inverse(f(F, p), p)) * (δf_inverse(f(F, p), p) / δp_i)
+
+    0 = - δf_inverse(f(F, p), p) / δp_i
+      = (δf_inverse(f(F, p), p) / δf(F, p)) (δf(F, p) / δp_i) + δf_inverse(f(F, p), p) / δp_i
+      = (δf_inverse(dist, p) / δdist) (δf(F, p) / δp_i) + δf_inverse(dist, p) / δp_i
+
+    Hence:
+        δf_inverse(dist, p) / δp_i = - (δf_inverse(dist, p) / δdist) (δf(F, p) / δp_i)
+
+    Since (see invert_derivative)
+        δf_inverse(dist, p) / δdist = ( δf(F, p) / δF )^-1
+
+    We obtain:
+        δf_inverse(dist, p) / δp_i = - (δf(F, p) / δp_i) ( δf(F, p) / δF )^-1
 
     Parameters
     ----------
@@ -90,6 +102,20 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
 def invert_derivative(d, inverted_model_function, derivative_function):
     """
     Calculates the derivative of the inverted function.
+
+    F = f_inverse(f(F), p)
+
+    Derive both sides w.r.t. F gives:
+
+    1 = δf_inverse(f(F), p) / δF
+
+    or:
+
+    1 = ( δf_inverse(f(F), p) / δf(F) ) ( δf(F) / δF )
+
+    or:
+
+    δf_inverse(d, p) / δd = ( δf(F) / δF )^-1
 
     Parameters
     ----------
