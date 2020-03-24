@@ -43,6 +43,22 @@ class Model:
             this speeds up model inversions considerably.
         **kwargs
             Key pairs containing parameter defaults. For instance, Lc=Parameter(...)
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            dna_model = pylake.inverted_odijk("DNA")
+            fit = FitObject(dna_model)
+            data = dna_model.load_data(distance, force)
+
+            F.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
+            F.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+            F.fit()
+
+            dna_model.plot(F.parameters, data, fmt='k--')  # Plot the fitted model
         """
         assert isinstance(name, str), "First argument must be a model name."
         assert isinstance(model_function, types.FunctionType), "Model must be a callable."
@@ -109,8 +125,8 @@ class Model:
         Examples
         --------
         ::
-            DNA_model = pylake.force_model("DNA", "WLC")
-            protein_model = pylake.force_model("protein", "WLC")
+            DNA_model = pylake.inverted_odijk("DNA")
+            protein_model = pylake.inverted_odijk("protein")
             construct_model = DNA_model + protein_model
         """
 
@@ -231,11 +247,12 @@ class Model:
         Examples
         --------
         ::
-            dna_model = pylake.force_model("DNA", "invWLC")  # Use an inverted Odijk eWLC model.
+
+            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
             dna_model.load_data(x1, y1, name="my first data set")  # Load the first dataset like that
             dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")  # Different contour length Lc
 
-            dna_model = pylake.force_model("DNA", "invWLC")
+            dna_model = pylake.inverted_odijk("DNA")
             dna_model.load_data(x1, y1, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
         """
         x = np.array(x)
@@ -418,7 +435,8 @@ class Model:
         Examples
         --------
         ::
-            dna_model = pylake.force_model("DNA", "invWLC")  # Use an inverted Odijk eWLC model.
+
+            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
             d1 = dna_model.load_data(x1, y1, name="my first data set")
             d2 = dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
             dna_model.plot(F.parameters, d1, fmt='k--')  # Plot model simulations for d1

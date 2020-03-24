@@ -23,7 +23,7 @@ class FitObject:
 
         from lumicks import pylake
 
-        dna_model = pylake.force_model("DNA", "invWLC")
+        dna_model = pylake.inverted_odijk("DNA")
         fit = FitObject(dna_model)
         data = dna_model.load_data(distance, force)
 
@@ -291,21 +291,19 @@ class FitObject:
 
     @property
     def aic(self):
-        """
-        Calculates the Akaike Information Criterion:
+        """Calculates the Akaike Information Criterion:
 
             AIC = 2 k - 2 ln(L)
 
-        Where:
-        k - Number of parameters
-        n - Number of observations / data points
-        L - maximized value of the likelihood function
+        Where k refers to the number of parameters, n to the number of observations (or data points) and L to the
+        maximized value of the likelihood function
 
         The emphasis of this criterion is future prediction. It does not lead to consistent model selection and is more
         prone to over-fitting than the Bayesian Information Criterion.
 
-        Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
-        Statistics & Probability Letters, 33(2), pp.201-208.
+        References:
+            Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
+            Statistics & Probability Letters, 33(2), pp.201-208.
         """
         self._rebuild()
         k = sum(self.parameters.fitted)
@@ -314,23 +312,22 @@ class FitObject:
 
     @property
     def aicc(self):
-        """
-        Calculates the Corrected Akaike Information Criterion:
+        """Calculates the Corrected Akaike Information Criterion:
 
-                          2 k^2 + 2 k
-            AICc = AIC + -------------
-                           n - k - 1
-        Where:
-        k - Number of parameters
-        n - Number of observations / data points
-        L - maximized value of the likelihood function
+        .. math::
+            AICc = AIC + \\frac{2 k^2 + 2 k}{n - k - 1}
+
+        Where k refers to the number of parameters, n to the number of observations (or data points) and L to the
+        maximized value of the likelihood function
 
         The emphasis of this criterion is future prediction. Compared to the AIC it should be less prone to overfitting
         for smaller sample sizes. Analogously to the AIC, it does not lead to a consistent model selection procedure.
 
-        Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
-        Statistics & Probability Letters, 33(2), pp.201-208.
+        References:
+            Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
+            Statistics & Probability Letters, 33(2), pp.201-208.
         """
+
         aic = self.aic
         k = sum(self.parameters.fitted)
         return aic + (2.0 * k * k + 2.0 * k)/(self.n_residuals - k - 1.0)
@@ -342,10 +339,8 @@ class FitObject:
 
             BIC = k ln(n) - 2 ln(L)
 
-        Where:
-        k - Number of parameters
-        n - Number of observations / data points
-        L - maximized value of the likelihood function
+        Where k refers to the number of parameters, n to the number of observations (or data points) and L to the
+        maximized value of the likelihood function
 
         The emphasis of the BIC is put on parsimonious models. As such it is less prone to over-fitting. Selection via
         BIC leads to a consistent model selection procedure, meaning that as the number of data points tends to
@@ -364,11 +359,12 @@ class FitObject:
         It makes use of the Gauss-Newton approximation of the Hessian, which uses only the first order sensitivity
         information. This is valid for linear problems and problems near the optimum (assuming the model fits).
 
-        Press, W.H., Teukolsky, S.A., Vetterling, W.T. and Flannery, B.P., 1988. Numerical recipes in C.
+        References:
+            Press, W.H., Teukolsky, S.A., Vetterling, W.T. and Flannery, B.P., 1988. Numerical recipes in C.
 
-        Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew, F., Bock, H.H.,
-        Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to its limit: profile likelihood
-        based model reduction. PloS one, 11(9).
+            Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew, F., Bock, H.H.,
+            Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to its limit: profile likelihood
+            based model reduction. PloS one, 11(9).
         """
         J = self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))

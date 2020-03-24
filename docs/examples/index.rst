@@ -17,4 +17,7 @@ For all of the examples, it is assumed that the following lines precede any othe
 
     cst/index
     dna_rna_protein/index
+    fd_fitting_basic/index
+    fd_fitting_intermediate/index
+    fd_fitting_advanced/index
 

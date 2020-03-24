@@ -28,7 +28,13 @@ Available models:
 
 
 def offset(name):
-    """Offset on the the model output."""
+    """Offset on the the model output.
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
     from .model import Model
     from .detail.model_implementation import offset_model, offset_model_jac, offset_model_derivative, Defaults
 
@@ -48,6 +54,11 @@ def marko_siggia_ewlc_force(name):
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
         8759-8770 (1995).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -76,6 +87,11 @@ def marko_siggia_ewlc_distance(name):
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
         8759-8770 (1995).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -104,6 +120,11 @@ def marko_siggia_simplified(name):
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
         8759-8770 (1995).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -133,6 +154,11 @@ def odijk(name):
          28, 7016-7018 (1995).
       2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
          DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import WLC, WLC_jac, WLC_derivative, Defaults
@@ -158,6 +184,11 @@ def inverted_odijk(name):
          28, 7016-7018 (1995).
       2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
          DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import invWLC, invWLC_jac, invWLC_derivative, Defaults
@@ -184,6 +215,11 @@ def freely_jointed_chain(name):
            DNA Molecules, Science 271, 795-799 (1996).
         2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
            DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import FJC, FJC_jac, FJC_derivative, Defaults
@@ -210,6 +246,11 @@ def inverted_freely_jointed_chain(name):
            DNA Molecules, Science 271, 795-799 (1996).
         2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
            DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import InverseModel
     return InverseModel(freely_jointed_chain(name))
@@ -225,6 +266,11 @@ def twistable_wlc(name):
        2. Broekmans, Onno D., et al. DNA twist stability changes with
           magnesium (2+) concentration, Physical review letters 116.25,
           258102 (2016).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import tWLC, tWLC_jac, tWLC_derivative, Defaults
@@ -255,6 +301,11 @@ def inverted_twistable_wlc(name):
        2. Broekmans, Onno D., et al. DNA twist stability changes with
           magnesium (2+) concentration, Physical review letters 116.25,
           258102 (2016).
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
     from .detail.model_implementation import invtWLC, invtWLC_jac, Defaults
