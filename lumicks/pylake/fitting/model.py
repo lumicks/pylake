@@ -2,7 +2,8 @@ from .fitdata import FitData
 from .parameters import Parameter, Parameters
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
-from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, invert_derivative
+from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
+    invert_derivative
 from ..detail.utilities import get_color, lighten_color
 
 from collections import OrderedDict
@@ -59,14 +60,17 @@ class Model:
         self.model_function = model_function
         parameter_names = inspect.getfullargspec(model_function).args[1:]
 
+        for key in kwargs:
+            assert key in parameter_names, "Attempted to set default for parameter which is not present in model."
+
         self._parameters = OrderedDict()
         for key in parameter_names:
             if key in kwargs:
                 assert isinstance(kwargs[key], Parameter), "Passed a non-parameter as model default."
                 if kwargs[key].shared:
-                    self._parameters[key] = kwargs[key]
+                    self._parameters[key] = deepcopy(kwargs[key])
                 else:
-                    self._parameters[formatter(key)] = kwargs[key]
+                    self._parameters[formatter(key)] = deepcopy(kwargs[key])
             else:
                 self._parameters[formatter(key)] = None
 

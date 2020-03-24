@@ -4,8 +4,9 @@ from ..fitting.detail.utilities import unique_idx
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitobject import FitObject
-from ..fitting.fdmodels import *
+from ..fitting.models import *
 from ..fitting.detail.parameter_trace import parameter_trace
+from ..fitting.model import Model, InverseModel
 
 import numpy as np
 from collections import OrderedDict
@@ -168,6 +169,16 @@ def test_model_defaults():
     F.parameters["f_new"] = 6
     assert (F.parameters["f_new"].value == 6)
     assert (F.parameters["M_f"].value == 5)
+
+    # Test whether providing a default for a parameter that doesn't exist throws
+    with pytest.raises(AssertionError):
+        Model("M", g, z=Parameter(5))
+
+    # Verify that the defaults are in fact copies
+    default = Parameter(5)
+    M = Model("M", g, f=default)
+    M._parameters["M_f"].value = 6
+    assert default.value == 5
 
 
 def test_model_build_status():
@@ -355,33 +366,34 @@ def test_integration_test_fitting():
 def test_models():
     independent = np.arange(0.15, 2, .5)
     parameters = [38.18281266, 0.37704827, 278.50103452, 4.11]
-    assert(Model("M", WLC, WLC_jac).verify_jacobian(independent, parameters))
-    assert(Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters, atol=1e-5))
-    assert(Model("M", FJC, FJC_jac).verify_jacobian(independent, parameters, dx=1e-4, atol=1e-6))
-    assert (Model("M", Marko_Siggia, Marko_Siggia_jac).verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
-    assert (Model("M", invWLC, invWLC_jac).verify_jacobian(independent, parameters, atol=1e-5))
+    assert(odijk("WLC").verify_jacobian(independent, parameters))
+    assert(inverted_odijk("iWLC").verify_jacobian(independent, parameters, atol=1e-5))
+    assert(freely_jointed_chain("FJC").verify_jacobian(independent, parameters, dx=1e-4, atol=1e-6))
+    assert(marko_siggia_simplified("MS").verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
 
-    assert(force_model('M', 'WLC').verify_derivative(independent, parameters))
-    assert(force_model('M', 'invWLC').verify_derivative(independent, parameters))
-    assert(force_model('M', 'FJC').verify_derivative(independent, parameters, atol=1e-6))
-    assert(force_model('M', 'Marko_Siggia_simplified').verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
+    assert(odijk("WLC").verify_derivative(independent, parameters))
+    assert(inverted_odijk("iWLC").verify_derivative(independent, parameters))
+    assert(freely_jointed_chain("FJC").verify_derivative(independent, parameters, atol=1e-6))
+    assert(marko_siggia_simplified("MS").verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
 
-    assert(force_model('M', 'Marko_Siggia_eWLC_force').verify_jacobian(independent, parameters, dx=1e-4, rtol=1e-4))
-    assert(force_model('M', 'Marko_Siggia_eWLC_distance').verify_jacobian(independent, parameters, dx=1e-4))
-    assert(force_model('M', 'Marko_Siggia_eWLC_force').verify_derivative(independent, parameters, dx=1e-4))
-    assert(force_model('M', 'Marko_Siggia_eWLC_distance').verify_derivative(independent, parameters, dx=1e-4))
+    assert(marko_siggia_ewlc_force("MSF").verify_jacobian(independent, parameters, dx=1e-4, rtol=1e-4))
+    assert(marko_siggia_ewlc_distance("MSD").verify_jacobian(independent, parameters, dx=1e-4))
+    assert(marko_siggia_ewlc_force("MSF").verify_derivative(independent, parameters, dx=1e-4))
+    assert(marko_siggia_ewlc_distance("MSD").verify_derivative(independent, parameters, dx=1e-4))
 
     # The finite differencing version of the FJC performs very poorly numerically, hence the less stringent
     # tolerances and larger dx values.
-    assert (force_model('M', 'invFJC').verify_derivative(independent, parameters, dx=1e-3, rtol=1e-2, atol=1e-6))
-    assert(Model("M", invFJC, invFJC_jac).verify_jacobian(independent, parameters, dx=1e-3, atol=1e-5, rtol=1e-2))
+    assert(inverted_freely_jointed_chain("iFJC").verify_derivative(independent, parameters, dx=1e-3, rtol=1e-2, atol=1e-6))
+    assert(inverted_freely_jointed_chain("iFJC").verify_jacobian(independent, parameters, dx=1e-3, atol=1e-5, rtol=1e-2))
 
     # Check the tWLC and inverted tWLC model
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
-    assert(Model("M", tWLC, tWLC_jac).verify_jacobian(independent, parameters))
-    assert (Model("M", invtWLC, invtWLC_jac).verify_jacobian(independent, parameters))
+    assert(twistable_wlc("tWLC").verify_jacobian(independent, parameters))
+    assert(inverted_twistable_wlc("itWLC").verify_jacobian(independent, parameters))
 
     # Check whether the inverted models invert correctly
+    from ..fitting.detail.model_implementation import WLC, invWLC, FJC, invFJC, tWLC, invtWLC
+
     d = np.array([3.0, 4.0])
     parameters = [5.0, 5.0, 5.0]
     assert (np.allclose(WLC(invWLC(d, *parameters), *parameters), d))
@@ -393,8 +405,8 @@ def test_models():
     d = np.arange(0.15, 2, .5)
     (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)
     parameters = [Lp, Lc, St, kT]
-    M_fwd = force_model('M', 'Marko_Siggia_eWLC_force')
-    M_bwd = force_model('M', 'Marko_Siggia_eWLC_distance')
+    M_fwd = marko_siggia_ewlc_force("fwd")
+    M_bwd = marko_siggia_ewlc_distance("bwd")
     F = M_fwd._raw_call(d, parameters)
     assert np.allclose(M_bwd._raw_call(F, parameters), d)
 
@@ -466,8 +478,8 @@ def test_model_composition():
     assert M1.subtract_independent_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert M1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1 = force_model("DNA", "invWLC").subtract_independent_offset("d_offset") + force_model("f", "offset")
-    M2 = InverseModel(force_model("DNA", "WLC") + force_model("DNA_d", "offset")) + force_model("f", "offset")
+    M1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + offset("f")
+    M2 = InverseModel(odijk("DNA") + offset("DNA_d")) + offset("f")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
