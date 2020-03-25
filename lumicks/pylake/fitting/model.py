@@ -51,14 +51,14 @@ class Model:
             from lumicks import pylake
 
             dna_model = pylake.inverted_odijk("DNA")
-            fit = FitObject(dna_model)
+            fit = pylake.FitObject(dna_model)
             data = dna_model.load_data(distance, force)
 
-            F.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
-            F.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
-            F.fit()
+            fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
+            fit.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+            fit.fit()
 
-            dna_model.plot(F.parameters, data, fmt='k--')  # Plot the fitted model
+            dna_model.plot(fit.parameters, data, fmt='k--')  # Plot the fitted model
         """
         assert isinstance(name, str), "First argument must be a model name."
         assert isinstance(model_function, types.FunctionType), "Model must be a callable."
@@ -424,7 +424,8 @@ class Model:
         global_parameters: Parameters
             Global parameter set, typically obtained from a FitObject.
         data: FitData
-            Handle to a data set as returned by M.load_data
+            Handle to a data set as returned by Model.load_data(). This determines which simulation conditions to use
+            for plotting.
         fmt: str (optional)
             Plot formatting string (see matplotlib.pyplot documentation).
         independent: array_like (optional)
@@ -439,10 +440,13 @@ class Model:
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
             d1 = dna_model.load_data(x1, y1, name="my first data set")
             d2 = dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
-            dna_model.plot(F.parameters, d1, fmt='k--')  # Plot model simulations for d1
-            dna_model.plot(F.parameters, d2, fmt='k--')  # Plot model simulations for d2
+            fit = pylake.FitObject(dna_model)
+            fit.fit()
+            dna_model.plot(fit.parameters, d1, fmt='k--')  # Plot model simulations for dataset d1
+            dna_model.plot(fit.parameters, d2, fmt='k--')  # Plot model simulations for dataset d2
 
-            dna_model.plot(F.parameters, d1, independent=np.arange(1.0, 10.0, .01), fmt='k--')  # Use custom range
+            # Plot model over a custom time range
+            dna_model.plot(fit.parameters, d1, independent=np.arange(1.0, 10.0, .01), fmt='k--')
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(global_parameters, Parameters):

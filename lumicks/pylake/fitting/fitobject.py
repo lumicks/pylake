@@ -24,14 +24,14 @@ class FitObject:
         from lumicks import pylake
 
         dna_model = pylake.inverted_odijk("DNA")
-        fit = FitObject(dna_model)
+        fit = pylake.FitObject(dna_model)
         data = dna_model.load_data(distance, force)
 
-        F.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
-        F.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
-        F.fit()
+        fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
+        fit.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+        fit.fit()
 
-        dna_model.plot(F.parameters, data, fmt='k--')  # Plot the fitted model
+        dna_model.plot(fit.parameters, data, fmt='k--')  # Plot the fitted model
     """
     def __init__(self, *args):
         self.models = [M for M in args]
