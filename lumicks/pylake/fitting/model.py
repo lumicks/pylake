@@ -414,24 +414,21 @@ class Model:
         for i, data in enumerate(self._data):
             if not set_color:
                 kwargs["color"] = lighten_color(get_color(i), -.3)
-            self.plot(global_parameters, data, fmt=fmt, **kwargs)
+            self.plot(global_parameters[data], data.x, fmt=fmt, **kwargs)
 
-    def plot(self, global_parameters, data, fmt='', independent=[], **kwargs):
+    def plot(self, parameters, independent, fmt='', **kwargs):
         """Plot this model for a specific data set.
 
         Parameters
         ----------
-        global_parameters: Parameters
-            Global parameter set, typically obtained from a FitObject.
-        data: FitData
-            Handle to a data set as returned by Model.load_data(). This determines which simulation conditions to use
-            for plotting.
-        fmt: str (optional)
-            Plot formatting string (see matplotlib.pyplot documentation).
+        parameters: Parameters
+            Parameter set, typically obtained from a FitObject.
         independent: array_like (optional)
             Custom set of coordinates for the independent variable.
+        fmt: str (optional)
+            Plot formatting string (see `matplotlib.pyplot.plot` documentation).
         **kwargs:
-            Plot options
+            Forwarded to `~matplotlib.pyplot.plot`.
 
         Examples
         --------
@@ -442,20 +439,17 @@ class Model:
             d2 = dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
             fit = pylake.FitObject(dna_model)
             fit.fit()
-            dna_model.plot(fit.parameters, d1, fmt='k--')  # Plot model simulations for dataset d1
-            dna_model.plot(fit.parameters, d2, fmt='k--')  # Plot model simulations for dataset d2
+            dna_model.plot(fit.parameters[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
+            dna_model.plot(fit.parameters[d2], d2.x, fmt='k--')  # Plot model simulations for dataset d2
 
             # Plot model over a custom time range
-            dna_model.plot(fit.parameters, d1, independent=np.arange(1.0, 10.0, .01), fmt='k--')
+            dna_model.plot(fit.parameters[d1], np.arange(1.0, 10.0, .01), fmt='k--')
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
-        if not isinstance(global_parameters, Parameters):
+        if not isinstance(parameters, Parameters):
             raise RuntimeError('Did not pass Parameters')
-        if not isinstance(data, FitData):
-            raise RuntimeError('Did not pass FitData')
 
-        x = independent if np.any(independent) else np.sort(data.x)
-        plt.plot(x, self(x, data.get_parameters(global_parameters)), fmt, **kwargs)
+        plt.plot(independent, self(independent, parameters), fmt, **kwargs)
 
 
 class CompositeModel(Model):

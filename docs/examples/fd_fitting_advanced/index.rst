@@ -233,11 +233,8 @@ Next, we plot our results::
         plt.subplot(2, 3, i + 1)
         distance = d["piezo_distance"].data
         plt.plot(distance, d["piezo_force"].data, 'r.', markersize=4*.8)
-        dna_model.plot(F.parameters, folded, independent=np.sort(distance), fmt='k--')
-        construct_model.plot(F.parameters, unfolded, independent=np.sort(distance), fmt='k--')
-            
-        plt.plot(np.sort(distance), dna_model(np.sort(distance), folded.get_parameters(F.parameters)), 'k--', markersize=4*.8)
-        plt.plot(np.sort(distance), construct_model(np.sort(distance), unfolded.get_parameters(F.parameters)), 'k--', markersize=4*.8)
+        dna_model.plot(F.parameters[folded], distance, fmt='k--')
+        construct_model.plot(F.parameters[unfolded], distance, fmt='k--')
         
         plt.grid(True)
         plt.ylabel('Force [pN]')

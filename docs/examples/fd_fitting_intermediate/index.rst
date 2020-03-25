@@ -41,13 +41,18 @@ explicitly inverting::
 
     M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
 
+Let's have a look at the parameters in this model::
+
+    >>> print(M_DNA.parameter_names)
+    ['d_offset', 'DNA_Lp', 'DNA_Lc', 'DNA_St', 'kT', 'f_offset']
+
 Load the data
 -------------
 
-Next, we load the data into the model. First, we filter the data by force
-first, to make sure that we discard data outside of the model’s valid range.
-We can do this using a logical mask which is true for the data we wish to
-include and false for the data we wish to exclude::
+Next, we load the data into the model. We're going to filter the data by
+force, to make sure that we discard data outside of the model’s valid range.
+We can do this by creating a logical mask which is true for the data we wish
+to include and false for the data we wish to exclude::
 
     # Minimum and maximum force value to include
     f_min = 0
@@ -56,20 +61,26 @@ include and false for the data we wish to exclude::
     f1_mask = np.logical_and(f1 < f_max, f1 > f_min)
     f2_mask = np.logical_and(f2 < f_max, f2 > f_min)
 
-For the second data set, we want the contour length and persistence length 
-to be given by a different parameter name (as they correspond to a different 
-condition)::
+We can load data into the model by using the function `load_data`. Note
+that we apply the mask as we are loading the data using the square brackets::
 
     data1 = M_DNA.load_data(d1[f1_mask], f1[f1_mask], name="Control")
+
+If parameters are expected to differ between conditions, we can rename them
+when loading the data. For the second data set, we expect the contour length
+and persistence length to be different. Let's rename these::
+
     data2 = M_DNA.load_data(d2[f2_mask], f2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA")
 
 Set up the fit
 --------------
 
-Next, we set up the fit problem and set some parameter bounds::
+Now, let's fit our model to the data we just loaded. To do this, we have to create a FitObject::
 
     F = pylake.FitObject(M_DNA)
     
+We would also like to set some parameter bounds::
+
     def set_bounds(F):
         F.parameters["DNA_Lp"].value = 50
         F.parameters["DNA_Lp"].lb = 39
@@ -185,15 +196,15 @@ this data::
     
     M_DNA.load_data(d1[f1_mask], f1[f1_mask], name="Control")
     M_DNA.load_data(d2[f2_mask], f2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
-    F1 = pylake.FitObject(M_DNA)
-    set_bounds(F1)
-    F1.fit()
+    odijk_offset = pylake.FitObject(M_DNA)
+    set_bounds(odijk_offset)
+    odijk_offset.fit()
     
     M_DNA_MS.load_data(d1[f1_mask], f1[f1_mask], name="Control")
     M_DNA_MS.load_data(d2[f2_mask], f2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
-    F2 = pylake.FitObject(M_DNA_MS)
-    set_bounds(F2)
-    F2.fit();
+    siggia_offset = pylake.FitObject(M_DNA_MS)
+    set_bounds(siggia_offset)
+    siggia_offset.fit();
 
 Plot the competing models
 -------------------------
@@ -204,16 +215,16 @@ increasing our confidence in our results::
 
     plt.figure(figsize=(20,5))
     plt.subplot(1, 2, 1)
-    F1.plot()
+    odijk_offset.plot()
     plt.title('Odijk')
     plt.ylim([0,10])
     plt.subplot(1, 2, 2)
-    F2.plot()
+    siggia_offset.plot()
     plt.title('Marko-Siggia')
     plt.ylim([0,10])
     
-    print(f"Contour length difference Odijk: {(F1.parameters['DNA_Lc_RecA'].value - F1.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
-    print(f"Contour length difference Marko-Siggia: {(F2.parameters['DNA_Lc_RecA'].value - F2.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    print(f"Contour length difference Odijk: {(odijk_offset.parameters['DNA_Lc_RecA'].value - odijk_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    print(f"Contour length difference Marko-Siggia: {(siggia_offset.parameters['DNA_Lc_RecA'].value - siggia_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
 
 
 .. parsed-literal::
@@ -246,13 +257,13 @@ are::
 
     print("Corrected Akaike Information Criterion")
     print(f"Odijk Model with single force offset {F.aicc}")
-    print(f"Odijk Model with two force offsets {F1.aicc}")
-    print(f"Marko-Siggia Model with two force offsets {F2.aicc}")
+    print(f"Odijk Model with two force offsets {odijk_offset.aicc}")
+    print(f"Marko-Siggia Model with two force offsets {siggia_offset.aicc}")
     
     print("Bayesian Information Criterion")
     print(f"Odijk Model with single force offset {F.bic}")
-    print(f"Odijk Model with two force offsets {F1.bic}")
-    print(f"Marko-Siggia Model with two force offsets {F2.bic}")
+    print(f"Odijk Model with two force offsets {odijk_offset.bic}")
+    print(f"Marko-Siggia Model with two force offsets {siggia_offset.bic}")
 
 
 .. parsed-literal::
@@ -296,7 +307,7 @@ Again, we also look at the parameters::
 
 Let's see if the parameters for the other model are similar::
 
-    F2.parameters
+    siggia_offset.parameters
 
 
 

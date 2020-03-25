@@ -5,6 +5,7 @@ from .file import *
 from .fitting.models import *
 from .correlated_stack import CorrelatedStack
 from .fitting.fitobject import FitObject
+from .fitting.detail.parameter_trace import parameter_trace
 
 
 def pytest(args=None, plugins=None):

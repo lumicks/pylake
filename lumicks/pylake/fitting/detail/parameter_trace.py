@@ -4,7 +4,7 @@ import scipy as sp
 import scipy.optimize as optim
 
 
-def parameter_trace(model, parameters, inverted_parameter, independent, dependent, **kwargs):
+def parameter_trace(model, parameters, inverted_parameter, independent, dependent):
     """Invert a model with respect to one parameter. This function fits a unique parameter for every data point in
     this data-set while keeping all other parameters fixed. This can be used to for example invert the model with
     respect to the contour length or some other parameter.
@@ -21,24 +21,22 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
         vector of values for the independent variable
     dependent: array_like
         vector of values for the dependent variable
-    **kwargs
-        parameter renames (e.g. protein_Lc="protein_Lc_1")
 
     Examples
     --------
     ::
         # Define the model to be fitted
-        M_protein = force_model("protein", "invWLC") + force_model("f", "offset")
+        model = pylake.inverted_odijk("model") + pylake.offset("f", "offset")
 
         # Fit the overall model first
-        M_protein.load_data(distances_corrected, forces)
-        protein_fit = FitObject(M_protein)
-        protein_fit.fit()
+        data_handle = model.load_data(distance, force)
+        current_fit = pylake.FitObject(model)
+        current_fit.fit()
 
         # Calculate a per data point contour length
-        lcs = parameter_trace(M_protein, protein_fit.parameters, "protein_Lc", distances, forces)
+        lcs = parameter_trace(model, current_fit.parameters[data_handle], "model_Lc", distance, force)
     """
-    parameter_names = list(parse_transformation(model.parameter_names, **kwargs).keys())
+    parameter_names = model.parameter_names
     assert inverted_parameter in parameters, f"Inverted parameter not in model parameter vector {parameters}."
     for key in parameter_names:
         assert key in parameters, f"Missing parameter {key} in supplied parameter vector."

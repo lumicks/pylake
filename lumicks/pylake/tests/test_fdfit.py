@@ -613,3 +613,26 @@ def test_data_loading():
 
     with pytest.raises(AssertionError):
         M.load_data([[1, 3, 5]], [[2, 4, 5]])
+
+
+def test_parameter_slicing():
+    # Tests whether parameters coming from a FitObject can be sliced by a data handle,
+    # i.e. fitobject.parameters[data_handle]
+
+    def dummy(t, p1, p2, p3):
+        return t * p1 + t * p2 * p2 + t * p3 * p3 * p3
+
+    model = Model("dummy", dummy, p2=Parameter(2), p3=Parameter(3), p1=Parameter(1))
+    fit = FitObject(model)
+    data_set = model.load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_b")
+    parameter_slice = fit.parameters[data_set]
+    assert (parameter_slice["dummy_p1"].value == 1)
+    assert (parameter_slice["dummy_p2"].value == 2)
+    assert (parameter_slice["dummy_p3"].value == 3)
+
+    data_set2 = model.load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_c")
+    fit.parameters["dummy_p2_c"] = 5
+    parameter_slice = fit.parameters[data_set]
+    assert (parameter_slice["dummy_p2"].value == 2)
+    parameter_slice = fit.parameters[data_set2]
+    assert (parameter_slice["dummy_p2"].value == 5)

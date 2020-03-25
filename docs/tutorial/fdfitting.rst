@@ -134,8 +134,8 @@ However, sometimes more fine grained control over the plots is required. Let's s
 the model over the range 2.0 to 5.0 for the conditions from `data1` and `data2`. We can do this by
 calling plot on the model directly::
 
-    dna_model.plot(odijk_fit.parameters, data1, independent=np.arange(2.0, 5.0, .01), fmt='k--')
-    dna_model.plot(odijk_fit.parameters, data2, independent=np.arange(2.0, 5.0, .01), fmt='k--')
+    dna_model.plot(odijk_fit.parameters[data1], np.arange(2.0, 5.0, .01), fmt='k--')
+    dna_model.plot(odijk_fit.parameters[data2], np.arange(2.0, 5.0, .01), fmt='k--')
 
 Note how we pass the handles `data1` and `data2` that we stored earlier to let pylake know which
 conditions we want to plot the model for. They are used to collect the parameters relevant for
@@ -147,4 +147,4 @@ required to simulate the model. We can obtain these parameters by grabbing them 
 using the data handles::
 
     distance = np.arange(2.0, 5.0, .01)
-    simulation_result = dna_model(distance, data1.get_parameters(odijk_fit.parameters))
+    simulation_result = dna_model(distance, odijk_fit.parameters[data1])

@@ -82,8 +82,13 @@ class Parameters:
         return self._src.items()
 
     def __getitem__(self, item):
+        from .fitdata import FitData
+
         if isinstance(item, slice):
             raise IndexError("Slicing not supported. Only indexing.")
+
+        if isinstance(item, FitData):
+            return item.get_parameters(self)
 
         if item in self._src:
             return self._src[item]
