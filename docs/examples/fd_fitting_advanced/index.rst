@@ -211,7 +211,7 @@ For the protein, we want the persistence length to stay between 1 and 3::
         
     plt.figure(figsize=(figx, figy))
     plt.tight_layout(pad=1.08)
-    F.fit(max_nfev=126, verbose=True)
+    F.fit(verbose=1)
     F.plot()
     plt.xlabel('Distance [$\\mu$m]')
     plt.ylabel('Force [pN]');

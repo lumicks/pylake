@@ -26,11 +26,24 @@ we also have to give it a name::
     odijk_forward = pylake.odijk("DNA")
 
 
-This name will be prefixed to parameters in this model. So for instance, the persistence length
-in this model, would be named `DNA_Lp`.
+This name will be prefixed to model specific parameters in this model. So for instance, the
+persistence length in this model, would be named `DNA_Lp`. Let's have a look at the parameters
+in the model we just generated::
 
 
-In practice, we would typically want to fit force as a function of distance however. For this 
+    >>> print(odijk_forward.parameter_names)
+    ['DNA_Lp', 'DNA_Lc', 'DNA_St', 'kT']
+
+
+Aha, so we see now that the persistence length (`Lp`), contour length (`Lc`) and stretch
+modulus (`St`) are model specific, whereas the parameter representing the Boltzmann constant
+times the temperature is not (`kT`).
+
+
+Model composition
+-----------------
+
+In practice, we would typically want to fit force as a function of distance however. For this
 we have the inverted Odijk model::
 
 
@@ -38,17 +51,16 @@ we have the inverted Odijk model::
 
 
 Now let's say we have acquired data, but we notice that the template matching wasn't completely 
-optimal. And that we had some force drift, while forgetting to reset the force back to zero.
-
-
-In this case, we would like to incorporate two offsets in our model. We can introduce an offset 
-in the dependent parameter, by calling `subtract_offset` on our model::
+optimal. And that we had some force drift, while forgetting to reset the force back to zero. In
+this case, we can incorporate offsets in our model. We can introduce an offset in the independent
+parameter, by calling `subtract_offset` on our model::
 
 
     odijk_with_offset = pylake.inverted_odijk("DNA").subtract_offset("d_offset")
 
 
-Now all that remains is to add the dependent offset to the model::
+If we also expect an offset in the dependent parameter, we can simply add an offset model to our
+model::
 
 
     odijk_with_offsets = pylake.inverted_odijk("DNA").subtract_offset("d_offset") + pylake.offset("f")
@@ -62,9 +74,12 @@ For the Odijk model, this can be done as follows::
     two_odijk = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.offset("f")).invert()
 
 
-Note how we added three models, and then inverted the composition of those models. The parentheses 
+Note how we added three models and then inverted the composition of those models. The parentheses 
 are important here, since otherwise we would have only inverted the offset model. For more complex 
-examples, please see the examples.
+examples of how this may be used, please see the examples.
+
+For a full list of models that are available, please refer to the documentation by invoking
+`help(pylake.fitting.models)`.
 
 
 Loading data
@@ -72,24 +87,28 @@ Loading data
 
 Next up, is loading some data. Let's assume we have two datasets. One was acquired in the presence 
 of a ligand, and another was measured without a ligand. We expect this ligand to only affect the 
-contour length of our DNA. We can load this data as follows::
+contour length of our DNA. Loading the first dataset is simple::
 
     data1 = odijk_with_offsets.load_data(distance1, force1, name="Control")
+
+Note how load_data returns a handle to the loaded data. We store this in `data1`. Such handles 
+contain which parameters are used in that simulation condition. They can be used to get more fine
+grained control over what is plotted or simulated. How exactly will be explained later in this
+tutorial. For the second dataset, we want the contour length to be different. We can achieve
+this by renaming it when loading the data::
+
     data2 = odijk_with_offsets.load_data(distance2, force2, name="RecA", DNA_Lc="DNA_Lc_RecA")
 
-Note how load_data returns a handle to the loaded data. We store these in `data1` and `data2`.
-These handles store which parameters are used in that simulation condition and can be used later 
-to get more fine grained control over what is plotted or simulated.
-
-Note that for the second dataset we renamed the parameter `DNA_Lc` to `DNA_Lc_RecA`. This signifies
-that this parameter has to be different for this dataset. Sometimes, you may want a large number 
-of datasets with different offsets. Assuming we have two lists of distance and force vectors stored
-in the lists distances and forces. In this case, it may make sense to load them in a loop::
+More specifically, we renamed the parameter `DNA_Lc` to `DNA_Lc_RecA`. Sometimes, you may want
+a large number of datasets with different offsets. Assuming we have two lists of distance and
+force vectors stored in the lists distances and forces. In this case, it may make sense to load
+them in a loop and set such transformations programmatically::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
         odijk_with_offsets.load_data(distance, force, name="RecA", DNA_Lc=f"offset_{i}")
 
 The syntax `f"offset_{i}"` is parsed into `offset_0`, `offset_1` ... etc.
+
 
 Fitting the data
 ----------------
@@ -121,6 +140,7 @@ Note that multiple models can be fit at once, by just supplying more than one mo
 Frequently, such a global fit has better statistical properties than fitting the data separately
 as more information is available to infer parameters shared by the various models.
 
+
 Plotting the data
 -----------------
 
@@ -137,14 +157,43 @@ calling plot on the model directly::
     dna_model.plot(odijk_fit.parameters[data1], np.arange(2.0, 5.0, .01), fmt='k--')
     dna_model.plot(odijk_fit.parameters[data2], np.arange(2.0, 5.0, .01), fmt='k--')
 
-Note how we pass the handles `data1` and `data2` that we stored earlier to let pylake know which
-conditions we want to plot the model for. They are used to collect the parameters relevant for
-that particular experimental condition.
+Note how we use the square brackets to select the parameters belonging to condition 1 and 2 using
+the data handles that we stored earlier. These collect the parameters relevant for that particular
+experimental condition.
 
 It is also possible to obtain simulations from the model directly. We can do this by calling the 
 model with values for the independent variable (here denoted as distance) and the parameters 
-required to simulate the model. We can obtain these parameters by grabbing them from our fit object
-using the data handles::
+required to simulate the model. Again, we obtain these parameters by grabbing them from our fit
+object using the data handles::
 
     distance = np.arange(2.0, 5.0, .01)
     simulation_result = dna_model(distance, odijk_fit.parameters[data1])
+
+
+Calculating per point contour length
+------------------------------------
+
+Sometimes, one wishes to invert the model with respect to one parameter (i.e. re-estimate one 
+parameter on a per datapoint basis). This can be used to obtain dynamic contour lengths for 
+instance. In pylake, such an analysis can easily be performed. We first set up a model and
+fit it to some data. This is all analogous to what we've learned before::
+
+    # Define the model to be fitted
+    model = pylake.inverted_odijk("model") + pylake.offset("f", "offset")
+
+    # Fit the overall model first
+    data_handle = model.load_data(distance, force)
+    current_fit = pylake.FitObject(model)
+    current_fit.fit()
+
+Now, we wish to allow the contour length to vary on a per datapoint basis. For this, we use
+the function `parameter_trace`. Here we see a few things happening. We pass it a model to use
+for the inversion, we select parameters to use in this model, and specify which parameter
+has to be fitted on a per datapoint basis. Next we supply the data to use in this analysis. 
+First the independent parameter is passed, followed by the dependent parameter::
+
+    lcs = parameter_trace(model, current_fit.parameters[data_handle], "model_Lc", distance, force)
+    plt.plot(lcs)
+
+The result is an estimated contour length per datapoint, which can be used in subsequent
+analyses.
