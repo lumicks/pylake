@@ -53,17 +53,17 @@ we have the inverted Odijk model::
 Now let's say we have acquired data, but we notice that the template matching wasn't completely 
 optimal. And that we had some force drift, while forgetting to reset the force back to zero. In
 this case, we can incorporate offsets in our model. We can introduce an offset in the independent
-parameter, by calling `subtract_offset` on our model::
+parameter, by calling `subtract_independent_offset` on our model::
 
 
-    odijk_with_offset = pylake.inverted_odijk("DNA").subtract_offset("d_offset")
+    odijk_with_offset = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset")
 
 
 If we also expect an offset in the dependent parameter, we can simply add an offset model to our
 model::
 
 
-    odijk_with_offsets = pylake.inverted_odijk("DNA").subtract_offset("d_offset") + pylake.offset("f")
+    odijk_with_offsets = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
 
 
 From the above example, you can see how easy it is to composite models. Sometimes, models become more 
@@ -105,7 +105,7 @@ force vectors stored in the lists distances and forces. In this case, it may mak
 them in a loop and set such transformations programmatically::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_with_offsets.load_data(distance, force, name="RecA", DNA_Lc=f"offset_{i}")
+        odijk_with_offsets.load_data(distance, force, name="RecA", f_offset=f"f_offset_{i}")
 
 The syntax `f"offset_{i}"` is parsed into `offset_0`, `offset_1` ... etc.
 
@@ -169,6 +169,91 @@ object using the data handles::
     distance = np.arange(2.0, 5.0, .01)
     simulation_result = dna_model(distance, odijk_fit.parameters[data1])
 
+
+Global fits versus single fits
+------------------------------
+
+The `FitObject` manages a fit. To illustrate its use, and how a global fit differs from a
+local fit, consider the following two examples::
+
+    odijk_inv = pylake.inverted_odijk("DNA")
+    for i, (distance, force) in enumerate(zip(distances, forces)):
+        odijk_inv.load_data(distance, force, name="RecA")
+    odijk_fit = pylake.FitObject(odijk_inv)
+    odijk_fit.fit()
+    print(odijk_fit.parameters["DNA_Lc"])
+
+and::
+
+    for i, (distance, force) in enumerate(zip(distances, forces)):
+        odijk_inv = pylake.inverted_odijk("DNA")
+        odijk_inv.load_data(distance, force, name="RecA")
+        odijk_fit = pylake.FitObject(odijk_inv)
+        odijk_fit.fit()
+        print(odijk_fit.parameters["DNA_Lc"])
+
+The difference between these two is that the former sets up a single model, that has to fit
+all the data whereas the latter fits all the datasets independently. The former has one single
+parameter set, whereas the latter has a parameter set per dataset. Note how in the second
+example a new `Model` and `FitObject` is created at every cycle of the for loop.
+
+Statistically, it is usually more optimal to fit data using global fitting, as more
+information goes into estimates of parameters shared between different conditions. It's
+typically a good idea to think about which parameters you expect to be different between
+different experiments and only allow these parameters to be different. If the conditions 
+are expected to differ in contour length, one can achieve this using::
+
+    odijk_inv = pylake.inverted_odijk("DNA")
+    for i, (distance, force) in enumerate(zip(distances, forces)):
+        odijk_inv.load_data(distance, force, name="RecA", DNA_Lc=f"DNA_Lc_{i}")
+    odijk_fit = pylake.FitObject(odijk_inv)
+    odijk_fit.fit()
+    print(odijk_fit.parameters)
+
+Note that this piece of code will lead to parameters `DNA_Lc_0`, `DNA_Lc_1` etc.
+
+Incremental fitting
+-------------------
+
+Fits can also be done incrementally::
+
+    >>> odijk_inv = pylake.inverted_odijk("DNA")
+    >>> odijk_fit = pylake.FitObject(odijk_inv)
+    >>> print(odijk_fit.parameters)
+    No parameters
+
+We can see that there are no parameters to be fitted (there is no data). Let's add some
+and fit this data::
+
+    >>> data1 = odijk_inv.load_data(d1, f1, name="Control")
+    >>> odijk_fit.fit()
+    >>> print(odijk_fit.parameters)
+    Name         Value  Unit      Fitted      Lower bound    Upper bound
+    ------  ----------  --------  --------  -------------  -------------
+    DNA_Lp    59.409    [nm]      True                  0            inf
+    DNA_Lc     2.81072  [micron]  True                  0            inf
+    DNA_St  1322.9      [pN]      True                  0            inf
+    kT         4.11     [pN*nm]   False                 0              8
+
+Let's add a second dataset where we expect a different contour length and refit::
+
+    >>> data2 = odijk_inv.load_data(d2, f2, name="RecA", DNA_Lc="DNA_Lc_RecA")
+    >>> print(odijk_fit.parameters)
+    Name              Value  Unit      Fitted      Lower bound    Upper bound
+    -----------  ----------  --------  --------  -------------  -------------
+    DNA_Lp         89.3347   [nm]      True                  0            inf
+    DNA_Lc          2.80061  [micron]  True                  0            inf
+    DNA_St       1597.68     [pN]      True                  0            inf
+    kT              4.11     [pN*nm]   False                 0              8
+    DNA_Lc_RecA     3.7758   [micron]  True                  0            inf
+    
+We see that indeed the second parameter now appears. We also note that the parameters
+from the first fit changed. If this was not intentional, we should have fixed
+these parameters after the first fit. For example, we can fix the parameter `DNA_Lp`
+by invoking::
+
+    >>> odijk.fit.parameters["DNA_Lp"].vary=false
+    
 
 Calculating per point contour length
 ------------------------------------
