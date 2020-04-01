@@ -146,17 +146,18 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
         """Round up `size` to the nearest multiple of `n`"""
         return int(math.ceil(size / n)) * n
 
-    data = data[valid_idx]
-    data.resize(round_up(data.size, pixel_size))
-
-    pixels = reduce(data.reshape(-1, pixel_size), axis=1)
+    resized_data = np.zeros(round_up(infowave.size, pixel_size))
+    resized_data[:infowave.size] = data[valid_idx]
+    pixels = reduce(resized_data.reshape(-1, pixel_size), axis=1)
 
     if lines_per_frame is None:
-        pixels.resize(round_up(pixels.size, pixels_per_line))
-        return pixels.reshape(-1, pixels_per_line)
+        resized_pixels = np.zeros(round_up(pixels.size, pixels_per_line))
+        resized_pixels[:pixels.size] = pixels
+        return resized_pixels.reshape(-1, pixels_per_line)
     else:
-        pixels.resize(round_up(pixels.size, pixels_per_line * lines_per_frame))
-        return pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
+        resized_pixels = np.zeros(round_up(pixels.size, pixels_per_line * lines_per_frame))
+        resized_pixels[:pixels.size] = pixels
+        return resized_pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
 
 
 def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
