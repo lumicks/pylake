@@ -127,3 +127,56 @@ def calculate_image_geometry(data, sig_x, sig_y):
     positions = np.stack((px, py), axis=2)
 
     return largest_eig, normals, positions, inside
+
+
+def is_opposite(trial_normals, reference):
+    """This function checks whether the smallest angle between the vectors in trial_normals and reference are smaller
+    than 0.5 pi; if not, that means a smaller angle is possible by flipping them.
+
+    We do this by checking the dot products between the current normal and each of the trial points.
+
+    dot(a,b) = |a| |b| cos(theta), where theta is the minimum angle between the vectors.
+
+    Any minimum angular distance larger than .5 pi can be made smaller by flipping the normal. We don't explicitly have
+    to calculate the arccos as we know that this valid range maps from [cos(0), cos(.5 pi)] to [1, 0].
+
+    In other words, any dot product smaller than zero needs its normal flipped."""
+    dot_normal = np.dot(trial_normals, reference)
+    return dot_normal < 0
+
+
+def is_in_2d(coord, shape):
+    # TO DO: Find a better way.
+    return (coord[:, 0] >= 0) & (coord[:, 0] < shape[0]) & (coord[:, 1] >= 0) & (coord[:, 1] < shape[1])
+
+
+def get_candidate_generator():
+    """This function returns a candidate generator. This candidate generator needs to be called with a normal angle and
+    produces the relative coordinate it is pointing to and the closest two adjacent points.
+
+    Examples:
+       X X O      X X X
+    →  X o O   ↘ X o O
+       X X O      X O O
+    """
+
+    # Given a discretized angle of a normal vector, this lookup table returns the pixel the vector
+    # perpendicular to that the normal is pointing at and its adjacent pixels closest to the origin.
+    # It assumes the angle is discretized as np.round(4.0/np.pi*angle) + 4, mapping from[-pi, pi] to [0, 8].
+    # Index 0 corresponds to the normal pointing to -pi. This means the line is pointing to .5 * pi or [0 -1].
+    candidate_lut = np.array([
+        [[1, -1], [0, -1], [-1, -1]],  # - Pi
+        [[1, 0], [1, -1], [0, -1]],
+        [[1, -1], [1, 0], [1, 1]],
+        [[0, 1], [1, 1], [1, 0]],
+        [[-1, 1], [0, 1], [1, 1]],
+        [[-1, 0], [-1, 1], [0, 1]],
+        [[-1, -1], [-1, 0], [-1, 1]],
+        [[0, -1], [-1, -1], [-1, 0]],
+        [[1, -1], [0, -1], [-1, -1]],  # Pi
+    ], dtype=int)
+
+    def generate_candidates(angle):
+        return candidate_lut[int(np.round(4 * angle / np.pi) + 4)]
+
+    return generate_candidates

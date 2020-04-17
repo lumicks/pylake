@@ -53,18 +53,3 @@ def eigenvector_2d_symmetric(a, b, d, eig):
 
     return ex, ey
 
-
-def is_opposite(trial_normals, reference):
-    """This function checks whether the smallest angle between the vectors in trial_normals and reference are smaller
-    than 0.5 pi; if not, that means a smaller angle is possible by flipping them.
-
-    We do this by checking the dot products between the current normal and each of the trial points.
-
-    dot(a,b) = |a| |b| cos(theta), where theta is the minimum angle between the vectors.
-
-    Any minimum angular distance larger than .5 pi can be made smaller by flipping the normal. We don't explicitly have
-    to calculate the arccos as we know that this valid range maps from [cos(0), cos(.5 pi)] to [1, 0].
-
-    In other words, any dot product smaller than zero needs its normal flipped."""
-    dot_normal = np.dot(trial_normals, reference)
-    return dot_normal < 0
