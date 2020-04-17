@@ -1,6 +1,6 @@
 import numpy as np
 from ..kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
-from ..kymotracker.detail.geometry_2d import calculate_image_geometry
+from ..kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
 
 
 def test_eigen_2d():
@@ -33,32 +33,33 @@ def test_eigen_2d():
     test_eigs(.000001, -.000001, .00001)
 
 
-def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol):
-    from scipy.stats import norm
+def test_subpixel_methods():
+    def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol):
+        from scipy.stats import norm
 
-    data = np.tile(.0001 + norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
-    if transpose:
-        data = data.transpose()
-    max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
+        data = np.tile(.0001 + norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
+        if transpose:
+            data = data.transpose()
+        max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
 
-    if transpose:
-        assert np.abs(positions[round(loc), 3, 0] - (loc - round(loc))) < tol
-        assert inside[round(loc), 3] == 1
-    else:
-        assert np.abs(positions[3, round(loc), 1] - (loc - round(loc))) < tol
-        assert inside[3, round(loc)] == 1
+        if transpose:
+            assert np.abs(positions[round(loc), 3, 0] - (loc - round(loc))) < tol
+            assert inside[round(loc), 3] == 1
+        else:
+            assert np.abs(positions[3, round(loc), 1] - (loc - round(loc))) < tol
+            assert inside[3, round(loc)] == 1
 
 
-tol = 1e-2
-test_position_determination(25.25, 2, 3, 3, False, tol)
-test_position_determination(25.45, 2, 3, 3, False, tol)
-test_position_determination(25.65, 2, 3, 3, False, tol)
-test_position_determination(25.85, 2, 3, 3, False, tol)
+    tol = 1e-2
+    test_position_determination(25.25, 2, 3, 3, False, tol)
+    test_position_determination(25.45, 2, 3, 3, False, tol)
+    test_position_determination(25.65, 2, 3, 3, False, tol)
+    test_position_determination(25.85, 2, 3, 3, False, tol)
 
-test_position_determination(25.25, 2, 3, 3, True, tol)
-test_position_determination(25.45, 2, 3, 3, True, tol)
-test_position_determination(25.65, 2, 3, 3, True, tol)
-test_position_determination(25.85, 2, 3, 3, True, tol)
+    test_position_determination(25.25, 2, 3, 3, True, tol)
+    test_position_determination(25.45, 2, 3, 3, True, tol)
+    test_position_determination(25.65, 2, 3, 3, True, tol)
+    test_position_determination(25.85, 2, 3, 3, True, tol)
 
 
 def test_geometry():
@@ -99,3 +100,42 @@ def test_geometry():
     data[1,3] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
     assert np.allclose(normals[2, 2][1], normals[2, 2][0])
+
+
+def test_candidates():
+    candidates = get_candidate_generator()
+
+    normal_angle = (-22.4 - 90) * np.pi / 180
+    assert np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
+    assert np.allclose(candidates(normal_angle)[1], np.array([1, 0]))
+    assert np.allclose(candidates(normal_angle)[2], np.array([1, 1]))
+
+    normal_angle = (22.4 - 90) * np.pi / 180
+    assert np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
+    assert np.allclose(candidates(normal_angle)[1], np.array([1, 0]))
+    assert np.allclose(candidates(normal_angle)[2], np.array([1, 1]))
+
+    normal_angle = (-22.6 - 90) * np.pi / 180
+    assert not np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
+    assert not np.allclose(candidates(normal_angle)[1], np.array([1, 0]))
+    assert not np.allclose(candidates(normal_angle)[2], np.array([1, 1]))
+
+    normal_angle = (22.6 - 90) * np.pi / 180
+    assert not np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
+    assert not np.allclose(candidates(normal_angle)[1], np.array([1, 0]))
+    assert not np.allclose(candidates(normal_angle)[2], np.array([1, 1]))
+
+    for normal_angle in np.arange(-np.pi, np.pi, np.pi / 100):
+        options = candidates(normal_angle)
+        assert len(options) == 3
+
+        # Check if the options are adjacent to the center cell
+        assert np.max(np.max(np.abs(options))) == 1, print(options)
+
+        # Check if the options are perpendicular to the direction we were sent in.
+        # Normal will be at cos(angle), sin(angle). Rotate by 90 degrees, results in -sin(angle), cos(angle)
+        direction = np.array([-np.sin(normal_angle), np.cos(normal_angle)])
+        direction = np.sign(np.round(direction))
+
+        assert np.allclose(np.sort([np.max(np.abs(direction - option)) for option in options]),
+                           [0, 1, 1]), f"Failed for normal angle {normal_angle} / direction {direction} => {options}"
