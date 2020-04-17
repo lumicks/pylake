@@ -1,5 +1,6 @@
 from ..parameters import Parameter
 from .derivative_manipulation import invert_function, invert_jacobian
+from .utilities import latex_sqrt, latex_frac, solve_formatter, solve_formatter_tex
 import numpy as np
 
 
@@ -10,9 +11,22 @@ class Defaults:
     St = Parameter(value=1500.0, lb=0.0, ub=np.inf, unit="pN")
 
 
-def offset_model(x, offset):
+def offset_equation(x, offset):
+    return offset
+
+
+def offset_equation_tex(x, offset):
+    return offset
+
+
+def distance_offset(F, offset):
     """Offset on the the model output."""
-    return offset * np.ones(x.shape)
+    return offset * np.ones(F.shape)
+
+
+def force_offset(d, offset):
+    """Offset on the the model output."""
+    return offset * np.ones(d.shape)
 
 
 def offset_model_jac(x, offset):
@@ -25,9 +39,17 @@ def offset_model_derivative(x, offset):
     return np.zeros(len(x))
 
 
+def Marko_Siggia_equation(d, Lp, Lc, kT):
+    return f"({kT}/{Lp}) * ((1/4) * (1-({d}/{Lc}))**(-2) + ({d}/{Lc}) - (1/4))"
+
+
+def Marko_Siggia_equation_tex(d, Lp, Lc, kT):
+    return (f"\\frac{{{kT}}}{{{Lp}}} \\left(\\frac{{1}}{{4}} \\left(1-\\frac{{{d}}}{{{Lc}}}\\right)^{{-2}} + "
+                f"\\frac{{{d}}}{{{Lc}}} - \\frac{{1}}{{4}}\\right)")
+
+
 def Marko_Siggia(d, Lp, Lc, kT):
-    """
-    Markov Siggia's Worm-like Chain model based on only entropic contributions. Valid for F < 10 pN).
+    """Markov Siggia's Worm-like Chain model based on only entropic contributions. Valid for F < 10 pN).
 
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
@@ -47,9 +69,16 @@ def Marko_Siggia_derivative(d, Lp, Lc, kT):
     return 0.5*Lc**2*kT/(Lp*(Lc - d)**3) + kT/(Lc*Lp)
 
 
+def WLC_equation(F, Lp, Lc, St, kT = 4.11):
+    return f"{Lc} * (1 - (1/2)*sqrt({kT}/({F}*{Lp})) + {F}/{St})"
+
+
+def WLC_equation_tex(F, Lp, Lc, St, kT = 4.11):
+    return f"{Lc} \\left(1 - \\frac{1}{2}\\sqrt{{\\frac{{{kT}}}{{{F} {Lp}}}}} + \\frac{{{F}}}{{{St}}}\\right)"
+
+
 def WLC(F, Lp, Lc, St, kT = 4.11):
-    """
-    Odijk's Extensible Worm-like Chain model
+    """Odijk's Extensible Worm-like Chain model
 
     References:
       1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
@@ -81,9 +110,22 @@ def WLC_jac(F, Lp, Lc, St, kT=4.11):
                      -0.25 * Lc * sqrt_term / kT))
 
 
+def tWLC_equation(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    g = f"({g0} + clip({g1}, {Fc}, inf))"
+
+    return f"{Lc} * (1 - (1 / 2) * sqrt({kT} / ({F} * {Lp})) + ({C} / (-{g}**2 + {St} * {C})) * {F})"
+
+
+def tWLC_equation_tex(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    g = f"\\left({g0} + \\max({g1}, {Fc})\\right)"
+    sqrt_term = latex_sqrt(latex_frac(kT, f"{F} {Lp}"))
+    stiff_term = latex_frac(C, f"-{g}^2 + {St} {C}")
+
+    return f"{Lc} \\left(1 - \\frac{{1}}{{2}} {sqrt_term} + {stiff_term}{F}\\right)"
+
+
 def tWLC(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    """
-    Twistable Worm-like Chain model
+    """Twistable Worm-like Chain model
 
     References:
        1. P. Gross et al., Quantifying how DNA stretches, melts and changes
@@ -157,9 +199,20 @@ def coth(x):
     return sol
 
 
+def FJC_equation(F, Lp, Lc, St, kT=4.11):
+    return f"{Lc} * (coth(2.0 * {F} * {Lp} / {kT}) - {kT} / (2 * {F} * {Lp})) * (1 + {F}/{St})"
+
+
+def FJC_equation_tex(F, Lp, Lc, St, kT=4.11):
+    frac1 = latex_frac(f"{F} {Lp}", kT)
+    frac2 = latex_frac(kT, f"2 {F} {Lp}")
+    frac3 = latex_frac(F, St)
+
+    return f"{Lc} \\left(coth\\left(2 {frac1}\\right) - {frac2}\\right) \\left(1 + {frac3}\\right)"
+
+
 def FJC(F, Lp, Lc, St, kT=4.11):
-    """
-    Freely-Jointed Chain
+    """Freely-Jointed Chain
 
     References:
        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
@@ -235,9 +288,16 @@ def solve_cubic_wlc(a, b, c, selected_root):
     return sol - a / 3.0
 
 
-def invWLC(distance, Lp, Lc, St, kT=4.11):
-    """
-    Inverted Odijk's Worm-like Chain model
+def invWLC_equation(d, Lp, Lc, St, kT=4.11):
+    return solve_formatter(WLC_equation_tex('F', Lp, Lc, St, kT), 'F', d)
+
+
+def invWLC_equation_tex(d, Lp, Lc, St, kT=4.11):
+    return solve_formatter_tex(WLC_equation_tex('F', Lp, Lc, St, kT), 'F', d)
+
+
+def invWLC(d, Lp, Lc, St, kT=4.11):
+    """Inverted Odijk's Worm-like Chain model
 
     References:
       1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
@@ -279,7 +339,7 @@ def invWLC(distance, Lp, Lc, St, kT=4.11):
     #   c = - 0.25 * gamma / denom = - gamma / (4 * beta * beta)
     #
     # We can see now that parameterizing w.r.t. St is easier than b and define:
-    alpha = (distance / Lc) - 1.0
+    alpha = (d / Lc) - 1.0
     gamma = kT / Lp
 
     a = - 2.0 * alpha * St
@@ -411,8 +471,8 @@ def invwlc_root_derivatives(a, b, c, selected_root):
     return total_dy_da, total_dy_db, total_dy_dc
 
 
-def invWLC_jac(distance, Lp, Lc, St, kT=4.11):
-    alpha = (distance / Lc) - 1.0
+def invWLC_jac(d, Lp, Lc, St, kT=4.11):
+    alpha = (d / Lc) - 1.0
     gamma = kT / Lp
 
     St_squared = St * St
@@ -423,9 +483,9 @@ def invWLC_jac(distance, Lp, Lc, St, kT=4.11):
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
-    da_dLc = 2.0 * St * distance / Lc ** 2
+    da_dLc = 2.0 * St * d / Lc ** 2
     da_dSt = - 2.0 * alpha
-    db_dLc = -2.0 * St ** 2 * distance * alpha / Lc ** 2
+    db_dLc = -2.0 * St ** 2 * d * alpha / Lc ** 2
     db_dSt = 2.0 * St * alpha ** 2
     dc_dLp = 0.25 * St_squared * kT / Lp ** 2
     dc_dSt = -0.5 * St * gamma
@@ -440,8 +500,8 @@ def invWLC_jac(distance, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def invWLC_derivative(distance, Lp, Lc, St, kT = 4.11):
-    alpha = (distance / Lc) - 1.0
+def invWLC_derivative(d, Lp, Lc, St, kT = 4.11):
+    alpha = (d / Lc) - 1.0
     gamma = kT / Lp
 
     St_squared = St * St
@@ -453,7 +513,7 @@ def invWLC_derivative(distance, Lp, Lc, St, kT = 4.11):
 
     # Map back to our output parameters
     da_dd = -2.0 * St / Lc
-    db_dd = 2 * St ** 2 * (-1.0 + distance / Lc) / Lc
+    db_dd = 2 * St ** 2 * (-1.0 + d / Lc) / Lc
 
     return total_dy_da * da_dd + total_dy_db * db_dd
 
@@ -491,9 +551,16 @@ def FJC_derivative(F, Lp, Lc, St, kT=4.11):
     return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1*sinh_term + x3/F**2)
 
 
+def invtWLC_equation(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return solve_formatter(tWLC_equation_tex('F', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'F', d)
+
+
+def invtWLC_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return solve_formatter_tex(tWLC_equation_tex('F', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'F', d)
+
+
 def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    """
-    Inverted Twistable Worm-like Chain model
+    """Inverted Twistable Worm-like Chain model
 
     References:
        1. P. Gross et al., Quantifying how DNA stretches, melts and changes
@@ -536,8 +603,7 @@ def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 
 
 def invFJC(d, Lp, Lc, St, kT=4.11):
-    """
-    Inverted Freely-Jointed Chain
+    """Inverted Freely-Jointed Chain
 
     References:
        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
@@ -574,47 +640,61 @@ def invFJC_jac(d, Lp, Lc, St, kT=4.11):
                            lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
 
 
-def marko_sigga_ewlc_solve_force(distance, Lp, Lc, St, kT=4.11):
+def marko_sigga_ewlc_solve_force_equation(d, Lp, Lc, St, kT=4.11):
+    return solve_formatter(f'(1/4) * (1 - ({d}/{Lc}) + (F/{St}))**(-2) - (1/4) + ({d}/{Lc}) - (F/{St})', "F",
+                           f'F*{Lp}/{kT}')
+
+
+def marko_sigga_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
+    dLc = latex_frac(d, Lc)
+    FSt = latex_frac("F", St)
+    lhs = latex_frac(f"F {Lp}", kT)
+
+    return solve_formatter_tex(f"{latex_frac(1, 4)}\\left(1 - {dLc} + {FSt}\\right)^{{-2}} - {latex_frac(1, 4)} + "
+                               f"{dLc} - {FSt}", "F", lhs)
+
+
+def marko_sigga_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
     """Margo-Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
     These equations were symbolically derived. The expressions are not pretty, but they work."""
-    c = -St ** 3 * distance * kT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
-    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 4.5 * Lc * distance * kT +
-                   Lp * St * distance ** 2 + 3 * distance ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
-    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
+    c = -St ** 3 * d * kT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / (Lc ** 3 * (Lp * St + kT))
+    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * d - 4.5 * Lc * d * kT +
+                   Lp * St * d ** 2 + 3 * d ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
+    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * d - 3 * d * kT) / (Lc * (Lp * St + kT))
 
     return solve_cubic_wlc(a, b, c, 2)
 
 
-def marko_sigga_ewlc_solve_force_jac(distance, Lp, Lc, St, kT=4.11):
-    c = -St ** 3 * distance * kT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
-    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 4.5 * Lc * distance * kT +
-                   Lp * St * distance ** 2 + 3 * distance ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
-    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
+def marko_sigga_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
+    c = -St ** 3 * d * kT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / (Lc ** 3 * (Lp * St + kT))
+    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * d - 4.5 * Lc * d * kT +
+                   Lp * St * d ** 2 + 3 * d ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
+    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * d - 3 * d * kT) / (Lc * (Lp * St + kT))
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     denom1 = (Lc ** 3 * (Lp * St + kT) ** 2)
     denom2 = (Lc * (Lp ** 2 * St ** 2 + 2.0 * Lp * St * kT + kT ** 2))
-    dkT = distance * kT
-    dc_dLc = St ** 3 * dkT * (1.5 * Lc ** 2 - 4.5 * Lc * distance + 3.0 * distance ** 2) / (Lc ** 4 * (Lp * St + kT))
-    dc_dSt = -St ** 2 * dkT * (2 * Lp * St + 3 * kT) * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / denom1
-    dc_dLp = St ** 4 * dkT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / denom1
-    dc_dkT = -Lp * St ** 4 * distance * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / denom1
-    db_dLc = St ** 2 * distance * (2.0 * Lc * Lp * St + 4.5 * Lc * kT - 2.0 * Lp * St * distance -
-                                   6.0 * distance * kT) / (Lc ** 3 * (Lp * St + kT))
+    dkT = d * kT
+    dc_dLc = St ** 3 * dkT * (1.5 * Lc ** 2 - 4.5 * Lc * d + 3.0 * d ** 2) / (Lc ** 4 * (Lp * St + kT))
+    dc_dSt = -St ** 2 * dkT * (2 * Lp * St + 3 * kT) * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / denom1
+    dc_dLp = St ** 4 * dkT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / denom1
+    dc_dkT = -Lp * St ** 4 * d * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / denom1
+    db_dLc = St ** 2 * d * (2.0 * Lc * Lp * St + 4.5 * Lc * kT - 2.0 * Lp * St * d -
+                                   6.0 * d * kT) / (Lc ** 3 * (Lp * St + kT))
     db_dSt = St * (2.0 * Lc ** 2 * Lp ** 2 * St ** 2 + 4.5 * Lc ** 2 * Lp * St * kT + 3.0 * Lc ** 2 * kT ** 2 -
-                   4.0 * Lc * Lp ** 2 * St ** 2 * distance - 10.5 * Lc * Lp * St * distance * kT -
-                   9.0 * Lc * distance * kT ** 2 + 2.0 * Lp ** 2 * St ** 2 * distance ** 2 +
-                   6.0 * Lp * St * distance ** 2 * kT + 6.0 * distance ** 2 * kT ** 2) / (Lc * denom2)
-    db_dLp = -St ** 3 * kT * (0.5 * Lc ** 2 - 2.5 * Lc * distance + 2.0 * distance ** 2) / (Lc * denom2)
-    db_dkT = Lp * St ** 3 * (0.5 * Lc ** 2 - 2.5 * Lc * distance + 2.0 * distance ** 2) / (Lc * denom2)
-    da_dLc = St * distance * (2 * Lp * St + 3 * kT) / (Lc ** 2 * (Lp * St + kT))
-    da_dSt = (-Lp * St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) +
-              (Lp * St + kT) * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance +
-                                2 * Lp * St * (Lc - distance) - 3 * distance * kT)) / (Lc * (Lp * St + kT) ** 2)
-    da_dLp = -St ** 2 * kT * (0.25 * Lc - distance) / denom2
-    da_dkT = Lp * St ** 2 * (0.25 * Lc - distance) / denom2
+                   4.0 * Lc * Lp ** 2 * St ** 2 * d - 10.5 * Lc * Lp * St * d * kT -
+                   9.0 * Lc * d * kT ** 2 + 2.0 * Lp ** 2 * St ** 2 * d ** 2 +
+                   6.0 * Lp * St * d ** 2 * kT + 6.0 * d ** 2 * kT ** 2) / (Lc * denom2)
+    db_dLp = -St ** 3 * kT * (0.5 * Lc ** 2 - 2.5 * Lc * d + 2.0 * d ** 2) / (Lc * denom2)
+    db_dkT = Lp * St ** 3 * (0.5 * Lc ** 2 - 2.5 * Lc * d + 2.0 * d ** 2) / (Lc * denom2)
+    da_dLc = St * d * (2 * Lp * St + 3 * kT) / (Lc ** 2 * (Lp * St + kT))
+    da_dSt = (-Lp * St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * d - 3 * d * kT) +
+              (Lp * St + kT) * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * d +
+                                2 * Lp * St * (Lc - d) - 3 * d * kT)) / (Lc * (Lp * St + kT) ** 2)
+    da_dLp = -St ** 2 * kT * (0.25 * Lc - d) / denom2
+    da_dkT = Lp * St ** 2 * (0.25 * Lc - d) / denom2
 
     # Terms multiplied by zero are omitted. Terms that are one are also omitted.
     total_dy_dLp = total_dy_da * da_dLp + total_dy_db * db_dLp + total_dy_dc * dc_dLp
@@ -625,21 +705,35 @@ def marko_sigga_ewlc_solve_force_jac(distance, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def marko_sigga_ewlc_solve_force_derivative(distance, Lp, Lc, St, kT = 4.11):
-    c = -St ** 3 * distance * kT * (1.5 * Lc ** 2 - 2.25 * Lc * distance + distance ** 2) / (Lc ** 3 * (Lp * St + kT))
-    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * distance - 4.5 * Lc * distance * kT +
-                   Lp * St * distance ** 2 + 3 * distance ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
-    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * distance - 3 * distance * kT) / (Lc * (Lp * St + kT))
+def marko_sigga_ewlc_solve_force_derivative(d, Lp, Lc, St, kT = 4.11):
+    c = -St ** 3 * d * kT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / (Lc ** 3 * (Lp * St + kT))
+    b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * d - 4.5 * Lc * d * kT +
+                   Lp * St * d ** 2 + 3 * d ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
+    a = St * (2 * Lc * Lp * St + 2.25 * Lc * kT - 2 * Lp * St * d - 3 * d * kT) / (Lc * (Lp * St + kT))
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     denom = (Lc * (Lp * St + kT))
-    dc_dd = -St ** 3 * kT * (1.5 * Lc ** 2 - 4.5 * Lc * distance + 3.0 * distance ** 2) / (Lc * Lc * denom)
-    db_dd = St ** 2 * (-2 * Lc * Lp * St - 4.5 * Lc * kT + 2 * Lp * St * distance + 6 * distance * kT) / (Lc * denom)
+    dc_dd = -St ** 3 * kT * (1.5 * Lc ** 2 - 4.5 * Lc * d + 3.0 * d ** 2) / (Lc * Lc * denom)
+    db_dd = St ** 2 * (-2 * Lc * Lp * St - 4.5 * Lc * kT + 2 * Lp * St * d + 6 * d * kT) / (Lc * denom)
     da_dd = -St * (2 * Lp * St + 3 * kT) / denom
 
     return total_dy_da * da_dd + total_dy_db * db_dd + total_dy_dc * dc_dd
+
+
+def marko_sigga_ewlc_solve_distance_equation(F, Lp, Lc, St, kT=4.11):
+    return solve_formatter(f'(1/4) * (1 - (d/{Lc}) + ({F}/{St}))**(-2) - (1/4) + (d/{Lc}) - ({F}/{St})',
+                           "d", f'{F}*{Lp}/{kT}')
+
+
+def marko_sigga_ewlc_solve_distance_equation_tex(F, Lp, Lc, St, kT=4.11):
+    dLc = latex_frac("d", Lc)
+    FSt = latex_frac(F, St)
+    lhs = latex_frac(f"{F} {Lp}", kT)
+
+    return solve_formatter_tex(f"{latex_frac(1, 4)}\\left(1 - {dLc} + {FSt}\\right)^{{-2}} - {latex_frac(1, 4)} + "
+                               f"{dLc} - {FSt}", "d", lhs)
 
 
 def marko_sigga_ewlc_solve_distance(F, Lp, Lc, St, kT=4.11):

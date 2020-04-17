@@ -114,6 +114,10 @@ class Parameters:
         table, header = self._print_data()
         return tabulate(table, header, tablefmt="html")
 
+    def _repr_(self):
+        table, header = self._print_data()
+        return tabulate(table, header, tablefmt="text")
+
     def __str__(self):
         if len(self._src) > 0:
             table, header = self._print_data()

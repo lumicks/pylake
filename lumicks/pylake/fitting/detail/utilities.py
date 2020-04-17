@@ -44,3 +44,28 @@ def print_styled(style, print_string, **kwargs):
     }
     if style in print_dict:
         print(print_dict[style] + print_string + '\033[0m')
+
+
+def latex_sqrt(arg):
+    return f"\\sqrt{{{arg}}}"
+
+
+def latex_frac(a, b):
+    return f"\\frac{{{a}}}{{{b}}}"
+
+
+def solve_formatter(a, solved_for, rhs):
+    return f"argmin[{solved_for}](norm({a}-{rhs}))"
+
+
+def solve_formatter_tex(a, solved_for, rhs):
+    norm = f"\\left\\|{a} - {rhs}\\right\\|"
+    return f"\\underset{{{solved_for}}}{{arg\\,min}}\\left({norm}_{2}\\right)"
+
+
+def escape_tex(name):
+    splits = name.split('_')
+    if len(splits) > 1:
+        return splits[0] + '_{' + '\\_'.join(splits[1:]) + '}'
+    else:
+        return name

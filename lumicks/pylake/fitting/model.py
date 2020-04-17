@@ -1,5 +1,6 @@
 from .fitdata import FitData
 from .parameters import Parameter, Parameters
+from .detail.utilities import solve_formatter, solve_formatter_tex, escape_tex
 from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
 from .detail.link_functions import generate_conditions
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
@@ -15,7 +16,8 @@ import matplotlib.pyplot as plt
 
 
 class Model:
-    def __init__(self, name, model_function, jacobian=None, derivative=None, **kwargs):
+    def __init__(self, name, model_function, dependent=None, jacobian=None, derivative=None, eqn=None, eqn_tex=None,
+                 **kwargs):
         """
         Model constructor. A Model must be named, and this name will appear in the model parameters.
         A model contains references to data associated with the model by using the member function load_data.
@@ -35,12 +37,18 @@ class Model:
         model_function: callable
             Function containing the model function. Must return the model prediction given values for the independent
             variable and parameters.
+        dependent: str (optional)
+            Name of the dependent variable
         jacobian: callable (optional)
             Function which computes the first order derivatives with respect to the parameters for this model.
             When supplied, this function is used to speed up the optimization considerably.
         derivative: callable (optional)
             Function which computes the first order derivative with respect to the independent parameter. When supplied
             this speeds up model inversions considerably.
+        eqn: str (optional)
+            Equation that this model is specified by.
+        eqn_tex: str (optional)
+            Equation that this model is specified by using TeX formatting.
         **kwargs
             Key pairs containing parameter defaults. For instance, Lc=Parameter(...)
 
@@ -73,8 +81,12 @@ class Model:
             return f"{name}_{x}"
 
         self.name = name
+        (self.eqn, self.eqn_tex) = (eqn, eqn_tex)
         self.model_function = model_function
-        parameter_names = inspect.getfullargspec(model_function).args[1:]
+        args = inspect.getfullargspec(model_function).args
+        parameter_names = args[1:]
+        self.independent = args[0]
+        self.dependent = dependent
 
         for key in kwargs:
             assert key in parameter_names, "Attempted to set default for parameter which is not present in model."
@@ -131,6 +143,34 @@ class Model:
         """
 
         return CompositeModel(self, other)
+
+    def _repr_html_(self):
+        doc_string = ''
+        try:
+            doc = self.model_function.__doc__.replace('\n', '  <br>\n')
+            doc_string = f"{doc}  <br><br>\n"
+        except AttributeError:
+            # If it is not a top level model, there will be no docstring. This is fine.
+            pass
+
+        equation = (f"${self.dependent} = "
+                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])} + "
+                    f"\\left({self.independent}\\right)$")
+
+        model_info = (f"{doc_string}Model equation:  <br><br>\n{equation}  <br><br>\n"
+                      f"Parameter defaults:  <br><br>\n"
+                      f"{Parameters(**self._parameters)._repr_html_()}  <br><br>\n")
+
+        return model_info
+
+    def __repr__(self):
+        equation = self.dependent + " = " + \
+                   self.eqn(self.independent, *[x for x in self._parameters.keys()]) + "(" + self.independent + ")"
+
+        model_info = f"Model equation:\n\n{equation}\n\nParameter defaults:\n\n" \
+                     f"{Parameters(**self._parameters)._repr_()}\n"
+
+        return model_info
 
     def invert(self):
         """
@@ -465,6 +505,17 @@ class CompositeModel(Model):
         self.lhs = lhs
         self.rhs = rhs
 
+        if self.lhs.independent and self.rhs.independent:
+            assert self.lhs.independent == self.rhs.independent, \
+                f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
+
+        if self.lhs.dependent and self.rhs.dependent:
+            assert self.lhs.dependent == self.rhs.dependent, \
+                f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+
+        self.independent = self.lhs.independent if self.lhs.independent else self.rhs.independent
+        self.dependent = self.lhs.dependent if self.lhs.dependent else self.rhs.dependent
+
         self.name = self.lhs.name + "_with_" + self.rhs.name
         self._parameters = OrderedDict()
         for i, v in self.lhs._parameters.items():
@@ -482,6 +533,14 @@ class CompositeModel(Model):
         self._data = []
         self._conditions = []
         self._built = False
+
+    def eqn(self, independent_name, *parameter_names):
+        return self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_parameters]) + " + " +\
+            self.rhs.eqn(independent_name, *[parameter_names[x] for x in self.rhs_parameters])
+
+    def eqn_tex(self, independent, *parameter_names):
+        return self.lhs.eqn_tex(independent, *[parameter_names[x] for x in self.lhs_parameters]) + \
+               " + " + self.rhs.eqn_tex(independent, *[parameter_names[x] for x in self.rhs_parameters])
 
     def _raw_call(self, independent, parameter_vector):
         lhs_residual = self.lhs._raw_call(independent, [parameter_vector[x] for x in self.lhs_parameters])
@@ -529,6 +588,21 @@ class InverseModel(Model):
         self._conditions = []
         self._built = False
         self.name = "inv(" + model.name + ")"
+
+    @property
+    def dependent(self):
+        return self.model.independent
+
+    @property
+    def independent(self):
+        return self.model.dependent
+
+    def eqn(self, independent_name, *parameter_names):
+        return solve_formatter(self.model.eqn(independent_name, *parameter_names), self.dependent, self.independent)
+
+    def eqn_tex(self, independent_name, *parameter_names):
+        return solve_formatter_tex(self.model.eqn_tex(independent_name, *[x for x in parameter_names]),
+                                   self.dependent, self.independent)
 
     def _raw_call(self, independent, parameter_vector):
         independent_min = 0
@@ -598,6 +672,14 @@ class SubtractIndependentOffset(Model):
     def _raw_call(self, independent, parameter_vector):
         return self.model._raw_call(independent - parameter_vector[self.offset_parameter],
                                     [parameter_vector[x] for x in self.model_parameters])
+
+    @property
+    def dependent(self):
+        return self.model.dependent
+
+    @property
+    def independent(self):
+        return self.model.independent
 
     @property
     def has_jacobian(self):

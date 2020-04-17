@@ -297,14 +297,14 @@ def test_jacobian_test_fitobject():
     x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     a_true, b_true = (5.0, 5.0)
     f_data = f(x, a_true, b_true)
-    model = Model("f", f, f_jac, f_der)
+    model = Model("f", f, jacobian=f_jac, derivative=f_der)
     model.load_data(x, f_data)
     fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
     assert fit_object.verify_jacobian(fit_object.parameters.values)
 
-    model_bad = Model("f", f, f_jac_wrong, f_der)
+    model_bad = Model("f", f, jacobian=f_jac_wrong, derivative=f_der)
     model_bad.load_data(x, f_data)
     fit_object_bad = FitObject(model_bad)
     fit_object_bad.parameters["f_a"].value = a_true
@@ -325,13 +325,13 @@ def test_integration_test_fitting():
         jacobian = np.vstack((np.ones(len(x)), x))
         return jacobian
 
-    assert Model("M", linear, linear_jac).has_jacobian
+    assert Model("M", linear, jacobian=linear_jac).has_jacobian
     assert not Model("M", linear).has_jacobian
 
-    model = Model("M", linear, linear_jac_wrong)
+    model = Model("M", linear, jacobian=linear_jac_wrong)
     assert not model.verify_jacobian([1, 2, 3], [1, 1])
 
-    model = Model("M", linear, linear_jac)
+    model = Model("M", linear, jacobian=linear_jac)
     x = np.arange(3)
     for i in np.arange(3):
         y = 4.0*x*i + 5.0
@@ -354,7 +354,7 @@ def test_integration_test_fitting():
     assert(np.isclose(fit.parameters["M_b_2"].value, 10))
 
     # Verify that fixed parameters are correctly removed from sub-models
-    model = Model("M", linear, linear_jac)
+    model = Model("M", linear, jacobian=linear_jac)
     model.load_data(x, 4.0*x + 5.0, M_a=4)
     model.load_data(x, 8.0*x + 10.0, M_b=10)
     fit = FitObject(model)
@@ -441,8 +441,8 @@ def test_model_composition():
     def g_der(x, a, d, b):
         return - b * np.ones((len(x))) + 2.0 * d * x
 
-    M1 = Model("M", f, f_jac, derivative=f_der)
-    M2 = Model("M", g, g_jac, derivative=g_der)
+    M1 = Model("M", f, jacobian=f_jac, derivative=f_der)
+    M2 = Model("M", g, jacobian=g_jac, derivative=g_der)
     t = np.arange(0, 2, .5)
 
     # Check actual composition
@@ -458,7 +458,7 @@ def test_model_composition():
     assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
     assert (M2 + M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
 
-    M1_wrong_jacobian = Model("M", f, f_jac_wrong, derivative=f_der)
+    M1_wrong_jacobian = Model("M", f, jacobian=f_jac_wrong, derivative=f_der)
     assert not (M1_wrong_jacobian + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
     assert not (M2 + M1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
@@ -470,7 +470,7 @@ def test_model_composition():
     assert InverseModel(M1 + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
     assert InverseModel(M1 + M2 + M1).verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1_wrong_derivative = Model("M", f, f_jac, derivative=f_der_wrong)
+    M1_wrong_derivative = Model("M", f, jacobian=f_jac, derivative=f_der_wrong)
     assert not (InverseModel(M1_wrong_derivative) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(M1_wrong_jacobian) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(M1_wrong_derivative) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
@@ -478,12 +478,24 @@ def test_model_composition():
     assert M1.subtract_independent_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert M1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + offset("f")
-    M2 = InverseModel(odijk("DNA") + offset("DNA_d")) + offset("f")
+    M1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + force_offset("f")
+    M2 = InverseModel(odijk("DNA") + distance_offset("DNA_d")) + force_offset("f")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
     assert np.allclose(M1._raw_call(t, p1), M2._raw_call(t, p2))
+
+    # Check whether incompatible variables are found
+    with pytest.raises(AssertionError):
+        distance_offset("d") + force_offset("f")
+
+    composite = (distance_offset("d") + odijk("DNA"))
+    assert composite.dependent == "d"
+    assert composite.independent == "F"
+
+    inverted = composite.invert()
+    assert inverted.dependent == "F"
+    assert inverted.independent == "d"
 
 
 def test_parameter_inversion():
@@ -509,7 +521,7 @@ def test_parameter_inversion():
     a_true = 5.0
     b_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
     f_data = f(x, a_true, b_true)
-    model = Model("f", f, f_jac, f_der)
+    model = Model("f", f, jacobian=f_jac, derivative=f_der)
     model.load_data(x, f_data)
     fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
@@ -520,7 +532,7 @@ def test_parameter_inversion():
     b_true = 3.0
     d_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
     f_plus_g_data = f(x, a_true, b_true) + g(x, a_true, d_true, b_true)
-    model = Model("f", f, f_jac, f_der) + Model("f", g, g_jac, g_der)
+    model = Model("f", f, jacobian=f_jac, derivative=f_der) + Model("f", g, jacobian=g_jac, derivative=g_der)
     model.load_data(x, f_data)
     fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
@@ -548,10 +560,10 @@ def test_uncertainty_analysis():
         J = np.vstack((x, np.ones(len(x))))
         return J
 
-    linear_model = Model("linear", linear, linear_jac)
+    linear_model = Model("linear", linear, jacobian=linear_jac)
     linear_model.load_data(x, y)
     linear_fit = FitObject(linear_model).fit()
-    model_quad = Model("quad", quad, quad_jac)
+    model_quad = Model("quad", quad, jacobian=quad_jac)
     model_quad.load_data(x, y)
     quad_fit = FitObject(model_quad).fit()
 
@@ -582,7 +594,7 @@ def test_parameter_availability():
         J = np.vstack((x, np.ones(len(x))))
         return J
 
-    linear_model = Model("linear", linear, linear_jac)
+    linear_model = Model("linear", linear, jacobian=linear_jac)
     linear_fit = FitObject(linear_model)
 
     with pytest.raises(IndexError):
@@ -636,3 +648,27 @@ def test_parameter_slicing():
     assert (parameter_slice["dummy_p2"].value == 2)
     parameter_slice = fit.parameters[data_set2]
     assert (parameter_slice["dummy_p2"].value == 5)
+
+
+def test_reprs():
+    assert odijk('test').__repr__
+    assert inverted_odijk('test').__repr__
+    assert freely_jointed_chain('test').__repr__
+    assert marko_siggia_simplified('test').__repr__
+    assert marko_siggia_ewlc_force('test').__repr__
+    assert marko_siggia_ewlc_distance('test').__repr__
+    assert inverted_freely_jointed_chain('test').__repr__
+    assert (odijk('test') + distance_offset('test')).__repr__
+    assert (odijk('test') + distance_offset('test')).invert().__repr__
+
+    assert odijk('test')._repr_html_
+    assert inverted_odijk('test')._repr_html_
+    assert freely_jointed_chain('test')._repr_html_
+    assert marko_siggia_simplified('test')._repr_html_
+    assert marko_siggia_ewlc_force('test')._repr_html_
+    assert marko_siggia_ewlc_distance('test')._repr_html_
+    assert inverted_freely_jointed_chain('test')._repr_html_
+    assert (odijk('test') + distance_offset('test'))._repr_html_
+    assert (odijk('test') + distance_offset('test')).invert()._repr_html_
+
+    assert (force_offset("a_b_c") + force_offset("b_c_d")).invert()._repr_html_().find(r"b_{c\_d\_offset") > 0

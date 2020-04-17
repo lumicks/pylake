@@ -27,7 +27,7 @@ Available models:
 """
 
 
-def offset(name):
+def force_offset(name):
     """Offset on the the model output.
 
     Parameters
@@ -36,12 +36,50 @@ def offset(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import offset_model, offset_model_jac, offset_model_derivative, Defaults
+    from .detail.model_implementation import (
+        force_offset,
+        offset_model_jac,
+        offset_model_derivative,
+        offset_equation,
+        offset_equation_tex
+    )
 
     return Model(
         name,
-        offset_model,
+        force_offset,
+        dependent="F",
+        jacobian=offset_model_jac,
+        eqn=offset_equation,
+        eqn_tex=offset_equation_tex,
+        derivative=offset_model_derivative,
+        offset=Parameter(value=0.01, lb=0, ub=np.inf),
+    )
+
+
+def distance_offset(name):
+    """Offset on the the model output.
+
+    Parameters
+    ----------
+    name: str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        distance_offset,
         offset_model_jac,
+        offset_model_derivative,
+        offset_equation,
+        offset_equation_tex
+    )
+
+    return Model(
+        name,
+        distance_offset,
+        dependent="d",
+        jacobian=offset_model_jac,
+        eqn=offset_equation,
+        eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
         offset=Parameter(value=0.01, lb=0, ub=np.inf),
     )
@@ -65,14 +103,19 @@ def marko_siggia_ewlc_force(name):
         marko_sigga_ewlc_solve_force,
         marko_sigga_ewlc_solve_force_jac,
         marko_sigga_ewlc_solve_force_derivative,
+        marko_sigga_ewlc_solve_force_equation,
+        marko_sigga_ewlc_solve_force_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
         marko_sigga_ewlc_solve_force,
-        marko_sigga_ewlc_solve_force_jac,
+        dependent="F",
+        jacobian=marko_sigga_ewlc_solve_force_jac,
         derivative=marko_sigga_ewlc_solve_force_derivative,
+        eqn=marko_sigga_ewlc_solve_force_equation,
+        eqn_tex=marko_sigga_ewlc_solve_force_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -98,14 +141,19 @@ def marko_siggia_ewlc_distance(name):
         marko_sigga_ewlc_solve_distance,
         marko_sigga_ewlc_solve_distance_jac,
         marko_sigga_ewlc_solve_distance_derivative,
+        marko_sigga_ewlc_solve_distance_equation,
+        marko_sigga_ewlc_solve_distance_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
         marko_sigga_ewlc_solve_distance,
-        marko_sigga_ewlc_solve_distance_jac,
+        dependent="d",
+        jacobian=marko_sigga_ewlc_solve_distance_jac,
         derivative=marko_sigga_ewlc_solve_distance_derivative,
+        eqn=marko_sigga_ewlc_solve_distance_equation,
+        eqn_tex=marko_sigga_ewlc_solve_distance_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -131,14 +179,19 @@ def marko_siggia_simplified(name):
         Marko_Siggia,
         Marko_Siggia_jac,
         Marko_Siggia_derivative,
+        Marko_Siggia_equation,
+        Marko_Siggia_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
         Marko_Siggia,
-        Marko_Siggia_jac,
+        dependent="F",
+        jacobian=Marko_Siggia_jac,
         derivative=Marko_Siggia_derivative,
+        eqn=Marko_Siggia_equation,
+        eqn_tex=Marko_Siggia_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -161,13 +214,16 @@ def odijk(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import WLC, WLC_jac, WLC_derivative, Defaults
+    from .detail.model_implementation import WLC, WLC_jac, WLC_derivative, WLC_equation, WLC_equation_tex, Defaults
 
     return Model(
         name,
         WLC,
-        WLC_jac,
+        dependent="d",
+        jacobian=WLC_jac,
         derivative=WLC_derivative,
+        eqn=WLC_equation,
+        eqn_tex=WLC_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -191,13 +247,23 @@ def inverted_odijk(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import invWLC, invWLC_jac, invWLC_derivative, Defaults
+    from .detail.model_implementation import (
+        invWLC,
+        invWLC_jac,
+        invWLC_derivative,
+        invWLC_equation,
+        invWLC_equation_tex,
+        Defaults
+    )
 
     return Model(
         name,
         invWLC,
-        invWLC_jac,
+        dependent="F",
+        jacobian=invWLC_jac,
         derivative=invWLC_derivative,
+        eqn=invWLC_equation,
+        eqn_tex=invWLC_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -222,12 +288,15 @@ def freely_jointed_chain(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import FJC, FJC_jac, FJC_derivative, Defaults
+    from .detail.model_implementation import FJC, FJC_jac, FJC_derivative, FJC_equation, FJC_equation_tex, Defaults
 
     return Model(
         name,
         FJC,
-        FJC_jac,
+        dependent="d",
+        jacobian=FJC_jac,
+        eqn=FJC_equation,
+        eqn_tex=FJC_equation_tex,
         derivative=FJC_derivative,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
@@ -273,13 +342,23 @@ def twistable_wlc(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import tWLC, tWLC_jac, tWLC_derivative, Defaults
+    from .detail.model_implementation import (
+        tWLC,
+        tWLC_jac,
+        tWLC_derivative,
+        tWLC_equation,
+        tWLC_equation_tex,
+        Defaults
+    )
 
     return Model(
         name,
         tWLC,
-        tWLC_jac,
+        dependent="d",
+        jacobian=tWLC_jac,
         derivative=tWLC_derivative,
+        eqn=tWLC_equation,
+        eqn_tex=tWLC_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -308,12 +387,21 @@ def inverted_twistable_wlc(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import invtWLC, invtWLC_jac, Defaults
+    from .detail.model_implementation import (
+        invtWLC,
+        invtWLC_jac,
+        invtWLC_equation,
+        invtWLC_equation_tex,
+        Defaults
+    )
 
     return Model(
         name,
         invtWLC,
-        invtWLC_jac,
+        dependent="F",
+        jacobian=invtWLC_jac,
+        eqn=invtWLC_equation,
+        eqn_tex=invtWLC_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,

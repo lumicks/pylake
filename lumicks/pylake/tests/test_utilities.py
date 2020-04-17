@@ -1,4 +1,5 @@
 from lumicks.pylake.detail.utilities import first, unique, get_color, lighten_color
+from lumicks.pylake.fitting.detail.utilities import escape_tex
 import pytest
 from matplotlib import colors
 import numpy as np
@@ -22,3 +23,10 @@ def test_unique():
 def test_colors():
     [colors.to_rgb(get_color(k)) for k in range(30)]
     assert np.allclose(lighten_color([0.5, 0, 0], .2), [.7, 0, 0])
+
+
+def escape_tex():
+    assert escape_tex('DNA_test_test') == 'DNA_{test\\_test}'
+    assert escape_tex('DNA_test') == 'DNA_{test}'
+    assert escape_tex('DNA_') == 'DNA\\_}'
+    assert escape_tex('DNA') == 'DNA'
