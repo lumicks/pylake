@@ -50,6 +50,53 @@ we have the inverted Odijk model::
     odijk_inverted = pylake.inverted_odijk("DNA")
 
 
+We can have a quick look at what this model looks like and which parameters are in there.
+
+    >>> pylake.inverted_odijk("DNA")
+
+.. raw:: html
+
+    Inverted Odijk's Worm-like Chain model  <br>
+      <br>
+        References:  <br>
+          1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules  <br>
+             28, 7016-7018 (1995).  <br>
+          2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching  <br>
+             DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).  <br>
+      <br>
+        Parameters  <br>
+        ----------  <br>
+        d : array_like  <br>
+            extension [um]  <br>
+        Lp : float  <br>
+            persistence length [nm]  <br>
+        Lc : float  <br>
+            contour length [um]  <br>
+        St : float  <br>
+            stretching modulus [pN]  <br>
+        kT : float  <br>
+            Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]  <br>
+          <br><br>
+    Model equation:  <br><br>
+
+.. math::
+    f(d) = \underset{f}{arg\,min}\left(\left\|DNA_{Lc} \left(1 - \frac12\sqrt{\frac{kT}{f DNA_{Lp}}} + \frac{f}{DNA_{St}}\right) - d\right\|_2\right)\left(d\right)
+
+.. raw:: html
+
+    Parameter defaults:  <br><br>
+    <table>
+    <thead>
+    <tr><th>Name  </th><th style="text-align: right;">  Value</th><th>Unit    </th><th>Fitted  </th><th style="text-align: right;">  Lower bound</th><th style="text-align: right;">  Upper bound</th></tr>
+    </thead>
+    <tbody>
+    <tr><td>DNA_Lp</td><td style="text-align: right;">  40   </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
+    <tr><td>DNA_Lc</td><td style="text-align: right;">  16   </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
+    <tr><td>DNA_St</td><td style="text-align: right;">1500   </td><td>[pN]    </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
+    <tr><td>kT    </td><td style="text-align: right;">   4.11</td><td>[pN*nm] </td><td>False   </td><td style="text-align: right;">            0</td><td style="text-align: right;">            8</td></tr>
+    </tbody>
+    </table>  <br><br>
+
 Now let's say we have acquired data, but we notice that the template matching wasn't completely 
 optimal. And that we had some force drift, while forgetting to reset the force back to zero. In
 this case, we can incorporate offsets in our model. We can introduce an offset in the independent
@@ -63,7 +110,7 @@ If we also expect an offset in the dependent parameter, we can simply add an off
 model::
 
 
-    odijk_with_offsets = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
+    odijk_with_offsets = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
 
 
 From the above example, you can see how easy it is to composite models. Sometimes, models become more 
@@ -71,7 +118,7 @@ complicated. For instance, we may have two worm like chain models that we wish t
 For the Odijk model, this can be done as follows::
 
 
-    two_odijk = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.offset("f")).invert()
+    two_odijk = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.force_offset("f")).invert()
 
 
 Note how we added three models and then inverted the composition of those models. The parentheses 
@@ -89,7 +136,7 @@ Next up, is loading some data. Let's assume we have two datasets. One was acquir
 of a ligand, and another was measured without a ligand. We expect this ligand to only affect the 
 contour length of our DNA. Loading the first dataset is simple::
 
-    data1 = odijk_with_offsets.load_data(distance1, force1, name="Control")
+    data1 = odijk_with_offsets.load_data(f=force1, d=distance1, name="Control")
 
 Note how load_data returns a handle to the loaded data. We store this in `data1`. Such handles 
 contain which parameters are used in that simulation condition. They can be used to get more fine
@@ -97,7 +144,7 @@ grained control over what is plotted or simulated. How exactly will be explained
 tutorial. For the second dataset, we want the contour length to be different. We can achieve
 this by renaming it when loading the data::
 
-    data2 = odijk_with_offsets.load_data(distance2, force2, name="RecA", DNA_Lc="DNA_Lc_RecA")
+    data2 = odijk_with_offsets.load_data(f=force2, d=distance2, name="RecA", DNA_Lc="DNA_Lc_RecA")
 
 More specifically, we renamed the parameter `DNA_Lc` to `DNA_Lc_RecA`. Sometimes, you may want
 a large number of datasets with different offsets. Assuming we have two lists of distance and
@@ -105,7 +152,7 @@ force vectors stored in the lists distances and forces. In this case, it may mak
 them in a loop and set such transformations programmatically::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_with_offsets.load_data(distance, force, name="RecA", f_offset=f"f_offset_{i}")
+        odijk_with_offsets.load_data(f=force, d=distance, name="RecA", f_offset=f"f_offset_{i}")
 
 The syntax `f"offset_{i}"` is parsed into `offset_0`, `offset_1` ... etc.
 
@@ -178,7 +225,7 @@ local fit, consider the following two examples::
 
     odijk_inv = pylake.inverted_odijk("DNA")
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_inv.load_data(distance, force, name="RecA")
+        odijk_inv.load_data(f=force, d=distance, name="RecA")
     odijk_fit = pylake.FitObject(odijk_inv)
     odijk_fit.fit()
     print(odijk_fit.parameters["DNA_Lc"])
@@ -187,7 +234,7 @@ and::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
         odijk_inv = pylake.inverted_odijk("DNA")
-        odijk_inv.load_data(distance, force, name="RecA")
+        odijk_inv.load_data(f=force, d=distance, name="RecA")
         odijk_fit = pylake.FitObject(odijk_inv)
         odijk_fit.fit()
         print(odijk_fit.parameters["DNA_Lc"])
@@ -205,7 +252,7 @@ are expected to differ in contour length, one can achieve this using::
 
     odijk_inv = pylake.inverted_odijk("DNA")
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_inv.load_data(distance, force, name="RecA", DNA_Lc=f"DNA_Lc_{i}")
+        odijk_inv.load_data(f=force, d=distance, name="RecA", DNA_Lc=f"DNA_Lc_{i}")
     odijk_fit = pylake.FitObject(odijk_inv)
     odijk_fit.fit()
     print(odijk_fit.parameters)
@@ -225,7 +272,7 @@ Fits can also be done incrementally::
 We can see that there are no parameters to be fitted (there is no data). Let's add some
 and fit this data::
 
-    >>> data1 = odijk_inv.load_data(d1, f1, name="Control")
+    >>> data1 = odijk_inv.load_data(f=f1, d=d1, name="Control")
     >>> odijk_fit.fit()
     >>> print(odijk_fit.parameters)
     Name         Value  Unit      Fitted      Lower bound    Upper bound
@@ -237,7 +284,7 @@ and fit this data::
 
 Let's add a second dataset where we expect a different contour length and refit::
 
-    >>> data2 = odijk_inv.load_data(d2, f2, name="RecA", DNA_Lc="DNA_Lc_RecA")
+    >>> data2 = odijk_inv.load_data(f=f2, d=d2, name="RecA", DNA_Lc="DNA_Lc_RecA")
     >>> print(odijk_fit.parameters)
     Name              Value  Unit      Fitted      Lower bound    Upper bound
     -----------  ----------  --------  --------  -------------  -------------
@@ -264,10 +311,10 @@ instance. In pylake, such an analysis can easily be performed. We first set up a
 fit it to some data. This is all analogous to what we've learned before::
 
     # Define the model to be fitted
-    model = pylake.inverted_odijk("model") + pylake.offset("f", "offset")
+    model = pylake.inverted_odijk("model") + pylake.force_offset("f", "offset")
 
     # Fit the overall model first
-    data_handle = model.load_data(distance, force)
+    data_handle = model.load_data(f=force, d=distance)
     current_fit = pylake.FitObject(model)
     current_fit.fit()
 

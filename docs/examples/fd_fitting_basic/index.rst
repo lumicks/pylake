@@ -36,7 +36,7 @@ however. To achieve this, we can invert the model. In addition, we incorporate
 an offset in both distance and force to compensate for small offsets that may
 exist in the data::
 
-    M_DNA = (pylake.twistable_wlc('DNA') + pylake.offset('d')).invert() + pylake.offset('f')
+    M_DNA = (pylake.twistable_wlc('DNA') + pylake.distance_offset('d')).invert() + pylake.force_offset('f')
 
 Load the data into the model
 ----------------------------
@@ -49,7 +49,7 @@ After this, we would like to fit the model to this data. To do this, we create
 a `FitObject`. These objects are used to keep track of the fitted parameters and
 optionally fit multiple models at once. In this example, we only fit a single model::
 
-    M_DNA.load_data(d, f, name="Twistable WLC")
+    M_DNA.load_data(f=f, d=d, name="Twistable WLC")
     F = pylake.FitObject(M_DNA)
 
 Fit the model

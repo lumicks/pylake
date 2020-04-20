@@ -53,7 +53,7 @@ class Parameters:
             if isinstance(value, Parameter):
                 self._src[key] = value
             else:
-                self._src[key] = Parameter(float(value))
+                self._src[key] = Parameter(float(value)) if value else Parameter(0)
 
     def __iter__(self):
         return self._src.__iter__()

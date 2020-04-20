@@ -156,8 +156,8 @@ def test_model_defaults():
         return (data - mu) * 2
 
     M = Model("M", g, f=Parameter(5))
-    M.load_data([1, 2, 3], [2, 3, 4])
-    M.load_data([1, 2, 3], [2, 3, 4], M_f='f_new')
+    M._load_data([1, 2, 3], [2, 3, 4])
+    M._load_data([1, 2, 3], [2, 3, 4], M_f='f_new')
     F = FitObject(M)
     F._build_fitobject()
 
@@ -188,7 +188,7 @@ def test_model_build_status():
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_f", "M_q"]
 
     M = Model("M", g, d=Parameter(4))
-    M.load_data([1, 2, 3], [2, 3, 4], M_c=4)
+    M._load_data([1, 2, 3], [2, 3, 4], M_c=4)
     assert not M._built
 
     mock_fit_object = 1
@@ -200,7 +200,7 @@ def test_model_build_status():
     assert not M.built_against(2)
 
     # Loading new data should invalidate the build
-    M.load_data([1, 2, 3], [2, 3, 4], M_c=5, M_f='f_new')
+    M._load_data([1, 2, 3], [2, 3, 4], M_c=5, M_f='f_new')
     assert not M._built
 
 
@@ -218,7 +218,7 @@ def test_model_fit_object_linking():
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_f", "M_q"]
     M = Model("M", g, d=Parameter(4))
     M2 = Model("M", h)
-    M.load_data([1, 2, 3], [2, 3, 4], M_c=4)
+    M._load_data([1, 2, 3], [2, 3, 4], M_c=4)
 
     # Model should not be built
     F = FitObject(M, M2)
@@ -236,7 +236,7 @@ def test_model_fit_object_linking():
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
     # Loading data should make it dirty again
-    M.load_data([1, 2, 3], [2, 3, 4], M_c=4, M_e="M_e_new")
+    M._load_data([1, 2, 3], [2, 3, 4], M_c=4, M_e="M_e_new")
     assert F.dirty
 
     # Check the parameters included in the model
@@ -252,7 +252,7 @@ def test_model_fit_object_linking():
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e_new", "M_f", "M_q"]
 
     # Load data into model 2
-    M2.load_data([1, 2, 3], [2, 3, 4], M_c=4, M_r=6)
+    M2._load_data([1, 2, 3], [2, 3, 4], M_c=4, M_r=6)
     assert F.dirty
 
     # Since M_r is set fixed in that model, it should not appear as a parameter
@@ -260,7 +260,7 @@ def test_model_fit_object_linking():
     assert set(F.parameters.keys) == set(all_parameters)
 
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_e_new", "M_f", "M_q", "M_r"]
-    M2.load_data([1, 2, 3], [2, 3, 4], M_c=4, M_e=5)
+    M2._load_data([1, 2, 3], [2, 3, 4], M_c=4, M_e=5)
     assert set(F.parameters.keys) == set(all_parameters)
     assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
@@ -298,14 +298,14 @@ def test_jacobian_test_fitobject():
     a_true, b_true = (5.0, 5.0)
     f_data = f(x, a_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der)
-    model.load_data(x, f_data)
+    model._load_data(x, f_data)
     fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
     assert fit_object.verify_jacobian(fit_object.parameters.values)
 
     model_bad = Model("f", f, jacobian=f_jac_wrong, derivative=f_der)
-    model_bad.load_data(x, f_data)
+    model_bad._load_data(x, f_data)
     fit_object_bad = FitObject(model_bad)
     fit_object_bad.parameters["f_a"].value = a_true
     fit_object_bad.parameters["f_b"].value = b_true
@@ -335,11 +335,11 @@ def test_integration_test_fitting():
     x = np.arange(3)
     for i in np.arange(3):
         y = 4.0*x*i + 5.0
-        model.load_data(x, y, M_a=f"slope_{i}")
+        model._load_data(x, y, M_a=f"slope_{i}")
     fit = FitObject(model)
 
     y = 4.0*x + 10.0
-    model.load_data(x, y, M_a="slope_1", M_b="M_b_2")
+    model._load_data(x, y, M_a="slope_1", M_b="M_b_2")
     fit.fit()
 
     assert(len(fit.parameters.values) == 5)
@@ -355,8 +355,8 @@ def test_integration_test_fitting():
 
     # Verify that fixed parameters are correctly removed from sub-models
     model = Model("M", linear, jacobian=linear_jac)
-    model.load_data(x, 4.0*x + 5.0, M_a=4)
-    model.load_data(x, 8.0*x + 10.0, M_b=10)
+    model._load_data(x, 4.0*x + 5.0, M_a=4)
+    model._load_data(x, 8.0*x + 10.0, M_b=10)
     fit = FitObject(model)
     fit.fit()
     assert (np.isclose(fit.parameters["M_b"].value, 5))
@@ -441,8 +441,8 @@ def test_model_composition():
     def g_der(x, a, d, b):
         return - b * np.ones((len(x))) + 2.0 * d * x
 
-    M1 = Model("M", f, jacobian=f_jac, derivative=f_der)
-    M2 = Model("M", g, jacobian=g_jac, derivative=g_der)
+    M1 = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der)
+    M2 = Model("M", g, dependent="x", jacobian=g_jac, derivative=g_der)
     t = np.arange(0, 2, .5)
 
     # Check actual composition
@@ -458,7 +458,7 @@ def test_model_composition():
     assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
     assert (M2 + M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
 
-    M1_wrong_jacobian = Model("M", f, jacobian=f_jac_wrong, derivative=f_der)
+    M1_wrong_jacobian = Model("M", f, dependent="x", jacobian=f_jac_wrong, derivative=f_der)
     assert not (M1_wrong_jacobian + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
     assert not (M2 + M1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
@@ -470,7 +470,7 @@ def test_model_composition():
     assert InverseModel(M1 + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
     assert InverseModel(M1 + M2 + M1).verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1_wrong_derivative = Model("M", f, jacobian=f_jac, derivative=f_der_wrong)
+    M1_wrong_derivative = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der_wrong)
     assert not (InverseModel(M1_wrong_derivative) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(M1_wrong_jacobian) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(M1_wrong_derivative) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
@@ -479,7 +479,7 @@ def test_model_composition():
     assert M1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
 
     M1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + force_offset("f")
-    M2 = InverseModel(odijk("DNA") + distance_offset("DNA_d")) + force_offset("f")
+    M2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
@@ -491,10 +491,10 @@ def test_model_composition():
 
     composite = (distance_offset("d") + odijk("DNA"))
     assert composite.dependent == "d"
-    assert composite.independent == "F"
+    assert composite.independent == "f"
 
     inverted = composite.invert()
-    assert inverted.dependent == "F"
+    assert inverted.dependent == "f"
     assert inverted.independent == "d"
 
 
@@ -522,7 +522,7 @@ def test_parameter_inversion():
     b_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
     f_data = f(x, a_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der)
-    model.load_data(x, f_data)
+    model._load_data(x, f_data)
     fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = 1.0
@@ -533,7 +533,7 @@ def test_parameter_inversion():
     d_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
     f_plus_g_data = f(x, a_true, b_true) + g(x, a_true, d_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der) + Model("f", g, jacobian=g_jac, derivative=g_der)
-    model.load_data(x, f_data)
+    model._load_data(x, f_data)
     fit_object = FitObject(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
@@ -561,10 +561,10 @@ def test_uncertainty_analysis():
         return J
 
     linear_model = Model("linear", linear, jacobian=linear_jac)
-    linear_model.load_data(x, y)
+    linear_model._load_data(x, y)
     linear_fit = FitObject(linear_model).fit()
     model_quad = Model("quad", quad, jacobian=quad_jac)
-    model_quad.load_data(x, y)
+    model_quad._load_data(x, y)
     quad_fit = FitObject(model_quad).fit()
 
     assert np.allclose(linear_fit.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
@@ -600,31 +600,31 @@ def test_parameter_availability():
     with pytest.raises(IndexError):
         linear_fit.parameters["linear_a"]
 
-    linear_model.load_data(x, y, linear_a=5)
+    linear_model._load_data(x, y, linear_a=5)
     linear_fit = FitObject(linear_model)
 
     # Parameter linear_a is not actually a parameter in the fit object at this point (it was set to 5)
     with pytest.raises(IndexError):
         linear_fit.parameters["linear_a"]
 
-    linear_model.load_data(x, y)
+    linear_model._load_data(x, y)
     assert linear_fit.parameters["linear_a"]
 
 
 def test_data_loading():
     M = Model("M", lambda x, a: a*x)
-    M.load_data([1, np.nan, 3], [2, np.nan, 4])
+    M._load_data([1, np.nan, 3], [2, np.nan, 4])
     assert np.allclose(M._data[0].x, [1, 3])
     assert np.allclose(M._data[0].y, [2, 4])
 
     with pytest.raises(AssertionError):
-        M.load_data([1, 3], [2, 4, 5])
+        M._load_data([1, 3], [2, 4, 5])
 
     with pytest.raises(AssertionError):
-        M.load_data([1, 3, 5], [2, 4])
+        M._load_data([1, 3, 5], [2, 4])
 
     with pytest.raises(AssertionError):
-        M.load_data([[1, 3, 5]], [[2, 4, 5]])
+        M._load_data([[1, 3, 5]], [[2, 4, 5]])
 
 
 def test_parameter_slicing():
@@ -636,13 +636,13 @@ def test_parameter_slicing():
 
     model = Model("dummy", dummy, p2=Parameter(2), p3=Parameter(3), p1=Parameter(1))
     fit = FitObject(model)
-    data_set = model.load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_b")
+    data_set = model._load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_b")
     parameter_slice = fit.parameters[data_set]
     assert (parameter_slice["dummy_p1"].value == 1)
     assert (parameter_slice["dummy_p2"].value == 2)
     assert (parameter_slice["dummy_p3"].value == 3)
 
-    data_set2 = model.load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_c")
+    data_set2 = model._load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_c")
     fit.parameters["dummy_p2_c"] = 5
     parameter_slice = fit.parameters[data_set]
     assert (parameter_slice["dummy_p2"].value == 2)
@@ -651,24 +651,26 @@ def test_parameter_slicing():
 
 
 def test_reprs():
-    assert odijk('test').__repr__
-    assert inverted_odijk('test').__repr__
-    assert freely_jointed_chain('test').__repr__
-    assert marko_siggia_simplified('test').__repr__
-    assert marko_siggia_ewlc_force('test').__repr__
-    assert marko_siggia_ewlc_distance('test').__repr__
-    assert inverted_freely_jointed_chain('test').__repr__
-    assert (odijk('test') + distance_offset('test')).__repr__
-    assert (odijk('test') + distance_offset('test')).invert().__repr__
+    assert odijk('test').__repr__()
+    assert inverted_odijk('test').__repr__()
+    assert freely_jointed_chain('test').__repr__()
+    assert marko_siggia_simplified('test').__repr__()
+    assert marko_siggia_ewlc_force('test').__repr__()
+    assert marko_siggia_ewlc_distance('test').__repr__()
+    assert inverted_freely_jointed_chain('test').__repr__()
+    assert (odijk('test') + distance_offset('test')).__repr__()
+    assert (odijk('test') + distance_offset('test')).invert().__repr__()
+    assert (odijk('test') + distance_offset('test')).subtract_independent_offset("test_offset").__repr__()
 
-    assert odijk('test')._repr_html_
-    assert inverted_odijk('test')._repr_html_
-    assert freely_jointed_chain('test')._repr_html_
-    assert marko_siggia_simplified('test')._repr_html_
-    assert marko_siggia_ewlc_force('test')._repr_html_
-    assert marko_siggia_ewlc_distance('test')._repr_html_
-    assert inverted_freely_jointed_chain('test')._repr_html_
-    assert (odijk('test') + distance_offset('test'))._repr_html_
-    assert (odijk('test') + distance_offset('test')).invert()._repr_html_
+    assert odijk('test')._repr_html_()
+    assert inverted_odijk('test')._repr_html_()
+    assert freely_jointed_chain('test')._repr_html_()
+    assert marko_siggia_simplified('test')._repr_html_()
+    assert marko_siggia_ewlc_force('test')._repr_html_()
+    assert marko_siggia_ewlc_distance('test')._repr_html_()
+    assert inverted_freely_jointed_chain('test')._repr_html_()
+    assert (odijk('test') + distance_offset('test'))._repr_html_()
+    assert (odijk('test') + distance_offset('test')).invert()._repr_html_()
+    assert (odijk('test') + distance_offset('test')).subtract_independent_offset("test_offset")._repr_html_()
 
     assert (force_offset("a_b_c") + force_offset("b_c_d")).invert()._repr_html_().find(r"b_{c\_d\_offset") > 0

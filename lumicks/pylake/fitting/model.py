@@ -16,11 +16,11 @@ import matplotlib.pyplot as plt
 
 
 class Model:
-    def __init__(self, name, model_function, dependent=None, jacobian=None, derivative=None, eqn=None, eqn_tex=None,
-                 **kwargs):
+    def __init__(self, name, model_function, dependent=None, independent=None, jacobian=None, derivative=None, eqn=None,
+                 eqn_tex=None, **kwargs):
         """
         Model constructor. A Model must be named, and this name will appear in the model parameters.
-        A model contains references to data associated with the model by using the member function load_data.
+        A model contains references to data associated with the model by using the member function _load_data.
 
         Prior to fitting the model will automatically generate a list of unique conditions (defined as conditions
         characterized by a unique set of conditions).
@@ -39,6 +39,8 @@ class Model:
             variable and parameters.
         dependent: str (optional)
             Name of the dependent variable
+        independent: str (optional)
+            Name of the independent variable
         jacobian: callable (optional)
             Function which computes the first order derivatives with respect to the parameters for this model.
             When supplied, this function is used to speed up the optimization considerably.
@@ -60,7 +62,7 @@ class Model:
 
             dna_model = pylake.inverted_odijk("DNA")
             fit = pylake.FitObject(dna_model)
-            data = dna_model.load_data(distance, force)
+            data = dna_model.load_data(f=force, d=distance)
 
             fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
             fit.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
@@ -83,9 +85,10 @@ class Model:
         self.name = name
         (self.eqn, self.eqn_tex) = (eqn, eqn_tex)
         self.model_function = model_function
+
         args = inspect.getfullargspec(model_function).args
         parameter_names = args[1:]
-        self.independent = args[0]
+        self.independent = independent if independent else args[0]
         self.dependent = dependent
 
         for key in kwargs:
@@ -153,9 +156,8 @@ class Model:
             # If it is not a top level model, there will be no docstring. This is fine.
             pass
 
-        equation = (f"${self.dependent} = "
-                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])} + "
-                    f"\\left({self.independent}\\right)$")
+        equation = (f"${self.dependent}\\left({self.independent}\\right) = "
+                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
 
         model_info = (f"{doc_string}Model equation:  <br><br>\n{equation}  <br><br>\n"
                       f"Parameter defaults:  <br><br>\n"
@@ -164,8 +166,7 @@ class Model:
         return model_info
 
     def __repr__(self):
-        equation = self.dependent + " = " + \
-                   self.eqn(self.independent, *[x for x in self._parameters.keys()]) + "(" + self.independent + ")"
+        equation = f"{self.dependent}({self.independent}) = {self.eqn(self.independent, *self.parameter_names)}"
 
         model_info = f"Model equation:\n\n{equation}\n\nParameter defaults:\n\n" \
                      f"{Parameters(**self._parameters)._repr_()}\n"
@@ -268,7 +269,7 @@ class Model:
     def built_against(self, fit_object):
         return self._built == fit_object
 
-    def load_data(self, x, y, name="", **kwargs):
+    def _load_data(self, x, y, name="", **kwargs):
         """
         Loads a data set for this model.
 
@@ -475,8 +476,8 @@ class Model:
         ::
 
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            d1 = dna_model.load_data(x1, y1, name="my first data set")
-            d2 = dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
+            d1 = dna_model.load_data(f=force1, d=distance1, name="my first data set")
+            d2 = dna_model.load_data(f=force2, d=distance2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
             fit = pylake.FitObject(dna_model)
             fit.fit()
             dna_model.plot(fit.parameters[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
@@ -505,16 +506,11 @@ class CompositeModel(Model):
         self.lhs = lhs
         self.rhs = rhs
 
-        if self.lhs.independent and self.rhs.independent:
-            assert self.lhs.independent == self.rhs.independent, \
-                f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
+        assert self.lhs.independent == self.rhs.independent, \
+            f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
 
-        if self.lhs.dependent and self.rhs.dependent:
-            assert self.lhs.dependent == self.rhs.dependent, \
-                f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
-
-        self.independent = self.lhs.independent if self.lhs.independent else self.rhs.independent
-        self.dependent = self.lhs.dependent if self.lhs.dependent else self.rhs.dependent
+        assert self.lhs.dependent == self.rhs.dependent, \
+            f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
 
         self.name = self.lhs.name + "_with_" + self.rhs.name
         self._parameters = OrderedDict()
@@ -533,6 +529,14 @@ class CompositeModel(Model):
         self._data = []
         self._conditions = []
         self._built = False
+
+    @property
+    def dependent(self):
+        return self.lhs.dependent
+
+    @property
+    def independent(self):
+        return self.lhs.independent
 
     def eqn(self, independent_name, *parameter_names):
         return self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_parameters]) + " + " +\
@@ -601,8 +605,8 @@ class InverseModel(Model):
         return solve_formatter(self.model.eqn(independent_name, *parameter_names), self.dependent, self.independent)
 
     def eqn_tex(self, independent_name, *parameter_names):
-        return solve_formatter_tex(self.model.eqn_tex(independent_name, *[x for x in parameter_names]),
-                                   self.dependent, self.independent)
+        return solve_formatter_tex(self.model.eqn_tex(independent_name, *parameter_names), self.dependent,
+                                   self.independent)
 
     def _raw_call(self, independent, parameter_vector):
         independent_min = 0
@@ -673,6 +677,14 @@ class SubtractIndependentOffset(Model):
         return self.model._raw_call(independent - parameter_vector[self.offset_parameter],
                                     [parameter_vector[x] for x in self.model_parameters])
 
+    def eqn(self, independent_name, *parameter_names):
+        return self.model.eqn(f"({independent_name} - {parameter_names[self.offset_parameter]})",
+                              *[parameter_names[x] for x in self.model_parameters])
+
+    def eqn_tex(self, independent_name, *parameter_names):
+        return self.model.eqn_tex(f"({independent_name} - {parameter_names[self.offset_parameter]})",
+                                  *[parameter_names[x] for x in self.model_parameters])
+
     @property
     def dependent(self):
         return self.model.dependent
@@ -704,3 +716,65 @@ class SubtractIndependentOffset(Model):
         if self.has_derivative:
             with_offset = independent - parameter_vector[self.offset_parameter]
             return self.model.derivative(with_offset, [parameter_vector[x] for x in self.model_parameters])
+
+
+class FdModel(Model):
+    def invert(self):
+        """Switch dependent and independent variable in the model."""
+        return FdInverseModel(self)
+
+    def __add__(self, other):
+        return FdCompositeModel(self, other)
+
+    def subtract_independent_offset(self, parameter_name="independent_offset"):
+        """Subtract a constant offset from independent variable of this model.
+
+        Parameters
+        ----------
+        parameter_name: str
+        """
+        return FdSubtractIndependentOffset(self, parameter_name)
+
+    def load_data(self, *, f, d, name="", **kwargs):
+        """
+        Loads a data set for this model.
+
+        Parameters
+        ----------
+        f: array_like
+            An array_like containing force data.
+        d: array_like
+            An array_like containing distance data.
+        name: str
+            Name of this data set.
+        **kwargs:
+            List of parameter transformations. These can be used to convert one parameter in the model, to a new
+            parameter name or constant for this specific dataset (for more information, see the examples).
+
+        Examples
+        --------
+        ::
+
+            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            dna_model.load_data(f=force1, d=distance1, name="my first data set")  # Load the first dataset like that
+            dna_model.load_data(f=force2, d=distance2, name="my first data set", DNA_Lc="DNA_Lc_RecA")  # Different contour length Lc
+
+            dna_model = pylake.inverted_odijk("DNA")
+            dna_model.load_data(f=force1, f=force2, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
+        """
+        if self.independent == "f":
+            return self._load_data(f, d, name, **kwargs)
+        else:
+            return self._load_data(d, f, name, **kwargs)
+
+
+class FdInverseModel(InverseModel, FdModel):
+    pass
+
+
+class FdCompositeModel(CompositeModel, FdModel):
+    pass
+
+
+class FdSubtractIndependentOffset(SubtractIndependentOffset, FdModel):
+    pass

@@ -27,10 +27,10 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
     --------
     ::
         # Define the model to be fitted
-        model = pylake.inverted_odijk("model") + pylake.offset("f", "offset")
+        model = pylake.inverted_odijk("model") + pylake.force_offset("f", "offset")
 
         # Fit the overall model first
-        data_handle = model.load_data(distance, force)
+        data_handle = model.load_data(d=distance, f=force)
         current_fit = pylake.FitObject(model)
         current_fit.fit()
 

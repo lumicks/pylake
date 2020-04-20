@@ -39,7 +39,7 @@ model is explicitly included as a separate model. When only a single WLC
 is needed, it is best to use this one, as it is considerably faster than
 explicitly inverting::
 
-    M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
+    M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
 
 Let's have a look at the parameters in this model::
 
@@ -64,13 +64,13 @@ to include and false for the data we wish to exclude::
 We can load data into the model by using the function `load_data`. Note
 that we apply the mask as we are loading the data using the square brackets::
 
-    data1 = M_DNA.load_data(d1[f1_mask], f1[f1_mask], name="Control")
+    data1 = M_DNA.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
 
 If parameters are expected to differ between conditions, we can rename them
 when loading the data. For the second data set, we expect the contour length
 and persistence length to be different. Let's rename these::
 
-    data2 = M_DNA.load_data(d2[f2_mask], f2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA")
+    data2 = M_DNA.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA")
 
 Set up the fit
 --------------
@@ -191,17 +191,17 @@ experiments. Let’s try including an extra parameter for the force offset
 of the second condition. Let’s also try a few different models to fit
 this data::
 
-    M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
-    M_DNA_MS = pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
+    M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
+    M_DNA_MS = pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
     
-    M_DNA.load_data(d1[f1_mask], f1[f1_mask], name="Control")
-    M_DNA.load_data(d2[f2_mask], f2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
+    M_DNA.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    M_DNA.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
     odijk_offset = pylake.FitObject(M_DNA)
     set_bounds(odijk_offset)
     odijk_offset.fit()
     
-    M_DNA_MS.load_data(d1[f1_mask], f1[f1_mask], name="Control")
-    M_DNA_MS.load_data(d2[f2_mask], f2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
+    M_DNA_MS.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    M_DNA_MS.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
     siggia_offset = pylake.FitObject(M_DNA_MS)
     set_bounds(siggia_offset)
     siggia_offset.fit();

@@ -106,10 +106,10 @@ constrain parameters that the datasets have in common. For these
 parameters a single, global value is found that holds for all data sets::
 
     # Construct a model for the DNA. We will use the inverted Odijk model.
-    dna_model = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.offset("f")
+    dna_model = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
     
     # Construct a model for the entire construct.
-    construct_model = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.offset("d")).invert() + pylake.offset("f")
+    construct_model = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.distance_offset("d")).invert() + pylake.force_offset("f")
     
     # Set up the fit object, which contains both models
     F = pylake.FitObject(dna_model, construct_model);
@@ -125,7 +125,7 @@ load the data corresponding to the folded state::
         end_time = f"{time_range[1]}s"
         force = d["piezo_force"][start_time:end_time].data
         distance = d["piezo_distance"][start_time:end_time].data
-        return model.load_data(distance[force < 30], force[force < 30], name=name, **kwargs)
+        return model.load_data(f=force[force < 30], d=distance[force < 30], name=name, **kwargs)
     
     # Folded data
     folded_handles = [

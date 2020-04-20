@@ -19,9 +19,9 @@ def offset_equation_tex(x, offset):
     return offset
 
 
-def distance_offset(F, offset):
+def distance_offset(f, offset):
     """Offset on the the model output."""
-    return offset * np.ones(F.shape)
+    return offset * np.ones(f.shape)
 
 
 def force_offset(d, offset):
@@ -69,15 +69,15 @@ def Marko_Siggia_derivative(d, Lp, Lc, kT):
     return 0.5*Lc**2*kT/(Lp*(Lc - d)**3) + kT/(Lc*Lp)
 
 
-def WLC_equation(F, Lp, Lc, St, kT = 4.11):
-    return f"{Lc} * (1 - (1/2)*sqrt({kT}/({F}*{Lp})) + {F}/{St})"
+def WLC_equation(f, Lp, Lc, St, kT = 4.11):
+    return f"{Lc} * (1 - (1/2)*sqrt({kT}/({f}*{Lp})) + {f}/{St})"
 
 
-def WLC_equation_tex(F, Lp, Lc, St, kT = 4.11):
-    return f"{Lc} \\left(1 - \\frac{1}{2}\\sqrt{{\\frac{{{kT}}}{{{F} {Lp}}}}} + \\frac{{{F}}}{{{St}}}\\right)"
+def WLC_equation_tex(f, Lp, Lc, St, kT = 4.11):
+    return f"{Lc} \\left(1 - \\frac{1}{2}\\sqrt{{\\frac{{{kT}}}{{{f} {Lp}}}}} + \\frac{{{f}}}{{{St}}}\\right)"
 
 
-def WLC(F, Lp, Lc, St, kT = 4.11):
+def WLC(f, Lp, Lc, St, kT = 4.11):
     """Odijk's Extensible Worm-like Chain model
 
     References:
@@ -88,7 +88,7 @@ def WLC(F, Lp, Lc, St, kT = 4.11):
 
     Parameters
     ----------
-    F : array_like
+    f : array_like
         force [pN]
     Lp : float
         persistence length [nm]
@@ -99,32 +99,32 @@ def WLC(F, Lp, Lc, St, kT = 4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    return Lc * (1.0 - 1.0/2.0*np.sqrt(kT/(F*Lp)) + F/St)
+    return Lc * (1.0 - 1.0/2.0*np.sqrt(kT/(f*Lp)) + f/St)
 
 
-def WLC_jac(F, Lp, Lc, St, kT=4.11):
-    sqrt_term = np.sqrt(kT / (F * Lp))
+def WLC_jac(f, Lp, Lc, St, kT=4.11):
+    sqrt_term = np.sqrt(kT / (f * Lp))
     return np.vstack((0.25 * Lc * sqrt_term / Lp,
-                     F / St - 0.5 * sqrt_term + 1.0,
-                     -F * Lc / (St * St),
+                     f / St - 0.5 * sqrt_term + 1.0,
+                     -f * Lc / (St * St),
                      -0.25 * Lc * sqrt_term / kT))
 
 
-def tWLC_equation(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def tWLC_equation(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     g = f"({g0} + clip({g1}, {Fc}, inf))"
 
-    return f"{Lc} * (1 - (1 / 2) * sqrt({kT} / ({F} * {Lp})) + ({C} / (-{g}**2 + {St} * {C})) * {F})"
+    return f"{Lc} * (1 - (1 / 2) * sqrt({kT} / ({f} * {Lp})) + ({C} / (-{g}**2 + {St} * {C})) * {f})"
 
 
-def tWLC_equation_tex(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def tWLC_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     g = f"\\left({g0} + \\max({g1}, {Fc})\\right)"
-    sqrt_term = latex_sqrt(latex_frac(kT, f"{F} {Lp}"))
+    sqrt_term = latex_sqrt(latex_frac(kT, f"{f} {Lp}"))
     stiff_term = latex_frac(C, f"-{g}^2 + {St} {C}")
 
-    return f"{Lc} \\left(1 - \\frac{{1}}{{2}} {sqrt_term} + {stiff_term}{F}\\right)"
+    return f"{Lc} \\left(1 - \\frac{{1}}{{2}} {sqrt_term} + {stiff_term}{f}\\right)"
 
 
-def tWLC(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """Twistable Worm-like Chain model
 
     References:
@@ -133,7 +133,7 @@ def tWLC(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 
     Parameters
     ----------
-    F : array_like
+    f : array_like
         force [pN]
     Lp : float
         persistence length [nm]
@@ -152,22 +152,22 @@ def tWLC(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    g = np.zeros(np.size(F))
-    g[F < Fc] = g0 + g1 * Fc
-    g[F >= Fc] = g0 + g1 * F[F >= Fc]
+    g = np.zeros(np.size(f))
+    g[f < Fc] = g0 + g1 * Fc
+    g[f >= Fc] = g0 + g1 * f[f >= Fc]
 
-    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (F * Lp)) + (C / (-g * g + St * C)) * F)
+    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (f * Lp)) + (C / (-g * g + St * C)) * f)
 
 
-def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def tWLC_jac(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     x0 = 1.0 / Lp
-    x1 = np.sqrt(kT * x0 / F)
+    x1 = np.sqrt(kT * x0 / f)
     x2 = 0.25 * Lc * x1
-    x3 = C * F
+    x3 = C * f
     x4 = C * St
-    x5 = F > Fc
-    x6 = F <= Fc
-    x7 = F * x5 + Fc * x6
+    x5 = f > Fc
+    x6 = f <= Fc
+    x7 = f * x5 + Fc * x6
     x8 = g0 + g1 * x7
     x9 = x8 * x8
     x10 = x4 - x9
@@ -179,15 +179,15 @@ def tWLC_jac(F, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 
     return np.vstack((x0 * x2,
                       -0.5 * x1 + x11 * x3 + 1.0,
-                      -C * C * F * Lc * x12,
-                      Lc * (F * x11 - F * x12 * x4),
+                      -C * C * f * Lc * x12,
+                      Lc * (f * x11 - f * x12 * x4),
                       x15 * x13 * x8,
                       x15 * x13 * x14 * x7 * x9,
                       g1 * x15 * x13 * x14 * x9 * x6,
                       -x2 / kT))
 
     # Not continuous derivatives were removed from the 8th parameter derivative:
-    # Original derivative was: g1 * x11 ** 2 * x13 * x14 * x9 * (F * Derivative(x5, Fc) + Fc * Derivative(x6, Fc) + x6)
+    # Original derivative was: g1 * x11 ** 2 * x13 * x14 * x9 * (f * Derivative(x5, Fc) + Fc * Derivative(x6, Fc) + x6)
 
 
 def coth(x):
@@ -199,19 +199,19 @@ def coth(x):
     return sol
 
 
-def FJC_equation(F, Lp, Lc, St, kT=4.11):
-    return f"{Lc} * (coth(2.0 * {F} * {Lp} / {kT}) - {kT} / (2 * {F} * {Lp})) * (1 + {F}/{St})"
+def FJC_equation(f, Lp, Lc, St, kT=4.11):
+    return f"{Lc} * (coth(2.0 * {f} * {Lp} / {kT}) - {kT} / (2 * {f} * {Lp})) * (1 + {f}/{St})"
 
 
-def FJC_equation_tex(F, Lp, Lc, St, kT=4.11):
-    frac1 = latex_frac(f"{F} {Lp}", kT)
-    frac2 = latex_frac(kT, f"2 {F} {Lp}")
-    frac3 = latex_frac(F, St)
+def FJC_equation_tex(f, Lp, Lc, St, kT=4.11):
+    frac1 = latex_frac(f"{f} {Lp}", kT)
+    frac2 = latex_frac(kT, f"2 {f} {Lp}")
+    frac3 = latex_frac(f, St)
 
     return f"{Lc} \\left(coth\\left(2 {frac1}\\right) - {frac2}\\right) \\left(1 + {frac3}\\right)"
 
 
-def FJC(F, Lp, Lc, St, kT=4.11):
+def FJC(f, Lp, Lc, St, kT=4.11):
     """Freely-Jointed Chain
 
     References:
@@ -234,23 +234,23 @@ def FJC(F, Lp, Lc, St, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
-    return Lc * (coth(2.0 * F * Lp / kT) - kT / (2.0 * F * Lp)) * (1.0 + F/St)
+    return Lc * (coth(2.0 * f * Lp / kT) - kT / (2.0 * f * Lp)) * (1.0 + f/St)
 
 
-def FJC_jac(F, Lp, Lc, St, kT=4.11):
-    x0 = 0.5 / F
-    x1 = 2.0 * F / kT
+def FJC_jac(f, Lp, Lc, St, kT=4.11):
+    x0 = 0.5 / f
+    x1 = 2.0 * f / kT
     x2 = Lp * x1
     x3 = np.zeros(x2.shape)
     x3[abs(x2) < 300] = np.sinh(x2[abs(x2) < 300]) ** (-2)
-    x4 = F / St + 1.0
+    x4 = f / St + 1.0
     x5 = Lc * x4
     x6 = x0 / Lp
     x7 = -kT * x6 + coth(x2)
     return np.vstack((x5 * (-x1 * x3 + kT * x0 / (Lp * Lp)),
                       x4 * x7,
-                      -F * Lc * x7 / (St*St),
-                      x5 * (2.0 * F * Lp * x3 / (kT*kT) - x6)))
+                      -f * Lc * x7 / (St*St),
+                      x5 * (2.0 * f * Lp * x3 / (kT*kT) - x6)))
 
 
 def solve_cubic_wlc(a, b, c, selected_root):
@@ -289,11 +289,11 @@ def solve_cubic_wlc(a, b, c, selected_root):
 
 
 def invWLC_equation(d, Lp, Lc, St, kT=4.11):
-    return solve_formatter(WLC_equation_tex('F', Lp, Lc, St, kT), 'F', d)
+    return solve_formatter(WLC_equation_tex('f', Lp, Lc, St, kT), 'f', d)
 
 
 def invWLC_equation_tex(d, Lp, Lc, St, kT=4.11):
-    return solve_formatter_tex(WLC_equation_tex('F', Lp, Lc, St, kT), 'F', d)
+    return solve_formatter_tex(WLC_equation_tex('f', Lp, Lc, St, kT), 'f', d)
 
 
 def invWLC(d, Lp, Lc, St, kT=4.11):
@@ -518,45 +518,45 @@ def invWLC_derivative(d, Lp, Lc, St, kT = 4.11):
     return total_dy_da * da_dd + total_dy_db * db_dd
 
 
-def WLC_derivative(F, Lp, Lc, St, kT = 4.11):
-    x0 = 1.0 / F
+def WLC_derivative(f, Lp, Lc, St, kT = 4.11):
+    x0 = 1.0 / f
     return Lc * (0.25 * x0 * np.sqrt(kT * x0 / Lp) + 1.0 / St)
 
 
-def tWLC_derivative(F, Lp, Lc, St, C, g0, g1, Fc, kT):
+def tWLC_derivative(f, Lp, Lc, St, C, g0, g1, Fc, kT):
     """Derivative of the tWLC model w.r.t. the independent variable"""
-    x0 = 1.0 / F
-    x1 = F > Fc
-    x2 = F <= Fc
-    x3 = g0 + g1 * (F * x1 + Fc * x2)
+    x0 = 1.0 / f
+    x1 = f > Fc
+    x2 = f <= Fc
+    x3 = g0 + g1 * (f * x1 + Fc * x2)
     x4 = x3 * x3
     x5 = 1.0 / (C * St - x4)
 
     # The derivative terms were omitted since they are incompatible with a smooth optimization algorithm.
-    # Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * (F * Derivative(x1, F) + Fc * Derivative(x2, F) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
-    return Lc * (2.0 * C * F * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp))
+    # Lc * (2.0 * C * f * g1 * x4 * x5 * x5 * (f * Derivative(x1, f) + Fc * Derivative(x2, f) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
+    return Lc * (2.0 * C * f * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp))
 
 
-def FJC_derivative(F, Lp, Lc, St, kT=4.11):
+def FJC_derivative(f, Lp, Lc, St, kT=4.11):
     """Derivative of the FJC model w.r.t. the independent variable"""
     x0 = 1.0/St
     x1 = 2.0*Lp/kT
-    x2 = F*x1
+    x2 = f*x1
     x3 = 0.5*kT/Lp
 
     # Overflow protection
     sinh_term = np.zeros(x2.shape)
     sinh_term[x2 < 300] = 1.0/np.sinh(x2[x2 < 300])**2
 
-    return Lc*x0*(coth(x2) - x3/F) + Lc*(F*x0 + 1.0)*(-x1*sinh_term + x3/F**2)
+    return Lc*x0*(coth(x2) - x3/f) + Lc*(f*x0 + 1.0)*(-x1*sinh_term + x3/f**2)
 
 
 def invtWLC_equation(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    return solve_formatter(tWLC_equation_tex('F', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'F', d)
+    return solve_formatter(tWLC_equation_tex('f', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'f', d)
 
 
 def invtWLC_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    return solve_formatter_tex(tWLC_equation_tex('F', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'F', d)
+    return solve_formatter_tex(tWLC_equation_tex('f', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'f', d)
 
 
 def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
@@ -641,17 +641,17 @@ def invFJC_jac(d, Lp, Lc, St, kT=4.11):
 
 
 def marko_sigga_ewlc_solve_force_equation(d, Lp, Lc, St, kT=4.11):
-    return solve_formatter(f'(1/4) * (1 - ({d}/{Lc}) + (F/{St}))**(-2) - (1/4) + ({d}/{Lc}) - (F/{St})', "F",
-                           f'F*{Lp}/{kT}')
+    return solve_formatter(f'(1/4) * (1 - ({d}/{Lc}) + (f/{St}))**(-2) - (1/4) + ({d}/{Lc}) - (f/{St})', "f",
+                           f'f*{Lp}/{kT}')
 
 
 def marko_sigga_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
     dLc = latex_frac(d, Lc)
-    FSt = latex_frac("F", St)
-    lhs = latex_frac(f"F {Lp}", kT)
+    FSt = latex_frac("f", St)
+    lhs = latex_frac(f"f {Lp}", kT)
 
     return solve_formatter_tex(f"{latex_frac(1, 4)}\\left(1 - {dLc} + {FSt}\\right)^{{-2}} - {latex_frac(1, 4)} + "
-                               f"{dLc} - {FSt}", "F", lhs)
+                               f"{dLc} - {FSt}", "f", lhs)
 
 
 def marko_sigga_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
@@ -722,50 +722,50 @@ def marko_sigga_ewlc_solve_force_derivative(d, Lp, Lc, St, kT = 4.11):
     return total_dy_da * da_dd + total_dy_db * db_dd + total_dy_dc * dc_dd
 
 
-def marko_sigga_ewlc_solve_distance_equation(F, Lp, Lc, St, kT=4.11):
-    return solve_formatter(f'(1/4) * (1 - (d/{Lc}) + ({F}/{St}))**(-2) - (1/4) + (d/{Lc}) - ({F}/{St})',
-                           "d", f'{F}*{Lp}/{kT}')
+def marko_sigga_ewlc_solve_distance_equation(f, Lp, Lc, St, kT=4.11):
+    return solve_formatter(f'(1/4) * (1 - (d/{Lc}) + ({f}/{St}))**(-2) - (1/4) + (d/{Lc}) - ({f}/{St})',
+                           "d", f'{f}*{Lp}/{kT}')
 
 
-def marko_sigga_ewlc_solve_distance_equation_tex(F, Lp, Lc, St, kT=4.11):
+def marko_sigga_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
     dLc = latex_frac("d", Lc)
-    FSt = latex_frac(F, St)
-    lhs = latex_frac(f"{F} {Lp}", kT)
+    FSt = latex_frac(f, St)
+    lhs = latex_frac(f"{f} {Lp}", kT)
 
     return solve_formatter_tex(f"{latex_frac(1, 4)}\\left(1 - {dLc} + {FSt}\\right)^{{-2}} - {latex_frac(1, 4)} + "
                                f"{dLc} - {FSt}", "d", lhs)
 
 
-def marko_sigga_ewlc_solve_distance(F, Lp, Lc, St, kT=4.11):
-    c = -F * Lc ** 3 * (F ** 2 * Lp * St + F ** 2 * kT + 2 * F * Lp * St ** 2 + 2.25 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
-    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 4.5 * F * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
-    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 2.25 * Lc
+def marko_sigga_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
+    c = -f * Lc ** 3 * (f ** 2 * Lp * St + f ** 2 * kT + 2 * f * Lp * St ** 2 + 2.25 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    b = Lc ** 2 * (2 * f ** 2 * Lp * St + 3 * f ** 2 * kT + 2 * f * Lp * St ** 2 + 4.5 * f * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
+    a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
 
     return solve_cubic_wlc(a, b, c, 1)
 
 
-def marko_sigga_ewlc_solve_distance_jac(F, Lp, Lc, St, kT=4.11):
-    c = -F * Lc ** 3 * (F ** 2 * Lp * St + F ** 2 * kT + 2 * F * Lp * St ** 2 + 2.25 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
-    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * F ** 2 * kT + 2 * F * Lp * St ** 2 + 4.5 * F * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
-    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 2.25 * Lc
+def marko_sigga_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
+    c = -f * Lc ** 3 * (f ** 2 * Lp * St + f ** 2 * kT + 2 * f * Lp * St ** 2 + 2.25 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    b = Lc ** 2 * (2 * f ** 2 * Lp * St + 3 * f ** 2 * kT + 2 * f * Lp * St ** 2 + 4.5 * f * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
+    a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
 
     # Map back to our output parameters
-    dc_dLc = -3 * F * Lc ** 2 * (F ** 2 * Lp * St + F ** 2 * kT + 2 * F * Lp * St ** 2 + 2.25 * F * St * kT +
+    dc_dLc = -3 * f * Lc ** 2 * (f ** 2 * Lp * St + f ** 2 * kT + 2 * f * Lp * St ** 2 + 2.25 * f * St * kT +
                                  Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
-    dc_dSt = F * Lc ** 3 * (2.0 * F ** 2 * Lp * St + 3.0 * F ** 2 * kT + 2.0 * F * Lp * St ** 2 + 4.5 * F * St * kT +
+    dc_dSt = f * Lc ** 3 * (2.0 * f ** 2 * Lp * St + 3.0 * f ** 2 * kT + 2.0 * f * Lp * St ** 2 + 4.5 * f * St * kT +
                             1.5 * St ** 2 * kT) / (St ** 4 * kT)
-    dc_dLp = -F * Lc ** 3 * (F ** 2 + 2 * F * St + St ** 2) / (St ** 2 * kT)
-    dc_dkT = F * Lc ** 3 * Lp * (F ** 2 + 2 * F * St + St ** 2) / (St ** 2 * kT ** 2)
-    db_dLc = 4 * F ** 2 * Lc * Lp / (St * kT) + 6 * F ** 2 * Lc / St ** 2 + 4 * F * Lc * Lp / kT + 9.0 * F * Lc / St + 3.0 * Lc
-    db_dSt = -F * Lc ** 2 * (2.0 * F * Lp * St + 6.0 * F * kT + 4.5 * St * kT) / (St ** 3 * kT)
-    db_dLp = 2 * F * Lc ** 2 * (F + St) / (St * kT)
-    db_dkT = -2 * F * Lc ** 2 * Lp * (F + St) / (St * kT ** 2)
-    da_dLc = -F * Lp / kT - 3 * F / St - 2.25
-    da_dSt = 3 * F * Lc / St ** 2
-    da_dLp = -F * Lc / kT
-    da_dkT = F * Lc * Lp / kT ** 2
+    dc_dLp = -f * Lc ** 3 * (f ** 2 + 2 * f * St + St ** 2) / (St ** 2 * kT)
+    dc_dkT = f * Lc ** 3 * Lp * (f ** 2 + 2 * f * St + St ** 2) / (St ** 2 * kT ** 2)
+    db_dLc = 4 * f ** 2 * Lc * Lp / (St * kT) + 6 * f ** 2 * Lc / St ** 2 + 4 * f * Lc * Lp / kT + 9.0 * f * Lc / St + 3.0 * Lc
+    db_dSt = -f * Lc ** 2 * (2.0 * f * Lp * St + 6.0 * f * kT + 4.5 * St * kT) / (St ** 3 * kT)
+    db_dLp = 2 * f * Lc ** 2 * (f + St) / (St * kT)
+    db_dkT = -2 * f * Lc ** 2 * Lp * (f + St) / (St * kT ** 2)
+    da_dLc = -f * Lp / kT - 3 * f / St - 2.25
+    da_dSt = 3 * f * Lc / St ** 2
+    da_dLp = -f * Lc / kT
+    da_dkT = f * Lc * Lp / kT ** 2
 
     # Terms multiplied by zero are omitted. Terms that are one are also omitted.
     total_dy_dLp = total_dy_da * da_dLp + total_dy_db * db_dLp + total_dy_dc * dc_dLp
@@ -776,20 +776,20 @@ def marko_sigga_ewlc_solve_distance_jac(F, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def marko_sigga_ewlc_solve_distance_derivative(F, Lp, Lc, St, kT = 4.11):
-    Fsq = F * F
-    c = -F * Lc ** 3 * (F ** 2 * Lp * St + Fsq * kT + 2 * F * Lp * St ** 2 +
-                        2.25 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
-    b = Lc ** 2 * (2 * F ** 2 * Lp * St + 3 * Fsq * kT + 2 * F * Lp * St ** 2 +
-                   4.5 * F * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
-    a = -F * Lc * Lp / kT - 3 * F * Lc / St - 2.25 * Lc
+def marko_sigga_ewlc_solve_distance_derivative(f, Lp, Lc, St, kT = 4.11):
+    fsq = f * f
+    c = -f * Lc ** 3 * (f ** 2 * Lp * St + fsq * kT + 2 * f * Lp * St ** 2 +
+                        2.25 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    b = Lc ** 2 * (2 * f ** 2 * Lp * St + 3 * fsq * kT + 2 * f * Lp * St ** 2 +
+                   4.5 * f * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
+    a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
 
     # Map back to our output parameters
-    dc_dF = -Lc ** 3 * (3.0 * Fsq * Lp * St + 3.0 * Fsq * kT + 4.0 * F * Lp * St ** 2 +
-                        4.5 * F * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
-    db_dF = Lc ** 2 * (4 * F * Lp * St + 6 * F * kT + 2 * Lp * St ** 2 + 4.5 * St * kT) / (St ** 2 * kT)
-    da_dF = -Lc * Lp / kT - 3 * Lc / St
+    dc_df = -Lc ** 3 * (3.0 * fsq * Lp * St + 3.0 * fsq * kT + 4.0 * f * Lp * St ** 2 +
+                        4.5 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
+    db_df = Lc ** 2 * (4 * f * Lp * St + 6 * f * kT + 2 * Lp * St ** 2 + 4.5 * St * kT) / (St ** 2 * kT)
+    da_df = -Lc * Lp / kT - 3 * Lc / St
 
-    return total_dy_da * da_dF + total_dy_db * db_dF + total_dy_dc * dc_dF
+    return total_dy_da * da_df + total_dy_db * db_df + total_dy_dc * dc_df
