@@ -105,54 +105,50 @@ Plotting the fit alongside the data is easy. Simply call the plot function
 on the fitobject (i.e. `F.plot()`). Similarly, we can print the parameters 
 to a table by invoking `F.parameters`::
 
-    F.plot()
-    plt.ylabel('Force [pN]')
-    plt.xlabel('Distance [$\\mu$M]');
-    F.parameters
+    >>> F.plot()
+    >>> plt.ylabel('Force [pN]')
+    >>> plt.xlabel('Distance [$\\mu$M]');
+    >>> F.parameters
 
-.. raw:: html
-
-    <table>
-    <thead>
-    <tr><th>Name       </th><th style="text-align: right;">      Value</th><th>Unit    </th><th>Fitted  </th><th style="text-align: right;">  Lower bound</th><th style="text-align: right;">  Upper bound</th></tr>
-    </thead>
-    <tbody>
-    <tr><td>d_offset   </td><td style="text-align: right;">  -0.299   </td><td>NA      </td><td>True    </td><td style="text-align: right;">         -inf</td><td style="text-align: right;">            5</td></tr>
-    <tr><td>DNA_Lp     </td><td style="text-align: right;">  66.8239  </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">           39</td><td style="text-align: right;">           80</td></tr>
-    <tr><td>DNA_Lc     </td><td style="text-align: right;">   3.12586 </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_St     </td><td style="text-align: right;">2000       </td><td>[pN]    </td><td>True    </td><td style="text-align: right;">          700</td><td style="text-align: right;">         2000</td></tr>
-    <tr><td>kT         </td><td style="text-align: right;">   4.11    </td><td>[pN*nm] </td><td>False   </td><td style="text-align: right;">            0</td><td style="text-align: right;">            8</td></tr>
-    <tr><td>f_offset   </td><td style="text-align: right;">   0.287546</td><td>NA      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_Lp_RecA</td><td style="text-align: right;"> 238.134   </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">           39</td><td style="text-align: right;">          280</td></tr>
-    <tr><td>DNA_Lc_RecA</td><td style="text-align: right;">   4.04548 </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    </tbody>
-    </table>
-
+    Name               Value  Unit      Fitted      Lower bound    Upper bound
+    -----------  -----------  --------  --------  -------------  -------------
+    d_offset       -0.299     NA        True               -inf              5
+    DNA_Lp         66.8239    [nm]      True                 39             80
+    DNA_Lc          3.12586   [micron]  True                  0            inf
+    DNA_St       2000         [pN]      True                700           2000
+    kT              4.11      [pN*nm]   False                 0              8
+    f_offset        0.287546  NA        True                  0            inf
+    DNA_Lp_RecA   238.134     [nm]      True                 39            280
+    DNA_Lc_RecA     4.04548   [micron]  True                  0            inf
 
 .. image:: output_10_2.png
 
-Let's print some of our parameters. The parameter we are most interested in is
-the contour length difference. We multiply by 1000 since we desire this value
-in nanometers::
+We would like to compare the two modelled curves. Plotting these is easy. We can tell the model
+to plot the model for a specific data set by slicing the parameters from our fit with the
+appropriate data handle: `F.parameters[data1]`. This slice procedure collects exactly those
+parameters needed to simulate that condition. The second argument contains the values for the
+independent variable that we wish to simulate for::
 
-    M_DNA.plot(F.parameters, data1, 'r--', np.arange(2.1, 5.0, .01))
-    M_DNA.plot(F.parameters, data2, 'r--', np.arange(2.1, 5.0, .01))
+    M_DNA.plot(F.parameters[data1], np.arange(2.1, 5.0, .01), 'r--')
+    M_DNA.plot(F.parameters[data2], np.arange(2.1, 5.0, .01), 'r--')
     plt.ylabel('Force [pN]')
     plt.xlabel('Distance [$\\mu$M]')
     plt.ylim([0, 30])
     plt.xlim([2, 4])
-    
-    print(f"Boltzmann * Temperature: {F.parameters['kT'].value:.2f} [pN nm]")
-    print(f"Force offset: {F.parameters['f_offset'].value:.2f} [pN]")
-    print(f"Distance offset: {F.parameters['d_offset'].value * 1000:.2f} [nm]")
-    print(f"DNA persistence Length: {F.parameters['DNA_Lp'].value:.2f} [nm]")
-    print(f"DNA contour Length: {F.parameters['DNA_Lc'].value * 1000:.2f} [nm]")
-    print(f"Stretch modulus: {F.parameters['DNA_St'].value:.2f} [pN]")
-    print(f"Contour length difference: {(F.parameters['DNA_Lc_RecA'].value - F.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
-    print(f"Residual: {sum(F._calculate_residual()**2)}")
 
+.. image:: output_11_2.png
 
-.. parsed-literal::
+Let's print some of our parameters. The parameter we are most interested in is the contour
+length difference due to RecA. We multiply by 1000 since we desire this value in nanometers::
+
+    >>> print(f"Boltzmann * Temperature: {F.parameters['kT'].value:.2f} [pN nm]")
+    >>> print(f"Force offset: {F.parameters['f_offset'].value:.2f} [pN]")
+    >>> print(f"Distance offset: {F.parameters['d_offset'].value * 1000:.2f} [nm]")
+    >>> print(f"DNA persistence Length: {F.parameters['DNA_Lp'].value:.2f} [nm]")
+    >>> print(f"DNA contour Length: {F.parameters['DNA_Lc'].value * 1000:.2f} [nm]")
+    >>> print(f"Stretch modulus: {F.parameters['DNA_St'].value:.2f} [pN]")
+    >>> print(f"Contour length difference: {(F.parameters['DNA_Lc_RecA'].value - F.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    >>> print(f"Residual: {sum(F._calculate_residual()**2)}")
 
     Boltzmann * Temperature: 4.11 [pN nm]
     Force offset: 0.29 [pN]
@@ -162,9 +158,6 @@ in nanometers::
     Stretch modulus: 2000.00 [pN]
     Contour length difference: 919.62 [nm]
     Residual: 1151.327895904549
-    
-
-.. image:: output_11_2.png
 
 
 Take a closer look at the fit
@@ -222,20 +215,15 @@ increasing our confidence in our results::
     siggia_offset.plot()
     plt.title('Marko-Siggia')
     plt.ylim([0,10])
-    
-    print(f"Contour length difference Odijk: {(odijk_offset.parameters['DNA_Lc_RecA'].value - odijk_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
-    print(f"Contour length difference Marko-Siggia: {(siggia_offset.parameters['DNA_Lc_RecA'].value - siggia_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
-
-
-.. parsed-literal::
-
-    Contour length difference Odijk: 911.70 [nm]
-    Contour length difference Marko-Siggia: 913.09 [nm]
-    
-
 
 .. image:: output_17_1.png
 
+Let's look at both contour length differences::
+
+    >>> print(f"Contour length difference Odijk: {(odijk_offset.parameters['DNA_Lc_RecA'].value - odijk_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    >>> print(f"Contour length difference Marko-Siggia: {(siggia_offset.parameters['DNA_Lc_RecA'].value - siggia_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    Contour length difference Odijk: 911.70 [nm]
+    Contour length difference Marko-Siggia: 913.09 [nm]
 
 Which fit is statistically optimal
 ----------------------------------
@@ -255,18 +243,14 @@ Generally it is always a good idea to try multiple models, and multiple
 sets of bound constraints, to get a feel for how reliable the estimates
 are::
 
-    print("Corrected Akaike Information Criterion")
-    print(f"Odijk Model with single force offset {F.aicc}")
-    print(f"Odijk Model with two force offsets {odijk_offset.aicc}")
-    print(f"Marko-Siggia Model with two force offsets {siggia_offset.aicc}")
-    
-    print("Bayesian Information Criterion")
-    print(f"Odijk Model with single force offset {F.bic}")
-    print(f"Odijk Model with two force offsets {odijk_offset.bic}")
-    print(f"Marko-Siggia Model with two force offsets {siggia_offset.bic}")
-
-
-.. parsed-literal::
+    >>> print("Corrected Akaike Information Criterion")
+    >>> print(f"Odijk Model with single force offset {F.aicc}")
+    >>> print(f"Odijk Model with two force offsets {odijk_offset.aicc}")
+    >>> print(f"Marko-Siggia Model with two force offsets {siggia_offset.aicc}")
+    >>> print("Bayesian Information Criterion")
+    >>> print(f"Odijk Model with single force offset {F.bic}")
+    >>> print(f"Odijk Model with two force offsets {odijk_offset.bic}")
+    >>> print(f"Marko-Siggia Model with two force offsets {siggia_offset.bic}")
 
     Corrected Akaike Information Criterion
     Odijk Model with single force offset 7067.68118147101
@@ -280,56 +264,34 @@ are::
 
 Again, we also look at the parameters::
 
-    F.parameters
+    >>> F.parameters
 
-
-
-
-.. raw:: html
-
-    <table>
-    <thead>
-    <tr><th>Name       </th><th style="text-align: right;">      Value</th><th>Unit    </th><th>Fitted  </th><th style="text-align: right;">  Lower bound</th><th style="text-align: right;">  Upper bound</th></tr>
-    </thead>
-    <tbody>
-    <tr><td>d_offset   </td><td style="text-align: right;">  -0.299   </td><td>NA      </td><td>True    </td><td style="text-align: right;">         -inf</td><td style="text-align: right;">            5</td></tr>
-    <tr><td>DNA_Lp     </td><td style="text-align: right;">  66.8239  </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">           39</td><td style="text-align: right;">           80</td></tr>
-    <tr><td>DNA_Lc     </td><td style="text-align: right;">   3.12586 </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_St     </td><td style="text-align: right;">2000       </td><td>[pN]    </td><td>True    </td><td style="text-align: right;">          700</td><td style="text-align: right;">         2000</td></tr>
-    <tr><td>kT         </td><td style="text-align: right;">   4.11    </td><td>[pN*nm] </td><td>False   </td><td style="text-align: right;">            0</td><td style="text-align: right;">            8</td></tr>
-    <tr><td>f_offset   </td><td style="text-align: right;">   0.287546</td><td>NA      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_Lp_RecA</td><td style="text-align: right;"> 238.134   </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">           39</td><td style="text-align: right;">          280</td></tr>
-    <tr><td>DNA_Lc_RecA</td><td style="text-align: right;">   4.04548 </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    </tbody>
-    </table>
-
-
+    Name               Value  Unit      Fitted      Lower bound    Upper bound
+    -----------  -----------  --------  --------  -------------  -------------
+    d_offset       -0.299     NA        True               -inf              5
+    DNA_Lp         66.8239    [nm]      True                 39             80
+    DNA_Lc          3.12586   [micron]  True                  0            inf
+    DNA_St       2000         [pN]      True                700           2000
+    kT              4.11      [pN*nm]   False                 0              8
+    f_offset        0.287546  NA        True                  0            inf
+    DNA_Lp_RecA   238.134     [nm]      True                 39            280
+    DNA_Lc_RecA     4.04548   [micron]  True                  0            inf
 
 Let's see if the parameters for the other model are similar::
 
-    siggia_offset.parameters
+    >>> siggia_offset.parameters
 
+    Name                 Value  Unit      Fitted      Lower bound    Upper bound
+    -----------  -------------  --------  --------  -------------  -------------
+    d_offset       -0.16129     NA        True               -inf              5
+    DNA_Lp         53.5762      [nm]      True                 39             80
+    DNA_Lc          2.99474     [micron]  True                  0            inf
+    DNA_St       2000           [pN]      True                700           2000
+    kT              4.11        [pN*nm]   False                 0              8
+    f_offset        5.3927e-19  NA        True                  0            inf
+    DNA_Lp_RecA   233.319       [nm]      True                 39            280
+    DNA_Lc_RecA     3.90783     [micron]  True                  0            inf
+    f_offset2       0.397233    NA        True                  0            inf
 
-
-
-.. raw:: html
-
-    <table>
-    <thead>
-    <tr><th>Name       </th><th style="text-align: right;">        Value</th><th>Unit    </th><th>Fitted  </th><th style="text-align: right;">  Lower bound</th><th style="text-align: right;">  Upper bound</th></tr>
-    </thead>
-    <tbody>
-    <tr><td>d_offset   </td><td style="text-align: right;">  -0.16129   </td><td>NA      </td><td>True    </td><td style="text-align: right;">         -inf</td><td style="text-align: right;">            5</td></tr>
-    <tr><td>DNA_Lp     </td><td style="text-align: right;">  53.5762    </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">           39</td><td style="text-align: right;">           80</td></tr>
-    <tr><td>DNA_Lc     </td><td style="text-align: right;">   2.99474   </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_St     </td><td style="text-align: right;">2000         </td><td>[pN]    </td><td>True    </td><td style="text-align: right;">          700</td><td style="text-align: right;">         2000</td></tr>
-    <tr><td>kT         </td><td style="text-align: right;">   4.11      </td><td>[pN*nm] </td><td>False   </td><td style="text-align: right;">            0</td><td style="text-align: right;">            8</td></tr>
-    <tr><td>f_offset   </td><td style="text-align: right;">   5.3927e-19</td><td>NA      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_Lp_RecA</td><td style="text-align: right;"> 233.319     </td><td>[nm]    </td><td>True    </td><td style="text-align: right;">           39</td><td style="text-align: right;">          280</td></tr>
-    <tr><td>DNA_Lc_RecA</td><td style="text-align: right;">   3.90783   </td><td>[micron]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>f_offset2  </td><td style="text-align: right;">   0.397233  </td><td>NA      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    </tbody>
-    </table>
-
-
-
+We can see some differences in the estimates, but nothing that would be cause for
+immediate concern.

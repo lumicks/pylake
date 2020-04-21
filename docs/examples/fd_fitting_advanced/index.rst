@@ -5,7 +5,9 @@ Protein FD Fitting
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-We first import our required libraries::
+Dear reader, please note that this is the most advanced fd-fitting tutorial.
+If you haven't done so, it would be recommended to read the other fd-fitting
+tutorials first. Let's begin by importing our required libraries::
 
     from lumicks import pylake
     import npz
@@ -81,9 +83,25 @@ We make use of two models in this notebook.
 -  For the region where the protein has not yet been unfolded, we model
    the Force Extension Curve using a single WLC model.
 
-The Odijk model is given by:
+Let's see what the Odijk model looks like::
 
-.. math:: d = Lc \left(1 - \frac{1}{2} \sqrt{\frac{k_B T}{F L_p}} + \frac{F}{S_t} \right)
+    >>> pylake.odijk("DNA")
+
+    Model equation:
+
+    d(f) = DNA_Lc * (1 - (1/2)*sqrt(kT/(f*DNA_Lp)) + f/DNA_St)
+
+    Parameter defaults:
+
+    Name      Value  Unit      Fitted      Lower bound    Upper bound
+    ------  -------  --------  --------  -------------  -------------
+    DNA_Lp    40     [nm]      True                  0            inf
+    DNA_Lc    16     [micron]  True                  0            inf
+    DNA_St  1500     [pN]      True                  0            inf
+    kT         4.11  [pN*nm]   False                 0              8
+
+From the equation we can see that this model is a distance model
+that depends on force as input. However, this is not what we want.
 
 Rather than fitting this model directly with `F` as the independent 
 variable, we fit an inverted version of this model that has `d` as 
@@ -106,10 +124,12 @@ constrain parameters that the datasets have in common. For these
 parameters a single, global value is found that holds for all data sets::
 
     # Construct a model for the DNA. We will use the inverted Odijk model.
-    dna_model = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
+    dna_model = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + \
+                pylake.force_offset("f")
     
     # Construct a model for the entire construct.
-    construct_model = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.distance_offset("d")).invert() + pylake.force_offset("f")
+    construct_model = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.distance_offset("d")).invert() + \
+                      pylake.force_offset("f")
     
     # Set up the fit object, which contains both models
     F = pylake.FitObject(dna_model, construct_model);
@@ -208,20 +228,21 @@ For the protein, we want the persistence length to stay between 1 and 3::
     F.parameters["protein_Lp"].value = 2
     F.parameters["protein_Lp"].lb = 1
     F.parameters["protein_Lp"].ub = 3
-        
-    plt.figure(figsize=(figx, figy))
-    plt.tight_layout(pad=1.08)
-    F.fit(verbose=1)
-    F.plot()
-    plt.xlabel('Distance [$\\mu$m]')
-    plt.ylabel('Force [pN]');
 
+Time to fit the model. Considering that this is a more complicated model, it takes a little bit longer::
 
-.. parsed-literal::
+    >>> F.fit(verbose=1)
 
     `xtol` termination condition is satisfied.
     Function evaluations 6, initial cost 4.6840e+05, final cost 8.6622e+02, first-order optimality 6.14e+04.
-    
+
+Let's plot our results::
+
+    plt.figure(figsize=(figx, figy))
+    plt.tight_layout(pad=1.08)
+    F.plot()
+    plt.xlabel('Distance [$\\mu$m]')
+    plt.ylabel('Force [pN]');
 
 .. image:: output_12_2.png
 
@@ -252,7 +273,6 @@ Next, we plot our results::
 
 We make a box plot of the contour length `Lc` of the protein::
 
-
     Lcs = [F.parameters[f"Lc_unfolded_{i}"].value*1000 for i in range(1,6)]
     
     plt.figure()
@@ -263,4 +283,3 @@ We make a box plot of the contour length `Lc` of the protein::
 
 
 .. image:: output_14_1.png
-

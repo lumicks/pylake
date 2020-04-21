@@ -59,11 +59,8 @@ Now we are ready to fit the model. Considering that the tWLC model is
 expensive to evaluate, this may take a while. This is also why we choose
 to enable verbose output::
 
-    F.fit(verbose=2)
-    plt.show()
-
-
-.. parsed-literal::
+    >>> F.fit(verbose=2)
+    >>> plt.show()
 
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
            0              1         5.3647e+04                                    2.83e+08    
@@ -100,28 +97,17 @@ is as simple as invoking `F.plot()` and `F.parameters`::
 
 We can also show the parameters::
 
-    F.parameters
+    >>> F.parameters
 
-This provides us with a table.
-
-.. raw:: html
-
-    <table>
-    <thead>
-    <tr><th>Name    </th><th style="text-align: right;">        Value</th><th>Unit      </th><th>Fitted  </th><th style="text-align: right;">  Lower bound</th><th style="text-align: right;">  Upper bound</th></tr>
-    </thead>
-    <tbody>
-    <tr><td>DNA_Lp  </td><td style="text-align: right;">  42.7093    </td><td>[nm]      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_Lc  </td><td style="text-align: right;">  15.4259    </td><td>[micron]  </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_St  </td><td style="text-align: right;">1460.49      </td><td>[pN]      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>DNA_C   </td><td style="text-align: right;"> 346.338     </td><td>[pN*nm**2]</td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">        50000</td></tr>
-    <tr><td>DNA_g0  </td><td style="text-align: right;">-638.638     </td><td>[pN*nm]   </td><td>True    </td><td style="text-align: right;">       -50000</td><td style="text-align: right;">        50000</td></tr>
-    <tr><td>DNA_g1  </td><td style="text-align: right;">  16.3832    </td><td>[nm]      </td><td>True    </td><td style="text-align: right;">       -50000</td><td style="text-align: right;">        50000</td></tr>
-    <tr><td>DNA_Fc  </td><td style="text-align: right;">  34.3838    </td><td>[pN]      </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">        50000</td></tr>
-    <tr><td>kT      </td><td style="text-align: right;">   4.11      </td><td>[pN*nm]   </td><td>False   </td><td style="text-align: right;">            0</td><td style="text-align: right;">            8</td></tr>
-    <tr><td>d_offset</td><td style="text-align: right;">   1.077     </td><td>NA        </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    <tr><td>f_offset</td><td style="text-align: right;">   0.00503963</td><td>NA        </td><td>True    </td><td style="text-align: right;">            0</td><td style="text-align: right;">          inf</td></tr>
-    </tbody>
-    </table>
-
-
+    Name              Value  Unit        Fitted      Lower bound    Upper bound
+    --------  -------------  ----------  --------  -------------  -------------
+    DNA_Lp      42.7093      [nm]        True                  0            inf
+    DNA_Lc      15.4259      [micron]    True                  0            inf
+    DNA_St    1460.49        [pN]        True                  0            inf
+    DNA_C      346.338       [pN*nm**2]  True                  0          50000
+    DNA_g0    -638.638       [pN*nm]     True             -50000          50000
+    DNA_g1      16.3832      [nm]        True             -50000          50000
+    DNA_Fc      34.3838      [pN]        True                  0          50000
+    kT           4.11        [pN*nm]     False                 0              8
+    d_offset     1.077       NA          True                  0            inf
+    f_offset     0.00503963  NA          True                  0            inf
