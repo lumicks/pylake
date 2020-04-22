@@ -1,11 +1,13 @@
 import numpy as np
-from .geometry_2d import is_in_2d, is_opposite
+from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
 
 
 def _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold, angle_weight,
-                             candidates, sign=1.0, keep_first=True):
+                             candidates, sign=1.0, keep_first=True, debug_plot=False):
     """Traverse a line along single direction perpendicular to the normal.
 
+    Parameters
+    ----------
     indices: array_like
         index coordinate where to start
     masked_derivative: array_like
@@ -17,13 +19,16 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
     continuation_threshold: float
         Threshold whether a line should be continued or not.
     angle_weight: float
-        How strongly does the angle between the normals factor into the penalty.
+        Factor which determines how the angle between normals needs to be weighted relative to distance.
+        High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference
     candidates: callable
         Function that generate candidates pixels based on normal angle (see geometry_2d/get_candidate_generator).
     sign: float
         -1.0 or 1.0 depending on whether the algorithm should proceed forward or backward.
     keep_first: boolean
         Do not remove starting point
+    debug_plot: boolean
+        Generate debug plots
     """
 
     # Line strength needs to meet a threshold for continuation
@@ -82,13 +87,115 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
         if is_opposite(normals[indices[0], indices[1]], normal):
             normals[indices[0], indices[1]] = -normals[indices[0], indices[1]]
 
+        if debug_plot:
+            import matplotlib.pyplot as plt
+            if len(nodes) == 1:
+                plt.plot(indices[1], indices[0], 'x')
+            else:
+                plt.plot(indices[1], indices[0], 'o')
+
     return nodes
 
 
-def traverse_line(indices, masked_derivative, positions, normals, continuation_threshold, angle_weight=1.0):
+def traverse_line(indices, masked_derivative, positions, normals, continuation_threshold, candidate_generator,
+                  angle_weight, debug_plot):
+    """Traverse a line in both directions."""
     indices_fwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
-                                           angle_weight, 1, True)
+                                           angle_weight, candidate_generator, 1, True, debug_plot)
     indices_bwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
-                                           angle_weight, -1, False)
+                                           angle_weight, candidate_generator, -1, False, debug_plot)
     indices_fwd.reverse()
     return np.array(indices_fwd + indices_bwd)
+
+
+def detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
+                               max_lines, angle_weight, debug_plot=False):
+    """Detect lines from precomputed geometry data.
+
+    The precomputed geometry data contains the magnitude of the second image derivative in the direction of largest
+    change masked by pixels that are deemed to be a potential line center by the fact that they have their subpixel
+    location in the range [-.5, .5] for both coordinates (see geometry_2d/find_subpixel_location for more information
+    on how this is done). It also contains the normals to the potential line. The algorithm then traverses the line
+    along the direction perpendicular to the normal vector. At each point, it will generate three candidates for a
+    potential next move. If there is more than one valid candidate, a score comprised of the distance to the next
+    subpixel minimum and angle between the successive normal vectors is computed. The candidate with the lowest score
+    is then selected.
+
+    As the algorithm progresses, it mutates the array masked_derivative along the way (marking seen pixels as zero,
+    to avoid them from being tagged again).
+
+    masked_derivative: array_like
+        Image containing the second derivative masked by whether a point is a peak or not. Note: this array is mutated.
+    positions: array_like
+        NxMx2 array containing subpixel coordinates of the peak within this pixel.
+    normals: array_like
+        NxMx2 array of normal vectors.
+    start_threshold: float
+        Threshold whether a line should be initiated.
+    continuation_threshold: float
+        Threshold whether a line should be continued or not.
+    max_lines: integer
+        After how many lines should we terminate.
+    angle_weight: float
+        Factor which determines how the angle between normals needs to be weighted relative to distance.
+        High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference
+    debug_plot: bool
+        Show points being considered for lines individually
+    """
+
+    def to_absolute_threshold(filtered_image, threshold):
+        f = -filtered_image[filtered_image < 0]
+        mn = np.min(f)
+        mx = np.max(f)
+
+        return -((mx - mn) * threshold + mn)
+
+    # Find maximal derivative as start position
+    idx = np.array(np.unravel_index(masked_derivative.argmin(), masked_derivative.shape))
+
+    thresh = to_absolute_threshold(masked_derivative, start_threshold)
+    proceed = thresh if not continuation_threshold else to_absolute_threshold(masked_derivative, continuation_threshold)
+
+    # Generate lookup table which convert normal angle into table of points to be trialed
+    candidates = get_candidate_generator()
+
+    lines = []
+    while masked_derivative[idx[0], idx[1]] < thresh and len(lines) < max_lines:
+        line = traverse_line(idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, debug_plot)
+        idx = np.array(np.unravel_index(masked_derivative.argmin(), masked_derivative.shape))
+        lines.append(line)
+
+    return lines
+
+
+def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1, max_lines=200, angle_weight=10.0,
+                 debug_plot=False):
+    """Detect lines in an image, based on Steger at al, "An unbiased detector of curvilinear structures".
+
+    data: np_array
+        Image data.
+    line_width: float
+        Expected line width of the lines we are looking for.
+    start_threshold: float
+        Relative threshold to start tracing a candidate line. Must be between 0 and 1 (default: .5).
+    continuation_threshold: float
+        Relative threshold to terminate tracing a line. Must be between 0 and 1 (default: .1)
+    max_lines: integer
+        Maximum number of lines to detect (default: 200).
+    angle_weight: float
+        Factor which determines how the angle between normals needs to be weighted relative to distance.
+        High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference.
+    """
+    # See Steger et al, "An unbiased detector of curvilinear structures. IEEE Transactions on Pattern Analysis and
+    # Machine Intelligence, 20(2), pp.113–125. for a motivation of this scale.
+    sig_x = line_width / (2.0 * np.sqrt(3)) + .5
+    sig_y = sig_x
+
+    max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
+
+    # Mask the maximal line derivative with the point candidates
+    masked_derivative = inside * max_derivative
+    masked_derivative[masked_derivative > 0] = 1
+
+    return detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
+                                      max_lines, angle_weight, debug_plot)
