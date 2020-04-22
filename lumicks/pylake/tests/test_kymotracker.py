@@ -1,6 +1,8 @@
 import numpy as np
 from ..kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from ..kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
+from ..kymotracker.detail.trace_line_2d import _traverse_line_direction
+from copy import deepcopy
 
 
 def test_eigen_2d():
@@ -49,7 +51,6 @@ def test_subpixel_methods():
             assert np.abs(positions[3, round(loc), 1] - (loc - round(loc))) < tol
             assert inside[3, round(loc)] == 1
 
-
     tol = 1e-2
     test_position_determination(25.25, 2, 3, 3, False, tol)
     test_position_determination(25.45, 2, 3, 3, False, tol)
@@ -69,35 +70,35 @@ def test_geometry():
     # Test vectors obtained from the receptive fields
     # First coordinate changes, hence we expect the normal to point in the direction of the second
     data = np.zeros((5, 5))
-    data[1,2] = 10
-    data[2,2] = 10
-    data[3,2] = 10
+    data[1, 2] = 10
+    data[2, 2] = 10
+    data[3, 2] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
     assert normals[2, 2][0] == 0
     assert np.abs(normals[2, 2][1]) > 0
 
     # Second coordinate changes, expect vector to point in direction of the first
     data = np.zeros((5, 5))
-    data[2,1] = 10
-    data[2,2] = 10
-    data[2,3] = 10
+    data[2, 1] = 10
+    data[2, 2] = 10
+    data[2, 3] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
     assert normals[2, 2][1] == 0
     assert np.abs(normals[2, 2][0]) > 0
 
     # Diagonal line y=x, expect normal's coordinates to have different signs
     data = np.zeros((5, 5))
-    data[1,1] = 10
-    data[2,2] = 10
-    data[3,3] = 10
+    data[1, 1] = 10
+    data[2, 2] = 10
+    data[3, 3] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
     assert np.allclose(normals[2, 2][1], -normals[2, 2][0])
 
     # Diagonal line y=x, expect normal's coordinates to have same sign
     data = np.zeros((5, 5))
-    data[3,1] = 10
-    data[2,2] = 10
-    data[1,3] = 10
+    data[3, 1] = 10
+    data[2, 2] = 10
+    data[1, 3] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
     assert np.allclose(normals[2, 2][1], normals[2, 2][0])
 
@@ -139,3 +140,39 @@ def test_candidates():
 
         assert np.allclose(np.sort([np.max(np.abs(direction - option)) for option in options]),
                            [0, 1, 1]), f"Failed for normal angle {normal_angle} / direction {direction} => {options}"
+
+
+def test_tracing():
+    """Draw a pattern like this:
+             X
+           X
+     X X X X X
+       X
+     X
+    with appropriate normals and verify that lines are being traced correctly."""
+    n = 7
+    hx = int(n / 2)
+    a = -np.eye(n)
+    a[:hx, :hx] = -2 * np.eye(n - hx - 1)
+    a[int(n / 2), :] = -1
+
+    positions = np.zeros((n, n))
+    normals = np.zeros((n, n, 2))
+    normals[:, :, 0] = - np.eye(n) * 1.0 / np.sqrt(2)
+    normals[:, :, 1] = np.eye(n) * 1.0 / np.sqrt(2)
+    normals[hx, :, 0] = 1
+    normals[hx, hx, 0] = - 1.0 / np.sqrt(2)
+    normals[hx, hx, 1] = 1.0 / np.sqrt(2)
+
+    candidates = get_candidate_generator()
+    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, -1),
+                       np.array([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]]))
+    assert np.allclose(
+        _traverse_line_direction([n - 1, n - 1], deepcopy(a), positions, normals, -0.5, 1, candidates, 1),
+        np.array([[6, 6], [5, 5], [4, 4], [3, 3], [2, 2], [1, 1], [0, 0]]))
+    assert np.allclose(_traverse_line_direction([hx, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1),
+                       np.array([[hx, 0], [hx, 1], [hx, 2], [hx, 3], [4, 4], [5, 5], [6, 6]]))
+
+    # Test whether the threshold is enforced
+    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -1.5, 1, candidates, -1),
+                       np.array([[0, 0], [1, 1], [2, 2]]))
