@@ -79,8 +79,6 @@ def largest_second_derivative_2d(gxx, gxy, gyy):
     # Normal perpendicular to the line
     nx, ny = eigenvector_2d_symmetric(gxx, gxy, gyy, largest_eigenvalue)
 
-    assert np.allclose(nx * nx * gxx + 2 * nx * ny * gxy + ny * ny * gyy, largest_eigenvalue)
-
     return nx, ny, largest_eigenvalue
 
 
@@ -106,13 +104,13 @@ def calculate_image_geometry(data, sig_x, sig_y):
     Returns
     -------
     largest_eig: np_array
-        2D image containing largest eigenvalue of the Hessian
+        2D image containing largest eigenvalue of the Hessian.
     normals: np_array
-        N by N by 2 array containing the normals of the image
+        N by N by 2 array containing the normals of the image.
     positions: np_array
-        N by N by 2 array containing subpixel coordinates of the maxima
+        N by N by 2 array containing subpixel coordinates of the maxima.
     inside: np_array
-        2D image mask whether it is a line point or not.
+        2D image mask whether it is a potential line center or not.
     """
     gx = gaussian_filter(data, [sig_x, sig_y], order=[1, 0])
     gy = gaussian_filter(data, [sig_x, sig_y], order=[0, 1])
