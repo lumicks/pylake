@@ -46,7 +46,7 @@ class FitData:
         Parameters
         ----------
         parameters: Parameters
-            Fit parameters, typically obtained from a FitObject.
+            Fit parameters, typically obtained from a Fit.
         """
         mapping = OrderedDict((key, parameters[x]) if isinstance(x, str) else (key, float(x)) for
                               key, x in self.transformations.items())
@@ -94,7 +94,7 @@ class Condition:
         return self.transformations.values()
 
     def localize_sensitivities(self, sensitivities):
-        """Convert raw model sensitivities to external sensitivities as used by the FitObject."""
+        """Convert raw model sensitivities to external sensitivities as used by the Fit."""
         return sensitivities[:, self.p_external]
 
     def get_local_parameters(self, par_global):

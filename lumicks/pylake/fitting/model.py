@@ -61,7 +61,7 @@ class Model:
             from lumicks import pylake
 
             dna_model = pylake.inverted_odijk("DNA")
-            fit = pylake.FitObject(dna_model)
+            fit = pylake.Fit(dna_model)
             data = dna_model.load_data(f=force, d=distance)
 
             fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
@@ -110,9 +110,9 @@ class Model:
         self._data = []  # Stores the data sets with their relevant parameter transformations
         self._conditions = []  # Built from self._data and stores unique conditions and parameter maps
 
-        # Since models are in principle exposed to a user by reference, one model can be bound to multiple FitObjects.
+        # Since models are in principle exposed to a user by reference, one model can be bound to multiple Fits.
         # Prior to any fitting operation, we have to check whether the parameter mappings in the Conditions for this
-        # model actually correspond to the one we have in FitObject. If not, we have to trigger a rebuild.
+        # model actually correspond to the one we have in Fit. If not, we have to trigger a rebuild.
         self._built = None
 
     def __call__(self, independent, parameters):
@@ -463,7 +463,7 @@ class Model:
         Parameters
         ----------
         parameters: Parameters
-            Parameter set, typically obtained from a FitObject.
+            Parameter set, typically obtained from a Fit.
         independent: array_like (optional)
             Custom set of coordinates for the independent variable.
         fmt: str (optional)
@@ -478,7 +478,7 @@ class Model:
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
             d1 = dna_model.load_data(f=force1, d=distance1, name="my first data set")
             d2 = dna_model.load_data(f=force2, d=distance2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
-            fit = pylake.FitObject(dna_model)
+            fit = pylake.Fit(dna_model)
             fit.fit()
             dna_model.plot(fit.parameters[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
             dna_model.plot(fit.parameters[d2], d2.x, fmt='k--')  # Plot model simulations for dataset d2

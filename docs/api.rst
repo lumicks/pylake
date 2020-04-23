@@ -17,5 +17,16 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     point_scan.PointScan
     correlated_stack.CorrelatedStack
     fitting.model.Model
-    fitting.fitobject.FitObject
-    fitting.models
+    fitting.Fit
+
+    force_offset
+    distance_offset
+    marko_siggia_ewlc_force
+    marko_siggia_ewlc_distance
+    marko_siggia_simplified
+    odijk
+    inverted_odijk
+    freely_jointed_chain
+    inverted_freely_jointed_chain
+    twistable_wlc
+    inverted_twistable_wlc

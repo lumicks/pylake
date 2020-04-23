@@ -40,7 +40,7 @@ class Parameters:
     Examples
     --------
     ::
-        F = pylake.FitObject(pylake.odijk("my_model"))
+        F = pylake.Fit(pylake.odijk("my_model"))
 
         print(F.parameters)  # Prints the model parameters
         F.parameters["test_parameter"].value = 5  # Set parameter test_parameter to 5

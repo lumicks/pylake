@@ -8,7 +8,7 @@ import scipy.optimize as optim
 import matplotlib.pyplot as plt
 
 
-class FitObject:
+class Fit:
     """Object which is used for fitting. It is a collection of models and their data. Once data is loaded, a fit object
     contains ``Parameters``, which can be fitted by invoking fit.
 
@@ -24,7 +24,7 @@ class FitObject:
         from lumicks import pylake
 
         dna_model = pylake.inverted_odijk("DNA")
-        fit = pylake.FitObject(dna_model)
+        fit = pylake.Fit(dna_model)
         data = dna_model.load_data(d=distance, f=force)
 
         fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
@@ -63,7 +63,7 @@ class FitObject:
 
     @property
     def n_parameters(self):
-        """Number of parameters in the FitObject"""
+        """Number of parameters in the Fit"""
         self._rebuild()
         return len(self._parameters)
 
@@ -88,12 +88,12 @@ class FitObject:
         needs to be rebuilt.
         """
         if self.dirty:
-            self._build_fitobject()
+            self._build_fit()
 
     def _invalidate_build(self):
         self._built = False
 
-    def _build_fitobject(self):
+    def _build_fit(self):
         """This function generates the global parameter list from the parameters of the individual sub models.
         It also generates unique conditions from the data specification."""
         all_parameter_names = [p for M in self.models for p in M._transformed_parameters]

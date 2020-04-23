@@ -7,10 +7,10 @@ Twistable Worm-Like-Chain Fitting
 
 First we import the necessary libraries::
 
-    import matplotlib.pyplot as plt
-    from lumicks import pylake
-    import numpy as np
     import h5py
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from lumicks import pylake
 
 Load the data from disk
 -----------------------
@@ -30,7 +30,7 @@ Set up the model
 ----------------
 
 Set up a twistable worm like chain model with a distance and force offset. By
-default, the twistable_wlc model provided with pylake is defined as distance
+default, the `twistable_wlc` model provided with pylake is defined as distance
 as a function of force. Typically, we want to fit force as a function of distance
 however. To achieve this, we can invert the model. In addition, we incorporate
 an offset in both distance and force to compensate for small offsets that may
@@ -46,11 +46,11 @@ that we also supply a name for the data, which will be used when plotting for
 example.
 
 After this, we would like to fit the model to this data. To do this, we create
-a `FitObject`. These objects are used to keep track of the fitted parameters and
-optionally fit multiple models at once. In this example, we only fit a single model::
+a `pylake.Fit`. These are used to keep track of the fitted parameters and optionally
+fit multiple models at once. In this example, we only fit a single model::
 
     M_DNA.load_data(f=f, d=d, name="Twistable WLC")
-    F = pylake.FitObject(M_DNA)
+    F = pylake.Fit(M_DNA)
 
 Fit the model
 -------------

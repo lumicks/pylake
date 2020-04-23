@@ -8,8 +8,8 @@ DNA FD Fitting
 First we import our required libraries::
 
     import matplotlib.pyplot as plt
-    import lumicks.pylake as pylake
     import numpy as np
+    from lumicks import pylake
 
 Load the data from text files
 -----------------------------
@@ -33,11 +33,10 @@ Set up the model
 For this we want to use an inverted WLC model with an offset in force
 and distance.
 
-While it possible (and equivalent) to generate this model via
-``pylake.force_model('DNA', 'WLC').invert()``, an optimized inverted WLC
-model is explicitly included as a separate model. When only a single WLC
-is needed, it is best to use this one, as it is considerably faster than
-explicitly inverting::
+While it is possible (and equivalent) to generate this model via
+``pylake.odijk('DNA').invert()``, an optimized inverted WLC model is explicitly
+included as a separate model. When only a single WLC is needed, it is best to
+use this one, as it is considerably faster than explicitly inverting::
 
     M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
 
@@ -75,9 +74,9 @@ and persistence length to be different. Let's rename these::
 Set up the fit
 --------------
 
-Now, let's fit our model to the data we just loaded. To do this, we have to create a FitObject::
+Now, let's fit our model to the data we just loaded. To do this, we have to create a `Fit`::
 
-    F = pylake.FitObject(M_DNA)
+    F = pylake.Fit(M_DNA)
     
 We would also like to set some parameter bounds::
 
@@ -102,7 +101,7 @@ Plot the fit and print the parameter values
 -------------------------------------------
 
 Plotting the fit alongside the data is easy. Simply call the plot function
-on the fitobject (i.e. `F.plot()`). Similarly, we can print the parameters 
+on the `Fit` (i.e. `F.plot()`). Similarly, we can print the parameters
 to a table by invoking `F.parameters`::
 
     >>> F.plot()
@@ -189,13 +188,13 @@ this data::
     
     M_DNA.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
     M_DNA.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
-    odijk_offset = pylake.FitObject(M_DNA)
+    odijk_offset = pylake.Fit(M_DNA)
     set_bounds(odijk_offset)
     odijk_offset.fit()
     
     M_DNA_MS.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
     M_DNA_MS.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
-    siggia_offset = pylake.FitObject(M_DNA_MS)
+    siggia_offset = pylake.Fit(M_DNA_MS)
     set_bounds(siggia_offset)
     siggia_offset.fit();
 

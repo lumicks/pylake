@@ -3,7 +3,7 @@ from ..fitting.detail.utilities import parse_transformation
 from ..fitting.detail.utilities import unique_idx
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
-from ..fitting.fitobject import FitObject
+from ..fitting.fit import Fit
 from ..fitting.models import *
 from ..fitting.detail.parameter_trace import parameter_trace
 from ..fitting.model import Model, InverseModel
@@ -158,8 +158,8 @@ def test_model_defaults():
     M = Model("M", g, f=Parameter(5))
     M._load_data([1, 2, 3], [2, 3, 4])
     M._load_data([1, 2, 3], [2, 3, 4], M_f='f_new')
-    F = FitObject(M)
-    F._build_fitobject()
+    F = Fit(M)
+    F._build_fit()
 
     assert (F.parameters["M_a"].value == Parameter().value)
     assert (F.parameters["f_new"].value == 5)
@@ -221,7 +221,7 @@ def test_model_fit_object_linking():
     M._load_data([1, 2, 3], [2, 3, 4], M_c=4)
 
     # Model should not be built
-    F = FitObject(M, M2)
+    F = Fit(M, M2)
     assert F.dirty
 
     # Asking for the parameters should have triggered a build
@@ -281,7 +281,7 @@ def test_model_fit_object_linking():
            ["M_mu", None, "M_q", None, "M_r"]
 
 
-def test_jacobian_test_fitobject():
+def test_jacobian_test_fit():
     def f(x, a, b):
         return a + b * x
 
@@ -299,14 +299,14 @@ def test_jacobian_test_fitobject():
     f_data = f(x, a_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der)
     model._load_data(x, f_data)
-    fit_object = FitObject(model)
+    fit_object = Fit(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
     assert fit_object.verify_jacobian(fit_object.parameters.values)
 
     model_bad = Model("f", f, jacobian=f_jac_wrong, derivative=f_der)
     model_bad._load_data(x, f_data)
-    fit_object_bad = FitObject(model_bad)
+    fit_object_bad = Fit(model_bad)
     fit_object_bad.parameters["f_a"].value = a_true
     fit_object_bad.parameters["f_b"].value = b_true
     assert not fit_object_bad.verify_jacobian(fit_object_bad.parameters.values)
@@ -336,7 +336,7 @@ def test_integration_test_fitting():
     for i in np.arange(3):
         y = 4.0*x*i + 5.0
         model._load_data(x, y, M_a=f"slope_{i}")
-    fit = FitObject(model)
+    fit = Fit(model)
 
     y = 4.0*x + 10.0
     model._load_data(x, y, M_a="slope_1", M_b="M_b_2")
@@ -357,7 +357,7 @@ def test_integration_test_fitting():
     model = Model("M", linear, jacobian=linear_jac)
     model._load_data(x, 4.0*x + 5.0, M_a=4)
     model._load_data(x, 8.0*x + 10.0, M_b=10)
-    fit = FitObject(model)
+    fit = Fit(model)
     fit.fit()
     assert (np.isclose(fit.parameters["M_b"].value, 5))
     assert (np.isclose(fit.parameters["M_a"].value, 8))
@@ -523,7 +523,7 @@ def test_parameter_inversion():
     f_data = f(x, a_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der)
     model._load_data(x, f_data)
-    fit_object = FitObject(model)
+    fit_object = Fit(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = 1.0
     assert np.allclose(parameter_trace(model, fit_object.parameters, 'f_b', x, f_data), b_true)
@@ -534,7 +534,7 @@ def test_parameter_inversion():
     f_plus_g_data = f(x, a_true, b_true) + g(x, a_true, d_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der) + Model("f", g, jacobian=g_jac, derivative=g_der)
     model._load_data(x, f_data)
-    fit_object = FitObject(model)
+    fit_object = Fit(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
     fit_object.parameters["f_d"].value = 1.0
@@ -562,10 +562,10 @@ def test_uncertainty_analysis():
 
     linear_model = Model("linear", linear, jacobian=linear_jac)
     linear_model._load_data(x, y)
-    linear_fit = FitObject(linear_model).fit()
+    linear_fit = Fit(linear_model).fit()
     model_quad = Model("quad", quad, jacobian=quad_jac)
     model_quad._load_data(x, y)
-    quad_fit = FitObject(model_quad).fit()
+    quad_fit = Fit(model_quad).fit()
 
     assert np.allclose(linear_fit.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
     assert np.allclose(quad_fit.cov, np.array([[0.00973206, -0.08758855,  0.11678473],
@@ -595,13 +595,13 @@ def test_parameter_availability():
         return J
 
     linear_model = Model("linear", linear, jacobian=linear_jac)
-    linear_fit = FitObject(linear_model)
+    linear_fit = Fit(linear_model)
 
     with pytest.raises(IndexError):
         linear_fit.parameters["linear_a"]
 
     linear_model._load_data(x, y, linear_a=5)
-    linear_fit = FitObject(linear_model)
+    linear_fit = Fit(linear_model)
 
     # Parameter linear_a is not actually a parameter in the fit object at this point (it was set to 5)
     with pytest.raises(IndexError):
@@ -628,14 +628,14 @@ def test_data_loading():
 
 
 def test_parameter_slicing():
-    # Tests whether parameters coming from a FitObject can be sliced by a data handle,
-    # i.e. fitobject.parameters[data_handle]
+    # Tests whether parameters coming from a Fit can be sliced by a data handle,
+    # i.e. fit.parameters[data_handle]
 
     def dummy(t, p1, p2, p3):
         return t * p1 + t * p2 * p2 + t * p3 * p3 * p3
 
     model = Model("dummy", dummy, p2=Parameter(2), p3=Parameter(3), p1=Parameter(1))
-    fit = FitObject(model)
+    fit = Fit(model)
     data_set = model._load_data([1, 1, 1], [1, 2, 3], "data1", dummy_p2="dummy_p2_b")
     parameter_slice = fit.parameters[data_set]
     assert (parameter_slice["dummy_p1"].value == 1)

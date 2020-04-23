@@ -2,31 +2,6 @@ import numpy as np
 from .parameters import Parameter
 from .model import FdModel
 
-"""
-Available models:
-    Models with distance as dependent parameter
-    - WLC
-        Odijk's Extensible Worm-Like Chain model with distance as dependent parameter (useful for 10 pN < F < 30 pN)
-    - Marko_Siggia_eWLC_distance
-        Margo Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
-    - tWLC
-        Twistable Worm-Like Chain model with distance as dependent parameter (useful for 10 pN < F)
-    - FJC
-        Freely Jointed Chain model with distance as dependent parameter
-
-    Models with Force as dependent parameter
-    - Marko_Siggia
-        Simplified Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F << 10 pN).
-    - Marko_Siggia_eWLC_force
-        Marko Siggia's Worm-like Chain model with force as dependent parameter (useful for F < 10 pN).
-    - invWLC
-        Inverted Extensible Worm-Like Chain model with force as dependent parameter (useful for 10 pN < F < 30 pN)
-    - invtWLC
-        Inverted Twistable Worm-Like Chain model with force as dependent parameter (useful for 10 pN < F)
-    - invFJC
-        Inverted Freely Joint Chain model with force as dependent parameter
-"""
-
 
 def force_offset(name):
     """Offset on the the model output.

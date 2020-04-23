@@ -9,12 +9,12 @@ Dear reader, please note that this is the most advanced fd-fitting tutorial.
 If you haven't done so, it would be recommended to read the other fd-fitting
 tutorials first. Let's begin by importing our required libraries::
 
-    from lumicks import pylake
     import npz
     import numpy as np
     import scipy as sp
     import matplotlib.pyplot as plt
     from ipywidgets import interact, widgets
+    from lumicks import pylake
     
     figx = 9
     figy = 6
@@ -131,8 +131,8 @@ parameters a single, global value is found that holds for all data sets::
     construct_model = (pylake.odijk("DNA") + pylake.odijk("protein") + pylake.distance_offset("d")).invert() + \
                       pylake.force_offset("f")
     
-    # Set up the fit object, which contains both models
-    F = pylake.FitObject(dna_model, construct_model);
+    # Set up the fit, which contains both models
+    F = pylake.Fit(dna_model, construct_model);
 
 First load the data corresponding to the folded state.
 ------------------------------------------------------

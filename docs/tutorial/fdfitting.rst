@@ -5,17 +5,15 @@ FD Fitting
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-Pylake introduces functionality to be able to fit force extension curves with various 
-polymer models. This tutorial aims at being a gentle introduction to these fitting 
-capabilities. Each section will first show the more basic mode of use, followed by more
-advanced ways of interacting with the models, data and plots.
+Pylake is capable of fitting force extension curves using various polymer models.
+This tutorial aims at being a gentle introduction to these fitting capabilities.
 
 Models
 ------
 
 When fitting data, everything revolves around models. One of these models is the so-called
 extensible worm-like-chain model by Odijk et al. Let's have a look at it. We can construct
-this model using the supplied pylake function odijk.
+this model using the supplied function `pylake.odijk()`.
 
 Note that we also have to give it a name. This name will be prefixed to model specific
 parameters in this model. So for instance, the persistence length in this model, would be
@@ -138,13 +136,13 @@ on how this works, read up on Python fantastic f-Strings.
 Fitting the data
 ----------------
 
-Once the data loaded, we can fit the data. To do this, we have to create a `FitObject`. This 
+Once the data loaded, we can fit the data. To do this, we have to create a `Fit`. This
 object will collect all the parameters involved in the models and data, and will allow you to 
-interact with the model parameters and fit them. We construct it using `pylake.FitObject` and 
-passing it one or more models. In return, we get an object we can interact with, which in this
+interact with the model parameters and fit them. We construct it using `pylake.Fit` and passing
+it one or more models. In return, we get an object we can interact with, which in this
 case we store in `odijk_fit`::
 
-    odijk_fit = pylake.FitObject(odijk_with_offsets)
+    odijk_fit = pylake.Fit(odijk_with_offsets)
 
 The parameters of the model can be accessed under `parameters`. Note that by default, parameters 
 tend to have reasonable initial guesses and bounds in pylake, but we can set our initial guess and
@@ -160,7 +158,7 @@ After this, the model is ready to be fitted::
 
 Note that multiple models can be fit at once, by just supplying more than one model::
 
-    multi_model_fit = pylake.FitObject(model1, model2, model3)
+    multi_model_fit = pylake.Fit(model1, model2, model3)
 
 Frequently, such a global fit has better statistical properties than fitting the data separately
 as more information is available to infer parameters shared between the various models.
@@ -197,13 +195,13 @@ object using the data handles::
 Global fits versus single fits
 ------------------------------
 
-The `FitObject` manages a fit. To illustrate its use, and how a global fit differs from a
+The `Fit` object manages a fit. To illustrate its use, and how a global fit differs from a
 simple fit, consider the following two examples::
 
     odijk_inv = pylake.inverted_odijk("DNA")
     for i, (distance, force) in enumerate(zip(distances, forces)):
         odijk_inv.load_data(f=force, d=distance, name="RecA")
-    odijk_fit = pylake.FitObject(odijk_inv)
+    odijk_fit = pylake.Fit(odijk_inv)
     odijk_fit.fit()
     print(odijk_fit.parameters["DNA_Lc"])
 
@@ -212,14 +210,14 @@ and::
     for i, (distance, force) in enumerate(zip(distances, forces)):
         odijk_inv = pylake.inverted_odijk("DNA")
         odijk_inv.load_data(f=force, d=distance, name="RecA")
-        odijk_fit = pylake.FitObject(odijk_inv)
+        odijk_fit = pylake.Fit(odijk_inv)
         odijk_fit.fit()
         print(odijk_fit.parameters["DNA_Lc"])
 
 The difference between these two is that the former sets up a single model, that has to fit
 all the data whereas the latter fits all the datasets independently. The former has one single
 parameter set, whereas the latter has a parameter set per data set. Also note how in the second
-example a new `Model` and `FitObject` is created at every cycle of the for loop.
+example a new `Model` and `Fit` is created at every cycle of the for loop.
 
 Statistically, it is typically more optimal to fit data using global fitting, as more
 information goes into estimates of parameters shared between different conditions. It's
@@ -231,7 +229,7 @@ can be achieved using::
     odijk_inv = pylake.inverted_odijk("DNA")
     for i, (distance, force) in enumerate(zip(distances, forces)):
         odijk_inv.load_data(f=force, d=distance, name="RecA", DNA_Lc=f"DNA_Lc_{i}")
-    odijk_fit = pylake.FitObject(odijk_inv)
+    odijk_fit = pylake.Fit(odijk_inv)
     odijk_fit.fit()
     print(odijk_fit.parameters)
 
@@ -243,7 +241,7 @@ Incremental fitting
 Fits can also be done incrementally::
 
     >>> odijk_inv = pylake.inverted_odijk("DNA")
-    >>> odijk_fit = pylake.FitObject(odijk_inv)
+    >>> odijk_fit = pylake.Fit(odijk_inv)
     >>> print(odijk_fit.parameters)
     No parameters
 
@@ -293,7 +291,7 @@ fit it to some data. This is all analogous to what we've learned before::
 
     # Fit the overall model first
     data_handle = model.load_data(f=force, d=distance)
-    current_fit = pylake.FitObject(model)
+    current_fit = pylake.Fit(model)
     current_fit.fit()
 
 Now, we wish to allow the contour length to vary on a per data point basis. For this, we use
@@ -301,11 +299,10 @@ the function `parameter_trace`. Here we see a few things happening. The first ar
 to use for the inversion.
 
 The second argument contains the parameters to use in this model. Note how we select them from
-the parameters in the fit object using the same syntax as before (i.e.
-`fitobject.parameters[data_handle]`). Next, we specify which parameter has to be fitted on a per
-data point basis. This is the parameter that we will re-estimate for every data point. Finally,
-we supply the data to use in this analysis. First the independent parameter is passed, followed
-by the dependent parameter::
+the parameters in the fit object using the same syntax as before (i.e. `fit.parameters[data_handle]`).
+Next, we specify which parameter has to be fitted on a per data point basis. This is the parameter
+that we will re-estimate for every data point. Finally, we supply the data to use in this analysis.
+First the independent parameter is passed, followed by the dependent parameter::
 
     lcs = parameter_trace(model, current_fit.parameters[data_handle], "model_Lc", distance, force)
     plt.plot(lcs)

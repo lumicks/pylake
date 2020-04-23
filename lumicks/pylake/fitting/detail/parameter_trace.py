@@ -31,7 +31,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
 
         # Fit the overall model first
         data_handle = model.load_data(d=distance, f=force)
-        current_fit = pylake.FitObject(model)
+        current_fit = pylake.Fit(model)
         current_fit.fit()
 
         # Calculate a per data point contour length
