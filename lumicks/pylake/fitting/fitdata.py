@@ -67,17 +67,17 @@ class FitData:
         return [x for x, y in self.transformations.items() if isinstance(y, str)]
 
     def __repr__(self):
-        str = f'{self.__class__.__name__}({self.name}, N={len(self.independent)}'
+        out_string = f'{self.__class__.__name__}({self.name}, N={len(self.independent)}'
 
         changes = []
         for i, v in self.transformations.items():
             if i != v:
-                changes.append([i, v])
+                changes.append([i, str(v)])
 
         if len(changes) > 0:
-            str += ', Transformations: ' + ', '.join([' → '.join(s) for s in changes])
+            out_string += ', Transformations: ' + ', '.join([' → '.join(s) for s in changes])
 
-        return str + ')'
+        return out_string + ')'
 
 
 class Condition:

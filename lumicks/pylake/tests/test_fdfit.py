@@ -684,3 +684,9 @@ def test_reprs():
     assert d2.__repr__() == 'FitData(dataset_2, N=3, Transformations: DNA_Lc → DNA_Lc_2)'
 
     f = Fit(m)
+    assert f.__repr__()
+    assert f._repr_html_()
+
+    d3 = m._load_data([1, 2, 3], [2, 3, 4], name="data_3", DNA_Lc=5)
+    assert f.__repr__()
+    assert f._repr_html_()
