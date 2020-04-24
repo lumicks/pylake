@@ -144,13 +144,13 @@ case we store in `odijk_fit`::
 
     odijk_fit = pylake.Fit(odijk_with_offsets)
 
-The parameters of the model can be accessed under `parameters`. Note that by default, parameters 
+The parameters of the model can be accessed directly from `Fit`. Note that by default, parameters
 tend to have reasonable initial guesses and bounds in pylake, but we can set our initial guess and
 a lower and upper bound as follows::
 
-    odijk_fit.parameters["DNA_Lp"].value = 50
-    odijk_fit.parameters["DNA_Lp"].lb = 39
-    odijk_fit.parameters["DNA_Lp"].ub = 80
+    odijk_fit["DNA_Lp"].value = 50
+    odijk_fit["DNA_Lp"].lb = 39
+    odijk_fit["DNA_Lp"].ub = 80
 
 After this, the model is ready to be fitted::
 
@@ -177,8 +177,8 @@ However, sometimes more fine grained control over the plots is required. Let's s
 the model over the range 2.0 to 5.0 for the conditions from `data1` and `data2`. We can do this by
 calling plot on the model directly::
 
-    dna_model.plot(odijk_fit.parameters[data1], np.arange(2.0, 5.0, .01), fmt='k--')
-    dna_model.plot(odijk_fit.parameters[data2], np.arange(2.0, 5.0, .01), fmt='k--')
+    dna_model.plot(odijk_fit[data1], np.arange(2.0, 5.0, .01), fmt='k--')
+    dna_model.plot(odijk_fit[data2], np.arange(2.0, 5.0, .01), fmt='k--')
 
 Note how we use the square brackets to select the parameters belonging to condition 1 and 2 using
 the data handles `data1` and `data2` that we stored earlier. These collect the parameters relevant
@@ -190,7 +190,7 @@ required to simulate the model. Again, we obtain these parameters by grabbing th
 object using the data handles::
 
     distance = np.arange(2.0, 5.0, .01)
-    simulation_result = dna_model(distance, odijk_fit.parameters[data1])
+    simulation_result = dna_model(distance, odijk_fit[data1])
 
 Global fits versus single fits
 ------------------------------
@@ -203,7 +203,7 @@ simple fit, consider the following two examples::
         odijk_inv.load_data(f=force, d=distance, name="RecA")
     odijk_fit = pylake.Fit(odijk_inv)
     odijk_fit.fit()
-    print(odijk_fit.parameters["DNA_Lc"])
+    print(odijk_fit["DNA_Lc"])
 
 and::
 
@@ -212,7 +212,7 @@ and::
         odijk_inv.load_data(f=force, d=distance, name="RecA")
         odijk_fit = pylake.Fit(odijk_inv)
         odijk_fit.fit()
-        print(odijk_fit.parameters["DNA_Lc"])
+        print(odijk_fit["DNA_Lc"])
 
 The difference between these two is that the former sets up a single model, that has to fit
 all the data whereas the latter fits all the datasets independently. The former has one single
@@ -275,7 +275,7 @@ from the first fit changed. If this was not intentional, we should have fixed
 these parameters after the first fit. For example, we can fix the parameter `DNA_Lp`
 by invoking::
 
-    >>> odijk.fit.parameters["DNA_Lp"].vary = false
+    >>> odijk_fit["DNA_Lp"].vary = false
     
 
 Calculating per point contour length
@@ -299,12 +299,12 @@ the function `parameter_trace`. Here we see a few things happening. The first ar
 to use for the inversion.
 
 The second argument contains the parameters to use in this model. Note how we select them from
-the parameters in the fit object using the same syntax as before (i.e. `fit.parameters[data_handle]`).
+the parameters in the fit object using the same syntax as before (i.e. `fit[data_handle]`).
 Next, we specify which parameter has to be fitted on a per data point basis. This is the parameter
 that we will re-estimate for every data point. Finally, we supply the data to use in this analysis.
 First the independent parameter is passed, followed by the dependent parameter::
 
-    lcs = parameter_trace(model, current_fit.parameters[data_handle], "model_Lc", distance, force)
+    lcs = parameter_trace(model, current_fit[data_handle], "model_Lc", distance, force)
     plt.plot(lcs)
 
 The result is an estimated contour length per data point, which can be used in subsequent

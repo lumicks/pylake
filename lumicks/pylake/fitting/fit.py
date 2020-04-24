@@ -27,11 +27,11 @@ class Fit:
         fit = pylake.Fit(dna_model)
         data = dna_model.load_data(d=distance, f=force)
 
-        fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
-        fit.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+        fit["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
+        fit["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
         fit.fit()
 
-        dna_model.plot(fit.parameters, data, fmt='k--')  # Plot the fitted model
+        dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
     """
     def __init__(self, *args):
         self.models = [M for M in args]
@@ -39,6 +39,9 @@ class Fit:
         self._parameters = Parameters()
         self._built = False
         self._invalidate_build()
+
+    def __getitem__(self, item):
+        return self.parameters[item]
 
     @property
     def has_jacobian(self):
@@ -369,3 +372,24 @@ class Fit:
         J = self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
         return np.linalg.pinv(np.transpose(J).dot(J))
+
+    def _repr_html_(self):
+        out_string = "<h4>Fit</h4>\n"
+
+        for model in self.models:
+            datasets = ''.join([f"&ensp;- {s.__repr__()}<br>\n" for s in model.data])
+            out_string += f"<h5>Model: {model.name}</h5>\n" \
+                          f"<h5>Equation:</h5>${model.get_formatted_equation_string(tex=True)}$<br>\n" \
+                          f"<h5>Data:</h5>\n{datasets}<br>"
+
+        return out_string + f"<h5>Fitted parameters:</h5>\n{self.parameters._repr_html_()}"
+
+    def __repr__(self):
+        out_string = "Fit\n"
+
+        for model in self.models:
+            datasets = ''.join([f"  - {s.__repr__()}\n" for s in model.data])
+            out_string += f"- Model: {model.name}\n  " \
+                          f"- Equation:\n      {model.get_formatted_equation_string(tex=False)}\n{datasets}"
+
+        return out_string + f"\n- Fitted parameters:\n    {'    '.join(self.parameters.__str__().splitlines(True))}"

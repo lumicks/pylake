@@ -167,20 +167,20 @@ offsets do not go below zero. After setting these bounds, we fit the
 DNA part of our model::
 
 
-    F.parameters["d0_offset"].lb = 0
-    F.parameters["d0_offset"].ub = .4
-    F.parameters["d0_offset"].value=.1
-    F.parameters["d1_offset"].lb = 0
-    F.parameters["d0_offset"].ub = .4
-    F.parameters["d1_offset"].value=.1
-    F.parameters["f0_offset"].lb = 0
-    F.parameters["f1_offset"].lb = 0
-    F.parameters["f0_offset"].ub = 2
-    F.parameters["f1_offset"].ub = 2
-    F.parameters["DNA_Lp"].lb = 35
-    F.parameters["DNA_Lp"].ub = 80
-    F.parameters["DNA_Lc"].value = .360
-    F.parameters["DNA_St"].value = 300
+    F["d0_offset"].lb = 0
+    F["d0_offset"].ub = .4
+    F["d0_offset"].value=.1
+    F["d1_offset"].lb = 0
+    F["d0_offset"].ub = .4
+    F["d1_offset"].value=.1
+    F["f0_offset"].lb = 0
+    F["f1_offset"].lb = 0
+    F["f0_offset"].ub = 2
+    F["f1_offset"].ub = 2
+    F["DNA_Lp"].lb = 35
+    F["DNA_Lp"].ub = 80
+    F["DNA_Lc"].value = .360
+    F["DNA_St"].value = 300
     
     F.fit()
     plt.figure(figsize=(figx, figy))
@@ -225,9 +225,9 @@ For the protein, we want the persistence length to stay between 1 and 3::
                   d_offset="d5_offset", f_offset=0),
     ]
     
-    F.parameters["protein_Lp"].value = 2
-    F.parameters["protein_Lp"].lb = 1
-    F.parameters["protein_Lp"].ub = 3
+    F["protein_Lp"].value = 2
+    F["protein_Lp"].lb = 1
+    F["protein_Lp"].ub = 3
 
 Time to fit the model. Considering that this is a more complicated model, it takes a little bit longer::
 
@@ -254,8 +254,8 @@ Next, we plot our results::
         plt.subplot(2, 3, i + 1)
         distance = d["piezo_distance"].data
         plt.plot(distance, d["piezo_force"].data, 'r.', markersize=4*.8)
-        dna_model.plot(F.parameters[folded], distance, fmt='k--')
-        construct_model.plot(F.parameters[unfolded], distance, fmt='k--')
+        dna_model.plot(F[folded], distance, fmt='k--')
+        construct_model.plot(F[unfolded], distance, fmt='k--')
         
         plt.grid(True)
         plt.ylabel('Force [pN]')
@@ -273,7 +273,7 @@ Next, we plot our results::
 
 We make a box plot of the contour length `Lc` of the protein::
 
-    Lcs = [F.parameters[f"Lc_unfolded_{i}"].value*1000 for i in range(1,6)]
+    Lcs = [F[f"Lc_unfolded_{i}"].value*1000 for i in range(1,6)]
     
     plt.figure()
     plt.boxplot(Lcs, labels=' ')

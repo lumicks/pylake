@@ -64,11 +64,11 @@ class Model:
             fit = pylake.Fit(dna_model)
             data = dna_model.load_data(f=force, d=distance)
 
-            fit.parameters["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
-            fit.parameters["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+            fit["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
+            fit["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
             fit.fit()
 
-            dna_model.plot(fit.parameters, data, fmt='k--')  # Plot the fitted model
+            dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
         """
         assert isinstance(name, str), "First argument must be a model name."
         assert isinstance(model_function, types.FunctionType), "Model must be a callable."
@@ -147,6 +147,13 @@ class Model:
 
         return CompositeModel(self, other)
 
+    def get_formatted_equation_string(self, tex):
+        if tex:
+            return (f"${self.dependent}\\left({self.independent}\\right) = "
+                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
+        else:
+            return f"{self.dependent}({self.independent}) = {self.eqn(self.independent, *self.parameter_names)}"
+
     def _repr_html_(self):
         doc_string = ''
         try:
@@ -156,8 +163,7 @@ class Model:
             # If it is not a top level model, there will be no docstring. This is fine.
             pass
 
-        equation = (f"${self.dependent}\\left({self.independent}\\right) = "
-                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
+        equation = self.get_formatted_equation_string(tex=True)
 
         model_info = (f"{doc_string}Model equation:  <br><br>\n{equation}  <br><br>\n"
                       f"Parameter defaults:  <br><br>\n"
@@ -166,7 +172,7 @@ class Model:
         return model_info
 
     def __repr__(self):
-        equation = f"{self.dependent}({self.independent}) = {self.eqn(self.independent, *self.parameter_names)}"
+        equation = self.get_formatted_equation_string(tex=False)
 
         model_info = f"Model equation:\n\n{equation}\n\nParameter defaults:\n\n" \
                      f"{Parameters(**self._parameters)._repr_()}\n"
@@ -188,6 +194,11 @@ class Model:
         parameter_name: str
         """
         return SubtractIndependentOffset(self, parameter_name)
+
+    @property
+    def data(self):
+        """Returns a copy of the data handles present in the model"""
+        return deepcopy(self._data)
 
     @property
     def _defaults(self):
@@ -269,7 +280,7 @@ class Model:
     def built_against(self, fit_object):
         return self._built == fit_object
 
-    def _load_data(self, x, y, name="", **kwargs):
+    def _load_data(self, x, y, name, **kwargs):
         """
         Loads a data set for this model.
 
@@ -464,8 +475,8 @@ class Model:
         ----------
         parameters: Parameters
             Parameter set, typically obtained from a Fit.
-        independent: array_like (optional)
-            Custom set of coordinates for the independent variable.
+        independent: array_like
+            Array of values for the independent variable.
         fmt: str (optional)
             Plot formatting string (see `matplotlib.pyplot.plot` documentation).
         **kwargs:
@@ -480,11 +491,11 @@ class Model:
             d2 = dna_model.load_data(f=force2, d=distance2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
             fit = pylake.Fit(dna_model)
             fit.fit()
-            dna_model.plot(fit.parameters[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
-            dna_model.plot(fit.parameters[d2], d2.x, fmt='k--')  # Plot model simulations for dataset d2
+            dna_model.plot(fit[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
+            dna_model.plot(fit[d2], d2.x, fmt='k--')  # Plot model simulations for dataset d2
 
             # Plot model over a custom time range
-            dna_model.plot(fit.parameters[d1], np.arange(1.0, 10.0, .01), fmt='k--')
+            dna_model.plot(fit[d1], np.arange(1.0, 10.0, .01), fmt='k--')
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(parameters, Parameters):
@@ -735,7 +746,7 @@ class FdModel(Model):
         """
         return FdSubtractIndependentOffset(self, parameter_name)
 
-    def load_data(self, *, f, d, name="", **kwargs):
+    def load_data(self, *, f, d, name, **kwargs):
         """
         Loads a data set for this model.
 

@@ -156,11 +156,12 @@ def test_model_defaults():
         return (data - mu) * 2
 
     M = Model("M", g, f=Parameter(5))
-    M._load_data([1, 2, 3], [2, 3, 4])
-    M._load_data([1, 2, 3], [2, 3, 4], M_f='f_new')
+    M._load_data([1, 2, 3], [2, 3, 4], name="test")
+    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_f='f_new')
     F = Fit(M)
     F._build_fit()
 
+    assert (F["M_a"].value == Parameter().value)
     assert (F.parameters["M_a"].value == Parameter().value)
     assert (F.parameters["f_new"].value == 5)
     assert (F.parameters["M_f"].value == 5)
@@ -188,7 +189,7 @@ def test_model_build_status():
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_f", "M_q"]
 
     M = Model("M", g, d=Parameter(4))
-    M._load_data([1, 2, 3], [2, 3, 4], M_c=4)
+    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4)
     assert not M._built
 
     mock_fit_object = 1
@@ -200,7 +201,7 @@ def test_model_build_status():
     assert not M.built_against(2)
 
     # Loading new data should invalidate the build
-    M._load_data([1, 2, 3], [2, 3, 4], M_c=5, M_f='f_new')
+    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=5, M_f='f_new')
     assert not M._built
 
 
@@ -218,7 +219,7 @@ def test_model_fit_object_linking():
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_f", "M_q"]
     M = Model("M", g, d=Parameter(4))
     M2 = Model("M", h)
-    M._load_data([1, 2, 3], [2, 3, 4], M_c=4)
+    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4)
 
     # Model should not be built
     F = Fit(M, M2)
@@ -236,7 +237,7 @@ def test_model_fit_object_linking():
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
     # Loading data should make it dirty again
-    M._load_data([1, 2, 3], [2, 3, 4], M_c=4, M_e="M_e_new")
+    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_e="M_e_new")
     assert F.dirty
 
     # Check the parameters included in the model
@@ -252,7 +253,7 @@ def test_model_fit_object_linking():
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e_new", "M_f", "M_q"]
 
     # Load data into model 2
-    M2._load_data([1, 2, 3], [2, 3, 4], M_c=4, M_r=6)
+    M2._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_r=6)
     assert F.dirty
 
     # Since M_r is set fixed in that model, it should not appear as a parameter
@@ -260,7 +261,7 @@ def test_model_fit_object_linking():
     assert set(F.parameters.keys) == set(all_parameters)
 
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_e_new", "M_f", "M_q", "M_r"]
-    M2._load_data([1, 2, 3], [2, 3, 4], M_c=4, M_e=5)
+    M2._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_e=5)
     assert set(F.parameters.keys) == set(all_parameters)
     assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
@@ -298,14 +299,14 @@ def test_jacobian_test_fit():
     a_true, b_true = (5.0, 5.0)
     f_data = f(x, a_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der)
-    model._load_data(x, f_data)
+    model._load_data(x, f_data, name="test")
     fit_object = Fit(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
     assert fit_object.verify_jacobian(fit_object.parameters.values)
 
     model_bad = Model("f", f, jacobian=f_jac_wrong, derivative=f_der)
-    model_bad._load_data(x, f_data)
+    model_bad._load_data(x, f_data, name="test")
     fit_object_bad = Fit(model_bad)
     fit_object_bad.parameters["f_a"].value = a_true
     fit_object_bad.parameters["f_b"].value = b_true
@@ -335,11 +336,11 @@ def test_integration_test_fitting():
     x = np.arange(3)
     for i in np.arange(3):
         y = 4.0*x*i + 5.0
-        model._load_data(x, y, M_a=f"slope_{i}")
+        model._load_data(x, y, name="test", M_a=f"slope_{i}")
     fit = Fit(model)
 
     y = 4.0*x + 10.0
-    model._load_data(x, y, M_a="slope_1", M_b="M_b_2")
+    model._load_data(x, y, name="test", M_a="slope_1", M_b="M_b_2")
     fit.fit()
 
     assert(len(fit.parameters.values) == 5)
@@ -355,8 +356,8 @@ def test_integration_test_fitting():
 
     # Verify that fixed parameters are correctly removed from sub-models
     model = Model("M", linear, jacobian=linear_jac)
-    model._load_data(x, 4.0*x + 5.0, M_a=4)
-    model._load_data(x, 8.0*x + 10.0, M_b=10)
+    model._load_data(x, 4.0*x + 5.0, name="test", M_a=4)
+    model._load_data(x, 8.0*x + 10.0, name="test", M_b=10)
     fit = Fit(model)
     fit.fit()
     assert (np.isclose(fit.parameters["M_b"].value, 5))
@@ -364,7 +365,7 @@ def test_integration_test_fitting():
 
 
 def test_models():
-    independent = np.arange(0.15, 2, .5)
+    independent = np.arange(0.15, 2, .25)
     parameters = [38.18281266, 0.37704827, 278.50103452, 4.11]
     assert(odijk("WLC").verify_jacobian(independent, parameters))
     assert(inverted_odijk("iWLC").verify_jacobian(independent, parameters, atol=1e-5))
@@ -522,7 +523,7 @@ def test_parameter_inversion():
     b_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
     f_data = f(x, a_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der)
-    model._load_data(x, f_data)
+    model._load_data(x, f_data, name="test")
     fit_object = Fit(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = 1.0
@@ -533,7 +534,7 @@ def test_parameter_inversion():
     d_true = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
     f_plus_g_data = f(x, a_true, b_true) + g(x, a_true, d_true, b_true)
     model = Model("f", f, jacobian=f_jac, derivative=f_der) + Model("f", g, jacobian=g_jac, derivative=g_der)
-    model._load_data(x, f_data)
+    model._load_data(x, f_data, name="test")
     fit_object = Fit(model)
     fit_object.parameters["f_a"].value = a_true
     fit_object.parameters["f_b"].value = b_true
@@ -561,10 +562,10 @@ def test_uncertainty_analysis():
         return J
 
     linear_model = Model("linear", linear, jacobian=linear_jac)
-    linear_model._load_data(x, y)
+    linear_model._load_data(x, y, name="test")
     linear_fit = Fit(linear_model).fit()
     model_quad = Model("quad", quad, jacobian=quad_jac)
-    model_quad._load_data(x, y)
+    model_quad._load_data(x, y, name="test")
     quad_fit = Fit(model_quad).fit()
 
     assert np.allclose(linear_fit.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
@@ -600,31 +601,31 @@ def test_parameter_availability():
     with pytest.raises(IndexError):
         linear_fit.parameters["linear_a"]
 
-    linear_model._load_data(x, y, linear_a=5)
+    linear_model._load_data(x, y, name="test", linear_a=5)
     linear_fit = Fit(linear_model)
 
     # Parameter linear_a is not actually a parameter in the fit object at this point (it was set to 5)
     with pytest.raises(IndexError):
         linear_fit.parameters["linear_a"]
 
-    linear_model._load_data(x, y)
+    linear_model._load_data(x, y, name="test")
     assert linear_fit.parameters["linear_a"]
 
 
 def test_data_loading():
     M = Model("M", lambda x, a: a*x)
-    M._load_data([1, np.nan, 3], [2, np.nan, 4])
+    M._load_data([1, np.nan, 3], [2, np.nan, 4], name="test")
     assert np.allclose(M._data[0].x, [1, 3])
     assert np.allclose(M._data[0].y, [2, 4])
 
     with pytest.raises(AssertionError):
-        M._load_data([1, 3], [2, 4, 5])
+        M._load_data([1, 3], [2, 4, 5], name="test")
 
     with pytest.raises(AssertionError):
-        M._load_data([1, 3, 5], [2, 4])
+        M._load_data([1, 3, 5], [2, 4], name="test")
 
     with pytest.raises(AssertionError):
-        M._load_data([[1, 3, 5]], [[2, 4, 5]])
+        M._load_data([[1, 3, 5]], [[2, 4, 5]], name="test")
 
 
 def test_parameter_slicing():
@@ -674,3 +675,13 @@ def test_reprs():
     assert (odijk('test') + distance_offset('test')).subtract_independent_offset("test_offset")._repr_html_()
 
     assert (force_offset("a_b_c") + force_offset("b_c_d")).invert()._repr_html_().find(r"b_{c\_d\_offset") > 0
+
+    m = odijk('DNA')
+    d1 = m._load_data([1, 2, 3], [2, 3, 4], name="data_1")
+    assert d1.__repr__() == 'FitData(data_1, N=3)'
+
+    d2 = m._load_data([1, 2, 3], [2, 3, 4], name="dataset_2", DNA_Lc="DNA_Lc_2")
+    assert d2.__repr__() == 'FitData(dataset_2, N=3, Transformations: DNA_Lc → DNA_Lc_2)'
+
+    f = Fit(m)
+

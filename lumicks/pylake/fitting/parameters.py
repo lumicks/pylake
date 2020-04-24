@@ -43,8 +43,8 @@ class Parameters:
         F = pylake.Fit(pylake.odijk("my_model"))
 
         print(F.parameters)  # Prints the model parameters
-        F.parameters["test_parameter"].value = 5  # Set parameter test_parameter to 5
-        F.parameters["fix_me"].vary = False  # Fix parameter fix_me (do not fit)
+        F["test_parameter"].value = 5  # Set parameter test_parameter to 5
+        F["fix_me"].vary = False  # Fix parameter fix_me (do not fit)
 
         DNA_and_protein.parameters << DNA.parameters  # Copy the parameters from an earlier fit into the combined model.
     """

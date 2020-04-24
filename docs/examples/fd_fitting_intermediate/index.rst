@@ -81,18 +81,18 @@ Now, let's fit our model to the data we just loaded. To do this, we have to crea
 We would also like to set some parameter bounds::
 
     def set_bounds(F):
-        F.parameters["DNA_Lp"].value = 50
-        F.parameters["DNA_Lp"].lb = 39
-        F.parameters["DNA_Lp"].ub = 80
+        F["DNA_Lp"].value = 50
+        F["DNA_Lp"].lb = 39
+        F["DNA_Lp"].ub = 80
     
-        F.parameters["DNA_Lp_RecA"].value = 50
-        F.parameters["DNA_Lp_RecA"].lb = 39
-        F.parameters["DNA_Lp_RecA"].ub = 280
+        F["DNA_Lp_RecA"].value = 50
+        F["DNA_Lp_RecA"].lb = 39
+        F["DNA_Lp_RecA"].ub = 280
     
-        F.parameters["DNA_St"].value = 1200
-        F.parameters["DNA_St"].lb = 700
-        F.parameters["DNA_St"].ub = 2000
-        F.parameters["d_offset"].ub = 5
+        F["DNA_St"].value = 1200
+        F["DNA_St"].lb = 700
+        F["DNA_St"].ub = 2000
+        F["d_offset"].ub = 5
     
     set_bounds(F)
     F.fit();
@@ -124,12 +124,12 @@ to a table by invoking `F.parameters`::
 
 We would like to compare the two modelled curves. Plotting these is easy. We can tell the model
 to plot the model for a specific data set by slicing the parameters from our fit with the
-appropriate data handle: `F.parameters[data1]`. This slice procedure collects exactly those
+appropriate data handle: `F[data1]`. This slice procedure collects exactly those
 parameters needed to simulate that condition. The second argument contains the values for the
 independent variable that we wish to simulate for::
 
-    M_DNA.plot(F.parameters[data1], np.arange(2.1, 5.0, .01), 'r--')
-    M_DNA.plot(F.parameters[data2], np.arange(2.1, 5.0, .01), 'r--')
+    M_DNA.plot(F[data1], np.arange(2.1, 5.0, .01), 'r--')
+    M_DNA.plot(F[data2], np.arange(2.1, 5.0, .01), 'r--')
     plt.ylabel('Force [pN]')
     plt.xlabel('Distance [$\\mu$M]')
     plt.ylim([0, 30])
@@ -140,13 +140,13 @@ independent variable that we wish to simulate for::
 Let's print some of our parameters. The parameter we are most interested in is the contour
 length difference due to RecA. We multiply by 1000 since we desire this value in nanometers::
 
-    >>> print(f"Boltzmann * Temperature: {F.parameters['kT'].value:.2f} [pN nm]")
-    >>> print(f"Force offset: {F.parameters['f_offset'].value:.2f} [pN]")
-    >>> print(f"Distance offset: {F.parameters['d_offset'].value * 1000:.2f} [nm]")
-    >>> print(f"DNA persistence Length: {F.parameters['DNA_Lp'].value:.2f} [nm]")
-    >>> print(f"DNA contour Length: {F.parameters['DNA_Lc'].value * 1000:.2f} [nm]")
-    >>> print(f"Stretch modulus: {F.parameters['DNA_St'].value:.2f} [pN]")
-    >>> print(f"Contour length difference: {(F.parameters['DNA_Lc_RecA'].value - F.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    >>> print(f"Boltzmann * Temperature: {F['kT'].value:.2f} [pN nm]")
+    >>> print(f"Force offset: {F['f_offset'].value:.2f} [pN]")
+    >>> print(f"Distance offset: {F['d_offset'].value * 1000:.2f} [nm]")
+    >>> print(f"DNA persistence Length: {F['DNA_Lp'].value:.2f} [nm]")
+    >>> print(f"DNA contour Length: {F['DNA_Lc'].value * 1000:.2f} [nm]")
+    >>> print(f"Stretch modulus: {F['DNA_St'].value:.2f} [pN]")
+    >>> print(f"Contour length difference: {(F['DNA_Lc_RecA'].value - F['DNA_Lc'].value) * 1000:.2f} [nm]")
     >>> print(f"Residual: {sum(F._calculate_residual()**2)}")
 
     Boltzmann * Temperature: 4.11 [pN nm]
@@ -219,8 +219,8 @@ increasing our confidence in our results::
 
 Let's look at both contour length differences::
 
-    >>> print(f"Contour length difference Odijk: {(odijk_offset.parameters['DNA_Lc_RecA'].value - odijk_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
-    >>> print(f"Contour length difference Marko-Siggia: {(siggia_offset.parameters['DNA_Lc_RecA'].value - siggia_offset.parameters['DNA_Lc'].value) * 1000:.2f} [nm]")
+    >>> print(f"Contour length difference Odijk: {(odijk_offset['DNA_Lc_RecA'].value - odijk_offset['DNA_Lc'].value) * 1000:.2f} [nm]")
+    >>> print(f"Contour length difference Marko-Siggia: {(siggia_offset['DNA_Lc_RecA'].value - siggia_offset['DNA_Lc'].value) * 1000:.2f} [nm]")
     Contour length difference Odijk: 911.70 [nm]
     Contour length difference Marko-Siggia: 913.09 [nm]
 
