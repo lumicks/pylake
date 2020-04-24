@@ -94,7 +94,7 @@ We would also like to set some parameter bounds::
         fit["DNA_St"].upper_bound = 2000
         fit["d_offset"].upper_bound = 5
     
-    set_bounds(F)
+    set_bounds(fit)
     fit.fit();
 
 Plot the fit and print the parameter values
@@ -128,8 +128,8 @@ appropriate data handle: `fit[data1]`. This slice procedure collects exactly tho
 parameters needed to simulate that condition. The second argument contains the values for the
 independent variable that we wish to simulate for::
 
-    M_DNA.plot(fit[data1], np.arange(2.1, 5.0, .01), 'r--')
-    M_DNA.plot(fit[data2], np.arange(2.1, 5.0, .01), 'r--')
+    m_dna.plot(fit[data1], np.arange(2.1, 5.0, .01), 'r--')
+    m_dna.plot(fit[data2], np.arange(2.1, 5.0, .01), 'r--')
     plt.ylabel('Force [pN]')
     plt.xlabel('Distance [$\\mu$M]')
     plt.ylim([0, 30])
