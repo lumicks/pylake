@@ -44,8 +44,8 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
 
     # Grab reference parameter vector and index for the parameter list
     parameter_vector = [parameters[key].value for key in parameter_names]
-    lb = parameters[inverted_parameter].lb
-    ub = parameters[inverted_parameter].ub
+    lb = parameters[inverted_parameter].lower_bound
+    ub = parameters[inverted_parameter].upper_bound
     inverted_parameter_index = parameter_names.index(inverted_parameter)
 
     def fit_single_point(x, y):

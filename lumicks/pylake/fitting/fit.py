@@ -27,14 +27,14 @@ class Fit:
         fit = pylake.Fit(dna_model)
         data = dna_model.load_data(d=distance, f=force)
 
-        fit["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
-        fit["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+        fit["DNA_Lp"].lower_bound = 35  # Set lower bound for DNA Lp
+        fit["DNA_Lp"].upper_bound = 80  # Set upper bound for DNA Lp
         fit.fit()
 
         dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
     """
     def __init__(self, *args):
-        self.models = [M for M in args]
+        self.models = [m for m in args]
         self._data_link = None
         self._parameters = Parameters()
         self._built = False
@@ -49,8 +49,8 @@ class Fit:
         Returns true if it is possible to evaluate the Jacobian of the fit.
         """
         has_jacobian = True
-        for M in self.models:
-            has_jacobian = has_jacobian and M.has_jacobian
+        for model in self.models:
+            has_jacobian = has_jacobian and model.has_jacobian
 
         return has_jacobian
 
@@ -59,8 +59,8 @@ class Fit:
         """Number of data points."""
         self._rebuild()
         count = 0
-        for M in self.models:
-            count += M.n_residuals
+        for model in self.models:
+            count += model.n_residuals
 
         return count
 
@@ -80,8 +80,8 @@ class Fit:
     def dirty(self):
         """Validate that all the models that we are about the fit were actually last linked against this fit object."""
         dirty = not self._built
-        for M in self.models:
-            dirty = dirty or not M.built_against(self)
+        for model in self.models:
+            dirty = dirty or not model.built_against(self)
 
         return dirty
 
@@ -99,13 +99,13 @@ class Fit:
     def _build_fit(self):
         """This function generates the global parameter list from the parameters of the individual sub models.
         It also generates unique conditions from the data specification."""
-        all_parameter_names = [p for M in self.models for p in M._transformed_parameters]
-        all_defaults = [d for M in self.models for d in M._defaults]
+        all_parameter_names = [p for model in self.models for p in model._transformed_parameters]
+        all_defaults = [d for model in self.models for d in model._defaults]
         unique_parameter_names = unique(all_parameter_names)
         parameter_lookup = OrderedDict(zip(unique_parameter_names, np.arange(len(unique_parameter_names))))
 
-        for M in self.models:
-            M._build_model(parameter_lookup, self)
+        for model in self.models:
+            model._build_model(parameter_lookup, self)
 
         defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
         self._parameters._set_parameters(unique_parameter_names, defaults)
@@ -117,7 +117,8 @@ class Fit:
         self._rebuild()
         assert self.n_residuals > 0, "This model has no data associated with it."
         assert self.n_parameters > 0, "This model has no parameters. There is nothing to fit."
-        return self.parameters.values, self.parameters.fitted, self.parameters.lb, self.parameters.ub
+        return self.parameters.values, self.parameters.fitted, self.parameters.lower_bounds, \
+               self.parameters.upper_bounds
 
     def _fit(self, parameter_vector, lb, ub, fitted, show_fit=False, **kwargs):
         """Fit the model
@@ -179,7 +180,8 @@ class Fit:
         out_of_bounds = np.logical_or(parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted])
         if np.any(out_of_bounds):
             raise ValueError(f"Initial parameters {self.parameters.keys[fitted][out_of_bounds]} are outside the "
-                             f"parameter bounds. Please set value, lb or ub for these parameters to consistent values.")
+                             f"parameter bounds. Please set value, lower_bound and upper_bound for these parameters"
+                             f"to consistent values.")
 
         parameter_vector = self._fit(parameter_vector, lb, ub, fitted, show_fit=show_fit, **kwargs)
 
@@ -196,8 +198,8 @@ class Fit:
 
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
-        for M in self.models:
-            current_residual = M._calculate_residual(parameter_values)
+        for model in self.models:
+            current_residual = model._calculate_residual(parameter_values)
             current_n = len(current_residual)
             residual[residual_idx:residual_idx + current_n] = current_residual
             residual_idx += current_n
@@ -211,8 +213,8 @@ class Fit:
 
         residual_idx = 0
         jacobian = np.zeros((self.n_residuals, len(parameter_values)))
-        for M in self.models:
-            current_jacobian = M._calculate_jacobian(parameter_values)
+        for model in self.models:
+            current_jacobian = model._calculate_jacobian(parameter_values)
             current_n = current_jacobian.shape[0]
             jacobian[residual_idx:residual_idx + current_n, :] = current_jacobian
             residual_idx += current_n
@@ -256,8 +258,8 @@ class Fit:
     def plot_data(self, fmt, **kwargs):
         self._rebuild()
 
-        for M in self.models:
-            M._plot_data(fmt, **kwargs)
+        for model in self.models:
+            model._plot_data(fmt, **kwargs)
 
     def _override_parameters(self, **kwargs):
         from copy import deepcopy
@@ -274,8 +276,8 @@ class Fit:
         self._rebuild()
         parameters, kwargs = self._override_parameters(**kwargs)
 
-        for M in self.models:
-            M._plot_model(parameters, fmt, **kwargs)
+        for model in self.models:
+            model._plot_model(parameters, fmt, **kwargs)
 
     @property
     def sigma(self):

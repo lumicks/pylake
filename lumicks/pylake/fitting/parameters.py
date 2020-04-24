@@ -4,20 +4,29 @@ from tabulate import tabulate
 
 
 class Parameter:
-    def __init__(self, value=0.0, lb=-np.inf, ub=np.inf, vary=True, init=None, shared=False, unit=None):
+    def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, vary=True, init=None, shared=False, unit=None):
         """Model parameter
 
         Parameters
         ----------
         value: float
-        lb, ub: float
-        vary: boolean
+            Parameter value
+        lower_bound, upper_bound: float
+            Lower and upper bound used in the fitting process. Parameters are not allowed to go beyond these bounds.
+        vary: bool
+            Is this parameter free to be estimated from data?
         init: float
-        shared: boolean
+            Initial value for the parameter.
+        shared: bool
+            Is this parameter typically model specific or shared between models? An example of a model specific
+            parameter is the contour length of a protein, whereas the Boltzmann constant times temperate (kT) is an
+            example of a parameter that is typically shared between models.
+        unit: str
+            Unit of the parameter
         """
         self.value = value
-        self.lb = lb
-        self.ub = ub
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
         self.vary = vary
         self.shared = shared
         self.unit = unit
@@ -27,7 +36,8 @@ class Parameter:
             self.init = self.value
 
     def __repr__(self):
-        return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lb: {self.lb}, ub: {self.ub}, vary: {self.vary})"
+        return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lower bound: {self.lower_bound}, upper bound: " \
+               f"{self.upper_bound}, vary: {self.vary})"
 
     def __str__(self):
         return self.__repr__()
@@ -40,11 +50,11 @@ class Parameters:
     Examples
     --------
     ::
-        F = pylake.Fit(pylake.odijk("my_model"))
+        fit = pylake.Fit(pylake.odijk("my_model"))
 
-        print(F.parameters)  # Prints the model parameters
-        F["test_parameter"].value = 5  # Set parameter test_parameter to 5
-        F["fix_me"].vary = False  # Fix parameter fix_me (do not fit)
+        print(fit.parameters)  # Prints the model parameters
+        fit["test_parameter"].value = 5  # Set parameter test_parameter to 5
+        fit["fix_me"].vary = False  # Fix parameter fix_me (do not fit)
 
         DNA_and_protein.parameters << DNA.parameters  # Copy the parameters from an earlier fit into the combined model.
     """
@@ -106,8 +116,8 @@ class Parameters:
         return len(self._src)
 
     def _print_data(self):
-        table = [[key, par.value, f'[{par.unit}]' if par.unit else 'NA', par.vary, par.lb, par.ub] for key, par in
-                 self._src.items()]
+        table = [[key, par.value, f'[{par.unit}]' if par.unit else 'NA', par.vary, par.lower_bound, par.upper_bound]
+                 for key, par in self._src.items()]
         header = ['Name', 'Value', 'Unit', 'Fitted', 'Lower bound', 'Upper bound']
         return table, header
 
@@ -162,9 +172,9 @@ class Parameters:
         return np.array([param.vary for param in self._src.values()])
 
     @property
-    def lb(self):
-        return np.array([param.lb for param in self._src.values()])
+    def lower_bounds(self):
+        return np.array([param.lower_bound for param in self._src.values()])
 
     @property
-    def ub(self):
-        return np.array([param.ub for param in self._src.values()])
+    def upper_bounds(self):
+        return np.array([param.upper_bound for param in self._src.values()])

@@ -38,11 +38,11 @@ While it is possible (and equivalent) to generate this model via
 included as a separate model. When only a single WLC is needed, it is best to
 use this one, as it is considerably faster than explicitly inverting::
 
-    M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
+    m_dna = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
 
 Let's have a look at the parameters in this model::
 
-    >>> print(M_DNA.parameter_names)
+    >>> print(m_dna.parameter_names)
     ['d_offset', 'DNA_Lp', 'DNA_Lc', 'DNA_St', 'kT', 'f_offset']
 
 Load the data
@@ -63,51 +63,51 @@ to include and false for the data we wish to exclude::
 We can load data into the model by using the function `load_data`. Note
 that we apply the mask as we are loading the data using the square brackets::
 
-    data1 = M_DNA.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    data1 = m_dna.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
 
 If parameters are expected to differ between conditions, we can rename them
 when loading the data. For the second data set, we expect the contour length
 and persistence length to be different. Let's rename these::
 
-    data2 = M_DNA.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA")
+    data2 = m_dna.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA")
 
 Set up the fit
 --------------
 
 Now, let's fit our model to the data we just loaded. To do this, we have to create a `Fit`::
 
-    F = pylake.Fit(M_DNA)
+    fit = pylake.Fit(m_dna)
     
 We would also like to set some parameter bounds::
 
-    def set_bounds(F):
-        F["DNA_Lp"].value = 50
-        F["DNA_Lp"].lb = 39
-        F["DNA_Lp"].ub = 80
+    def set_bounds(fit):
+        fit["DNA_Lp"].value = 50
+        fit["DNA_Lp"].lower_bound = 39
+        fit["DNA_Lp"].upper_bound = 80
     
-        F["DNA_Lp_RecA"].value = 50
-        F["DNA_Lp_RecA"].lb = 39
-        F["DNA_Lp_RecA"].ub = 280
+        fit["DNA_Lp_RecA"].value = 50
+        fit["DNA_Lp_RecA"].lower_bound = 39
+        fit["DNA_Lp_RecA"].upper_bound = 280
     
-        F["DNA_St"].value = 1200
-        F["DNA_St"].lb = 700
-        F["DNA_St"].ub = 2000
-        F["d_offset"].ub = 5
+        fit["DNA_St"].value = 1200
+        fit["DNA_St"].lower_bound = 700
+        fit["DNA_St"].upper_bound = 2000
+        fit["d_offset"].upper_bound = 5
     
     set_bounds(F)
-    F.fit();
+    fit.fit();
 
 Plot the fit and print the parameter values
 -------------------------------------------
 
 Plotting the fit alongside the data is easy. Simply call the plot function
-on the `Fit` (i.e. `F.plot()`). Similarly, we can print the parameters
-to a table by invoking `F.parameters`::
+on the `Fit` (i.e. `fit.plot()`). Similarly, we can print the parameters
+to a table by invoking `fit.parameters`::
 
-    >>> F.plot()
+    >>> fit.plot()
     >>> plt.ylabel('Force [pN]')
     >>> plt.xlabel('Distance [$\\mu$M]');
-    >>> F.parameters
+    >>> fit.parameters
 
     Name               Value  Unit      Fitted      Lower bound    Upper bound
     -----------  -----------  --------  --------  -------------  -------------
@@ -124,12 +124,12 @@ to a table by invoking `F.parameters`::
 
 We would like to compare the two modelled curves. Plotting these is easy. We can tell the model
 to plot the model for a specific data set by slicing the parameters from our fit with the
-appropriate data handle: `F[data1]`. This slice procedure collects exactly those
+appropriate data handle: `fit[data1]`. This slice procedure collects exactly those
 parameters needed to simulate that condition. The second argument contains the values for the
 independent variable that we wish to simulate for::
 
-    M_DNA.plot(F[data1], np.arange(2.1, 5.0, .01), 'r--')
-    M_DNA.plot(F[data2], np.arange(2.1, 5.0, .01), 'r--')
+    M_DNA.plot(fit[data1], np.arange(2.1, 5.0, .01), 'r--')
+    M_DNA.plot(fit[data2], np.arange(2.1, 5.0, .01), 'r--')
     plt.ylabel('Force [pN]')
     plt.xlabel('Distance [$\\mu$M]')
     plt.ylim([0, 30])
@@ -140,14 +140,14 @@ independent variable that we wish to simulate for::
 Let's print some of our parameters. The parameter we are most interested in is the contour
 length difference due to RecA. We multiply by 1000 since we desire this value in nanometers::
 
-    >>> print(f"Boltzmann * Temperature: {F['kT'].value:.2f} [pN nm]")
-    >>> print(f"Force offset: {F['f_offset'].value:.2f} [pN]")
-    >>> print(f"Distance offset: {F['d_offset'].value * 1000:.2f} [nm]")
-    >>> print(f"DNA persistence Length: {F['DNA_Lp'].value:.2f} [nm]")
-    >>> print(f"DNA contour Length: {F['DNA_Lc'].value * 1000:.2f} [nm]")
-    >>> print(f"Stretch modulus: {F['DNA_St'].value:.2f} [pN]")
-    >>> print(f"Contour length difference: {(F['DNA_Lc_RecA'].value - F['DNA_Lc'].value) * 1000:.2f} [nm]")
-    >>> print(f"Residual: {sum(F._calculate_residual()**2)}")
+    >>> print(f"Boltzmann * Temperature: {fit['kT'].value:.2f} [pN nm]")
+    >>> print(f"Force offset: {fit['f_offset'].value:.2f} [pN]")
+    >>> print(f"Distance offset: {fit['d_offset'].value * 1000:.2f} [nm]")
+    >>> print(f"DNA persistence Length: {fit['DNA_Lp'].value:.2f} [nm]")
+    >>> print(f"DNA contour Length: {fit['DNA_Lc'].value * 1000:.2f} [nm]")
+    >>> print(f"Stretch modulus: {fit['DNA_St'].value:.2f} [pN]")
+    >>> print(f"Contour length difference: {(fit['DNA_Lc_RecA'].value - fit['DNA_Lc'].value) * 1000:.2f} [nm]")
+    >>> print(f"Residual: {sum(fit._calculate_residual()**2)}")
 
     Boltzmann * Temperature: 4.11 [pN nm]
     Force offset: 0.29 [pN]
@@ -165,7 +165,7 @@ Take a closer look at the fit
 To assess the model fidelity to the data, we can have a closer look at
 the force extension curves::
 
-    F.plot()
+    fit.plot()
     plt.ylabel('Force [pN]')
     plt.xlabel('Distance [$\\mu$M]')
     plt.ylim([0, 5]);
@@ -183,18 +183,18 @@ experiments. Let’s try including an extra parameter for the force offset
 of the second condition. Let’s also try a few different models to fit
 this data::
 
-    M_DNA = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
-    M_DNA_MS = pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
+    m_dna = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
+    m_dna_ms = pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
     
-    M_DNA.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
-    M_DNA.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
-    odijk_offset = pylake.Fit(M_DNA)
+    m_dna.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    m_dna.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
+    odijk_offset = pylake.Fit(m_dna)
     set_bounds(odijk_offset)
     odijk_offset.fit()
     
-    M_DNA_MS.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
-    M_DNA_MS.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
-    siggia_offset = pylake.Fit(M_DNA_MS)
+    m_dna_ms.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    m_dna_ms.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
+    siggia_offset = pylake.Fit(m_dna_ms)
     set_bounds(siggia_offset)
     siggia_offset.fit();
 
@@ -243,11 +243,11 @@ sets of bound constraints, to get a feel for how reliable the estimates
 are::
 
     >>> print("Corrected Akaike Information Criterion")
-    >>> print(f"Odijk Model with single force offset {F.aicc}")
+    >>> print(f"Odijk Model with single force offset {fit.aicc}")
     >>> print(f"Odijk Model with two force offsets {odijk_offset.aicc}")
     >>> print(f"Marko-Siggia Model with two force offsets {siggia_offset.aicc}")
     >>> print("Bayesian Information Criterion")
-    >>> print(f"Odijk Model with single force offset {F.bic}")
+    >>> print(f"Odijk Model with single force offset {fit.bic}")
     >>> print(f"Odijk Model with two force offsets {odijk_offset.bic}")
     >>> print(f"Marko-Siggia Model with two force offsets {siggia_offset.bic}")
 
@@ -263,7 +263,7 @@ are::
 
 Again, we also look at the parameters::
 
-    >>> F.parameters
+    >>> fit.parameters
 
     Name               Value  Unit      Fitted      Lower bound    Upper bound
     -----------  -----------  --------  --------  -------------  -------------

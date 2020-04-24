@@ -36,7 +36,7 @@ however. To achieve this, we can invert the model. In addition, we incorporate
 an offset in both distance and force to compensate for small offsets that may
 exist in the data::
 
-    M_DNA = (pylake.twistable_wlc('DNA') + pylake.distance_offset('d')).invert() + pylake.force_offset('f')
+    m_dna = (pylake.twistable_wlc('DNA') + pylake.distance_offset('d')).invert() + pylake.force_offset('f')
 
 Load the data into the model
 ----------------------------
@@ -49,8 +49,8 @@ After this, we would like to fit the model to this data. To do this, we create
 a `pylake.Fit`. These are used to keep track of the fitted parameters and optionally
 fit multiple models at once. In this example, we only fit a single model::
 
-    M_DNA.load_data(f=f, d=d, name="Twistable WLC")
-    F = pylake.Fit(M_DNA)
+    m_dna.load_data(f=f, d=d, name="Twistable WLC")
+    fit = pylake.Fit(m_dna)
 
 Fit the model
 -------------
@@ -59,7 +59,7 @@ Now we are ready to fit the model. Considering that the tWLC model is
 expensive to evaluate, this may take a while. This is also why we choose
 to enable verbose output::
 
-    >>> F.fit(verbose=2)
+    >>> fit.fit(verbose=2)
     >>> plt.show()
 
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
@@ -85,10 +85,10 @@ Plotting the results
 --------------------
 
 After fitting we can plot our results and print our parameters. Doing this
-is as simple as invoking `F.plot()` and `F.parameters`::
+is as simple as invoking `fit.plot()` and `fit.parameters`::
 
     plt.figure(figsize=(10,10))
-    F.plot()
+    fit.plot()
     plt.xlabel('Distance [$\\mu$m]')
     plt.ylabel('Force [pN]');
 
@@ -97,7 +97,7 @@ is as simple as invoking `F.plot()` and `F.parameters`::
 
 We can also show the parameters::
 
-    >>> F.parameters
+    >>> fit.parameters
 
     Name              Value  Unit        Fitted      Lower bound    Upper bound
     --------  -------------  ----------  --------  -------------  -------------

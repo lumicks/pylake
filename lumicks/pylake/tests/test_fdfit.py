@@ -47,11 +47,11 @@ def test_parameters():
 
     params['gamma'].value = 6.0
     params['delta'] = 7.0
-    params['gamma'].lb = -4.0
-    params['gamma'].ub = 5.0
+    params['gamma'].lower_bound = -4.0
+    params['gamma'].upper_bound = 5.0
     assert (np.allclose(params.values, [0.0, 5.0, 6.0, 7.0]))
-    assert (np.allclose(params.lb, [-np.inf, -np.inf, -4.0, -np.inf]))
-    assert (np.allclose(params.ub, [np.inf, np.inf, 5.0, np.inf]))
+    assert (np.allclose(params.lower_bounds, [-np.inf, -np.inf, -4.0, -np.inf]))
+    assert (np.allclose(params.upper_bounds, [np.inf, np.inf, 5.0, np.inf]))
 
     assert(len(params) == 4.0)
     params._set_parameters(['alpha', 'beta', 'delta'], [None]*3)
@@ -155,21 +155,21 @@ def test_model_defaults():
     def g(data, mu, sig, a, b, c, d, e, f, q):
         return (data - mu) * 2
 
-    M = Model("M", g, f=Parameter(5))
-    M._load_data([1, 2, 3], [2, 3, 4], name="test")
-    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_f='f_new')
-    F = Fit(M)
-    F._build_fit()
+    m = Model("M", g, f=Parameter(5))
+    m._load_data([1, 2, 3], [2, 3, 4], name="test")
+    m._load_data([1, 2, 3], [2, 3, 4], name="test", M_f='f_new')
+    f = Fit(m)
+    f._build_fit()
 
-    assert (F["M_a"].value == Parameter().value)
-    assert (F.parameters["M_a"].value == Parameter().value)
-    assert (F.parameters["f_new"].value == 5)
-    assert (F.parameters["M_f"].value == 5)
+    assert (f["M_a"].value == Parameter().value)
+    assert (f.parameters["M_a"].value == Parameter().value)
+    assert (f.parameters["f_new"].value == 5)
+    assert (f.parameters["M_f"].value == 5)
 
     # Check whether each parameter is actually unique
-    F.parameters["f_new"] = 6
-    assert (F.parameters["f_new"].value == 6)
-    assert (F.parameters["M_f"].value == 5)
+    f.parameters["f_new"] = 6
+    assert (f.parameters["f_new"].value == 6)
+    assert (f.parameters["M_f"].value == 5)
 
     # Test whether providing a default for a parameter that doesn't exist throws
     with pytest.raises(AssertionError):
@@ -177,8 +177,8 @@ def test_model_defaults():
 
     # Verify that the defaults are in fact copies
     default = Parameter(5)
-    M = Model("M", g, f=default)
-    M._parameters["M_f"].value = 6
+    m = Model("M", g, f=default)
+    m._parameters["M_f"].value = 6
     assert default.value == 5
 
 
@@ -188,26 +188,26 @@ def test_model_build_status():
 
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_f", "M_q"]
 
-    M = Model("M", g, d=Parameter(4))
-    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4)
-    assert not M._built
+    m = Model("M", g, d=Parameter(4))
+    m._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4)
+    assert not m._built
 
     mock_fit_object = 1
-    M._build_model(OrderedDict(zip(all_parameters, np.arange(len(all_parameters)))), mock_fit_object)
-    assert M._built
+    m._build_model(OrderedDict(zip(all_parameters, np.arange(len(all_parameters)))), mock_fit_object)
+    assert m._built
 
     # Make sure that we detect invalidated builds
-    assert M.built_against(mock_fit_object)
-    assert not M.built_against(2)
+    assert m.built_against(mock_fit_object)
+    assert not m.built_against(2)
 
     # Loading new data should invalidate the build
-    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=5, M_f='f_new')
-    assert not M._built
+    m._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=5, M_f='f_new')
+    assert not m._built
 
 
 def test_model_fit_object_linking():
     def fetch_parameters(keys, indices):
-        p_list = list(F.parameters.keys)
+        p_list = list(f.parameters.keys)
         return [p_list[x] if x is not None else None for x in indices]
 
     def g(data, mu, sig, a, b, c, d, e, f, q):
@@ -217,68 +217,68 @@ def test_model_fit_object_linking():
         return (data - mu) * 2
 
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_f", "M_q"]
-    M = Model("M", g, d=Parameter(4))
-    M2 = Model("M", h)
-    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4)
+    m = Model("M", g, d=Parameter(4))
+    m2 = Model("M", h)
+    m._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4)
 
     # Model should not be built
-    F = Fit(M, M2)
-    assert F.dirty
+    f = Fit(m, m2)
+    assert f.dirty
 
     # Asking for the parameters should have triggered a build
-    F.parameters
-    assert not F.dirty
-    assert set(F.parameters.keys) == set(all_parameters)
+    f.parameters
+    assert not f.dirty
+    assert set(f.parameters.keys) == set(all_parameters)
 
     # Check the parameters included in the model
-    assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
-    assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[0]._p_global_indices) == \
+    assert np.allclose(f.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    assert np.all(f.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
+    assert fetch_parameters(f.parameters, f.models[0]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
     # Loading data should make it dirty again
-    M._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_e="M_e_new")
-    assert F.dirty
+    m._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_e="M_e_new")
+    assert f.dirty
 
     # Check the parameters included in the model
-    F._rebuild()
-    assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
-    assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[0]._p_global_indices) == \
+    f._rebuild()
+    assert np.allclose(f.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    assert np.all(f.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
+    assert fetch_parameters(f.parameters, f.models[0]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
-    assert np.allclose(F.models[0]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
-    assert np.all(F.models[0]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[1]._p_global_indices) == \
+    assert np.allclose(f.models[0]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    assert np.all(f.models[0]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
+    assert fetch_parameters(f.parameters, f.models[0]._conditions[1]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e_new", "M_f", "M_q"]
 
     # Load data into model 2
-    M2._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_r=6)
-    assert F.dirty
+    m2._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_r=6)
+    assert f.dirty
 
     # Since M_r is set fixed in that model, it should not appear as a parameter
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_e_new", "M_f", "M_q"]
-    assert set(F.parameters.keys) == set(all_parameters)
+    assert set(f.parameters.keys) == set(all_parameters)
 
     all_parameters = ["M_mu", "M_sig", "M_a", "M_b", "M_d", "M_e", "M_e_new", "M_f", "M_q", "M_r"]
-    M2._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_e=5)
-    assert set(F.parameters.keys) == set(all_parameters)
-    assert np.allclose(F.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
-    assert np.all(F.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[0]._p_global_indices) == \
+    m2._load_data([1, 2, 3], [2, 3, 4], name="test", M_c=4, M_e=5)
+    assert set(f.parameters.keys) == set(all_parameters)
+    assert np.allclose(f.models[0]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    assert np.all(f.models[0]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
+    assert fetch_parameters(f.parameters, f.models[0]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e", "M_f", "M_q"]
 
-    assert np.allclose(F.models[0]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
-    assert np.all(F.models[0]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
-    assert fetch_parameters(F.parameters, F.models[0]._conditions[1]._p_global_indices) == \
+    assert np.allclose(f.models[0]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    assert np.all(f.models[0]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
+    assert fetch_parameters(f.parameters, f.models[0]._conditions[1]._p_global_indices) == \
            ["M_mu", "M_sig", "M_a", "M_b", None, "M_d", "M_e_new", "M_f", "M_q"]
 
-    assert np.allclose(F.models[1]._conditions[0].p_external, [0, 1, 2])
-    assert np.all(F.models[1]._conditions[0].p_local == [None, None, None, 4, 6])
-    assert fetch_parameters(F.parameters, F.models[1]._conditions[0]._p_global_indices) == \
+    assert np.allclose(f.models[1]._conditions[0].p_external, [0, 1, 2])
+    assert np.all(f.models[1]._conditions[0].p_local == [None, None, None, 4, 6])
+    assert fetch_parameters(f.parameters, f.models[1]._conditions[0]._p_global_indices) == \
            ["M_mu", "M_e", "M_q", None, None]
 
-    assert fetch_parameters(F.parameters, F.models[1]._conditions[1]._p_global_indices) == \
+    assert fetch_parameters(f.parameters, f.models[1]._conditions[1]._p_global_indices) == \
            ["M_mu", None, "M_q", None, "M_r"]
 
 
@@ -406,14 +406,14 @@ def test_models():
     d = np.arange(0.15, 2, .5)
     (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)
     parameters = [Lp, Lc, St, kT]
-    M_fwd = marko_siggia_ewlc_force("fwd")
-    M_bwd = marko_siggia_ewlc_distance("bwd")
-    F = M_fwd._raw_call(d, parameters)
-    assert np.allclose(M_bwd._raw_call(F, parameters), d)
+    m_fwd = marko_siggia_ewlc_force("fwd")
+    m_bwd = marko_siggia_ewlc_distance("bwd")
+    force = m_fwd._raw_call(d, parameters)
+    assert np.allclose(m_bwd._raw_call(force, parameters), d)
 
     # Determine whether they actually fulfill the model
-    lhs = (F*Lp/kT)
-    rhs = 0.25 * (1.0 - (d/Lc) + (F/St))**(-2) - 0.25 + (d/Lc) - (F/St)
+    lhs = (force*Lp/kT)
+    rhs = 0.25 * (1.0 - (d/Lc) + (force/St))**(-2) - 0.25 + (d/Lc) - (force/St)
     assert np.allclose(lhs, rhs)
 
 
@@ -442,49 +442,49 @@ def test_model_composition():
     def g_der(x, a, d, b):
         return - b * np.ones((len(x))) + 2.0 * d * x
 
-    M1 = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der)
-    M2 = Model("M", g, dependent="x", jacobian=g_jac, derivative=g_der)
+    m1 = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der)
+    m2 = Model("M", g, dependent="x", jacobian=g_jac, derivative=g_der)
     t = np.arange(0, 2, .5)
 
     # Check actual composition
     # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
-    assert np.allclose((M1 + M2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
+    assert np.allclose((m1 + m2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
         "Model composition returns invalid function evaluation (parameter order issue?)"
 
     # Check correctness of the Jacobians and derivatives
-    assert (M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
-    assert (M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
-    assert (M2 + M1).verify_jacobian(t, [1.0, 2.0, 3.0])
-    assert (M2 + M1).verify_derivative(t, [1.0, 2.0, 3.0])
-    assert (M2 + M1 + M2).verify_jacobian(t, [1.0, 2.0, 3.0])
-    assert (M2 + M1 + M2).verify_derivative(t, [1.0, 2.0, 3.0])
+    assert (m1 + m2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (m1 + m2).verify_derivative(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1).verify_derivative(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1 + m2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1 + m2).verify_derivative(t, [1.0, 2.0, 3.0])
 
-    M1_wrong_jacobian = Model("M", f, dependent="x", jacobian=f_jac_wrong, derivative=f_der)
-    assert not (M1_wrong_jacobian + M2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
-    assert not (M2 + M1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    m1_wrong_jacobian = Model("M", f, dependent="x", jacobian=f_jac_wrong, derivative=f_der)
+    assert not (m1_wrong_jacobian + m2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    assert not (m2 + m1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
 
-    assert (InverseModel(M1) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert InverseModel(M1 + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert InverseModel(M1 + M2 + M1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert (InverseModel(m1) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(m1 + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(m1 + m2 + m1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
 
-    assert (InverseModel(M1) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
-    assert InverseModel(M1 + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
-    assert InverseModel(M1 + M2 + M1).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert (InverseModel(m1) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(m1 + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(m1 + m2 + m1).verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1_wrong_derivative = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der_wrong)
-    assert not (InverseModel(M1_wrong_derivative) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert not (InverseModel(M1_wrong_jacobian) + M2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert not (InverseModel(M1_wrong_derivative) + M2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    m1_wrong_derivative = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der_wrong)
+    assert not (InverseModel(m1_wrong_derivative) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(m1_wrong_jacobian) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(m1_wrong_derivative) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    assert M1.subtract_independent_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert M1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert m1.subtract_independent_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert m1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    M1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + force_offset("f")
-    M2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
+    m1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + force_offset("f")
+    m2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
-    assert np.allclose(M1._raw_call(t, p1), M2._raw_call(t, p2))
+    assert np.allclose(m1._raw_call(t, p1), m2._raw_call(t, p2))
 
     # Check whether incompatible variables are found
     with pytest.raises(AssertionError):
@@ -613,19 +613,19 @@ def test_parameter_availability():
 
 
 def test_data_loading():
-    M = Model("M", lambda x, a: a*x)
-    M._load_data([1, np.nan, 3], [2, np.nan, 4], name="test")
-    assert np.allclose(M._data[0].x, [1, 3])
-    assert np.allclose(M._data[0].y, [2, 4])
+    m = Model("M", lambda x, a: a*x)
+    m._load_data([1, np.nan, 3], [2, np.nan, 4], name="test")
+    assert np.allclose(m._data[0].x, [1, 3])
+    assert np.allclose(m._data[0].y, [2, 4])
 
     with pytest.raises(AssertionError):
-        M._load_data([1, 3], [2, 4, 5], name="test")
+        m._load_data([1, 3], [2, 4, 5], name="test")
 
     with pytest.raises(AssertionError):
-        M._load_data([1, 3, 5], [2, 4], name="test")
+        m._load_data([1, 3, 5], [2, 4], name="test")
 
     with pytest.raises(AssertionError):
-        M._load_data([[1, 3, 5]], [[2, 4, 5]], name="test")
+        m._load_data([[1, 3, 5]], [[2, 4, 5]], name="test")
 
 
 def test_parameter_slicing():
@@ -684,4 +684,3 @@ def test_reprs():
     assert d2.__repr__() == 'FitData(dataset_2, N=3, Transformations: DNA_Lc → DNA_Lc_2)'
 
     f = Fit(m)
-

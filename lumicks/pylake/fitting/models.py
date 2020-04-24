@@ -28,7 +28,7 @@ def force_offset(name):
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
-        offset=Parameter(value=0.01, lb=0, ub=np.inf),
+        offset=Parameter(value=0.01, lower_bound=0, upper_bound=np.inf),
     )
 
 
@@ -57,7 +57,7 @@ def distance_offset(name):
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
-        offset=Parameter(value=0.01, lb=0, ub=np.inf),
+        offset=Parameter(value=0.01, lower_bound=0, upper_bound=np.inf),
     )
 
 
@@ -339,10 +339,10 @@ def twistable_wlc(name):
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
         St=Defaults.St,
-        Fc=Parameter(value=30.6, lb=0.0, ub=50000.0, unit="pN"),
-        C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
-        g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
-        g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=50000.0, unit="pN"),
+        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=50000.0, unit="pN*nm**2"),
+        g0=Parameter(value=-637, lower_bound=-50000.0, upper_bound=50000.0, unit="pN*nm"),
+        g1=Parameter(value=17.0, lower_bound=-50000.0, upper_bound=50000.0, unit="nm"),
     )
 
 
@@ -382,8 +382,8 @@ def inverted_twistable_wlc(name):
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
         St=Defaults.St,
-        Fc=Parameter(value=30.6, lb=0.0, ub=100.0, unit="pN"),
-        C=Parameter(value=440.0, lb=0.0, ub=50000.0, unit="pN*nm**2"),
-        g0=Parameter(value=-637, lb=-50000.0, ub=50000.0, unit="pN*nm"),
-        g1=Parameter(value=17.0, lb=-50000.0, ub=50000.0, unit="nm"),
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=100.0, unit="pN"),
+        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=50000.0, unit="pN*nm**2"),
+        g0=Parameter(value=-637, lower_bound=-50000.0, upper_bound=50000.0, unit="pN*nm"),
+        g1=Parameter(value=17.0, lower_bound=-50000.0, upper_bound=50000.0, unit="nm"),
     )

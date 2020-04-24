@@ -64,8 +64,8 @@ class Model:
             fit = pylake.Fit(dna_model)
             data = dna_model.load_data(f=force, d=distance)
 
-            fit["DNA_Lp"].lb = 35  # Set lower bound for DNA Lp
-            fit["DNA_Lp"].ub = 80  # Set upper bound for DNA Lp
+            fit["DNA_Lp"].lower_bound = 35  # Set lower bound for DNA Lp
+            fit["DNA_Lp"].upper_bound = 80  # Set upper bound for DNA Lp
             fit.fit()
 
             dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model

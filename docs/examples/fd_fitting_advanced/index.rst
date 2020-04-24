@@ -103,7 +103,7 @@ Let's see what the Odijk model looks like::
 From the equation we can see that this model is a distance model
 that depends on force as input. However, this is not what we want.
 
-Rather than fitting this model directly with `F` as the independent 
+Rather than fitting this model directly with `f` as the independent
 variable, we fit an inverted version of this model that has `d` as 
 the independent variable. For a single component WLC model, pylake 
 provides an analytically inverted WLC model named ``invWLC``.
@@ -132,7 +132,7 @@ parameters a single, global value is found that holds for all data sets::
                       pylake.force_offset("f")
     
     # Set up the fit, which contains both models
-    F = pylake.Fit(dna_model, construct_model);
+    fit = pylake.Fit(dna_model, construct_model);
 
 First load the data corresponding to the folded state.
 ------------------------------------------------------
@@ -167,26 +167,26 @@ offsets do not go below zero. After setting these bounds, we fit the
 DNA part of our model::
 
 
-    F["d0_offset"].lb = 0
-    F["d0_offset"].ub = .4
-    F["d0_offset"].value=.1
-    F["d1_offset"].lb = 0
-    F["d0_offset"].ub = .4
-    F["d1_offset"].value=.1
-    F["f0_offset"].lb = 0
-    F["f1_offset"].lb = 0
-    F["f0_offset"].ub = 2
-    F["f1_offset"].ub = 2
-    F["DNA_Lp"].lb = 35
-    F["DNA_Lp"].ub = 80
-    F["DNA_Lc"].value = .360
-    F["DNA_St"].value = 300
+    fit["d0_offset"].lower_bound = 0
+    fit["d0_offset"].upper_bound = .4
+    fit["d0_offset"].value=.1
+    fit["d1_offset"].lower_bound = 0
+    fit["d0_offset"].upper_bound = .4
+    fit["d1_offset"].value=.1
+    fit["f0_offset"].lower_bound = 0
+    fit["f1_offset"].lower_bound = 0
+    fit["f0_offset"].upper_bound = 2
+    fit["f1_offset"].upper_bound = 2
+    fit["DNA_Lp"].lower_bound = 35
+    fit["DNA_Lp"].upper_bound = 80
+    fit["DNA_Lc"].value = .360
+    fit["DNA_St"].value = 300
     
-    F.fit()
+    fit.fit()
     plt.figure(figsize=(figx, figy))
     plt.xlabel('Distance [$\\mu m$]')
     plt.ylabel('Force [pN]')
-    F.plot();
+    fit.plot();
 
 
 .. image:: output_10_1.png
@@ -225,13 +225,13 @@ For the protein, we want the persistence length to stay between 1 and 3::
                   d_offset="d5_offset", f_offset=0),
     ]
     
-    F["protein_Lp"].value = 2
-    F["protein_Lp"].lb = 1
-    F["protein_Lp"].ub = 3
+    fit["protein_Lp"].value = 2
+    fit["protein_Lp"].lower_bound = 1
+    fit["protein_Lp"].upper_bound = 3
 
 Time to fit the model. Considering that this is a more complicated model, it takes a little bit longer::
 
-    >>> F.fit(verbose=1)
+    >>> fit.fit(verbose=1)
 
     `xtol` termination condition is satisfied.
     Function evaluations 6, initial cost 4.6840e+05, final cost 8.6622e+02, first-order optimality 6.14e+04.
@@ -240,7 +240,7 @@ Let's plot our results::
 
     plt.figure(figsize=(figx, figy))
     plt.tight_layout(pad=1.08)
-    F.plot()
+    fit.plot()
     plt.xlabel('Distance [$\\mu$m]')
     plt.ylabel('Force [pN]');
 
@@ -254,8 +254,8 @@ Next, we plot our results::
         plt.subplot(2, 3, i + 1)
         distance = d["piezo_distance"].data
         plt.plot(distance, d["piezo_force"].data, 'r.', markersize=4*.8)
-        dna_model.plot(F[folded], distance, fmt='k--')
-        construct_model.plot(F[unfolded], distance, fmt='k--')
+        dna_model.plot(fit[folded], distance, fmt='k--')
+        construct_model.plot(fit[unfolded], distance, fmt='k--')
         
         plt.grid(True)
         plt.ylabel('Force [pN]')
@@ -273,7 +273,7 @@ Next, we plot our results::
 
 We make a box plot of the contour length `Lc` of the protein::
 
-    Lcs = [F[f"Lc_unfolded_{i}"].value*1000 for i in range(1,6)]
+    Lcs = [fit[f"Lc_unfolded_{i}"].value*1000 for i in range(1,6)]
     
     plt.figure()
     plt.boxplot(Lcs, labels=' ')

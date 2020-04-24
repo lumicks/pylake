@@ -149,8 +149,8 @@ tend to have reasonable initial guesses and bounds in pylake, but we can set our
 a lower and upper bound as follows::
 
     odijk_fit["DNA_Lp"].value = 50
-    odijk_fit["DNA_Lp"].lb = 39
-    odijk_fit["DNA_Lp"].ub = 80
+    odijk_fit["DNA_Lp"].lower_bound = 39
+    odijk_fit["DNA_Lp"].upper_bound = 80
 
 After this, the model is ready to be fitted::
 
