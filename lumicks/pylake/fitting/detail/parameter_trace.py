@@ -49,13 +49,15 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
     inverted_parameter_index = parameter_names.index(inverted_parameter)
 
     def fit_single_point(x, y):
+        x = np.asarray([x])
+
         def residual(inverted_parameter_value):
             parameter_vector[inverted_parameter_index] = inverted_parameter_value
-            return y - model._raw_call(np.array([x]), parameter_vector)
+            return y - model._raw_call(x, parameter_vector)
 
         def jacobian(inverted_parameter_value):
             parameter_vector[inverted_parameter_index] = inverted_parameter_value
-            return -model.jacobian(np.array([x]), parameter_vector)[inverted_parameter_index, :]
+            return -model.jacobian(x, parameter_vector)[inverted_parameter_index, :]
 
         jac = jacobian if model.has_jacobian else "2-point"
         result = optim.least_squares(residual, parameter_vector[inverted_parameter_index], jac=jac,
@@ -63,4 +65,4 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
 
         return result.x[0]
 
-    return np.array([fit_single_point(x, y) for (x, y) in zip(independent, dependent)])
+    return np.asarray([fit_single_point(x, y) for (x, y) in zip(independent, dependent)])

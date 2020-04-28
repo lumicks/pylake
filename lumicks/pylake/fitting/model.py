@@ -123,8 +123,9 @@ class Model:
         independent: array_like
         parameters: ``pylake.fitting.Parameters``
         """
-        independent = np.array(independent).astype(float)
-        return self._raw_call(independent, np.array([parameters[name].value for name in self.parameter_names]))
+        independent = np.asarray(independent, dtype=np.float64)
+        return self._raw_call(independent, np.asarray([parameters[name].value for name in self.parameter_names],
+                                                      dtype=np.float64))
 
     def _raw_call(self, independent, parameter_vector):
         return self.model_function(independent, *parameter_vector)
@@ -230,7 +231,7 @@ class Model:
             Parameter vector at which to simulate.
         """
         if self.has_jacobian:
-            independent = np.array(independent).astype(float)
+            independent = np.asarray(independent, dtype=np.float64)
             return self._jacobian(independent, *parameter_vector)
         else:
             raise RuntimeError(f"Jacobian was requested but not supplied in model {self.name}.")
@@ -248,7 +249,7 @@ class Model:
             Parameter vector at which to simulate.
         """
         if self.has_derivative:
-            independent = np.array(independent).astype(float)
+            independent = np.asarray(independent, dtype=np.float64)
             return self._derivative(independent, *parameter_vector)
         else:
             raise RuntimeError(f"Derivative was requested but not supplied in model {self.name}.")
@@ -307,8 +308,8 @@ class Model:
             dna_model = pylake.inverted_odijk("DNA")
             dna_model.load_data(x1, y1, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
         """
-        x = np.array(x)
-        y = np.array(y)
+        x = np.asarray(x, dtype=np.float64)
+        y = np.asarray(y, dtype=np.float64)
         assert x.ndim == 1, "Independent variable should be one dimension"
         assert y.ndim == 1, "Dependent variable should be one dimension"
         assert len(x) == len(y), "Every value for the independent variable should have a corresponding data point"
@@ -384,12 +385,12 @@ class Model:
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
 
-        independent = np.array(independent).astype(float)
+        independent = np.asarray(independent, dtype=np.float64)
         jacobian = self.jacobian(independent, parameters)
         jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values),
                                          parameters, dx=dx)
 
-        jacobian = np.array(jacobian)
+        jacobian = np.asarray(jacobian)
         if plot:
             n_x, n_y = optimal_plot_layout(len(self._parameters))
             for i_parameter, parameter in enumerate(self._parameters):

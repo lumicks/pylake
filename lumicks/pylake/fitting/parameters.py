@@ -161,20 +161,20 @@ class Parameters:
 
     @property
     def keys(self):
-        return np.array([key for key in self._src.keys()])
+        return np.asarray([key for key in self._src.keys()])
 
     @property
     def values(self):
-        return np.array([param.value for param in self._src.values()])
+        return np.asarray([param.value for param in self._src.values()], dtype=np.float64)
 
     @property
     def fitted(self):
-        return np.array([param.vary for param in self._src.values()])
+        return np.asarray([param.vary for param in self._src.values()], dtype=np.bool)
 
     @property
     def lower_bounds(self):
-        return np.array([param.lower_bound for param in self._src.values()])
+        return np.asarray([param.lower_bound for param in self._src.values()], dtype=np.float64)
 
     @property
     def upper_bounds(self):
-        return np.array([param.upper_bound for param in self._src.values()])
+        return np.asarray([param.upper_bound for param in self._src.values()], dtype=np.float64)

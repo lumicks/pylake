@@ -341,8 +341,14 @@ def test_integration_test_fitting():
 
     y = 4.0*x + 10.0
     model._load_data(x, y, name="test", M_a="slope_1", M_b="M_b_2")
-    fit.fit()
 
+    # Test whether fixed parameters are not fitted
+    fit["slope_2"].vary = False
+    fit.fit()
+    assert (np.isclose(fit["slope_2"].value, 0))
+
+    fit["slope_2"].vary = True
+    fit.fit()
     assert(len(fit.parameters.values) == 5)
     assert(len(fit.parameters) == 5)
     assert(fit.n_residuals == 12)

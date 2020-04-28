@@ -19,8 +19,8 @@ class FitData:
         set of transformations from internal model parameters to outer parameters
     """
     def __init__(self, name, x, y, transformations):
-        self.x = np.array(x)
-        self.y = np.array(y)
+        self.x = np.array(x, dtype=np.float64)
+        self.y = np.array(y, dtype=np.float64)
         self.name = name
         self.transformations = transformations
 
@@ -93,14 +93,14 @@ class Condition:
         self.p_external = np.flatnonzero([True if isinstance(x, str) else False for x in self.transformed])
 
         # p_global_indices contains a list with indices for each parameter that is mapped to the globals
-        self._p_global_indices = np.array([global_dictionary.get(key, None) for key in self.transformed])
+        self._p_global_indices = [global_dictionary.get(key, None) for key in self.transformed]
 
         # p_indices map internal sensitivities to the global parameters. Note that they are part of the "public"
         # interface. Basically, it is the indices of the exported model variables in the global parameter vector.
         self.p_indices = [x for x in self._p_global_indices if x is not None]
 
         # Which sensitivities are local (set to a fixed local value)?
-        self.p_local = np.array([None if isinstance(x, str) else x for x in self.transformed])
+        self.p_local = [None if isinstance(x, str) else x for x in self.transformed]
 
     @property
     def transformed(self):

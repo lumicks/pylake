@@ -31,7 +31,7 @@ def generate_conditions(data_sets, parameter_lookup, model_parameters):
 
     # Determine unique parameter conditions and the indices to get the appropriate unique condition from data index.
     unique_condition_strings, indices = unique_idx(str_conditions)
-    indices = np.array(indices)
+    indices = np.asarray(indices)
 
     data_link = []
     for condition_idx in np.arange(len(unique_condition_strings)):
