@@ -19,8 +19,8 @@ class FitData:
         set of transformations from internal model parameters to outer parameters
     """
     def __init__(self, name, x, y, transformations):
-        self.x = np.array(x, dtype=np.float64)
-        self.y = np.array(y, dtype=np.float64)
+        self.x = np.asarray(x, dtype=np.float64)
+        self.y = np.asarray(y, dtype=np.float64)
         self.name = name
         self.transformations = transformations
 
