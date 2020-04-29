@@ -41,7 +41,7 @@ exist in the data::
 Load the data into the model
 ----------------------------
 
-We load the data into the model. This is done using the command `load_data`. Note
+We load the data into the model. This is done using the command `add_data`. Note
 that we also supply a name for the data, which will be used when plotting for
 example.
 
@@ -49,7 +49,7 @@ After this, we would like to fit the model to this data. To do this, we create
 a `pylake.Fit`. These are used to keep track of the fitted parameters and optionally
 fit multiple models at once. In this example, we only fit a single model::
 
-    m_dna.load_data(f=f, d=d, name="Twistable WLC")
+    m_dna.add_data("Twistable WLC", f=f, d=d)
     fit = pylake.Fit(m_dna)
 
 Fit the model

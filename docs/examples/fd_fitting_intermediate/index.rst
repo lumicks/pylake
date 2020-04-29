@@ -60,16 +60,16 @@ to include and false for the data we wish to exclude::
     f1_mask = np.logical_and(f1 < f_max, f1 > f_min)
     f2_mask = np.logical_and(f2 < f_max, f2 > f_min)
 
-We can load data into the model by using the function `load_data`. Note
+We can load data into the model by using the function `add_data`. Note
 that we apply the mask as we are loading the data using the square brackets::
 
-    data1 = m_dna.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    data1 = m_dna.add_data("Control", f=f1[f1_mask], d=d1[f1_mask])
 
 If parameters are expected to differ between conditions, we can rename them
 when loading the data. For the second data set, we expect the contour length
 and persistence length to be different. Let's rename these::
 
-    data2 = m_dna.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA")
+    data2 = m_dna.add_data("RecA", f=f2[f2_mask], d=d2[f2_mask], params={"DNA_Lc": "DNA_Lc_RecA", "DNA_Lp": "DNA_Lp_RecA"})
 
 Set up the fit
 --------------
@@ -186,14 +186,16 @@ this data::
     m_dna = pylake.inverted_odijk("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
     m_dna_ms = pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset("d_offset") + pylake.force_offset("f")
     
-    m_dna.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
-    m_dna.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
+    m_dna.add_data("Control", f=f1[f1_mask], d=d1[f1_mask])
+    m_dna.add_data("RecA", f=f2[f2_mask], d=d2[f2_mask], params={"DNA_Lc": "DNA_Lc_RecA", "DNA_Lp": "DNA_Lp_RecA", \
+        "f_offset": "f_offset2"})
     odijk_offset = pylake.Fit(m_dna)
     set_bounds(odijk_offset)
     odijk_offset.fit()
     
-    m_dna_ms.load_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
-    m_dna_ms.load_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", DNA_Lc="DNA_Lc_RecA", DNA_Lp="DNA_Lp_RecA", f_offset="f_offset2")
+    m_dna_ms.add_data(f=f1[f1_mask], d=d1[f1_mask], name="Control")
+    m_dna_ms.add_data(f=f2[f2_mask], d=d2[f2_mask], name="RecA", params={"DNA_Lc": "DNA_Lc_RecA", \
+        "DNA_Lp": "DNA_Lp_RecA", "f_offset": "f_offset2"})
     siggia_offset = pylake.Fit(m_dna_ms)
     set_bounds(siggia_offset)
     siggia_offset.fit();

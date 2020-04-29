@@ -17,7 +17,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     point_scan.PointScan
     correlated_stack.CorrelatedStack
     fitting.model.Model
-    fitting.Fit
+    Fit
 
     force_offset
     distance_offset

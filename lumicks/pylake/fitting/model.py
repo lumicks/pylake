@@ -20,7 +20,7 @@ class Model:
                  eqn_tex=None, **kwargs):
         """
         Model constructor. A Model must be named, and this name will appear in the model parameters.
-        A model contains references to data associated with the model by using the member function _load_data.
+        A model contains references to data associated with the model by using the member function _add_data.
 
         Prior to fitting the model will automatically generate a list of unique conditions (defined as conditions
         characterized by a unique set of conditions).
@@ -62,7 +62,7 @@ class Model:
 
             dna_model = pylake.inverted_odijk("DNA")
             fit = pylake.Fit(dna_model)
-            data = dna_model.load_data(f=force, d=distance)
+            data = dna_model.add_data("my data", f=force, d=distance)
 
             fit["DNA_Lp"].lower_bound = 35  # Set lower bound for DNA Lp
             fit["DNA_Lp"].upper_bound = 80  # Set upper bound for DNA Lp
@@ -281,32 +281,31 @@ class Model:
     def built_against(self, fit_object):
         return self._built == fit_object
 
-    def _load_data(self, x, y, name, **kwargs):
+    def _add_data(self, name, x, y, params={}):
         """
         Loads a data set for this model.
 
         Parameters
         ----------
+        name: str
+            Name of this data set.
         x: array_like
             Independent variable. NaNs are silently dropped.
         y: array_like
             Dependent variable. NaNs are silently dropped.
-        name: str
-            Name of this data set.
-        **kwargs:
+        params: dict of {str : str or int}
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
-            parameter name or constant for this specific dataset (for more information, see the examples).
+            parameter name or constant for this specific data set (for more information, see the examples).
 
         Examples
         --------
         ::
-
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.load_data(x1, y1, name="my first data set")  # Load the first dataset like that
-            dna_model.load_data(x2, y2, name="my first data set", DNA_Lc="DNA_Lc_RecA")  # Different contour length Lc
+            dna_model.add_data("Control", f1, d1)  # Load the first dataset like that
+            dna_model.add_data("RecA", f2, d2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different contour length Lc
 
             dna_model = pylake.inverted_odijk("DNA")
-            dna_model.load_data(x1, y1, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
+            dna_model.add_data("Unusual", f1, d1, params={"DNA_St": "1200"})  # Set stretch modulus to 1200 pN
         """
         x = np.asarray(x, dtype=np.float64)
         y = np.asarray(y, dtype=np.float64)
@@ -319,7 +318,7 @@ class Model:
         x = x[filter_nan]
 
         self._invalidate_build()
-        parameter_list = parse_transformation(self.parameter_names, **kwargs)
+        parameter_list = parse_transformation(self.parameter_names, params)
         data = FitData(name, x, y, parameter_list)
         self._data.append(data)
         return data
@@ -488,8 +487,8 @@ class Model:
         ::
 
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            d1 = dna_model.load_data(f=force1, d=distance1, name="my first data set")
-            d2 = dna_model.load_data(f=force2, d=distance2, name="my first data set", DNA_Lc="DNA_Lc_RecA")
+            d1 = dna_model.add_data("data1", f=force1, d=distance1)
+            d2 = dna_model.add_data("data2", f=force2, d=distance2, params={"DNA_Lc": "DNA_Lc_RecA"})
             fit = pylake.Fit(dna_model)
             fit.fit()
             dna_model.plot(fit[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
@@ -747,37 +746,37 @@ class FdModel(Model):
         """
         return FdSubtractIndependentOffset(self, parameter_name)
 
-    def load_data(self, *, f, d, name, **kwargs):
+    def add_data(self, name, f, d, params={}):
         """
-        Loads a data set for this model.
+        Adds a data set for this model.
 
         Parameters
         ----------
+        name: str
+            Name of this data set.
         f: array_like
             An array_like containing force data.
         d: array_like
             An array_like containing distance data.
-        name: str
-            Name of this data set.
-        **kwargs:
+        params: dict of {str : str or int}
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
-            parameter name or constant for this specific dataset (for more information, see the examples).
+            parameter name or constant for this specific data set (for more information, see the examples).
 
         Examples
         --------
         ::
 
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.load_data(f=force1, d=distance1, name="my first data set")  # Load the first dataset like that
-            dna_model.load_data(f=force2, d=distance2, name="my first data set", DNA_Lc="DNA_Lc_RecA")  # Different contour length Lc
+            dna_model.add_data("Data1", force1, distance1)  # Load the first data set like that
+            dna_model.add_data("Data2", force2, distance2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different DNA_Lc
 
             dna_model = pylake.inverted_odijk("DNA")
-            dna_model.load_data(f=force1, f=force2, name="my second data set", DNA_St=1200)  # Set stretch modulus to 1200 pN
+            dna_model.add_data("Data3", force3, distance3, params={"DNA_St": 1200})  # Set DNA_St to 1200
         """
         if self.independent == "f":
-            return self._load_data(f, d, name, **kwargs)
+            return self._add_data(f, d, name, params)
         else:
-            return self._load_data(d, f, name, **kwargs)
+            return self._add_data(d, f, name, params)
 
 
 class FdInverseModel(InverseModel, FdModel):

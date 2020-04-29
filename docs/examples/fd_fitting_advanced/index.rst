@@ -19,8 +19,8 @@ tutorials first. Let's begin by importing our required libraries::
     figx = 9
     figy = 6
 
-First we load our data using pylake.
-------------------------------------
+First we load our data using pylake
+-----------------------------------
 
 We use some of pylake’s built-in downsampling routines to downsample the
 data before use (since we do not need the 78.125 kHz data for this
@@ -75,8 +75,8 @@ determining where the breaks in the pulling curve are::
     interact(plot_data, data_idx=widgets.IntSlider(min=0, max=len(data) - 1, step=1, value=0))
 
 
-Setting up the global fit.
---------------------------
+Setting up the global fit
+-------------------------
 
 We make use of two models in this notebook.
 
@@ -134,27 +134,27 @@ parameters a single, global value is found that holds for all data sets::
     # Set up the fit, which contains both models
     fit = pylake.Fit(dna_model, construct_model);
 
-First load the data corresponding to the folded state.
-------------------------------------------------------
+First load the data corresponding to the folded state
+-----------------------------------------------------
 We write a little helper function that helps us load the data. First we 
 load the data corresponding to the folded state::
 
     # Small helper function to load data
-    def load_data(model, d, name, time_range, **kwargs):
+    def add_data(model, d, name, time_range, parameter_changes):
         start_time = f"{time_range[0]}s"
         end_time = f"{time_range[1]}s"
         force = d["piezo_force"][start_time:end_time].data
         distance = d["piezo_distance"][start_time:end_time].data
-        return model.load_data(f=force[force < 30], d=distance[force < 30], name=name, **kwargs)
+        return model.add_data(name=name, f=force[force < 30], d=distance[force < 30], parameter_changes)
     
     # Folded data
     folded_handles = [
-        load_data(dna_model, data[0], "AdK 1", [0, 53], d_offset="d0_offset", f_offset="f0_offset"),
-        load_data(dna_model, data[1], "AdK 2", [0, 73], d_offset="d1_offset", f_offset="f1_offset"),
-        load_data(dna_model, data[2], "AdK 3", [0, 90], d_offset="d2_offset", f_offset=0),
-        load_data(dna_model, data[3], "AdK 4", [0, 88], d_offset="d3_offset", f_offset=0),
-        load_data(dna_model, data[4], "AdK 5", [0, 98], d_offset="d4_offset", f_offset=0),
-        load_data(dna_model, data[5], "AdK 6", [0, 25], d_offset="d5_offset", f_offset=0)
+        add_data(dna_model, data[0], "AdK 1", [0, 53], {"d_offset": "d0_offset", "f_offset": "f0_offset"),
+        add_data(dna_model, data[1], "AdK 2", [0, 73], {"d_offset": "d1_offset", "f_offset": "f1_offset"),
+        add_data(dna_model, data[2], "AdK 3", [0, 90], {"d_offset": "d2_offset", "f_offset": 0),
+        add_data(dna_model, data[3], "AdK 4", [0, 88], {"d_offset": "d3_offset", "f_offset": 0),
+        add_data(dna_model, data[4], "AdK 5", [0, 98], {"d_offset": "d4_offset", "f_offset": 0),
+        add_data(dna_model, data[5], "AdK 6", [0, 25], {"d_offset": "d5_offset", "f_offset": 0)
     ];
 
 Fit the DNA data
@@ -211,18 +211,18 @@ For the protein, we want the persistence length to stay between 1 and 3::
 
     # Unfolded data
     unfolded_handles = [
-        load_data(construct_model, data[0], "AdK 1", [90, 145],  protein_Lc="Lc_unfolded_1", 
-                  d_offset="d0_offset", f_offset="f0_offset"),
-        load_data(construct_model, data[1], "AdK 2", [120, 145], protein_Lc="Lc_unfolded_2", 
-                  d_offset="d1_offset", f_offset="f1_offset"),
-        load_data(construct_model, data[2], "AdK 3", [103, 173], protein_Lc="Lc_unfolded_3", 
-                  d_offset="d2_offset", f_offset=0),
-        load_data(construct_model, data[3], "AdK 4", [93, 184],  protein_Lc="Lc_unfolded_4", 
-                  d_offset="d3_offset", f_offset=0),
-        load_data(construct_model, data[4], "AdK 5", [101, 171], protein_Lc="Lc_unfolded_5", 
-                  d_offset="d4_offset", f_offset=0),
-        load_data(construct_model, data[5], "AdK 6", [50, 120],  protein_Lc="Lc_unfolded_6", 
-                  d_offset="d5_offset", f_offset=0),
+        add_data(construct_model, data[0], "AdK 1", [90, 145],  {"protein_Lc": "Lc_unfolded_1",
+                  "d_offset": "d0_offset", "f_offset": "f0_offset"}),
+        add_data(construct_model, data[1], "AdK 2", [120, 145], {"protein_Lc": "Lc_unfolded_2",
+                  "d_offset": "d1_offset", "f_offset": "f1_offset"}),
+        add_data(construct_model, data[2], "AdK 3", [103, 173], {"protein_Lc": "Lc_unfolded_3",
+                  "d_offset": "d2_offset", "f_offset": 0}),
+        add_data(construct_model, data[3], "AdK 4", [93, 184],  {"protein_Lc": "Lc_unfolded_4",
+                  "d_offset": "d3_offset", "f_offset": 0}),
+        add_data(construct_model, data[4], "AdK 5", [101, 171], {"protein_Lc": "Lc_unfolded_5",
+                  "d_offset": "d4_offset", "f_offset": 0}),
+        add_data(construct_model, data[5], "AdK 6", [50, 120],  {"protein_Lc": "Lc_unfolded_6",
+                  "d_offset": "d5_offset", "f_offset": 0}),
     ]
     
     fit["protein_Lp"].value = 2

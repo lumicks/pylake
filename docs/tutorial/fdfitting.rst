@@ -108,27 +108,25 @@ Loading data
 
 Next up, is loading some data. Let's assume we have two data sets. One was acquired in the presence
 of a ligand, and another was measured without a ligand. We expect this ligand to only affect the 
-contour length of our DNA. Loading the first dataset is simple. Note that we explicitly define
-which dataset is force and which is distance via keyed arguments (this is intended to prevent
-mistakes in argument order)::
+contour length of our DNA. Loading the first dataset is simple::
 
-    data1 = odijk_with_offsets.load_data(f=force1, d=distance1, name="Control")
+    data1 = odijk_with_offsets.add_data("Control", f=force1, d=distance1)
 
-Note how load_data returns a handle to the loaded data. We store this in `data1`. Such handles 
+Note how `add_data` returns a handle to the loaded data. We store this in `data1`. Such handles
 contain information about which parameters are used in that simulation condition. They can be
 used to get more fine grained control over what is plotted or simulated. More on that later in
 this tutorial. For the second dataset, we want the contour length to be different. We can achieve
 this by renaming it when loading the data::
 
-    data2 = odijk_with_offsets.load_data(f=force2, d=distance2, name="RecA", DNA_Lc="DNA_Lc_RecA")
+    data2 = odijk_with_offsets.add_data("RecA", f=force2, d=distance2, params={"DNA_Lc": "DNA_Lc_RecA"})
 
 More specifically, we renamed the parameter `DNA_Lc` to `DNA_Lc_RecA`. Sometimes, you may want
-a large number of datasets with different offsets. Assuming we have two lists of distance and
+a large number of data sets with different offsets. Assuming we have two lists of distance and
 force vectors stored in the lists distances and forces. In this case, it may make sense to load
 them in a loop and set such transformations programmatically::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_with_offsets.load_data(f=force, d=distance, name="RecA", f_offset=f"f_offset_{i}")
+        odijk_with_offsets.add_data(f"RecA {i}", f=force, d=distance, params={"f_offset": f"f_offset_{i}"})
 
 The syntax `f"offset_{i}"` is parsed into `offset_0`, `offset_1` ... etc. For more information
 on how this works, read up on Python fantastic f-Strings.
@@ -200,7 +198,7 @@ simple fit, consider the following two examples::
 
     odijk_inv = pylake.inverted_odijk("DNA")
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_inv.load_data(f=force, d=distance, name="RecA")
+        odijk_inv.add_data(f"RecA {i}", f=force, d=distance)
     odijk_fit = pylake.Fit(odijk_inv)
     odijk_fit.fit()
     print(odijk_fit["DNA_Lc"])
@@ -209,7 +207,7 @@ and::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
         odijk_inv = pylake.inverted_odijk("DNA")
-        odijk_inv.load_data(f=force, d=distance, name="RecA")
+        odijk_inv.add_data(f"RecA {i}", f=force, d=distance)
         odijk_fit = pylake.Fit(odijk_inv)
         odijk_fit.fit()
         print(odijk_fit["DNA_Lc"])
@@ -228,7 +226,7 @@ can be achieved using::
 
     odijk_inv = pylake.inverted_odijk("DNA")
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        odijk_inv.load_data(f=force, d=distance, name="RecA", DNA_Lc=f"DNA_Lc_{i}")
+        odijk_inv.add_data(f"RecA {i}", f=force, d=distance, {"DNA_Lc": f"DNA_Lc_{i}"})
     odijk_fit = pylake.Fit(odijk_inv)
     odijk_fit.fit()
     print(odijk_fit.parameters)
@@ -248,7 +246,7 @@ Fits can also be done incrementally::
 We can see that there are no parameters to be fitted. The reason for this is that
 we did not add any data to the model yet. Let's add some and fit this data::
 
-    >>> data1 = odijk_inv.load_data(f=f1, d=d1, name="Control")
+    >>> data1 = odijk_inv.add_data("Control", f=f1, d=d1)
     >>> odijk_fit.fit()
     >>> print(odijk_fit.parameters)
     Name         Value  Unit      Fitted      Lower bound    Upper bound
@@ -260,7 +258,7 @@ we did not add any data to the model yet. Let's add some and fit this data::
 
 Let's add a second dataset where we expect a different contour length and refit::
 
-    >>> data2 = odijk_inv.load_data(f=f2, d=d2, name="RecA", DNA_Lc="DNA_Lc_RecA")
+    >>> data2 = odijk_inv.add_data("RecA", f=f2, d=d2, params={"DNA_Lc": "DNA_Lc_RecA"})
     >>> print(odijk_fit.parameters)
     Name              Value  Unit      Fitted      Lower bound    Upper bound
     -----------  ----------  --------  --------  -------------  -------------
@@ -290,7 +288,7 @@ fit it to some data. This is all analogous to what we've learned before::
     model = pylake.inverted_odijk("model") + pylake.force_offset("f", "offset")
 
     # Fit the overall model first
-    data_handle = model.load_data(f=force, d=distance)
+    data_handle = model.add_data("Control", f=force, d=distance)
     current_fit = pylake.Fit(model)
     current_fit.fit()
 

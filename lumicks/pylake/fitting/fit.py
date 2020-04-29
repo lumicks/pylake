@@ -25,7 +25,7 @@ class Fit:
 
         dna_model = pylake.inverted_odijk("DNA")
         fit = pylake.Fit(dna_model)
-        data = dna_model.load_data(d=distance, f=force)
+        data = dna_model.add_data("Dataset 1", f=force, d=distance)
 
         fit["DNA_Lp"].lower_bound = 35  # Set lower bound for DNA Lp
         fit["DNA_Lp"].upper_bound = 80  # Set upper bound for DNA Lp
