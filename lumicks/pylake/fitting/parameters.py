@@ -35,6 +35,9 @@ class Parameter:
         else:
             self.init = self.value
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__ if isinstance(other, self.__class__) else False
+
     def __repr__(self):
         return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lower bound: {self.lower_bound}, upper bound: " \
                f"{self.upper_bound}, vary: {self.vary})"
@@ -68,6 +71,9 @@ class Parameters:
 
     def __iter__(self):
         return self._src.__iter__()
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__ if isinstance(other, self.__class__) else False
 
     def __lshift__(self, other):
         """

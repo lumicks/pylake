@@ -7,8 +7,8 @@ from collections import OrderedDict
 
 
 class Datasets:
-    def __init__(self, model):
-        """A collection of datasets for a model
+    def __init__(self, model, fit):
+        """A collection of datasets to be fitted for a model.
 
         Parameters
         ----------
@@ -16,19 +16,20 @@ class Datasets:
             The model these datasets are for.
         """
         self._model = model
-        self._data = OrderedDict()
+        self._fit = fit
+        self.data = OrderedDict()
         self._conditions = []
         self._data_link = []
         self.built = False
 
     def __getitem__(self, item):
-        return self._data.__getitem__(item)
+        return self._fit.parameters[self.data.__getitem__(item)]
 
     def __iter__(self):
-        return self._data.__iter__()
+        return self.data.__iter__()
 
     def _link_data(self, parameter_lookup):
-        self._conditions, self._data_link = generate_conditions(self._data, parameter_lookup, self._model.parameter_names)
+        self._conditions, self._data_link = generate_conditions(self.data, parameter_lookup, self._model.parameter_names)
         self.built = True
 
     def conditions(self):
@@ -46,7 +47,7 @@ class Datasets:
     def n_residuals(self):
         """Number of data points loaded into this model."""
         count = 0
-        for data in self._data.values():
+        for data in self.data.values():
             count += len(data.independent)
 
         return count
@@ -77,7 +78,7 @@ class Datasets:
             dna_model = pylake.inverted_odijk("DNA")
             dna_model.add_data("Unusual", f1, d1, params={"DNA_St": "1200"})  # Set stretch modulus to 1200 pN
         """
-        if name in self._data:
+        if name in self.data:
             raise KeyError("The name of the data set must be unique.")
 
         x = np.asarray(x, dtype=np.float64)
@@ -93,42 +94,42 @@ class Datasets:
         self.built = False
         parameter_list = parse_transformation(self._model.parameter_names, params)
         data = FitData(name, x, y, parameter_list)
-        self._data[name] = data
+        self.data[name] = data
 
         return data
 
     @property
     def names(self):
-        return [data.name for data in self._data.values()]
+        return [data.name for data in self.data.values()]
 
     @property
     def _transformed_parameters(self):
         """Retrieves the full list of fitted parameters post-transformation used by these data sets."""
-        return [name for data in self._data.values() for name in data.parameter_names]
+        return [name for data in self.data.values() for name in data.parameter_names]
 
     @property
     def _defaults(self):
-        if self._data:
-            return [deepcopy(self._model.defaults[name]) for data in self._data.values() for name in
+        if self.data:
+            return [deepcopy(self._model.defaults[name]) for data in self.data.values() for name in
                     data.source_parameter_names]
         else:
             return [deepcopy(self._model.defaults[name]) for name in self._model.parameter_names]
 
     def _repr_html_(self):
         repr_text = ''
-        for d in self._data.values():
+        for d in self.data.values():
             repr_text += f"&ensp;&ensp;{d.__str__()}<br>\n"
 
         return repr_text
 
     def __repr__(self):
         return (f"lumicks.pylake.{self.__class__.__name__}"
-                f"(datasets={{{', '.join([x.name for x in self._data.values()])}}}, "
+                f"(datasets={{{', '.join([x.name for x in self.data.values()])}}}, "
                 f"N={self.n_residuals})")
 
     def __str__(self):
         repr_text = 'Data sets:\n'
-        for d in self._data.values():
+        for d in self.data.values():
             repr_text += f"- {d.__repr__()}\n"
 
         return repr_text

@@ -41,28 +41,35 @@ class Fit:
     """
     def __init__(self, *models):
         self.models = {id(m): m for m in models}
-        self.data = {id(m): self.dataset(m) for m in models}
+        self.datasets = {id(m): self._dataset(m) for m in models}
         self._parameters = Parameters()
         self._invalidate_build()
 
-    @staticmethod
-    def dataset(model):
-        return Datasets(model)
+    def _dataset(self, model):
+        return Datasets(model, self)
 
     def __getitem__(self, item):
         if isinstance(item, Model):
-            return self.data[id(item)]
-        elif len(self.data) == 1 and item in front(self.data.values()).names:
-            return front(self.data.values())[item]
+            return self.datasets[id(item)]
+        elif len(self.datasets) == 1 and item in front(self.datasets.values()).names:
+            return self.parameters[front(self.datasets.values()).data[item]]
         else:
             return self.parameters[item]
 
+    @property
+    def data(self):
+        if len(self.datasets) > 1:
+            raise RuntimeError("This Fit is comprised of multiple models. Please access data for a particular model by "
+                               "invoking fit[model].data[dataset_name].")
+
+        return front(self.datasets.values()).data
+
     def _add_data(self, name, x, y, params={}):
-        if len(self.data) > 1:
+        if len(self.datasets) > 1:
             raise RuntimeError("This Fit is comprised of multiple models. Please add data to a particular model by "
                                "invoking fit[model].add_data(...)")
 
-        return front(self.data.values())._add_data(name, x, y, params)
+        return front(self.datasets.values())._add_data(name, x, y, params)
 
     @property
     def has_jacobian(self):
@@ -80,7 +87,7 @@ class Fit:
         """Number of data points."""
         self._rebuild()
         count = 0
-        for data in self.data.values():
+        for data in self.datasets.values():
             count += data.n_residuals
 
         return count
@@ -101,7 +108,7 @@ class Fit:
     def dirty(self):
         """Validate that all the Datasets that we are about the fit were actually linked."""
         dirty = not self._built
-        for data in self.data.values():
+        for data in self.datasets.values():
             dirty = dirty or not data.built
 
         return dirty
@@ -120,12 +127,12 @@ class Fit:
     def _build_fit(self):
         """This function generates the global parameter list from the parameters of the individual sub models.
         It also generates unique conditions from the data specification."""
-        all_parameter_names = [p for data_set in self.data.values() for p in data_set._transformed_parameters]
-        all_defaults = [d for data_set in self.data.values() for d in data_set._defaults]
+        all_parameter_names = [p for data_set in self.datasets.values() for p in data_set._transformed_parameters]
+        all_defaults = [d for data_set in self.datasets.values() for d in data_set._defaults]
         unique_parameter_names = unique(all_parameter_names)
         parameter_lookup = OrderedDict(zip(unique_parameter_names, np.arange(len(unique_parameter_names))))
 
-        for data in self.data.values():
+        for data in self.datasets.values():
             data._link_data(parameter_lookup)
 
         defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
@@ -220,7 +227,7 @@ class Fit:
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
         for model in self.models.values():
-            current_residual = model._calculate_residual(self.data[id(model)], parameter_values)
+            current_residual = model._calculate_residual(self.datasets[id(model)], parameter_values)
             current_n = len(current_residual)
             residual[residual_idx:residual_idx + current_n] = current_residual
             residual_idx += current_n
@@ -235,7 +242,7 @@ class Fit:
         residual_idx = 0
         jacobian = np.zeros((self.n_residuals, len(parameter_values)))
         for model in self.models.values():
-            current_jacobian = model._calculate_jacobian(self.data[id(model)], parameter_values)
+            current_jacobian = model._calculate_jacobian(self.datasets[id(model)], parameter_values)
             current_n = current_jacobian.shape[0]
             jacobian[residual_idx:residual_idx + current_n, :] = current_jacobian
             residual_idx += current_n
@@ -400,7 +407,7 @@ class Fit:
         out_string = "<h4>Fit</h4>\n"
 
         for model in self.models.values():
-            datasets = ''.join(f"{self.data[id(model)]._repr_html_()}<br>\n")
+            datasets = ''.join(f"{self.datasets[id(model)]._repr_html_()}<br>\n")
             out_string += f"<h5>Model: {model.name}</h5>\n"
             eqn = model.get_formatted_equation_string(tex=True)
             if eqn:
@@ -419,7 +426,7 @@ class Fit:
         out_string = "Fit\n"
 
         for model in self.models.values():
-            datasets = (' ' * indent + '- ' + self.data[id(model)].__str__()).splitlines(True)
+            datasets = (' ' * indent + '- ' + self.datasets[id(model)].__str__()).splitlines(True)
             datasets = (' ' * (2 * indent)).join(datasets)
 
             out_string += f"{' ' * indent}- Model: {model.name}\n"
@@ -464,6 +471,5 @@ class FdFit(Fit):
         else:
             return self._add_data(name, d, f, params)
 
-    @staticmethod
-    def dataset(model):
-        return FdDatasets(model)
+    def _dataset(self, model):
+        return FdDatasets(model, self)
