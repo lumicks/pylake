@@ -64,8 +64,11 @@ def solve_formatter_tex(a, solved_for, rhs):
 
 
 def escape_tex(name):
-    splits = name.split('_')
+    def escape_underscores(txt):
+        return '\\_'.join(txt.split('_'))
+
+    splits = name.split('/')
     if len(splits) > 1:
-        return splits[0] + '_{' + '\\_'.join(splits[1:]) + '}'
+        return escape_underscores(splits[1]) + '_{' + escape_underscores(splits[0]) + "}"
     else:
-        return name
+        return escape_underscores(name)

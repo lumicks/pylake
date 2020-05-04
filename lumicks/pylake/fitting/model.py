@@ -1,8 +1,6 @@
-from .fitdata import FitData
 from .parameters import Parameter, Parameters
 from .detail.utilities import solve_formatter, solve_formatter_tex, escape_tex
-from .detail.utilities import parse_transformation, print_styled, optimal_plot_layout
-from .detail.link_functions import generate_conditions
+from .detail.utilities import print_styled, optimal_plot_layout
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
     invert_derivative
 from ..detail.utilities import get_color, lighten_color
@@ -80,7 +78,7 @@ class Model:
             assert isinstance(derivative, types.FunctionType), "Derivative must be a callable."
 
         def formatter(x):
-            return f"{name}_{x}"
+            return f"{name}/{x}"
 
         self.name = name
         (self.eqn, self.eqn_tex) = (eqn, eqn_tex)
@@ -107,13 +105,6 @@ class Model:
 
         self._jacobian = jacobian
         self._derivative = derivative
-        self._data = []  # Stores the data sets with their relevant parameter transformations
-        self._conditions = []  # Built from self._data and stores unique conditions and parameter maps
-
-        # Since models are in principle exposed to a user by reference, one model can be bound to multiple Fits.
-        # Prior to any fitting operation, we have to check whether the parameter mappings in the Conditions for this
-        # model actually correspond to the one we have in Fit. If not, we have to trigger a rebuild.
-        self._built = None
 
     def __call__(self, independent, parameters):
         """Evaluate the model for specific parameters
@@ -149,11 +140,12 @@ class Model:
         return CompositeModel(self, other)
 
     def get_formatted_equation_string(self, tex):
-        if tex:
-            return (f"${self.dependent}\\left({self.independent}\\right) = "
-                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
-        else:
-            return f"{self.dependent}({self.independent}) = {self.eqn(self.independent, *self.parameter_names)}"
+        if self.eqn:
+            if tex:
+                return (f"${self.dependent}\\left({self.independent}\\right) = "
+                        f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
+            else:
+                return f"{self.dependent}({self.independent}) = {self.eqn(self.independent, *self.parameter_names)}"
 
     def _repr_html_(self):
         doc_string = ''
@@ -165,18 +157,22 @@ class Model:
             pass
 
         equation = self.get_formatted_equation_string(tex=True)
+        equation = f"<h5>Model equation:</h5>\n{equation}<br><br>\n" if equation else ""
 
-        model_info = (f"{doc_string}Model equation:  <br><br>\n{equation}  <br><br>\n"
-                      f"Parameter defaults:  <br><br>\n"
-                      f"{Parameters(**self._parameters)._repr_html_()}  <br><br>\n")
+        model_info = (f"<h5>Model: {self.name}</h5>\n"
+                      f"{doc_string}{equation}"
+                      f"<h5>Parameter defaults:</h5>\n"
+                      f"{Parameters(**self._parameters)._repr_html_()}\n")
 
         return model_info
 
     def __repr__(self):
         equation = self.get_formatted_equation_string(tex=False)
+        equation = f"Model equation:\n\n{equation}\n\n" if equation else ""
 
-        model_info = f"Model equation:\n\n{equation}\n\nParameter defaults:\n\n" \
-                     f"{Parameters(**self._parameters)._repr_()}\n"
+        model_info = (f"Model: {self.name}\n\n"
+                      f"{equation}Parameter defaults:\n\n"
+                      f"{Parameters(**self._parameters)._repr_()}\n")
 
         return model_info
 
@@ -197,26 +193,12 @@ class Model:
         return SubtractIndependentOffset(self, parameter_name)
 
     @property
-    def data(self):
-        """Returns a copy of the data handles present in the model"""
-        return deepcopy(self._data)
-
-    @property
-    def _defaults(self):
-        if self._data:
-            return [deepcopy(self._parameters[name]) for data in self._data for name in data.source_parameter_names]
-        else:
-            return [deepcopy(self._parameters[name]) for name in self.parameter_names]
+    def defaults(self):
+        return self._parameters
 
     @property
     def parameter_names(self):
         return [x for x in self._parameters.keys()]
-
-    @property
-    def _transformed_parameters(self):
-        """Retrieves the full list of fitted parameters and defaults post-transformation used by this model. Includes
-        parameters for all the data-sets in the model."""
-        return [name for data in self._data for name in data.parameter_names]
 
     def jacobian(self, independent, parameter_vector):
         """
@@ -255,15 +237,6 @@ class Model:
             raise RuntimeError(f"Derivative was requested but not supplied in model {self.name}.")
 
     @property
-    def n_residuals(self):
-        """Number of data points loaded into this model."""
-        count = 0
-        for data in self._data:
-            count += len(data.independent)
-
-        return count
-
-    @property
     def has_jacobian(self):
         """Returns true if the model can return an analytically computed Jacobian."""
         if self._jacobian:
@@ -275,83 +248,29 @@ class Model:
         if self._derivative:
             return True
 
-    def _invalidate_build(self):
-        self._built = False
-
-    def built_against(self, fit_object):
-        return self._built == fit_object
-
-    def _add_data(self, name, x, y, params={}):
+    def _calculate_residual(self, data_sets, global_parameter_values):
+        """Calculate the model residual
         """
-        Loads a data set for this model.
-
-        Parameters
-        ----------
-        name: str
-            Name of this data set.
-        x: array_like
-            Independent variable. NaNs are silently dropped.
-        y: array_like
-            Dependent variable. NaNs are silently dropped.
-        params: dict of {str : str or int}
-            List of parameter transformations. These can be used to convert one parameter in the model, to a new
-            parameter name or constant for this specific data set (for more information, see the examples).
-
-        Examples
-        --------
-        ::
-            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.add_data("Control", f1, d1)  # Load the first dataset like that
-            dna_model.add_data("RecA", f2, d2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different contour length Lc
-
-            dna_model = pylake.inverted_odijk("DNA")
-            dna_model.add_data("Unusual", f1, d1, params={"DNA_St": "1200"})  # Set stretch modulus to 1200 pN
-        """
-        x = np.asarray(x, dtype=np.float64)
-        y = np.asarray(y, dtype=np.float64)
-        assert x.ndim == 1, "Independent variable should be one dimension"
-        assert y.ndim == 1, "Dependent variable should be one dimension"
-        assert len(x) == len(y), "Every value for the independent variable should have a corresponding data point"
-
-        filter_nan = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
-        y = y[filter_nan]
-        x = x[filter_nan]
-
-        self._invalidate_build()
-        parameter_list = parse_transformation(self.parameter_names, params)
-        data = FitData(name, x, y, parameter_list)
-        self._data.append(data)
-        return data
-
-    def _build_model(self, parameter_lookup, fit_object):
-        self._conditions, self._data_link = generate_conditions(self._data, parameter_lookup,
-                                                                self.parameter_names)
-
-        self._built = fit_object
-
-    def _calculate_residual(self, global_parameter_values):
         residual_idx = 0
-        residual = np.zeros(self.n_residuals)
-        for condition, data_sets in zip(self._conditions, self._data_link):
+        residual = np.zeros(data_sets.n_residuals)
+        for condition, data_list in data_sets.conditions():
             p_local = condition.get_local_parameters(global_parameter_values)
-            for data in data_sets:
-                data_set = self._data[data]
-                y_model = self._raw_call(data_set.x, p_local)
+            for data in data_list:
+                y_model = self._raw_call(data.x, p_local)
 
-                residual[residual_idx:residual_idx + len(y_model)] = data_set.y - y_model
+                residual[residual_idx:residual_idx + len(y_model)] = data.y - y_model
                 residual_idx += len(y_model)
 
         return residual
 
-    def _calculate_jacobian(self, global_parameter_values):
+    def _calculate_jacobian(self, data_sets, global_parameter_values):
         residual_idx = 0
-        jacobian = np.zeros((self.n_residuals, len(global_parameter_values)))
-        for condition, data_sets in zip(self._conditions, self._data_link):
+        jacobian = np.zeros((data_sets.n_residuals, len(global_parameter_values)))
+        for condition, data_list in data_sets.conditions():
             p_local = condition.get_local_parameters(global_parameter_values)
             p_indices = condition.p_indices
-            for data in data_sets:
-                data_set = self._data[data]
-                sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data_set.x, p_local)))
+            for data in data_list:
+                sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data.x, p_local)))
                 n_res = sensitivities.shape[0]
 
                 jacobian[residual_idx:residual_idx + n_res, p_indices] -= sensitivities
@@ -537,10 +456,6 @@ class CompositeModel(Model):
         self.lhs_parameters = [parameters_all.index(par) for par in parameters_lhs]
         self.rhs_parameters = [parameters_all.index(par) for par in parameters_rhs]
 
-        self._data = []
-        self._conditions = []
-        self._built = False
-
     @property
     def dependent(self):
         return self.lhs.dependent
@@ -599,9 +514,6 @@ class InverseModel(Model):
         model: Model
         """
         self.model = model
-        self._data = []
-        self._conditions = []
-        self._built = False
         self.name = "inv(" + model.name + ")"
 
     @property
@@ -680,10 +592,6 @@ class SubtractIndependentOffset(Model):
         self.model_parameters = [parameters_all.index(par) for par in parameters_parent]
         self.offset_parameter = parameters_all.index(offset_name)
 
-        self._data = []
-        self._conditions = []
-        self._built = None
-
     def _raw_call(self, independent, parameter_vector):
         return self.model._raw_call(independent - parameter_vector[self.offset_parameter],
                                     [parameter_vector[x] for x in self.model_parameters])
@@ -727,65 +635,3 @@ class SubtractIndependentOffset(Model):
         if self.has_derivative:
             with_offset = independent - parameter_vector[self.offset_parameter]
             return self.model.derivative(with_offset, [parameter_vector[x] for x in self.model_parameters])
-
-
-class FdModel(Model):
-    def invert(self):
-        """Switch dependent and independent variable in the model."""
-        return FdInverseModel(self)
-
-    def __add__(self, other):
-        return FdCompositeModel(self, other)
-
-    def subtract_independent_offset(self, parameter_name="independent_offset"):
-        """Subtract a constant offset from independent variable of this model.
-
-        Parameters
-        ----------
-        parameter_name: str
-        """
-        return FdSubtractIndependentOffset(self, parameter_name)
-
-    def add_data(self, name, f, d, params={}):
-        """
-        Adds a data set for this model.
-
-        Parameters
-        ----------
-        name: str
-            Name of this data set.
-        f: array_like
-            An array_like containing force data.
-        d: array_like
-            An array_like containing distance data.
-        params: dict of {str : str or int}
-            List of parameter transformations. These can be used to convert one parameter in the model, to a new
-            parameter name or constant for this specific data set (for more information, see the examples).
-
-        Examples
-        --------
-        ::
-
-            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.add_data("Data1", force1, distance1)  # Load the first data set like that
-            dna_model.add_data("Data2", force2, distance2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different DNA_Lc
-
-            dna_model = pylake.inverted_odijk("DNA")
-            dna_model.add_data("Data3", force3, distance3, params={"DNA_St": 1200})  # Set DNA_St to 1200
-        """
-        if self.independent == "f":
-            return self._add_data(f, d, name, params)
-        else:
-            return self._add_data(d, f, name, params)
-
-
-class FdInverseModel(InverseModel, FdModel):
-    pass
-
-
-class FdCompositeModel(CompositeModel, FdModel):
-    pass
-
-
-class FdSubtractIndependentOffset(SubtractIndependentOffset, FdModel):
-    pass

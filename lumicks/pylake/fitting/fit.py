@@ -1,11 +1,17 @@
 from .parameters import Parameters
+from .datasets import Datasets, FdDatasets
+from .model import Model
+from collections import OrderedDict
 from ..detail.utilities import unique
 from .detail.derivative_manipulation import numerical_jacobian
 from .detail.utilities import print_styled, optimal_plot_layout
-from collections import OrderedDict
 import numpy as np
 import scipy.optimize as optim
 import matplotlib.pyplot as plt
+
+
+def front(x):
+    return next(iter(x))
 
 
 class Fit:
@@ -14,7 +20,7 @@ class Fit:
 
     Parameters
     ----------
-    *args
+    *models
         Variable number of ``pylake.fitting.Model``.
 
     Examples
@@ -33,15 +39,30 @@ class Fit:
 
         dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
     """
-    def __init__(self, *args):
-        self.models = [m for m in args]
-        self._data_link = None
+    def __init__(self, *models):
+        self.models = {id(m): m for m in models}
+        self.data = {id(m): self.dataset(m) for m in models}
         self._parameters = Parameters()
-        self._built = False
         self._invalidate_build()
 
+    @staticmethod
+    def dataset(model):
+        return Datasets(model)
+
     def __getitem__(self, item):
-        return self.parameters[item]
+        if isinstance(item, Model):
+            return self.data[id(item)]
+        elif len(self.data) == 1 and item in front(self.data.values()).names:
+            return front(self.data.values())[item]
+        else:
+            return self.parameters[item]
+
+    def _add_data(self, name, x, y, params={}):
+        if len(self.data) > 1:
+            raise RuntimeError("This Fit is comprised of multiple models. Please add data to a particular model by "
+                               "invoking fit[model].add_data(...)")
+
+        return front(self.data.values())._add_data(name, x, y, params)
 
     @property
     def has_jacobian(self):
@@ -49,7 +70,7 @@ class Fit:
         Returns true if it is possible to evaluate the Jacobian of the fit.
         """
         has_jacobian = True
-        for model in self.models:
+        for model in self.models.values():
             has_jacobian = has_jacobian and model.has_jacobian
 
         return has_jacobian
@@ -59,8 +80,8 @@ class Fit:
         """Number of data points."""
         self._rebuild()
         count = 0
-        for model in self.models:
-            count += model.n_residuals
+        for data in self.data.values():
+            count += data.n_residuals
 
         return count
 
@@ -78,10 +99,10 @@ class Fit:
 
     @property
     def dirty(self):
-        """Validate that all the models that we are about the fit were actually last linked against this fit object."""
+        """Validate that all the Datasets that we are about the fit were actually linked."""
         dirty = not self._built
-        for model in self.models:
-            dirty = dirty or not model.built_against(self)
+        for data in self.data.values():
+            dirty = dirty or not data.built
 
         return dirty
 
@@ -99,13 +120,13 @@ class Fit:
     def _build_fit(self):
         """This function generates the global parameter list from the parameters of the individual sub models.
         It also generates unique conditions from the data specification."""
-        all_parameter_names = [p for model in self.models for p in model._transformed_parameters]
-        all_defaults = [d for model in self.models for d in model._defaults]
+        all_parameter_names = [p for data_set in self.data.values() for p in data_set._transformed_parameters]
+        all_defaults = [d for data_set in self.data.values() for d in data_set._defaults]
         unique_parameter_names = unique(all_parameter_names)
         parameter_lookup = OrderedDict(zip(unique_parameter_names, np.arange(len(unique_parameter_names))))
 
-        for model in self.models:
-            model._build_model(parameter_lookup, self)
+        for data in self.data.values():
+            data._link_data(parameter_lookup)
 
         defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
         self._parameters._set_parameters(unique_parameter_names, defaults)
@@ -198,8 +219,8 @@ class Fit:
 
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
-        for model in self.models:
-            current_residual = model._calculate_residual(parameter_values)
+        for model in self.models.values():
+            current_residual = model._calculate_residual(self.data[id(model)], parameter_values)
             current_n = len(current_residual)
             residual[residual_idx:residual_idx + current_n] = current_residual
             residual_idx += current_n
@@ -213,8 +234,8 @@ class Fit:
 
         residual_idx = 0
         jacobian = np.zeros((self.n_residuals, len(parameter_values)))
-        for model in self.models:
-            current_jacobian = model._calculate_jacobian(parameter_values)
+        for model in self.models.values():
+            current_jacobian = model._calculate_jacobian(self.data[id(model)], parameter_values)
             current_n = current_jacobian.shape[0]
             jacobian[residual_idx:residual_idx + current_n, :] = current_jacobian
             residual_idx += current_n
@@ -378,20 +399,71 @@ class Fit:
     def _repr_html_(self):
         out_string = "<h4>Fit</h4>\n"
 
-        for model in self.models:
-            datasets = ''.join([f"&ensp;- {s.__repr__()}<br>\n" for s in model.data])
-            out_string += f"<h5>Model: {model.name}</h5>\n" \
-                          f"<h5>Equation:</h5>${model.get_formatted_equation_string(tex=True)}$<br>\n" \
-                          f"<h5>Data:</h5>\n{datasets}<br>"
+        for model in self.models.values():
+            datasets = ''.join(f"{self.data[id(model)]._repr_html_()}<br>\n")
+            out_string += f"<h5>Model: {model.name}</h5>\n"
+            eqn = model.get_formatted_equation_string(tex=True)
+            if eqn:
+                out_string += f"<h5>&ensp;Equation:</h5>${eqn}$<br>\n"
+            out_string += f"<h5>&ensp;Data:</h5>\n{datasets}<br>"
 
-        return out_string + f"<h5>Fitted parameters:</h5>\n{self.parameters._repr_html_()}"
+        return out_string + f"<h5>&ensp;Fitted parameters:</h5>\n{self.parameters._repr_html_()}"
 
     def __repr__(self):
+        return (f"lumicks.pylake.{self.__class__.__name__}"
+                f"(models={{{', '.join([x.name for x in self.models.values()])}}}, "
+                f"N={self.n_residuals})")
+
+    def __str__(self):
+        indent = 2
         out_string = "Fit\n"
 
-        for model in self.models:
-            datasets = ''.join([f"  - {s.__repr__()}\n" for s in model.data])
-            out_string += f"- Model: {model.name}\n  " \
-                          f"- Equation:\n      {model.get_formatted_equation_string(tex=False)}\n{datasets}"
+        for model in self.models.values():
+            datasets = (' ' * indent + '- ' + self.data[id(model)].__str__()).splitlines(True)
+            datasets = (' ' * (2 * indent)).join(datasets)
 
-        return out_string + f"\n- Fitted parameters:\n    {'    '.join(self.parameters.__str__().splitlines(True))}"
+            out_string += f"{' ' * indent}- Model: {model.name}\n"
+
+            eqn = model.get_formatted_equation_string(tex=False)
+            if eqn:
+                out_string += f"{' ' * indent}- Equation:\n      {eqn}\n\n{datasets}"
+
+        return out_string + (
+            f"\n{' ' * indent}- Fitted parameters:\n"
+            f"{(' ' * (2 * indent))}"
+            f"{(' ' * (2 * indent)).join(self.parameters.__str__().splitlines(True))}")
+
+
+class FdFit(Fit):
+    def add_data(self, name, f, d, params={}):
+        """
+        Adds a data set for this model.
+
+        Parameters
+        ----------
+        name: str
+            Name of this data set.
+        f: array_like
+            An array_like containing force data.
+        d: array_like
+            An array_like containing distance data.
+        params: dict of {str : str or int}
+            List of parameter transformations. These can be used to convert one parameter in the model, to a new
+            parameter name or constant for this specific data set (for more information, see the examples).
+        Examples
+        --------
+        ::
+            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            dna_model.add_data("Data1", force1, distance1)  # Load the first data set like that
+            dna_model.add_data("Data2", force2, distance2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different DNA_Lc
+            dna_model = pylake.inverted_odijk("DNA")
+            dna_model.add_data("Data3", force3, distance3, params={"DNA_St": 1200})  # Set DNA_St to 1200
+        """
+        if front(self.models.values()).independent == "f":
+            return self._add_data(name, f, d, params)
+        else:
+            return self._add_data(name, d, f, params)
+
+    @staticmethod
+    def dataset(model):
+        return FdDatasets(model)

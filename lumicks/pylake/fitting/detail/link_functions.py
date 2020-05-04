@@ -5,8 +5,8 @@ import numpy as np
 
 def generate_conditions(data_sets, parameter_lookup, model_parameters):
     """
-    This function builds a list of unique conditions from a list of data sets and a list of index lists which link back
-    the individual data fields to their simulation conditions.
+    This function builds a list of unique conditions from a list of data sets and a list of references pointing to the
+    data that belongs to each condition.
 
     Parameters
     ----------
@@ -19,7 +19,7 @@ def generate_conditions(data_sets, parameter_lookup, model_parameters):
     """
     # Quickly concatenate the parameter transformations corresponding to this condition
     str_conditions = []
-    for data_set in data_sets:
+    for data_set in data_sets.values():
         str_conditions.append(data_set.condition_string)
 
         assert set(data_set.transformations.keys()) == set(model_parameters), \
@@ -34,13 +34,14 @@ def generate_conditions(data_sets, parameter_lookup, model_parameters):
     indices = np.asarray(indices)
 
     data_link = []
+    keys = list(data_sets.keys())
     for condition_idx in np.arange(len(unique_condition_strings)):
         data_indices, = np.nonzero(np.equal(indices, condition_idx))
-        data_link.append(data_indices)
+        data_link.append([data_sets[keys[x]] for x in data_indices])
 
     conditions = []
-    for idx in data_link:
-        transformations = data_sets[idx[0]].transformations
+    for data_sets in data_link:
+        transformations = data_sets[0].transformations
         conditions.append(Condition(transformations, parameter_lookup))
 
     return conditions, data_link

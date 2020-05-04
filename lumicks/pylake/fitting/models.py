@@ -1,6 +1,5 @@
 import numpy as np
 from .parameters import Parameter
-from .model import FdModel
 
 
 def force_offset(name):
@@ -20,7 +19,7 @@ def force_offset(name):
         offset_equation_tex
     )
 
-    return FdModel(
+    return Model(
         name,
         force_offset,
         dependent="f",
@@ -49,7 +48,7 @@ def distance_offset(name):
         offset_equation_tex
     )
 
-    return FdModel(
+    return Model(
         name,
         distance_offset,
         dependent="d",
@@ -84,7 +83,7 @@ def marko_siggia_ewlc_force(name):
         Defaults,
     )
 
-    return FdModel(
+    return Model(
         name,
         marko_sigga_ewlc_solve_force,
         dependent="f",
@@ -122,7 +121,7 @@ def marko_siggia_ewlc_distance(name):
         Defaults,
     )
 
-    return FdModel(
+    return Model(
         name,
         marko_sigga_ewlc_solve_distance,
         dependent="d",
@@ -160,7 +159,7 @@ def marko_siggia_simplified(name):
         Defaults,
     )
 
-    return FdModel(
+    return Model(
         name,
         Marko_Siggia,
         dependent="f",
@@ -192,7 +191,7 @@ def odijk(name):
     from .model import Model
     from .detail.model_implementation import WLC, WLC_jac, WLC_derivative, WLC_equation, WLC_equation_tex, Defaults
 
-    return FdModel(
+    return Model(
         name,
         WLC,
         dependent="d",
@@ -232,7 +231,7 @@ def inverted_odijk(name):
         Defaults
     )
 
-    return FdModel(
+    return Model(
         name,
         invWLC,
         dependent="f",
@@ -266,7 +265,7 @@ def freely_jointed_chain(name):
     from .model import Model
     from .detail.model_implementation import FJC, FJC_jac, FJC_derivative, FJC_equation, FJC_equation_tex, Defaults
 
-    return FdModel(
+    return Model(
         name,
         FJC,
         dependent="d",
@@ -327,7 +326,7 @@ def twistable_wlc(name):
         Defaults
     )
 
-    return FdModel(
+    return Model(
         name,
         tWLC,
         dependent="d",
@@ -371,7 +370,7 @@ def inverted_twistable_wlc(name):
         Defaults
     )
 
-    return FdModel(
+    return Model(
         name,
         invtWLC,
         dependent="f",
