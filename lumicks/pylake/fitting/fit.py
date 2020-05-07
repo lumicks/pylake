@@ -48,6 +48,21 @@ class Fit:
     def _dataset(self, model):
         return Datasets(model, self)
 
+    def __lshift__(self, other):
+        """
+        Sets parameters if they are found in the target fit.
+
+        Parameters
+        ----------
+        other: Fit or Parameters
+        """
+        if isinstance(other, Parameters):
+            self.parameters << other
+        elif isinstance(other, self.__class__):
+            self.parameters << other.parameters
+        else:
+            raise RuntimeError("Did not pass compatible argument to << operator")
+
     def __getitem__(self, item):
         if isinstance(item, Model):
             return self.datasets[id(item)]
@@ -286,8 +301,8 @@ class Fit:
     def plot_data(self, fmt, **kwargs):
         self._rebuild()
 
-        for model in self.models:
-            model._plot_data(fmt, **kwargs)
+        for data in self.datasets.values():
+            data._plot_data(fmt, **kwargs)
 
     def _override_parameters(self, **kwargs):
         from copy import deepcopy
@@ -304,8 +319,8 @@ class Fit:
         self._rebuild()
         parameters, kwargs = self._override_parameters(**kwargs)
 
-        for model in self.models:
-            model._plot_model(parameters, fmt, **kwargs)
+        for model in self.models.values():
+            model._plot_model(parameters, self.datasets[id(model)].data, fmt, **kwargs)
 
     @property
     def sigma(self):

@@ -182,7 +182,7 @@ class Model:
         """
         return InverseModel(self)
 
-    def subtract_independent_offset(self, parameter_name="independent_offset"):
+    def subtract_independent_offset(self):
         """
         Subtract a constant offset from independent variable of this model.
 
@@ -190,6 +190,7 @@ class Model:
         ----------
         parameter_name: str
         """
+        parameter_name = f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
         return SubtractIndependentOffset(self, parameter_name)
 
     @property
@@ -354,27 +355,7 @@ class Model:
 
         return np.allclose(derivative, derivative_fd, **kwargs)
 
-    def _plot_data(self, fmt='', **kwargs):
-        names = []
-        handles = []
-
-        if len(fmt) == 0:
-            kwargs["marker"] = kwargs.get("marker", '.')
-            kwargs["markersize"] = kwargs.get("markersize", .5)
-            set_color = kwargs.get("color")
-        else:
-            set_color = 1
-
-        for i, data in enumerate(self._data):
-            if not set_color:
-                kwargs["color"] = get_color(i)
-            handle, = plt.plot(data.x, data.y, fmt, **kwargs)
-            handles.append(handle)
-            names.append(data.name)
-
-        plt.legend(handles, names)
-
-    def _plot_model(self, global_parameters, fmt='', **kwargs):
+    def _plot_model(self, global_parameters, datasets, fmt='', **kwargs):
         cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
         if len(fmt) == 0:
@@ -382,7 +363,7 @@ class Model:
         else:
             set_color = 1
 
-        for i, data in enumerate(self._data):
+        for i, data in enumerate(datasets.values()):
             if not set_color:
                 kwargs["color"] = lighten_color(get_color(i), -.3)
             self.plot(global_parameters[data], data.x, fmt=fmt, **kwargs)
@@ -534,9 +515,8 @@ class InverseModel(Model):
     def _raw_call(self, independent, parameter_vector):
         independent_min = 0
         independent_max = np.inf
-        initial = np.ones(independent.shape)
 
-        return invert_function(independent, initial, independent_min, independent_max,
+        return invert_function(independent, 1.0, independent_min, independent_max,
                                lambda f_trial: self.model._raw_call(f_trial, parameter_vector),  # Forward model
                                lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 

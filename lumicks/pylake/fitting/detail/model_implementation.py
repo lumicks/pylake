@@ -1,5 +1,5 @@
 from ..parameters import Parameter
-from .derivative_manipulation import invert_function, invert_jacobian
+from .derivative_manipulation import invert_function, invert_jacobian, invert_function_interpolation
 from .utilities import latex_sqrt, latex_frac, solve_formatter, solve_formatter_tex
 import numpy as np
 
@@ -19,14 +19,14 @@ def offset_equation_tex(x, offset):
     return offset
 
 
-def distance_offset(f, offset):
+def distance_offset_model(f, d_offset):
     """Offset on the the model output."""
-    return offset * np.ones(f.shape)
+    return d_offset * np.ones(f.shape)
 
 
-def force_offset(d, offset):
+def force_offset_model(d, f_offset):
     """Offset on the the model output."""
-    return offset * np.ones(d.shape)
+    return f_offset * np.ones(d.shape)
 
 
 def offset_model_jac(x, offset):
@@ -590,9 +590,9 @@ def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     f_min = 0
     f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
 
-    return invert_function(d, np.ones(d.shape), f_min, f_max,
-                           lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
-                           lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
+    return invert_function_interpolation(d, 1.0, f_min, np.min([f_max, 120.0]),
+                                         lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                                         lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
 
 
 def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
@@ -626,9 +626,9 @@ def invFJC(d, Lp, Lc, St, kT=4.11):
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
     f_min = 0
-    f_max = np.inf  # Above this force the model loses its validity
+    f_max = np.inf
 
-    return invert_function(d, np.ones(d.shape), f_min, f_max,
+    return invert_function(d, 1.0, f_min, f_max,
                            lambda f_trial: FJC(f_trial, Lp, Lc, St, kT),
                            lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
 

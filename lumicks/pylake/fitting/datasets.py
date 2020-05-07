@@ -2,8 +2,10 @@ from .detail.link_functions import generate_conditions
 from .detail.utilities import parse_transformation
 from .fitdata import FitData
 from copy import deepcopy
-import numpy as np
 from collections import OrderedDict
+from ..detail.utilities import get_color
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Datasets:
@@ -133,6 +135,27 @@ class Datasets:
             repr_text += f"- {d.__repr__()}\n"
 
         return repr_text
+
+    def _plot_data(self, fmt='', **kwargs):
+        names = []
+        handles = []
+
+        if len(fmt) == 0:
+            kwargs["marker"] = kwargs.get("marker", '.')
+            kwargs["markersize"] = kwargs.get("markersize", .5)
+            set_color = kwargs.get("color")
+        else:
+            set_color = 1
+
+        for i, data in enumerate(self.data.values()):
+            if not set_color:
+                kwargs["color"] = get_color(i)
+            handle, = plt.plot(data.x, data.y, fmt, **kwargs)
+            handles.append(handle)
+            names.append(data.name)
+
+        plt.legend(handles, names)
+
 
 class FdDatasets(Datasets):
     def add_data(self, name, f, d, params={}):

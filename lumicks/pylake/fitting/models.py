@@ -12,7 +12,7 @@ def force_offset(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        force_offset,
+        force_offset_model,
         offset_model_jac,
         offset_model_derivative,
         offset_equation,
@@ -21,13 +21,13 @@ def force_offset(name):
 
     return Model(
         name,
-        force_offset,
+        force_offset_model,
         dependent="f",
         jacobian=offset_model_jac,
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
-        offset=Parameter(value=0.01, lower_bound=0, upper_bound=np.inf),
+        f_offset=Parameter(value=0.01, lower_bound=0.0, upper_bound=5.0, unit="pN"),
     )
 
 
@@ -41,7 +41,7 @@ def distance_offset(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        distance_offset,
+        distance_offset_model,
         offset_model_jac,
         offset_model_derivative,
         offset_equation,
@@ -50,13 +50,13 @@ def distance_offset(name):
 
     return Model(
         name,
-        distance_offset,
+        distance_offset_model,
         dependent="d",
         jacobian=offset_model_jac,
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
-        offset=Parameter(value=0.01, lower_bound=0, upper_bound=np.inf),
+        d_offset=Parameter(value=0.01, lower_bound=0.0, upper_bound=1.0, unit="micron"),
     )
 
 
@@ -338,16 +338,18 @@ def twistable_wlc(name):
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
         St=Defaults.St,
-        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=50000.0, unit="pN"),
-        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=50000.0, unit="pN*nm**2"),
-        g0=Parameter(value=-637, lower_bound=-50000.0, upper_bound=50000.0, unit="pN*nm"),
-        g1=Parameter(value=17.0, lower_bound=-50000.0, upper_bound=50000.0, unit="nm"),
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=100.0, unit="pN"),
+        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=5000.0, unit="pN*nm**2"),
+        g0=Parameter(value=-637, lower_bound=-5000.0, upper_bound=0.0, unit="pN*nm"),
+        g1=Parameter(value=17.0, lower_bound=-100.0, upper_bound=1000.0, unit="nm"),
     )
 
 
 def inverted_twistable_wlc(name):
     """
-    Twistable Worm-like Chain model. With force as dependent variable.
+    Twistable Worm-like Chain model. With force as dependent variable. This model uses a more performant implementation
+    for inverting the model. It inverts the model by interpolating the forward curve and using this interpolant to
+    invert the function.
 
     References:
        1. P. Gross et al., Quantifying how DNA stretches, melts and changes
@@ -382,7 +384,7 @@ def inverted_twistable_wlc(name):
         Lc=Defaults.Lc,
         St=Defaults.St,
         Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=100.0, unit="pN"),
-        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=50000.0, unit="pN*nm**2"),
-        g0=Parameter(value=-637, lower_bound=-50000.0, upper_bound=50000.0, unit="pN*nm"),
-        g1=Parameter(value=17.0, lower_bound=-50000.0, upper_bound=50000.0, unit="nm"),
+        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=5000.0, unit="pN*nm**2"),
+        g0=Parameter(value=-637, lower_bound=-5000.0, upper_bound=0.0, unit="pN*nm"),
+        g1=Parameter(value=17.0, lower_bound=-100.0, upper_bound=1000.0, unit="nm"),
     )

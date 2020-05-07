@@ -1,6 +1,7 @@
+import warnings
 import numpy as np
-import scipy as sp
 import scipy.optimize as optim
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 
 def numerical_diff(fn, x, dx=1e-6):
@@ -20,7 +21,32 @@ def numerical_jacobian(fn, parameter_vector, dx=1e-6):
     return finite_difference_jacobian
 
 
-def invert_function(d, initial, f_min, f_max, model_function, derivative_function=None):
+def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
+    """This function generates two functions which allow for inverting models via optimization. These functions are used
+    by functions which require inversion of a model's dependent and independent variable"""
+
+    def fit_single(single_distance, initial_guess):
+        """Invert a single independent / dependent data point"""
+        jac = derivative_function if derivative_function else "2-point"
+        single_estimate = optim.least_squares(lambda f: model_function(f) - single_distance, initial_guess, jac=jac,
+                                              bounds=(f_min, f_max), method='trf', ftol=tol, xtol=tol, gtol=tol)
+
+        return single_estimate.x[0]
+
+    def manual_inversion(distances, initial_guess):
+        """Invert the dependent and independent variable for a list"""
+        force_est = initial_guess
+        estimates = np.zeros(distances.shape)
+        for i, distance in enumerate(distances):
+            force_est = fit_single(distance, force_est)
+            estimates[i] = force_est
+
+        return estimates
+
+    return manual_inversion, fit_single
+
+
+def invert_function(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8):
     """This function inverts a function using a least squares optimizer. For models where this is required, this is the
     most time consuming step.
 
@@ -28,7 +54,7 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
     ----------
     d : array_like
         old independent parameter
-    initial : array_like
+    initial : float
         initial guess for the optimization procedure
     f_min : float
         minimum bound for inverted parameter
@@ -38,17 +64,67 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
         non-inverted model function
     derivative_function : callable
         model derivative with respect to the independent variable (returns an element per data point)
+    tol : float
+        optimization tolerances
     """
-    def jacobian(f_trial):
-        return sp.sparse.diags(derivative_function(f_trial), offsets=0)
+    manual_inversion, _ = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
 
-    jac = jacobian if derivative_function else "2-point"
+    return manual_inversion(d, initial)
 
-    result = optim.least_squares(lambda f_trial: model_function(f_trial) - d, initial, jac=jac,
-                                 jac_sparsity=sp.sparse.identity(len(d)),
-                                 bounds=(f_min, f_max), method='trf', ftol=1e-06, xtol=1e-08, gtol=1e-8)
 
-    return result.x
+def invert_function_interpolation(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-6,
+                                  dx=1e-2):
+    """This function inverts a function using interpolation. For models where this is required, this is the most time
+    consuming step. Specifying a sensible f_max for this method is crucial.
+
+    Parameters
+    ----------
+    d : array_like
+        old independent parameter
+    initial : float
+        initial guess for the optimization procedure
+    f_min : float
+        minimum bound for inverted parameter
+    f_max : float
+        maximum bound for inverted parameter
+    model_function : callable
+        non-inverted model function
+    derivative_function : callable
+        model derivative with respect to the independent variable (returns an element per data point)
+    dx : float
+        desired step-size of the dependent variable
+    tol : float
+        optimization tolerances
+    """
+    d = np.sort(d)
+
+    manual_inversion, fit_single = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
+    f_min_data = max([f_min, fit_single(np.min(d), initial)])
+    f_max_data = min([f_max, fit_single(np.max(d), initial)])
+
+    # Determine the points that lie within the range where it is reasonable to interpolate
+    f_range = np.arange(f_min_data, f_max_data, dx)
+    d_range = model_function(f_range)
+    d_min = np.min(d_range)
+    d_max = np.max(d_range)
+    result = np.zeros(d.shape)
+
+    # Interpolate for the points where interpolation is sensible
+    interpolated_idx = np.logical_and(d > d_min, d < d_max)
+
+    if np.sum(interpolated_idx) > 3 and len(f_range) > 3:
+        try:
+            interp = InterpolatedUnivariateSpline(d_range, f_range, k=3)
+            result[interpolated_idx] = interp(d[interpolated_idx])
+        except Exception as e:
+            warnings.warn(f"Interpolation failed. Cause: {e}. Falling back to brute force evaluation. "
+                          f"Results should be fine, but slower.")
+            result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
+
+    # Do the manual inversion for the others
+    result[np.logical_not(interpolated_idx)] = manual_inversion(d[np.logical_not(interpolated_idx)], initial)
+
+    return result
 
 
 def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_function):

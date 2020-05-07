@@ -9,6 +9,7 @@ from ..fitting.detail.parameter_trace import parameter_trace
 from ..fitting.model import Model, InverseModel
 
 import numpy as np
+from matplotlib.testing.decorators import cleanup
 from collections import OrderedDict
 import pytest
 
@@ -439,7 +440,7 @@ def test_models():
     # The finite differencing version of the FJC performs very poorly numerically, hence the less stringent
     # tolerances and larger dx values.
     assert(inverted_freely_jointed_chain("iFJC").verify_derivative(independent, parameters, dx=1e-3, rtol=1e-2, atol=1e-6))
-    assert(inverted_freely_jointed_chain("iFJC").verify_jacobian(independent, parameters, dx=1e-3, atol=1e-5, rtol=1e-2))
+    assert(inverted_freely_jointed_chain("iFJC").verify_jacobian(independent, parameters, dx=1e-3, atol=1e-2, rtol=1e-2))
 
     # Check the tWLC and inverted tWLC model
     parameters = [5, 5, 5, 3, 2, 1, 6, 4.11]
@@ -530,10 +531,10 @@ def test_model_composition():
     assert not (InverseModel(m1_wrong_jacobian) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(m1_wrong_derivative) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    assert m1.subtract_independent_offset("d_offset").verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert m1.subtract_independent_offset("d_offset").verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert m1.subtract_independent_offset().verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert m1.subtract_independent_offset().verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    m1 = inverted_odijk("DNA").subtract_independent_offset("d_offset") + force_offset("f")
+    m1 = inverted_odijk("DNA").subtract_independent_offset() + force_offset("f")
     m2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
@@ -792,7 +793,7 @@ def test_reprs():
     assert inverted_freely_jointed_chain('test').__repr__()
     assert (odijk('test') + distance_offset('test')).__repr__()
     assert (odijk('test') + distance_offset('test')).invert().__repr__()
-    assert (odijk('test') + distance_offset('test')).subtract_independent_offset("test_offset").__repr__()
+    assert (odijk('test') + distance_offset('test')).subtract_independent_offset().__repr__()
 
     assert odijk('test')._repr_html_()
     assert inverted_odijk('test')._repr_html_()
@@ -803,7 +804,7 @@ def test_reprs():
     assert inverted_freely_jointed_chain('test')._repr_html_()
     assert (odijk('test') + distance_offset('test'))._repr_html_()
     assert (odijk('test') + distance_offset('test')).invert()._repr_html_()
-    assert (odijk('test') + distance_offset('test')).subtract_independent_offset("test_offset")._repr_html_()
+    assert (odijk('test') + distance_offset('test')).subtract_independent_offset()._repr_html_()
     assert (force_offset("a_b_c") + force_offset("b_c_d")).invert()._repr_html_().find("offset_{b\\_c\\_d}") > 0
 
     m = odijk('DNA')
@@ -902,3 +903,15 @@ def test_tex_replacement():
     assert escape_tex("DNA/Hi_There") == "Hi\\_There_{DNA}"
     assert escape_tex("DNA_model/Hi_There") == "Hi\\_There_{DNA\\_model}"
     assert escape_tex("Hi_There") == "Hi\\_There"
+
+
+@cleanup
+def test_plotting():
+    m = odijk('DNA')
+    m2 = odijk('protein')
+    fit = Fit(m, m2)
+    fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit[m]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
+    fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit[m2]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'protein/Lc': 'protein/Lc_2'})
+    fit.plot()
