@@ -4,6 +4,8 @@ from tabulate import tabulate
 
 
 class Parameter:
+    __slots__ = ['value', 'lower_bound', 'upper_bound', 'vary', 'shared', 'unit', 'init']  # Fixed attributes
+
     def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, vary=True, init=None, shared=False, unit=None):
         """Model parameter
 
