@@ -447,6 +447,14 @@ def test_models():
     assert(twistable_wlc("tWLC").verify_jacobian(independent, parameters))
     assert(inverted_twistable_wlc("itWLC").verify_jacobian(independent, parameters))
 
+    # Check whether the twistable wlc model manipulates the data order
+    assert np.allclose(twistable_wlc("tWLC")._raw_call(independent, parameters),
+                       np.flip(twistable_wlc("tWLC")._raw_call(np.flip(independent), parameters)))
+
+    # Check whether the inverse twistable wlc model manipulates the data order
+    assert np.allclose(inverted_twistable_wlc("itWLC")._raw_call(independent, parameters),
+                       np.flip(inverted_twistable_wlc("itWLC")._raw_call(np.flip(independent), parameters)))
+
     # Check whether the inverted models invert correctly
     from ..fitting.detail.model_implementation import WLC, invWLC, FJC, invFJC, tWLC, invtWLC
 
@@ -844,7 +852,7 @@ def test_reprs():
                              '- Fitted parameters:\n'
                              '    Name      Value  Unit      Fitted      Lower bound    Upper bound\n'
                              '    ------  -------  --------  --------  -------------  -------------\n'
-                             '    DNA/Lp    40     [nm]      True                  0            inf\n'
+                             '    DNA/Lp    40     [nm]      True                  0            100\n'
                              '    DNA/Lc    16     [micron]  True                  0            inf\n'
                              '    DNA/St  1500     [pN]      True                  0            inf\n'
                              '    kT         4.11  [pN*nm]   False                 0              8')
@@ -915,3 +923,16 @@ def test_plotting():
     fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
     fit[m2]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'protein/Lc': 'protein/Lc_2'})
     fit.plot()
+
+    with pytest.raises(KeyError):
+        fit.plot(params={'DNA_Lc': 12})
+
+    with pytest.raises(KeyError):
+        fit.plot(params={'DNA/c': 12})
+
+    with pytest.raises(KeyError):
+        fit.plot_model(params={'DNA/c': 12})
+
+    # Test valid parameter override
+    fit.plot(params={'DNA/Lc': 12})
+    fit.plot_model(params={'DNA/Lc': 12})

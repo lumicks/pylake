@@ -72,7 +72,7 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
     return manual_inversion(d, initial)
 
 
-def invert_function_interpolation(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-6,
+def invert_function_interpolation(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8,
                                   dx=1e-2):
     """This function inverts a function using interpolation. For models where this is required, this is the most time
     consuming step. Specifying a sensible f_max for this method is crucial.
@@ -96,22 +96,22 @@ def invert_function_interpolation(d, initial, f_min, f_max, model_function, deri
     tol : float
         optimization tolerances
     """
-    d = np.sort(d)
-
     manual_inversion, fit_single = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
     f_min_data = max([f_min, fit_single(np.min(d), initial)])
     f_max_data = min([f_max, fit_single(np.max(d), initial)])
 
     # Determine the points that lie within the range where it is reasonable to interpolate
+    interpolated_idx = np.full(d.shape, False, dtype=bool)
     f_range = np.arange(f_min_data, f_max_data, dx)
-    d_range = model_function(f_range)
-    d_min = np.min(d_range)
-    d_max = np.max(d_range)
+    if len(f_range) > 0:
+        d_range = model_function(f_range)
+        d_min = np.min(d_range)
+        d_max = np.max(d_range)
+
+        # Interpolate for the points where interpolation is sensible
+        interpolated_idx = np.logical_and(d > d_min, d < d_max)
+
     result = np.zeros(d.shape)
-
-    # Interpolate for the points where interpolation is sensible
-    interpolated_idx = np.logical_and(d > d_min, d < d_max)
-
     if np.sum(interpolated_idx) > 3 and len(f_range) > 3:
         try:
             interp = InterpolatedUnivariateSpline(d_range, f_range, k=3)

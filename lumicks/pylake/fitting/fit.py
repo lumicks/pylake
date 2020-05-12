@@ -294,9 +294,9 @@ class Fit:
 
         return is_close
 
-    def plot(self, fmt='', **kwargs):
+    def plot(self, fmt='', params={}, **kwargs):
         self.plot_data(fmt, **kwargs)
-        self.plot_model(fmt, **kwargs)
+        self.plot_model(fmt, params, **kwargs)
 
     def plot_data(self, fmt, **kwargs):
         self._rebuild()
@@ -304,20 +304,22 @@ class Fit:
         for data in self.datasets.values():
             data._plot_data(fmt, **kwargs)
 
-    def _override_parameters(self, **kwargs):
+    def _override_parameters(self, params={}):
         from copy import deepcopy
         parameters = self.parameters
-        if kwargs:
-            parameters = deepcopy(parameters)
-            for key, value in kwargs.items():
-                if key in parameters:
-                    parameters[key] = value
 
-        return parameters, kwargs
+        parameters = deepcopy(parameters)
+        for key, value in params.items():
+            if key in parameters:
+                parameters[key] = value
+            else:
+                raise KeyError(f"Parameter {key} is not a parameter used in the fit")
 
-    def plot_model(self, fmt='', **kwargs):
+        return parameters, params
+
+    def plot_model(self, fmt='', params={}, **kwargs):
         self._rebuild()
-        parameters, kwargs = self._override_parameters(**kwargs)
+        parameters, params = self._override_parameters(params)
 
         for model in self.models.values():
             model._plot_model(parameters, self.datasets[id(model)].data, fmt, **kwargs)

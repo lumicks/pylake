@@ -27,7 +27,7 @@ def force_offset(name):
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
-        f_offset=Parameter(value=0.01, lower_bound=0.0, upper_bound=5.0, unit="pN"),
+        f_offset=Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="pN"),
     )
 
 
@@ -56,7 +56,7 @@ def distance_offset(name):
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
         derivative=offset_model_derivative,
-        d_offset=Parameter(value=0.01, lower_bound=0.0, upper_bound=1.0, unit="micron"),
+        d_offset=Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="micron"),
     )
 
 
@@ -338,7 +338,7 @@ def twistable_wlc(name):
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
         St=Defaults.St,
-        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=100.0, unit="pN"),
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=50.0, unit="pN"),
         C=Parameter(value=440.0, lower_bound=0.0, upper_bound=5000.0, unit="pN*nm**2"),
         g0=Parameter(value=-637, lower_bound=-5000.0, upper_bound=0.0, unit="pN*nm"),
         g1=Parameter(value=17.0, lower_bound=-100.0, upper_bound=1000.0, unit="nm"),
@@ -383,8 +383,8 @@ def inverted_twistable_wlc(name):
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
         St=Defaults.St,
-        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=100.0, unit="pN"),
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=50.0, unit="pN"),
         C=Parameter(value=440.0, lower_bound=0.0, upper_bound=5000.0, unit="pN*nm**2"),
         g0=Parameter(value=-637, lower_bound=-5000.0, upper_bound=0.0, unit="pN*nm"),
-        g1=Parameter(value=17.0, lower_bound=-100.0, upper_bound=1000.0, unit="nm"),
+        g1=Parameter(value=17.0, lower_bound=0.0, upper_bound=1000.0, unit="nm"),
     )

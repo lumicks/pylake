@@ -6,7 +6,7 @@ import numpy as np
 
 class Defaults:
     kT = Parameter(value=4.11, lower_bound=0.0, upper_bound=8.0, vary=False, shared=True, unit="pN*nm")
-    Lp = Parameter(value=40.0, lower_bound=0.0, upper_bound=np.inf, unit="nm")
+    Lp = Parameter(value=40.0, lower_bound=0.0, upper_bound=100, unit="nm")
     Lc = Parameter(value=16.0, lower_bound=0.0, upper_bound=np.inf, unit="micron")
     St = Parameter(value=1500.0, lower_bound=0.0, upper_bound=np.inf, unit="pN")
 
@@ -590,7 +590,7 @@ def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     f_min = 0
     f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
 
-    return invert_function_interpolation(d, 1.0, f_min, np.min([f_max, 120.0]),
+    return invert_function_interpolation(d, 1.0, f_min, f_max,
                                          lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
                                          lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
 
