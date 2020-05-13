@@ -845,9 +845,8 @@ def test_reprs():
 
     assert fit.__repr__() == 'lumicks.pylake.FdFit(models={DNA}, N=9)'
     assert fit.__str__() == ('Fit\n  - Model: DNA\n  - Equation:\n'
-                             '      f(d) = argmin[f](norm(DNA/Lc \\left(1 - '
-                             '\\frac12\\sqrt{\\frac{kT}{f DNA/Lp}} + \\frac{f}{DNA/St}\\right)-d))\n\n  '
-                             '- Data sets:\n    - FitData(RecA, N=3)\n    - FitData(RecA2, N=3)\n    '
+                             '      f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(f*DNA.Lp)) + f/DNA.St)-d))\n\n'
+                             '  - Data sets:\n    - FitData(RecA, N=3)\n    - FitData(RecA2, N=3)\n    '
                              '- FitData(RecA3, N=3)\n\n  '
                              '- Fitted parameters:\n'
                              '    Name      Value  Unit      Fitted      Lower bound    Upper bound\n'
