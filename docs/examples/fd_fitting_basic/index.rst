@@ -1,3 +1,8 @@
+.. warning::
+    This is beta functionality. While usable, this is a beta-functionality which
+    has not yet been tested in a sufficient number of different scenarios. The API
+    may also still be subject to change.
+
 Twistable Worm-Like-Chain Fitting
 =================================
 
@@ -45,7 +50,7 @@ Let's set up the Odijk model and create the fit::
 
 Considering that this model only describes the lower part of the curve, we have to
 extract the data that is relevant to us. We can obtain this data from the ``FdCurve``
-as follows:
+as follows::
 
     force = fd_curve.f.data
     distance = fd_curve.d.data
@@ -67,23 +72,23 @@ And fit the model::
 
     >>> fit_odijk.fit()
 
-Fit
-  - Model: DNA(x-d)_with_DNA
-  - Equation:
-      f(d) = argmin[f](norm(DNA/Lc \left(1 - \frac12\sqrt{\frac{kT}{f DNA/Lp}} + \frac{f}{DNA/St}\right)-(d - DNA/d_offset))) + DNA/f_offset
+    Fit
+      - Model: DNA(x-d)_with_DNA
+      - Equation:
+          f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(f*DNA.Lp)) + f/DNA.St)-(d - DNA.d_offset))) + DNA.f_offset
 
-  - Data sets:
-    - FitData(Inverted Odijk, N=959)
+      - Data sets:
+        - FitData(Inverted Odijk, N=959)
 
-  - Fitted parameters:
-    Name                 Value  Unit      Fitted      Lower bound    Upper bound
-    ------------  ------------  --------  --------  -------------  -------------
-    DNA/d_offset     0.102911   NA        True             -inf            inf
-    DNA/Lp          43.4116     [nm]      True                0            100
-    DNA/Lc           2.68676    [micron]  True                0            inf
-    DNA/St        1554.16       [pN]      True                0            inf
-    kT               4.11       [pN*nm]   False               0              8
-    DNA/f_offset     0.0624994  [pN]      True               -0.1            0.1
+      - Fitted parameters:
+        Name                 Value  Unit      Fitted      Lower bound    Upper bound
+        ------------  ------------  --------  --------  -------------  -------------
+        DNA/d_offset     0.102911   NA        True             -inf            inf
+        DNA/Lp          43.4116     [nm]      True                0            100
+        DNA/Lc           2.68676    [micron]  True                0            inf
+        DNA/St        1554.16       [pN]      True                0            inf
+        kT               4.11       [pN*nm]   False               0              8
+        DNA/f_offset     0.0624994  [pN]      True               -0.1            0.1
 
 Set up the Twistable worm like chain model
 ------------------------------------------
@@ -100,7 +105,7 @@ Again, we incorporate an offset in both distance and force to compensate for sma
 offsets that may exist in the data:::
 
     m_dna = pylake.inverted_twistable_wlc('DNA').subtract_independent_offset() + pylake.force_offset('DNA')
-    fit_twlc = pylake.Fit(m_dna)
+    fit_twlc = pylake.FdFit(m_dna)
 
 Load the data into the model
 ----------------------------
@@ -220,6 +225,6 @@ We can also show the parameters::
     DNA/f_offset     0.0497689  [pN]        True               -0.1            0.1
 
 These seem to agree well with what's typically found for dsDNA. Persistence length
-around 40, stiffness of about 1500 and g0 and g1 seem to agree well with values
+around 50, stiffness of about 1600 and g0 and g1 seem to agree well with values
 published in literature. Including more data would allow us to increase the precision
 and accuracy of our estimates.
