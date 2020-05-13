@@ -18,10 +18,6 @@ class Model:
                  eqn_tex=None, **kwargs):
         """
         Model constructor. A Model must be named, and this name will appear in the model parameters.
-        A model contains references to data associated with the model by using the member function _add_data.
-
-        Prior to fitting the model will automatically generate a list of unique conditions (defined as conditions
-        characterized by a unique set of conditions).
 
         Ideally a jacobian and derivative w.r.t. the independent variable are provided with every model. This will
         allow much higher performance when fitting. Jacobians and derivatives are automatically propagated to composite
@@ -60,10 +56,10 @@ class Model:
 
             dna_model = pylake.inverted_odijk("DNA")
             fit = pylake.Fit(dna_model)
-            data = dna_model.add_data("my data", f=force, d=distance)
+            fit.add_data("my data", force, distance)
 
-            fit["DNA_Lp"].lower_bound = 35  # Set lower bound for DNA Lp
-            fit["DNA_Lp"].upper_bound = 80  # Set upper bound for DNA Lp
+            fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
+            fit["DNA/Lp"].upper_bound = 80  # Set upper bound for DNA Lp
             fit.fit()
 
             dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
@@ -145,7 +141,8 @@ class Model:
                 return (f"${self.dependent}\\left({self.independent}\\right) = "
                         f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
             else:
-                return f"{self.dependent}({self.independent}) = {self.eqn(self.independent, *self.parameter_names)}"
+                return (f"{self.dependent}({self.independent}) = "
+                        f"{self.eqn(self.independent, *[x.replace('/', '.') for x in self._parameters.keys()])}")
 
     def _repr_html_(self):
         doc_string = ''
@@ -387,15 +384,15 @@ class Model:
         ::
 
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            d1 = dna_model.add_data("data1", f=force1, d=distance1)
-            d2 = dna_model.add_data("data2", f=force2, d=distance2, params={"DNA_Lc": "DNA_Lc_RecA"})
             fit = pylake.Fit(dna_model)
+            fit.add_data("data1", force1, distance1)
+            fit.add_data("data2", force2, distance2, {"DNA/Lc": "DNA/Lc_RecA"})
             fit.fit()
-            dna_model.plot(fit[d1], d1.x, fmt='k--')  # Plot model simulations for dataset d1
-            dna_model.plot(fit[d2], d2.x, fmt='k--')  # Plot model simulations for dataset d2
+            dna_model.plot(fit["data1"], distance1, fmt='k--')  # Plot model simulations for data set 1
+            dna_model.plot(fit["data2"], distance2, fmt='k--')  # Plot model simulations for data set 2
 
             # Plot model over a custom time range
-            dna_model.plot(fit[d1], np.arange(1.0, 10.0, .01), fmt='k--')
+            dna_model.plot(fit["data1"], np.arange(1.0, 10.0, .01), fmt='k--')
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(parameters, Parameters):
@@ -562,7 +559,7 @@ class SubtractIndependentOffset(Model):
 
         self.name = self.model.name + "(x-d)"
         self._parameters = OrderedDict()
-        self._parameters[offset_name] = None
+        self._parameters[offset_name] = Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au")
         for i, v in self.model._parameters.items():
             self._parameters[i] = v
 

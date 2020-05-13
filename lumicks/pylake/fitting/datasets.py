@@ -74,11 +74,10 @@ class Datasets:
         --------
         ::
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.add_data("Control", f1, d1)  # Load the first dataset like that
-            dna_model.add_data("RecA", f2, d2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different contour length Lc
+            fit = pylake.FdFit(dna_model)
 
-            dna_model = pylake.inverted_odijk("DNA")
-            dna_model.add_data("Unusual", f1, d1, params={"DNA_St": "1200"})  # Set stretch modulus to 1200 pN
+            fit.add_data("Control", f1, d1)  # Load the first dataset like that
+            fit.add_data("RecA", f2, d2, params={"DNA/Lc": "DNA/Lc_RecA"})  # Different contour length Lc
         """
         if name in self.data:
             raise KeyError("The name of the data set must be unique.")
@@ -160,7 +159,7 @@ class Datasets:
 class FdDatasets(Datasets):
     def add_data(self, name, f, d, params={}):
         """
-        Adds a data set for this model.
+        Adds a data set to this fit.
 
         Parameters
         ----------
@@ -177,10 +176,10 @@ class FdDatasets(Datasets):
         --------
         ::
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.add_data("Data1", force1, distance1)  # Load the first data set like that
-            dna_model.add_data("Data2", force2, distance2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different DNA_Lc
-            dna_model = pylake.inverted_odijk("DNA")
-            dna_model.add_data("Data3", force3, distance3, params={"DNA_St": 1200})  # Set DNA_St to 1200
+            fit = pylake.FdFit(dna_model)
+
+            fit.add_data("Data1", force1, distance1)  # Load the first data set like that
+            fit.add_data("Data2", force2, distance2, params={"DNA/Lc": "DNA/Lc_RecA"})  # Different DNA/Lc
         """
         if self._model.independent == "f":
             return self._add_data(name, f, d, params)

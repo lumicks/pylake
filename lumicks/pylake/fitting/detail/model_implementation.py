@@ -9,6 +9,7 @@ class Defaults:
     Lp = Parameter(value=40.0, lower_bound=0.0, upper_bound=100, unit="nm")
     Lc = Parameter(value=16.0, lower_bound=0.0, upper_bound=np.inf, unit="micron")
     St = Parameter(value=1500.0, lower_bound=0.0, upper_bound=np.inf, unit="pN")
+    offset = Parameter(value=0.0, lower_bound=-0.1, upper_bound=0.1, unit="pN")
 
 
 def offset_equation(x, offset):
@@ -289,7 +290,7 @@ def solve_cubic_wlc(a, b, c, selected_root):
 
 
 def invWLC_equation(d, Lp, Lc, St, kT=4.11):
-    return solve_formatter(WLC_equation_tex('f', Lp, Lc, St, kT), 'f', d)
+    return solve_formatter(WLC_equation('f', Lp, Lc, St, kT), 'f', d)
 
 
 def invWLC_equation_tex(d, Lp, Lc, St, kT=4.11):

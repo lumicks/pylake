@@ -27,7 +27,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
     --------
     ::
         # Define the model to be fitted
-        model = pylake.inverted_odijk("model") + pylake.force_offset("f", "offset")
+        model = pylake.inverted_odijk("model") + pylake.force_offset("model")
 
         # Fit the overall model first
         data_handle = model.add_data("dataset1", f=force_data, d=distance_data)
@@ -35,7 +35,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
         current_fit.fit()
 
         # Calculate a per data point contour length
-        lcs = parameter_trace(model, current_fit[data_handle], "model_Lc", distance, force)
+        lcs = parameter_trace(model, current_fit[data_handle], "model/Lc", distance, force)
     """
     parameter_names = model.parameter_names
     assert inverted_parameter in parameters, f"Inverted parameter not in model parameter vector {parameters}."

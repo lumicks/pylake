@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 class FitData:
     """
-    This class contains data to be fitted, and a set of transformations that correspond to this specific dataset. The
+    This class contains data to be fitted, and a set of transformations that correspond to this specific data set. The
     transformations are parameter mappings from the model this data is part of to the outer parameters (the ones that
     are going to be fitted in the global fit).
 

@@ -31,13 +31,13 @@ class Fit:
 
         dna_model = pylake.inverted_odijk("DNA")
         fit = pylake.Fit(dna_model)
-        data = dna_model.add_data("Dataset 1", f=force, d=distance)
+        data = fit.add_data("Dataset 1", force, distance)
 
-        fit["DNA_Lp"].lower_bound = 35  # Set lower bound for DNA Lp
-        fit["DNA_Lp"].upper_bound = 80  # Set upper bound for DNA Lp
+        fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
+        fit["DNA/Lp"].upper_bound = 80  # Set upper bound for DNA Lp
         fit.fit()
 
-        dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
+        dna_model.plot(fit["Dataset 1"], fmt='k--')  # Plot the fitted model
     """
     def __init__(self, *models):
         self.models = {id(m): m for m in models}
@@ -459,9 +459,28 @@ class Fit:
 
 
 class FdFit(Fit):
+    """Object which is used for fitting. It is a collection of models and their data. Once data is loaded, a fit object
+    contains ``Parameters``, which can be fitted by invoking fit.
+
+    Examples
+    --------
+    ::
+
+        from lumicks import pylake
+
+        dna_model = pylake.inverted_odijk("DNA")
+        fit = pylake.Fit(dna_model)
+        data = fit.add_data("Dataset 1", force, distance)
+
+        fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
+        fit["DNA/Lp"].upper_bound = 80  # Set upper bound for DNA Lp
+        fit.fit()
+
+        dna_model.plot(fit["Dataset 1"], fmt='k--')  # Plot the fitted model"""
+
     def add_data(self, name, f, d, params={}):
         """
-        Adds a data set for this model.
+        Adds a data set to this fit.
 
         Parameters
         ----------
@@ -478,10 +497,10 @@ class FdFit(Fit):
         --------
         ::
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            dna_model.add_data("Data1", force1, distance1)  # Load the first data set like that
-            dna_model.add_data("Data2", force2, distance2, params={"DNA_Lc": "DNA_Lc_RecA"})  # Different DNA_Lc
-            dna_model = pylake.inverted_odijk("DNA")
-            dna_model.add_data("Data3", force3, distance3, params={"DNA_St": 1200})  # Set DNA_St to 1200
+            fit = pylake.FdFit(dna_model)
+
+            fit.add_data("Data1", force1, distance1)  # Load the first data set like that
+            fit.add_data("Data2", force2, distance2, params={"DNA/Lc": "DNA/Lc_RecA"})  # Different DNA/Lc
         """
         if front(self.models.values()).independent == "f":
             return self._add_data(name, f, d, params)
