@@ -38,7 +38,8 @@ class Parameter:
             self.init = self.value
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__ if isinstance(other, self.__class__) else False
+        return all((getattr(self, x) == getattr(other, x) for x in self.__slots__)) \
+            if isinstance(other, self.__class__) else False
 
     def __repr__(self):
         return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lower bound: {self.lower_bound}, upper bound: " \

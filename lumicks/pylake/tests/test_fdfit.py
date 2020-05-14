@@ -1,5 +1,5 @@
 from ..fitting.parameters import Parameters
-from ..fitting.detail.utilities import parse_transformation, unique_idx, escape_tex
+from ..fitting.detail.utilities import parse_transformation, unique_idx, escape_tex, latex_sqrt
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fit import Fit, FdFit
@@ -35,6 +35,41 @@ def test_transformation_parser():
 
 
 def test_parameters():
+    assert Parameter(5.0) == Parameter(5.0)
+    assert not Parameter(5.0) == Parameter(4.0)
+    assert Parameter(5.0, 0.0) == Parameter(5.0, 0.0)
+    assert not Parameter(5.0, 0.0) == Parameter(5.0, 1.0)
+    assert Parameter(5.0, 0.0, 1.0) == Parameter(5.0, 0.0, 1.0)
+    assert not Parameter(5.0, 0.0, 1.0) == Parameter(5.0, 0.0, 2.0)
+    assert Parameter(5.0, 0.0, 1.0, vary=True) == Parameter(5.0, 0.0, 1.0, vary=True)
+    assert not Parameter(5.0, 0.0, 1.0, vary=True) == Parameter(5.0, 0.0, 1.0, vary=False)
+    assert Parameter(5.0, 0.0, 1.0, vary=True, init=4) == Parameter(5.0, 0.0, 1.0, vary=True, init=4)
+    assert not Parameter(5.0, 0.0, 1.0, vary=True, init=4) == Parameter(5.0, 0.0, 1.0, vary=True, init=5)
+    assert Parameter(5.0, 0.0, 1.0, unit="pN") == Parameter(5.0, 0.0, 1.0, unit="pN")
+    assert not Parameter(5.0, 0.0, 1.0, unit="pN") == Parameter(5.0, 0.0, 1.0, unit="potatoes")
+
+    assert Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)}) == \
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})
+
+    assert not Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)}) == \
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(6.0)})
+
+    with pytest.raises(RuntimeError):
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)}) << 5
+
+    with pytest.raises(IndexError):
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})["M/a":"M/b"]
+
+    with pytest.raises(IndexError):
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})["M/c"].value = 5
+
+    with pytest.raises(IndexError):
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})["M/c"] = 5
+
+    assert str(Parameters()) == "No parameters"
+    assert str(Parameter(5.0, 0.0, 1.0, vary=True)) == \
+        f"lumicks.pylake.fdfit.Parameter(value: {5.0}, lower bound: {0.0}, upper bound: {1.0}, vary: {True})"
+
     params = Parameters()
     params._set_parameters(['alpha', 'beta', 'gamma'], [None]*3)
     assert (params['beta'].value == 0.0)
@@ -280,6 +315,11 @@ def test_model_fit_object_linking():
     assert fetch_parameters(f.parameters, f.datasets[id(m2)]._conditions[1]._p_global_indices) == \
            ["M/mu", None, "M/q", None, "M/r"]
 
+    f << Parameters(**{"M/mu": 4, "M/sig": 6})
+
+    with pytest.raises(RuntimeError):
+        f << 5
+
 
 def test_jacobian_test_fit():
     def f(x, a, b):
@@ -311,6 +351,9 @@ def test_jacobian_test_fit():
     fit.parameters["f/b"].value = b_true
     assert not fit.verify_jacobian(fit.parameters.values)
 
+    with pytest.raises(ValueError):
+        assert (odijk("WLC").verify_jacobian([1.0, 2.0, 3.0], [1.0, 2.0]))
+
 
 def test_integration_test_fitting():
     def linear(x, a, b):
@@ -327,6 +370,10 @@ def test_integration_test_fitting():
 
     assert Model("M", linear, jacobian=linear_jac).has_jacobian
     assert not Model("M", linear).has_jacobian
+    with pytest.raises(RuntimeError):
+        Model("M", linear).jacobian([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+    with pytest.raises(RuntimeError):
+        Model("M", linear).derivative([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
 
     model = Model("M", linear, jacobian=linear_jac_wrong)
     assert not model.verify_jacobian([1, 2, 3], [1, 1])
@@ -367,6 +414,11 @@ def test_integration_test_fitting():
     fit.fit()
     assert (np.isclose(fit.parameters["M/b"].value, 5))
     assert (np.isclose(fit.parameters["M/a"].value, 8))
+
+    fit["M/a"].upper_bound = 4
+    fit["M/a"].value = 5
+    with pytest.raises(ValueError):
+        fit.fit()
 
 
 def integration_test_parameter_linkage():
@@ -683,6 +735,8 @@ def test_data_loading():
     fit._add_data("test", [1, np.nan, 3], [2, np.nan, 4])
     assert np.allclose(fit[m].data["test"].x, [1, 3])
     assert np.allclose(fit[m].data["test"].y, [2, 4])
+    assert np.allclose(fit[m].data["test"].independent, [1, 3])
+    assert np.allclose(fit[m].data["test"].dependent, [2, 4])
 
     # Name must be unique
     with pytest.raises(KeyError):
@@ -910,6 +964,7 @@ def test_tex_replacement():
     assert escape_tex("DNA/Hi_There") == "Hi\\_There_{DNA}"
     assert escape_tex("DNA_model/Hi_There") == "Hi\\_There_{DNA\\_model}"
     assert escape_tex("Hi_There") == "Hi\\_There"
+    assert latex_sqrt("test") == r"\sqrt{test}"
 
 
 @cleanup
@@ -935,3 +990,7 @@ def test_plotting():
     # Test valid parameter override
     fit.plot(params={'DNA/Lc': 12})
     fit.plot_model(params={'DNA/Lc': 12})
+
+    independent = np.arange(0.15, 2, .25)
+    parameters = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    odijk("WLC").verify_jacobian(independent, parameters, plot=1)
