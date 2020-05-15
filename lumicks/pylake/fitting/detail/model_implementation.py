@@ -285,6 +285,8 @@ def solve_cubic_wlc(a, b, c, selected_root):
     elif selected_root == 2:
         sol[np.logical_not(mask)] = 2.0 / np.sqrt(3.0) * sqrt_minus_p * \
             np.cos((1.0/3.0) * np.arcsin(asin_argument) + np.pi/6.0)
+    else:
+        raise RuntimeError("Invalid root selected. Choose 0, 1 or 2.")
 
     return sol - a / 3.0
 
@@ -631,13 +633,6 @@ def invFJC(d, Lp, Lc, St, kT=4.11):
 
     return invert_function(d, 1.0, f_min, f_max,
                            lambda f_trial: FJC(f_trial, Lp, Lc, St, kT),
-                           lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
-
-
-def invFJC_jac(d, Lp, Lc, St, kT=4.11):
-    return invert_jacobian(d,
-                           lambda f_trial: invFJC(f_trial, Lp, Lc, St, kT),
-                           lambda f_trial: FJC_jac(f_trial, Lp, Lc, St, kT),
                            lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
 
 

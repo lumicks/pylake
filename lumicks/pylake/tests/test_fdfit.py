@@ -7,6 +7,7 @@ from ..fitting.models import *
 from ..fitting.datasets import Datasets
 from ..fitting.detail.parameter_trace import parameter_trace
 from ..fitting.model import Model, InverseModel
+from ..fitting.detail.model_implementation import solve_cubic_wlc, invwlc_root_derivatives
 
 import numpy as np
 from matplotlib.testing.decorators import cleanup
@@ -845,6 +846,31 @@ def test_parameter_slicing():
     assert (parameter_slice["dummy/p2"].value == 5)
 
 
+def test_analytic_roots():
+    a = np.array([0])
+    b = np.array([-3])
+    c = np.array([1])
+    print(np.allclose(np.sort(np.roots([1, a, b, c])), np.sort(
+        [solve_cubic_wlc(a, b, c, 0)[0], solve_cubic_wlc(a, b, c, 1)[0], solve_cubic_wlc(a, b, c, 2)[0]])))
+
+    with pytest.raises(RuntimeError):
+        solve_cubic_wlc(a, b, c, 3)
+
+    def test_root_derivatives(root):
+        dx = 1e-5
+        ref_root = solve_cubic_wlc(a, b, c, root)
+        da = (solve_cubic_wlc(a + dx, b, c, root) - ref_root) / dx
+        db = (solve_cubic_wlc(a, b + dx, c, root) - ref_root) / dx
+        dc = (solve_cubic_wlc(a, b, c + dx, root) - ref_root) / dx
+
+        print([da[0], db[0], dc[0]])
+        print(np.array(invwlc_root_derivatives(a, b, c, root)))
+        assert np.allclose(np.array(invwlc_root_derivatives(a, b, c, root)), np.array([da, db, dc]), atol=1e-5, rtol=1e-5)
+
+    test_root_derivatives(0)
+    test_root_derivatives(1)
+    test_root_derivatives(2)
+
 def test_reprs():
     assert odijk('test').__repr__()
     assert inverted_odijk('test').__repr__()
@@ -853,6 +879,8 @@ def test_reprs():
     assert marko_siggia_ewlc_force('test').__repr__()
     assert marko_siggia_ewlc_distance('test').__repr__()
     assert inverted_freely_jointed_chain('test').__repr__()
+    assert twistable_wlc('test').__repr__()
+    assert inverted_twistable_wlc('test').__repr__()
     assert (odijk('test') + distance_offset('test')).__repr__()
     assert (odijk('test') + distance_offset('test')).invert().__repr__()
     assert (odijk('test') + distance_offset('test')).subtract_independent_offset().__repr__()
@@ -864,6 +892,8 @@ def test_reprs():
     assert marko_siggia_ewlc_force('test')._repr_html_()
     assert marko_siggia_ewlc_distance('test')._repr_html_()
     assert inverted_freely_jointed_chain('test')._repr_html_()
+    assert twistable_wlc('test')._repr_html_()
+    assert inverted_twistable_wlc('test')._repr_html_()
     assert (odijk('test') + distance_offset('test'))._repr_html_()
     assert (odijk('test') + distance_offset('test')).invert()._repr_html_()
     assert (odijk('test') + distance_offset('test')).subtract_independent_offset()._repr_html_()
