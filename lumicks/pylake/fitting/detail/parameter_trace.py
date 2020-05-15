@@ -57,7 +57,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
 
         def jacobian(inverted_parameter_value):
             parameter_vector[inverted_parameter_index] = inverted_parameter_value
-            return -model.jacobian(x, parameter_vector)[inverted_parameter_index, :]
+            return -model.jacobian(x, parameter_vector)[inverted_parameter_index]
 
         jac = jacobian if model.has_jacobian else "2-point"
         result = optim.least_squares(residual, parameter_vector[inverted_parameter_index], jac=jac,
