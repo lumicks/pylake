@@ -2,7 +2,7 @@ from .parameters import Parameter, Parameters
 from .detail.utilities import solve_formatter, solve_formatter_tex, escape_tex
 from .detail.utilities import print_styled, optimal_plot_layout
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
-    invert_derivative
+    invert_derivative, invert_function_interpolation
 from ..detail.utilities import get_color, lighten_color
 
 from collections import OrderedDict
@@ -173,11 +173,11 @@ class Model:
 
         return model_info
 
-    def invert(self):
+    def invert(self, independent_min=0.0, independent_max=np.inf, interpolate=False):
         """
         Invert this model (swap dependent and independent parameter).
         """
-        return InverseModel(self)
+        return InverseModel(self, independent_min, independent_max, interpolate)
 
     def subtract_independent_offset(self):
         """
@@ -483,16 +483,29 @@ class CompositeModel(Model):
 
 
 class InverseModel(Model):
-    def __init__(self, model):
+    def __init__(self, model, independent_min=0.0, independent_max=np.inf, interpolate=False):
         """
         Combine two model outputs to form a new model (addition).
 
         Parameters
         ----------
         model: Model
+        independent_min: float
+            Minimum value for the independent variable of the forward model. Default: 0.0.
+        independent_max: float
+            Maximum value for the independent variable of the forward model. Default: np.inf.
+            Note that a finite maximum has to be specified if you wish to use the interpolation mode.
+        interpolate: bool
+            Use interpolation approximation. Default: False.
         """
         self.model = model
         self.name = "inv(" + model.name + ")"
+        self.interpolate = interpolate
+        self.independent_min = independent_min
+        self.independent_max = independent_max
+        if self.interpolate:
+            assert np.isfinite(independent_min) and np.isfinite(independent_max), \
+                "Inversion limits have to be finite when using interpolation method."
 
     @property
     def dependent(self):
@@ -510,12 +523,14 @@ class InverseModel(Model):
                                    self.independent)
 
     def _raw_call(self, independent, parameter_vector):
-        independent_min = 0
-        independent_max = np.inf
-
-        return invert_function(independent, 1.0, independent_min, independent_max,
-                               lambda f_trial: self.model._raw_call(f_trial, parameter_vector),  # Forward model
-                               lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+        if self.interpolate:
+            return invert_function_interpolation(independent, 1.0, self.independent_min, self.independent_max,
+                                                 lambda f_trial: self.model._raw_call(f_trial, parameter_vector),
+                                                 lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+        else:
+            return invert_function(independent, 1.0, self.independent_min, self.independent_max,
+                                   lambda f_trial: self.model._raw_call(f_trial, parameter_vector),  # Forward model
+                                   lambda f_trial: self.model.derivative(f_trial, parameter_vector))
 
     @property
     def has_jacobian(self):

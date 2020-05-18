@@ -265,6 +265,7 @@ class Fit:
         return jacobian
 
     def verify_jacobian(self, parameters, plot=0, verbose=True, dx=1e-6, **kwargs):
+        self._rebuild()
         if len(parameters) != len(self._parameters):
             raise ValueError("Parameter vector has invalid length. "
                              f"Expected: {len(self._parameters)}, got: {len(parameters)}.")

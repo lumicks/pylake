@@ -35,13 +35,7 @@ def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
 
     def manual_inversion(distances, initial_guess):
         """Invert the dependent and independent variable for a list"""
-        force_est = initial_guess
-        estimates = np.zeros(distances.shape)
-        for i, distance in enumerate(distances):
-            force_est = fit_single(distance, force_est)
-            estimates[i] = force_est
-
-        return estimates
+        return np.array([fit_single(distance, initial_guess) for distance in distances])
 
     return manual_inversion, fit_single
 
@@ -120,6 +114,8 @@ def invert_function_interpolation(d, initial, f_min, f_max, model_function, deri
             warnings.warn(f"Interpolation failed. Cause: {e}. Falling back to brute force evaluation. "
                           f"Results should be fine, but slower.")
             result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
+    else:
+        result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
 
     # Do the manual inversion for the others
     result[np.logical_not(interpolated_idx)] = manual_inversion(d[np.logical_not(interpolated_idx)], initial)
