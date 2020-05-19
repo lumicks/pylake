@@ -140,9 +140,6 @@ Everything is set up now. All that remains is to do the fit::
         DNA/Lp_RecA     63.8319     [nm]      True                0            100
         DNA/Lc_RecA      2.99842    [micron]  True                0            inf
 
-The dsDNA we used had about 8400 base pairs. Assuming 0.34 nm per base pair gives us an expected
-2.856 micron. This instills some confidence that our contour length estimate of the control is at
-least in the right ballpark.
 
 Plot the fit
 ------------
