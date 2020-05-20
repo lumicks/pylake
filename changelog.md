@@ -2,6 +2,7 @@
 
 ## v0.4.2 | t.b.d.
 * Fixed an issue which prevented images from being reconstructed when a debugger is attached. Problem resided in `reconstruct_image` which threw an exception when attempting to resize a `numpy` array while the debugger was holding a reference to it.
+* Fixed bug that lead to timestamps becoming floating point values when using `channel.downsampled_over`.
 
 ## v0.4.1 | 2020-03-23
 * Drop `matplotlib` < 3 requirement.
