@@ -114,3 +114,8 @@ def test_correlation():
     assert (stack[1:3][0].raw.start == 20)
     assert (stack[1:3].raw[0].start == 20)
     assert (stack[1:3].raw[1].start == 30)
+
+    # Regression test downsampled_over losing precision due to reverting to double rather than int64.
+    cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 1588267266006287100, 1000))
+    ch = cc.downsampled_over([(1588267266006287100, 2588267266006287100)], where='left')
+    assert int(ch.timestamps[0]) == 1588267266006287100
