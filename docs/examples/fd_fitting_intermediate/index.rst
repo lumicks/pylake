@@ -48,9 +48,10 @@ For this we want to use an inverted WLC model with a force offset.
 
 While it is possible (and equivalent) to generate this model via `pylake.odijk('DNA').invert()`,
 an optimized inverted WLC model is explicitly included as a separate model. When only a single WLC
-is needed, it is best to use this one, as it is considerably faster than explicitly inverting::
+is needed, it is best to use this one, as it is considerably faster than explicitly inverting. We also
+include an estimated distance offset::
 
-    m_dna = pylake.inverted_odijk("DNA") + pylake.force_offset("DNA")
+    m_dna = pylake.inverted_odijk("DNA").subtract_independent_offset() + pylake.force_offset("DNA")
 
 We would like to fit this model to some data. So let's make a `FdFit`::
 
@@ -60,7 +61,7 @@ Let's have a look at the parameters in this model::
 
     >>> print(m_dna.parameter_names)
 
-    ['DNA/Lp', 'DNA/Lc', 'DNA/St', 'kT', 'DNA/f_offset']
+    ['DNA/d_offset', 'DNA/Lp', 'DNA/Lc', 'DNA/St', 'kT', 'DNA/f_offset']
 
 Load the data
 -------------
@@ -81,8 +82,8 @@ them. Since we have to do this twice, let's make a little function that extracts
         mask = (f < f_max) & (f > f_min)
         return f[mask], d[mask]
 
-    force_control, distance_control = extract_data(control_curve, 0, 25)
-    force_reca, distance_reca = extract_data(reca_curve, 0, 25)
+    force_control, distance_control = extract_data(control_curve, 0, 30)
+    force_reca, distance_reca = extract_data(reca_curve, 0, 30)
 
 We can load data into the `FdFit` by using the function `add_data`. Note that we apply the mask as we
 are loading the data using the square brackets::
@@ -90,15 +91,16 @@ are loading the data using the square brackets::
     data1 = fit.add_data("Control", force_control, distance_control)
 
 If parameters are expected to differ between conditions, we can rename them for a specific data set
-when adding data to the fit. For the second data set, we expect the contour length and persistence
-length to be different, so let’s rename these. We can do this by passing an extra argument named
+when adding data to the fit. For the second data set, we expect the contour length, persistence length
+and stiffness to be different, so let’s rename these. We can do this by passing an extra argument named
 `params`. This argument takes a dictionary. The keys of this dictionary have to be given by the
 old name of the parameter in the model. This name is typically given by the name of the model
 followed by a slash and then the model parameter name. The value of this dictionary should be set
-to the model name slash the new parameter name. Let's rename the contour length Lc and persistence
-length Lp for this data set::
+to the model name slash the new parameter name. Let's rename the contour length Lc, persistence
+length Lp and stiffness St for this data set::
 
-    data2 = fit.add_data("RecA", force_reca, distance_reca, params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA"})
+    data2 = fit.add_data("RecA", force_reca, distance_reca, params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
+                                                                    "DNA/St": "DNA/St_RecA"})
 
 Set up the fit
 --------------
@@ -121,24 +123,26 @@ Everything is set up now. All that remains is to do the fit::
     >>> fit.fit()
 
     Fit
-      - Model: DNA_with_DNA
+      - Model: DNA(x-d)_with_DNA
       - Equation:
-          f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(f*DNA.Lp)) + f/DNA.St)-d)) + DNA.f_offset
+          f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(f*DNA.Lp)) + f/DNA.St)-(d - DNA.d_offset))) + DNA.f_offset
 
       - Data sets:
-        - FitData(Control, N=853)
-        - FitData(RecA, N=987, Transformations: DNA/Lp → DNA/Lp_RecA, DNA/Lc → DNA/Lc_RecA)
+        - FitData(Control, N=884)
+        - FitData(RecA, N=1030, Transformations: DNA/Lp → DNA/Lp_RecA, DNA/Lc → DNA/Lc_RecA, DNA/St → DNA/St_RecA)
 
       - Fitted parameters:
         Name                 Value  Unit      Fitted      Lower bound    Upper bound
         ------------  ------------  --------  --------  -------------  -------------
-        DNA/Lp          62.4178     [nm]      True               39             80
-        DNA/Lc           2.74467    [micron]  True                0            inf
-        DNA/St        1085.61       [pN]      True              700           2000
+        DNA/d_offset    -0.0716458  [au]      True               -0.1            0.1
+        DNA/Lp          55.7977     [nm]      True               39             80
+        DNA/Lc           2.83342    [micron]  True                0            inf
+        DNA/St        1407.65       [pN]      True              700           2000
         kT               4.11       [pN*nm]   False               0              8
-        DNA/f_offset     0.0519907  [pN]      True               -0.1            0.1
-        DNA/Lp_RecA     63.8319     [nm]      True                0            100
-        DNA/Lc_RecA      2.99842    [micron]  True                0            inf
+        DNA/f_offset     0.0697629  [pN]      True               -0.1            0.1
+        DNA/Lp_RecA     90.2603     [nm]      True                0            100
+        DNA/Lc_RecA      3.04193    [micron]  True                0            inf
+        DNA/St_RecA    846.33       [pN]      True                0            inf
 
 
 Plot the fit
@@ -171,7 +175,7 @@ nanometers::
 
     >>> print(f"Contour length difference: {(fit['DNA/Lc_RecA'].value - fit['DNA/Lc'].value) * 1000:.2f} [nm]")
 
-    Contour length difference: 253.74 [nm]
+    Contour length difference: 208.51 [nm]
 
 Try another model
 -----------------
@@ -181,7 +185,8 @@ data any differently. Let's fit the Marko Siggia model::
 
     marko_siggia_fit = pylake.FdFit(pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset() + pylake.force_offset("DNA"))
     marko_siggia_fit.add_data("Control", force_control, distance_control)
-    marko_siggia_fit.add_data("RecA", force_reca, distance_reca, params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA"})
+    marko_siggia_fit.add_data("RecA", force_reca, distance_reca, params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
+                                                                         "DNA/St": "DNA/St_RecA"})
     marko_siggia_fit.fit();
 
 Plot the competing models
@@ -207,8 +212,8 @@ changes, let's have a look at what these models predict for the change in contou
     >>> print(f"Contour length difference Odijk: {(fit['DNA/Lc_RecA'].value - fit['DNA/Lc'].value) * 1000:.2f} [nm]")
     >>> print(f"Contour length difference Marko-Siggia: {(marko_siggia_fit['DNA/Lc_RecA'].value - marko_siggia_fit['DNA/Lc'].value) * 1000:.2f} [nm]")
 
-    Contour length difference Odijk: 253.74 [nm]
-    Contour length difference Marko-Siggia: 253.68 [nm]
+    Contour length difference Odijk: 208.51 [nm]
+    Contour length difference Marko-Siggia: 210.33 [nm]
 
 These results are very similar, increasing our confidence in the result.
 
@@ -235,11 +240,11 @@ to get a feel for how reliable the estimates are::
     >>> print(f"Marko-Siggia Model with force offset {marko_siggia_fit.bic}")
 
     Corrected Akaike Information Criterion
-    Odijk Model with single force offset -99.24011262687394
-    Marko-Siggia Model with single force offsets -93.61329520140747
+    Odijk Model with force offset 266.0174147701515
+    Marko-Siggia Model with force offset 285.1340433325082
     Bayesian Information Criterion
-    Odijk Model with single force offset -66.18081403716738
-    Marko-Siggia Model with single force offsets -60.5539966117009
+    Odijk Model with force offset 310.3974287950736
+    Marko-Siggia Model with force offset 329.5140573574303
 
 We can also quickly compare parameter values::
 
@@ -247,25 +252,29 @@ We can also quickly compare parameter values::
 
     Name                 Value  Unit      Fitted      Lower bound    Upper bound
     ------------  ------------  --------  --------  -------------  -------------
-    DNA/Lp          62.4178     [nm]      True               39             80
-    DNA/Lc           2.74467    [micron]  True                0            inf
-    DNA/St        1085.61       [pN]      True              700           2000
+    DNA/d_offset    -0.0716458  [au]      True               -0.1            0.1
+    DNA/Lp          55.7977     [nm]      True               39             80
+    DNA/Lc           2.83342    [micron]  True                0            inf
+    DNA/St        1407.65       [pN]      True              700           2000
     kT               4.11       [pN*nm]   False               0              8
-    DNA/f_offset     0.0519907  [pN]      True               -0.1            0.1
-    DNA/Lp_RecA     63.8319     [nm]      True                0            100
-    DNA/Lc_RecA      2.99842    [micron]  True                0            inf
+    DNA/f_offset     0.0697629  [pN]      True               -0.1            0.1
+    DNA/Lp_RecA     90.2603     [nm]      True                0            100
+    DNA/Lc_RecA      3.04193    [micron]  True                0            inf
+    DNA/St_RecA    846.33       [pN]      True                0            inf
 
     >>> marko_siggia_fit.parameters
 
     Name                 Value  Unit      Fitted      Lower bound    Upper bound
     ------------  ------------  --------  --------  -------------  -------------
-    DNA/Lp          63.4333     [nm]      True                0            100
-    DNA/Lc           2.74361    [micron]  True                0            inf
-    DNA/St        1077.36       [pN]      True                0            inf
+    DNA/d_offset    -0.1        [au]      True               -0.1            0.1
+    DNA/Lp          58.377      [nm]      True                0            100
+    DNA/Lc           2.86002    [micron]  True                0            inf
+    DNA/St        1400.35       [pN]      True                0            inf
     kT               4.11       [pN*nm]   False               0              8
-    DNA/f_offset     0.0270028  [pN]      True               -0.1            0.1
-    DNA/Lp_RecA     64.8165     [nm]      True                0            100
-    DNA/Lc_RecA      2.9973     [micron]  True                0            inf
+    DNA/f_offset     0.0468744  [pN]      True               -0.1            0.1
+    DNA/Lp_RecA     91.857      [nm]      True                0            100
+    DNA/Lc_RecA      3.07035    [micron]  True                0            inf
+    DNA/St_RecA    855.266      [pN]      True                0            inf
 
 Dynamic experiments
 -------------------
