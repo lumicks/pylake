@@ -1,4 +1,4 @@
-FD curves
+Fd curves
 =========
 
 .. only:: html

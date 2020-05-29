@@ -2,7 +2,7 @@
     This is beta functionality. While usable, this has not yet been tested in a large
     number of different scenarios. The API may also still be subject to change.
 
-FD Fitting
+Fd Fitting
 ==========
 
 .. only:: html

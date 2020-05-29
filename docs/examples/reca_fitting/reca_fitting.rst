@@ -2,16 +2,16 @@
     This is beta functionality. While usable, this has not yet been tested in a large
     number of different scenarios. The API may also still be subject to change.
 
-DNA FD Fitting
-==============
+RecA FD Fitting
+===============
 
 .. only:: html
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
 
-DNA Fd Fitting
---------------
+RecA Fd Fitting
+---------------
 
 Let's first load our data and see which curves are present in these files::
 
