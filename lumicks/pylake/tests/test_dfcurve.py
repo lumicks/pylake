@@ -1,13 +1,13 @@
 import numpy as np
 
-from lumicks.pylake.fdcurve import FDCurve
+from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import Slice, TimeSeries
 
 
 def make_mock_fd(force, distance, start=0):
-    """Mock FD curve which is not attached to an actual file, timestamps start at `start`"""
+    """Mock Fd curve which is not attached to an actual file, timestamps start at `start`"""
     assert len(force) == len(distance)
-    fd = FDCurve(file=None, start=None, stop=None, name="")
+    fd = FdCurve(file=None, start=None, stop=None, name="")
     timestamps = np.arange(len(force)) + start
     fd._force_cache = Slice(TimeSeries(force, timestamps))
     fd._distance_cache = Slice(TimeSeries(distance, timestamps))

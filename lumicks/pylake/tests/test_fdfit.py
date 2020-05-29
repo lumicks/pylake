@@ -5,7 +5,7 @@ from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fit import Fit, FdFit
 from ..fitting.models import *
 from ..fitting.datasets import Datasets
-from ..fitting.detail.parameter_trace import parameter_trace
+from lumicks.pylake.fitting.parameter_trace import parameter_trace
 from ..fitting.model import Model, InverseModel
 from ..fitting.detail.model_implementation import solve_cubic_wlc, invwlc_root_derivatives
 
@@ -42,10 +42,8 @@ def test_parameters():
     assert not Parameter(5.0, 0.0) == Parameter(5.0, 1.0)
     assert Parameter(5.0, 0.0, 1.0) == Parameter(5.0, 0.0, 1.0)
     assert not Parameter(5.0, 0.0, 1.0) == Parameter(5.0, 0.0, 2.0)
-    assert Parameter(5.0, 0.0, 1.0, vary=True) == Parameter(5.0, 0.0, 1.0, vary=True)
-    assert not Parameter(5.0, 0.0, 1.0, vary=True) == Parameter(5.0, 0.0, 1.0, vary=False)
-    assert Parameter(5.0, 0.0, 1.0, vary=True, init=4) == Parameter(5.0, 0.0, 1.0, vary=True, init=4)
-    assert not Parameter(5.0, 0.0, 1.0, vary=True, init=4) == Parameter(5.0, 0.0, 1.0, vary=True, init=5)
+    assert Parameter(5.0, 0.0, 1.0, fixed=True) == Parameter(5.0, 0.0, 1.0, fixed=True)
+    assert not Parameter(5.0, 0.0, 1.0, fixed=True) == Parameter(5.0, 0.0, 1.0, fixed=False)
     assert Parameter(5.0, 0.0, 1.0, unit="pN") == Parameter(5.0, 0.0, 1.0, unit="pN")
     assert not Parameter(5.0, 0.0, 1.0, unit="pN") == Parameter(5.0, 0.0, 1.0, unit="potatoes")
 
@@ -56,7 +54,7 @@ def test_parameters():
         Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(6.0)})
 
     with pytest.raises(RuntimeError):
-        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)}) << 5
+        Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)}).load_parameters_from(5)
 
     with pytest.raises(IndexError):
         Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})["M/a":"M/b"]
@@ -68,8 +66,8 @@ def test_parameters():
         Parameters(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})["M/c"] = 5
 
     assert str(Parameters()) == "No parameters"
-    assert str(Parameter(5.0, 0.0, 1.0, vary=True)) == \
-        f"lumicks.pylake.fdfit.Parameter(value: {5.0}, lower bound: {0.0}, upper bound: {1.0}, vary: {True})"
+    assert str(Parameter(5.0, 0.0, 1.0, fixed=True)) == \
+        f"lumicks.pylake.fdfit.Parameter(value: {5.0}, lower bound: {0.0}, upper bound: {1.0}, fixed: {True})"
 
     params = Parameters()
     params._set_parameters(['alpha', 'beta', 'gamma'], [None]*3)
@@ -105,13 +103,13 @@ def test_parameters():
     params._set_parameters(['alpha', 'beta', 'gamma'], [Parameter(2), Parameter(3), Parameter(4)])
     params2 = Parameters()
     params2._set_parameters(['gamma', 'potato', 'beta'], [Parameter(10), Parameter(11), Parameter(12)])
-    params << params2
+    params.load_parameters_from(params2)
     assert np.allclose(params.values, [2, 12, 10])
 
     params2 = Parameters()
     params2._set_parameters(['spaghetti'], [Parameter(10), Parameter(12)])
     with pytest.raises(RuntimeError):
-        params << params2
+        params.load_parameters_from(params2)
 
 
 def test_build_conditions():
@@ -316,10 +314,10 @@ def test_model_fit_object_linking():
     assert fetch_parameters(f.parameters, f.datasets[id(m2)]._conditions[1]._p_global_indices) == \
            ["M/mu", None, "M/q", None, "M/r"]
 
-    f << Parameters(**{"M/mu": 4, "M/sig": 6})
+    f.load_parameters_from(Parameters(**{"M/mu": 4, "M/sig": 6}))
 
     with pytest.raises(RuntimeError):
-        f << 5
+        f.load_parameters_from(5)
 
 
 def test_jacobian_test_fit():
@@ -390,11 +388,11 @@ def test_integration_test_fitting():
     fit._add_data("test x", x, y, params={'M/a': 'slope_1', 'M/b': 'M/b_2'})
 
     # Test whether fixed parameters are not fitted
-    fit["slope_2"].vary = False
+    fit["slope_2"].fixed = True
     fit.fit()
     assert (np.isclose(fit["slope_2"].value, 0))
 
-    fit["slope_2"].vary = True
+    fit["slope_2"].fixed = False
     fit.fit()
     assert(len(fit.parameters.values) == 5)
     assert(len(fit.parameters) == 5)
@@ -870,6 +868,7 @@ def test_analytic_roots():
     test_root_derivatives(0)
     test_root_derivatives(1)
     test_root_derivatives(2)
+
 
 def test_reprs():
     assert odijk('test').__repr__()

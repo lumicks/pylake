@@ -121,7 +121,7 @@ class Slice:
         if where != 'center' and where != 'left':
             raise ValueError("Invalid argument for where. Valid options are center and left")
 
-        t = np.zeros(len(range_list))
+        t = np.zeros(len(range_list), dtype=np.int64)
         d = np.zeros(len(range_list))
         for i, time_range in enumerate(range_list):
             start, stop = time_range

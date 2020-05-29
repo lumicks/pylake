@@ -48,7 +48,7 @@ class Fit:
     def _dataset(self, model):
         return Datasets(model, self)
 
-    def __lshift__(self, other):
+    def load_parameters_from(self, other):
         """
         Sets parameters if they are found in the target fit.
 
@@ -57,11 +57,11 @@ class Fit:
         other: Fit or Parameters
         """
         if isinstance(other, Parameters):
-            self.parameters << other
+            self.parameters.load_parameters_from(other)
         elif isinstance(other, self.__class__):
-            self.parameters << other.parameters
+            self.parameters.load_parameters_from(other.parameters)
         else:
-            raise RuntimeError("Did not pass compatible argument to << operator")
+            raise RuntimeError("Did not pass compatible argument to load_parameters_from")
 
     def __getitem__(self, item):
         if isinstance(item, Model):

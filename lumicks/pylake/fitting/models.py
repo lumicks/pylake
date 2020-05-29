@@ -1,4 +1,3 @@
-import numpy as np
 from .parameters import Parameter
 
 
@@ -61,8 +60,7 @@ def distance_offset(name):
 
 
 def marko_siggia_ewlc_force(name):
-    """
-    Marko Siggia's Worm-like Chain model with force as dependent parameter.
+    """Marko Siggia's Worm-like Chain model with force as dependent parameter.
 
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
@@ -99,8 +97,7 @@ def marko_siggia_ewlc_force(name):
 
 
 def marko_siggia_ewlc_distance(name):
-    """
-    Marko Siggia's Worm-like Chain model with distance as dependent parameter.
+    """Marko Siggia's Worm-like Chain model with distance as dependent parameter.
 
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
@@ -137,8 +134,7 @@ def marko_siggia_ewlc_distance(name):
 
 
 def marko_siggia_simplified(name):
-    """
-    Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN).
+    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN).
 
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
@@ -174,8 +170,7 @@ def marko_siggia_simplified(name):
 
 
 def odijk(name):
-    """
-    Odijk's Extensible Worm-Like Chain model with distance as dependent variable (useful for 10 pN < F < 30 pN).
+    """Odijk's Extensible Worm-Like Chain model with distance as dependent variable (useful for 10 pN < F < 30 pN).
 
     References:
       1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
@@ -207,8 +202,7 @@ def odijk(name):
 
 
 def inverted_odijk(name):
-    """
-    Odijk's Extensible Worm-Like Chain model with force as dependent variable (useful for 10 pN < F < 30 pN).
+    """Odijk's Extensible Worm-Like Chain model with force as dependent variable (useful for 10 pN < F < 30 pN).
 
     References:
       1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
@@ -247,8 +241,7 @@ def inverted_odijk(name):
 
 
 def freely_jointed_chain(name):
-    """
-    Freely-Jointed Chain with distance as dependent parameter.
+    """Freely-Jointed Chain with distance as dependent parameter.
 
     References:
         1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
@@ -281,8 +274,7 @@ def freely_jointed_chain(name):
 
 
 def inverted_freely_jointed_chain(name):
-    """
-    Inverted Freely-Jointed Chain with force as dependent parameter.
+    """Inverted Freely-Jointed Chain with force as dependent parameter.
 
     References:
         1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
@@ -301,8 +293,7 @@ def inverted_freely_jointed_chain(name):
 
 
 def twistable_wlc(name):
-    """
-    Twistable Worm-like Chain model. With distance as dependent variable.
+    """Twistable Worm-like Chain model. With distance as dependent variable.
 
     References:
        1. P. Gross et al., Quantifying how DNA stretches, melts and changes
@@ -346,8 +337,7 @@ def twistable_wlc(name):
 
 
 def inverted_twistable_wlc(name):
-    """
-    Twistable Worm-like Chain model. With force as dependent variable. This model uses a more performant implementation
+    """Twistable Worm-like Chain model. With force as dependent variable. This model uses a more performant implementation
     for inverting the model. It inverts the model by interpolating the forward curve and using this interpolant to
     invert the function.
 

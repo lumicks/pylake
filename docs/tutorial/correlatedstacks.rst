@@ -8,7 +8,7 @@ Correlated stacks
 Bluelake has the ability to export videos from the camera's.
 These videos can be opened and sliced using `CorrelatedStack`::
 
-    stack = pylake.CorrelatedStack("example.tiff")  # Loading a stack.
+    stack = lk.CorrelatedStack("example.tiff")  # Loading a stack.
     stack_slice = stack[2:10]  # Grab frame 2 to 9
 
 Quite often, it is interesting to correlate events on the camera's to `channel` data.

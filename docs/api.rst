@@ -16,8 +16,21 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     scan.Scan
     point_scan.PointScan
     correlated_stack.CorrelatedStack
+
+FD Fitting
+----------
+
+.. autosummary::
+    :toctree: _api
+
     fitting.model.Model
     FdFit
+
+.. _fd_models:
+.. rubric:: Available models
+
+.. autosummary::
+    :toctree: _api
 
     force_offset
     distance_offset

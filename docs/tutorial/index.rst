@@ -10,7 +10,7 @@ It is assumed that the following lines precede any other code::
     import numpy as np
     import matplotlib.pyplot as plt
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
 
 This uses the common scientific package aliases: `np` and `plt`.

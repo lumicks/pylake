@@ -48,7 +48,7 @@ class Force:
         return _try_get_or_empty(self._get_force, 4, "y")
 
 
-class DownsampledFD:
+class DownsampledFd:
     """Downsampled force and distance channels"""
     def _get_downsampled_force(self, n, xy):
         raise NotImplementedError

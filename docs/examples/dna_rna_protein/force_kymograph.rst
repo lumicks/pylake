@@ -17,7 +17,7 @@ This experiments perfectly demonstrates the correlative capabilities of the C-tr
 Open the file::
 
     # Sytox binding, unbinding, with decreased, than increased force
-    file = pylake.File("20181107-152940 Sytox kymograph 7.h5")
+    file = lk.File("20181107-152940 Sytox kymograph 7.h5")
 
 Make Kymographs
 ---------------

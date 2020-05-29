@@ -1,7 +1,6 @@
 .. warning::
-    This is beta functionality. While usable, this is a beta-functionality which
-    has not yet been tested in a sufficient number of different scenarios. The API
-    may also still be subject to change.
+    This is beta functionality. While usable, this has not yet been tested in a large
+    number of different scenarios. The API may also still be subject to change.
 
 Twistable Worm-Like-Chain Fitting
 =================================
@@ -15,12 +14,9 @@ First we import the necessary libraries::
     import matplotlib.pyplot as plt
     from lumicks import pylake
 
-Load the data from disk
------------------------
-
 Let's load and plot the data first::
 
-    file = pylake.File('twlc_data//20200430-163932 FD Curve FD_1_control_forw.h5')
+    file = lk.File("twlc_data//20200430-163932 FD Curve FD_1_control_forw.h5")
     fd_curve = file.fdcurves["FD_1_control_forw"]
     fd_curve.plot_scatter()
 
@@ -31,9 +27,9 @@ Set up a basic model first
 
 We clearly see that the force starts levelling out at high forces in the data. This
 is a clear sign that to be able to describe this data, we'll need something more complex
-in order to capture this behaviour we see in the data. The twistable worm like chain
-is one such model that can describe the untwisting of DNA at high forces. However, its
-complexity also incurs some challenges.
+in order to capture this behavior. The twistable worm-like chain is one such model that
+can describe the untwisting of DNA at high forces. However, its complexity also incurs
+some challenges.
 
 Parameter optimization always begins from an initial guess, and if this initial guess
 is bad, it can get stuck at an estimated set of parameters that are suboptimal, a
@@ -44,8 +40,8 @@ chain model, and then use those estimates as initial guesses to fit the twistabl
 
 Let's set up the Odijk model and create the fit::
 
-    m_odijk = pylake.inverted_odijk('DNA').subtract_independent_offset() + pylake.force_offset('DNA')
-    fit_odijk = pylake.FdFit(m_odijk)
+    m_odijk = lk.inverted_odijk("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    fit_odijk = lk.FdFit(m_odijk)
 
 Considering that this model only describes the lower part of the curve, we have to
 extract the data that is relevant to us. We can obtain this data from the ``FdCurve``
@@ -65,8 +61,8 @@ Now we are ready to add this data to the fit. Note that it is important to const
 provides a lot of additional freedom in the model::
 
     fit_odijk.add_data("Inverted Odijk", force, distance)
-    fit_odijk["DNA/d_offset"].upper_bound = .01
-    fit_odijk["DNA/d_offset"].lower_bound = -.01
+    fit_odijk["DNA/d_offset"].upper_bound = 0.01
+    fit_odijk["DNA/d_offset"].lower_bound = -0.01
 
 And fit the model::
 
@@ -102,10 +98,10 @@ faster way of achieving this in pylake, which is to use the dedicated `inverted_
 model.
 
 Again, we incorporate an offset in both distance and force to compensate for small
-offsets that may exist in the data:::
+offsets that may exist in the data::
 
-    m_dna = pylake.inverted_twistable_wlc('DNA').subtract_independent_offset() + pylake.force_offset('DNA')
-    fit_twlc = pylake.FdFit(m_dna)
+    m_dna = lk.inverted_twistable_wlc("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    fit_twlc = lk.FdFit(m_dna)
 
 Load the data into the model
 ----------------------------
@@ -127,16 +123,16 @@ Now we can load the data into the model::
 
 We could add more datasets in a similar manner, but in this example, we only fit a single model. Let’s load the
 parameters from our previous fit to use them as initial guesses for this one. We also fix the twist rigidity and
-critical force values to values from literature (analogous to Broekmans et al. "DNA twist stability changes with
-magnesium (2+) concentration." Physical review letters 116.25 (2016))::
+critical force to values from literature (analogous to Broekmans et al. "DNA twist stability changes with
+magnesium (2+) concentration." Physical Review Letters 116, 258102 (2016))::
 
     fit_twlc << fit_odijk
 
     # Fix twist rigidity and critical force to literature values.
     fit_twlc["DNA/C"].value = 440
-    fit_twlc["DNA/C"].vary = False
+    fit_twlc["DNA/C"].fixed = True
     fit_twlc["DNA/Fc"].value = 30.6
-    fit_twlc["DNA/Fc"].vary = False
+    fit_twlc["DNA/Fc"].fixed = True
 
 Fit the model
 -------------
@@ -166,8 +162,8 @@ After fitting we can plot our results and print our parameters. Doing this
 is as simple as invoking `fit.plot()` and `fit.parameters`::
 
     fit_twlc.plot()
-    plt.xlabel('Distance [$\\mu$m]')
-    plt.ylabel('Force [pN]');
+    plt.xlabel("Distance [$\\mu$m]")
+    plt.ylabel("Force [pN]");
 
 
 .. image:: output_9_2.png

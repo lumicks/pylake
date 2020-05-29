@@ -1,7 +1,7 @@
 from lumicks.pylake.detail.utilities import first, unique, get_color, lighten_color
 from lumicks.pylake.fitting.detail.utilities import escape_tex
 import pytest
-from matplotlib import colors
+import matplotlib as mpl
 import numpy as np
 
 
@@ -21,7 +21,7 @@ def test_unique():
 
 
 def test_colors():
-    [colors.to_rgb(get_color(k)) for k in range(30)]
+    [mpl.colors.to_rgb(get_color(k)) for k in range(30)]
     assert np.allclose(lighten_color([0.5, 0, 0], .2), [.7, 0, 0])
 
 

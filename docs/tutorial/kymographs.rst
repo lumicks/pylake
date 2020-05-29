@@ -7,9 +7,9 @@ Kymographs
 
 To load an HDF5 file and lists all of the kymographs inside of it, run::
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
-    file = pylake.File("example.h5")
+    file = lk.File("example.h5")
     list(file.kymos)  # e.g. shows: "['reference', 'sytox']"
 
 Once again, `.kymos` is a regular Python dictionary so we can easily iterate over it::

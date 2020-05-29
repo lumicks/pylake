@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Defaults:
-    kT = Parameter(value=4.11, lower_bound=0.0, upper_bound=8.0, vary=False, shared=True, unit="pN*nm")
+    kT = Parameter(value=4.11, lower_bound=0.0, upper_bound=8.0, fixed=True, shared=True, unit="pN*nm")
     Lp = Parameter(value=40.0, lower_bound=0.0, upper_bound=100, unit="nm")
     Lc = Parameter(value=16.0, lower_bound=0.0, upper_bound=np.inf, unit="micron")
     St = Parameter(value=1500.0, lower_bound=0.0, upper_bound=np.inf, unit="pN")

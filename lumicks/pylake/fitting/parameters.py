@@ -4,9 +4,10 @@ from tabulate import tabulate
 
 
 class Parameter:
-    __slots__ = ['value', 'lower_bound', 'upper_bound', 'vary', 'shared', 'unit', 'init']  # Fixed attributes
+    __slots__ = ['value', 'lower_bound', 'upper_bound', 'fixed', 'shared', 'unit']  # Fixed attributes
 
-    def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, vary=True, init=None, shared=False, unit=None):
+    def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, fixed=False, shared=False,
+                 unit=None):
         """Model parameter
 
         Parameters
@@ -15,10 +16,8 @@ class Parameter:
             Parameter value
         lower_bound, upper_bound: float
             Lower and upper bound used in the fitting process. Parameters are not allowed to go beyond these bounds.
-        vary: bool
-            Is this parameter free to be estimated from data?
-        init: float
-            Initial value for the parameter.
+        fixed: bool
+            Is this parameter fixed (not estimated from data)?
         shared: bool
             Is this parameter typically model specific or shared between models? An example of a model specific
             parameter is the contour length of a protein, whereas the Boltzmann constant times temperate (kT) is an
@@ -29,13 +28,9 @@ class Parameter:
         self.value = value
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        self.vary = vary
+        self.fixed = fixed
         self.shared = shared
         self.unit = unit
-        if init:
-            self.init = init
-        else:
-            self.init = self.value
 
     def __eq__(self, other):
         return all((getattr(self, x) == getattr(other, x) for x in self.__slots__)) \
@@ -43,7 +38,7 @@ class Parameter:
 
     def __repr__(self):
         return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lower bound: {self.lower_bound}, upper bound: " \
-               f"{self.upper_bound}, vary: {self.vary})"
+               f"{self.upper_bound}, fixed: {self.fixed})"
 
     def __str__(self):
         return self.__repr__()
@@ -60,9 +55,13 @@ class Parameters:
 
         print(fit.parameters)  # Prints the model parameters
         fit["test_parameter"].value = 5  # Set parameter test_parameter to 5
-        fit["fix_me"].vary = False  # Fix parameter fix_me (do not fit)
+        fit["fix_me"].fixed = True  # Fix parameter fix_me (do not fit)
 
-        DNA_and_protein.parameters << DNA.parameters  # Copy the parameters from an earlier fit into the combined model.
+        # Copy parameters from another Parameters into this one.
+        parameters.load_parameters_from(other_parameters)
+
+        # Copy the parameters from an earlier fit into the combined model.
+        fit_combined_model.load_parameters_from(fit_dna)
     """
     def __init__(self, **kwargs):
         self._src = OrderedDict()
@@ -78,7 +77,7 @@ class Parameters:
     def __eq__(self, other):
         return self.__dict__ == other.__dict__ if isinstance(other, self.__class__) else False
 
-    def __lshift__(self, other):
+    def load_parameters_from(self, other):
         """
         Sets parameters if they are found in the target parameter list.
 
@@ -125,8 +124,8 @@ class Parameters:
         return len(self._src)
 
     def _print_data(self):
-        table = [[key, par.value, f'[{par.unit}]' if par.unit else 'NA', par.vary, par.lower_bound, par.upper_bound]
-                 for key, par in self._src.items()]
+        table = [[key, par.value, f'[{par.unit}]' if par.unit else 'NA', not par.fixed, par.lower_bound,
+                  par.upper_bound] for key, par in self._src.items()]
         header = ['Name', 'Value', 'Unit', 'Fitted', 'Lower bound', 'Upper bound']
         return table, header
 
@@ -178,7 +177,7 @@ class Parameters:
 
     @property
     def fitted(self):
-        return np.asarray([param.vary for param in self._src.values()], dtype=np.bool)
+        return np.asarray([not param.fixed for param in self._src.values()], dtype=np.bool)
 
     @property
     def lower_bounds(self):

@@ -5,27 +5,27 @@ FD curves
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-The following code loads an HDF5 file and lists all of the FD curves inside of it::
+The following code loads an HDF5 file and lists all of the Fd curves inside of it::
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
-    file = pylake.File("example.h5")
+    file = lk.File("example.h5")
     list(file.fdcurves)  # e.g. shows: "['baseline', '1', '2']"
 
-To visualizes an FD curve, you can use the built-in `.plot_scatter()` function::
+To visualizes an Fd curve, you can use the built-in `.plot_scatter()` function::
 
-    # Pick a single FD curve
+    # Pick a single Fd curve
     fd = file.fdcurves["baseline"]
     fd.plot_scatter()
 
 Here, `.fdcurves` is a standard Python dictionary, so we can do standard `dict` thing with it.
-For example, we can iterate over all the FD curve in a file and plot them::
+For example, we can iterate over all the Fd curve in a file and plot them::
 
     for name, fd in file.fdcurves.items():
         fd.plot_scatter()
         plt.savefig(name)
 
-By default, the FD channel pair is `downsampled_force2` and `distance1`.
+By default, the Fd channel pair is `downsampled_force2` and `distance1`.
 This assumes that the force extension was done by moving trap 1, which is the most common.
 In that situation the force measured by trap 2 is more precise because that trap is static.
 The channels can be switched with the following code::
@@ -46,7 +46,7 @@ The raw data can be accessed as well::
     force = fd.downsampled_force1y
     distance = fd.distance2
 
-    # Plot manually: FD curve
+    # Plot manually: Fd curve
     plt.scatter(distance.data, force.data)
     # Plot manually: force timetrace
     plt.plot(force.timestamps, force.data)

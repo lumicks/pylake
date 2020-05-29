@@ -1,24 +1,24 @@
 import numpy as np
 from copy import copy
 from .channel import Slice, TimeSeries
-from .detail.mixin import DownsampledFD
+from .detail.mixin import DownsampledFd
 
 
-class FDCurve(DownsampledFD):
-    """An FD curve exported from Bluelake
+class FdCurve(DownsampledFd):
+    """An Fd curve exported from Bluelake
 
     By default, the primary force and distance channels are `downsampled_force2`
-    and `distance1`. Alternatives can be selected using `FDCurve.with_channels()`.
-    Note that it does not modify the FD curve in place but returns a copy.
+    and `distance1`. Alternatives can be selected using `FdCurve.with_channels()`.
+    Note that it does not modify the Fd curve in place but returns a copy.
 
     Attributes
     ----------
     file : lumicks.pylake.File
         The parent file. Used to look up channel data.
     start, stop : int
-        The time range (ns) of this FD curve within the file.
+        The time range (ns) of this Fd curve within the file.
     name : str
-        The name of this FD curve as it appeared in the timeline.
+        The name of this Fd curve as it appeared in the timeline.
     """
     def __init__(self, file, start, stop, name, force="2", distance="1"):
         self.file = file
@@ -46,9 +46,9 @@ class FDCurve(DownsampledFD):
         return new_copy
 
     def __sub__(self, baseline):
-        """Subtract FD curve `baseline` from `self`
+        """Subtract Fd curve `baseline` from `self`
 
-        The resulting FD curve will be clipped to the distance range of `baseline`.
+        The resulting Fd curve will be clipped to the distance range of `baseline`.
         The `baseline` force will be interpolated (using `scipy.interpolate.interp1d()`)
         onto the distance points of `self`.
         """
@@ -79,27 +79,27 @@ class FDCurve(DownsampledFD):
 
     @property
     def f(self):
-        """The primary force channel associated with this FD curve"""
+        """The primary force channel associated with this Fd curve"""
         if self._force_cache is None:
             self._force_cache = getattr(self, f"downsampled_force{self._primary_force_channel}")
         return self._force_cache
 
     @property
     def d(self):
-        """The primary distance channel associated with this FD curve"""
+        """The primary distance channel associated with this Fd curve"""
         if self._distance_cache is None:
             self._distance_cache = getattr(self, f"distance{self._primary_distance_channel}")
         return self._distance_cache
 
     def with_channels(self, force, distance):
-        """Return a copy of this FD curve with difference primary force and distance channels"""
+        """Return a copy of this Fd curve with difference primary force and distance channels"""
         new_fd = copy(self)
         new_fd._primary_force_channel = force
         new_fd._primary_distance_channel = distance
         return new_fd
 
     def plot_scatter(self, **kwargs):
-        """Plot the FD curve points
+        """Plot the Fd curve points
 
         Parameters
         ----------

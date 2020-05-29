@@ -5,8 +5,8 @@ from typing import Dict
 from collections import OrderedDict
 from .calibration import ForceCalibration
 from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
-from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
-from .fdcurve import FDCurve
+from .detail.mixin import Force, DownsampledFd, PhotonCounts, PhotonTimeTags
+from .fdcurve import FdCurve
 from .group import Group
 from .kymo import Kymo
 from .point_scan import PointScan
@@ -16,7 +16,7 @@ from .marker import Marker
 __all__ = ["File"]
 
 
-class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
+class File(Group, Force, DownsampledFd, PhotonCounts, PhotonTimeTags):
     """A convenient HDF5 file wrapper for reading data exported from Bluelake
 
     Parameters
@@ -203,8 +203,8 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         return {name: Scan.from_dataset(dset, self) for name, dset in self.h5["Scan"].items()}
 
     @property
-    def fdcurves(self) -> Dict[str, FDCurve]:
-        return self._get_object_dictionary("FD Curve", FDCurve)
+    def fdcurves(self) -> Dict[str, FdCurve]:
+        return self._get_object_dictionary("FD Curve", FdCurve)
 
     @property
     def markers(self) -> Dict[str, Marker]:

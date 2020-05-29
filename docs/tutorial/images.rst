@@ -9,9 +9,9 @@ The following code uses scans as an example.
 Kymographs work the same way -- just substitute `file.scans` with `file.kymos`.
 To load an HDF5 file and lists all of the scans inside of it, run::
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
-    file = pylake.File("example.h5")
+    file = lk.File("example.h5")
     list(file.scans)  # e.g. shows: "['reference', 'bleach', 'imaging']"
 
 Once again, `.scans` is a regular Python dictionary so we can easily iterate over it::

@@ -1,7 +1,6 @@
 .. warning::
-    This is beta functionality. While usable, this is a beta-functionality which
-    has not yet been tested in a sufficient number of different scenarios. The API
-    may also still be subject to change.
+    This is beta functionality. While usable, this has not yet been tested in a large
+    number of different scenarios. The API may also still be subject to change.
 
 DNA FD Fitting
 ==============
@@ -16,8 +15,8 @@ DNA Fd Fitting
 
 Let's first load our data and see which curves are present in these files::
 
-    >>> control_file = pylake.File("RecA/20200430-192424 FD Curve FD_5_control_forw.h5")
-    >>> reca_file = pylake.File("RecA/20200430-192432 FD Curve FD_5_3_RecA_forw.h5")
+    >>> control_file = lk.File("RecA/20200430-192424 FD Curve FD_5_control_forw.h5")
+    >>> reca_file = lk.File("RecA/20200430-192432 FD Curve FD_5_3_RecA_forw.h5")
 
     >>> print(control_file.fdcurves)
     >>> print(reca_file.fdcurves)
@@ -36,8 +35,8 @@ quick look at the data::
     control_name, control_curve = control_file.fdcurves.popitem()
     reca_name, reca_curve = reca_file.fdcurves.popitem()
 
-    control_curve.plot_scatter(s=1, c='k')
-    reca_curve.plot_scatter(s=1, c='r')
+    control_curve.plot_scatter(s=1, c="k")
+    reca_curve.plot_scatter(s=1, c="r")
 
 .. image:: output_10_1.png
 
@@ -46,16 +45,16 @@ Set up the model
 
 For this we want to use an inverted WLC model with a force offset.
 
-While it is possible (and equivalent) to generate this model via `pylake.odijk('DNA').invert()`,
+While it is possible (and equivalent) to generate this model via `lk.odijk("DNA").invert()`,
 an optimized inverted WLC model is explicitly included as a separate model. When only a single WLC
 is needed, it is best to use this one, as it is considerably faster than explicitly inverting. We also
 include an estimated distance offset::
 
-    m_dna = pylake.inverted_odijk("DNA").subtract_independent_offset() + pylake.force_offset("DNA")
+    m_dna = lk.inverted_odijk("DNA").subtract_independent_offset() + lk.force_offset("DNA")
 
 We would like to fit this model to some data. So let's make a `FdFit`::
 
-    fit = pylake.FdFit(m_dna)
+    fit = lk.FdFit(m_dna)
 
 Let's have a look at the parameters in this model::
 
@@ -99,8 +98,9 @@ followed by a slash and then the model parameter name. The value of this diction
 to the model name slash the new parameter name. Let's rename the contour length Lc, persistence
 length Lp and stiffness St for this data set::
 
-    data2 = fit.add_data("RecA", force_reca, distance_reca, params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
-                                                                    "DNA/St": "DNA/St_RecA"})
+    data2 = fit.add_data("RecA", force_reca, distance_reca,
+                         params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
+                                 "DNA/St": "DNA/St_RecA"})
 
 Set up the fit
 --------------
@@ -151,8 +151,8 @@ Plot the fit
 Plotting the fit alongside the data is easy. Simply call the plot function on the `FdFit` (i.e. `fit.plot()`)::
 
     fit.plot()
-    plt.ylabel('Force [pN]')
-    plt.xlabel('Distance [$\\mu$M]')
+    plt.ylabel("Force [pN]")
+    plt.xlabel("Distance [$\\mu$M]")
 
 .. image:: output_10_2.png
 
@@ -161,10 +161,10 @@ model to plot the model for a specific data set by slicing the parameters from o
 data handle: `fit[data1]`. This slice procedure collects exactly those parameters needed to simulate that
 condition. The second argument contains the values for the independent variable that we wish to simulate for::
 
-    m_dna.plot(fit[data1], np.arange(2.1, 5.0, .01), 'r--')
-    m_dna.plot(fit[data2], np.arange(2.1, 5.0, .01), 'r--')
-    plt.ylabel('Force [pN]')
-    plt.xlabel('Distance [$\\mu$M]')
+    m_dna.plot(fit[data1], np.arange(2.1, 5.0, 0.01), "r--")
+    m_dna.plot(fit[data2], np.arange(2.1, 5.0, 0.01), "r--")
+    plt.ylabel("Force [pN]")
+    plt.xlabel("Distance [$\\mu$M]")
     plt.ylim([0, 30])
     plt.xlim([2, 3.1])
 
@@ -173,7 +173,8 @@ condition. The second argument contains the values for the independent variable 
 Let’s print the contour length difference due to RecA. We multiply by 1000 since we desire this value in
 nanometers::
 
-    >>> print(f"Contour length difference: {(fit['DNA/Lc_RecA'].value - fit['DNA/Lc'].value) * 1000:.2f} [nm]")
+    >>> delta_lc = (fit["DNA/Lc_RecA"].value - fit["DNA/Lc"].value) * 1000.0
+    >>> print(f"Contour length difference: {delta_lc:.2f} [nm]")
 
     Contour length difference: 208.51 [nm]
 
@@ -183,11 +184,13 @@ Try another model
 There are more models in pylake. We can also try the Marko Siggia model for instance and see if that fits this
 data any differently. Let's fit the Marko Siggia model::
 
-    marko_siggia_fit = pylake.FdFit(pylake.marko_siggia_ewlc_force("DNA").subtract_independent_offset() + pylake.force_offset("DNA"))
-    marko_siggia_fit.add_data("Control", force_control, distance_control)
-    marko_siggia_fit.add_data("RecA", force_reca, distance_reca, params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
-                                                                         "DNA/St": "DNA/St_RecA"})
-    marko_siggia_fit.fit();
+    ms_model = lk.marko_siggia_ewlc_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    ms_fit = lk.FdFit(ms_model)
+    ms_fit.add_data("Control", force_control, distance_control)
+    ms_fit.add_data("RecA", force_reca, distance_reca,
+                            params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
+                                    "DNA/St": "DNA/St_RecA"})
+    ms_fit.fit();
 
 Plot the competing models
 -------------------------
@@ -197,11 +200,11 @@ Let's plot the models side by side, so we can get an idea of which model fits be
     plt.figure(figsize=(20,5))
     plt.subplot(1, 2, 1)
     fit.plot()
-    plt.title('Odijk')
+    plt.title("Odijk")
     plt.ylim([0,10])
     plt.subplot(1, 2, 2)
-    marko_siggia_fit.plot()
-    plt.title('Marko-Siggia')
+    ms_fit.plot()
+    plt.title("Marko-Siggia")
     plt.ylim([0,10])
 
 .. image:: output_10_5.png
@@ -209,8 +212,10 @@ Let's plot the models side by side, so we can get an idea of which model fits be
 At first glance, the model fits look very similar. Since we were interested in the contour length
 changes, let's have a look at what these models predict for the change in contour length::
 
-    >>> print(f"Contour length difference Odijk: {(fit['DNA/Lc_RecA'].value - fit['DNA/Lc'].value) * 1000:.2f} [nm]")
-    >>> print(f"Contour length difference Marko-Siggia: {(marko_siggia_fit['DNA/Lc_RecA'].value - marko_siggia_fit['DNA/Lc'].value) * 1000:.2f} [nm]")
+    >>> delta_lc = (fit["DNA/Lc_RecA"].value - fit["DNA/Lc"].value) * 1000.0
+    >>> print(f"Contour length difference Odijk: {delta_lc:.2f} [nm]")
+    >>> delta_lc = (ms_fit["DNA/Lc_RecA"].value - ms_fit["DNA/Lc"].value) * 1000.0
+    >>> print(f"Contour length difference Marko-Siggia: {delta_lc:.2f} [nm]")
 
     Contour length difference Odijk: 208.51 [nm]
     Contour length difference Marko-Siggia: 210.33 [nm]
@@ -234,10 +239,10 @@ to get a feel for how reliable the estimates are::
 
     >>> print("Corrected Akaike Information Criterion")
     >>> print(f"Odijk Model with force offset {fit.aicc}")
-    >>> print(f"Marko-Siggia Model with force offset {marko_siggia_fit.aicc}")
+    >>> print(f"Marko-Siggia Model with force offset {ms_fit.aicc}")
     >>> print("Bayesian Information Criterion")
     >>> print(f"Odijk Model with force offset {fit.bic}")
-    >>> print(f"Marko-Siggia Model with force offset {marko_siggia_fit.bic}")
+    >>> print(f"Marko-Siggia Model with force offset {ms_fit.bic}")
 
     Corrected Akaike Information Criterion
     Odijk Model with force offset 266.0174147701515
@@ -262,7 +267,7 @@ We can also quickly compare parameter values::
     DNA/Lc_RecA      3.04193    [micron]  True                0            inf
     DNA/St_RecA    846.33       [pN]      True                0            inf
 
-    >>> marko_siggia_fit.parameters
+    >>> ms_fit.parameters
 
     Name                 Value  Unit      Fitted      Lower bound    Upper bound
     ------------  ------------  --------  --------  -------------  -------------
@@ -287,7 +292,7 @@ a contour length per data point of this model, while keeping all other parameter
 
 Let's load the data and have a look::
 
-    dynamic_file = pylake.File("RecA/20200430-182304 FD Curve 40.h5")
+    dynamic_file = lk.File("RecA/20200430-182304 FD Curve 40.h5")
     dynamic_name, dynamic_curve = dynamic_file.fdcurves.popitem()
     dynamic_curve.plot_scatter()
 
@@ -304,56 +309,20 @@ Now comes the more challenging part. Inverting the model for contour length. Luc
 procedure has already been implemented in Pylake. The function `parameter_trace` inverts the
 model for a particular model parameter. Let's have a look at the parameters it needs::
 
-    >>> help(pylake.parameter_trace)
-
-    Help on function parameter_trace in module lumicks.pylake.fitting.detail.parameter_trace:
-
-    parameter_trace(model, parameters, inverted_parameter, independent, dependent, **kwargs)
-        Invert a model with respect to one parameter. This function fits a unique parameter for every data point in
-        this data-set while keeping all other parameters fixed. This can be used to for example invert the model with
-        respect to the contour length or some other parameter.
-
-        Parameters
-        ----------
-        model : Model
-            Fitting model.
-        parameters : Parameters
-            Model parameters.
-        inverted_parameter : str
-            Parameter to invert.
-        independent : array_like
-            vector of values for the independent variable
-        dependent: array_like
-            vector of values for the dependent variable
-        **kwargs:
-            forwarded to scipy.optimize.least_squares
-
-        Examples
-        --------
-        ::
-            # Define the model to be fitted
-            model = pylake.inverted_odijk("model") + pylake.force_offset("model")
-
-            # Fit the overall model first
-            data_handle = model.add_data("dataset1", f=force_data, d=distance_data)
-            current_fit = pylake.Fit(model)
-            current_fit.fit()
-
-            # Calculate a per data point contour length
-            lcs = parameter_trace(model, current_fit[data_handle], "model/Lc", distance, force)
+    help(lk.parameter_trace)
 
 Let's see if we have all these pieces of information. Our model was called `m_dna`. We can extract
 the parameters for the RecA condition using the name we provided to the dataset before (i.e. `fit["RecA"]`).
 The parameter we wish to invert for is `DNA/Lc` and for the independent and dependent variables we simply
 pass the dataset::
 
-    Lcs = pylake.parameter_trace(m_dna, fit["RecA"], 'DNA/Lc', distance_dynamic, force_dynamic)
+    Lcs = lk.parameter_trace(m_dna, fit["RecA"], "DNA/Lc", distance_dynamic, force_dynamic)
 
 Let's plot it::
 
     plt.plot(Lcs)
-    plt.ylabel('Contour lengths')
-    plt.xlabel('Time [s]')
+    plt.ylabel("Contour lengths")
+    plt.xlabel("Time [s]")
 
 .. image:: output_10_7.png
 
@@ -365,8 +334,8 @@ only look at the points where the distance is higher than 2.25::
     distance_mask = distance_dynamic > 2.2
 
     plt.plot(distance_dynamic[distance_mask], Lcs[distance_mask])
-    plt.ylabel('Contour length [micron]')
-    plt.xlabel('Distance [micron]')
+    plt.ylabel("Contour length [micron]")
+    plt.xlabel("Distance [micron]")
 
 .. image:: output_10_8.png
 

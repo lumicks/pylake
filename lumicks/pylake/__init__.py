@@ -5,7 +5,7 @@ from .file import *
 from .fitting.models import *
 from .correlated_stack import CorrelatedStack
 from .fitting.fit import FdFit
-from .fitting.detail.parameter_trace import parameter_trace
+from lumicks.pylake.fitting.parameter_trace import parameter_trace
 
 
 def pytest(args=None, plugins=None):

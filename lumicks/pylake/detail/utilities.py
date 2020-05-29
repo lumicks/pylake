@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors
+import matplotlib as mpl
 
 
 def first(iterable, condition=lambda x: True):
@@ -32,6 +32,6 @@ def get_color(i):
 
 
 def lighten_color(c, amount):
-    hsv = colors.rgb_to_hsv(colors.to_rgb(c))
+    hsv = mpl.colors.rgb_to_hsv(mpl.colors.to_rgb(c))
     hsv[2] = np.clip(hsv[2]+amount, 0.0, 1.0)
-    return colors.hsv_to_rgb(hsv)
+    return mpl.colors.hsv_to_rgb(hsv)

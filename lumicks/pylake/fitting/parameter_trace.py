@@ -1,4 +1,4 @@
-from .utilities import parse_transformation
+from .detail.utilities import parse_transformation
 import numpy as np
 import scipy.optimize as optim
 

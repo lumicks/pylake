@@ -28,7 +28,7 @@ def test_downsampled_fd():
     force_properties = itertools.product([1, 2, 3, 4], ["x", "y"])
     distance_properties = [1, 2]
 
-    class Mapping(mixin.DownsampledFD):
+    class Mapping(mixin.DownsampledFd):
         def _get_downsampled_force(self, n, xy):
             return f"{n}{xy}"
 
@@ -42,7 +42,7 @@ def test_downsampled_fd():
     for n in distance_properties:
         assert getattr(a, f"distance{n}") == f"{n}"
 
-    class Empty(mixin.DownsampledFD):
+    class Empty(mixin.DownsampledFd):
         def _get_downsampled_force(self, n, xy):
             raise KeyError
 
