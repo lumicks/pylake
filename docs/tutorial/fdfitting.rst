@@ -228,10 +228,7 @@ Or what if we really only want the model prediction, then we can do::
 
     fit.plot("Control", 'k--', np.arange(2.0, 5.0, 0.01), plot_data=False)
 
-Note how we use the square brackets to select the parameters belonging to condition 1 and 2 using
-the data set names. This collects the parameters relevant for that particular experimental condition.
-
-It is also possible to obtain simulations from the model directly. We can do this by calling the 
+It is also possible to obtain simulations from the model directly. We can do this by calling the
 model with values for the independent variable (here denoted as distance) and the parameters 
 required to simulate the model. We obtain these parameters by grabbing them from our fit
 object using the data handles::
