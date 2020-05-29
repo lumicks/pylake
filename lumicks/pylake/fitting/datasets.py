@@ -16,6 +16,8 @@ class Datasets:
         ----------
         model: Model
             The model these datasets are for.
+        fit: Fit
+            Fit this dataset is associated with.
         """
         self._model = model
         self._fit = fit
@@ -25,7 +27,7 @@ class Datasets:
         self.built = False
 
     def __getitem__(self, item):
-        return self._fit.parameters[self.data.__getitem__(item)]
+        return self._fit.params[self.data.__getitem__(item)]
 
     def __iter__(self):
         return self.data.__iter__()
@@ -104,7 +106,7 @@ class Datasets:
         return [data.name for data in self.data.values()]
 
     @property
-    def _transformed_parameters(self):
+    def _transformed_params(self):
         """Retrieves the full list of fitted parameters post-transformation used by these data sets."""
         return [name for data in self.data.values() for name in data.parameter_names]
 

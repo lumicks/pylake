@@ -3,7 +3,7 @@ from .utilities import unique_idx
 import numpy as np
 
 
-def generate_conditions(data_sets, parameter_lookup, model_parameters):
+def generate_conditions(data_sets, parameter_lookup, model_params):
     """
     This function builds a list of unique conditions from a list of data sets and a list of references pointing to the
     data that belongs to each condition.
@@ -14,7 +14,7 @@ def generate_conditions(data_sets, parameter_lookup, model_parameters):
         References to data
     parameter_lookup: OrderedDict[str, int]
         Lookup table for looking up parameter indices by name
-    model_parameters: list of str
+    model_params: list of str
         Base model parameter names
     """
     # Quickly concatenate the parameter transformations corresponding to this condition
@@ -22,11 +22,11 @@ def generate_conditions(data_sets, parameter_lookup, model_parameters):
     for data_set in data_sets.values():
         str_conditions.append(data_set.condition_string)
 
-        assert set(data_set.transformations.keys()) == set(model_parameters), \
+        assert set(data_set.transformations.keys()) == set(model_params), \
             "Source parameters in data parameter transformations are incompatible with the specified model parameters."
 
-        target_parameters = [x for x in data_set.transformations.values() if isinstance(x, str)]
-        assert set(target_parameters).issubset(parameter_lookup.keys()), \
+        target_params = [x for x in data_set.transformations.values() if isinstance(x, str)]
+        assert set(target_params).issubset(parameter_lookup.keys()), \
             "Parameter transformations contain transformed parameter names that are not in the combined parameter list."
 
     # Determine unique parameter conditions and the indices to get the appropriate unique condition from data index.

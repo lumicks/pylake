@@ -1,5 +1,5 @@
 import numpy as np
-from .parameters import Parameters
+from .parameters import Params
 from collections import OrderedDict
 
 
@@ -38,19 +38,19 @@ class FitData:
     def condition_string(self):
         return '|'.join(str(x) for x in self.transformations.values())
 
-    def get_parameters(self, parameters):
+    def get_params(self, params):
         """
         This function maps parameters from a global fit parameter vector into internal parameters for this model,
         which can be used to simulate this model.
 
         Parameters
         ----------
-        parameters: Parameters
+        params: Params
             Fit parameters, typically obtained from a Fit.
         """
-        mapping = OrderedDict((key, parameters[x]) if isinstance(x, str) else (key, float(x)) for
+        mapping = OrderedDict((key, params[x]) if isinstance(x, str) else (key, float(x)) for
                               key, x in self.transformations.items())
-        return Parameters(**mapping)
+        return Params(**mapping)
 
     @property
     def parameter_names(self):
@@ -110,7 +110,7 @@ class Condition:
         """Convert raw model sensitivities to external sensitivities as used by the Fit."""
         return sensitivities[:, self.p_external]
 
-    def get_local_parameters(self, par_global):
+    def get_local_params(self, par_global):
         """Grab parameters required to simulate the model from the global parameter vector. Merge in the local
         parameters as well."""
         return [par_global[a] if a is not None else b for a, b in zip(self._p_global_indices, self.p_local)]

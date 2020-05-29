@@ -253,7 +253,7 @@ to get a feel for how reliable the estimates are::
 
 We can also quickly compare parameter values::
 
-    >>> fit.parameters
+    >>> fit.params
 
     Name                 Value  Unit      Fitted      Lower bound    Upper bound
     ------------  ------------  --------  --------  -------------  -------------
@@ -267,7 +267,7 @@ We can also quickly compare parameter values::
     DNA/Lc_RecA      3.04193    [micron]  True                0            inf
     DNA/St_RecA    846.33       [pN]      True                0            inf
 
-    >>> ms_fit.parameters
+    >>> ms_fit.params
 
     Name                 Value  Unit      Fitted      Lower bound    Upper bound
     ------------  ------------  --------  --------  -------------  -------------

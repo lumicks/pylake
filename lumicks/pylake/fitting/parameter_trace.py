@@ -3,7 +3,7 @@ import numpy as np
 import scipy.optimize as optim
 
 
-def parameter_trace(model, parameters, inverted_parameter, independent, dependent, **kwargs):
+def parameter_trace(model, params, inverted_parameter, independent, dependent, **kwargs):
     """Invert a model with respect to one parameter. This function fits a unique parameter for every data point in
     this data-set while keeping all other parameters fixed. This can be used to for example invert the model with
     respect to the contour length or some other parameter.
@@ -12,7 +12,7 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
     ----------
     model : Model
         Fitting model.
-    parameters : Parameters
+    params : Params
         Model parameters.
     inverted_parameter : str
         Parameter to invert.
@@ -37,30 +37,30 @@ def parameter_trace(model, parameters, inverted_parameter, independent, dependen
         # Calculate a per data point contour length
         lcs = parameter_trace(model, current_fit[data_handle], "model/Lc", distance, force)
     """
-    parameter_names = model.parameter_names
-    assert inverted_parameter in parameters, f"Inverted parameter not in model parameter vector {parameters}."
-    for key in parameter_names:
-        assert key in parameters, f"Missing parameter {key} in supplied parameter vector."
+    param_names = model.parameter_names
+    assert inverted_parameter in params, f"Inverted parameter not in model parameter vector {params}."
+    for key in param_names:
+        assert key in params, f"Missing parameter {key} in supplied parameter vector."
 
     # Grab reference parameter vector and index for the parameter list
-    parameter_vector = [parameters[key].value for key in parameter_names]
-    lb = parameters[inverted_parameter].lower_bound
-    ub = parameters[inverted_parameter].upper_bound
-    inverted_parameter_index = parameter_names.index(inverted_parameter)
+    param_vector = [params[key].value for key in param_names]
+    lb = params[inverted_parameter].lower_bound
+    ub = params[inverted_parameter].upper_bound
+    inverted_parameter_index = param_names.index(inverted_parameter)
 
     def fit_single_point(x, y):
         x = np.asarray([x])
 
         def residual(inverted_parameter_value):
-            parameter_vector[inverted_parameter_index] = inverted_parameter_value
-            return y - model._raw_call(x, parameter_vector)
+            param_vector[inverted_parameter_index] = inverted_parameter_value
+            return y - model._raw_call(x, param_vector)
 
         def jacobian(inverted_parameter_value):
-            parameter_vector[inverted_parameter_index] = inverted_parameter_value
-            return -model.jacobian(x, parameter_vector)[inverted_parameter_index]
+            param_vector[inverted_parameter_index] = inverted_parameter_value
+            return -model.jacobian(x, param_vector)[inverted_parameter_index]
 
         jac = jacobian if model.has_jacobian else "2-point"
-        result = optim.least_squares(residual, parameter_vector[inverted_parameter_index], jac=jac,
+        result = optim.least_squares(residual, param_vector[inverted_parameter_index], jac=jac,
                                      bounds=(lb, ub), method='trf', **kwargs)
 
         return result.x[0]

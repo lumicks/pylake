@@ -126,7 +126,7 @@ parameters from our previous fit to use them as initial guesses for this one. We
 critical force to values from literature (analogous to Broekmans et al. "DNA twist stability changes with
 magnesium (2+) concentration." Physical Review Letters 116, 258102 (2016))::
 
-    fit_twlc << fit_odijk
+    fit_twlc.update_params(fit_odijk)
 
     # Fix twist rigidity and critical force to literature values.
     fit_twlc["DNA/C"].value = 440
@@ -159,7 +159,7 @@ Plotting the results
 --------------------
 
 After fitting we can plot our results and print our parameters. Doing this
-is as simple as invoking `fit.plot()` and `fit.parameters`::
+is as simple as invoking `fit.plot()` and `fit.params`::
 
     fit_twlc.plot()
     plt.xlabel("Distance [$\\mu$m]")
@@ -170,7 +170,7 @@ is as simple as invoking `fit.plot()` and `fit.parameters`::
 
 We can also show the parameters::
 
-    >>> fit_twlc.parameters
+    >>> fit_twlc.params
 
     Name                  Value  Unit        Fitted      Lower bound    Upper bound
     ------------  -------------  ----------  --------  -------------  -------------

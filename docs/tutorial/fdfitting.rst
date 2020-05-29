@@ -308,7 +308,7 @@ is the contour length, then this can be achieved using::
     for i, (distance, force) in enumerate(zip(distances, forces)):
         fit.add_data(f"RecA {i}", force, distance, {"DNA/Lc": f"DNA/Lc_{i}"})
     fit.fit()
-    print(fit.parameters)
+    print(fit.params)
 
 Note that this piece of code will lead to parameters `DNA/Lc_0`, `DNA/Lc_1` etc.
 
@@ -319,7 +319,7 @@ Fits can also be done incrementally::
 
     >>> model = lk.inverted_odijk("DNA")
     >>> fit = lk.FdFit(model)
-    >>> print(model.parameters)
+    >>> print(fit.params)
     No parameters
 
 We can see that there are no parameters to be fitted. The reason for this is that
@@ -327,7 +327,7 @@ we did not add any data to the fit yet. Let's add some and fit this data::
 
     >>> data1 = fit.add_data("Control", f=f1, d=d1)
     >>> fit.fit()
-    >>> print(fit.parameters)
+    >>> print(fit.params)
     Name         Value  Unit      Fitted      Lower bound    Upper bound
     ------  ----------  --------  --------  -------------  -------------
     DNA/Lp    59.409    [nm]      True                  0            inf
@@ -338,7 +338,7 @@ we did not add any data to the fit yet. Let's add some and fit this data::
 Let's add a second data set where we expect a different contour length and refit::
 
     >>> data2 = fit.add_data("RecA", f=f2, d=d2, params={"DNA/Lc": "DNA/Lc_RecA"})
-    >>> print(fit.parameters)
+    >>> print(fit.params)
     Name              Value  Unit      Fitted      Lower bound    Upper bound
     -----------  ----------  --------  --------  -------------  -------------
     DNA/Lp         89.3347   [nm]      True                  0            inf

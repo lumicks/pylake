@@ -1,4 +1,4 @@
-from .parameters import Parameter, Parameters
+from .parameters import Parameter, Params
 from .detail.utilities import solve_formatter, solve_formatter_tex, escape_tex
 from .detail.utilities import print_styled, optimal_plot_layout
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
@@ -88,34 +88,34 @@ class Model:
         for key in kwargs:
             assert key in parameter_names, "Attempted to set default for parameter which is not present in model."
 
-        self._parameters = OrderedDict()
+        self._params = OrderedDict()
         for key in parameter_names:
             if key in kwargs:
                 assert isinstance(kwargs[key], Parameter), "Passed a non-parameter as model default."
                 if kwargs[key].shared:
-                    self._parameters[key] = deepcopy(kwargs[key])
+                    self._params[key] = deepcopy(kwargs[key])
                 else:
-                    self._parameters[formatter(key)] = deepcopy(kwargs[key])
+                    self._params[formatter(key)] = deepcopy(kwargs[key])
             else:
-                self._parameters[formatter(key)] = None
+                self._params[formatter(key)] = None
 
         self._jacobian = jacobian
         self._derivative = derivative
 
-    def __call__(self, independent, parameters):
+    def __call__(self, independent, params):
         """Evaluate the model for specific parameters
 
         Parameters
         ----------
         independent: array_like
-        parameters: ``pylake.fitting.Parameters``
+        params: ``pylake.fitting.Params``
         """
         independent = np.asarray(independent, dtype=np.float64)
-        return self._raw_call(independent, np.asarray([parameters[name].value for name in self.parameter_names],
+        return self._raw_call(independent, np.asarray([params[name].value for name in self.parameter_names],
                                                       dtype=np.float64))
 
-    def _raw_call(self, independent, parameter_vector):
-        return self.model_function(independent, *parameter_vector)
+    def _raw_call(self, independent, param_vector):
+        return self.model_function(independent, *param_vector)
 
     def __add__(self, other):
         """
@@ -139,10 +139,10 @@ class Model:
         if self.eqn:
             if tex:
                 return (f"${self.dependent}\\left({self.independent}\\right) = "
-                        f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._parameters.keys()])}$")
+                        f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._params.keys()])}$")
             else:
                 return (f"{self.dependent}({self.independent}) = "
-                        f"{self.eqn(self.independent, *[x.replace('/', '.') for x in self._parameters.keys()])}")
+                        f"{self.eqn(self.independent, *[x.replace('/', '.') for x in self._params.keys()])}")
 
     def _repr_html_(self):
         doc_string = ''
@@ -159,7 +159,7 @@ class Model:
         model_info = (f"<h5>Model: {self.name}</h5>\n"
                       f"{doc_string}{equation}"
                       f"<h5>Parameter defaults:</h5>\n"
-                      f"{Parameters(**self._parameters)._repr_html_()}\n")
+                      f"{Params(**self._params)._repr_html_()}\n")
 
         return model_info
 
@@ -169,7 +169,7 @@ class Model:
 
         model_info = (f"Model: {self.name}\n\n"
                       f"{equation}Parameter defaults:\n\n"
-                      f"{Parameters(**self._parameters)._repr_()}\n")
+                      f"{Params(**self._params)._repr_()}\n")
 
         return model_info
 
@@ -182,23 +182,19 @@ class Model:
     def subtract_independent_offset(self):
         """
         Subtract a constant offset from independent variable of this model.
-
-        Parameters
-        ----------
-        parameter_name: str
         """
-        parameter_name = f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
-        return SubtractIndependentOffset(self, parameter_name)
+        param_name = f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
+        return SubtractIndependentOffset(self, param_name)
 
     @property
     def defaults(self):
-        return self._parameters
+        return self._params
 
     @property
     def parameter_names(self):
-        return [x for x in self._parameters.keys()]
+        return [x for x in self._params.keys()]
 
-    def jacobian(self, independent, parameter_vector):
+    def jacobian(self, independent, param_vector):
         """
         Return model sensitivities at specific values for the independent variable. Returns None when the model does not
         have an appropriately defined Jacobian.
@@ -207,16 +203,16 @@ class Model:
         ----------
         independent: array_like
             Values for the independent variable at which the Jacobian needs to be returned.
-        parameter_vector: array_like
+        param_vector: array_like
             Parameter vector at which to simulate.
         """
         if self.has_jacobian:
             independent = np.asarray(independent, dtype=np.float64)
-            return self._jacobian(independent, *parameter_vector)
+            return self._jacobian(independent, *param_vector)
         else:
             raise RuntimeError(f"Jacobian was requested but not supplied in model {self.name}.")
 
-    def derivative(self, independent, parameter_vector):
+    def derivative(self, independent, param_vector):
         """
         Return derivative w.r.t. the independent variable at specific values for the independent variable. Returns None
         when the model does not have an appropriately defined derivative.
@@ -225,12 +221,12 @@ class Model:
         ----------
         independent: array_like
             Values for the independent variable at which the derivative needs to be returned.
-        parameter_vector: array_like
+        param_vector: array_like
             Parameter vector at which to simulate.
         """
         if self.has_derivative:
             independent = np.asarray(independent, dtype=np.float64)
-            return self._derivative(independent, *parameter_vector)
+            return self._derivative(independent, *param_vector)
         else:
             raise RuntimeError(f"Derivative was requested but not supplied in model {self.name}.")
 
@@ -246,13 +242,13 @@ class Model:
         if self._derivative:
             return True
 
-    def _calculate_residual(self, data_sets, global_parameter_values):
+    def _calculate_residual(self, data_sets, global_param_values):
         """Calculate the model residual
         """
         residual_idx = 0
         residual = np.zeros(data_sets.n_residuals)
         for condition, data_list in data_sets.conditions():
-            p_local = condition.get_local_parameters(global_parameter_values)
+            p_local = condition.get_local_params(global_param_values)
             for data in data_list:
                 y_model = self._raw_call(data.x, p_local)
 
@@ -261,11 +257,11 @@ class Model:
 
         return residual
 
-    def _calculate_jacobian(self, data_sets, global_parameter_values):
+    def _calculate_jacobian(self, data_sets, global_param_values):
         residual_idx = 0
-        jacobian = np.zeros((data_sets.n_residuals, len(global_parameter_values)))
+        jacobian = np.zeros((data_sets.n_residuals, len(global_param_values)))
         for condition, data_list in data_sets.conditions():
-            p_local = condition.get_local_parameters(global_parameter_values)
+            p_local = condition.get_local_params(global_param_values)
             p_indices = condition.p_indices
             for data in data_list:
                 sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data.x, p_local)))
@@ -277,7 +273,7 @@ class Model:
 
         return jacobian
 
-    def verify_jacobian(self, independent, parameters, plot=False, verbose=True, dx=1e-6, **kwargs):
+    def verify_jacobian(self, independent, params, plot=False, verbose=True, dx=1e-6, **kwargs):
         """
         Verify this model's Jacobian with respect to the independent variable by comparing it to the Jacobian
         obtained with finite differencing.
@@ -286,7 +282,7 @@ class Model:
         ----------
         independent: array_like
             Values for the independent variable at which to compare the Jacobian.
-        parameters: array_like
+        params: array_like
             Parameter vector at which to compare the Jacobian.
         plot: bool
             Plot the results (default = False)
@@ -297,23 +293,23 @@ class Model:
         **kwargs:
             Forwarded to `~matplotlib.pyplot.plot`.
         """
-        if len(parameters) != len(self._parameters):
+        if len(params) != len(self._params):
             raise ValueError("Parameter vector has invalid length. "
-                             f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
+                             f"Expected: {len(self._params)}, got: {len(params)}.")
 
         independent = np.asarray(independent, dtype=np.float64)
-        jacobian = self.jacobian(independent, parameters)
-        jacobian_fd = numerical_jacobian(lambda parameter_values: self._raw_call(independent, parameter_values),
-                                         parameters, dx=dx)
+        jacobian = self.jacobian(independent, params)
+        jacobian_fd = numerical_jacobian(lambda param_values: self._raw_call(independent, param_values),
+                                         params, dx=dx)
 
         jacobian = np.asarray(jacobian)
         if plot:
-            n_x, n_y = optimal_plot_layout(len(self._parameters))
-            for i_parameter, parameter in enumerate(self._parameters):
-                plt.subplot(n_x, n_y, i_parameter+1)
-                l1 = plt.plot(independent, np.transpose(jacobian[i_parameter, :]))
-                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_parameter, :]), '--')
-                plt.title(parameter)
+            n_x, n_y = optimal_plot_layout(len(self._params))
+            for i_param, param in enumerate(self._params):
+                plt.subplot(n_x, n_y, i_param+1)
+                l1 = plt.plot(independent, np.transpose(jacobian[i_param, :]))
+                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_param, :]), '--')
+                plt.title(param)
                 plt.legend({'Analytic', 'FD'})
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
@@ -328,7 +324,7 @@ class Model:
 
         return is_close
 
-    def verify_derivative(self, independent, parameters, dx=1e-6, **kwargs):
+    def verify_derivative(self, independent, params, dx=1e-6, **kwargs):
         """
         Verify this model's derivative with respect to the independent variable by comparing it to the derivative
         obtained with finite differencing.
@@ -337,22 +333,22 @@ class Model:
         ----------
         independent: array_like
             Values for the independent variable at which to compare the derivative.
-        parameters: array_like
+        params: array_like
             Parameter vector at which to compare the derivative.
         dx: float
             Finite difference excursion.
         """
 
-        if len(parameters) != len(self._parameters):
+        if len(params) != len(self._params):
             raise ValueError("Parameter vector has invalid length. "
-                             f"Expected: {len(self._parameters)}, got: {len(parameters)}.")
+                             f"Expected: {len(self._params)}, got: {len(params)}.")
 
-        derivative = self.derivative(independent, parameters)
-        derivative_fd = numerical_diff(lambda x: self._raw_call(x, parameters), independent, dx=dx)
+        derivative = self.derivative(independent, params)
+        derivative_fd = numerical_diff(lambda x: self._raw_call(x, params), independent, dx=dx)
 
         return np.allclose(derivative, derivative_fd, **kwargs)
 
-    def _plot_model(self, global_parameters, datasets, fmt='', **kwargs):
+    def _plot_model(self, global_params, datasets, fmt='', **kwargs):
         cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
         if len(fmt) == 0:
@@ -363,14 +359,14 @@ class Model:
         for i, data in enumerate(datasets.values()):
             if not set_color:
                 kwargs["color"] = lighten_color(get_color(i), -.3)
-            self.plot(global_parameters[data], data.x, fmt=fmt, **kwargs)
+            self.plot(global_params[data], data.x, fmt=fmt, **kwargs)
 
-    def plot(self, parameters, independent, fmt='', **kwargs):
+    def plot(self, params, independent, fmt='', **kwargs):
         """Plot this model for a specific data set.
 
         Parameters
         ----------
-        parameters: Parameters
+        params: Params
             Parameter set, typically obtained from a Fit.
         independent: array_like
             Array of values for the independent variable.
@@ -395,10 +391,10 @@ class Model:
             dna_model.plot(fit["data1"], np.arange(1.0, 10.0, .01), fmt='k--')
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
-        if not isinstance(parameters, Parameters):
-            raise RuntimeError('Did not pass Parameters')
+        if not isinstance(params, Params):
+            raise RuntimeError('Did not pass Params')
 
-        plt.plot(independent, self(independent, parameters), fmt, **kwargs)
+        plt.plot(independent, self(independent, params), fmt, **kwargs)
 
 
 class CompositeModel(Model):
@@ -421,18 +417,18 @@ class CompositeModel(Model):
             f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
 
         self.name = self.lhs.name + "_with_" + self.rhs.name
-        self._parameters = OrderedDict()
-        for i, v in self.lhs._parameters.items():
-            self._parameters[i] = v
-        for i, v in self.rhs._parameters.items():
-            self._parameters[i] = v
+        self._params = OrderedDict()
+        for i, v in self.lhs._params.items():
+            self._params[i] = v
+        for i, v in self.rhs._params.items():
+            self._params[i] = v
 
-        parameters_lhs = list(self.lhs._parameters.keys())
-        parameters_rhs = list(self.rhs._parameters.keys())
-        parameters_all = list(self._parameters.keys())
+        params_lhs = list(self.lhs._params.keys())
+        params_rhs = list(self.rhs._params.keys())
+        params_all = list(self._params.keys())
 
-        self.lhs_parameters = [parameters_all.index(par) for par in parameters_lhs]
-        self.rhs_parameters = [parameters_all.index(par) for par in parameters_rhs]
+        self.lhs_params = [params_all.index(par) for par in params_lhs]
+        self.rhs_params = [params_all.index(par) for par in params_rhs]
 
     @property
     def dependent(self):
@@ -443,16 +439,16 @@ class CompositeModel(Model):
         return self.lhs.independent
 
     def eqn(self, independent_name, *parameter_names):
-        return self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_parameters]) + " + " +\
-            self.rhs.eqn(independent_name, *[parameter_names[x] for x in self.rhs_parameters])
+        return self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_params]) + " + " +\
+            self.rhs.eqn(independent_name, *[parameter_names[x] for x in self.rhs_params])
 
     def eqn_tex(self, independent, *parameter_names):
-        return self.lhs.eqn_tex(independent, *[parameter_names[x] for x in self.lhs_parameters]) + \
-               " + " + self.rhs.eqn_tex(independent, *[parameter_names[x] for x in self.rhs_parameters])
+        return self.lhs.eqn_tex(independent, *[parameter_names[x] for x in self.lhs_params]) + \
+               " + " + self.rhs.eqn_tex(independent, *[parameter_names[x] for x in self.rhs_params])
 
-    def _raw_call(self, independent, parameter_vector):
-        lhs_residual = self.lhs._raw_call(independent, [parameter_vector[x] for x in self.lhs_parameters])
-        rhs_residual = self.rhs._raw_call(independent, [parameter_vector[x] for x in self.rhs_parameters])
+    def _raw_call(self, independent, param_vector):
+        lhs_residual = self.lhs._raw_call(independent, [param_vector[x] for x in self.lhs_params])
+        rhs_residual = self.rhs._raw_call(independent, [param_vector[x] for x in self.rhs_params])
 
         return lhs_residual + rhs_residual
 
@@ -464,20 +460,18 @@ class CompositeModel(Model):
     def has_derivative(self):
         return self.lhs.has_derivative and self.rhs.has_derivative
 
-    def jacobian(self, independent, parameter_vector):
+    def jacobian(self, independent, param_vector):
         if self.has_jacobian:
-            jacobian = np.zeros((len(parameter_vector), len(independent)))
-            jacobian[self.lhs_parameters, :] += self.lhs.jacobian(independent, [parameter_vector[x] for x in
-                                                                                self.lhs_parameters])
-            jacobian[self.rhs_parameters, :] += self.rhs.jacobian(independent, [parameter_vector[x] for x in
-                                                                                self.rhs_parameters])
+            jacobian = np.zeros((len(param_vector), len(independent)))
+            jacobian[self.lhs_params, :] += self.lhs.jacobian(independent, [param_vector[x] for x in self.lhs_params])
+            jacobian[self.rhs_params, :] += self.rhs.jacobian(independent, [param_vector[x] for x in self.rhs_params])
 
             return jacobian
 
-    def derivative(self, independent, parameter_vector):
+    def derivative(self, independent, param_vector):
         if self.has_derivative:
-            lhs_derivative = self.lhs.derivative(independent, [parameter_vector[x] for x in self.lhs_parameters])
-            rhs_derivative = self.rhs.derivative(independent, [parameter_vector[x] for x in self.rhs_parameters])
+            lhs_derivative = self.lhs.derivative(independent, [param_vector[x] for x in self.lhs_params])
+            rhs_derivative = self.rhs.derivative(independent, [param_vector[x] for x in self.rhs_params])
 
             return lhs_derivative + rhs_derivative
 
@@ -522,15 +516,15 @@ class InverseModel(Model):
         return solve_formatter_tex(self.model.eqn_tex(independent_name, *parameter_names), self.dependent,
                                    self.independent)
 
-    def _raw_call(self, independent, parameter_vector):
+    def _raw_call(self, independent, param_vector):
         if self.interpolate:
             return invert_function_interpolation(independent, 1.0, self.independent_min, self.independent_max,
-                                                 lambda f_trial: self.model._raw_call(f_trial, parameter_vector),
-                                                 lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+                                                 lambda f_trial: self.model._raw_call(f_trial, param_vector),
+                                                 lambda f_trial: self.model.derivative(f_trial, param_vector))
         else:
             return invert_function(independent, 1.0, self.independent_min, self.independent_max,
-                                   lambda f_trial: self.model._raw_call(f_trial, parameter_vector),  # Forward model
-                                   lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+                                   lambda f_trial: self.model._raw_call(f_trial, param_vector),  # Forward model
+                                   lambda f_trial: self.model.derivative(f_trial, param_vector))
 
     @property
     def has_jacobian(self):
@@ -542,22 +536,22 @@ class InverseModel(Model):
     def has_derivative(self):
         return self.model.has_derivative
 
-    def jacobian(self, independent, parameter_vector):
+    def jacobian(self, independent, param_vector):
         """Jacobian of the inverted model"""
         return invert_jacobian(independent,
-                               lambda f_trial: self._raw_call(f_trial, parameter_vector),  # Inverse model (me)
-                               lambda f_trial: self.model.jacobian(f_trial, parameter_vector),
-                               lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+                               lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
+                               lambda f_trial: self.model.jacobian(f_trial, param_vector),
+                               lambda f_trial: self.model.derivative(f_trial, param_vector))
 
-    def derivative(self, independent, parameter_vector):
+    def derivative(self, independent, param_vector):
         """Derivative of the inverted model"""
         return invert_derivative(independent,
-                                 lambda f_trial: self._raw_call(f_trial, parameter_vector),  # Inverse model (me)
-                                 lambda f_trial: self.model.derivative(f_trial, parameter_vector))
+                                 lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
+                                 lambda f_trial: self.model.derivative(f_trial, param_vector))
 
     @property
-    def _parameters(self):
-        return self.model._parameters
+    def _params(self):
+        return self.model._params
 
 
 class SubtractIndependentOffset(Model):
@@ -573,28 +567,28 @@ class SubtractIndependentOffset(Model):
         offset_name = parameter_name
 
         self.name = self.model.name + "(x-d)"
-        self._parameters = OrderedDict()
-        self._parameters[offset_name] = Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au")
-        for i, v in self.model._parameters.items():
-            self._parameters[i] = v
+        self._params = OrderedDict()
+        self._params[offset_name] = Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au")
+        for i, v in self.model._params.items():
+            self._params[i] = v
 
-        parameters_parent = list(self.model._parameters.keys())
-        parameters_all = list(self._parameters.keys())
+        params_parent = list(self.model._params.keys())
+        params_all = list(self._params.keys())
 
-        self.model_parameters = [parameters_all.index(par) for par in parameters_parent]
-        self.offset_parameter = parameters_all.index(offset_name)
+        self.model_params = [params_all.index(par) for par in params_parent]
+        self.offset_parameter = params_all.index(offset_name)
 
-    def _raw_call(self, independent, parameter_vector):
-        return self.model._raw_call(independent - parameter_vector[self.offset_parameter],
-                                    [parameter_vector[x] for x in self.model_parameters])
+    def _raw_call(self, independent, param_vector):
+        return self.model._raw_call(independent - param_vector[self.offset_parameter],
+                                    [param_vector[x] for x in self.model_params])
 
     def eqn(self, independent_name, *parameter_names):
         return self.model.eqn(f"({independent_name} - {parameter_names[self.offset_parameter]})",
-                              *[parameter_names[x] for x in self.model_parameters])
+                              *[parameter_names[x] for x in self.model_params])
 
     def eqn_tex(self, independent_name, *parameter_names):
         return self.model.eqn_tex(f"({independent_name} - {parameter_names[self.offset_parameter]})",
-                                  *[parameter_names[x] for x in self.model_parameters])
+                                  *[parameter_names[x] for x in self.model_params])
 
     @property
     def dependent(self):
@@ -612,18 +606,18 @@ class SubtractIndependentOffset(Model):
     def has_derivative(self):
         return self.model.has_derivative
 
-    def jacobian(self, independent, parameter_vector):
+    def jacobian(self, independent, param_vector):
         if self.has_jacobian:
-            with_offset = independent - parameter_vector[self.offset_parameter]
-            jacobian = np.zeros((len(parameter_vector), len(with_offset)))
-            jacobian[self.model_parameters, :] += self.model.jacobian(with_offset, [parameter_vector[x] for x in
-                                                                                    self.model_parameters])
-            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset, [parameter_vector[x] for x in
-                                                                                       self.model_parameters])
+            with_offset = independent - param_vector[self.offset_parameter]
+            jacobian = np.zeros((len(param_vector), len(with_offset)))
+            jacobian[self.model_params, :] += self.model.jacobian(with_offset, [param_vector[x] for x in
+                                                                                self.model_params])
+            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset, [param_vector[x] for x in
+                                                                                       self.model_params])
 
             return jacobian
 
-    def derivative(self, independent, parameter_vector):
+    def derivative(self, independent, param_vector):
         if self.has_derivative:
-            with_offset = independent - parameter_vector[self.offset_parameter]
-            return self.model.derivative(with_offset, [parameter_vector[x] for x in self.model_parameters])
+            with_offset = independent - param_vector[self.offset_parameter]
+            return self.model.derivative(with_offset, [param_vector[x] for x in self.model_params])

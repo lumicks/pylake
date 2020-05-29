@@ -44,7 +44,7 @@ class Parameter:
         return self.__repr__()
 
 
-class Parameters:
+class Params:
     """
     Model parameters. Internally stored as a list of Parameter.
 
@@ -53,15 +53,15 @@ class Parameters:
     ::
         fit = pylake.Fit(pylake.odijk("my_model"))
 
-        print(fit.parameters)  # Prints the model parameters
+        print(fit.params)  # Prints the model parameters
         fit["test_parameter"].value = 5  # Set parameter test_parameter to 5
         fit["fix_me"].fixed = True  # Fix parameter fix_me (do not fit)
 
         # Copy parameters from another Parameters into this one.
-        parameters.load_parameters_from(other_parameters)
+        parameters.update_params(other_parameters)
 
         # Copy the parameters from an earlier fit into the combined model.
-        fit_combined_model.load_parameters_from(fit_dna)
+        fit_combined_model.update_params(fit_dna)
     """
     def __init__(self, **kwargs):
         self._src = OrderedDict()
@@ -77,15 +77,15 @@ class Parameters:
     def __eq__(self, other):
         return self.__dict__ == other.__dict__ if isinstance(other, self.__class__) else False
 
-    def load_parameters_from(self, other):
+    def update_params(self, other):
         """
         Sets parameters if they are found in the target parameter list.
 
         Parameters
         ----------
-        other: Parameters
+        other: Params
         """
-        if isinstance(other, Parameters):
+        if isinstance(other, Params):
             found = False
             for key, param in other._src.items():
                 if key in self._src:
@@ -107,7 +107,7 @@ class Parameters:
             raise IndexError("Slicing not supported. Only indexing.")
 
         if isinstance(item, FitData):
-            return item.get_parameters(self)
+            return item.get_params(self)
 
         if item in self._src:
             return self._src[item]
@@ -144,7 +144,7 @@ class Parameters:
         else:
             return "No parameters"
 
-    def _set_parameters(self, parameters, defaults):
+    def _set_params(self, params, defaults):
         """Rebuild the parameter vector. Note that this can potentially alter the parameter order if the strings are
         given in a different order.
 
@@ -154,18 +154,17 @@ class Parameters:
 
         Parameters
         ----------
-        parameters : list of str
+        params : list of str
             parameter names
         defaults : Parameter or None
             default parameter objects
         """
-        new_parameters = OrderedDict(zip(parameters, [x if isinstance(x, Parameter) else Parameter() for x in
-                                                      defaults]))
+        new_params = OrderedDict(zip(params, [x if isinstance(x, Parameter) else Parameter() for x in defaults]))
         for key, value in self._src.items():
-            if key in new_parameters:
-                new_parameters[key] = value
+            if key in new_params:
+                new_params[key] = value
 
-        self._src = new_parameters
+        self._src = new_params
 
     @property
     def keys(self):
