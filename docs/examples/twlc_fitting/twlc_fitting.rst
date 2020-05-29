@@ -9,11 +9,6 @@ Twistable Worm-Like-Chain Fitting
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-First we import the necessary libraries::
-
-    import matplotlib.pyplot as plt
-    from lumicks import pylake
-
 Let's load and plot the data first::
 
     file = lk.File("twlc_data//20200430-163932 FD Curve FD_1_control_forw.h5")
