@@ -62,7 +62,7 @@ class Model:
             fit["DNA/Lp"].upper_bound = 80  # Set upper bound for DNA Lp
             fit.fit()
 
-            dna_model.plot(fit[data], fmt='k--')  # Plot the fitted model
+            fit.plot("my data", "k--")  # Plot the fitted model
         """
         assert isinstance(name, str), "First argument must be a model name."
         assert isinstance(model_function, types.FunctionType), "Model must be a callable."
@@ -371,11 +371,14 @@ class Model:
             fit.add_data("data1", force1, distance1)
             fit.add_data("data2", force2, distance2, {"DNA/Lc": "DNA/Lc_RecA"})
             fit.fit()
+
+            # Option 1
+            fit.plot("data 1", distance1, 'k--')  # Plot model simulations for data set 1
+            fit.plot("data 2", distance2, 'k--')  # Plot model simulations for data set 2
+
+            # Option 2
             dna_model.plot(fit["data1"], distance1, fmt='k--')  # Plot model simulations for data set 1
             dna_model.plot(fit["data2"], distance2, fmt='k--')  # Plot model simulations for data set 2
-
-            # Plot model over a custom time range
-            dna_model.plot(fit["data1"], np.arange(1.0, 10.0, .01), fmt='k--')
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(params, Params):

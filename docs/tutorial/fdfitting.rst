@@ -221,12 +221,12 @@ However, sometimes more fine grained control over the plots is required. Let's s
 the model over the range 2.0 to 5.0 for the conditions from `Control` and `RecA`. We can do this by
 supplying different arguments to the plot function::
 
-    fit.plot(model, "Control", independent=np.arange(2.0, 5.0, 0.01), fmt='k--')
-    fit.plot(model, "RecA", independent=np.arange(2.0, 5.0, 0.01), fmt='r--')
+    fit.plot("Control", 'k--', np.arange(2.0, 5.0, 0.01))
+    fit.plot("RecA", 'k--', np.arange(2.0, 5.0, 0.01))
 
 Or what if we really only want the model prediction, then we can do::
 
-    fit.plot(model, "Control", independent=np.arange(2.0, 5.0, 0.01), fmt='k--', plot_data=False)
+    fit.plot("Control", 'k--', np.arange(2.0, 5.0, 0.01), plot_data=False)
 
 Note how we use the square brackets to select the parameters belonging to condition 1 and 2 using
 the data set names. This collects the parameters relevant for that particular experimental condition.
@@ -238,6 +238,10 @@ object using the data handles::
 
     distance = np.arange(2.0, 5.0, 0.01)
     simulation_result = model(distance, fit["Control"])
+
+Basically what happens here is that `fit["Control"]` grabs those parameters needed to simulate the
+condition corresponding to the dataset with the name control. By providing specifically those
+parameters to the model, we can simulate that condition.
 
 Multiple models
 ---------------
@@ -263,8 +267,8 @@ at once.
 
 Plotting is straightforward in this setting. We can plot the datasets corresponding to
 model 1 and 2 as follows::
-    fit.plot(model1)
-    fit.plot(model2)
+    fit[model1].plot()
+    fit[model2].plot()
 
 Accessing the model parameters for a specific dataset is a little more complicated in
 this setting. If we for example want to obtain the parameters for "data for model 1",
@@ -335,7 +339,7 @@ Fits can also be done incrementally::
 We can see that there are no parameters to be fitted. The reason for this is that
 we did not add any data to the fit yet. Let's add some and fit this data::
 
-    >>> data1 = fit.add_data("Control", f=f1, d=d1)
+    >>> fit.add_data("Control", f=f1, d=d1)
     >>> fit.fit()
     >>> print(fit.params)
     Name         Value  Unit      Fitted      Lower bound    Upper bound
@@ -347,7 +351,7 @@ we did not add any data to the fit yet. Let's add some and fit this data::
 
 Let's add a second data set where we expect a different contour length and refit::
 
-    >>> data2 = fit.add_data("RecA", f=f2, d=d2, params={"DNA/Lc": "DNA/Lc_RecA"})
+    >>> fit.add_data("RecA", f=f2, d=d2, params={"DNA/Lc": "DNA/Lc_RecA"})
     >>> print(fit.params)
     Name              Value  Unit      Fitted      Lower bound    Upper bound
     -----------  ----------  --------  --------  -------------  -------------

@@ -2,7 +2,7 @@
     This is beta functionality. While usable, this has not yet been tested in a large
     number of different scenarios. The API may also still be subject to change.
 
-RecA FD Fitting
+RecA Fd Fitting
 ===============
 
 .. only:: html
@@ -84,10 +84,9 @@ them. Since we have to do this twice, let's make a little function that extracts
     force_control, distance_control = extract_data(control_curve, 0, 30)
     force_reca, distance_reca = extract_data(reca_curve, 0, 30)
 
-We can load data into the `FdFit` by using the function `add_data`. Note that we apply the mask as we
-are loading the data using the square brackets::
+We can load data into the `FdFit` by using the function `add_data`::
 
-    data1 = fit.add_data("Control", force_control, distance_control)
+    fit.add_data("Control", force_control, distance_control)
 
 If parameters are expected to differ between conditions, we can rename them for a specific data set
 when adding data to the fit. For the second data set, we expect the contour length, persistence length
@@ -98,9 +97,9 @@ followed by a slash and then the model parameter name. The value of this diction
 to the model name slash the new parameter name. Let's rename the contour length Lc, persistence
 length Lp and stiffness St for this data set::
 
-    data2 = fit.add_data("RecA", force_reca, distance_reca,
-                         params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
-                                 "DNA/St": "DNA/St_RecA"})
+    fit.add_data("RecA", force_reca, distance_reca,
+                 params={"DNA/Lc": "DNA/Lc_RecA", "DNA/Lp": "DNA/Lp_RecA",
+                         "DNA/St": "DNA/St_RecA"})
 
 Set up the fit
 --------------
@@ -156,13 +155,12 @@ Plotting the fit alongside the data is easy. Simply call the plot function on th
 
 .. image:: output_10_2.png
 
-We would like to compare the two modelled curves without the data. Plotting these is easy. We can tell the
-model to plot the model for a specific data set by slicing the parameters from our fit with the appropriate
-data handle: `fit[data1]`. This slice procedure collects exactly those parameters needed to simulate that
-condition. The second argument contains the values for the independent variable that we wish to simulate for::
+We would like to compare the two modelled curves without the data. Plotting these is easy. Since we named our
+data, we can simply plot them with their respective names. Instead this time, we specify `plot_data = False`
+to indicate that we do not wish to plot the data this time::
 
-    fit.plot("data1", independent=np.arange(2.1, 5.0, 0.01), "r--", plot_data=False)
-    fit.plot("data2", independent=np.arange(2.1, 5.0, 0.01), "r--", plot_data=False)
+    fit.plot("Control", 'r--', np.arange(2.1, 5.0, 0.01), plot_data=False)
+    fit.plot("RecA", 'r--', np.arange(2.1, 5.0, 0.01), plot_data=False)
     plt.ylabel("Force [pN]")
     plt.xlabel("Distance [$\\mu$M]")
     plt.ylim([0, 30])

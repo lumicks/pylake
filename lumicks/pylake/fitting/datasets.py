@@ -97,21 +97,21 @@ class Datasets:
 
         return data
 
-    def plot(self, data=None, fmt='', overrides=None, independent=None, legend=True, plot_data=True, **kwargs):
+    def plot(self, data=None, fmt='', independent=None, legend=True, plot_data=True, overrides=None, **kwargs):
         """Plot model and data
 
         data: str
             Name of the data set to plot (optional, omission plots all for that model).
         fmt: str
             Format string, forwarded to :func:`matplotlib.pyplot.plot`.
-        overrides: dict
-            Parameter value overrides.
         independent: array_like
             Array with values for the independent variable (used when plotting the model).
         legend: bool
             Show legend (default: True).
         plot_data: bool
             Show data (default: True).
+        overrides: dict
+            Parameter value overrides.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
         """
