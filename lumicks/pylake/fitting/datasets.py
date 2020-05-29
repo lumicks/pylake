@@ -33,7 +33,8 @@ class Datasets:
         return self.data.__iter__()
 
     def _link_data(self, parameter_lookup):
-        self._conditions, self._data_link = generate_conditions(self.data, parameter_lookup, self._model.parameter_names)
+        self._conditions, self._data_link = generate_conditions(self.data, parameter_lookup,
+                                                                self._model.parameter_names)
         self.built = True
 
     def conditions(self):
