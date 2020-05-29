@@ -2,7 +2,7 @@ from .parameters import Params
 from .datasets import Datasets, FdDatasets
 from .model import Model
 from collections import OrderedDict
-from ..detail.utilities import unique
+from ..detail.utilities import unique, lighten_color
 from .detail.derivative_manipulation import numerical_jacobian
 from .detail.utilities import print_styled, optimal_plot_layout
 import numpy as np
@@ -189,7 +189,8 @@ class Fit:
                 for name, value in zip(parameter_names, parameter_vector):
                     self.params[name] = value
                 plt.figure(fig.number)
-                self.plot()
+                for model in self.models.values():
+                    self[model].plot()
                 fig.canvas.draw()
                 fig.canvas.flush_events()
                 fig.clf()
@@ -276,8 +277,8 @@ class Fit:
             n_x, n_y = optimal_plot_layout(len(self.params))
             for i_parameter, parameter in enumerate(self.params):
                 plt.subplot(n_x, n_y, i_parameter + 1)
-                l1 = plt.plot(np.transpose(jacobian[i_parameter, :]), linewidth=2)
-                l2 = plt.plot(np.transpose(jacobian_fd[i_parameter, :]), '--', linewidth=1)
+                plt.plot(np.transpose(jacobian[i_parameter, :]), linewidth=2)
+                plt.plot(np.transpose(jacobian_fd[i_parameter, :]), '--', linewidth=1)
                 plt.title(parameter)
                 plt.legend(['Analytic', 'FD'])
 
@@ -294,15 +295,51 @@ class Fit:
 
         return is_close
 
-    def plot(self, fmt='', overrides={}, **kwargs):
-        self.plot_data(fmt, **kwargs)
-        self.plot_model(fmt, overrides, **kwargs)
+    def plot(self, data=None, fmt='', overrides={}, independent=None, legend=True, plot_data=True, **kwargs):
+        """Plot model and data
 
-    def plot_data(self, fmt, **kwargs):
+        data: str
+            Name of the data set to plot (optional, omission plots all for that model).
+        fmt: str
+            Format string, forwarded to :func:`matplotlib.pyplot.plot`.
+        overrides: dict
+            Parameter value overrides.
+        independent: array_like
+            Array with values for the independent variable (used when plotting the model).
+        legend: bool
+            Show legend (default: True).
+        plot_data: bool
+            Show data (default: True).
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
+        assert len(self.models) == 1, "Please select a model to plot using fit[model].plot(...)."
+        self._plot(front(self.models.values()), data, fmt, overrides, independent, legend, plot_data, **kwargs)
+
+    def _plot(self, model, data, fmt, overrides, independent, legend, plot_data, **kwargs):
         self._rebuild()
 
-        for data in self.datasets.values():
-            data._plot_data(fmt, **kwargs)
+        params, _ = self._override_params(overrides)
+        dataset = self.datasets[id(model)]
+
+        def plot(fit_data):
+            x_values = fit_data.x if independent is None else independent
+            model_lines = model.plot(params[fit_data], x_values, fmt, **kwargs, zorder=1,
+                                     label=fit_data.name + " (model)")
+
+            if plot_data:
+                color = model_lines[0].get_color()
+                fit_data.plot('.', **kwargs, color=lighten_color(color, -.3), zorder=0, label=fit_data.name + " (data)")
+
+        if data:
+            assert data in dataset.data, f"Error: Did not find dataset with name {data}"
+            plot(dataset.data[data])
+        else:
+            for data in dataset.data.values():
+                plot(data)
+
+        if legend:
+            plt.legend()
 
     def _override_params(self, overrides={}):
         from copy import deepcopy
@@ -316,13 +353,6 @@ class Fit:
                 raise KeyError(f"Parameter {key} is not a parameter used in the fit")
 
         return params, overrides
-
-    def plot_model(self, fmt='', overrides={}, **kwargs):
-        self._rebuild()
-        params, overrides = self._override_params(overrides)
-
-        for model in self.models.values():
-            model._plot_model(params, self.datasets[id(model)].data, fmt, **kwargs)
 
     @property
     def sigma(self):

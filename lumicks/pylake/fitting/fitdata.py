@@ -1,6 +1,7 @@
 import numpy as np
 from .parameters import Params
 from collections import OrderedDict
+import matplotlib.pyplot as plt
 
 
 class FitData:
@@ -65,6 +66,9 @@ class FitData:
         Parameter names for free parameters before transformation
         """
         return [x for x, y in self.transformations.items() if isinstance(y, str)]
+
+    def plot(self, fmt, **kwargs):
+        return plt.plot(self.x, self.y, fmt, **kwargs)
 
     def __repr__(self):
         out_string = f'{self.__class__.__name__}({self.name}, N={len(self.independent)}'

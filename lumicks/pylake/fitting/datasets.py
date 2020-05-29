@@ -3,9 +3,7 @@ from .detail.utilities import parse_transformation
 from .fitdata import FitData
 from copy import deepcopy
 from collections import OrderedDict
-from ..detail.utilities import get_color
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class Datasets:
@@ -28,9 +26,6 @@ class Datasets:
 
     def __getitem__(self, item):
         return self._fit.params[self.data.__getitem__(item)]
-
-    def __iter__(self):
-        return self.data.__iter__()
 
     def _link_data(self, parameter_lookup):
         self._conditions, self._data_link = generate_conditions(self.data, parameter_lookup,
@@ -102,6 +97,26 @@ class Datasets:
 
         return data
 
+    def plot(self, data=None, fmt='', overrides={}, independent=None, legend=True, plot_data=True, **kwargs):
+        """Plot model and data
+
+        data: str
+            Name of the data set to plot (optional, omission plots all for that model).
+        fmt: str
+            Format string, forwarded to :func:`matplotlib.pyplot.plot`.
+        overrides: dict
+            Parameter value overrides.
+        independent: array_like
+            Array with values for the independent variable (used when plotting the model).
+        legend: bool
+            Show legend (default: True).
+        plot_data: bool
+            Show data (default: True).
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
+        self._fit._plot(self._model, data, fmt, overrides, independent, legend, plot_data, **kwargs)
+
     @property
     def names(self):
         return [data.name for data in self.data.values()]
@@ -137,26 +152,6 @@ class Datasets:
             repr_text += f"- {d.__repr__()}\n"
 
         return repr_text
-
-    def _plot_data(self, fmt='', **kwargs):
-        names = []
-        handles = []
-
-        if len(fmt) == 0:
-            kwargs["marker"] = kwargs.get("marker", '.')
-            kwargs["markersize"] = kwargs.get("markersize", .5)
-            set_color = kwargs.get("color")
-        else:
-            set_color = 1
-
-        for i, data in enumerate(self.data.values()):
-            if not set_color:
-                kwargs["color"] = get_color(i)
-            handle, = plt.plot(data.x, data.y, fmt, **kwargs)
-            handles.append(handle)
-            names.append(data.name)
-
-        plt.legend(handles, names)
 
 
 class FdDatasets(Datasets):

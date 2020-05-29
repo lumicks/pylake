@@ -348,19 +348,6 @@ class Model:
 
         return np.allclose(derivative, derivative_fd, **kwargs)
 
-    def _plot_model(self, global_params, datasets, fmt='', **kwargs):
-        cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-        if len(fmt) == 0:
-            set_color = kwargs.get("color")
-        else:
-            set_color = 1
-
-        for i, data in enumerate(datasets.values()):
-            if not set_color:
-                kwargs["color"] = lighten_color(get_color(i), -.3)
-            self.plot(global_params[data], data.x, fmt=fmt, **kwargs)
-
     def plot(self, params, independent, fmt='', **kwargs):
         """Plot this model for a specific data set.
 
@@ -394,7 +381,7 @@ class Model:
         if not isinstance(params, Params):
             raise RuntimeError('Did not pass Params')
 
-        plt.plot(independent, self(independent, params), fmt, **kwargs)
+        return plt.plot(independent, self(independent, params), fmt, **kwargs)
 
 
 class CompositeModel(Model):

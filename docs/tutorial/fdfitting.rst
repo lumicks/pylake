@@ -219,17 +219,21 @@ Fits can be plotted using the built-in plot functionality::
 
 However, sometimes more fine grained control over the plots is required. Let's say we want to plot
 the model over the range 2.0 to 5.0 for the conditions from `Control` and `RecA`. We can do this by
-calling plot on the model directly::
+supplying different arguments to the plot function::
 
-    model.plot(fit["Control"], np.arange(2.0, 5.0, 0.01), fmt='k--')
-    model.plot(fit["RecA"], np.arange(2.0, 5.0, 0.01), fmt='k--')
+    fit.plot(model, "Control", independent=np.arange(2.0, 5.0, 0.01), fmt='k--')
+    fit.plot(model, "RecA", independent=np.arange(2.0, 5.0, 0.01), fmt='r--')
+
+Or what if we really only want the model prediction, then we can do::
+
+    fit.plot(model, "Control", independent=np.arange(2.0, 5.0, 0.01), fmt='k--', plot_data=False)
 
 Note how we use the square brackets to select the parameters belonging to condition 1 and 2 using
 the data set names. This collects the parameters relevant for that particular experimental condition.
 
 It is also possible to obtain simulations from the model directly. We can do this by calling the 
 model with values for the independent variable (here denoted as distance) and the parameters 
-required to simulate the model. Again, we obtain these parameters by grabbing them from our fit
+required to simulate the model. We obtain these parameters by grabbing them from our fit
 object using the data handles::
 
     distance = np.arange(2.0, 5.0, 0.01)
@@ -257,10 +261,16 @@ See how we used the model handles? They are used to let the `FdFit` know where t
 each data set. You can add as many data sets as you want to both models, and fit it all
 at once.
 
-Also accessing the model parameters for a specific dataset is a little more complicated
-in this setting. If we for example want to plot "data for model 1", we'd have to invoke::
+Plotting is straightforward in this setting. We can plot the datasets corresponding to
+model 1 and 2 as follows::
+    fit.plot(model1)
+    fit.plot(model2)
 
-    model1.plot(fit[model1]["data for model 1"], np.arange(2.0, 5.0, 0.01), fmt="k--")
+Accessing the model parameters for a specific dataset is a little more complicated in
+this setting. If we for example want to obtain the parameters for "data for model 1",
+we'd have to invoke::
+
+    params = fit[model1]["data for model 1"]
 
 Note how we are now forced to index the model first using the square brackets, and only
 then access the data set by name. An unfortunate necessity when it comes to multi-model

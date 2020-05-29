@@ -10,6 +10,7 @@ from ..fitting.model import Model, InverseModel
 from ..fitting.detail.model_implementation import solve_cubic_wlc, invwlc_root_derivatives
 
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
 from collections import OrderedDict
 import pytest
@@ -314,6 +315,15 @@ def test_model_fit_object_linking():
            ["M/mu", None, "M/q", None, "M/r"]
 
     f.update_params(Params(**{"M/mu": 4, "M/sig": 6}))
+    assert f["M/mu"].value == 4
+    assert f["M/sig"].value == 6
+
+    f2 = Fit(m)
+    f2._add_data("test", [1, 2, 3], [2, 3, 4])
+    f2["M/mu"].value = 12
+
+    f.update_params(f2)
+    assert f["M/mu"].value == 12
 
     with pytest.raises(RuntimeError):
         f.update_params(5)
@@ -351,6 +361,9 @@ def test_jacobian_test_fit():
 
     with pytest.raises(ValueError):
         assert (odijk("WLC").verify_jacobian([1.0, 2.0, 3.0], [1.0, 2.0]))
+
+    with pytest.raises(ValueError):
+        odijk("WLC").verify_derivative([1, 2, 3], [1, 2, 3])
 
 
 def test_integration_test_fitting():
@@ -999,29 +1012,67 @@ def test_tex_replacement():
 def test_plotting():
     m = odijk('DNA')
     m2 = odijk('protein')
+
+    # Test single model plotting
+    fit = Fit(m)
+    fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit.plot()
+    fit.plot("data_1")
+    with pytest.raises(AssertionError):
+        fit.plot("non-existent-data")
+
+    fit.plot(overrides={'DNA/Lc': 12})
+    with pytest.raises(KeyError):
+        fit.plot(overrides={'DNA/c': 12})
+
+    fit.plot(overrides={'DNA/Lc': 12}, independent=np.arange(1.0, 5.0, 1.0))
+
+    with pytest.raises(KeyError):
+        fit[m2].plot()
+
+    # Test multi-model plotting
     fit = Fit(m, m2)
     fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
     fit[m]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
     fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
     fit[m2]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'protein/Lc': 'protein/Lc_2'})
-    fit.plot()
+    fit[m2]._add_data("dataset 3", [1, 2, 3], [2, 3, 4], {'protein/Lc': 'protein/Lc_2'})
 
+    with pytest.raises(AssertionError):
+        fit.plot()
+
+    fit[m].plot()
+    fit[m2].plot()
+    fit[m].plot("data_1")
+
+    with pytest.raises(AssertionError):
+        fit.plot(m, "non-existent-data")
+
+    fit[m2].plot("dataset 3")
+    with pytest.raises(AssertionError):
+        fit[m].plot("dataset 3")
+
+    fit[m].plot(overrides={'DNA/Lc': 12})
     with pytest.raises(KeyError):
-        fit.plot(overrides={'DNA_Lc': 12})
-
-    with pytest.raises(KeyError):
-        fit.plot(overrides={'DNA/c': 12})
-
-    with pytest.raises(KeyError):
-        fit.plot_model(overrides={'DNA/c': 12})
-
-    # Test valid parameter override
-    fit.plot(overrides={'DNA/Lc': 12})
-    fit.plot_model(overrides={'DNA/Lc': 12})
+        fit[m].plot(overrides={'DNA/c': 12})
 
     independent = np.arange(0.15, 2, .25)
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
     odijk("WLC").verify_jacobian(independent, params, plot=1)
+
+    independent = np.arange(0.15, 2, .25)
+    params = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    fit = FdFit(odijk("WLC"))
+    fit.add_data("dataset 3", [1, 2, 3], [2, 3, 4])
+    plt.figure()
+    fit.verify_jacobian(params, plot=1)
+
+    # Test live fit plotting
+    fit = Fit(m, m2)
+    fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit[m]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
+    fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit.fit(show_fit=True, max_nfev=1)
 
 
 def test_regressions():

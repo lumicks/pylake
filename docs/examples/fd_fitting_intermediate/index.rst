@@ -161,8 +161,8 @@ model to plot the model for a specific data set by slicing the parameters from o
 data handle: `fit[data1]`. This slice procedure collects exactly those parameters needed to simulate that
 condition. The second argument contains the values for the independent variable that we wish to simulate for::
 
-    m_dna.plot(fit[data1], np.arange(2.1, 5.0, 0.01), "r--")
-    m_dna.plot(fit[data2], np.arange(2.1, 5.0, 0.01), "r--")
+    fit.plot("data1", independent=np.arange(2.1, 5.0, 0.01), "r--", plot_data=False)
+    fit.plot("data2", independent=np.arange(2.1, 5.0, 0.01), "r--", plot_data=False)
     plt.ylabel("Force [pN]")
     plt.xlabel("Distance [$\\mu$M]")
     plt.ylim([0, 30])
