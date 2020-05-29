@@ -97,7 +97,7 @@ class Datasets:
 
         return data
 
-    def plot(self, data=None, fmt='', overrides={}, independent=None, legend=True, plot_data=True, **kwargs):
+    def plot(self, data=None, fmt='', overrides=None, independent=None, legend=True, plot_data=True, **kwargs):
         """Plot model and data
 
         data: str

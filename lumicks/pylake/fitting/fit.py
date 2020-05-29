@@ -295,7 +295,7 @@ class Fit:
 
         return is_close
 
-    def plot(self, data=None, fmt='', overrides={}, independent=None, legend=True, plot_data=True, **kwargs):
+    def plot(self, data=None, fmt='', overrides=None, independent=None, legend=True, plot_data=True, **kwargs):
         """Plot model and data
 
         data: str
@@ -341,16 +341,17 @@ class Fit:
         if legend:
             plt.legend()
 
-    def _override_params(self, overrides={}):
+    def _override_params(self, overrides=None):
         from copy import deepcopy
         params = self.params
 
         params = deepcopy(params)
-        for key, value in overrides.items():
-            if key in params:
-                params[key] = value
-            else:
-                raise KeyError(f"Parameter {key} is not a parameter used in the fit")
+        if overrides:
+            for key, value in overrides.items():
+                if key in params:
+                    params[key] = value
+                else:
+                    raise KeyError(f"Parameter {key} is not a parameter used in the fit")
 
         return params, overrides
 
