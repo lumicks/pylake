@@ -9,6 +9,10 @@ Twistable Worm-Like-Chain Fitting
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
+In this notebook, we analyze force extension data of DNA acquired at relatively high mechanical load. At such high
+forces, it is important to consider the helical nature of DNA. One model which takes this into account is the twistable
+worm like chain model, which we will use here.
+
 Let's load and plot the data first::
 
     file = lk.File("twlc_data//20200430-163932 FD Curve FD_1_control_forw.h5")
@@ -20,40 +24,36 @@ Let's load and plot the data first::
 Set up a basic model first
 --------------------------
 
-We clearly see that the force starts levelling out at high forces in the data. This
-is a clear sign that to be able to describe this data, we'll need something more complex
-in order to capture this behavior. The twistable worm-like chain is one such model that
-can describe the untwisting of DNA at high forces. However, its complexity also incurs
-some challenges.
+We clearly see that the force starts levelling out at high forces in the data. We'll need something rather complex in
+order to capture this behavior. The twistable worm-like chain model can describe this untwisting behavior of DNA at
+high forces. However, the model's complexity also incurs some challenges.
 
-Parameter optimization always begins from an initial guess, and if this initial guess
-is bad, it can get stuck at an estimated set of parameters that are suboptimal, a
-so-called local optimum. One way to mitigate this, is to start at good initial values.
+Parameter estimation typically begins from an initial guess, and if this initial guess is bad, it can get stuck at an
+estimated set of parameters that are suboptimal, a so-called local optimum. One way to mitigate this, is to start with
+better initial values.
 
-In this notebook, we fit the low part of the curve first, with a regular worm like
-chain model, and then use those estimates as initial guesses to fit the twistable model.
+In this notebook, we fit the region before the force begins levelling out first with a regular worm-like chain model
+and then use those estimates as initial guesses to fit the twistable model.
 
-Let's set up the Odijk model and create the fit::
+Let's set up the Odijk worm-like chain model and create the fit::
 
     m_odijk = lk.inverted_odijk("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_odijk = lk.FdFit(m_odijk)
 
-Considering that this model only describes the lower part of the curve, we have to
-extract the data that is relevant to us. We can obtain this data from the ``FdCurve``
-as follows::
+Considering that this model only describes the force-extension behaviour at low forces, we have to extract the data
+that is relevant to us. We can obtain this data from the force-distance curve as follows::
 
     force = fd_curve.f.data
     distance = fd_curve.d.data
 
-We only wish to use the forces below 30, so we filter the data according to this
-requirement::
+We only wish to use the forces below 30, so we filter the data according to this requirement::
 
     mask = force < 30
     distance = distance[mask]
     force = force[mask]
 
-Now we are ready to add this data to the fit. Note that it is important to constrain the distance offset, as this
-provides a lot of additional freedom in the model::
+Now we are ready to add this data to the fit, but first, we must constrain the distance offset to help the fitting,
+as this provides a lot of additional freedom in the model::
 
     fit_odijk.add_data("Inverted Odijk", force, distance)
     fit_odijk["DNA/d_offset"].upper_bound = 0.01
@@ -81,30 +81,26 @@ And fit the model::
         kT               4.11        [pN*nm]   False              0              8
         DNA/f_offset     0.0392458   [pN]      True              -0.1            0.1
 
-Set up the Twistable worm like chain model
+Set up the twistable worm like chain model
 ------------------------------------------
 
-Set up a twistable worm like chain model with a distance and force offset. By default,
-the `twistable_wlc` model provided with pylake is defined as distance as a function of
-force. Typically, we want to fit force as a function of distance however. To achieve
-this, we can invert the model using its `invert` function. However, this can be slow
-in certain cases, as it requires an inversion for each data point. Luckily we have a
-faster way of achieving this in pylake, which is to use the dedicated `inverted_twistable_wlc`
-model.
+By default, the `twistable_wlc` model provided with pylake outputs the distance as a function of force. However, we
+typically want to fit force as a function of distance. To achieve this, we can invert the model using its `invert`
+function at the cost of slowing down the fit. Alternatively, we have a faster way of achieving this in pylake, by
+using the dedicated `inverted_twistable_wlc` model.
 
-Again, we incorporate an offset in both distance and force to compensate for small
-offsets that may exist in the data::
+Depending on your experiments, small offsets can be present in the data. For instance, the bead diameter may not be
+exactly known, or the force may have experienced some drift. We incorporate an offset in both distance and force to
+compensate for small offsets that may exist in the data::
 
     m_dna = lk.inverted_twistable_wlc("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_twlc = lk.FdFit(m_dna)
 
-Load the data into the model
-----------------------------
+Load the full data into the model
+---------------------------------
 
-Now it is time to load the full data into the model. Note in the figure however,
-that there seems to be a small break at the end of the Fd curve. The model will
-not be able to capture this behaviour, and therefore it is best to remove it
-prior to fitting as it will otherwise bias our parameter estimates::
+In the plot showing the data, we could see that there is a small break at the end of the Fd curve. The model will not
+be able to capture this behaviour and therefore it is best to remove this section prior to fitting::
 
     force = fd_curve.f.data
     distance = fd_curve.d.data
@@ -132,9 +128,8 @@ magnesium (2+) concentration." Physical Review Letters 116, 258102 (2016))::
 Fit the model
 -------------
 
-Now we are ready to fit the model. Considering that the tWLC model is
-expensive to evaluate, this may take a while. This is also why we choose
-to enable verbose output::
+Considering that the twistable worm-like chain model is more difficult to evaluate, this may take a while. This is also
+why we choose to enable verbose output::
 
     >>> fit_twlc.fit(verbose=2)
     >>> plt.show()
@@ -153,8 +148,7 @@ to enable verbose output::
 Plotting the results
 --------------------
 
-After fitting we can plot our results and print our parameters. Doing this
-is as simple as invoking `fit.plot()` and `fit.params`::
+After fitting we can plot our results and print our parameters by invoking `fit.plot()` and `fit.params` respectively::
 
     fit_twlc.plot()
     plt.xlabel("Distance [$\\mu$m]")

@@ -25,6 +25,7 @@ FD Fitting
 
     fitting.model.Model
     FdFit
+    parameter_trace
 
 .. _fd_models:
 .. rubric:: Available models
