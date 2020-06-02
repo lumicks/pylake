@@ -26,24 +26,24 @@ class Model:
 
         Parameters
         ----------
-        name: str
+        name : str
             Name for the model. This name will be prefixed to the model parameter names.
-        model_function: callable
+        model_function : callable
             Function containing the model function. Must return the model prediction given values for the independent
             variable and parameters.
-        dependent: str (optional)
+        dependent : str (optional)
             Name of the dependent variable
-        independent: str (optional)
+        independent : str (optional)
             Name of the independent variable
-        jacobian: callable (optional)
+        jacobian : callable (optional)
             Function which computes the first order derivatives with respect to the parameters for this model.
             When supplied, this function is used to speed up the optimization considerably.
-        derivative: callable (optional)
+        derivative : callable (optional)
             Function which computes the first order derivative with respect to the independent parameter. When supplied
             this speeds up model inversions considerably.
-        eqn: str (optional)
+        eqn : str (optional)
             Equation that this model is specified by.
-        eqn_tex: str (optional)
+        eqn_tex : str (optional)
             Equation that this model is specified by using TeX formatting.
         **kwargs
             Key pairs containing parameter defaults. For instance, Lc=Parameter(...)
@@ -55,7 +55,7 @@ class Model:
             from lumicks import pylake
 
             dna_model = pylake.inverted_odijk("DNA")
-            fit = pylake.Fit(dna_model)
+            fit = pylake.FdFit(dna_model)
             fit.add_data("my data", force, distance)
 
             fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
@@ -107,8 +107,8 @@ class Model:
 
         Parameters
         ----------
-        independent: array_like
-        params: ``pylake.fitting.Params``
+        independent : array_like
+        params : ``pylake.fitting.Params``
         """
         independent = np.asarray(independent, dtype=np.float64)
         return self._raw_call(independent, np.asarray([params[name].value for name in self.parameter_names],
@@ -123,7 +123,7 @@ class Model:
 
         Parameters
         ----------
-        other: pylake.fitting.Model
+        other : pylake.fitting.Model
 
         Examples
         --------
@@ -201,9 +201,9 @@ class Model:
 
         Parameters
         ----------
-        independent: array_like
+        independent : array_like
             Values for the independent variable at which the Jacobian needs to be returned.
-        param_vector: array_like
+        param_vector : array_like
             Parameter vector at which to simulate.
         """
         if self.has_jacobian:
@@ -219,9 +219,9 @@ class Model:
 
         Parameters
         ----------
-        independent: array_like
+        independent : array_like
             Values for the independent variable at which the derivative needs to be returned.
-        param_vector: array_like
+        param_vector : array_like
             Parameter vector at which to simulate.
         """
         if self.has_derivative:
@@ -280,17 +280,17 @@ class Model:
 
         Parameters
         ----------
-        independent: array_like
+        independent : array_like
             Values for the independent variable at which to compare the Jacobian.
-        params: array_like
+        params : array_like
             Parameter vector at which to compare the Jacobian.
-        plot: bool
+        plot : bool
             Plot the results (default = False)
-        verbose: bool
+        verbose : bool
             Print the result (default = True)
-        dx: float
+        dx : float
             Finite difference excursion.
-        **kwargs:
+        **kwargs :
             Forwarded to `~matplotlib.pyplot.plot`.
         """
         if len(params) != len(self._params):
@@ -331,11 +331,11 @@ class Model:
 
         Parameters
         ----------
-        independent: array_like
+        independent : array_like
             Values for the independent variable at which to compare the derivative.
-        params: array_like
+        params : array_like
             Parameter vector at which to compare the derivative.
-        dx: float
+        dx : float
             Finite difference excursion.
         """
 
@@ -353,13 +353,13 @@ class Model:
 
         Parameters
         ----------
-        params: Params
+        params : Params
             Parameter set, typically obtained from a Fit.
-        independent: array_like
+        independent : array_like
             Array of values for the independent variable.
-        fmt: str (optional)
+        fmt : str (optional)
             Plot formatting string (see `matplotlib.pyplot.plot` documentation).
-        **kwargs:
+        **kwargs :
             Forwarded to `~matplotlib.pyplot.plot`.
 
         Examples
@@ -367,18 +367,18 @@ class Model:
         ::
 
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
-            fit = pylake.Fit(dna_model)
+            fit = pylake.FdFit(dna_model)
             fit.add_data("data1", force1, distance1)
             fit.add_data("data2", force2, distance2, {"DNA/Lc": "DNA/Lc_RecA"})
             fit.fit()
 
             # Option 1
-            fit.plot("data 1", distance1, 'k--')  # Plot model simulations for data set 1
-            fit.plot("data 2", distance2, 'k--')  # Plot model simulations for data set 2
+            fit.plot("data 1", 'k--', distance1)  # Plot model simulations for data set 1
+            fit.plot("data 2", 'k--', distance2)  # Plot model simulations for data set 2
 
             # Option 2
-            dna_model.plot(fit["data1"], distance1, fmt='k--')  # Plot model simulations for data set 1
-            dna_model.plot(fit["data2"], distance2, fmt='k--')  # Plot model simulations for data set 2
+            dna_model.plot(fit["data1"], distance1, 'k--')  # Plot model simulations for data set 1
+            dna_model.plot(fit["data2"], distance2, 'k--')  # Plot model simulations for data set 2
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(params, Params):
@@ -394,8 +394,8 @@ class CompositeModel(Model):
 
         Parameters
         ----------
-        lhs: Model
-        rhs: Model
+        lhs : Model
+        rhs : Model
         """
         self.lhs = lhs
         self.rhs = rhs
@@ -473,13 +473,13 @@ class InverseModel(Model):
 
         Parameters
         ----------
-        model: Model
-        independent_min: float
+        model : Model
+        independent_min : float
             Minimum value for the independent variable of the forward model. Default: 0.0.
-        independent_max: float
+        independent_max : float
             Maximum value for the independent variable of the forward model. Default: np.inf.
             Note that a finite maximum has to be specified if you wish to use the interpolation mode.
-        interpolate: bool
+        interpolate : bool
             Use interpolation approximation. Default: False.
         """
         self.model = model
@@ -551,7 +551,7 @@ class SubtractIndependentOffset(Model):
 
         Parameters
         ----------
-        model: Model
+        model : Model
         """
         self.model = model
         offset_name = parameter_name

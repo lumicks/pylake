@@ -12,11 +12,11 @@ class FitData:
 
     Parameters
     ----------
-    name: str
+    name : str
         name of this dataset
-    x, y: array_like
+    x, y : array_like
         Actual data
-    transformations: OrderedDict
+    transformations : OrderedDict
         set of transformations from internal model parameters to outer parameters
     """
     def __init__(self, name, x, y, transformations):
@@ -46,7 +46,7 @@ class FitData:
 
         Parameters
         ----------
-        params: Params
+        params : Params
             Fit parameters, typically obtained from a Fit.
         """
         mapping = OrderedDict((key, params[x]) if isinstance(x, str) else (key, float(x)) for

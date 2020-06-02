@@ -12,9 +12,9 @@ class Datasets:
 
         Parameters
         ----------
-        model: Model
+        model : Model
             The model these datasets are for.
-        fit: Fit
+        fit : Fit
             Fit this dataset is associated with.
         """
         self._model = model
@@ -58,13 +58,13 @@ class Datasets:
 
         Parameters
         ----------
-        name: str
+        name : str
             Name of this data set.
-        x: array_like
+        x : array_like
             Independent variable. NaNs are silently dropped.
-        y: array_like
+        y : array_like
             Dependent variable. NaNs are silently dropped.
-        params: dict of {str : str or int}
+        params : dict of {str : str or int}
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
 
@@ -100,20 +100,51 @@ class Datasets:
     def plot(self, data=None, fmt='', independent=None, legend=True, plot_data=True, overrides=None, **kwargs):
         """Plot model and data
 
-        data: str
-            Name of the data set to plot (optional, omission plots all for that model).
-        fmt: str
-            Format string, forwarded to :func:`matplotlib.pyplot.plot`.
-        independent: array_like
-            Array with values for the independent variable (used when plotting the model).
-        legend: bool
-            Show legend (default: True).
-        plot_data: bool
-            Show data (default: True).
-        overrides: dict
-            Parameter value overrides.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.plot`.
+        Parameters
+        ----------
+            data : str
+                Name of the data set to plot (optional, omission plots all for that model).
+            fmt : str
+                Format string, forwarded to :func:`matplotlib.pyplot.plot`.
+            independent : array_like
+                Array with values for the independent variable (used when plotting the model).
+            legend : bool
+                Show legend (default: True).
+            plot_data : bool
+                Show data (default: True).
+            overrides : dict
+                Parameter / value pairs which override parameter values in the current fit. Should be a dict of
+                {str: float} that provides values for parameters which should be set to particular values in the plot
+                (default: None);
+            ``**kwargs``
+                Forwarded to :func:`matplotlib.pyplot.plot`.
+
+        Examples
+        --------
+        ::
+            from lumicks import pylake
+
+            model = pylake.inverted_odijk("DNA")
+            fit = pylake.FdFit(model)
+            fit.add_data("Control", force, distance)
+            fit.fit()
+
+            # Basic plotting of one data set over a custom range can be done by just invoking plot.
+            fit.plot("Control", 'k--', np.arange(2.0, 5.0, 0.01))
+
+            # Have a quick look at what a stiffness of 5 would do to the fit.
+            fit.plot("Control", overrides={"DNA/St": 5})
+
+            # When dealing with multiple models in one fit, one has to select the model first when we want to plot.
+            model1 = pylake.odijk("DNA")
+            model2 = pylake.odijk("DNA") + pylake.odijk("protein")
+            fit[model1].add_data("Control", force1, distance2)
+            fit[model2].add_data("Control", force1, distance2)
+            fit.fit()
+
+            fit = pylake.FdFit(model1, model2)
+            fit[model1].plot("Control")  # Plots data set Control for model 1
+            fit[model2].plot("Control")  # Plots data set Control for model 2
         """
         self._fit._plot(self._model, data, fmt, overrides, independent, legend, plot_data, **kwargs)
 
@@ -161,18 +192,20 @@ class FdDatasets(Datasets):
 
         Parameters
         ----------
-        name: str
+        name : str
             Name of this data set.
-        f: array_like
+        f : array_like
             An array_like containing force data.
-        d: array_like
+        d : array_like
             An array_like containing distance data.
-        params: dict of {str : str or int}
+        params : dict of {str : str or int}
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
+
         Examples
         --------
         ::
+
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
             fit = pylake.FdFit(dna_model)
 

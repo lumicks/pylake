@@ -12,9 +12,9 @@ def generate_conditions(data_sets, parameter_lookup, model_params):
     ----------
     data_sets : list of Data
         References to data
-    parameter_lookup: OrderedDict[str, int]
+    parameter_lookup : OrderedDict[str, int]
         Lookup table for looking up parameter indices by name
-    model_params: list of str
+    model_params : list of str
         Base model parameter names
     """
     # Quickly concatenate the parameter transformations corresponding to this condition

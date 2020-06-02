@@ -6,7 +6,7 @@ def force_offset(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -35,7 +35,7 @@ def distance_offset(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -68,7 +68,7 @@ def marko_siggia_ewlc_force(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -105,7 +105,7 @@ def marko_siggia_ewlc_distance(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -142,7 +142,7 @@ def marko_siggia_simplified(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -180,7 +180,7 @@ def odijk(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -212,7 +212,7 @@ def inverted_odijk(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -252,7 +252,7 @@ def freely_jointed_chain(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -285,7 +285,7 @@ def inverted_freely_jointed_chain(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import InverseModel
@@ -304,7 +304,7 @@ def twistable_wlc(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
@@ -350,7 +350,7 @@ def inverted_twistable_wlc(name):
 
     Parameters
     ----------
-    name: str
+    name : str
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model

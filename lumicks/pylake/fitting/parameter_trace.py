@@ -17,21 +17,23 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
     inverted_parameter : str
         Parameter to invert.
     independent : array_like
-        vector of values for the independent variable
-    dependent: array_like
-        vector of values for the dependent variable
-    **kwargs:
-        forwarded to scipy.optimize.least_squares
+        Vector of values for the independent variable
+    dependent : array_like
+        Vector of values for the dependent variable
+    **kwargs :
+        Forwarded to scipy.optimize.least_squares
 
     Examples
     --------
     ::
+
         # Define the model to be fitted
         model = pylake.inverted_odijk("model") + pylake.force_offset("model")
 
         # Fit the overall model first
-        data_handle = model.add_data("dataset1", f=force_data, d=distance_data)
-        current_fit = pylake.Fit(model)
+        model.add_data("dataset1", f=force_data, d=distance_data)
+        current_fit = pylake.FdFit(model)
+        data_handle = current_fit.add_data("my data", force, distance)
         current_fit.fit()
 
         # Calculate a per data point contour length

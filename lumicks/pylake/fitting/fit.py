@@ -21,7 +21,7 @@ class Fit:
     Parameters
     ----------
     *models
-        Variable number of ``pylake.fitting.Model``.
+        Variable number of `pylake.fitting.Model`.
 
     Examples
     --------
@@ -30,7 +30,7 @@ class Fit:
         from lumicks import pylake
 
         dna_model = pylake.inverted_odijk("DNA")
-        fit = pylake.Fit(dna_model)
+        fit = pylake.FdFit(dna_model)
         data = fit.add_data("Dataset 1", force, distance)
 
         fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
@@ -49,12 +49,11 @@ class Fit:
         return Datasets(model, self)
 
     def update_params(self, other):
-        """
-        Sets parameters if they are found in the target fit.
+        """Sets parameters if they are found in the target fit.
 
         Parameters
         ----------
-        other: Fit or Params
+        other : Fit or Params
         """
         if isinstance(other, Params):
             self.params.update_params(other)
@@ -88,9 +87,7 @@ class Fit:
 
     @property
     def has_jacobian(self):
-        """
-        Returns true if it is possible to evaluate the Jacobian of the fit.
-        """
+        """Returns true if it is possible to evaluate the Jacobian of the fit."""
         has_jacobian = True
         for model in self.models.values():
             has_jacobian = has_jacobian and model.has_jacobian
@@ -115,7 +112,7 @@ class Fit:
 
     @property
     def params(self):
-        """Fit parameters. See also ``pylake.fitting.Params``"""
+        """Fit parameters. See also `pylake.fitting.Params`"""
         self._rebuild()
         return self._params
 
@@ -129,10 +126,8 @@ class Fit:
         return dirty
 
     def _rebuild(self):
-        """
-        Checks whether the model state is up to date. Any user facing methods should ideally check whether the model
-        needs to be rebuilt.
-        """
+        """Checks whether the model state is up to date. Any user facing methods should ideally check whether the model
+        needs to be rebuilt."""
         if self.dirty:
             self._build_fit()
 
@@ -167,15 +162,15 @@ class Fit:
 
         Parameters
         ----------
-        parameter_vector: array_like
+        parameter_vector : array_like
             List of parameters
-        lb: array_like
+        lb : array_like
             list of lower parameter bounds
-        ub: array_like
+        ub : array_like
             list of lower parameter bounds
-        show_fit: bool
+        show_fit : bool
             show fitting (slow!)
-        fitted: array_like
+        fitted : array_like
             list of which parameters are fitted
         """
         if show_fit:
@@ -215,7 +210,7 @@ class Fit:
 
         Parameters
         ----------
-        show_fit: bool
+        show_fit : bool
             Show the fitting procedure as it is progressing.
         """
         parameter_vector, fitted, lb, ub = self._prepare_fit()
@@ -298,20 +293,52 @@ class Fit:
     def plot(self, data=None, fmt='', independent=None, legend=True, plot_data=True, overrides=None, **kwargs):
         """Plot model and data
 
-        data: str
-            Name of the data set to plot (optional, omission plots all for that model).
-        fmt: str
-            Format string, forwarded to :func:`matplotlib.pyplot.plot`.
-        independent: array_like
-            Array with values for the independent variable (used when plotting the model).
-        legend: bool
-            Show legend (default: True).
-        plot_data: bool
-            Show data (default: True).
-        overrides: dict
-            Parameter value overrides.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.plot`.
+        Parameters
+        ----------
+            data : str
+                Name of the data set to plot (optional, omission plots all for that model).
+            fmt : str
+                Format string, forwarded to :func:`matplotlib.pyplot.plot`.
+            independent : array_like
+                Array with values for the independent variable (used when plotting the model).
+            legend : bool
+                Show legend (default: True).
+            plot_data : bool
+                Show data (default: True).
+            overrides : dict
+                Parameter / value pairs which override parameter values in the current fit. Should be a dict of
+                {str: float} that provides values for parameters which should be set to particular values in the plot
+                (default: None);
+            ``**kwargs``
+                Forwarded to :func:`matplotlib.pyplot.plot`.
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            model = pylake.inverted_odijk("DNA")
+            fit = pylake.FdFit(model)
+            fit.add_data("Control", force, distance)
+            fit.fit()
+
+            # Basic plotting of one data set over a custom range can be done by just invoking plot.
+            fit.plot("Control", 'k--', np.arange(2.0, 5.0, 0.01))
+
+            # Have a quick look at what a stiffness of 5 would do to the fit.
+            fit.plot("Control", overrides={"DNA/St": 5})
+
+            # When dealing with multiple models in one fit, one has to select the model first when we want to plot.
+            model1 = pylake.odijk("DNA")
+            model2 = pylake.odijk("DNA") + pylake.odijk("protein")
+            fit[model1].add_data("Control", force1, distance2)
+            fit[model2].add_data("Control", force1, distance2)
+            fit.fit()
+
+            fit = pylake.FdFit(model1, model2)
+            fit[model1].plot("Control")  # Plots data set Control for model 1
+            fit[model2].plot("Control")  # Plots data set Control for model 2
         """
         assert len(self.models) == 1, "Please select a model to plot using fit[model].plot(...)."
         self._plot(front(self.models.values()), data, fmt, overrides, independent, legend, plot_data, **kwargs)
@@ -415,8 +442,7 @@ class Fit:
 
     @property
     def bic(self):
-        """
-        Calculates the Bayesian Information Criterion:
+        """Calculates the Bayesian Information Criterion:
 
             BIC = k ln(n) - 2 ln(L)
 
@@ -433,8 +459,7 @@ class Fit:
 
     @property
     def cov(self):
-        """
-        Returns the inverse of the approximate Hessian. This approximation is valid when the model fits well (small
+        """Returns the inverse of the approximate Hessian. This approximation is valid when the model fits well (small
         residuals) and there is sufficient data to assume we're in the asymptotic regime.
 
         It makes use of the Gauss-Newton approximation of the Hessian, which uses only the first order sensitivity
@@ -500,7 +525,7 @@ class FdFit(Fit):
         from lumicks import pylake
 
         dna_model = pylake.inverted_odijk("DNA")
-        fit = pylake.Fit(dna_model)
+        fit = pylake.FdFit(dna_model)
         data = fit.add_data("Dataset 1", force, distance)
 
         fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
@@ -510,23 +535,24 @@ class FdFit(Fit):
         fit.plot("Dataset 1", "k--")  # Plot the fitted model"""
 
     def add_data(self, name, f, d, params={}):
-        """
-        Adds a data set to this fit.
+        """Adds a data set to this fit.
 
         Parameters
         ----------
-        name: str
+        name : str
             Name of this data set.
-        f: array_like
+        f : array_like
             An array_like containing force data.
-        d: array_like
+        d : array_like
             An array_like containing distance data.
-        params: dict of {str : str or int}
+        params : dict of {str : str or int}
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
+
         Examples
         --------
         ::
+
             dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
             fit = pylake.FdFit(dna_model)
 

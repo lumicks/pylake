@@ -12,17 +12,17 @@ class Parameter:
 
         Parameters
         ----------
-        value: float
+        value : float
             Parameter value
-        lower_bound, upper_bound: float
+        lower_bound, upper_bound : float
             Lower and upper bound used in the fitting process. Parameters are not allowed to go beyond these bounds.
-        fixed: bool
+        fixed : bool
             Is this parameter fixed (not estimated from data)?
-        shared: bool
+        shared : bool
             Is this parameter typically model specific or shared between models? An example of a model specific
             parameter is the contour length of a protein, whereas the Boltzmann constant times temperate (kT) is an
             example of a parameter that is typically shared between models.
-        unit: str
+        unit : str
             Unit of the parameter
         """
         self.value = value
@@ -51,7 +51,7 @@ class Params:
     Examples
     --------
     ::
-        fit = pylake.Fit(pylake.odijk("my_model"))
+        fit = pylake.FdFit(pylake.odijk("my_model"))
 
         print(fit.params)  # Prints the model parameters
         fit["test_parameter"].value = 5  # Set parameter test_parameter to 5
@@ -61,7 +61,7 @@ class Params:
         parameters.update_params(other_parameters)
 
         # Copy the parameters from an earlier fit into the combined model.
-        fit_combined_model.update_params(fit_dna)
+        fit_combined_model.update_params(fit)
     """
     def __init__(self, **kwargs):
         self._src = OrderedDict()
@@ -83,7 +83,7 @@ class Params:
 
         Parameters
         ----------
-        other: Params
+        other : Params
         """
         if isinstance(other, Params):
             found = False
