@@ -7,9 +7,9 @@ FD curves
 
 The following code loads an HDF5 file and lists all of the FD curves inside of it::
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
-    file = pylake.File("example.h5")
+    file = lk.File("example.h5")
     list(file.fdcurves)  # e.g. shows: "['baseline', '1', '2']"
 
 To visualizes an FD curve, you can use the built-in `.plot_scatter()` function::

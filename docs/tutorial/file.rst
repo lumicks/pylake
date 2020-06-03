@@ -7,9 +7,9 @@ Files and channels
 
 Opening a Bluelake HDF5 file is very simple::
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
-    file = pylake.File("example.h5")
+    file = lk.File("example.h5")
 
 Contents
 --------

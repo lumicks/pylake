@@ -16,7 +16,7 @@ With the IRM, you can see unlabeled microtubules and the kinesin-coated bead on 
 
 Open the file::
 
-    file = pylake.File("20190215-142512 Marker force clamp.h5")
+    file = lk.File("20190215-142512 Marker force clamp.h5")
 
 Load the data::
 
