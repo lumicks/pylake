@@ -114,6 +114,24 @@ class Model:
     def _raw_call(self, independent, param_vector):
         return self.model_function(independent, *param_vector)
 
+    def __add__(self, other):
+        """
+        Add two model outputs to form a new model.
+
+        Parameters
+        ----------
+        other : pylake.fitting.Model
+
+        Examples
+        --------
+        ::
+            DNA_model = pylake.inverted_odijk("DNA")
+            protein_model = pylake.inverted_odijk("protein")
+            construct_model = DNA_model + protein_model
+        """
+
+        return CompositeModel(self, other)
+
     def get_formatted_equation_string(self, tex):
         if self.eqn:
             if tex:
@@ -351,3 +369,82 @@ class Model:
             raise RuntimeError('Did not pass Params')
 
         return plt.plot(independent, self(independent, params), fmt, **kwargs)
+
+
+class CompositeModel(Model):
+    def __init__(self, lhs, rhs):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        lhs : Model
+        rhs : Model
+        """
+        self.lhs = lhs
+        self.rhs = rhs
+
+        assert self.lhs.independent == self.rhs.independent, \
+            f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
+
+        assert self.lhs.dependent == self.rhs.dependent, \
+            f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+
+        self.name = self.lhs.name + "_with_" + self.rhs.name
+        self._params = OrderedDict()
+        for i, v in self.lhs._params.items():
+            self._params[i] = v
+        for i, v in self.rhs._params.items():
+            self._params[i] = v
+
+        params_lhs = list(self.lhs._params.keys())
+        params_rhs = list(self.rhs._params.keys())
+        params_all = list(self._params.keys())
+
+        self.lhs_params = [params_all.index(par) for par in params_lhs]
+        self.rhs_params = [params_all.index(par) for par in params_rhs]
+
+    @property
+    def dependent(self):
+        return self.lhs.dependent
+
+    @property
+    def independent(self):
+        return self.lhs.independent
+
+    def eqn(self, independent_name, *parameter_names):
+        return self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_params]) + " + " +\
+            self.rhs.eqn(independent_name, *[parameter_names[x] for x in self.rhs_params])
+
+    def eqn_tex(self, independent, *parameter_names):
+        return self.lhs.eqn_tex(independent, *[parameter_names[x] for x in self.lhs_params]) + \
+               " + " + self.rhs.eqn_tex(independent, *[parameter_names[x] for x in self.rhs_params])
+
+    def _raw_call(self, independent, param_vector):
+        lhs_residual = self.lhs._raw_call(independent, [param_vector[x] for x in self.lhs_params])
+        rhs_residual = self.rhs._raw_call(independent, [param_vector[x] for x in self.rhs_params])
+
+        return lhs_residual + rhs_residual
+
+    @property
+    def has_jacobian(self):
+        return self.lhs.has_jacobian and self.rhs.has_jacobian
+
+    @property
+    def has_derivative(self):
+        return self.lhs.has_derivative and self.rhs.has_derivative
+
+    def jacobian(self, independent, param_vector):
+        if self.has_jacobian:
+            jacobian = np.zeros((len(param_vector), len(independent)))
+            jacobian[self.lhs_params, :] += self.lhs.jacobian(independent, [param_vector[x] for x in self.lhs_params])
+            jacobian[self.rhs_params, :] += self.rhs.jacobian(independent, [param_vector[x] for x in self.rhs_params])
+
+            return jacobian
+
+    def derivative(self, independent, param_vector):
+        if self.has_derivative:
+            lhs_derivative = self.lhs.derivative(independent, [param_vector[x] for x in self.lhs_params])
+            rhs_derivative = self.rhs.derivative(independent, [param_vector[x] for x in self.rhs_params])
+
+            return lhs_derivative + rhs_derivative
