@@ -25,6 +25,7 @@ FD Fitting
 
     fitting.model.Model
     FdFit
+    parameter_trace
 
 .. _fd_models:
 .. rubric:: Available models
@@ -41,3 +42,5 @@ FD Fitting
     inverted_odijk
     freely_jointed_chain
     inverted_freely_jointed_chain
+    twistable_wlc
+    inverted_twistable_wlc
