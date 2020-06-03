@@ -7,6 +7,7 @@ from ..fitting.detail.utilities import parse_transformation, unique_idx, escape_
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.model import Model, InverseModel
+from ..fitting.datasets import Datasets
 
 
 def test_transformation_parser():
@@ -193,6 +194,26 @@ def test_model_defaults():
     m = Model("M", g, f=default)
     m._params["M/f"].value = 6
     assert default.value == 5
+
+
+def test_datasets_build_status():
+    def g(data, mu, sig, a, b, c, d, e, f, q):
+        return (data - mu) * 2
+
+    all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/f", "M/q"]
+
+    m = Model("M", g)
+    d = Datasets(m, 0)
+
+    d._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4})
+    assert not d.built
+
+    d._link_data(OrderedDict(zip(all_params, np.arange(len(all_params)))))
+    assert d.built
+
+    # Loading new data should invalidate the build
+    d._add_data("test2", [1, 2, 3], [2, 3, 4], {'M/c': 5, 'M/f': 'f/new'})
+    assert not d.built
 
 
 def test_integration_test_fitting():
