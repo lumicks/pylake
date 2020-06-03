@@ -1,5 +1,7 @@
 import pytest
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.testing.decorators import cleanup
 
 from collections import OrderedDict
 from ..fitting.parameters import Params, Parameter
@@ -9,6 +11,8 @@ from ..fitting.fitdata import Condition, FitData
 from ..fitting.model import Model, InverseModel
 from ..fitting.datasets import Datasets, FdDatasets
 from ..fitting.fit import Fit, FdFit
+from ..fitting.detail.model_implementation import solve_cubic_wlc, invwlc_root_derivatives
+from ..fitting.models import *
 
 
 def test_transformation_parser():
@@ -354,6 +358,12 @@ def test_jacobian_test_fit():
     fit.params["f/b"].value = b_true
     assert not fit.verify_jacobian(fit.params.values)
 
+    with pytest.raises(ValueError):
+        assert (odijk("WLC").verify_jacobian([1.0, 2.0, 3.0], [1.0, 2.0]))
+
+    with pytest.raises(ValueError):
+        odijk("WLC").verify_derivative([1, 2, 3], [1, 2, 3])
+
 
 def test_integration_test_fitting():
     def linear(x, a, b):
@@ -471,6 +481,52 @@ def integration_test_parameter_linkage():
     assert fit["M/b2"].value == 4
 
 
+def test_models():
+    independent = np.arange(0.15, 2, .25)
+    params = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    assert(odijk("WLC").verify_jacobian(independent, params))
+    assert(inverted_odijk("iWLC").verify_jacobian(independent, params, atol=1e-5))
+    assert(freely_jointed_chain("FJC").verify_jacobian(independent, params, dx=1e-4, atol=1e-6))
+    assert(marko_siggia_simplified("MS").verify_jacobian(independent, [5, 5, 4.11], atol=1e-6))
+
+    assert(odijk("WLC").verify_derivative(independent, params))
+    assert(inverted_odijk("iWLC").verify_derivative(independent, params))
+    assert(freely_jointed_chain("FJC").verify_derivative(independent, params, atol=1e-6))
+    assert(marko_siggia_simplified("MS").verify_derivative(independent, [5, 5, 4.11], atol=1e-6))
+
+    assert(marko_siggia_ewlc_force("MSF").verify_jacobian(independent, params, dx=1e-4, rtol=1e-4))
+    assert(marko_siggia_ewlc_distance("MSD").verify_jacobian(independent, params, dx=1e-4))
+    assert(marko_siggia_ewlc_force("MSF").verify_derivative(independent, params, dx=1e-4))
+    assert(marko_siggia_ewlc_distance("MSD").verify_derivative(independent, params, dx=1e-4))
+
+    # The finite differencing version of the FJC performs very poorly numerically, hence the less stringent
+    # tolerances and larger dx values.
+    assert(inverted_freely_jointed_chain("iFJC").verify_derivative(independent, params, dx=1e-3, rtol=1e-2, atol=1e-6))
+    assert(inverted_freely_jointed_chain("iFJC").verify_jacobian(independent, params, dx=1e-3, atol=1e-2, rtol=1e-2))
+
+    # Check whether the inverted models invert correctly
+    from ..fitting.detail.model_implementation import WLC, invWLC, FJC, invFJC
+
+    d = np.array([3.0, 4.0])
+    params = [5.0, 5.0, 5.0]
+    assert (np.allclose(WLC(invWLC(d, *params), *params), d))
+    params = [5.0, 15.0, 1.0, 4.11]
+    assert (np.allclose(FJC(invFJC(independent, *params), *params), independent))
+
+    d = np.arange(0.15, 2, .5)
+    (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)
+    params = [Lp, Lc, St, kT]
+    m_fwd = marko_siggia_ewlc_force("fwd")
+    m_bwd = marko_siggia_ewlc_distance("bwd")
+    force = m_fwd._raw_call(d, params)
+    assert np.allclose(m_bwd._raw_call(force, params), d)
+
+    # Determine whether they actually fulfill the model
+    lhs = (force*Lp/kT)
+    rhs = 0.25 * (1.0 - (d/Lc) + (force/St))**(-2) - 0.25 + (d/Lc) - (force/St)
+    assert np.allclose(lhs, rhs)
+
+
 def test_model_composition():
     def f(x, a, b):
         return a + b * x
@@ -532,6 +588,25 @@ def test_model_composition():
 
     assert m1.subtract_independent_offset().verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert m1.subtract_independent_offset().verify_derivative(t, [-1.0, 2.0, 3.0])
+
+    m1 = inverted_odijk("DNA").subtract_independent_offset() + force_offset("f")
+    m2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
+    t = np.array([.19, .2, .3])
+    p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
+    p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
+    assert np.allclose(m1._raw_call(t, p1), m2._raw_call(t, p2))
+
+    # Check whether incompatible variables are found
+    with pytest.raises(AssertionError):
+        distance_offset("d") + force_offset("f")
+
+    composite = (distance_offset("d") + odijk("DNA"))
+    assert composite.dependent == "d"
+    assert composite.independent == "f"
+
+    inverted = composite.invert()
+    assert inverted.dependent == "f"
+    assert inverted.independent == "d"
 
 
 def test_uncertainty_analysis():
@@ -629,6 +704,76 @@ def test_data_loading():
         fit._add_data("test4", [[1, 3, 5]], [[2, 4, 5]])
 
 
+def test_parameter_access():
+    m = inverted_odijk("DNA")
+    fit = FdFit(m)
+    data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
+    data2 = fit._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+
+    assert fit[m]["RecA"] == fit.params[data1]
+    assert fit[m]["RecA2"] == fit.params[data2]
+
+    # Test the convenience accessor
+    assert fit["RecA"] == fit.params[data1]
+    assert fit["RecA2"] == fit.params[data2]
+
+    m1 = inverted_odijk("DNA")
+    m2 = inverted_odijk("Protein")
+    fit = FdFit(m1, m2)
+
+    # This should throw since we have multiple models.
+    with pytest.raises(RuntimeError):
+        data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+
+    data1 = fit[m1]._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+    data2 = fit[m2]._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"Protein/Lc": "Protein/Lc2"})
+
+    with pytest.raises(KeyError):
+        data3 = fit[m2]._add_data("RecA3", [1, 2, 3], [1, 2, 3], params={"Protein2/Lc": "Protein2/Lc2"})
+
+    assert fit[m1]["RecA"] == fit.params[data1]
+    assert fit[m2]["RecA2"] == fit.params[data2]
+
+    # We can no longer use the convenience accessor.
+    with pytest.raises(IndexError):
+        assert fit["RecA"] == fit.params[data1]
+
+
+def test_data_access():
+    m = inverted_odijk("DNA")
+    fit = FdFit(m)
+    data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
+    data2 = fit._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+
+    assert fit[m].data["RecA"] == data1
+    assert fit[m].data["RecA2"] == data2
+
+    # Test the convenience accessor
+    assert fit.data["RecA"] == data1
+    assert fit.data["RecA2"] == data2
+
+    m1 = inverted_odijk("DNA")
+    m2 = inverted_odijk("Protein")
+    fit = FdFit(m1, m2)
+
+    # This should throw since we have multiple models.
+    with pytest.raises(RuntimeError):
+        data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+
+    data1 = fit[m1]._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+    data2 = fit[m2]._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"Protein/Lc": "Protein/Lc2"})
+
+    with pytest.raises(KeyError):
+        data3 = fit[m2]._add_data("RecA3", [1, 2, 3], [1, 2, 3], params={"Protein2/Lc": "Protein2/Lc2"})
+
+    assert fit[m1].data["RecA"] == data1
+    assert fit[m2].data["RecA2"] == data2
+
+    # We can no longer use the convenience accessor.
+    with pytest.raises(RuntimeError):
+        assert fit.data["RecA"] == data1
+
+
 def test_parameter_slicing():
     # Tests whether parameters coming from a Fit can be sliced by a data handle,
     # i.e. fit.params[data_handle]
@@ -652,9 +797,216 @@ def test_parameter_slicing():
     assert (parameter_slice["dummy/p2"].value == 5)
 
 
+def test_analytic_roots():
+    a = np.array([0])
+    b = np.array([-3])
+    c = np.array([1])
+    print(np.allclose(np.sort(np.roots([1, a, b, c])), np.sort(
+        [solve_cubic_wlc(a, b, c, 0)[0], solve_cubic_wlc(a, b, c, 1)[0], solve_cubic_wlc(a, b, c, 2)[0]])))
+
+    with pytest.raises(RuntimeError):
+        solve_cubic_wlc(a, b, c, 3)
+
+    def test_root_derivatives(root):
+        dx = 1e-5
+        ref_root = solve_cubic_wlc(a, b, c, root)
+        da = (solve_cubic_wlc(a + dx, b, c, root) - ref_root) / dx
+        db = (solve_cubic_wlc(a, b + dx, c, root) - ref_root) / dx
+        dc = (solve_cubic_wlc(a, b, c + dx, root) - ref_root) / dx
+
+        print([da[0], db[0], dc[0]])
+        print(np.array(invwlc_root_derivatives(a, b, c, root)))
+        assert np.allclose(np.array(invwlc_root_derivatives(a, b, c, root)), np.array([da, db, dc]), atol=1e-5, rtol=1e-5)
+
+    test_root_derivatives(0)
+    test_root_derivatives(1)
+    test_root_derivatives(2)
+
+
+def test_reprs():
+    assert odijk('test').__repr__()
+    assert inverted_odijk('test').__repr__()
+    assert freely_jointed_chain('test').__repr__()
+    assert marko_siggia_simplified('test').__repr__()
+    assert marko_siggia_ewlc_force('test').__repr__()
+    assert marko_siggia_ewlc_distance('test').__repr__()
+    assert inverted_freely_jointed_chain('test').__repr__()
+    assert (odijk('test') + distance_offset('test')).__repr__()
+    assert (odijk('test') + distance_offset('test')).invert().__repr__()
+    assert (odijk('test') + distance_offset('test')).subtract_independent_offset().__repr__()
+
+    assert odijk('test')._repr_html_()
+    assert inverted_odijk('test')._repr_html_()
+    assert freely_jointed_chain('test')._repr_html_()
+    assert marko_siggia_simplified('test')._repr_html_()
+    assert marko_siggia_ewlc_force('test')._repr_html_()
+    assert marko_siggia_ewlc_distance('test')._repr_html_()
+    assert inverted_freely_jointed_chain('test')._repr_html_()
+    assert (odijk('test') + distance_offset('test'))._repr_html_()
+    assert (odijk('test') + distance_offset('test')).invert()._repr_html_()
+    assert (odijk('test') + distance_offset('test')).subtract_independent_offset()._repr_html_()
+    assert (force_offset("a_b_c") + force_offset("b_c_d")).invert()._repr_html_().find("offset_{b\\_c\\_d}") > 0
+
+    m = odijk('DNA')
+    fit = Fit(m)
+    d1 = fit._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    assert d1.__repr__() == 'FitData(data_1, N=3)'
+
+    d2 = fit._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
+    assert d2.__repr__() == 'FitData(dataset_2, N=3, Transformations: DNA/Lc → DNA/Lc_2)'
+
+    f = Fit(m)
+    assert f.__repr__()
+    assert f._repr_html_()
+
+    fit._add_data("data_3", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 5})
+    assert fit.__repr__()
+    assert fit._repr_html_()
+
+    m = inverted_odijk("DNA")
+    fit = FdFit(m)
+    fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
+    fit._add_data("RecA2", [1, 2, 3], [1, 2, 3])
+    fit._add_data("RecA3", [1, 2, 3], [1, 2, 3])
+
+    assert fit[m].__repr__() == "lumicks.pylake.FdDatasets(datasets={RecA, RecA2, RecA3}, N=9)"
+    assert fit[m].__str__() == 'Data sets:\n- FitData(RecA, N=3)\n- FitData(RecA2, N=3)\n- FitData(RecA3, N=3)\n'
+    assert fit[m]._repr_html_() == ('&ensp;&ensp;FitData(RecA, N=3)<br>\n'
+                                    '&ensp;&ensp;FitData(RecA2, N=3)<br>\n' 
+                                    '&ensp;&ensp;FitData(RecA3, N=3)<br>\n')
+
+    assert fit.__repr__() == 'lumicks.pylake.FdFit(models={DNA}, N=9)'
+    assert fit.__str__() == ('Fit\n  - Model: DNA\n  - Equation:\n'
+                             '      f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(f*DNA.Lp)) + f/DNA.St)-d))\n\n'
+                             '  - Data sets:\n    - FitData(RecA, N=3)\n    - FitData(RecA2, N=3)\n    '
+                             '- FitData(RecA3, N=3)\n\n  '
+                             '- Fitted parameters:\n'
+                             '    Name      Value  Unit      Fitted      Lower bound    Upper bound\n'
+                             '    ------  -------  --------  --------  -------------  -------------\n'
+                             '    DNA/Lp    40     [nm]      True                  0            100\n'
+                             '    DNA/Lc    16     [micron]  True                  0            inf\n'
+                             '    DNA/St  1500     [pN]      True                  0            inf\n'
+                             '    kT         4.11  [pN*nm]   False                 0              8')
+
+
+def test_fd_variable_order():
+    # Fit takes dependent, then independent
+    m = odijk("M")
+    fit = Fit(m)
+    fit._add_data("test", [1, 2, 3], [2, 3, 4])
+    assert np.allclose(fit[m].data["test"].x, [1, 2, 3])
+    assert np.allclose(fit[m].data["test"].y, [2, 3, 4])
+
+    fit[m]._add_data("test2", [1, 2, 3], [2, 3, 4])
+    assert np.allclose(fit[m].data["test2"].x, [1, 2, 3])
+    assert np.allclose(fit[m].data["test2"].y, [2, 3, 4])
+
+    m = inverted_odijk("M")
+    fit = Fit(m)
+    fit._add_data("test", [1, 2, 3], [2, 3, 4])
+    assert np.allclose(fit[m].data["test"].x, [1, 2, 3])
+    assert np.allclose(fit[m].data["test"].y, [2, 3, 4])
+
+    fit[m]._add_data("test2", [1, 2, 3], [2, 3, 4])
+    assert np.allclose(fit[m].data["test2"].x, [1, 2, 3])
+    assert np.allclose(fit[m].data["test2"].y, [2, 3, 4])
+
+    # FdFit always takes f, d and maps it to the correct values
+    m = odijk("M")
+    fit = FdFit(m)
+
+    # Test the FdFit interface
+    fit.add_data("test", [1, 2, 3], [2, 3, 4])
+    assert np.allclose(fit[m].data["test"].x, [1, 2, 3])
+    assert np.allclose(fit[m].data["test"].y, [2, 3, 4])
+
+    # Test the FdDatasets interface
+    fit[m].add_data("test2", [3, 4, 5], [4, 5, 6])
+    assert np.allclose(fit[m].data["test2"].x, [3, 4, 5])
+    assert np.allclose(fit[m].data["test2"].y, [4, 5, 6])
+
+    m = inverted_odijk("M")
+    fit = FdFit(m)
+    fit.add_data("test", [1, 2, 3], [2, 3, 4])
+    assert np.allclose(fit[m].data["test"].x, [2, 3, 4])
+    assert np.allclose(fit[m].data["test"].y, [1, 2, 3])
+
+    # Test the FdDatasets interface
+    fit[m].add_data("test2", [3, 4, 5], [4, 5, 6])
+    assert np.allclose(fit[m].data["test2"].x, [4, 5, 6])
+    assert np.allclose(fit[m].data["test2"].y, [3, 4, 5])
+
+
 def test_tex_replacement():
     assert escape_tex("DNA/Hi") == "Hi_{DNA}"
     assert escape_tex("DNA/Hi_There") == "Hi\\_There_{DNA}"
     assert escape_tex("DNA_model/Hi_There") == "Hi\\_There_{DNA\\_model}"
     assert escape_tex("Hi_There") == "Hi\\_There"
     assert latex_sqrt("test") == r"\sqrt{test}"
+
+
+@cleanup
+def test_plotting():
+    m = odijk('DNA')
+    m2 = odijk('protein')
+
+    # Test single model plotting
+    fit = Fit(m)
+    fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit.plot()
+    fit.plot("data_1")
+    with pytest.raises(AssertionError):
+        fit.plot("non-existent-data")
+
+    fit.plot(overrides={'DNA/Lc': 12})
+    with pytest.raises(KeyError):
+        fit.plot(overrides={'DNA/c': 12})
+
+    fit.plot(overrides={'DNA/Lc': 12}, independent=np.arange(1.0, 5.0, 1.0))
+
+    with pytest.raises(KeyError):
+        fit[m2].plot()
+
+    # Test multi-model plotting
+    fit = Fit(m, m2)
+    fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit[m]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
+    fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit[m2]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'protein/Lc': 'protein/Lc_2'})
+    fit[m2]._add_data("dataset 3", [1, 2, 3], [2, 3, 4], {'protein/Lc': 'protein/Lc_2'})
+
+    with pytest.raises(AssertionError):
+        fit.plot()
+
+    fit[m].plot()
+    fit[m2].plot()
+    fit[m].plot("data_1")
+
+    with pytest.raises(AssertionError):
+        fit.plot(m, "non-existent-data")
+
+    fit[m2].plot("dataset 3")
+    with pytest.raises(AssertionError):
+        fit[m].plot("dataset 3")
+
+    fit[m].plot(overrides={'DNA/Lc': 12})
+    with pytest.raises(KeyError):
+        fit[m].plot(overrides={'DNA/c': 12})
+
+    independent = np.arange(0.15, 2, .25)
+    params = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    odijk("WLC").verify_jacobian(independent, params, plot=1)
+
+    independent = np.arange(0.15, 2, .25)
+    params = [38.18281266, 0.37704827, 278.50103452, 4.11]
+    fit = FdFit(odijk("WLC"))
+    fit.add_data("dataset 3", [1, 2, 3], [2, 3, 4])
+    plt.figure()
+    fit.verify_jacobian(params, plot=1)
+
+    # Test live fit plotting
+    fit = Fit(m, m2)
+    fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit[m]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
+    fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit.fit(show_fit=True, max_nfev=1)

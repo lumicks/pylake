@@ -25,3 +25,19 @@ FD Fitting
 
     fitting.model.Model
     FdFit
+
+.. _fd_models:
+.. rubric:: Available models
+
+.. autosummary::
+    :toctree: _api
+
+    force_offset
+    distance_offset
+    marko_siggia_ewlc_force
+    marko_siggia_ewlc_distance
+    marko_siggia_simplified
+    odijk
+    inverted_odijk
+    freely_jointed_chain
+    inverted_freely_jointed_chain
