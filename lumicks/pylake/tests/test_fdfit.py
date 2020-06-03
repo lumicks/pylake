@@ -3,10 +3,10 @@ import numpy as np
 
 from collections import OrderedDict
 from ..fitting.parameters import Params, Parameter
-from ..fitting.detail.utilities import parse_transformation, unique_idx
+from ..fitting.detail.utilities import parse_transformation, unique_idx, escape_tex, latex_sqrt
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitdata import Condition, FitData
-from ..fitting.model import Model, CompositeModel, InverseModel
+from ..fitting.model import Model, InverseModel
 
 
 def test_transformation_parser():
@@ -218,6 +218,7 @@ def test_integration_test_fitting():
     model = Model("M", linear, jacobian=linear_jac_wrong)
     assert not model.verify_jacobian([1, 2, 3], [1, 1])
 
+
 def test_model_composition():
     def f(x, a, b):
         return a + b * x
@@ -279,3 +280,11 @@ def test_model_composition():
 
     assert m1.subtract_independent_offset().verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert m1.subtract_independent_offset().verify_derivative(t, [-1.0, 2.0, 3.0])
+
+
+def test_tex_replacement():
+    assert escape_tex("DNA/Hi") == "Hi_{DNA}"
+    assert escape_tex("DNA/Hi_There") == "Hi\\_There_{DNA}"
+    assert escape_tex("DNA_model/Hi_There") == "Hi\\_There_{DNA\\_model}"
+    assert escape_tex("Hi_There") == "Hi\\_There"
+    assert latex_sqrt("test") == r"\sqrt{test}"
