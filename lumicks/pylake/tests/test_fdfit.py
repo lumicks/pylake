@@ -3,9 +3,10 @@ import numpy as np
 
 from collections import OrderedDict
 from ..fitting.parameters import Params, Parameter
-from ..fitting.detail.utilities import parse_transformation
+from ..fitting.detail.utilities import parse_transformation, unique_idx
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitdata import Condition, FitData
+from ..fitting.model import Model
 
 
 def test_transformation_parser():
@@ -153,3 +154,66 @@ def test_condition_struct():
     assert (np.all(c.p_external == np.array([0, 1, 2, 4])))
     assert (list(c.transformed) == ['gamma_specific', 'alpha', 'beta_specific', 5, 'zeta'])
     assert (np.allclose(c.get_local_params(param_vector), [10, 4, 12, 5, 14]))
+
+
+def test_model_calls():
+    def model_function(x, b, c, d):
+        return b + c * x + d * x * x
+
+    t = np.array([1.0, 2.0, 3.0])
+    model = Model("m", model_function)
+    y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
+
+    assert np.allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/c": Parameter(3),
+                                          "m/d": Parameter(4)})), y_ref)
+
+    assert np.allclose(model(t, Params(**{"m/d": Parameter(4), "m/c": Parameter(3), "m/b": Parameter(2)})), y_ref)
+
+    with pytest.raises(IndexError):
+        assert np.allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/d": Parameter(4)})), y_ref)
+
+
+def test_unique_idx():
+    uiq, inv = unique_idx(['str', 'str', 'hmm', 'potato', 'hmm', 'str'])
+    assert(uiq == ['str', 'hmm', 'potato'])
+    assert(inv == [0, 0, 1, 2, 1, 0])
+
+
+def test_model_defaults():
+    """Test whether model defaults propagate to the fit object correctly"""
+    def g(data, mu, sig, a, b, c, d, e, f, q):
+        return (data - mu) * 2
+
+    # Test whether providing a default for a parameter that doesn't exist throws
+    with pytest.raises(AssertionError):
+        Model("M", g, z=Parameter(5))
+
+    # Verify that the defaults are in fact copies
+    default = Parameter(5)
+    m = Model("M", g, f=default)
+    m._params["M/f"].value = 6
+    assert default.value == 5
+
+
+def test_integration_test_fitting():
+    def linear(x, a, b):
+        f = a * x + b
+        return f
+
+    def linear_jac(x, a, b):
+        jacobian = np.vstack((x, np.ones(len(x))))
+        return jacobian
+
+    def linear_jac_wrong(x, a, b):
+        jacobian = np.vstack((np.ones(len(x)), x))
+        return jacobian
+
+    assert Model("M", linear, jacobian=linear_jac).has_jacobian
+    assert not Model("M", linear).has_jacobian
+    with pytest.raises(RuntimeError):
+        Model("M", linear).jacobian([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+    with pytest.raises(RuntimeError):
+        Model("M", linear).derivative([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+
+    model = Model("M", linear, jacobian=linear_jac_wrong)
+    assert not model.verify_jacobian([1, 2, 3], [1, 1])
