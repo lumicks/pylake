@@ -276,3 +276,6 @@ def test_model_composition():
     assert not (InverseModel(m1_wrong_derivative) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(m1_wrong_jacobian) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert not (InverseModel(m1_wrong_derivative) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
+
+    assert m1.subtract_independent_offset().verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert m1.subtract_independent_offset().verify_derivative(t, [-1.0, 2.0, 3.0])
