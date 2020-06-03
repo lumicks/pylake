@@ -1,5 +1,5 @@
 from .parameters import Params
-from .datasets import Datasets
+from .datasets import Datasets, FdDatasets
 from .model import Model
 from collections import OrderedDict
 from ..detail.utilities import unique, lighten_color
@@ -512,3 +512,57 @@ class Fit:
             f"\n{' ' * indent}- Fitted parameters:\n"
             f"{(' ' * (2 * indent))}"
             f"{(' ' * (2 * indent)).join(self.params.__str__().splitlines(True))}")
+
+
+class FdFit(Fit):
+    """Object which is used for fitting. It is a collection of models and their data. Once data is loaded, a fit object
+    contains parameters, which can be fitted by invoking fit.
+
+    Examples
+    --------
+    ::
+
+        from lumicks import pylake
+
+        dna_model = pylake.inverted_odijk("DNA")
+        fit = pylake.FdFit(dna_model)
+        data = fit.add_data("Dataset 1", force, distance)
+
+        fit["DNA/Lp"].lower_bound = 35  # Set lower bound for DNA Lp
+        fit["DNA/Lp"].upper_bound = 80  # Set upper bound for DNA Lp
+        fit.fit()
+
+        fit.plot("Dataset 1", "k--")  # Plot the fitted model"""
+
+    def add_data(self, name, f, d, params={}):
+        """Adds a data set to this fit.
+
+        Parameters
+        ----------
+        name : str
+            Name of this data set.
+        f : array_like
+            An array_like containing force data.
+        d : array_like
+            An array_like containing distance data.
+        params : dict of {str : str or int}
+            List of parameter transformations. These can be used to convert one parameter in the model, to a new
+            parameter name or constant for this specific data set (for more information, see the examples).
+
+        Examples
+        --------
+        ::
+
+            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            fit = pylake.FdFit(dna_model)
+
+            fit.add_data("Data1", force1, distance1)  # Load the first data set like that
+            fit.add_data("Data2", force2, distance2, params={"DNA/Lc": "DNA/Lc_RecA"})  # Different DNA/Lc
+        """
+        if front(self.models.values()).independent == "f":
+            return self._add_data(name, f, d, params)
+        else:
+            return self._add_data(name, d, f, params)
+
+    def _dataset(self, model):
+        return FdDatasets(model, self)

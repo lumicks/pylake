@@ -183,3 +183,40 @@ class Datasets:
             repr_text += f"- {d.__repr__()}\n"
 
         return repr_text
+
+
+class FdDatasets(Datasets):
+    def add_data(self, name, f, d, params={}):
+        """
+        Adds a data set to this fit.
+
+        Parameters
+        ----------
+        name : str
+            Name of this data set.
+        f : array_like
+            An array_like containing force data.
+        d : array_like
+            An array_like containing distance data.
+        params : dict of {str : str or int}
+            List of parameter transformations. These can be used to convert one parameter in the model, to a new
+            parameter name or constant for this specific data set (for more information, see the examples).
+
+        Examples
+        --------
+        ::
+
+            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            fit = pylake.FdFit(dna_model)
+
+            fit.add_data("Data1", force1, distance1)  # Load the first data set like that
+            fit.add_data("Data2", force2, distance2, params={"DNA/Lc": "DNA/Lc_RecA"})  # Different DNA/Lc
+        """
+        if self._model.independent == "f":
+            return self._add_data(name, f, d, params)
+        else:
+            return self._add_data(name, d, f, params)
+
+    @staticmethod
+    def dataset(model):
+        return FdDatasets(model)
