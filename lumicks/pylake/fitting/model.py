@@ -1,6 +1,6 @@
 from .parameters import Parameter, Params
 from .detail.utilities import optimal_plot_layout, print_styled
-from .detail.derivative_manipulation import numerical_jacobian, numerical_diff
+from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, invert_derivative
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -169,6 +169,12 @@ class Model:
                       f"{Params(**self._params)._repr_()}\n")
 
         return model_info
+
+    def invert(self, independent_min=0.0, independent_max=np.inf, interpolate=False):
+        """
+        Invert this model (swap dependent and independent parameter).
+        """
+        return InverseModel(self, independent_min, independent_max, interpolate)
 
     @property
     def defaults(self):
@@ -448,3 +454,81 @@ class CompositeModel(Model):
             rhs_derivative = self.rhs.derivative(independent, [param_vector[x] for x in self.rhs_params])
 
             return lhs_derivative + rhs_derivative
+
+
+class InverseModel(Model):
+    def __init__(self, model, independent_min=0.0, independent_max=np.inf, interpolate=False):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        model : Model
+        independent_min : float
+            Minimum value for the independent variable of the forward model. Default: 0.0.
+        independent_max : float
+            Maximum value for the independent variable of the forward model. Default: np.inf.
+            Note that a finite maximum has to be specified if you wish to use the interpolation mode.
+        interpolate : bool
+            Use interpolation approximation. Default: False.
+        """
+        self.model = model
+        self.name = "inv(" + model.name + ")"
+        self.interpolate = interpolate
+        self.independent_min = independent_min
+        self.independent_max = independent_max
+        if self.interpolate:
+            assert np.isfinite(independent_min) and np.isfinite(independent_max), \
+                "Inversion limits have to be finite when using interpolation method."
+
+    @property
+    def dependent(self):
+        return self.model.independent
+
+    @property
+    def independent(self):
+        return self.model.dependent
+
+    def eqn(self, independent_name, *parameter_names):
+        return solve_formatter(self.model.eqn(independent_name, *parameter_names), self.dependent, self.independent)
+
+    def eqn_tex(self, independent_name, *parameter_names):
+        return solve_formatter_tex(self.model.eqn_tex(independent_name, *parameter_names), self.dependent,
+                                   self.independent)
+
+    def _raw_call(self, independent, param_vector):
+        if self.interpolate:
+            return invert_function_interpolation(independent, 1.0, self.independent_min, self.independent_max,
+                                                 lambda f_trial: self.model._raw_call(f_trial, param_vector),
+                                                 lambda f_trial: self.model.derivative(f_trial, param_vector))
+        else:
+            return invert_function(independent, 1.0, self.independent_min, self.independent_max,
+                                   lambda f_trial: self.model._raw_call(f_trial, param_vector),  # Forward model
+                                   lambda f_trial: self.model.derivative(f_trial, param_vector))
+
+    @property
+    def has_jacobian(self):
+        """Does the model have sufficient information to determine its inverse numerically?
+        This requires a Jacobian and a derivative w.r.t. independent variable."""
+        return self.model.has_jacobian and self.model.has_derivative
+
+    @property
+    def has_derivative(self):
+        return self.model.has_derivative
+
+    def jacobian(self, independent, param_vector):
+        """Jacobian of the inverted model"""
+        return invert_jacobian(independent,
+                               lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
+                               lambda f_trial: self.model.jacobian(f_trial, param_vector),
+                               lambda f_trial: self.model.derivative(f_trial, param_vector))
+
+    def derivative(self, independent, param_vector):
+        """Derivative of the inverted model"""
+        return invert_derivative(independent,
+                                 lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
+                                 lambda f_trial: self.model.derivative(f_trial, param_vector))
+
+    @property
+    def _params(self):
+        return self.model._params
