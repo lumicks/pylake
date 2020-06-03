@@ -6,7 +6,7 @@ from ..fitting.parameters import Params, Parameter
 from ..fitting.detail.utilities import parse_transformation, unique_idx
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitdata import Condition, FitData
-from ..fitting.model import Model
+from ..fitting.model import Model, CompositeModel
 
 
 def test_transformation_parser():
@@ -217,3 +217,46 @@ def test_integration_test_fitting():
 
     model = Model("M", linear, jacobian=linear_jac_wrong)
     assert not model.verify_jacobian([1, 2, 3], [1, 1])
+
+def test_model_composition():
+    def f(x, a, b):
+        return a + b * x
+
+    def f_jac(x, a, b):
+        return np.vstack((np.ones((1, len(x))), x))
+
+    def f_jac_wrong(x, a, b):
+        return np.vstack((np.zeros((1, len(x))), x))
+
+    def g(x, a, d, b):
+        return a - b * x + d * x * x
+
+    def g_jac(x, a, d, b):
+        return np.vstack((np.ones((1, len(x))), x * x, -x))
+
+    def f_der(x, a, b):
+        return b * np.ones((len(x)))
+
+    def g_der(x, a, d, b):
+        return - b * np.ones((len(x))) + 2.0 * d * x
+
+    m1 = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der)
+    m2 = Model("M", g, dependent="x", jacobian=g_jac, derivative=g_der)
+    t = np.arange(0, 2, .5)
+
+    # Check actual composition
+    # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
+    assert np.allclose((m1 + m2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
+        "Model composition returns invalid function evaluation (parameter order issue?)"
+
+    # Check correctness of the Jacobians and derivatives
+    assert (m1 + m2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (m1 + m2).verify_derivative(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1).verify_derivative(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1 + m2).verify_jacobian(t, [1.0, 2.0, 3.0])
+    assert (m2 + m1 + m2).verify_derivative(t, [1.0, 2.0, 3.0])
+
+    m1_wrong_jacobian = Model("M", f, dependent="x", jacobian=f_jac_wrong, derivative=f_der)
+    assert not (m1_wrong_jacobian + m2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+    assert not (m2 + m1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
