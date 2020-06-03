@@ -83,7 +83,7 @@ plot_pre_code = """
 import numpy as np
 import matplotlib.pyplot as plt
 
-from lumicks import pylake
+import lumicks.pylake as lk
 """
 plot_rcparams = {}
 plot_apply_rcparams = False

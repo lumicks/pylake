@@ -22,7 +22,7 @@ To see and characterize this behaviour, we need to have the following plots:
 
 Open the file::
 
-    file = pylake.File("20190215-170635 Marker Kinesin stepping open loop.h5")
+    file = lk.File("20190215-170635 Marker Kinesin stepping open loop.h5")
 
 Force versus Time
 -----------------

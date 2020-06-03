@@ -8,7 +8,7 @@ For all of the examples, it is assumed that the following lines precede any othe
     import numpy as np
     import matplotlib.pyplot as plt
 
-    from lumicks import pylake
+    import lumicks.pylake as lk
 
 .. toctree::
     :caption: Segments
