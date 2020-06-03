@@ -7,8 +7,8 @@ from ..fitting.detail.utilities import parse_transformation, unique_idx, escape_
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitdata import Condition, FitData
 from ..fitting.model import Model, InverseModel
-from ..fitting.datasets import Datasets
-from ..fitting.fit import Fit
+from ..fitting.datasets import Datasets, FdDatasets
+from ..fitting.fit import Fit, FdFit
 
 
 def test_transformation_parser():
@@ -419,6 +419,56 @@ def test_integration_test_fitting():
     fit["M/a"].value = 5
     with pytest.raises(ValueError):
         fit.fit()
+
+
+def integration_test_parameter_linkage():
+    """Verify that we estimate correctly across models."""
+
+    def const(x, b):
+        f = b * np.ones(x.shape)
+        return f
+
+    def const_jac(x, b):
+        return np.ones((1, len(x)))
+
+    x = np.arange(3)
+    y1 = np.ones(3) * 2
+    y2 = np.ones(3) * 4
+
+    # No difference between the offsets for the two datasets (results in average of the two data sets)
+    fit = FdFit(Model("M", const, jacobian=const_jac))
+    fit.add_data("a", y1, x)
+    fit.add_data("b", y2, x)
+    fit.fit()
+    assert fit["M/b"].value == 3
+
+    # Both models have their own offset (correct estimates)
+    m1 = Model("M1", const, jacobian=const_jac)
+    m2 = Model("M2", const, jacobian=const_jac)
+    fit = FdFit(m1, m2)
+    fit[m1].add_data("a", y1, x)
+    fit[m2].add_data("b", y2, x)
+    fit.fit()
+    assert fit["M1/b"].value == 2
+    assert fit["M2/b"].value == 4
+
+    # No difference between the offsets for the two datasets because we explicitly say so
+    # (results in average of the two data sets)
+    m1 = Model("M1", const, jacobian=const_jac)
+    m2 = Model("M2", const, jacobian=const_jac)
+    fit = FdFit(m1, m2)
+    fit[m1].add_data("a", y1, x)
+    fit[m2].add_data("b", y2, x, params={"M2/b": "M1/b"})
+    fit.fit()
+    assert fit["M1/b"].value == 3
+
+    # Both models have their own offset (correct estimates)
+    fit = FdFit(Model("M", const, jacobian=const_jac))
+    fit.add_data("a", y1, x)
+    fit.add_data("b", y2, x, params={"M/b": "M/b2"})
+    fit.fit()
+    assert fit["M/b"].value == 2
+    assert fit["M/b2"].value == 4
 
 
 def test_model_composition():
