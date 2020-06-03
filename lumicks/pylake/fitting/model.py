@@ -1,5 +1,5 @@
 from .parameters import Parameter, Params
-from .detail.utilities import optimal_plot_layout, print_styled
+from .detail.utilities import optimal_plot_layout, print_styled, solve_formatter_tex, escape_tex
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
     invert_derivative
 from collections import OrderedDict
