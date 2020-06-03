@@ -1,6 +1,6 @@
 from ..parameters import Parameter
-from .derivative_manipulation import invert_function
-from .utilities import latex_frac, solve_formatter, solve_formatter_tex
+from .derivative_manipulation import invert_function, invert_jacobian, invert_function_interpolation
+from .utilities import latex_sqrt, latex_frac, solve_formatter, solve_formatter_tex
 import numpy as np
 
 
@@ -109,6 +109,86 @@ def WLC_jac(f, Lp, Lc, St, kT=4.11):
                      f / St - 0.5 * sqrt_term + 1.0,
                      -f * Lc / (St * St),
                      -0.25 * Lc * sqrt_term / kT))
+
+
+def tWLC_equation(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    g = f"({g0} + clip({g1}, {Fc}, inf))"
+
+    return f"{Lc} * (1 - (1 / 2) * sqrt({kT} / ({f} * {Lp})) + ({C} / (-{g}**2 + {St} * {C})) * {f})"
+
+
+def tWLC_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    g = f"\\left({g0} + \\max({g1}, {Fc})\\right)"
+    sqrt_term = latex_sqrt(latex_frac(kT, f"{f} {Lp}"))
+    stiff_term = latex_frac(C, f"-{g}^2 + {St} {C}")
+
+    return f"{Lc} \\left(1 - \\frac{{1}}{{2}} {sqrt_term} + {stiff_term}{f}\\right)"
+
+
+def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    """Twistable Worm-like Chain model
+
+    References:
+       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
+          twist under tension, Nature Physics 7, 731-736 (2011).
+
+    Parameters
+    ----------
+    f : array_like
+        force [pN]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    St : float
+        stretching modulus [pN]
+    C : float
+        twist rigidity [pN nm^2]
+    g0 : float
+        twist stretch coupling [pN Nm]
+    g1 : float
+        twist stretch coupling [nm]
+    Fc : float
+        critical force for twist stretch coupling [pN]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+    """
+    g = np.zeros(np.size(f))
+    g[f < Fc] = g0 + g1 * Fc
+    g[f >= Fc] = g0 + g1 * f[f >= Fc]
+
+    return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (f * Lp)) + (C / (-g * g + St * C)) * f)
+
+
+def tWLC_jac(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    x0 = 1.0 / Lp
+    x1 = np.sqrt(kT * x0 / f)
+    x2 = 0.25 * Lc * x1
+    x3 = C * f
+    x4 = C * St
+    x5 = f > Fc
+    x6 = f <= Fc
+    x7 = f * x5 + Fc * x6
+    x8 = g0 + g1 * x7
+    x9 = x8 * x8
+    x10 = x4 - x9
+    x11 = 1.0 / x10
+    x12 = x10 ** (-2)
+    x13 = 2.0 * Lc * x3
+    x14 = 1.0 / x8
+    x15 = x11 * x11
+
+    return np.vstack((x0 * x2,
+                      -0.5 * x1 + x11 * x3 + 1.0,
+                      -C * C * f * Lc * x12,
+                      Lc * (f * x11 - f * x12 * x4),
+                      x15 * x13 * x8,
+                      x15 * x13 * x14 * x7 * x9,
+                      g1 * x15 * x13 * x14 * x9 * x6,
+                      -x2 / kT))
+
+    # Not continuous derivatives were removed from the 8th parameter derivative:
+    # Original derivative was: g1 * x11 ** 2 * x13 * x14 * x9 * (f * Derivative(x5, Fc) + Fc * Derivative(x6, Fc) + x6)
 
 
 def coth(x):
@@ -446,6 +526,20 @@ def WLC_derivative(f, Lp, Lc, St, kT = 4.11):
     return Lc * (0.25 * x0 * np.sqrt(kT * x0 / Lp) + 1.0 / St)
 
 
+def tWLC_derivative(f, Lp, Lc, St, C, g0, g1, Fc, kT):
+    """Derivative of the tWLC model w.r.t. the independent variable"""
+    x0 = 1.0 / f
+    x1 = f > Fc
+    x2 = f <= Fc
+    x3 = g0 + g1 * (f * x1 + Fc * x2)
+    x4 = x3 * x3
+    x5 = 1.0 / (C * St - x4)
+
+    # The derivative terms were omitted since they are incompatible with a smooth optimization algorithm.
+    # Lc * (2.0 * C * f * g1 * x4 * x5 * x5 * (f * Derivative(x1, f) + Fc * Derivative(x2, f) + x1) / x3 + C * x5 + 0.25 * x0 * sqrt(kT * x0 / Lp))]
+    return Lc * (2.0 * C * f * g1 * x4 * x5 * x5 * x1 / x3 + C * x5 + 0.25 * x0 * np.sqrt(kT * x0 / Lp))
+
+
 def FJC_derivative(f, Lp, Lc, St, kT=4.11):
     """Derivative of the FJC model w.r.t. the independent variable"""
     x0 = 1.0/St
@@ -458,6 +552,57 @@ def FJC_derivative(f, Lp, Lc, St, kT=4.11):
     sinh_term[x2 < 300] = 1.0/np.sinh(x2[x2 < 300])**2
 
     return Lc*x0*(coth(x2) - x3/f) + Lc*(f*x0 + 1.0)*(-x1*sinh_term + x3/f**2)
+
+
+def invtWLC_equation(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return solve_formatter(tWLC_equation_tex('f', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'f', d)
+
+
+def invtWLC_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return solve_formatter_tex(tWLC_equation_tex('f', Lp, Lc, St, C, g0, g1, Fc, kT=4.11), 'f', d)
+
+
+def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    """Inverted Twistable Worm-like Chain model
+
+    References:
+       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
+          twist under tension, Nature Physics 7, 731-736 (2011).
+
+    Parameters
+    ----------
+    d : array_like
+        distance [um]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    St : float
+        stretching modulus [pN]
+    C : float
+        twist rigidity [pN nm^2]
+    g0 : float
+        twist stretch coupling [pN Nm]
+    g1 : float
+        twist stretch coupling [nm]
+    Fc : float
+        critical force for twist stretch coupling [pN]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11) [pN nm]
+    """
+    f_min = 0
+    f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
+
+    return invert_function_interpolation(d, 1.0, f_min, f_max,
+                                         lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                                         lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
+
+
+def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return invert_jacobian(d,
+                           lambda f_trial: invtWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                           lambda f_trial: tWLC_jac(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+                           lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT))
 
 
 def invFJC(d, Lp, Lc, St, kT=4.11):

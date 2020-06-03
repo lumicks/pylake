@@ -504,14 +504,29 @@ def test_models():
     assert(inverted_freely_jointed_chain("iFJC").verify_derivative(independent, params, dx=1e-3, rtol=1e-2, atol=1e-6))
     assert(inverted_freely_jointed_chain("iFJC").verify_jacobian(independent, params, dx=1e-3, atol=1e-2, rtol=1e-2))
 
+    # Check the tWLC and inverted tWLC model
+    params = [5, 5, 5, 3, 2, 1, 6, 4.11]
+    assert(twistable_wlc("tWLC").verify_jacobian(independent, params))
+    assert(inverted_twistable_wlc("itWLC").verify_jacobian(independent, params))
+
+    # Check whether the twistable wlc model manipulates the data order
+    assert np.allclose(twistable_wlc("tWLC")._raw_call(independent, params),
+                       np.flip(twistable_wlc("tWLC")._raw_call(np.flip(independent), params)))
+
+    # Check whether the inverse twistable wlc model manipulates the data order
+    assert np.allclose(inverted_twistable_wlc("itWLC")._raw_call(independent, params),
+                       np.flip(inverted_twistable_wlc("itWLC")._raw_call(np.flip(independent), params)))
+
     # Check whether the inverted models invert correctly
-    from ..fitting.detail.model_implementation import WLC, invWLC, FJC, invFJC
+    from ..fitting.detail.model_implementation import WLC, invWLC, FJC, invFJC, tWLC, invtWLC
 
     d = np.array([3.0, 4.0])
     params = [5.0, 5.0, 5.0]
     assert (np.allclose(WLC(invWLC(d, *params), *params), d))
     params = [5.0, 15.0, 1.0, 4.11]
     assert (np.allclose(FJC(invFJC(independent, *params), *params), independent))
+    params = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
+    assert(np.allclose(tWLC(invtWLC(independent, *params), *params), independent))
 
     d = np.arange(0.15, 2, .5)
     (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)
@@ -831,6 +846,8 @@ def test_reprs():
     assert marko_siggia_ewlc_force('test').__repr__()
     assert marko_siggia_ewlc_distance('test').__repr__()
     assert inverted_freely_jointed_chain('test').__repr__()
+    assert twistable_wlc('test').__repr__()
+    assert inverted_twistable_wlc('test').__repr__()
     assert (odijk('test') + distance_offset('test')).__repr__()
     assert (odijk('test') + distance_offset('test')).invert().__repr__()
     assert (odijk('test') + distance_offset('test')).subtract_independent_offset().__repr__()
@@ -842,6 +859,8 @@ def test_reprs():
     assert marko_siggia_ewlc_force('test')._repr_html_()
     assert marko_siggia_ewlc_distance('test')._repr_html_()
     assert inverted_freely_jointed_chain('test')._repr_html_()
+    assert twistable_wlc('test')._repr_html_()
+    assert inverted_twistable_wlc('test')._repr_html_()
     assert (odijk('test') + distance_offset('test'))._repr_html_()
     assert (odijk('test') + distance_offset('test')).invert()._repr_html_()
     assert (odijk('test') + distance_offset('test')).subtract_independent_offset()._repr_html_()
@@ -1010,3 +1029,11 @@ def test_plotting():
     fit[m]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {'DNA/Lc': 'DNA/Lc_2'})
     fit[m2]._add_data("data_1", [1, 2, 3], [2, 3, 4])
     fit.fit(show_fit=True, max_nfev=1)
+
+
+def test_interpolation_inversion():
+    # Test interpolation
+    m = odijk("Nucleosome").invert(independent_max=120.0, interpolate=True)
+    parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
+    result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
+    assert np.allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)

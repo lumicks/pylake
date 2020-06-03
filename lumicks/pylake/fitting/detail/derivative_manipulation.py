@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 import scipy.optimize as optim
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 
 def numerical_diff(fn, x, dx=1e-6):
@@ -63,6 +64,63 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
     manual_inversion, _ = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
 
     return manual_inversion(d, initial)
+
+
+def invert_function_interpolation(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8,
+                                  dx=1e-2):
+    """This function inverts a function using interpolation. For models where this is required, this is the most time
+    consuming step. Specifying a sensible f_max for this method is crucial.
+
+    Parameters
+    ----------
+    d : array_like
+        old independent parameter
+    initial : float
+        initial guess for the optimization procedure
+    f_min : float
+        minimum bound for inverted parameter
+    f_max : float
+        maximum bound for inverted parameter
+    model_function : callable
+        non-inverted model function
+    derivative_function : callable
+        model derivative with respect to the independent variable (returns an element per data point)
+    dx : float
+        desired step-size of the dependent variable
+    tol : float
+        optimization tolerances
+    """
+    manual_inversion, fit_single = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
+    f_min_data = max([f_min, fit_single(np.min(d), initial)])
+    f_max_data = min([f_max, fit_single(np.max(d), initial)])
+
+    # Determine the points that lie within the range where it is reasonable to interpolate
+    interpolated_idx = np.full(d.shape, False, dtype=bool)
+    f_range = np.arange(f_min_data, f_max_data, dx)
+    if len(f_range) > 0:
+        d_range = model_function(f_range)
+        d_min = np.min(d_range)
+        d_max = np.max(d_range)
+
+        # Interpolate for the points where interpolation is sensible
+        interpolated_idx = np.logical_and(d > d_min, d < d_max)
+
+    result = np.zeros(d.shape)
+    if np.sum(interpolated_idx) > 3 and len(f_range) > 3:
+        try:
+            interp = InterpolatedUnivariateSpline(d_range, f_range, k=3)
+            result[interpolated_idx] = interp(d[interpolated_idx])
+        except Exception as e:
+            warnings.warn(f"Interpolation failed. Cause: {e}. Falling back to brute force evaluation. "
+                          f"Results should be fine, but slower.")
+            result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
+    else:
+        result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
+
+    # Do the manual inversion for the others
+    result[np.logical_not(interpolated_idx)] = manual_inversion(d[np.logical_not(interpolated_idx)], initial)
+
+    return result
 
 
 def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_function):
