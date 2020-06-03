@@ -1,6 +1,7 @@
 from .parameters import Parameter, Params
 from .detail.utilities import optimal_plot_layout, print_styled
-from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, invert_derivative
+from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
+    invert_derivative
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -175,6 +176,13 @@ class Model:
         Invert this model (swap dependent and independent parameter).
         """
         return InverseModel(self, independent_min, independent_max, interpolate)
+
+    def subtract_independent_offset(self):
+        """
+        Subtract a constant offset from independent variable of this model.
+        """
+        param_name = f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
+        return SubtractIndependentOffset(self, param_name)
 
     @property
     def defaults(self):
@@ -532,3 +540,72 @@ class InverseModel(Model):
     @property
     def _params(self):
         return self.model._params
+
+
+class SubtractIndependentOffset(Model):
+    def __init__(self, model, parameter_name='independent_offset'):
+        """
+        Combine two model outputs to form a new model (addition).
+
+        Parameters
+        ----------
+        model : Model
+        """
+        self.model = model
+        offset_name = parameter_name
+
+        self.name = self.model.name + "(x-d)"
+        self._params = OrderedDict()
+        self._params[offset_name] = Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au")
+        for i, v in self.model._params.items():
+            self._params[i] = v
+
+        params_parent = list(self.model._params.keys())
+        params_all = list(self._params.keys())
+
+        self.model_params = [params_all.index(par) for par in params_parent]
+        self.offset_parameter = params_all.index(offset_name)
+
+    def _raw_call(self, independent, param_vector):
+        return self.model._raw_call(independent - param_vector[self.offset_parameter],
+                                    [param_vector[x] for x in self.model_params])
+
+    def eqn(self, independent_name, *parameter_names):
+        return self.model.eqn(f"({independent_name} - {parameter_names[self.offset_parameter]})",
+                              *[parameter_names[x] for x in self.model_params])
+
+    def eqn_tex(self, independent_name, *parameter_names):
+        return self.model.eqn_tex(f"({independent_name} - {parameter_names[self.offset_parameter]})",
+                                  *[parameter_names[x] for x in self.model_params])
+
+    @property
+    def dependent(self):
+        return self.model.dependent
+
+    @property
+    def independent(self):
+        return self.model.independent
+
+    @property
+    def has_jacobian(self):
+        return self.model.has_jacobian and self.has_derivative
+
+    @property
+    def has_derivative(self):
+        return self.model.has_derivative
+
+    def jacobian(self, independent, param_vector):
+        if self.has_jacobian:
+            with_offset = independent - param_vector[self.offset_parameter]
+            jacobian = np.zeros((len(param_vector), len(with_offset)))
+            jacobian[self.model_params, :] += self.model.jacobian(with_offset, [param_vector[x] for x in
+                                                                                self.model_params])
+            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset, [param_vector[x] for x in
+                                                                                       self.model_params])
+
+            return jacobian
+
+    def derivative(self, independent, param_vector):
+        if self.has_derivative:
+            with_offset = independent - param_vector[self.offset_parameter]
+            return self.model.derivative(with_offset, [param_vector[x] for x in self.model_params])
