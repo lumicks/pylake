@@ -27,3 +27,4 @@ These import conventions are used consistently in the tutorial.
     images
     kymographs
     correlatedstacks
+    fdfitting

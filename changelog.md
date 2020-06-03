@@ -1,6 +1,7 @@
 # Changelog
 
-## v0.4.2 | t.b.d.
+## v0.5.0 | 2020-06-08
+* Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).
 * Fixed an issue which prevented images from being reconstructed when a debugger is attached. Problem resided in `reconstruct_image` which threw an exception when attempting to resize a `numpy` array while the debugger was holding a reference to it.
 * Fixed bug that lead to timestamps becoming floating point values when using `channel.downsampled_over`.
 
