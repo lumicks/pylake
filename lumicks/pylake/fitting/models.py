@@ -1,0 +1,292 @@
+from .parameters import Parameter
+
+
+def force_offset(name):
+    """Offset on the the model output.
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        force_offset_model,
+        offset_model_jac,
+        offset_model_derivative,
+        offset_equation,
+        offset_equation_tex
+    )
+
+    return Model(
+        name,
+        force_offset_model,
+        dependent="f",
+        jacobian=offset_model_jac,
+        eqn=offset_equation,
+        eqn_tex=offset_equation_tex,
+        derivative=offset_model_derivative,
+        f_offset=Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="pN"),
+    )
+
+
+def distance_offset(name):
+    """Offset on the the model output.
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        distance_offset_model,
+        offset_model_jac,
+        offset_model_derivative,
+        offset_equation,
+        offset_equation_tex
+    )
+
+    return Model(
+        name,
+        distance_offset_model,
+        dependent="d",
+        jacobian=offset_model_jac,
+        eqn=offset_equation,
+        eqn_tex=offset_equation_tex,
+        derivative=offset_model_derivative,
+        d_offset=Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="micron"),
+    )
+
+
+def marko_siggia_ewlc_force(name):
+    """Marko Siggia's Worm-like Chain model with force as dependent parameter.
+
+    References:
+        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
+        8759-8770 (1995).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        marko_sigga_ewlc_solve_force,
+        marko_sigga_ewlc_solve_force_jac,
+        marko_sigga_ewlc_solve_force_derivative,
+        marko_sigga_ewlc_solve_force_equation,
+        marko_sigga_ewlc_solve_force_equation_tex,
+        Defaults,
+    )
+
+    return Model(
+        name,
+        marko_sigga_ewlc_solve_force,
+        dependent="f",
+        jacobian=marko_sigga_ewlc_solve_force_jac,
+        derivative=marko_sigga_ewlc_solve_force_derivative,
+        eqn=marko_sigga_ewlc_solve_force_equation,
+        eqn_tex=marko_sigga_ewlc_solve_force_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+    )
+
+
+def marko_siggia_ewlc_distance(name):
+    """Marko Siggia's Worm-like Chain model with distance as dependent parameter.
+
+    References:
+        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
+        8759-8770 (1995).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        marko_sigga_ewlc_solve_distance,
+        marko_sigga_ewlc_solve_distance_jac,
+        marko_sigga_ewlc_solve_distance_derivative,
+        marko_sigga_ewlc_solve_distance_equation,
+        marko_sigga_ewlc_solve_distance_equation_tex,
+        Defaults,
+    )
+
+    return Model(
+        name,
+        marko_sigga_ewlc_solve_distance,
+        dependent="d",
+        jacobian=marko_sigga_ewlc_solve_distance_jac,
+        derivative=marko_sigga_ewlc_solve_distance_derivative,
+        eqn=marko_sigga_ewlc_solve_distance_equation,
+        eqn_tex=marko_sigga_ewlc_solve_distance_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+    )
+
+
+def marko_siggia_simplified(name):
+    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN).
+
+    References:
+        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
+        8759-8770 (1995).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        Marko_Siggia,
+        Marko_Siggia_jac,
+        Marko_Siggia_derivative,
+        Marko_Siggia_equation,
+        Marko_Siggia_equation_tex,
+        Defaults,
+    )
+
+    return Model(
+        name,
+        Marko_Siggia,
+        dependent="f",
+        jacobian=Marko_Siggia_jac,
+        derivative=Marko_Siggia_derivative,
+        eqn=Marko_Siggia_equation,
+        eqn_tex=Marko_Siggia_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+    )
+
+
+def odijk(name):
+    """Odijk's Extensible Worm-Like Chain model with distance as dependent variable (useful for 10 pN < F < 30 pN).
+
+    References:
+      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
+         28, 7016-7018 (1995).
+      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import WLC, WLC_jac, WLC_derivative, WLC_equation, WLC_equation_tex, Defaults
+
+    return Model(
+        name,
+        WLC,
+        dependent="d",
+        jacobian=WLC_jac,
+        derivative=WLC_derivative,
+        eqn=WLC_equation,
+        eqn_tex=WLC_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+    )
+
+
+def inverted_odijk(name):
+    """Odijk's Extensible Worm-Like Chain model with force as dependent variable (useful for 10 pN < F < 30 pN).
+
+    References:
+      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
+         28, 7016-7018 (1995).
+      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        invWLC,
+        invWLC_jac,
+        invWLC_derivative,
+        invWLC_equation,
+        invWLC_equation_tex,
+        Defaults
+    )
+
+    return Model(
+        name,
+        invWLC,
+        dependent="f",
+        jacobian=invWLC_jac,
+        derivative=invWLC_derivative,
+        eqn=invWLC_equation,
+        eqn_tex=invWLC_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+    )
+
+
+def freely_jointed_chain(name):
+    """Freely-Jointed Chain with distance as dependent parameter.
+
+    References:
+        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
+           Elastic Response of Individual Double-Stranded and Single-Stranded
+           DNA Molecules, Science 271, 795-799 (1996).
+        2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+           DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import FJC, FJC_jac, FJC_derivative, FJC_equation, FJC_equation_tex, Defaults
+
+    return Model(
+        name,
+        FJC,
+        dependent="d",
+        jacobian=FJC_jac,
+        eqn=FJC_equation,
+        eqn_tex=FJC_equation_tex,
+        derivative=FJC_derivative,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+    )
+
+
+def inverted_freely_jointed_chain(name):
+    """Inverted Freely-Jointed Chain with force as dependent parameter.
+
+    References:
+        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
+           Elastic Response of Individual Double-Stranded and Single-Stranded
+           DNA Molecules, Science 271, 795-799 (1996).
+        2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+           DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import InverseModel
+    return InverseModel(freely_jointed_chain(name))
