@@ -290,3 +290,91 @@ def inverted_freely_jointed_chain(name):
     """
     from .model import InverseModel
     return InverseModel(freely_jointed_chain(name))
+
+
+def twistable_wlc(name):
+    """Twistable Worm-like Chain model. With distance as dependent variable.
+
+    References:
+       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
+          twist under tension, Nature Physics 7, 731-736 (2011).
+       2. Broekmans, Onno D., et al. DNA twist stability changes with
+          magnesium (2+) concentration, Physical review letters 116.25,
+          258102 (2016).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        tWLC,
+        tWLC_jac,
+        tWLC_derivative,
+        tWLC_equation,
+        tWLC_equation_tex,
+        Defaults
+    )
+
+    return Model(
+        name,
+        tWLC,
+        dependent="d",
+        jacobian=tWLC_jac,
+        derivative=tWLC_derivative,
+        eqn=tWLC_equation,
+        eqn_tex=tWLC_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=50.0, unit="pN"),
+        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=5000.0, unit="pN*nm**2"),
+        g0=Parameter(value=-637, lower_bound=-5000.0, upper_bound=0.0, unit="pN*nm"),
+        g1=Parameter(value=17.0, lower_bound=-100.0, upper_bound=1000.0, unit="nm"),
+    )
+
+
+def inverted_twistable_wlc(name):
+    """Twistable Worm-like Chain model. With force as dependent variable. This model uses a more performant implementation
+    for inverting the model. It inverts the model by interpolating the forward curve and using this interpolant to
+    invert the function.
+
+    References:
+       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
+          twist under tension, Nature Physics 7, 731-736 (2011).
+       2. Broekmans, Onno D., et al. DNA twist stability changes with
+          magnesium (2+) concentration, Physical review letters 116.25,
+          258102 (2016).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        invtWLC,
+        invtWLC_jac,
+        invtWLC_equation,
+        invtWLC_equation_tex,
+        Defaults
+    )
+
+    return Model(
+        name,
+        invtWLC,
+        dependent="f",
+        jacobian=invtWLC_jac,
+        eqn=invtWLC_equation,
+        eqn_tex=invtWLC_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+        St=Defaults.St,
+        Fc=Parameter(value=30.6, lower_bound=0.0, upper_bound=50.0, unit="pN"),
+        C=Parameter(value=440.0, lower_bound=0.0, upper_bound=5000.0, unit="pN*nm**2"),
+        g0=Parameter(value=-637, lower_bound=-5000.0, upper_bound=0.0, unit="pN*nm"),
+        g1=Parameter(value=17.0, lower_bound=0.0, upper_bound=1000.0, unit="nm"),
+    )

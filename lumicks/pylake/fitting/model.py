@@ -1,7 +1,7 @@
 from .parameters import Parameter, Params
 from .detail.utilities import optimal_plot_layout, print_styled, solve_formatter_tex, escape_tex, solve_formatter
 from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
-    invert_derivative
+    invert_derivative, invert_function_interpolation
 from collections import OrderedDict
 from copy import deepcopy
 
