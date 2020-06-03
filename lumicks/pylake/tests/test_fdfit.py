@@ -6,7 +6,7 @@ from ..fitting.parameters import Params, Parameter
 from ..fitting.detail.utilities import parse_transformation, unique_idx
 from ..fitting.detail.link_functions import generate_conditions
 from ..fitting.fitdata import Condition, FitData
-from ..fitting.model import Model, CompositeModel
+from ..fitting.model import Model, CompositeModel, InverseModel
 
 
 def test_transformation_parser():
@@ -237,6 +237,9 @@ def test_model_composition():
     def f_der(x, a, b):
         return b * np.ones((len(x)))
 
+    def f_der_wrong(x, a, b):
+        return np.ones((len(x)))
+
     def g_der(x, a, d, b):
         return - b * np.ones((len(x))) + 2.0 * d * x
 
@@ -260,3 +263,16 @@ def test_model_composition():
     m1_wrong_jacobian = Model("M", f, dependent="x", jacobian=f_jac_wrong, derivative=f_der)
     assert not (m1_wrong_jacobian + m2).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
     assert not (m2 + m1_wrong_jacobian).verify_jacobian(t, [1.0, 2.0, 3.0], verbose=False)
+
+    assert (InverseModel(m1) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(m1 + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert InverseModel(m1 + m2 + m1).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+
+    assert (InverseModel(m1) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(m1 + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
+    assert InverseModel(m1 + m2 + m1).verify_derivative(t, [-1.0, 2.0, 3.0])
+
+    m1_wrong_derivative = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der_wrong)
+    assert not (InverseModel(m1_wrong_derivative) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(m1_wrong_jacobian) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(m1_wrong_derivative) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
