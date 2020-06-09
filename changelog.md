@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.5.1 | t.b.d.
+* Add literature page to the documentation.
+
 ## v0.5.0 | 2020-06-08
 * Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).
 * Fixed an issue which prevented images from being reconstructed when a debugger is attached. Problem resided in `reconstruct_image` which threw an exception when attempting to resize a `numpy` array while the debugger was holding a reference to it.

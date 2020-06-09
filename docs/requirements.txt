@@ -8,3 +8,4 @@ recommonmark
 scipy
 sphinx
 sphinx_rtd_theme
+sphinxcontrib-bibtex==0.4.2
