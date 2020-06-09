@@ -57,6 +57,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
+    'sphinxcontrib.bibtex',
     'numpydoc',
     'matplotlib.sphinxext.plot_directive',
     'nbexport'
@@ -242,7 +243,8 @@ latex_elements = {
     # 'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
-    'preamble': r"\definecolor{VerbatimBorderColor}{rgb}{1,1,1}",
+    'preamble': r"\definecolor{VerbatimBorderColor}{rgb}{1,1,1}"
+                r"\usepackage{etoolbox}\patchcmd{\thebibliography}{\section*{\refname}}{}{}{}"
 
     # Latex figure (float) alignment
     # 'figure_align': 'htbp',

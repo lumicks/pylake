@@ -29,4 +29,12 @@ where you can also post any questions, comments or issues that you might have.
 
     api
 
-* :ref:`genindex`
+.. toctree::
+    :caption: Literature
+    :maxdepth: 2
+
+    zrefs.rst
+
+.. only:: html
+
+    * :ref:`genindex`
