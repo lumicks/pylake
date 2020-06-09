@@ -295,22 +295,22 @@ class Fit:
 
         Parameters
         ----------
-            data : str
-                Name of the data set to plot (optional, omission plots all for that model).
-            fmt : str
-                Format string, forwarded to :func:`matplotlib.pyplot.plot`.
-            independent : array_like
-                Array with values for the independent variable (used when plotting the model).
-            legend : bool
-                Show legend (default: True).
-            plot_data : bool
-                Show data (default: True).
-            overrides : dict
-                Parameter / value pairs which override parameter values in the current fit. Should be a dict of
-                {str: float} that provides values for parameters which should be set to particular values in the plot
-                (default: None);
-            ``**kwargs``
-                Forwarded to :func:`matplotlib.pyplot.plot`.
+        data : str
+            Name of the data set to plot (optional, omission plots all for that model).
+        fmt : str
+            Format string, forwarded to :func:`matplotlib.pyplot.plot`.
+        independent : array_like
+            Array with values for the independent variable (used when plotting the model).
+        legend : bool
+            Show legend (default: True).
+        plot_data : bool
+            Show data (default: True).
+        overrides : dict
+            Parameter / value pairs which override parameter values in the current fit. Should be a dict of
+            {str: float} that provides values for parameters which should be set to particular values in the plot
+            (default: None);
+        ``**kwargs``
+            Forwarded to :func:`matplotlib.pyplot.plot`.
 
         Examples
         --------

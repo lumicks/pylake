@@ -2,6 +2,7 @@
 
 ## v0.5.1 | t.b.d.
 * Add literature page to the documentation.
+* Fix docstring for `Fit.plot()`.
 
 ## v0.5.0 | 2020-06-08
 * Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).
