@@ -97,6 +97,43 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
     return nodes
 
 
+class KymoLine:
+    """A line on a kymograph"""
+    __slots__ = ['time', 'coordinate']  # Fixed attributes
+
+    def __init__(self, time, coordinate):
+        assert len(time) == len(coordinate)
+        self.time = time
+        self.coordinate = coordinate
+
+    def __add__(self, other):
+        return KymoLine(np.hstack((self.time, other.time)), np.hstack((self.coordinate, other.coordinate)))
+
+    def __getitem__(self, item):
+        return np.vstack((self.time[item], self.coordinate[item])).transpose()
+
+    def extrapolate_right(self, n_estimate, extrapolation_length):
+        """This function linearly extrapolates a track segment towards positive time.
+
+        Parameters
+        ----------
+        n_estimate: int
+            Number of points to use for linear regression.
+        extrapolation_length: float
+            How far to extrapolate.
+        """
+        assert n_estimate > 1, "Too few time points to extrapolate"
+        assert len(self.time) > 1, "Cannot extrapolate linearly with less than one time point"
+
+        coeffs = np.polyfit(self.time[-n_estimate:], self.coordinate[-n_estimate:], 1)
+        slope = coeffs[0]
+
+        return np.array([self.time[-1] + extrapolation_length, self.coordinate[-1] + slope * extrapolation_length])
+
+    def __len__(self):
+        return len(self.coordinate)
+
+
 def traverse_line(indices, masked_derivative, positions, normals, continuation_threshold, candidate_generator,
                   angle_weight, debug_plot):
     """Traverse a line in both directions."""
@@ -104,8 +141,12 @@ def traverse_line(indices, masked_derivative, positions, normals, continuation_t
                                            angle_weight, candidate_generator, 1, True, debug_plot)
     indices_bwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
                                            angle_weight, candidate_generator, -1, False, debug_plot)
-    indices_fwd.reverse()
-    return np.array(indices_fwd + indices_bwd)
+    indices_bwd.reverse()
+    line = np.array(indices_fwd + indices_bwd)
+
+    if len(line) > 0:
+        order = np.argsort(line[:, 1])
+        return KymoLine(time=line[order, 1], coordinate=line[order, 0])
 
 
 def detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
@@ -163,7 +204,10 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
     while masked_derivative[idx[0], idx[1]] < thresh and len(lines) < max_lines:
         line = traverse_line(idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, debug_plot)
         idx = np.array(np.unravel_index(masked_derivative.argmin(), masked_derivative.shape))
-        lines.append(line)
+        if line:
+            lines.append(line)
+        else:
+            break
 
     return lines
 

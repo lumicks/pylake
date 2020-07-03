@@ -1,7 +1,9 @@
+import pytest
 import numpy as np
 from ..kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from ..kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
-from ..kymotracker.detail.trace_line_2d import _traverse_line_direction
+from ..kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine
+from ..kymotracker.detail.stitch import distance_line_to_point
 from copy import deepcopy
 
 
@@ -176,3 +178,30 @@ def test_tracing():
     # Test whether the threshold is enforced
     assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -1.5, 1, candidates, -1),
                        np.array([[0, 0], [1, 1], [2, 2]]))
+
+
+def test_kymo_line():
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]))
+    assert np.allclose(k1[1], [2, 3])
+    assert np.allclose(k1[-1], [3, 4])
+    assert np.allclose(k1[0:2], [[1, 2], [2, 3]])
+    assert np.allclose(k1[0:2][:, 1], [2, 3])
+
+    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]))
+    assert np.allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
+
+    assert np.allclose(k1.extrapolate_right(3, 2.0), [5, 6])
+
+    # Need at least 2 points for linear extrapolation
+    with pytest.raises(AssertionError):
+        KymoLine([1], [1]).extrapolate_right(5, 2.0)
+
+    with pytest.raises(AssertionError):
+        KymoLine([1, 2, 3], [1, 2, 3]).extrapolate_right(1, 2.0)
+
+
+def test_distance_line_to_point():
+    assert distance_line_to_point(np.array([0, 0]), np.array([0, 1]), np.array([0, 2])) == np.inf
+    assert distance_line_to_point(np.array([0, 0]), np.array([0, 2]), np.array([0, 2])) == 0.0
+    assert distance_line_to_point(np.array([0, 0]), np.array([1, 1]), np.array([0, 1])) == .5
+    assert distance_line_to_point(np.array([0, 0]), np.array([1, 0]), np.array([0, 1])) == 1.0
