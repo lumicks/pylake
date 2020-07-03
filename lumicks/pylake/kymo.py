@@ -86,6 +86,12 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         return self.file["Info wave"]["Info wave"][self.start:self.stop]
 
     @property
+    def dims(self):
+        """Returns axis dimensions in um"""
+        axis_count = len(self.json["scan volume"]["scan axes"])
+        return np.array([self._get_axis_metadata(axis)["scan width (um)"] for axis in np.arange(axis_count)])
+
+    @property
     def pixels_per_line(self):
         return self._get_axis_metadata(0)["num of pixels"]
 
