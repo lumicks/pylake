@@ -860,8 +860,19 @@ def test_analytic_roots():
     a = np.array([0])
     b = np.array([-3])
     c = np.array([1])
-    print(np.allclose(np.sort(np.roots([1, a, b, c])), np.sort(
-        [solve_cubic_wlc(a, b, c, 0)[0], solve_cubic_wlc(a, b, c, 1)[0], solve_cubic_wlc(a, b, c, 2)[0]])))
+
+    assert np.allclose(
+        np.sort(np.roots(np.array([np.array(1.0), a, b, c], dtype=np.float64))),
+        np.sort(
+            np.array(
+                [
+                    solve_cubic_wlc(a, b, c, 0)[0],
+                    solve_cubic_wlc(a, b, c, 1)[0],
+                    solve_cubic_wlc(a, b, c, 2)[0],
+                ],
+            )
+        ),
+    )
 
     with pytest.raises(RuntimeError):
         solve_cubic_wlc(a, b, c, 3)
@@ -873,9 +884,8 @@ def test_analytic_roots():
         db = (solve_cubic_wlc(a, b + dx, c, root) - ref_root) / dx
         dc = (solve_cubic_wlc(a, b, c + dx, root) - ref_root) / dx
 
-        print([da[0], db[0], dc[0]])
-        print(np.array(invwlc_root_derivatives(a, b, c, root)))
-        assert np.allclose(np.array(invwlc_root_derivatives(a, b, c, root)), np.array([da, db, dc]), atol=1e-5, rtol=1e-5)
+        assert np.allclose(np.array(invwlc_root_derivatives(a, b, c, root)), np.array([da, db, dc]), atol=1e-5,
+                           rtol=1e-5)
 
     test_root_derivatives(0)
     test_root_derivatives(1)
