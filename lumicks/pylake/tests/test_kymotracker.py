@@ -3,7 +3,7 @@ import numpy as np
 from ..kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from ..kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
 from ..kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine
-from ..kymotracker.detail.stitch import distance_line_to_point
+from ..kymotracker.detail.stitch import distance_line_to_point, stitch_kymo_lines
 from copy import deepcopy
 
 
@@ -203,5 +203,40 @@ def test_kymo_line():
 def test_distance_line_to_point():
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 1]), np.array([0, 2])) == np.inf
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 2]), np.array([0, 2])) == 0.0
-    assert distance_line_to_point(np.array([0, 0]), np.array([1, 1]), np.array([0, 1])) == .5
+    assert distance_line_to_point(np.array([0, 0]), np.array([1, 1]), np.array([0, 1])) == np.sqrt(.5)
     assert distance_line_to_point(np.array([0, 0]), np.array([1, 0]), np.array([0, 1])) == 1.0
+
+
+def test_stitching():
+    segment_1 = KymoLine([0, 1], [0, 1])
+    segment_2 = KymoLine([2, 3], [2, 3])
+    segment_3 = KymoLine([2, 3], [0, 0])
+    segment_1b = KymoLine([0, 1], [0, 0])
+    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1])
+
+    radius = 0.05
+    segment_1d = KymoLine([0.0, 1.0], [radius+.01, radius+.01])
+
+    # Out of stitch range (maximum extension = 1)
+    assert len(stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 1, 2)) == 3
+
+    # Out of stitch radius
+    assert len(stitch_kymo_lines([segment_1d, segment_3, segment_2], radius, 2, 2)) == 3
+
+    stitched = stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 2, 2)
+    assert len(stitched) == 2
+    assert np.allclose(stitched[0].coordinate, [0, 1, 2, 3])
+    assert np.allclose(stitched[1].coordinate, [0, 0])
+
+    stitched = stitch_kymo_lines([segment_1b, segment_3, segment_2], radius, 2, 2)
+    assert np.allclose(stitched[0].coordinate, [0, 0, 0, 0])
+    assert np.allclose(stitched[0].time, [0, 1, 2, 3])
+    assert np.allclose(stitched[1].coordinate, [2, 3])
+
+    # Check whether only the last two points are used (meaning we extrapolate [0, 0], [1, 1])
+    stitched = stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 2)
+    assert np.allclose(stitched[0].coordinate, [0, 0, 1, 2, 3])
+    assert np.allclose(stitched[0].time, [-1, 0, 1, 2, 3])
+
+    # When using all three points, we shouldn't stitch
+    assert len(stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 3)) == 3
