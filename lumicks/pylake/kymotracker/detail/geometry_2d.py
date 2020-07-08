@@ -3,9 +3,9 @@ from .linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 import numpy as np
 
 
-def find_subpixel_location(gx, gy, gxx, gxy, gyy, nx, ny):
+def find_subpixel_location(gx, gy, largest_eigenvalue, nx, ny):
     """This function determines the subpixel location at which the second derivative attains its minimum.
-    It works by performing a Taylor expansion in the direction of the gradient (perpendicular to the line)
+    It works by performing a Taylor expansion in the direction perpendicular to the line.
     and then analytically solving for the first derivative. In 1D:
       f(x) = r + r'x + r''x^2 / 2
       f'(x) = r' + r''x = 0
@@ -17,12 +17,8 @@ def find_subpixel_location(gx, gy, gxx, gxy, gyy, nx, ny):
         First order Gaussian derivative in x direction.
     gy: array_like
         First order Gaussian derivative in y direction.
-    gxx: array_like
-        Second order Gaussian derivative in x direction.
-    gyy: array_like
-        Second order Gaussian derivative in y direction.
-    gxy: array_like
-        Gaussian derivative w.r.t. x and y.
+    largest_eigenvalue: array_like
+        Second order Gaussian derivative in the direction perpendicular to the line (largest eigenvalue of the Hessian).
     nx: array_like
         Image containing x component of the vector normal to the line.
     ny: array_like
@@ -32,15 +28,17 @@ def find_subpixel_location(gx, gy, gxx, gxy, gyy, nx, ny):
     -------
     px: array_like
         Image containing the x coordinate of the subpixel location of the ridge.
-    px: array_like
-        Image containing the x coordinate of the subpixel location of the ridge.
+    py: array_like
+        Image containing the y coordinate of the subpixel location of the ridge.
     image: array_like
         Mask whether the optimum is inside or outside of the pixel.
     """
 
-    # Evaluate the subpixel location of the line
-    denominator = (gxx * nx * nx + 2.0 * gxy * nx * ny + gyy * ny * ny)
-    t = - (gx * nx + gy * ny) / denominator
+    # Evaluate the subpixel location of the line.
+    # x = r'/r'', note that the largest eigenvalue corresponds to the directional derivative in the direction
+    # perpendicular to the line (i.e. gxx * nx * nx + 2.0 * gxy * nx * ny + gyy * ny * ny)
+    t = - (gx * nx + gy * ny) / largest_eigenvalue
+
     px = t * nx
     py = t * ny
 
@@ -68,10 +66,10 @@ def largest_second_derivative_2d(gxx, gxy, gyy):
         Gaussian derivative w.r.t. x and y."""
     eigenvalues = eigenvalues_2d_symmetric(gxx, gxy, gyy)
 
-    # Largest absolute eigenvalue always seems to be the first eigenvalue, but evaluate just to be sure.
+    # Largest negative eigenvalue always seems to be the first eigenvalue, but evaluate just to be sure.
     max_eig = np.expand_dims(np.argmax(np.abs(eigenvalues), axis=2), axis=2)
 
-    # Line strength (second derivative along gradient) is given by:
+    # Line strength (second derivative along steepest principal axis) is given by:
     # S = nx * nx * gxx + 2 * nx * ny * gxy + ny * ny * gyy
     # This is the same as the largest eigenvalue which we already computed.
     largest_eigenvalue = np.squeeze(np.take_along_axis(eigenvalues, max_eig, axis=2))
@@ -119,7 +117,7 @@ def calculate_image_geometry(data, sig_x, sig_y):
     gxy = gaussian_filter(data, [sig_x, sig_y], order=[1, 1])
 
     nx, ny, largest_eig = largest_second_derivative_2d(gxx, gxy, gyy)
-    px, py, inside = find_subpixel_location(gx, gy, gxx, gxy, gyy, nx, ny)
+    px, py, inside = find_subpixel_location(gx, gy, largest_eig, nx, ny)
 
     normals = np.stack((nx, ny), axis=2)
     positions = np.stack((px, py), axis=2)
