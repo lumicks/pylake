@@ -190,14 +190,14 @@ def test_kymo_line():
     k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]))
     assert np.allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
 
-    assert np.allclose(k1.extrapolate_right(3, 2.0), [5, 6])
+    assert np.allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
     # Need at least 2 points for linear extrapolation
     with pytest.raises(AssertionError):
-        KymoLine([1], [1]).extrapolate_right(5, 2.0)
+        KymoLine([1], [1]).extrapolate(True, 5, 2.0)
 
     with pytest.raises(AssertionError):
-        KymoLine([1, 2, 3], [1, 2, 3]).extrapolate_right(1, 2.0)
+        KymoLine([1, 2, 3], [1, 2, 3]).extrapolate(True, 1, 2.0)
 
 
 def test_distance_line_to_point():
@@ -240,3 +240,9 @@ def test_stitching():
 
     # When using all three points, we shouldn't stitch
     assert len(stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 3)) == 3
+
+    # Check whether the alignment has to work in both directions
+    # - and - should connect
+    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0]), KymoLine([2, 2.01], [0, 0])], radius, 1, 2)) == 1
+    # - and | should not connect.
+    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0]), KymoLine([2, 2.01], [0, 1])], radius, 1, 2)) == 2

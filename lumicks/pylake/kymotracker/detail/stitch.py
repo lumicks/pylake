@@ -59,16 +59,11 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
         # Perform linear regression on the last few points
         origin_line = stitched_lines[origin_idx]
 
-        line_start = origin_line[-1]
-        line_end = origin_line.extrapolate_right(n_points, max_extension)
-
         # Compute distance to all other lines
-        distances = np.array([np.linalg.norm(line_start - target_line[0], 2) for target_line in stitched_lines])
+        distances = np.array([np.linalg.norm(origin_line[-1] - target_line[0], 2) for target_line in stitched_lines])
 
-        # Check perpendicular distance of line to all candidate points
-        # (this shows whether a linear extrapolant points at this other line)
         perpendicular_distance = np.array(
-            [distance_line_to_point(line_start, line_end, target_line[0]) for target_line in stitched_lines])
+            [origin_line.connects_linear(line, max_extension, n_points) for line in stitched_lines])
 
         # Make sure our origin line isn't a candidate
         distances[origin_idx] = np.inf
@@ -77,7 +72,10 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
         not_acceptable = perpendicular_distance > radius
         distances[not_acceptable] = np.inf
 
+        # Determine nearest point
         min_dist_idx = np.argmin(distances)
+
+        # Determine vertical distance
 
         # Check if distance lower than linking threshold
         if distances[min_dist_idx] < np.inf:

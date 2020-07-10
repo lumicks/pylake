@@ -1,6 +1,6 @@
 import numpy as np
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
-
+from .stitch import distance_line_to_point
 
 def _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold, angle_weight,
                              candidates, sign=1.0, keep_first=True, debug_plot=False):
@@ -112,11 +112,37 @@ class KymoLine:
     def __getitem__(self, item):
         return np.vstack((self.time[item], self.coordinate[item])).transpose()
 
-    def extrapolate_right(self, n_estimate, extrapolation_length):
+    def connects_linear(self, other, max_extension, n_points):
+        """Checks whether these lines can be connected.
+
+        Extrapolates the right side of this segment by max_extension and checks the minimum distance between the
+        extrapolant and the left side of the other segment. Then the same is done in the backward direction for the
+        segment specified by other, where it evaluates the minimum distance between the extrapolant and the right side
+        of this segment. The maximum of the two distances is returned.
+
+        Parameters
+        ----------
+        other: KymoLine
+        max_extension: float
+            Duration to extrapolate. Setting this higher will extrapolate further, leading to larger spaces being crossed.
+        n_points: int
+            Number of points to use for the linear regression.
+        """
+        fwd_extrapolant = self.extrapolate(True, n_points, max_extension)
+        dist_fwd = distance_line_to_point(self[-1], fwd_extrapolant, other[0])
+
+        bwd_extrapolant = other.extrapolate(False, n_points, max_extension)
+        dist_bwd = distance_line_to_point(other[0], bwd_extrapolant, self[-1])
+
+        return dist_fwd if dist_fwd > dist_bwd else dist_bwd
+
+    def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
 
         Parameters
         ----------
+        forward: boolean
+            extrapolate forward (True) or backward in time (False)
         n_estimate: int
             Number of points to use for linear regression.
         extrapolation_length: float
@@ -125,10 +151,14 @@ class KymoLine:
         assert n_estimate > 1, "Too few time points to extrapolate"
         assert len(self.time) > 1, "Cannot extrapolate linearly with less than one time point"
 
-        coeffs = np.polyfit(self.time[-n_estimate:], self.coordinate[-n_estimate:], 1)
-        slope = coeffs[0]
-
-        return np.array([self.time[-1] + extrapolation_length, self.coordinate[-1] + slope * extrapolation_length])
+        if forward:
+            coeffs = np.polyfit(self.time[-n_estimate:], self.coordinate[-n_estimate:], 1)
+            return np.array([self.time[-1] + extrapolation_length,
+                             self.coordinate[-1] + coeffs[0] * extrapolation_length])
+        else:
+            coeffs = np.polyfit(self.time[:n_estimate], self.coordinate[:n_estimate], 1)
+            return np.array([self.time[0] - extrapolation_length,
+                             self.coordinate[0] - coeffs[0] * extrapolation_length])
 
     def __len__(self):
         return len(self.coordinate)
