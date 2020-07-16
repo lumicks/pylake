@@ -1,6 +1,6 @@
 import numpy as np
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
-from .stitch import distance_line_to_point
+
 
 def _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold, angle_weight,
                              candidates, sign=1.0, keep_first=True, debug_plot=False):
@@ -99,42 +99,25 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
 
 class KymoLine:
     """A line on a kymograph"""
-    __slots__ = ['time', 'coordinate']  # Fixed attributes
+    __slots__ = ['data']
 
     def __init__(self, time, coordinate):
         assert len(time) == len(coordinate)
-        self.time = time
-        self.coordinate = coordinate
+        self.data = np.vstack((time, coordinate))
+
+    @property
+    def time(self):
+        return self.data[0, :]
+
+    @property
+    def coordinate(self):
+        return self.data[1, :]
 
     def __add__(self, other):
         return KymoLine(np.hstack((self.time, other.time)), np.hstack((self.coordinate, other.coordinate)))
 
     def __getitem__(self, item):
-        return np.vstack((self.time[item], self.coordinate[item])).transpose()
-
-    def connects_linear(self, other, max_extension, n_points):
-        """Checks whether these lines can be connected.
-
-        Extrapolates the right side of this segment by max_extension and checks the minimum distance between the
-        extrapolant and the left side of the other segment. Then the same is done in the backward direction for the
-        segment specified by other, where it evaluates the minimum distance between the extrapolant and the right side
-        of this segment. The maximum of the two distances is returned.
-
-        Parameters
-        ----------
-        other: KymoLine
-        max_extension: float
-            Duration to extrapolate. Setting this higher will extrapolate further, leading to larger spaces being crossed.
-        n_points: int
-            Number of points to use for the linear regression.
-        """
-        fwd_extrapolant = self.extrapolate(True, n_points, max_extension)
-        dist_fwd = distance_line_to_point(self[-1], fwd_extrapolant, other[0])
-
-        bwd_extrapolant = other.extrapolate(False, n_points, max_extension)
-        dist_bwd = distance_line_to_point(other[0], bwd_extrapolant, self[-1])
-
-        return dist_fwd if dist_fwd > dist_bwd else dist_bwd
+        return self.data[:, item].transpose()
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
@@ -172,11 +155,10 @@ def traverse_line(indices, masked_derivative, positions, normals, continuation_t
     indices_bwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
                                            angle_weight, candidate_generator, -1, False, debug_plot)
     indices_bwd.reverse()
-    line = np.array(indices_fwd + indices_bwd)
+    line = np.array(indices_bwd + indices_fwd)
 
     if len(line) > 0:
-        order = np.argsort(line[:, 1])
-        return KymoLine(time=line[order, 1], coordinate=line[order, 0])
+        return KymoLine(time=line[:, 1], coordinate=line[:, 0])
 
 
 def detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
