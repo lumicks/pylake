@@ -13,21 +13,40 @@ def distance_line_to_point(line_pt1, line_pt2, point):
     Inserting the line equation for P and solving for u gives:
         u = ((point_x - Px1)(Px2 - Px1) + (point_y - Py1)(Py2 - Py1)) / norm(P2 - P1)
     """
-    distance_p2_p1 = line_pt2 - line_pt1
-    line_length = np.sum(distance_p2_p1 * distance_p2_p1)
+    vector_p2_p1 = line_pt2 - line_pt1
+    line_length = np.sum(vector_p2_p1 * vector_p2_p1)
 
     # If points coincide we have a problem
     assert line_length > 1e-8, "Line points coincide"
 
     distance_point_x1 = point - line_pt1
-    u = np.sum(distance_point_x1 * distance_p2_p1) / line_length
+    u = np.sum(distance_point_x1 * vector_p2_p1) / line_length
 
     if u < 0 or u > 1:
         return np.inf
 
-    vector_to_line = line_pt1 + u * (line_pt2 - line_pt1) - point
+    vector_to_line = line_pt1 + u * vector_p2_p1 - point
 
     return np.sqrt(np.sum(vector_to_line * vector_to_line))
+
+
+def minimum_distance_extrapolants(segment1, segment2):
+    """Checks whether these lines can be connected.
+
+    Checks whether the minimum distance between the extrapolant and the left side of the other segment. Then the same
+    is done in the backward direction for the segment specified by other, where it evaluates the minimum distance
+    between the extrapolant and the right side of this segment. The maximum of the two distances is returned.
+
+    Parameters
+    ----------
+    segment1: tuple of array_like
+        Tuple of two coordinates. A KymoLine end point and its linear extrapolant.
+    segment2: tuple of array_like
+        Tuple of two coordinates. A KymoLine start point and its linear extrapolant (towards negative time).
+    """
+    dist_fwd = distance_line_to_point(segment1[0], segment1[1], segment2[0])
+    dist_bwd = distance_line_to_point(segment2[0], segment2[1], segment1[0])
+    return dist_fwd if dist_fwd > dist_bwd else dist_bwd
 
 
 def stitch_kymo_lines(lines, radius, max_extension, n_points):
@@ -54,6 +73,9 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
     """
     stitched_lines = deepcopy(lines)
 
+    forward_extrapolants = [(line[-1], line.extrapolate(True, n_points, max_extension)) for line in stitched_lines]
+    backward_extrapolants = [(line[0], line.extrapolate(False, n_points, max_extension)) for line in stitched_lines]
+
     origin_idx = 0
     while origin_idx < len(stitched_lines):
         # Perform linear regression on the last few points
@@ -62,8 +84,9 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
         # Compute distance to all other lines
         distances = np.array([np.linalg.norm(origin_line[-1] - target_line[0], 2) for target_line in stitched_lines])
 
-        perpendicular_distance = np.array(
-            [origin_line.connects_linear(line, max_extension, n_points) for line in stitched_lines])
+        forward_extrapolant = forward_extrapolants[origin_idx]
+        perpendicular_distance = np.array([minimum_distance_extrapolants(forward_extrapolant, backward_extrapolant) for
+                                           backward_extrapolant in backward_extrapolants])
 
         # Make sure our origin line isn't a candidate
         distances[origin_idx] = np.inf
@@ -75,12 +98,16 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
         # Determine nearest point
         min_dist_idx = np.argmin(distances)
 
-        # Determine vertical distance
-
         # Check if distance lower than linking threshold
         if distances[min_dist_idx] < np.inf:
-            stitched_lines[origin_idx] = stitched_lines[origin_idx] + stitched_lines[min_dist_idx]
+            merged_line = stitched_lines[origin_idx] + stitched_lines[min_dist_idx]
+            stitched_lines[origin_idx] = merged_line
+            forward_extrapolants[origin_idx] = (merged_line[-1], merged_line.extrapolate(True, n_points, max_extension))
+            backward_extrapolants[origin_idx] = (merged_line[0], merged_line.extrapolate(False, n_points, max_extension))
+
             del stitched_lines[min_dist_idx]
+            del forward_extrapolants[min_dist_idx]
+            del backward_extrapolants[min_dist_idx]
             if origin_idx > min_dist_idx:
                 origin_idx -= 1
         else:
