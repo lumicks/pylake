@@ -2,22 +2,38 @@ import numpy as np
 
 
 def eigenvalues_2d_symmetric(a, b, d):
-    """This function returns the eigenvalues of a 2x2 symmetric matrix.
+    """This function returns the eigenvalues of a 2x2 symmetric matrix given by:
     | a  b |
     | b  d |
+
+    Note that this a special case of a 2x2 symmetric matrix where every element of the matrix is passed as an image.
+    This allows the evaluation of eigenvalues to be vectorized over the entire image. This is much more efficient
+    than calling the numpy functions for computing the eigenvalues for each pixel of the image.
+
+    Parameters
+    ----------
+    a, b, d: array_like
+        2D images containing the values of the matrix elements a b and d.
     """
     t = a + d
     bsq4 = 4 * b ** 2
     amdsq = (a - d) ** 2
-    eig1 = 0.5 * t + .5 * np.sqrt(bsq4 + amdsq)
-    eig2 = 0.5 * t - .5 * np.sqrt(bsq4 + amdsq)
+    ht = .5 * t
+    half_sqrt_discriminant = .5 * np.sqrt(bsq4 + amdsq)
+    eig1 = ht + half_sqrt_discriminant
+    eig2 = ht - half_sqrt_discriminant
 
     return np.stack((eig1, eig2), axis=len(eig1.shape))
 
 
-def eigenvector_2d_symmetric(a, b, d, eig):
+def eigenvector_2d_symmetric(a, b, d, eig, eps=1e-8):
     """Returns normalized eigenvector corresponding to the provided eigenvalue.
 
+    Note that this a special case of a 2x2 symmetric matrix where every element of the matrix is passed as an image.
+    This allows the evaluation of eigenvalues to be vectorized over the entire image. This is much more efficient
+    than calling the numpy function for computing the eigenvectors for each pixel of the image.
+
+    This function solves:
     | a-lambda  b        |
     | b         d-lambda | [x, y] = 0
 
@@ -33,8 +49,6 @@ def eigenvector_2d_symmetric(a, b, d, eig):
     so x = 1 iff b = 0 and l = a
     and y = 1 iff b = 0 and l = d
     """
-    eps = 1e-8
-
     ex = np.zeros(a.shape)
     ey = np.zeros(a.shape)
     ex[np.abs(a - eig) < eps] = 1
