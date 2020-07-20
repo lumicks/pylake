@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
 
 from collections import OrderedDict
-from ..fitting.parameters import Params
-from ..fitting.detail.utilities import parse_transformation, unique_idx, escape_tex, latex_sqrt
-from ..fitting.detail.link_functions import generate_conditions
-from ..fitting.fitdata import Condition, FitData
-from ..fitting.model import Model, InverseModel
-from ..fitting.datasets import Datasets
-from ..fitting.fit import Fit, FdFit
-from ..fitting.detail.model_implementation import solve_cubic_wlc, invwlc_root_derivatives
-from ..fitting.models import *
-from ..fitting.parameter_trace import parameter_trace
+from lumicks.pylake.fitting.parameters import Params
+from lumicks.pylake.fitting.detail.utilities import parse_transformation, unique_idx, escape_tex, latex_sqrt
+from lumicks.pylake.fitting.detail.link_functions import generate_conditions
+from lumicks.pylake.fitting.fitdata import Condition, FitData
+from lumicks.pylake.fitting.model import Model, InverseModel
+from lumicks.pylake.fitting.datasets import Datasets
+from lumicks.pylake.fitting.fit import Fit, FdFit
+from lumicks.pylake.fitting.detail.model_implementation import solve_cubic_wlc, invwlc_root_derivatives
+from lumicks.pylake.fitting.models import *
+from lumicks.pylake.fitting.parameter_trace import parameter_trace
 
 
 def test_transformation_parser():

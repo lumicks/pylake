@@ -5,6 +5,7 @@ import numpy as np
 
 def find_subpixel_location(gx, gy, largest_eigenvalue, nx, ny):
     """This function determines the subpixel location at which the second derivative attains its minimum.
+
     It works by performing a Taylor expansion in the direction perpendicular to the line.
     and then analytically solving for the first derivative. In 1D:
       f(x) = r + r'x + r''x^2 / 2
