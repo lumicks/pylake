@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
-from ..kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
-from ..kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
-from ..kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine
-from ..kymotracker.detail.stitch import distance_line_to_point, stitch_kymo_lines
+from lumicks.pylake.kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
+from lumicks.pylake.kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
+from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine
+from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point, stitch_kymo_lines
 from copy import deepcopy
 
 
@@ -71,7 +71,17 @@ def test_eigen_2d():
 
 
 def test_subpixel_methods():
-    def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol):
+    @pytest.mark.parametrize("loc,scale,sig_x,sig_y,transpose", [
+        (25.25, 2, 3, 3, False),
+        (25.45, 2, 3, 3, False),
+        (25.65, 2, 3, 3, False),
+        (25.85, 2, 3, 3, False),
+        (25.25, 2, 3, 3, True),
+        (25.45, 2, 3, 3, True),
+        (25.65, 2, 3, 3, True),
+        (25.85, 2, 3, 3, True),
+    ])
+    def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol=1e-2):
         from scipy.stats import norm
 
         data = np.tile(.0001 + norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
@@ -85,17 +95,6 @@ def test_subpixel_methods():
         else:
             assert np.abs(positions[3, round(loc), 1] - (loc - round(loc))) < tol
             assert inside[3, round(loc)] == 1
-
-    tol = 1e-2
-    test_position_determination(25.25, 2, 3, 3, False, tol)
-    test_position_determination(25.45, 2, 3, 3, False, tol)
-    test_position_determination(25.65, 2, 3, 3, False, tol)
-    test_position_determination(25.85, 2, 3, 3, False, tol)
-
-    test_position_determination(25.25, 2, 3, 3, True, tol)
-    test_position_determination(25.45, 2, 3, 3, True, tol)
-    test_position_determination(25.65, 2, 3, 3, True, tol)
-    test_position_determination(25.85, 2, 3, 3, True, tol)
 
 
 def test_geometry():

@@ -1,6 +1,5 @@
 import numpy as np
 from lumicks import pylake
-from lumicks.pylake.marker import Marker
 import pytest
 from textwrap import dedent
 
