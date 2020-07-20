@@ -26,6 +26,24 @@ def test_eigen_2d():
         assert np.allclose(abs(np.dot(vs[0], np_eigen_vectors[:, i[0]])), 1.0), print("First eigen vector invalid")
         assert np.allclose(abs(np.dot(vs[1], np_eigen_vectors[:, i[1]])), 1.0), print("Second eigen vector invalid")
 
+    def np_eigenvalues(a, b, d):
+        eig1 = np.empty(a.shape)
+        eig2 = np.empty(a.shape)
+        ex = np.empty(a.shape)
+        ey = np.empty(a.shape)
+        for x in np.arange(a.shape[0]):
+            for y in np.arange(a.shape[1]):
+                np_eigen_values, np_eigen_vectors = np.linalg.eig(np.array([[a[x, y], b[x, y]], [b[x, y], d[x, y]]]))
+                idx = np_eigen_values.argsort()
+                np_eigen_values.sort()
+                eig1[x, y] = np_eigen_values[0]
+                eig2[x, y] = np_eigen_values[1]
+
+                ex[x, y] = np_eigen_vectors[0, idx[0]]
+                ey[x, y] = np_eigen_vectors[1, idx[0]]
+
+        return np.stack((eig1, eig2), axis=len(eig1.shape)), ex, ey
+
     test_eigs(3, 4, 8)
     test_eigs(3, 0, 4)
     test_eigs(3, 4, 0)
@@ -35,6 +53,21 @@ def test_eigen_2d():
     test_eigs(-0.928069046998319, 0.9020129898294712, -0.9280690469983189)
     test_eigs(.000001, -1, .000001)
     test_eigs(.000001, -.000001, .00001)
+
+    a = np.array([[3, 3, 3], [3, 0, 0], [3, 0, 0]])
+    b = np.array([[4, 0, 0], [4, 4, 4], [3, 0, 0]])
+    d = np.array([[8, 4, 4], [0, 0, 0], [3, 0, 0]])
+
+    eigenvalues = eigenvalues_2d_symmetric(a, b, d)
+    np_eigenvalues, np_eigenvector_x, np_eigenvector_y = np_eigenvalues(a, b, d)
+
+    eigenvalues.sort(axis=-1)
+    eigenvector_x, eigenvector_y = eigenvector_2d_symmetric(a, b, d, eigenvalues[:, :, 0])
+
+    assert np.allclose(eigenvalues, np_eigenvalues)
+
+    # Eigen vectors have to point in the same direction, but are not necessarily the same sign
+    assert np.allclose(np.abs(np_eigenvector_x*eigenvector_x + np_eigenvector_y*eigenvector_y), np.ones(a.shape))
 
 
 def test_subpixel_methods():
