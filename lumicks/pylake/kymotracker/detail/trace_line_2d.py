@@ -2,97 +2,124 @@ import numpy as np
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
 
 
+def score_candidates(normal, position_difference, trial_normals, angle_weight):
+    """Evaluate connection score. Connection score is made up of angular and Euclidian distance between adjacent
+    pixels."""
+
+    # We want all normals on the same side of the line, so flip those that aren't.
+    flip_normal = is_opposite(trial_normals, normal)
+    trial_normals[flip_normal, :] = -trial_normals[flip_normal, :]
+
+    # Note that we have to add the relative pixel displacement on top of the subpixel displacements)
+    distances = np.linalg.norm(position_difference, axis=1)
+    angular_distances = np.arccos(np.dot(trial_normals, normal))
+    return distances + angle_weight * angular_distances
+
+
+def generate_trial_points(sign, normal, candidate_generator):
+    """Generate candidate steps"""
+    angle = np.arctan2(sign * normal[1], sign * normal[0])
+    candidate_steps = candidate_generator(angle)
+    return candidate_steps
+
+
+def check_if_line(indices, candidate_steps, masked_derivative, continuation_threshold):
+    """Checks whether the candidates listed in candidate_steps are valid line candidates or not. Returns both the valid
+    steps and indices"""
+
+    candidate_indices = indices + candidate_steps
+    valid = is_in_2d(candidate_indices, masked_derivative.shape)
+    line_like = masked_derivative[candidate_indices[valid, 0], candidate_indices[valid, 1]] < continuation_threshold
+    valid[valid] = valid[valid] & line_like
+    return candidate_steps[valid, :], candidate_indices[valid, :]
+
+
+def do_step(subpixel_origin, normal, candidate_steps, candidate_indices, normals, positions, angle_weight):
+    """Make a step in the line tracing algorithm. This function chooses a step from the candidate steps and performs it.
+    It returns either a vector of new indices or None in case there is no more valid step to perform.
+
+    Parameters
+    ----------
+        subpixel_origin: array_like
+            Subpixel position of the current pixel.
+        normal: array_like
+            Normal at the current point.
+        candidate_steps: array_like
+            List of candidate steps.
+        candidate_indices: array_like
+            List of candidate steps [pixel index, pixel index].
+        normals: array_like
+            NxMx2 array of normal vectors.
+        positions: array_like
+            NxMx2 array of subpixel positions.
+        angle_weight: array_like
+            Score weighting factor.
+    """
+    n_options = candidate_indices.shape[0]
+
+    if n_options == 0:
+        return
+    elif n_options == 1:
+        # If we have only one valid option, go here for the next iteration
+        return candidate_indices.flatten()
+    else:
+        # There are multiple valid candidates which could be an extension of the line. Compute the score for each.
+        pos_difference = candidate_steps + positions[candidate_indices[:, 0], candidate_indices[:, 1]] - subpixel_origin
+        trial_normals = normals[candidate_indices[:, 0], candidate_indices[:, 1]]
+        scores = score_candidates(normal, pos_difference, trial_normals, angle_weight)
+
+        # Update current point with the best scoring point
+        return candidate_indices[np.argmin(scores), :]
+
+
 def _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold, angle_weight,
-                             candidates, sign=1.0, keep_first=True, debug_plot=False):
-    """Traverse a line along single direction perpendicular to the normal.
+                             candidate_generator, sign=1.0):
+    """Traverse a line along single direction perpendicular to the normal. While traversing, it sets visited pixels in
+    the derivative image to zero to mark them as seen. Only candidates with a negative derivative are considered.
 
     Parameters
     ----------
     indices: array_like
         index coordinate where to start
     masked_derivative: array_like
-        Image containing the second derivative masked by whether a point is a peak or not.
+        Image containing the second derivative masked by whether a point is a peak or not. Note that this will be
+        modified in-place.
     positions: array_like
         NxMx2 array containing subpixel coordinates of the peak within this pixel.
     normals: array_like
-        NxMx2 array of normal vectors.
+        NxMx2 array of normal vectors. Note that normals will be flipped to maintain a fixed orientation while line
+        tracing. As a result, this array will be modified in-place.
     continuation_threshold: float
         Threshold whether a line should be continued or not.
     angle_weight: float
         Factor which determines how the angle between normals needs to be weighted relative to distance.
         High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference
-    candidates: callable
+    candidate_generator: callable
         Function that generate candidates pixels based on normal angle (see geometry_2d/get_candidate_generator).
     sign: float
         -1.0 or 1.0 depending on whether the algorithm should proceed forward or backward.
-    keep_first: boolean
-        Do not remove starting point
-    debug_plot: boolean
-        Generate debug plots
     """
 
     # Line strength needs to meet a threshold for continuation
     nodes = []
-    while masked_derivative[indices[0], indices[1]] < continuation_threshold:
-        if not keep_first:
-            # Mark pixel as seen
-            masked_derivative[indices[0], indices[1]] = 0
-        else:
-            keep_first = False
+    while indices is not None:
+        masked_derivative[indices[0], indices[1]] = 0  # Mark pixel as seen
 
-        # Determine normal at origin
-        normal = normals[indices[0], indices[1]]
         subpixel_origin = positions[indices[0], indices[1]]
-
         nodes.append(indices + subpixel_origin)
 
-        # Generate trial points given our current normal angle
-        angle = np.arctan2(sign * normal[1], sign * normal[0])
-        candidate_steps = candidates(angle)
-        candidate_indices = indices + candidate_steps
+        normal = normals[indices[0], indices[1]]
+        candidate_steps = generate_trial_points(sign, normal, candidate_generator)
 
-        # Reject candidates that aren't line points
-        valid = is_in_2d(candidate_indices, masked_derivative.shape)
-        valid[valid] = valid[valid] & (masked_derivative[candidate_indices[valid, 0], candidate_indices[valid, 1]] < 0)
-        n_options = np.sum(valid)
+        candidate_steps, candidate_indices = check_if_line(indices, candidate_steps, masked_derivative,
+                                                           continuation_threshold)
 
-        # We ran out of options. Terminate the line.
-        if n_options == 0:
-            break
+        indices = do_step(subpixel_origin, normal, candidate_steps, candidate_indices, normals, positions, angle_weight)
 
-        # If we have only one valid option, go here for the next iteration
-        if n_options == 1:
-            indices = candidate_indices[valid, :].flatten()
-        else:
-            # There is ambiguity to be resolved in the search direction
-            candidate_steps = candidate_steps[valid, :]
-            candidate_indices = candidate_indices[valid, :]
-
-            # We want all normals on the same side of the line, so flip those that aren't.
-            trial_normals = normals[candidate_indices[:, 0], candidate_indices[:, 1]]
-            flip_normal = is_opposite(trial_normals, normal)
-            trial_normals[flip_normal, :] = -trial_normals[flip_normal, :]
-
-            # Score is made up of angular and Euclidian distance. Pixel with minimum score wins.
-            # Note that we have to add the relative pixel displacement on top of the subpixel displacements)
-            trial_positions = candidate_steps + positions[candidate_indices[:, 0], candidate_indices[:, 1]]
-            distances = np.linalg.norm(trial_positions - subpixel_origin, axis=1)
-            angular_distances = np.arccos(np.dot(trial_normals, normal))
-            scores = distances + angle_weight * angular_distances
-
-            # Update current point with the best scoring point
-            indices = candidate_indices[np.argmin(scores), :]
-
-        # Check if normal needs to be flipped to ensure a minimal angle between the current and previous normal vector.
-        if is_opposite(normals[indices[0], indices[1]], normal):
-            normals[indices[0], indices[1]] = -normals[indices[0], indices[1]]
-
-        if debug_plot:
-            import matplotlib.pyplot as plt
-            if len(nodes) == 1:
-                plt.plot(indices[1], indices[0], 'x')
-            else:
-                plt.plot(indices[1], indices[0], 'o')
+        if indices is not None:
+            # Check if normal needs to be flipped to ensure a minimal angle between the current and previous normal.
+            if is_opposite(normals[indices[0], indices[1]], normal):
+                normals[indices[0], indices[1]] = -normals[indices[0], indices[1]]
 
     return nodes
 
@@ -151,9 +178,9 @@ def traverse_line(indices, masked_derivative, positions, normals, continuation_t
                   angle_weight, debug_plot):
     """Traverse a line in both directions."""
     indices_fwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
-                                           angle_weight, candidate_generator, 1, True, debug_plot)
+                                           angle_weight, candidate_generator, 1)
     indices_bwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
-                                           angle_weight, candidate_generator, -1, False, debug_plot)
+                                           angle_weight, candidate_generator, -1)
     indices_bwd.reverse()
     line = np.array(indices_bwd + indices_fwd)
 
