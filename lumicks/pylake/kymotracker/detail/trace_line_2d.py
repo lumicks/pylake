@@ -17,12 +17,16 @@ def score_candidates(normal, position_difference, trial_normals, angle_weight):
 
 
 def generate_trial_points(sign, normal, candidate_generator):
+    """Generate candidate steps"""
     angle = np.arctan2(sign * normal[1], sign * normal[0])
     candidate_steps = candidate_generator(angle)
     return candidate_steps
 
 
 def check_if_line(indices, candidate_steps, masked_derivative, continuation_threshold):
+    """Checks whether the candidates listed in candidate_steps are valid line candidates or not. Returns both the valid
+    steps and indices"""
+
     candidate_indices = indices + candidate_steps
     valid = is_in_2d(candidate_indices, masked_derivative.shape)
     line_like = masked_derivative[candidate_indices[valid, 0], candidate_indices[valid, 1]] < continuation_threshold
@@ -31,7 +35,8 @@ def check_if_line(indices, candidate_steps, masked_derivative, continuation_thre
 
 
 def do_step(subpixel_origin, normal, candidate_steps, candidate_indices, normals, positions, angle_weight):
-    """Make a step in the line tracing algorithm.
+    """Make a step in the line tracing algorithm. This function chooses a step from the candidate steps and performs it.
+    It returns either a vector of new indices or None in case there is no more valid step to perform.
 
     Parameters
     ----------
