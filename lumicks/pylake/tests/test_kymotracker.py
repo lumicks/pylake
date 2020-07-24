@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from lumicks.pylake.kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
-from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine
+from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine, detect_lines
 from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point, stitch_kymo_lines
 from copy import deepcopy
 
@@ -190,7 +190,7 @@ def test_tracing():
     a[:hx, :hx] = -2 * np.eye(n - hx - 1)
     a[int(n / 2), :] = -1
 
-    positions = np.zeros((n, n))
+    positions = np.zeros((n, n, 2))
     normals = np.zeros((n, n, 2))
     normals[:, :, 0] = - np.eye(n) * 1.0 / np.sqrt(2)
     normals[:, :, 1] = np.eye(n) * 1.0 / np.sqrt(2)
@@ -199,17 +199,33 @@ def test_tracing():
     normals[hx, hx, 1] = 1.0 / np.sqrt(2)
 
     candidates = get_candidate_generator()
-    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, -1),
+    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1, True),
                        np.array([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]]))
     assert np.allclose(
-        _traverse_line_direction([n - 1, n - 1], deepcopy(a), positions, normals, -0.5, 1, candidates, 1),
+        _traverse_line_direction([n - 1, n - 1], deepcopy(a), positions, normals, -0.5, 1, candidates, -1, True),
         np.array([[6, 6], [5, 5], [4, 4], [3, 3], [2, 2], [1, 1], [0, 0]]))
-    assert np.allclose(_traverse_line_direction([hx, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1),
+    assert np.allclose(_traverse_line_direction([hx, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1, True),
                        np.array([[hx, 0], [hx, 1], [hx, 2], [hx, 3], [4, 4], [5, 5], [6, 6]]))
 
     # Test whether the threshold is enforced
-    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -1.5, 1, candidates, -1),
+    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -1.5, 1, candidates, 1, True),
                        np.array([[0, 0], [1, 1], [2, 2]]))
+
+
+def test_uni_directional():
+    data = np.zeros((100, 100)) + .0001
+    for i in np.arange(634):
+        for j in np.arange(25, 35, .5):
+            data[int(50 + j * np.sin(.01 * i)), int(50 + j * np.cos(.01 * i))] = 1
+
+    def detect(min_length, force_dir):
+        lines = detect_lines(data, 6, max_lines=5, start_threshold=.005, continuation_threshold=.095, angle_weight=1,
+                             force_dir=force_dir)
+
+        return [line for line in lines if len(line) > min_length]
+
+    assert len(detect(5, True)) == 2
+    assert len(detect(5, False)) == 1
 
 
 def test_kymo_line():
