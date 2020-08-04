@@ -26,8 +26,8 @@ def parse_transformation(params, param_transform={}):
 
 
 def optimal_plot_layout(n_plots):
-    n_x = np.ceil(np.sqrt(n_plots))
-    n_y = np.ceil(n_plots/n_x)
+    n_x = int(np.ceil(np.sqrt(n_plots)))
+    n_y = int(np.ceil(n_plots/n_x))
 
     return n_x, n_y
 
