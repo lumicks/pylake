@@ -4,7 +4,7 @@ import warnings
 
 from .detail.mixin import PhotonCounts
 from .detail.mixin import ExcitationLaserPower
-from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
+from .detail.image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
     seek_timestamp_next_line
 from .detail.timeindex import to_timestamp
 from .detail.utilities import first
@@ -99,8 +99,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
     def _image(self, color):
         if color not in self._cache:
             photon_counts = getattr(self, f"{color}_photon_count").data
-            self._cache[color] = reconstruct_image(photon_counts, self.infowave.data,
-                                                   self.pixels_per_line).T
+            self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line).T
         return self._cache[color]
 
     def _has_incorrect_start(self, timeline_start):

@@ -2,7 +2,7 @@ import json
 import numpy as np
 
 from .kymo import Kymo
-from .detail.image import reconstruct_image, reconstruct_num_frames
+from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
 
 
 class Scan(Kymo):
@@ -48,8 +48,8 @@ class Scan(Kymo):
     def _image(self, color):
         if color not in self._cache:
             photon_counts = getattr(self, f"{color}_photon_count").data
-            self._cache[color] = reconstruct_image(photon_counts, self.infowave.data,
-                                                   self.pixels_per_line, self.lines_per_frame)
+            self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line,
+                                                       self.lines_per_frame)
         return self._cache[color]
 
     def _timestamps(self, sample_timestamps):

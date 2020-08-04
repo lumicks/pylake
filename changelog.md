@@ -4,6 +4,7 @@
 * Add literature page to the documentation.
 * Fix docstring for `Fit.plot()`.
 * Verify starting timestamp when reconstructing Kymo or Scan.
+* Optimized reconstruction algorithm for sum.
 
 ## v0.5.0 | 2020-06-08
 * Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).

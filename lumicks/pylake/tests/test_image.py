@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
-from lumicks.pylake.detail.image import reconstruct_image, reconstruct_num_frames, save_tiff, ImageMetadata, line_timestamps_image
+from lumicks.pylake.detail.image import reconstruct_image, reconstruct_image_sum, reconstruct_num_frames, save_tiff,\
+    ImageMetadata, line_timestamps_image
 
 
 def test_metadata_from_json():
@@ -56,6 +57,14 @@ def test_reconstruct():
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
 
+    image = reconstruct_image_sum(the_data, infowave, 5)
+    assert image.shape == (1, 5)
+    assert np.all(image == [4, 8, 12, 0, 0])
+
+    image = reconstruct_image_sum(the_data, infowave, 2)
+    assert image.shape == (2, 2)
+    assert np.all(image == [[4, 8], [12, 0]])
+
 
 def test_reconstruct_multiframe():
     size = 100
@@ -69,6 +78,13 @@ def test_reconstruct_multiframe():
     assert reconstruct_image(the_data, infowave, 2, 2).shape == (3, 2, 2)
     assert reconstruct_image(the_data, infowave, 2, 3).shape == (2, 3, 2)
     assert reconstruct_image(the_data, infowave, 2, 5).shape == (5, 2)
+
+    assert reconstruct_image_sum(the_data, infowave, 5).shape == (2, 5)
+    assert reconstruct_image_sum(the_data, infowave, 2).shape == (5, 2)
+    assert reconstruct_image_sum(the_data, infowave, 1).shape == (10, 1)
+    assert reconstruct_image_sum(the_data, infowave, 2, 2).shape == (3, 2, 2)
+    assert reconstruct_image_sum(the_data, infowave, 2, 3).shape == (2, 3, 2)
+    assert reconstruct_image_sum(the_data, infowave, 2, 5).shape == (5, 2)
 
     assert reconstruct_num_frames(infowave, 2, 2) == 3
     assert reconstruct_num_frames(infowave, 2, 3) == 2
