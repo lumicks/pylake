@@ -1,9 +1,11 @@
 import json
 import numpy as np
+import warnings
 
 from .detail.mixin import PhotonCounts
 from .detail.mixin import ExcitationLaserPower
-from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image
+from .detail.image import reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
+    seek_timestamp_next_line
 from .detail.timeindex import to_timestamp
 from .detail.utilities import first
 
@@ -68,7 +70,12 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         return Kymo(self.name, self.file, start, stop, self.json)
 
     def _get_photon_count(self, name):
-        return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+        photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+
+        if self._has_incorrect_start(photon_count._src.start):
+            photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+
+        return photon_count
 
     def _get_axis_metadata(self, axis=0):
         return first(self.json["scan volume"]["scan axes"], lambda x: x["axis"] == axis)
@@ -95,6 +102,21 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
             self._cache[color] = reconstruct_image(photon_counts, self.infowave.data,
                                                    self.pixels_per_line).T
         return self._cache[color]
+
+    def _has_incorrect_start(self, timeline_start):
+        """Checks whether the scan or kymograph starts before the timeline information. If this is the case, it will
+        lead to an incorrect reconstruction. For kymographs this is recoverable by omitting the first line. For scans
+        it is currently unrecoverable."""
+        if timeline_start > self.start:
+            if type(self) == Kymo:
+                self.start = seek_timestamp_next_line(self.infowave[self.start:])
+                self._cache = {}
+                warnings.warn("Start of the kymograph was truncated. Omitting the truncated first line.",
+                              RuntimeWarning)
+                return True
+            else:
+                raise RuntimeError("Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
+                                   "entire scan time in Bluelake?")
 
     def _timestamps(self, sample_timestamps):
         return reconstruct_image(sample_timestamps, self.infowave.data,

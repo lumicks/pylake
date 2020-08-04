@@ -10,11 +10,11 @@ def test_scans(h5_file):
 
         assert repr(scan) == "Scan(pixels=(5, 4))"
 
-        reference_timestamps = [[2.006250e+10, 2.109375e+10, 2.206250e+10, 2.309375e+10],
-                                [2.025000e+10, 2.128125e+10, 2.225000e+10, 2.328125e+10],
-                                [2.043750e+10, 2.146875e+10, 2.243750e+10, 2.346875e+10],
-                                [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
-                                [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]]
+        reference_timestamps = np.array([[2.006250e+10, 2.109375e+10, 2.206250e+10, 2.309375e+10],
+                                        [2.025000e+10, 2.128125e+10, 2.225000e+10, 2.328125e+10],
+                                        [2.043750e+10, 2.146875e+10, 2.243750e+10, 2.346875e+10],
+                                        [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
+                                        [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]], dtype=np.int64)
 
         assert np.allclose(scan.timestamps, np.transpose(reference_timestamps))
         assert scan.num_frames == 1
@@ -30,3 +30,14 @@ def test_scans(h5_file):
 
         with pytest.raises(NotImplementedError):
             scan["1s":"2s"]
+
+
+def test_damaged_scan(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+
+    if f.format_version == 2:
+        scan = f.scans["Scan1"]
+
+        scan.start = scan.red_photon_count.timestamps[0] - 1  # Assume the user incorrectly exported only a partial scan
+        with pytest.raises(RuntimeError):
+            scan.red_image.shape

@@ -9,11 +9,11 @@ def test_kymo_properties(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
         kymo = f.kymos["Kymo1"]
-        reference_timestamps = [[2.006250e+10, 2.109375e+10, 2.206250e+10, 2.309375e+10],
-                                [2.025000e+10, 2.128125e+10, 2.225000e+10, 2.328125e+10],
-                                [2.043750e+10, 2.146875e+10, 2.243750e+10, 2.346875e+10],
-                                [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
-                                [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]]
+        reference_timestamps = np.array([[2.006250e+10, 2.109375e+10, 2.206250e+10, 2.309375e+10],
+                                        [2.025000e+10, 2.128125e+10, 2.225000e+10, 2.328125e+10],
+                                        [2.043750e+10, 2.146875e+10, 2.243750e+10, 2.346875e+10],
+                                        [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
+                                        [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]], np.int64)
 
         assert repr(kymo) == "Kymo(pixels=5)"
         assert kymo.has_fluorescence
@@ -100,3 +100,16 @@ def test_kymo_slicing(h5_file):
         assert empty_kymograph.pixels_per_line == 5
         assert empty_kymograph.red_image.size == 0
         assert empty_kymograph.rgb_image.size == 0
+
+
+def test_damaged_kymo(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+        kymo_reference = np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
+
+        kymo.start = kymo.red_photon_count.timestamps[0] - 1  # Assume the user incorrectly exported only a partial Kymo
+        with pytest.warns(RuntimeWarning):
+            assert kymo.red_image.shape == (5, 3)
+        assert np.allclose(kymo.red_image.data, kymo_reference[:, 1:])
