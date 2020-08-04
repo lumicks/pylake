@@ -103,6 +103,32 @@ def line_timestamps_image(time_stamps, infowave, pixels_per_line):
     return time_stamps[pixel_start_idx[0:-1:pixels_per_line]]
 
 
+def seek_timestamp_next_line(infowave):
+    """Seeks the timestamp beyond the first line. Used for repairing kymos with truncated start."""
+    time = infowave.timestamps
+    infowave = infowave.data
+
+    # Discard unused acquisition
+    mask = infowave != InfowaveCode.discard
+    infowave = infowave[mask]
+    time = time[mask]
+
+    # Fetch start of pixels
+    pixel_ends, = np.where(infowave == InfowaveCode.pixel_boundary)
+    pixel_start = time[pixel_ends[:-1] + 1]
+
+    # Determine pixel times
+    dts = np.diff(pixel_start)
+
+    # Long ones indicate a line. Find the first one.
+    mx = np.max(dts)
+    mn = np.min(dts)
+    pixel_time_threshold = (mx + mn) / 2
+    idx = np.argmax(dts > pixel_time_threshold)
+
+    return pixel_start[idx + 1]
+
+
 def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, reduce=np.sum):
     """Reconstruct a scan or kymograph image from raw data
 
