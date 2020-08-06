@@ -81,6 +81,14 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         return first(self.json["scan volume"]["scan axes"], lambda x: x["axis"] == axis)
 
     @property
+    def _fast_axis_metadata(self):
+        return self.json["scan volume"]["scan axes"][0]
+
+    @property
+    def fast_axis(self):
+        return "X" if self._fast_axis_metadata["axis"] == 0 else "Y"
+
+    @property
     def has_fluorescence(self) -> bool:
         return self.json["fluorescence"]
 
@@ -94,7 +102,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
 
     @property
     def pixels_per_line(self):
-        return self._get_axis_metadata(0)["num of pixels"]
+        return self._fast_axis_metadata["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:

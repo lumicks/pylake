@@ -1,4 +1,3 @@
-import json
 import numpy as np
 
 from .kymo import Kymo
@@ -43,18 +42,33 @@ class Scan(Kymo):
 
     @property
     def lines_per_frame(self):
-        return self._get_axis_metadata(1)["num of pixels"]
+        return self.json["scan volume"]["scan axes"][1]["num of pixels"]
+
+    def _to_spatial(self, data):
+        """Checks whether the axes should be flipped w.r.t. the reconstruction. Reconstruction always produces images
+        with the slow axis first, and the fast axis second. Depending on the order of axes scanned, this may not
+        coincide with physical axes. This function converts it back to spatial axes when needed."""
+        if self._fast_axis_metadata["axis"] == 1:
+            new_axis_order = np.arange(len(data.shape), dtype=np.int)
+            new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]
+            return np.transpose(data, new_axis_order)
+        else:
+            return data
 
     def _image(self, color):
         if color not in self._cache:
             photon_counts = getattr(self, f"{color}_photon_count").data
             self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line,
                                                        self.lines_per_frame)
+            self._cache[color] = self._to_spatial(self._cache[color])
+
         return self._cache[color]
 
     def _timestamps(self, sample_timestamps):
-        return reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
-                                 self.lines_per_frame, reduce=np.mean)
+        timestamps = reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
+                                       self.lines_per_frame, reduce=np.mean)
+
+        return self._to_spatial(timestamps)
 
     def _plot(self, image, frame=1, **kwargs):
         import matplotlib.pyplot as plt
@@ -66,7 +80,8 @@ class Scan(Kymo):
         x_um = self._get_axis_metadata(0)["scan width (um)"]
         y_um = self._get_axis_metadata(1)["scan width (um)"]
         default_kwargs = dict(
-            extent=[0, x_um, 0, y_um],
+            # With origin set to upper (default) bounds should be given as (0, n, n, 0)
+            extent=[0, x_um, y_um, 0],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um)
         )
 

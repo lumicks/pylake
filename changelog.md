@@ -1,10 +1,12 @@
 # Changelog
 
-## v0.5.1 | t.b.d.
+## v0.6.0 | t.b.d.
 * Add literature page to the documentation.
 * Fix docstring for `Fit.plot()`.
 * Verify starting timestamp when reconstructing Kymo or Scan.
 * Optimized reconstruction algorithm for sum.
+* Fixed bug related to reconstruction failing for images with flipped fast and slow axis.
+* Plot and return images and timestamps for kymos using physical coordinate system rather than fast and slow scanning axis. Note that this is a potentially breaking change!
 
 ## v0.5.0 | 2020-06-08
 * Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).
