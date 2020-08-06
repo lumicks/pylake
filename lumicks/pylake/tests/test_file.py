@@ -9,8 +9,20 @@ def test_scans(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
         scan = f.scans["Scan1"]
-        assert scan.pixels_per_line == 5
-        assert np.allclose(scan.red_image, [[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
+        assert scan.pixels_per_line == 4  # Fast axis
+        assert np.allclose(scan.red_image, np.transpose([[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0], [1, 1, 1, 0]]))
+
+        scan2 = f.scans["Scan2"]
+        reference = np.array([[[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0]], [[0, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]])
+        reference = np.transpose(reference, [0, 2, 1])
+        assert np.allclose(scan2.red_image, reference)
+
+        scan2 = f.scans["Scan2"]
+        rgb = np.zeros((2, 4, 3, 3))
+        rgb[:, :, :, 0] = reference
+        rgb[:, :, :, 1] = reference
+        rgb[:, :, :, 2] = reference
+        assert np.allclose(scan2.rgb_image, rgb)
 
 
 def test_kymos(h5_file):
@@ -96,7 +108,7 @@ def test_properties(h5_file):
     if f.format_version == 1:
         assert f.scans == {}
     else:
-        assert len(f.scans) == 1
+        assert len(f.scans) == 2
     assert f.point_scans == {}
     assert f.fdcurves == {}
 
@@ -217,6 +229,7 @@ def test_repr_and_str(h5_file):
             
             .scans
               - Scan1
+              - Scan2
             
             .force1x
               .calibration

@@ -25,6 +25,7 @@ def test_kymo_properties(h5_file):
         assert kymo.blue_image.shape == (5, 4)
         assert kymo.green_image.shape == (5, 4)
         assert np.allclose(kymo.timestamps, reference_timestamps)
+        assert kymo.fast_axis == "X"
 
 
 def test_kymo_slicing(h5_file):
