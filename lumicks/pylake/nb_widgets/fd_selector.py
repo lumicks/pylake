@@ -1,4 +1,3 @@
-from lumicks.pylake.fdcurve import FDCurve
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -41,6 +40,15 @@ class FdRangeSelectorWidget:
         plt.axvline(self.to_seconds(fd_timestamp))
         self._ax.get_figure().canvas.draw()
 
+    def _remove_point(self, fd_timestamp):
+        in_range = [start < fd_timestamp < stop for start, stop in self.ranges]
+        selected = np.nonzero(in_range)[0]
+        if len(selected) > 0:
+            selected_ranges = [self.ranges[x] for x in selected]
+            smallest_segment = np.argmin([stop - start for start, stop in selected_ranges])
+            self.ranges.pop(selected[smallest_segment])
+        self.update_plot()
+
     def handle_button_event(self, event):
         if event.inaxes != self._ax:
             return
@@ -49,10 +57,15 @@ class FdRangeSelectorWidget:
         if event.canvas.widgetlock.locked():
             return
 
-        # Find the data point nearest to the event and determine its timestamp
-        fd_timestamp = self.time[np.argmin(np.abs(self.time - (event.xdata * 1e9 + self.time[0])))]
-        if fd_timestamp:
-            self._add_point(fd_timestamp)
+        event_timestamp = event.xdata * 1e9 + self.time[0]
+        if event.button == 1:
+            # Find the data point nearest to the event and determine its timestamp
+            fd_timestamp = self.time[np.argmin(np.abs(self.time - event_timestamp))]
+            if fd_timestamp:
+                self._add_point(fd_timestamp)
+        elif event.button == 3:
+            # Find whether we clicked an existing range
+            self._remove_point(event_timestamp)
 
     def disconnect_click_callback(self):
         """Disconnects the clicking callback if it exists"""

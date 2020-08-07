@@ -5,22 +5,23 @@ Notebook widgets
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-When analyzing notebooks, it can be helpful to make use of interactive widgets. For this, we provide To enable such
-widgets, start the notebook with::
+When analyzing notebooks, it can be helpful to make use of interactive widgets. For this, we provide some widgets
+to help you analyze your data. To enable such widgets, start the notebook with::
 
     %matplotlib widget
 
 F,d selection
 -------------
 
-Assume we have an F,d curve we want to analyze we want to analyze. We know that this file contains two segments that we
-should be analyzing separately. Let's load the file and run the widget::
+Assume we have an F,d curve we want to analyze we want to analyze. We know that this file contains one F,d curve which
+should be split up into two segments that we should be analyzing separately. Let's load the file and run the widget::
 
     file = lk.File("file.h5")
     fdcurves = file.fdcurves
     selector = lk.FdRangeSelector(fdcurves)
 
-This opens up a little widget, where you can use the left mouse button to select time ranges.
+This opens up a little widget, where you can use the left mouse button to select time ranges and the right mouse
+button to remove previous selections.
 
 .. image:: fd_widget.png
 
@@ -47,9 +48,10 @@ This produces a separate plot for each selection. There's also a more direct way
 
 .. image:: fd_widget3.png
 
-Now let's say we want to load a number of files that contain one F,d curve each. We can do this using `glob`. Using
-`glob` we grab a list of all `.h5` files in the directory `my_directory`. We iterate over this list and open each file
-after which we add each Fd curve to a dictionary of Fd curves::
+Now let's say our experiment is split up over multiple files, each containing a few F,d curves. We would like to load
+these curves all at once and make our selections. We can do this using automatically using `glob`. With `glob.glob`
+we grab a list of all `.h5` files in the directory `my_directory`. We then iterate over this list and open each file.
+Then, for all those files, we add each individual curves to our variable `fdcurves`::
 
     import glob
 
