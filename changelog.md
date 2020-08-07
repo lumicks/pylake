@@ -3,6 +3,8 @@
 ## v0.6.2 | t.b.d.
 
 * Support plotting Z-axis scans. Z-axis scans would previously throw an exception due to how the physical dimensions were fetched. This issue is now resolved.
+* Add slicing (by time) for `FDCurve`.
+* Add widget to slice Fd's with from Jupyter Notebooks.
 
 ## v0.6.1 | 2020-08-31
 
