@@ -28,3 +28,4 @@ These import conventions are used consistently in the tutorial.
     kymographs
     correlatedstacks
     fdfitting
+    nbwidgets
