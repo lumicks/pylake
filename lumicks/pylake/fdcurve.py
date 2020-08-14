@@ -71,6 +71,14 @@ class FDCurve(DownsampledFD):
         new_fd._distance_cache = Slice(TimeSeries(distance, timestamps), self.d.labels)
         return new_fd
 
+    def __getitem__(self, item):
+        new_curve = self.__copy__()
+        new_curve._force_cache = self.f[item]
+        new_curve._distance_cache = self.d[item]
+        new_curve.start = new_curve.f._src.start
+        new_curve.stop = new_curve.f._src.stop
+        return new_curve
+
     def _get_downsampled_force(self, n, xy):
         return getattr(self.file, f"downsampled_force{n}{xy}")[self.start:self.stop]
 

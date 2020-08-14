@@ -87,7 +87,9 @@ def test_selector_widget():
     assert selector.current_range == []
     assert np.allclose(selector.ranges, [start_point + dt, start_point + 2*dt])
 
-    # Add another segments
+    assert np.allclose(selector.fdcurves[0].f.data, fd_curve[start_point + dt:start_point + 2*dt].f.data)
+
+    # Add another segment
     selector.handle_button_event(MockEvent(selector._ax, 150, lmb, False))
     selector.handle_button_event(MockEvent(selector._ax, 1000, lmb, False))
 
@@ -108,6 +110,8 @@ def test_selector_widget():
     selector.handle_button_event(event)
     assert selector.current_range == []
     assert np.allclose(selector.ranges, [[]])
+
+    assert selector.fdcurves == []
 
 
 @cleanup
