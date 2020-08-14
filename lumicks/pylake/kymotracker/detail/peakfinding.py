@@ -20,24 +20,24 @@ def peak_estimate(data, dilation_factor, thresh):
     data = gaussian_filter(data.astype(np.float64), [.5, .5])
     dilated = grey_dilation(data, (dilation_factor, 0))
     dilated[dilated < thresh] = -1
-    position, time_points = np.where(data == dilated)
-    return position, time_points
+    coordinates, time_points = np.where(data == dilated)
+    return coordinates, time_points
 
 
-def refine_peak_based_on_moment(data, position, time_points, kernel_size, max_iter=100, eps=1e-7):
-    """This function adjusts the position estimate by a brightness weighted centroid around the initial estimate. This
-    estimate is obtained by filtering the image with a kernel. If a pixel offset has a larger magnitude than 0.5 then
-    the pixel is moved and the centroid recomputed. The process is repeated until there are no more changes. Convergence
-    usually occurs within a few iterations.
+def refine_peak_based_on_moment(data, coordinates, time_points, kernel_size, max_iter=100, eps=1e-7):
+    """This function adjusts the coordinates estimate by a brightness weighted centroid around the initial estimate.
+    This estimate is obtained by filtering the image with a kernel. If a pixel offset has a larger magnitude than 0.5
+    then the pixel is moved and the centroid recomputed. The process is repeated until there are no more changes.
+    Convergence usually occurs within a few iterations.
 
     Parameters
     ----------
     data : array_like
-        A 2D image of pixel data (first axis corresponds to positions, second to time points).
-    position : array_like
-        Initial position estimates.
+        A 2D image of pixel data (first axis corresponds to coordinates, second to time points).
+    coordinates : array_like
+        Initial coordinate estimates.
     time_points : array_like
-        Time points at which the position estimates were made.
+        Time points at which the coordinate estimates were made.
     kernel_size : int
         Refinement kernel size.
     max_iter : int
@@ -48,24 +48,24 @@ def refine_peak_based_on_moment(data, position, time_points, kernel_size, max_it
     """
     dir_kernel = np.expand_dims(np.arange(kernel_size, -(kernel_size + 1), -1), 1)
     mean_kernel = np.ones((2 * kernel_size + 1, 1))
-    position = np.copy(position)
+    coordinates = np.copy(coordinates)
 
     m0 = convolve2d(data, mean_kernel, 'same')
     subpixel_offset = convolve2d(data, dir_kernel, 'same') / (m0 + eps)
 
     iteration = 0
     done = False
-    max_position = subpixel_offset.shape[0]
+    max_coordinates = subpixel_offset.shape[0]
     while not done:
-        offsets = subpixel_offset[position, time_points]
+        offsets = subpixel_offset[coordinates, time_points]
         out_of_bounds, = np.nonzero(abs(offsets) > 0.5)
-        position[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(np.int)
+        coordinates[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(np.int)
 
         # Edge cases (literally)
-        low = position < 0
-        position[low] = 0
-        high = position >= max_position
-        position[high] = max_position - 1
+        low = coordinates < 0
+        coordinates[low] = 0
+        high = coordinates >= max_coordinates
+        coordinates[high] = max_coordinates - 1
 
         done = out_of_bounds.size - np.sum(low) - np.sum(high) == 0
 
@@ -74,4 +74,4 @@ def refine_peak_based_on_moment(data, position, time_points, kernel_size, max_it
 
         iteration += 1
 
-    return position + subpixel_offset[position, time_points], time_points
+    return coordinates + subpixel_offset[coordinates, time_points], time_points
