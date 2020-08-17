@@ -33,9 +33,9 @@ def cone_score(x, t, vel, sigma, diffusion):
 
 def build_score_matrix(lines, times, coordinates, sigma, diffusion, sigma_cutoff, vel):
     """Builds a score matrix for a combination of lines and positions. The score matrix contains a score for each
-    line, point pair. For each line, we calculate a penalty function which reflects a cost of connecting those two
-    lines. In the current implementation these are based on a Gaussian cone around the most likely trajectory. Sigma
-    provides a starting width, whereas diffusion widens the cone over time.
+    line, point pair. For each line, we calculate a penalty function which reflects a score associated with connecting
+    those two lines. In the current implementation these are based on a Gaussian cone around the most likely trajectory.
+    Sigma provides a starting width, whereas diffusion widens the cone over time.
 
     Since the score is simply used as a relative scoring metric, and we are not interested in the absolute values,
     we do not have to exponentiate the Gaussian.
@@ -51,15 +51,14 @@ def build_score_matrix(lines, times, coordinates, sigma, diffusion, sigma_cutoff
     coordinates : array_like
         Positions of the identified kymograph peaks.
     sigma: float
-        Starting uncertainty of the cone
+        Starting uncertainty of the cone.
     diffusion:
-        Sigma representing diffusion
+        Sigma representing diffusion.
     sigma_cutoff: float
         At what fraction of sigma are points not going to be connected to this line at all?
     vel: float
-        mean velocity of moving particles
+        mean velocity of moving particles.
     """
-
     score_matrix = -np.inf * np.ones((len(lines), len(coordinates)))
 
     for i, line in enumerate(lines):

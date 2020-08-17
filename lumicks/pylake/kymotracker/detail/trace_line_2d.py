@@ -158,6 +158,9 @@ class KymoLine:
     def coordinate(self):
         return self.data[1, :]
 
+    def append(self, time, position):
+        self.data = np.hstack((self.data, np.expand_dims(np.array([time, position]), axis=1)))
+
     def __add__(self, other):
         return KymoLine(np.hstack((self.time, other.time)), np.hstack((self.coordinate, other.coordinate)))
 
@@ -303,3 +306,43 @@ def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1
 
     return detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
                                       max_lines, angle_weight, force_dir)
+
+
+def assign_to_lines(score_matrix, lines, time_points, coordinates, seen=99999999999999):
+    """Using a score matrix of N_lines by N_candidate points, this function assigns the locally most optimal points to
+    each line. While it modifies both lines and times in-place, it returns these two to communicate that they've been
+    modified.
+
+    Parameters
+    ----------
+    score_matrix : array_like
+        The score matrix contains a score for each line, point pair. For each line, we calculate a score function
+        which reflects a likelihood of connecting those two lines.
+    lines : list of KymoLine
+        A list of lines to potentially extend.
+    time_points : array_like
+        Time points of candidate points.
+    coordinates : array_like
+        Coordinates of candidate points.
+    seen : float
+        value to assign to seen time points (should be bigger than all time points)
+    """
+
+    assignable = min(score_matrix.shape[0], score_matrix.shape[1])
+    for _ in np.arange(assignable):
+        selected_line_idx, selected_point_idx = np.unravel_index(np.argmax(score_matrix), score_matrix.shape)
+
+        # No valid options found
+        if np.isinf(score_matrix[selected_line_idx, selected_point_idx]):
+            return lines, time_points
+
+        score_matrix[selected_line_idx, :] = -np.inf
+        score_matrix[:, selected_point_idx] = -np.inf
+
+        lines[selected_line_idx].append(time_points[selected_point_idx], coordinates[selected_point_idx])
+
+        assert time_points[selected_point_idx] < seen
+
+        time_points[selected_point_idx] = seen
+
+    return lines, time_points
