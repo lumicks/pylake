@@ -2,10 +2,8 @@
 
 ## v0.6.0 | 2020-08-18
 
-* Plot and return images and timestamps for scans using physical coordinate system rather than fast and slow scanning axis. See docs tutorial section on `Confocal images` and `Kymographs` on how to use the API. **Note that this is a breaking change for scans with the fast axis in y direction!**
-* `Scan.pixels_per_line` and `Kymo.pixels_per_line` return the number of pixels along the fast axis now. **Note that this is a breaking change for scans/kymos with the fast axis in y direction!**
-* Verify starting timestamp when reconstructing `Kymo` or `Scan`. In those cases, scans cannot be reliably reconstructed and an error is thrown. For kymos, the first (partial) line is omitted and a warning is issued. **Note that this is a breaking change for scans and kymos where the scan/kymo was initiated before the exported time window!**
-* Fixed bug related to reconstruction failing for scans with flipped fast and slow axis.
+* Plot and return images and timestamps for scans using physical coordinate system rather than fast and slow scanning axis. In v5.0, this resulted in a failed reconstruction and `Scan.pixels_per_line` being defined as pixels along the x axis. `Scan.pixels_per_line` and `Kymo.pixels_per_line` now return the number of pixels along the fast axis. This fix was also applied to the timestamps. In the previous version, for a multi-frame scan where the y-axis is the fast axis, you could incorrectly get the pixel time by calculating `scan.timestamps[0, 0, 1] - scan.timestamps[0, 0, 0]`. In the new version, this is `scan.timestamps[0, 1, 0] - scan.timestamps[0, 0, 0]` (note that the image array convention is `[frame, height, width]`). **Note that this is a breaking change affecting scans with the fast axis in y direction!**
+* Verify starting timestamp when reconstructing `Kymo` or `Scan`. In those cases, scans cannot be reliably reconstructed from the exported data and an error is thrown. For kymos, the first (partial) line is omitted and a warning is issued. **Note that scans where the scan was initiated before the exported time window cannot be reconstructed! For kymos, the first line cannot be reconstructed if the export window does not cover the start of the kymograph.**
 * Add literature page to the documentation.
 * Fix docstring for `Fit.plot()`.
 * Optimized reconstruction algorithm for sum.
