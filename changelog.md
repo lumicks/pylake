@@ -1,12 +1,13 @@
 # Changelog
 
-## v0.6.0 | t.b.d.
+## v0.6.0 | 2020-08-18
+* Plot and return images and timestamps for scans using physical coordinate system rather than fast and slow scanning axis. **Note that this is a potentially breaking change for scans with the fast axis in y direction!**
+* `Scan.pixels_per_line` and `Kymo.pixels_per_line` also return the number of pixels along the fast axis now. **Note that this is a potentially breaking change for scans/kymos with the fast axis in y direction!**
+* Verify starting timestamp when reconstructing `Kymo` or `Scan`. In those cases, scans cannot be reliably reconstructed and an error is thrown. For kymos, the first (partial) line is omitted and a warning is issued. **Note that this is a potentially breaking change for scans and kymos where the scan/kymo was initiated before the exported time window!**
+* Fixed bug related to reconstruction failing for scans with flipped fast and slow axis.
 * Add literature page to the documentation.
 * Fix docstring for `Fit.plot()`.
-* Verify starting timestamp when reconstructing Kymo or Scan.
 * Optimized reconstruction algorithm for sum.
-* Fixed bug related to reconstruction failing for images with flipped fast and slow axis.
-* Plot and return images and timestamps for kymos using physical coordinate system rather than fast and slow scanning axis. Note that this is a potentially breaking change!
 
 ## v0.5.0 | 2020-06-08
 * Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).
