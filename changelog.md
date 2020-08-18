@@ -1,20 +1,23 @@
 # Changelog
 
 ## v0.6.0 | 2020-08-18
-* Plot and return images and timestamps for scans using physical coordinate system rather than fast and slow scanning axis. **Note that this is a potentially breaking change for scans with the fast axis in y direction!**
-* `Scan.pixels_per_line` and `Kymo.pixels_per_line` also return the number of pixels along the fast axis now. **Note that this is a potentially breaking change for scans/kymos with the fast axis in y direction!**
-* Verify starting timestamp when reconstructing `Kymo` or `Scan`. In those cases, scans cannot be reliably reconstructed and an error is thrown. For kymos, the first (partial) line is omitted and a warning is issued. **Note that this is a potentially breaking change for scans and kymos where the scan/kymo was initiated before the exported time window!**
+
+* Plot and return images and timestamps for scans using physical coordinate system rather than fast and slow scanning axis. See docs tutorial section on `Confocal images` and `Kymographs` on how to use the API. **Note that this is a breaking change for scans with the fast axis in y direction!**
+* `Scan.pixels_per_line` and `Kymo.pixels_per_line` return the number of pixels along the fast axis now. **Note that this is a breaking change for scans/kymos with the fast axis in y direction!**
+* Verify starting timestamp when reconstructing `Kymo` or `Scan`. In those cases, scans cannot be reliably reconstructed and an error is thrown. For kymos, the first (partial) line is omitted and a warning is issued. **Note that this is a breaking change for scans and kymos where the scan/kymo was initiated before the exported time window!**
 * Fixed bug related to reconstruction failing for scans with flipped fast and slow axis.
 * Add literature page to the documentation.
 * Fix docstring for `Fit.plot()`.
 * Optimized reconstruction algorithm for sum.
 
 ## v0.5.0 | 2020-06-08
+
 * Added F, d Fitting functionality (beta, see docs tutorial section `Fd Fitting` and examples `Twistable Worm-Like-Chain Fitting` and `RecA Fd Fitting`).
 * Fixed an issue which prevented images from being reconstructed when a debugger is attached. Problem resided in `reconstruct_image` which threw an exception when attempting to resize a `numpy` array while the debugger was holding a reference to it.
 * Fixed bug that lead to timestamps becoming floating point values when using `channel.downsampled_over`.
 
 ## v0.4.1 | 2020-03-23
+
 * Drop `matplotlib` < 3 requirement.
 * Add functionality which redirects users to the API when accessing particular fields, e.g. accessing `file["FD curve"]` will throw an error and redirect users to use `file.fdcurves`.
 * Add API for markers, i.e. `file.markers` returns a dictionary of markers (see docs tutorials section: Files and Channels).
