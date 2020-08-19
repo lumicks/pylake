@@ -1,5 +1,6 @@
 import numpy as np
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
+from .scoring_functions import build_score_matrix
 
 
 def score_candidates(normal, position_difference, trial_normals, angle_weight):
@@ -308,41 +309,82 @@ def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1
                                       max_lines, angle_weight, force_dir)
 
 
-def assign_to_lines(score_matrix, lines, time_points, coordinates, seen=99999999999999):
-    """Using a score matrix of N_lines by N_candidate points, this function assigns the locally most optimal points to
-    each line. While it modifies both lines and times in-place, it returns these two to communicate that they've been
-    modified.
+def find_candidate_at_frame(line, time_points, coordinates, availability, frame, vel, sigma, diffusion, sigma_cutoff):
+    candidates = np.argwhere(
+        np.logical_and(
+            np.logical_and(time_points >= frame, time_points < frame + 1),
+            availability)
+    ).flatten()
 
-    Parameters
-    ----------
-    score_matrix : array_like
-        The score matrix contains a score for each line, point pair. For each line, we calculate a score function
-        which reflects a likelihood of connecting those two lines.
-    lines : list of KymoLine
-        A list of lines to potentially extend.
-    time_points : array_like
-        Time points of candidate points.
-    coordinates : array_like
-        Coordinates of candidate points.
-    seen : float
-        value to assign to seen time points (should be bigger than all time points)
+    if candidates.size > 0:
+        candidate_times = time_points[candidates]
+        candidate_coordinates = coordinates[candidates]
+
+        score_matrix = build_score_matrix([line], candidate_times, candidate_coordinates, vel=vel,
+                                          sigma=sigma, diffusion=diffusion, sigma_cutoff=sigma_cutoff).flatten()
+        next_candidate_idx = np.argmax(score_matrix)
+
+        if not np.isinf(score_matrix[next_candidate_idx]):
+            return candidates[next_candidate_idx]
+
+
+def extend_line(next_idx, line, time_points, coordinates, available, window, vel, sigma, diffusion, sigma_cutoff):
+    while next_idx:
+        line.append(time_points[next_idx], coordinates[next_idx])
+        available[next_idx] = 0
+        next_idx = None
+
+        # Look into the future for the next index to add. Exit once we find one.
+        last_line_tip_frame = int(line.time[-1])
+        future_frame = last_line_tip_frame + 1
+        while (future_frame - last_line_tip_frame) < window and not next_idx:
+            next_idx = find_candidate_at_frame(line, time_points, coordinates, available, future_frame, vel,
+                                               sigma, diffusion, sigma_cutoff)
+            future_frame += 1
+
+
+def points_to_line_segments(coordinates, time_points, peak_level, window=10, vel=0, sigma=2, diffusion=0,
+                            sigma_cutoff=2):
+    """Starts from a list of coordinates and attempts to string them together. This uses a simple greedy algorithm.
+
+        For each frame:
+        - All points that haven't been assigned yet are considered line starts. Start line at point with highest signal.
+        - See if you can extend the line to the next frame.
+        - If not iteratively try the next window frames.
+
+    coordinates, time_points, peak_level: array_like
+        peaks identified as potential lines.
+    window: int
+        How many frames can a particle disappear before we assume it isn't the same line.
+    vel: float
+        mean velocity of the tracks.
+    sigma: float
+        noise around the track position.
+    diffusion: float
+        diffusion constant.
+    sigma_cutoff: float
+        sigma cutoff points for the classification on whether it could belong to the same line.
     """
+    available = np.empty(peak_level.shape)
+    available[:] = 1
 
-    assignable = min(score_matrix.shape[0], score_matrix.shape[1])
-    for _ in np.arange(assignable):
-        selected_line_idx, selected_point_idx = np.unravel_index(np.argmax(score_matrix), score_matrix.shape)
+    current_frame = 0
+    end_point = np.max(time_points)
+    lines = []
+    while current_frame < end_point:
+        # Fetch peaks at current frame (these are peaks that haven't been assigned)
+        origin_idx, = np.where(np.logical_and(time_points < current_frame + 1, available))
 
-        # No valid options found
-        if np.isinf(score_matrix[selected_line_idx, selected_point_idx]):
-            return lines, time_points
+        for _ in np.arange(len(origin_idx)):
+            # Find a line to start with based on the highest peak in the current frame.
+            starting_point = np.argmax(peak_level[origin_idx] * available[origin_idx])
+            next_idx = origin_idx[starting_point]
+            line = KymoLine([], [])
+            lines.append(line)
 
-        score_matrix[selected_line_idx, :] = -np.inf
-        score_matrix[:, selected_point_idx] = -np.inf
+            # Extend line until termination
+            extend_line(next_idx, line, time_points, coordinates, available, window, vel, sigma, diffusion, sigma_cutoff)
 
-        lines[selected_line_idx].append(time_points[selected_point_idx], coordinates[selected_point_idx])
+        current_frame += 1
 
-        assert time_points[selected_point_idx] < seen
-
-        time_points[selected_point_idx] = seen
-
-    return lines, time_points
+    return lines

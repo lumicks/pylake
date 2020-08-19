@@ -25,6 +25,7 @@ def cone_score(x, t, vel, sigma, diffusion):
             Diffusion sigma
     """
 
+    t[t < 0] = np.inf
     mu_t = x + vel * t
     sigma_t = sigma + diffusion * np.sqrt(t)
 

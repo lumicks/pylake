@@ -74,4 +74,4 @@ def refine_peak_based_on_moment(data, coordinates, time_points, kernel_size, max
 
         iteration += 1
 
-    return coordinates + subpixel_offset[coordinates, time_points], time_points
+    return coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points]

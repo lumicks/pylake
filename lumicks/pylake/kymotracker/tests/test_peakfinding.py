@@ -13,5 +13,5 @@ def test_peak_estimation(location):
 
     # Deliberately mis-shift the initial guess
     position = position + 5
-    position2, time2 = refine_peak_based_on_moment(data, position, time, 4)
+    position2, time2, peak_amp = refine_peak_based_on_moment(data, position, time, 4)
     assert np.abs(position2[0] - location) < 1e-3
