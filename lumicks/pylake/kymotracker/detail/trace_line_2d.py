@@ -361,8 +361,7 @@ def points_to_line_segments(coordinates, time_points, peak_level, window=10, vel
     sigma_cutoff: float
         sigma cutoff points for the classification on whether it could belong to the same line.
     """
-    available = np.empty(peak_level.shape)
-    available[:] = 1
+    available = np.ones(peak_level.shape)
 
     current_frame = 0
     end_point = np.max(time_points)
@@ -371,15 +370,15 @@ def points_to_line_segments(coordinates, time_points, peak_level, window=10, vel
         # Fetch peaks at current frame (these are peaks that haven't been assigned)
         origin_idx, = np.where(np.logical_and(time_points < current_frame + 1, available))
 
-        for _ in np.arange(len(origin_idx)):
+        for starting_point in np.argsort(-peak_level[origin_idx] * available[origin_idx]):
             # Find a line to start with based on the highest peak in the current frame.
-            starting_point = np.argmax(peak_level[origin_idx] * available[origin_idx])
             next_idx = origin_idx[starting_point]
-            line = KymoLine([], [])
-            lines.append(line)
+            if available[next_idx]:
+                line = KymoLine([], [])
+                lines.append(line)
 
-            # Extend line until termination
-            extend_line(next_idx, line, time_points, coordinates, available, window, vel, sigma, diffusion, sigma_cutoff)
+                # Extend line until termination
+                extend_line(next_idx, line, time_points, coordinates, available, window, vel, sigma, diffusion, sigma_cutoff)
 
         current_frame += 1
 
