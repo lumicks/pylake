@@ -1,5 +1,5 @@
 from lumicks.pylake.kymotracker.detail.scoring_functions import build_score_matrix
-from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLine, assign_to_lines
+from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLine
 import pytest
 import numpy as np
 
@@ -56,33 +56,3 @@ def test_score_matrix():
         [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -3.0254695407844476],
     ]
     assert np.allclose(matrix, reference)
-
-
-def test_score_based_tracing():
-    # Test addition order
-    lines = [KymoLine([0], [0])]
-    score = np.array([[-2.0, -1.0, 0.0]])
-    time = [0.0, 1.0, 2.0]
-    coordinate = [0.0, 1.0, 2.0]
-    lines, time = assign_to_lines(score, lines, time, coordinate, seen=10)
-    assert np.allclose(lines[0].coordinate, [0, 2])
-    assert np.allclose(time, [0, 1, 10])
-
-    # Test addition order (limited by line count)
-    lines = [KymoLine([0], [0]), KymoLine([1], [1])]
-    score = np.array([[2.0, 1.0, 0.0], [4.0, 0.5, 0.0]])
-    time = [0.0, 1.0, 2.0]
-    coordinate = [0.0, 1.0, 2.0]
-    lines, time = assign_to_lines(score, lines, time, coordinate, seen=10)
-    assert np.allclose(lines[0].coordinate, [0])
-    assert np.allclose(lines[1].coordinate, [1, 0])
-    assert np.allclose(time, [10, 1.0, 2.0])
-
-    # Test addition order (limited by coordinate count)
-    lines = [KymoLine([0], [0]), KymoLine([0], [1]), KymoLine([0], [2])]
-    score = np.array([[2.0, 1.0], [4.0, 0.5], [10, 0]])
-    time = [0.0, 1.0]
-    coordinate = [0.0, 1.0]
-    lines, time = assign_to_lines(score, lines, time, coordinate, seen=10)
-    assert np.allclose(lines[2].coordinate, [2, 0])
-    assert np.allclose(time, [10, 1])
