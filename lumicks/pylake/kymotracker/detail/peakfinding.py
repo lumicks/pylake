@@ -81,3 +81,32 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
         iteration += 1
 
     return coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points]
+
+
+def merge_close_peaks(coordinates, time_points, peak_amplitude, minimum_distance):
+    """Merge peaks that are too close to each-other vertically. Peaks that fall within the dilation mask are spurious
+    and likely not peaks we want. When two peaks fall below the minimum distance, the smallest one will be discarded.
+
+    Parameters:
+    ----------
+    coordinates, time_points, peak_amplitude : array_like
+    minimum_distance : int
+        Minimum distance between peaks to enforce
+    """
+    assert len(coordinates) == len(time_points)
+    assert len(peak_amplitude) == len(time_points)
+
+    mask = np.ones(coordinates.shape, dtype=bool)
+    max_frame = math.ceil(np.max(time_points))
+    for current_frame in np.arange(max_frame + 1):
+        in_frame_idx, = np.where(np.logical_and(time_points >= current_frame, time_points < current_frame + 1))
+        coordinate_difference = np.diff(np.sort(coordinates[in_frame_idx]))
+        too_close, = np.where(coordinate_difference < minimum_distance)
+        too_close = in_frame_idx[too_close]
+
+        # If the right peak of the two candidates is smaller than the left one, take that one for removal instead
+        right_lower = peak_amplitude[too_close + 1] < peak_amplitude[too_close]
+        too_close[right_lower] += 1
+        mask[too_close] = False
+
+    return coordinates[mask], time_points[mask], peak_amplitude[mask]
