@@ -305,42 +305,37 @@ def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1
                                       max_lines, angle_weight, force_dir)
 
 
-def find_candidate_at_frame(line, time_points, coordinates, availability, frame, vel, sigma, diffusion, sigma_cutoff):
-    candidates = np.argwhere(
-        np.logical_and(
-            np.logical_and(time_points >= frame, time_points < frame + 1),
-            availability)
-    ).flatten()
-
-    if candidates.size > 0:
-        candidate_times = time_points[candidates]
-        candidate_coordinates = coordinates[candidates]
+def append_next_point(line, frame, vel, sigma, diffusion, sigma_cutoff):
+    if np.any(frame.unassigned):
+        candidate_idx, = np.where(frame.unassigned)
+        candidate_times = frame.time_points[candidate_idx]
+        candidate_coordinates = frame.coordinates[candidate_idx]
 
         score_matrix = build_score_matrix([line], candidate_times, candidate_coordinates, vel=vel,
                                           sigma=sigma, diffusion=diffusion, sigma_cutoff=sigma_cutoff).flatten()
-        next_candidate_idx = np.argmax(score_matrix)
 
-        if not np.isinf(score_matrix[next_candidate_idx]):
-            return candidates[next_candidate_idx]
+        selected = np.argmax(score_matrix)
 
-
-def extend_line(next_idx, line, time_points, coordinates, available, window, vel, sigma, diffusion, sigma_cutoff):
-    while next_idx:
-        line.append(time_points[next_idx], coordinates[next_idx])
-        available[next_idx] = 0
-        next_idx = None
-
-        # Look into the future for the next index to add. Exit once we find one.
-        last_line_tip_frame = int(line.time[-1])
-        future_frame = last_line_tip_frame + 1
-        while (future_frame - last_line_tip_frame) < window and not next_idx:
-            next_idx = find_candidate_at_frame(line, time_points, coordinates, available, future_frame, vel,
-                                               sigma, diffusion, sigma_cutoff)
-            future_frame += 1
+        if not np.isinf(score_matrix[selected]):
+            line.append(candidate_times[selected], candidate_coordinates[selected])
+            frame.unassigned[candidate_idx[selected]] = False
+            return True
 
 
-def points_to_line_segments(coordinates, time_points, peak_level, window=10, vel=0, sigma=2, diffusion=0,
-                            sigma_cutoff=2):
+def extend_line(line, peaks, window, vel, sigma, diffusion, sigma_cutoff):
+    found = True
+    while found:
+        found = False
+        tip_frame_idx = int(line.time[-1])
+
+        # Look into the future for the next index to add. Early out when we find one.
+        for future_frame in peaks.frames[tip_frame_idx + 1:tip_frame_idx + window + 1]:
+            found = append_next_point(line, future_frame, vel, sigma, diffusion, sigma_cutoff)
+            if found:
+                break
+
+
+def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma_cutoff=2):
     """Starts from a list of coordinates and attempts to string them together. This uses a simple greedy algorithm.
 
         For each frame:
@@ -348,7 +343,7 @@ def points_to_line_segments(coordinates, time_points, peak_level, window=10, vel
         - See if you can extend the line to the next frame.
         - If not iteratively try the next window frames.
 
-    coordinates, time_points, peak_level: array_like
+    peaks: KymoPeaks
         peaks identified as potential lines.
     window: int
         How many frames can a particle disappear before we assume it isn't the same line.
@@ -361,25 +356,17 @@ def points_to_line_segments(coordinates, time_points, peak_level, window=10, vel
     sigma_cutoff: float
         sigma cutoff points for the classification on whether it could belong to the same line.
     """
-    available = np.ones(peak_level.shape)
+    peaks.reset_assignment()
 
-    current_frame = 0
-    end_point = np.max(time_points)
     lines = []
-    while current_frame < end_point:
-        # Fetch peaks at current frame (these are peaks that haven't been assigned)
-        origin_idx, = np.where(np.logical_and(time_points < current_frame + 1, available))
+    for frame in peaks.frames:
+        # Give precedence to lines with higher peak amplitudes
+        for starting_point in np.argsort(-frame.peak_amplitudes * frame.unassigned):
+            if frame.unassigned[starting_point]:
+                line = KymoLine([frame.time_points[starting_point]], [frame.coordinates[starting_point]])
+                frame.unassigned[starting_point] = False
 
-        for starting_point in np.argsort(-peak_level[origin_idx] * available[origin_idx]):
-            # Find a line to start with based on the highest peak in the current frame.
-            next_idx = origin_idx[starting_point]
-            if available[next_idx]:
-                line = KymoLine([], [])
+                extend_line(line, peaks, window, vel, sigma, diffusion, sigma_cutoff)
                 lines.append(line)
-
-                # Extend line until termination
-                extend_line(next_idx, line, time_points, coordinates, available, window, vel, sigma, diffusion, sigma_cutoff)
-
-        current_frame += 1
 
     return lines
