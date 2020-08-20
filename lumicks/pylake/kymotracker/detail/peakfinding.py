@@ -28,6 +28,56 @@ def peak_estimate(data, half_width, thresh):
     return coordinates, time_points
 
 
+class KymoPeaks:
+    """Stores local maxima found in a kymograph on a per-frame basis."""
+
+    class Frame:
+        """Stores local maxima found in a kymograph for a single frame."""
+        def __init__(self, coordinates, time_points, peak_amplitudes):
+            self.coordinates = coordinates
+            self.time_points = time_points
+            self.peak_amplitudes = peak_amplitudes
+            self.unassigned = []
+
+        def reset_assignment(self):
+            self.unassigned = np.ones(self.time_points.shape, dtype=np.bool)
+
+    def __init__(self, coordinates, time_points, peak_amplitudes):
+        assert len(coordinates) == len(time_points)
+        assert len(peak_amplitudes) == len(time_points)
+
+        self.frames = []
+        max_frame = math.ceil(np.max(time_points))
+        for current_frame in np.arange(max_frame + 1):
+            (in_frame_idx,) = np.where(
+                np.logical_and(
+                    time_points >= current_frame, time_points < current_frame + 1
+                )
+            )
+            self.frames.append(
+                self.Frame(
+                    coordinates[in_frame_idx],
+                    time_points[in_frame_idx],
+                    peak_amplitudes[in_frame_idx],
+                )
+            )
+
+    def reset_assignment(self):
+        for frame in self.frames:
+            frame.reset_assignment()
+
+    def flatten(self):
+        coordinates = np.array([])
+        time_points = np.array([])
+        peak_amplitudes = np.array([])
+        for frame in self.frames:
+            coordinates = np.hstack((coordinates, frame.coordinates))
+            time_points = np.hstack((time_points, frame.time_points))
+            peak_amplitudes = np.hstack((peak_amplitudes, frame.peak_amplitudes))
+
+        return coordinates, time_points, peak_amplitudes
+
+
 def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7):
     """This function adjusts the coordinates estimate by a brightness weighted centroid around the initial estimate.
     This estimate is obtained by filtering the image with a kernel. If a pixel offset has a larger magnitude than 0.5
@@ -80,33 +130,37 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
 
         iteration += 1
 
-    return coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points]
+    return KymoPeaks(coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points])
 
 
-def merge_close_peaks(coordinates, time_points, peak_amplitude, minimum_distance):
+def merge_close_peaks(peaks, minimum_distance):
     """Merge peaks that are too close to each-other vertically. Peaks that fall within the dilation mask are spurious
     and likely not peaks we want. When two peaks fall below the minimum distance, the smallest one will be discarded.
 
     Parameters:
     ----------
-    coordinates, time_points, peak_amplitude : array_like
+    peaks : KymoPeaks
+        Data structure which contains coordinates, time_points, peak_amplitude on a per frame basis.
     minimum_distance : int
         Minimum distance between peaks to enforce
     """
-    assert len(coordinates) == len(time_points)
-    assert len(peak_amplitude) == len(time_points)
+    for current_frame in peaks.frames:
+        # Sort frame indices by the coordinate
+        sort_order = np.argsort(current_frame.coordinates)
+        coordinates, peak_amplitudes = current_frame.coordinates[sort_order], current_frame.peak_amplitudes[sort_order]
 
-    mask = np.ones(coordinates.shape, dtype=bool)
-    max_frame = math.ceil(np.max(time_points))
-    for current_frame in np.arange(max_frame + 1):
-        in_frame_idx, = np.where(np.logical_and(time_points >= current_frame, time_points < current_frame + 1))
-        coordinate_difference = np.diff(np.sort(coordinates[in_frame_idx]))
-        too_close, = np.where(coordinate_difference < minimum_distance)
-        too_close = in_frame_idx[too_close]
+        coordinate_difference = np.diff(coordinates)
+        too_close, = np.where(np.abs(coordinate_difference) < minimum_distance)
 
         # If the right peak of the two candidates is smaller than the left one, take that one for removal instead
-        right_lower = peak_amplitude[too_close + 1] < peak_amplitude[too_close]
+        right_lower = peak_amplitudes[too_close + 1] < peak_amplitudes[too_close]
         too_close[right_lower] += 1
-        mask[too_close] = False
 
-    return coordinates[mask], time_points[mask], peak_amplitude[mask]
+        mask = np.ones(current_frame.coordinates.shape, dtype=np.bool)
+        mask[sort_order[too_close]] = False  # too_close was in sorted ordering.
+
+        current_frame.coordinates = current_frame.coordinates[mask]
+        current_frame.peak_amplitudes = current_frame.peak_amplitudes[mask]
+        current_frame.time_points = current_frame.time_points[mask]
+
+    return peaks
