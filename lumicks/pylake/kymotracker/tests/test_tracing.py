@@ -1,4 +1,4 @@
-from lumicks.pylake.kymotracker.detail.scoring_functions import build_score_matrix
+from lumicks.pylake.kymotracker.detail.scoring_functions import build_score_matrix, kymo_score
 from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLine, append_next_point, extend_line, \
     points_to_line_segments
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
@@ -17,7 +17,7 @@ def test_score_matrix():
         times = np.hstack((times, t * np.ones(len(unique_coordinates))))
 
     # No velocity
-    matrix = np.reshape(build_score_matrix(lines, times, positions, vel=0, sigma=.5, sigma_diffusion=.5,
+    matrix = np.reshape(build_score_matrix(lines, times, positions, kymo_score(vel=0, sigma=.5, diffusion=.125),
                                            sigma_cutoff=2), ((len(unique_times), -1)))
     reference = [
         [-np.inf, -np.inf, -1.0, -0.0, -1.0, -np.inf, -np.inf],
@@ -46,7 +46,7 @@ def test_score_matrix():
     assert np.allclose(matrix, reference)
 
     # With velocity
-    matrix = np.reshape(build_score_matrix(lines, times, positions, vel=1, sigma=.5, sigma_diffusion=.5,
+    matrix = np.reshape(build_score_matrix(lines, times, positions, kymo_score(vel=1, sigma=.5, diffusion=.125),
                                            sigma_cutoff=2), (len(unique_times), -1))
     reference = [
         [-np.inf, -np.inf, -np.inf, -1.0, -0.0, -1.0, -np.inf],
@@ -131,12 +131,12 @@ def test_kymotracker_two_integration():
         np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
     )
 
-    lines = points_to_line_segments(peaks, window=8, vel=0, sigma=1, diffusion=0, sigma_cutoff=2)
+    lines = points_to_line_segments(peaks, kymo_score(vel=0, sigma=1, diffusion=0), window=8, sigma_cutoff=2)
     assert np.allclose(lines[0].coordinate, [1.0, 2.0, 3.0])
     assert np.allclose(lines[1].time, [1.0, 2.0, 3.0, 5.0])
     assert np.allclose(lines[1].coordinate, [4.0, 5.0, 6.0, 7.0])
 
-    lines = points_to_line_segments(peaks, window=1, vel=0, sigma=1, diffusion=0, sigma_cutoff=2)
+    lines = points_to_line_segments(peaks, kymo_score(vel=0, sigma=1, diffusion=0), window=1, sigma_cutoff=2)
     assert np.allclose(lines[0].coordinate, [1.0, 2.0, 3.0])
     assert np.allclose(lines[1].time, [1.0, 2.0, 3.0])
     assert np.allclose(lines[1].coordinate, [4.0, 5.0, 6.0])
