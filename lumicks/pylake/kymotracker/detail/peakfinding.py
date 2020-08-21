@@ -5,9 +5,10 @@ import math
 
 
 def peak_estimate(data, half_width, thresh):
-    """Estimate initial peak locations from data. Peaks are detected by dilating the image, and then determining which
-    pixels did not change. These pixels correspond to local maxima. A threshold is then applied to select which ones
-    are relevant.
+    """Estimate initial peak locations from data.
+
+    Peaks are detected by dilating the image, and then determining which pixels did not change. These pixels correspond
+    to local maxima. A threshold is then applied to select which ones are relevant.
 
     Parameters
     ----------
@@ -105,10 +106,8 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
     m0 = convolve2d(data, mean_kernel, 'same')
     subpixel_offset = convolve2d(data, dir_kernel, 'same') / (m0 + eps)
 
-    iteration = 0
-    done = False
     max_coordinates = subpixel_offset.shape[0]
-    while not done:
+    for iteration in range(max_iter):
         offsets = subpixel_offset[coordinates, time_points]
         out_of_bounds, = np.nonzero(abs(offsets) > 0.5)
         coordinates[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(np.int)
@@ -119,11 +118,44 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
         high = coordinates >= max_coordinates
         coordinates[high] = max_coordinates - 1
 
-        done = out_of_bounds.size - np.sum(low) - np.sum(high) == 0
-
-        if iteration > max_iter:
-            raise RuntimeError("Iteration limit exceeded")
-
-        iteration += 1
+        if out_of_bounds.size - np.sum(low) - np.sum(high) == 0:
+            break
+    else:
+        raise RuntimeError("Iteration limit exceeded")
 
     return KymoPeaks(coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points])
+
+
+def merge_close_peaks(peaks, minimum_distance):
+    """Merge peaks that are too close to each-other vertically.
+
+    Peaks that fall within the dilation mask are spurious and likely not peaks we want. When two peaks fall below the
+    minimum distance, the smallest one will be discarded.
+
+    Parameters:
+    ----------
+    peaks : KymoPeaks
+        Data structure which contains coordinates, time_points, peak_amplitude on a per frame basis.
+    minimum_distance : int
+        Minimum distance between peaks to enforce
+    """
+    for current_frame in peaks.frames:
+        # Sort frame indices by the coordinate
+        sort_order = np.argsort(current_frame.coordinates)
+        coordinates, peak_amplitudes = current_frame.coordinates[sort_order], current_frame.peak_amplitudes[sort_order]
+
+        coordinate_difference = np.diff(coordinates)
+        too_close, = np.where(np.abs(coordinate_difference) < minimum_distance)
+
+        # If the right peak of the two candidates is smaller than the left one, take that one for removal instead
+        right_lower = peak_amplitudes[too_close + 1] < peak_amplitudes[too_close]
+        too_close[right_lower] += 1
+
+        mask = np.ones(current_frame.coordinates.shape, dtype=np.bool)
+        mask[sort_order[too_close]] = False  # too_close was in sorted ordering.
+
+        current_frame.coordinates = current_frame.coordinates[mask]
+        current_frame.peak_amplitudes = current_frame.peak_amplitudes[mask]
+        current_frame.time_points = current_frame.time_points[mask]
+
+    return peaks
