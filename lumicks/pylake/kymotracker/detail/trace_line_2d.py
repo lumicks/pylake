@@ -305,15 +305,25 @@ def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1
                                       max_lines, angle_weight, force_dir)
 
 
-def append_next_point(line, frame, vel, sigma, diffusion, sigma_cutoff):
+def append_next_point(line, frame, score_fun):
+    """Scores potential peak points and selects the most optimal one. If an acceptable point is found, the function
+    returns True, adds the point to the line and marks it as assigned in the frame.
+
+    Parameters
+    ----------
+    line : pylake.kymotracker.trace_line_2d.KymoLine
+    frame : KymoPeaks.kymotracker.peakfinding.KymoPeaks.Frame
+    score_fun : callable
+        Function which takes a list of N lines and M points (in the form of candidate_times and candidate_coordinates)
+        and computes a score for each line, point combination resulting in an N by M matrix of scores. Returns -np.inf
+        for points that should not be considered viable candidates.
+    """
     if np.any(frame.unassigned):
         candidate_idx, = np.where(frame.unassigned)
         candidate_times = frame.time_points[candidate_idx]
         candidate_coordinates = frame.coordinates[candidate_idx]
 
-        score_matrix = build_score_matrix([line], candidate_times, candidate_coordinates, vel=vel,
-                                          sigma=sigma, diffusion=diffusion, sigma_cutoff=sigma_cutoff).flatten()
-
+        score_matrix = score_fun([line], candidate_times, candidate_coordinates)
         selected = np.argmax(score_matrix)
 
         if not np.isinf(score_matrix[selected]):
@@ -322,17 +332,29 @@ def append_next_point(line, frame, vel, sigma, diffusion, sigma_cutoff):
             return True
 
 
-def extend_line(line, peaks, window, vel, sigma, diffusion, sigma_cutoff):
-    found = True
-    while found:
-        found = False
-        tip_frame_idx = int(line.time[-1])
+def extend_line(line, peaks, window, score_fun):
+    """Extend a line. This extension terminates when it can't find an extension in the next "window" frames.
 
-        # Look into the future for the next index to add. Early out when we find one.
-        for future_frame in peaks.frames[tip_frame_idx + 1:tip_frame_idx + window + 1]:
-            found = append_next_point(line, future_frame, vel, sigma, diffusion, sigma_cutoff)
-            if found:
-                break
+    Parameters
+    ----------
+    line : pylake.kymotracker.trace_line_2d.KymoLine
+        Contains the line currently being traced.
+    peaks : KymoPeaks.kymotracker.peakfinding.KymoPeaks
+        Contains all the peak data.
+    window : int
+        How many frames do we allow a peak to disappear?
+    score_fun : callable
+        Function which takes a list of N lines and M points (in the form of candidate_times and candidate_coordinates)
+        and computes a score for each line, point combination resulting in an N by M matrix of scores. Returns -np.inf
+        for points that should not be considered viable candidates.
+    """
+    frames_without_peak = 0
+    starting_frame = int(line.time[-1]) + 1
+    for current_frame in peaks.frames[starting_frame:]:
+        found_next_point = append_next_point(line, current_frame, score_fun)
+        frames_without_peak = 0 if found_next_point else frames_without_peak + 1
+        if frames_without_peak >= window:
+            break
 
 
 def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma_cutoff=2):
@@ -343,7 +365,7 @@ def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma
         - See if you can extend the line to the next frame.
         - If not iteratively try the next window frames.
 
-    peaks: KymoPeaks
+    peaks: KymoPeaks.kymotracker.peakfinding.KymoPeaks
         peaks identified as potential lines.
     window: int
         How many frames can a particle disappear before we assume it isn't the same line.
@@ -358,6 +380,10 @@ def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma
     """
     peaks.reset_assignment()
 
+    def score_matrix(line_list, time, coord):
+        return build_score_matrix(line_list, time, coord, vel=vel, sigma=sigma, diffusion=diffusion,
+                                  sigma_cutoff=sigma_cutoff).flatten()
+
     lines = []
     for frame in peaks.frames:
         # Give precedence to lines with higher peak amplitudes
@@ -366,7 +392,7 @@ def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma
                 line = KymoLine([frame.time_points[starting_point]], [frame.coordinates[starting_point]])
                 frame.unassigned[starting_point] = False
 
-                extend_line(line, peaks, window, vel, sigma, diffusion, sigma_cutoff)
+                extend_line(line, peaks, window, score_matrix)
                 lines.append(line)
 
     return lines
