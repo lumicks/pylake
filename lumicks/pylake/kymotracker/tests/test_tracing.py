@@ -18,8 +18,8 @@ def test_score_matrix():
         times = np.hstack((times, t * np.ones(len(unique_coordinates))))
 
     # No velocity
-    matrix = np.reshape(build_score_matrix(lines, times, positions, vel=0, sigma=.5, diffusion=.5, sigma_cutoff=2),
-                        ((len(unique_times), -1)))
+    matrix = np.reshape(build_score_matrix(lines, times, positions, vel=0, sigma=.5, sigma_diffusion=.5,
+                                           sigma_cutoff=2), ((len(unique_times), -1)))
     reference = [
         [-np.inf, -np.inf, -1.0, -0.0, -1.0, -np.inf, -np.inf],
         [-np.inf, -2.745166004060959, -0.6862915010152397, -0.0, -0.6862915010152397, -2.745166004060959, -np.inf],
@@ -47,8 +47,8 @@ def test_score_matrix():
     assert np.allclose(matrix, reference)
 
     # With velocity
-    matrix = np.reshape(build_score_matrix(lines, times, positions, vel=1, sigma=.5, diffusion=.5, sigma_cutoff=2),
-                        (len(unique_times), -1))
+    matrix = np.reshape(build_score_matrix(lines, times, positions, vel=1, sigma=.5, sigma_diffusion=.5,
+                                           sigma_cutoff=2), (len(unique_times), -1))
     reference = [
         [-np.inf, -np.inf, -np.inf, -1.0, -0.0, -1.0, -np.inf],
         [-np.inf, -np.inf, -np.inf, -2.745166004060959, -0.6862915010152397, -0.0, -0.6862915010152397],

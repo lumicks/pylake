@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def cone_score(x, t, vel, sigma, diffusion):
+def cone_score(x, t, vel, sigma, sigma_diffusion):
     """This function returns an estimates mean and sigma for future time points based on a velocity, fixed uncertainty
     and diffusion rate. This is used to compute a scoring function to determine whether two local maxima should be
     linked.
@@ -21,18 +21,20 @@ def cone_score(x, t, vel, sigma, diffusion):
             Estimated velocity of the particle
         sigma : float
             Base positional variability
-        diffusion : float
-            Diffusion sigma
+        sigma_diffusion : float
+            Sigma representing diffusion. For diffusion, the spread is characterized by:
+                Sigma(t) = sigma_diffusion * sqrt(t)
+            Note that sigma_diffusion equates to sqrt(2*D) where D is the diffusion constant.
     """
 
     assert np.all(t > 0)
     mu_t = x + vel * t
-    sigma_t = sigma + diffusion * np.sqrt(t)
+    sigma_t = sigma + sigma_diffusion * np.sqrt(t)
 
     return mu_t, sigma_t
 
 
-def build_score_matrix(lines, times, coordinates, sigma, diffusion, sigma_cutoff, vel):
+def build_score_matrix(lines, times, coordinates, sigma, sigma_diffusion, sigma_cutoff, vel):
     """Builds a score matrix for a combination of lines and positions. The score matrix contains a score for each
     line, point pair. For each line, we calculate a penalty function which reflects a score associated with connecting
     those two lines. In the current implementation these are based on a Gaussian cone around the most likely trajectory.
@@ -53,8 +55,10 @@ def build_score_matrix(lines, times, coordinates, sigma, diffusion, sigma_cutoff
         Positions of the identified kymograph peaks.
     sigma: float
         Starting uncertainty of the cone.
-    diffusion:
-        Sigma representing diffusion.
+    sigma_diffusion:
+        Sigma representing diffusion. For diffusion, the spread is characterized by:
+          Sigma(t) = sigma_diffusion * sqrt(t)
+        Note that sigma_diffusion equates to sqrt(2*D) where D is the diffusion constant.
     sigma_cutoff: float
         At what fraction of sigma are points not going to be connected to this line at all?
     vel: float
@@ -68,7 +72,7 @@ def build_score_matrix(lines, times, coordinates, sigma, diffusion, sigma_cutoff
         temporal_diff = times - tip_time
 
         # Calculate probability cone
-        mu_t, sigma_t = cone_score(tip_position, temporal_diff, vel, sigma, diffusion)
+        mu_t, sigma_t = cone_score(tip_position, temporal_diff, vel, sigma, sigma_diffusion)
         cutoff_lb = mu_t - sigma_cutoff * sigma_t
         cutoff_ub = mu_t + sigma_cutoff * sigma_t
 

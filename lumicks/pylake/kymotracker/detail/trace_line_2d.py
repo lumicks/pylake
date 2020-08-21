@@ -358,12 +358,29 @@ def extend_line(line, peaks, window, score_fun):
 
 
 def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma_cutoff=2):
-    """Starts from a list of coordinates and attempts to string them together. This uses a simple greedy algorithm.
+    """Starts from a list of coordinates and attempts to string them together.
 
         For each frame:
-        - All points that haven't been assigned yet are considered line starts. Start line at point with highest signal.
-        - See if you can extend the line to the next frame.
-        - If not iteratively try the next window frames.
+        - All points that haven't been assigned yet are considered line starts. We start a line at point with the
+          highest signal.
+        - For each line:
+          - We check whether we can extend the line to the next frame by connecting it to the most likely next point.
+          - If we cannot find a point that is sufficiently likely, we iteratively try the next N window frames.
+          - If we've exhausted the maximum number of window frames to look ahead, we terminate the line.
+        - When there are no more line starts, go to the next frame.
+
+    Which point to connect to is determined by considering a model comprised of a constant velocity (vel), an
+    uncertainty (sigma) and a diffusion component (diffusion). Based on these three pieces of information, one can
+    compute a mean and sigma for future time points given by:
+
+        mu(t) = x + vel * t
+        sigma(t) = sigma + sigma_diffusion * sqrt(t)
+
+    These two values describe a probability density how likely it is for future points to belong to this line. The most
+    likely candidate from the next frame is chosen. In addition to a maximum window (maximum time that a particle is
+    expected to be able to disappear), there is also a sigma_cutoff parameter. This parameter controls the width of the
+    cone. Setting this value to two (meaning two sigma), means you'd accept the most optimal point falling within two
+    sigma or 95.45% of the mean of the prediction.
 
     peaks: KymoPeaks.kymotracker.peakfinding.KymoPeaks
         peaks identified as potential lines.
@@ -381,7 +398,7 @@ def points_to_line_segments(peaks, window=10, vel=0, sigma=2, diffusion=0, sigma
     peaks.reset_assignment()
 
     def score_matrix(line_list, time, coord):
-        return build_score_matrix(line_list, time, coord, vel=vel, sigma=sigma, diffusion=diffusion,
+        return build_score_matrix(line_list, time, coord, vel=vel, sigma=sigma, sigma_diffusion=np.sqrt(2*diffusion),
                                   sigma_cutoff=sigma_cutoff).flatten()
 
     lines = []
