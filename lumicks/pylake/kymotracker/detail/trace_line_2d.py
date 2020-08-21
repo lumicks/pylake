@@ -150,28 +150,21 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
 
 class KymoLine:
     """A line on a kymograph"""
-    __slots__ = ['data']
+    __slots__ = ['time', 'coordinate']
 
     def __init__(self, time, coordinate):
-        assert len(time) == len(coordinate)
-        self.data = np.vstack((time, coordinate))
+        self.time = list(time)
+        self.coordinate = list(coordinate)
 
-    @property
-    def time(self):
-        return self.data[0, :]
-
-    @property
-    def coordinate(self):
-        return self.data[1, :]
+    def append(self, time, coordinate):
+        self.time.append(time)
+        self.coordinate.append(coordinate)
 
     def __add__(self, other):
-        return KymoLine(np.hstack((self.time, other.time)), np.hstack((self.coordinate, other.coordinate)))
+        return KymoLine(self.time + other.time, self.coordinate + other.coordinate)
 
     def __getitem__(self, item):
-        return self.data[:, item].transpose()
-
-    def append(self, time, position):
-        self.data = np.hstack((self.data, np.expand_dims(np.array([time, position]), axis=1)))
+        return np.squeeze(np.array(np.vstack((self.time[item], self.coordinate[item]))).transpose())
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
@@ -188,14 +181,17 @@ class KymoLine:
         assert n_estimate > 1, "Too few time points to extrapolate"
         assert len(self.time) > 1, "Cannot extrapolate linearly with less than one time point"
 
+        time = np.array(self.time)
+        coordinate = np.array(self.coordinate)
+
         if forward:
-            coeffs = np.polyfit(self.time[-n_estimate:], self.coordinate[-n_estimate:], 1)
-            return np.array([self.time[-1] + extrapolation_length,
-                             self.coordinate[-1] + coeffs[0] * extrapolation_length])
+            coeffs = np.polyfit(time[-n_estimate:], coordinate[-n_estimate:], 1)
+            return np.array([time[-1] + extrapolation_length,
+                             coordinate[-1] + coeffs[0] * extrapolation_length])
         else:
-            coeffs = np.polyfit(self.time[:n_estimate], self.coordinate[:n_estimate], 1)
-            return np.array([self.time[0] - extrapolation_length,
-                             self.coordinate[0] - coeffs[0] * extrapolation_length])
+            coeffs = np.polyfit(time[:n_estimate], coordinate[:n_estimate], 1)
+            return np.array([time[0] - extrapolation_length,
+                             coordinate[0] - coeffs[0] * extrapolation_length])
 
     def __len__(self):
         return len(self.coordinate)
