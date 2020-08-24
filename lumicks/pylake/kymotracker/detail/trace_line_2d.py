@@ -1,5 +1,10 @@
+import enum
 import numpy as np
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
+
+
+class KymoCode(enum.IntEnum):
+    seen = 0  # This pixel was already processed
 
 
 def score_candidates(normal, position_difference, trial_normals, angle_weight):
@@ -119,7 +124,7 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
     # Line strength needs to meet a threshold for continuation
     nodes = []
     while indices is not None:
-        masked_derivative[indices[0], indices[1]] = 0  # Mark pixel as seen
+        masked_derivative[indices[0], indices[1]] = KymoCode.seen  # Mark pixel as seen
 
         subpixel_origin = positions[indices[0], indices[1]]
         nodes.append(indices + subpixel_origin)
@@ -220,8 +225,8 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
     subpixel minimum and angle between the successive normal vectors is computed. The candidate with the lowest score
     is then selected.
 
-    As the algorithm progresses, it mutates the array masked_derivative along the way (marking seen pixels as zero,
-    to avoid them from being tagged again).
+    As the algorithm progresses, it mutates the array masked_derivative along the way (marking seen pixels to avoid
+    them from being tagged again).
 
     masked_derivative: array_like
         Image containing the second derivative masked by whether a point is a peak or not. Note: this array is mutated.
@@ -249,9 +254,6 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
 
         return -((mx - mn) * threshold + mn)
 
-    # Find maximal derivative as start position
-    idx = np.array(np.unravel_index(masked_derivative.argmin(), masked_derivative.shape))
-
     thresh = to_absolute_threshold(masked_derivative, start_threshold)
     proceed = thresh if not continuation_threshold else to_absolute_threshold(masked_derivative, continuation_threshold)
 
@@ -259,13 +261,19 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
     candidates = get_candidate_generator()
 
     lines = []
-    while masked_derivative[idx[0], idx[1]] < thresh and len(lines) < max_lines:
+    for flat_idx in np.argsort(masked_derivative.flatten()):
+        idx = np.unravel_index(flat_idx, masked_derivative.shape)
+
+        if masked_derivative[idx[0], idx[1]] == KymoCode.seen:
+            continue
+
+        if masked_derivative[idx[0], idx[1]] >= thresh or len(lines) > max_lines:
+            break
+
+        # Traverse the line. Note that traverse_line modifies the masked_derivative image by marking some as seen.
         line = traverse_line(idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, force_dir)
-        idx = np.array(np.unravel_index(masked_derivative.argmin(), masked_derivative.shape))
         if line:
             lines.append(line)
-        else:
-            break
 
     return lines
 

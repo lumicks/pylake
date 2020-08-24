@@ -66,4 +66,3 @@ def eigenvector_2d_symmetric(a, b, d, eig, eps=1e-8):
     ey[mask] = ty
 
     return ex, ey
-
