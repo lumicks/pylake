@@ -38,6 +38,7 @@ FD Fitting
     marko_siggia_ewlc_force
     marko_siggia_ewlc_distance
     marko_siggia_simplified
+    inverted_marko_siggia_simplified
     odijk
     inverted_odijk
     freely_jointed_chain
