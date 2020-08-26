@@ -4,8 +4,8 @@ import time
 
 
 class FdRangeSelectorWidget:
-    def __init__(self, fd_curve, ax=None, show=True):
-        self._ax = ax if ax else plt.axes(label=f"lk_widget_{time.time()}")
+    def __init__(self, fd_curve, axes=None, show=True):
+        self._axes = axes if axes else plt.axes(label=f"lk_widget_{time.time()}")
         self.fd_curve = fd_curve
         self.time = self.fd_curve.f.timestamps
         self.connection_id = None
@@ -14,7 +14,7 @@ class FdRangeSelectorWidget:
         self.open = show
 
         if show:
-            self._ax.get_figure().canvas.mpl_connect('close_event', self.close)
+            self._axes.get_figure().canvas.mpl_connect('close_event', self.close)
             self.update_plot()
 
     def close(self, event):
@@ -28,6 +28,8 @@ class FdRangeSelectorWidget:
         return (timestamp - self.time[0]) / 1e9
 
     def _add_point(self, fd_timestamp):
+        """Adds a point intended to be a range endpoint. Once two points are selected the new range selection is
+        committed and the range appended."""
         self.current_range.append(fd_timestamp)
 
         # We have a range selected. Append it to the list.
@@ -38,9 +40,10 @@ class FdRangeSelectorWidget:
 
         # Draw a vertical line for some immediate visual feedback
         plt.axvline(self.to_seconds(fd_timestamp))
-        self._ax.get_figure().canvas.draw()
+        self._axes.get_figure().canvas.draw()
 
-    def _remove_point(self, fd_timestamp):
+    def _remove_range(self, fd_timestamp):
+        """Removes a range if the provided timestamp falls inside it."""
         in_range = [start < fd_timestamp < stop for start, stop in self.ranges]
         selected = np.nonzero(in_range)[0]
         if len(selected) > 0:
@@ -50,7 +53,7 @@ class FdRangeSelectorWidget:
         self.update_plot()
 
     def handle_button_event(self, event):
-        if event.inaxes != self._ax:
+        if event.inaxes != self._axes:
             return
 
         # Check if we aren't using a figure widget function like zoom.
@@ -65,25 +68,25 @@ class FdRangeSelectorWidget:
                 self._add_point(fd_timestamp)
         elif event.button == 3:
             # Find whether we clicked an existing range
-            self._remove_point(event_timestamp)
+            self._remove_range(event_timestamp)
+
+    def connect_click_callback(self):
+        """Connects a callback for clicking the axes"""
+        self.connection_id = self._axes.get_figure().canvas.mpl_connect('button_press_event', self.handle_button_event)
 
     def disconnect_click_callback(self):
         """Disconnects the clicking callback if it exists"""
         if self.connection_id:
-            self._ax.get_figure().canvas.mpl_disconnect(self.connection_id)
-
-    def connect_click_callback(self):
-        """Connects a callback for clicking the axes"""
-        self.connection_id = self._ax.get_figure().canvas.mpl_connect('button_press_event', self.handle_button_event)
+            self._axes.get_figure().canvas.mpl_disconnect(self.connection_id)
 
     def update_plot(self):
-        self._ax.clear()
+        self._axes.clear()
 
         for i, (t_start, t_end) in enumerate(self.ranges):
             t_start, t_end = self.to_seconds(t_start), self.to_seconds(t_end)
-            self._ax.axvline(t_start)
-            self._ax.axvline(t_end)
-            self._ax.axvspan(t_start, t_end, alpha=0.15, color='blue')
+            self._axes.axvline(t_start)
+            self._axes.axvline(t_end)
+            self._axes.axvspan(t_start, t_end, alpha=0.15, color='blue')
             plt.text((t_start + t_end) / 2, 0, i)
 
         self.fd_curve.f.plot(linestyle='', marker='.', markersize=1)
@@ -99,6 +102,17 @@ class FdRangeSelectorWidget:
 
 class FdRangeSelector:
     def __init__(self, fd_curves):
+        """Open widget to select regions in multiple F,d curves
+
+        Parameters
+        ----------
+        fd_curves : dict
+            Dictionary of `pylake.FdCurve`
+        """
+
+        if len(fd_curves) == 0:
+            raise ValueError("F,d selector widget cannot open without a non-empty dictionary containing F,d curves.")
+
         try:
             import ipywidgets
         except ImportError:
@@ -110,21 +124,21 @@ class FdRangeSelector:
                                 "this to work."))
 
         plt.figure()
-        self.ax = plt.axes()
+        self.axes = plt.axes()
         self.active_plot = None
-        self.selectors = {key: FdRangeSelectorWidget(curve, self.ax, show=False) for key, curve in fd_curves.items()}
-        self.keys = [key for key, curve in fd_curves.items()]
-        ipywidgets.interact(self.update_plot,
-                            curve_idx=ipywidgets.IntSlider(min=0, max=len(fd_curves) - 1, step=1, value=0))
+        self.selectors = {key: FdRangeSelectorWidget(curve, self.axes, show=False) for key, curve in fd_curves.items()}
+        keys = [key for key, curve in fd_curves.items()]
+        ipywidgets.interact(self.update_plot, curve=ipywidgets.Dropdown(options=keys))
 
-        self.update_plot(0)
+        self.update_plot(keys[0])
 
-    def update_plot(self, curve_idx):
-        if self.active_plot:
-            self.active_plot.disconnect_click_callback()
+    def update_plot(self, curve):
+        if curve:
+            if self.active_plot:
+                self.active_plot.disconnect_click_callback()
 
-        self.active_plot = self.selectors[self.keys[curve_idx]]
-        self.active_plot.update_plot()
+            self.active_plot = self.selectors[curve]
+            self.active_plot.update_plot()
 
     @property
     def ranges(self):
