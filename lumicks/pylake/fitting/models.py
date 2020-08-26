@@ -134,7 +134,8 @@ def marko_siggia_ewlc_distance(name):
 
 
 def marko_siggia_simplified(name):
-    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN).
+    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
+    has force as a dependent variable.
 
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
@@ -163,6 +164,43 @@ def marko_siggia_simplified(name):
         derivative=Marko_Siggia_derivative,
         eqn=Marko_Siggia_equation,
         eqn_tex=Marko_Siggia_equation_tex,
+        kT=Defaults.kT,
+        Lp=Defaults.Lp,
+        Lc=Defaults.Lc,
+    )
+
+
+def inverted_marko_siggia_simplified(name):
+    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
+    has distance as a dependent variable.
+
+    References:
+        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
+        8759-8770 (1995).
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    """
+    from .model import Model
+    from .detail.model_implementation import (
+        inverted_simplified_marko_sigga,
+        inverted_simplified_marko_sigga_jac,
+        inverted_simplified_marko_sigga_derivative,
+        inverted_simplified_marko_sigga_equation,
+        inverted_simplified_marko_sigga_equation_tex,
+        Defaults,
+    )
+
+    return Model(
+        name,
+        inverted_simplified_marko_sigga,
+        dependent="d",
+        jacobian=inverted_simplified_marko_sigga_jac,
+        derivative=inverted_simplified_marko_sigga_derivative,
+        eqn=inverted_simplified_marko_sigga_equation,
+        eqn_tex=inverted_simplified_marko_sigga_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,

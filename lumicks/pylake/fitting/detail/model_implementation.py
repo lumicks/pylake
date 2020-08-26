@@ -2,6 +2,7 @@ from ..parameters import Parameter
 from .derivative_manipulation import invert_function, invert_jacobian, invert_function_interpolation
 from .utilities import latex_sqrt, latex_frac, solve_formatter, solve_formatter_tex
 import numpy as np
+import warnings
 
 
 class Defaults:
@@ -56,6 +57,9 @@ def Marko_Siggia(d, Lp, Lc, kT):
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
         8759-8770 (1995).
     """
+    if np.any(d > Lc):
+        warnings.warn("Marko Siggia model is only defined properly up to the contour length (d = Lc)", RuntimeWarning)
+
     d_div_Lc = d / Lc
     return (kT/Lp) * (.25 * (1.0-d_div_Lc)**(-2) + d_div_Lc - .25)
 
@@ -730,6 +734,66 @@ def marko_sigga_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
 
     return solve_formatter_tex(f"{latex_frac(1, 4)}\\left(1 - {dLc} + {FSt}\\right)^{{-2}} - {latex_frac(1, 4)} + "
                                f"{dLc} - {FSt}", "d", lhs)
+
+
+def inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT):
+    a = - Lc * (f * Lp / kT + 2.25)
+    b = Lc ** 2.0 * (2.0 * f * Lp / kT + 1.5)
+    c = - f * Lc ** 3.0 * Lp / kT
+    return a, b, c
+
+
+def inverted_simplified_marko_sigga(f, Lp, Lc, kT=4.11):
+    a, b, c = inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT)
+
+    return solve_cubic_wlc(a, b, c, 1)
+
+
+def inverted_simplified_marko_sigga_jac(f, Lp, Lc, kT=4.11):
+    a, b, c = inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT)
+
+    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
+
+    dc_dLc = -3.0 * f * Lc ** 2 * Lp / kT
+    dc_dLp = - f * Lc ** 3 / kT
+    dc_dkT = f * Lc ** 3 * Lp / kT ** 2
+    db_dLc = Lc * (4.0 * f * Lp / kT + 3.0)
+    db_dLp = 2.0 * f * Lc ** 2 / kT
+    db_dkT = -2.0 * f * Lc ** 2 * Lp / (kT ** 2)
+    da_dLc = -f * Lp / kT - 2.25
+    da_dLp = -f * Lc / kT
+    da_dkT = f * Lc * Lp / kT ** 2
+
+    # Terms multiplied by zero are omitted. Terms that are one are also omitted.
+    total_dy_dLp = total_dy_da * da_dLp + total_dy_db * db_dLp + total_dy_dc * dc_dLp
+    total_dy_dLc = total_dy_da * da_dLc + total_dy_db * db_dLc + total_dy_dc * dc_dLc
+    total_dy_dkT = total_dy_da * da_dkT + total_dy_db * db_dkT + total_dy_dc * dc_dkT
+
+    return [total_dy_dLp, total_dy_dLc, total_dy_dkT]
+
+
+def inverted_simplified_marko_sigga_derivative(f, Lp, Lc, kT = 4.11):
+    a, b, c = inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT)
+    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
+
+    da_df = -Lc * Lp / kT
+    db_df = 2.0 * Lc ** 2 * Lp / kT
+    dc_df = -Lc ** 3 * Lp / kT
+
+    return total_dy_da * da_df + total_dy_db * db_df + total_dy_dc * dc_df
+
+
+def inverted_simplified_marko_sigga_equation(f, Lp, Lc, kT=4.11):
+    return solve_formatter(f'(1/4) * (1 - (d/{Lc}))**(-2) - (1/4) + (d/{Lc})',
+                           "d", f'{f}*{Lp}/{kT}')
+
+
+def inverted_simplified_marko_sigga_equation_tex(f, Lp, Lc, kT=4.11):
+    dLc = latex_frac("d", Lc)
+    lhs = latex_frac(f"{f} {Lp}", kT)
+
+    return solve_formatter_tex(f"{latex_frac(1, 4)}\\left(1 - {dLc}\\right)^{{-2}} - {latex_frac(1, 4)} + {dLc}", "d",
+                               lhs)
 
 
 def marko_sigga_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
