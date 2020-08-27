@@ -41,17 +41,17 @@ def offset_model_derivative(x, offset):
     return np.zeros(len(x))
 
 
-def Marko_Siggia_equation(d, Lp, Lc, kT):
+def marko_siggia_simplified_equation(d, Lp, Lc, kT):
     return f"({kT}/{Lp}) * ((1/4) * (1-({d}/{Lc}))**(-2) + ({d}/{Lc}) - (1/4))"
 
 
-def Marko_Siggia_equation_tex(d, Lp, Lc, kT):
+def marko_siggia_simplified_equation_tex(d, Lp, Lc, kT):
     return (f"\\frac{{{kT}}}{{{Lp}}} \\left(\\frac{{1}}{{4}} \\left(1-\\frac{{{d}}}{{{Lc}}}\\right)^{{-2}} + "
                 f"\\frac{{{d}}}{{{Lc}}} - \\frac{{1}}{{4}}\\right)")
 
 
-def Marko_Siggia(d, Lp, Lc, kT):
-    """Markov Siggia's Worm-like Chain model based on only entropic contributions. Valid for F < 10 pN).
+def marko_siggia_simplified(d, Lp, Lc, kT):
+    """Marko Siggia's Worm-like Chain model based on only entropic contributions. Valid for F < 10 pN).
 
     References:
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
@@ -64,13 +64,13 @@ def Marko_Siggia(d, Lp, Lc, kT):
     return (kT/Lp) * (.25 * (1.0-d_div_Lc)**(-2) + d_div_Lc - .25)
 
 
-def Marko_Siggia_jac(d, Lp, Lc, kT):
+def marko_siggia_simplified_jac(d, Lp, Lc, kT):
     return np.vstack((-0.25*Lc**2*kT/(Lp**2*(Lc - d)**2) + 0.25*kT/Lp**2 - d*kT/(Lc*Lp**2),
                      -0.5*Lc*d*kT/(Lp*(Lc - d)**3) - d*kT/(Lc**2*Lp),
                      0.25*Lc**2/(Lp*(Lc - d)**2) - 0.25/Lp + d/(Lc*Lp)))
 
 
-def Marko_Siggia_derivative(d, Lp, Lc, kT):
+def marko_siggia_simplified_derivative(d, Lp, Lc, kT):
     return 0.5*Lc**2*kT/(Lp*(Lc - d)**3) + kT/(Lc*Lp)
 
 
@@ -640,12 +640,12 @@ def invFJC(d, Lp, Lc, St, kT=4.11):
                            lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT))
 
 
-def marko_sigga_ewlc_solve_force_equation(d, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_force_equation(d, Lp, Lc, St, kT=4.11):
     return solve_formatter(f'(1/4) * (1 - ({d}/{Lc}) + (f/{St}))**(-2) - (1/4) + ({d}/{Lc}) - (f/{St})', "f",
                            f'f*{Lp}/{kT}')
 
 
-def marko_sigga_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
     dLc = latex_frac(d, Lc)
     FSt = latex_frac("f", St)
     lhs = latex_frac(f"f {Lp}", kT)
@@ -654,7 +654,7 @@ def marko_sigga_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
                                f"{dLc} - {FSt}", "f", lhs)
 
 
-def marko_sigga_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
     """Margo-Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
     These equations were symbolically derived. The expressions are not pretty, but they work."""
     c = -St ** 3 * d * kT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / (Lc ** 3 * (Lp * St + kT))
@@ -665,7 +665,7 @@ def marko_sigga_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
     return solve_cubic_wlc(a, b, c, 2)
 
 
-def marko_sigga_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
     c = -St ** 3 * d * kT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / (Lc ** 3 * (Lp * St + kT))
     b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * d - 4.5 * Lc * d * kT +
                    Lp * St * d ** 2 + 3 * d ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
@@ -705,7 +705,7 @@ def marko_sigga_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def marko_sigga_ewlc_solve_force_derivative(d, Lp, Lc, St, kT = 4.11):
+def marko_siggia_ewlc_solve_force_derivative(d, Lp, Lc, St, kT = 4.11):
     c = -St ** 3 * d * kT * (1.5 * Lc ** 2 - 2.25 * Lc * d + d ** 2) / (Lc ** 3 * (Lp * St + kT))
     b = St ** 2 * (Lc ** 2 * Lp * St + 1.5 * Lc ** 2 * kT - 2 * Lc * Lp * St * d - 4.5 * Lc * d * kT +
                    Lp * St * d ** 2 + 3 * d ** 2 * kT) / (Lc ** 2 * (Lp * St + kT))
@@ -722,12 +722,12 @@ def marko_sigga_ewlc_solve_force_derivative(d, Lp, Lc, St, kT = 4.11):
     return total_dy_da * da_dd + total_dy_db * db_dd + total_dy_dc * dc_dd
 
 
-def marko_sigga_ewlc_solve_distance_equation(f, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_distance_equation(f, Lp, Lc, St, kT=4.11):
     return solve_formatter(f'(1/4) * (1 - (d/{Lc}) + ({f}/{St}))**(-2) - (1/4) + (d/{Lc}) - ({f}/{St})',
                            "d", f'{f}*{Lp}/{kT}')
 
 
-def marko_sigga_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
     dLc = latex_frac("d", Lc)
     FSt = latex_frac(f, St)
     lhs = latex_frac(f"{f} {Lp}", kT)
@@ -736,21 +736,21 @@ def marko_sigga_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
                                f"{dLc} - {FSt}", "d", lhs)
 
 
-def inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT):
+def inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT):
     a = - Lc * (f * Lp / kT + 2.25)
     b = Lc ** 2.0 * (2.0 * f * Lp / kT + 1.5)
     c = - f * Lc ** 3.0 * Lp / kT
     return a, b, c
 
 
-def inverted_simplified_marko_sigga(f, Lp, Lc, kT=4.11):
-    a, b, c = inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT)
+def inverted_marko_siggia_simplified(f, Lp, Lc, kT=4.11):
+    a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
 
     return solve_cubic_wlc(a, b, c, 1)
 
 
-def inverted_simplified_marko_sigga_jac(f, Lp, Lc, kT=4.11):
-    a, b, c = inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT)
+def inverted_marko_siggia_simplified_jac(f, Lp, Lc, kT=4.11):
+    a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
 
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
 
@@ -772,8 +772,8 @@ def inverted_simplified_marko_sigga_jac(f, Lp, Lc, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dkT]
 
 
-def inverted_simplified_marko_sigga_derivative(f, Lp, Lc, kT = 4.11):
-    a, b, c = inverted_simplified_marko_sigga_coefficients(f, Lp, Lc, kT)
+def inverted_marko_siggia_simplified_derivative(f, Lp, Lc, kT = 4.11):
+    a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
     total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
 
     da_df = -Lc * Lp / kT
@@ -783,12 +783,12 @@ def inverted_simplified_marko_sigga_derivative(f, Lp, Lc, kT = 4.11):
     return total_dy_da * da_df + total_dy_db * db_df + total_dy_dc * dc_df
 
 
-def inverted_simplified_marko_sigga_equation(f, Lp, Lc, kT=4.11):
+def inverted_marko_siggia_simplified_equation(f, Lp, Lc, kT=4.11):
     return solve_formatter(f'(1/4) * (1 - (d/{Lc}))**(-2) - (1/4) + (d/{Lc})',
                            "d", f'{f}*{Lp}/{kT}')
 
 
-def inverted_simplified_marko_sigga_equation_tex(f, Lp, Lc, kT=4.11):
+def inverted_marko_siggia_simplified_equation_tex(f, Lp, Lc, kT=4.11):
     dLc = latex_frac("d", Lc)
     lhs = latex_frac(f"{f} {Lp}", kT)
 
@@ -796,7 +796,7 @@ def inverted_simplified_marko_sigga_equation_tex(f, Lp, Lc, kT=4.11):
                                lhs)
 
 
-def marko_sigga_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
     c = -f * Lc ** 3 * (f ** 2 * Lp * St + f ** 2 * kT + 2 * f * Lp * St ** 2 + 2.25 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
     b = Lc ** 2 * (2 * f ** 2 * Lp * St + 3 * f ** 2 * kT + 2 * f * Lp * St ** 2 + 4.5 * f * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
     a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
@@ -804,7 +804,7 @@ def marko_sigga_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
     return solve_cubic_wlc(a, b, c, 1)
 
 
-def marko_sigga_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
+def marko_siggia_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
     c = -f * Lc ** 3 * (f ** 2 * Lp * St + f ** 2 * kT + 2 * f * Lp * St ** 2 + 2.25 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
     b = Lc ** 2 * (2 * f ** 2 * Lp * St + 3 * f ** 2 * kT + 2 * f * Lp * St ** 2 + 4.5 * f * St * kT + 1.5 * St ** 2 * kT) / (St ** 2 * kT)
     a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
@@ -836,7 +836,7 @@ def marko_sigga_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def marko_sigga_ewlc_solve_distance_derivative(f, Lp, Lc, St, kT = 4.11):
+def marko_siggia_ewlc_solve_distance_derivative(f, Lp, Lc, St, kT = 4.11):
     fsq = f * f
     c = -f * Lc ** 3 * (f ** 2 * Lp * St + fsq * kT + 2 * f * Lp * St ** 2 +
                         2.25 * f * St * kT + Lp * St ** 3 + 1.5 * St ** 2 * kT) / (St ** 3 * kT)
