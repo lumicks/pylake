@@ -73,22 +73,22 @@ def marko_siggia_ewlc_force(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        marko_sigga_ewlc_solve_force,
-        marko_sigga_ewlc_solve_force_jac,
-        marko_sigga_ewlc_solve_force_derivative,
-        marko_sigga_ewlc_solve_force_equation,
-        marko_sigga_ewlc_solve_force_equation_tex,
+        marko_siggia_ewlc_solve_force,
+        marko_siggia_ewlc_solve_force_jac,
+        marko_siggia_ewlc_solve_force_derivative,
+        marko_siggia_ewlc_solve_force_equation,
+        marko_siggia_ewlc_solve_force_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
-        marko_sigga_ewlc_solve_force,
+        marko_siggia_ewlc_solve_force,
         dependent="f",
-        jacobian=marko_sigga_ewlc_solve_force_jac,
-        derivative=marko_sigga_ewlc_solve_force_derivative,
-        eqn=marko_sigga_ewlc_solve_force_equation,
-        eqn_tex=marko_sigga_ewlc_solve_force_equation_tex,
+        jacobian=marko_siggia_ewlc_solve_force_jac,
+        derivative=marko_siggia_ewlc_solve_force_derivative,
+        eqn=marko_siggia_ewlc_solve_force_equation,
+        eqn_tex=marko_siggia_ewlc_solve_force_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -110,22 +110,22 @@ def marko_siggia_ewlc_distance(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        marko_sigga_ewlc_solve_distance,
-        marko_sigga_ewlc_solve_distance_jac,
-        marko_sigga_ewlc_solve_distance_derivative,
-        marko_sigga_ewlc_solve_distance_equation,
-        marko_sigga_ewlc_solve_distance_equation_tex,
+        marko_siggia_ewlc_solve_distance,
+        marko_siggia_ewlc_solve_distance_jac,
+        marko_siggia_ewlc_solve_distance_derivative,
+        marko_siggia_ewlc_solve_distance_equation,
+        marko_siggia_ewlc_solve_distance_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
-        marko_sigga_ewlc_solve_distance,
+        marko_siggia_ewlc_solve_distance,
         dependent="d",
-        jacobian=marko_sigga_ewlc_solve_distance_jac,
-        derivative=marko_sigga_ewlc_solve_distance_derivative,
-        eqn=marko_sigga_ewlc_solve_distance_equation,
-        eqn_tex=marko_sigga_ewlc_solve_distance_equation_tex,
+        jacobian=marko_siggia_ewlc_solve_distance_jac,
+        derivative=marko_siggia_ewlc_solve_distance_derivative,
+        eqn=marko_siggia_ewlc_solve_distance_equation,
+        eqn_tex=marko_siggia_ewlc_solve_distance_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -134,7 +134,7 @@ def marko_siggia_ewlc_distance(name):
 
 
 def marko_siggia_simplified(name):
-    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
+    """Marko Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
     has force as a dependent variable.
 
     References:
@@ -148,22 +148,22 @@ def marko_siggia_simplified(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        Marko_Siggia,
-        Marko_Siggia_jac,
-        Marko_Siggia_derivative,
-        Marko_Siggia_equation,
-        Marko_Siggia_equation_tex,
+        marko_siggia_simplified,
+        marko_siggia_simplified_jac,
+        marko_siggia_simplified_derivative,
+        marko_siggia_simplified_equation,
+        marko_siggia_simplified_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
-        Marko_Siggia,
+        marko_siggia_simplified,
         dependent="f",
-        jacobian=Marko_Siggia_jac,
-        derivative=Marko_Siggia_derivative,
-        eqn=Marko_Siggia_equation,
-        eqn_tex=Marko_Siggia_equation_tex,
+        jacobian=marko_siggia_simplified_jac,
+        derivative=marko_siggia_simplified_derivative,
+        eqn=marko_siggia_simplified_equation,
+        eqn_tex=marko_siggia_simplified_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
@@ -171,7 +171,7 @@ def marko_siggia_simplified(name):
 
 
 def inverted_marko_siggia_simplified(name):
-    """Markov Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
+    """Marko Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
     has distance as a dependent variable.
 
     References:
@@ -185,22 +185,22 @@ def inverted_marko_siggia_simplified(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        inverted_simplified_marko_sigga,
-        inverted_simplified_marko_sigga_jac,
-        inverted_simplified_marko_sigga_derivative,
-        inverted_simplified_marko_sigga_equation,
-        inverted_simplified_marko_sigga_equation_tex,
+        inverted_marko_siggia_simplified,
+        inverted_marko_siggia_simplified_jac,
+        inverted_marko_siggia_simplified_derivative,
+        inverted_marko_siggia_simplified_equation,
+        inverted_marko_siggia_simplified_equation_tex,
         Defaults,
     )
 
     return Model(
         name,
-        inverted_simplified_marko_sigga,
+        inverted_marko_siggia_simplified,
         dependent="d",
-        jacobian=inverted_simplified_marko_sigga_jac,
-        derivative=inverted_simplified_marko_sigga_derivative,
-        eqn=inverted_simplified_marko_sigga_equation,
-        eqn_tex=inverted_simplified_marko_sigga_equation_tex,
+        jacobian=inverted_marko_siggia_simplified_jac,
+        derivative=inverted_marko_siggia_simplified_derivative,
+        eqn=inverted_marko_siggia_simplified_equation,
+        eqn_tex=inverted_marko_siggia_simplified_equation_tex,
         kT=Defaults.kT,
         Lp=Defaults.Lp,
         Lc=Defaults.Lc,
