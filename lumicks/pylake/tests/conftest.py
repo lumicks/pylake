@@ -69,6 +69,10 @@ class MockDataFile_v2(MockDataFile_v1):
         for i, v in attributes.items():
             field.attrs[i] = v
 
+    def make_fd(self):
+        if "FD Curve" not in self.file:
+            self.file.create_group("FD Curve")
+
     def make_marker(self, marker_name, attributes):
         if "Marker" not in self.file:
             self.file.create_group("Marker")
@@ -135,6 +139,7 @@ def h5_file(tmpdir_factory, request):
 
         mock_file.make_marker("test_marker", {'Start time (ns)': 100, 'Stop time (ns)': 200})
         mock_file.make_marker("test_marker2", {'Start time (ns)': 200, 'Stop time (ns)': 300})
+        mock_file.make_fd()
 
         counts = np.uint32([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0,

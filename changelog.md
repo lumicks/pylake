@@ -1,8 +1,9 @@
 # Changelog
 
-## v0.6.1 | t.b.d.
+## v0.6.1 | 2020-08-31
 
 * Added inverted simplified Marko Siggia model with only entropic contributions to `FdFitter`.
+* Change exception that was being raised on non-API field access such as `Calibration`, `Marker`, `FD Curve`, `Kymograph` and `Scan` to a `FutureWarning` rather than an exception.
 
 ## v0.6.0 | 2020-08-18
 

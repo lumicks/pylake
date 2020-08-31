@@ -1,4 +1,5 @@
 import h5py
+import warnings
 from .channel import channel_class
 
 
@@ -17,8 +18,8 @@ class Group:
     def __getitem__(self, item):
         """Return a subgroup or a bluelake timeline channel"""
         if item in self.redirect_list:
-            raise IndexError(f"Direct access to this field is not supported. Use file.{self.redirect_list[item]} "
-                             f"instead. In case raw access is needed, go through the fn.h5 directly.")
+            warnings.warn(f"Direct access to this field is deprecated. Use file.{self.redirect_list[item]} instead. "
+                          f"In case raw access is needed, go through the fn.h5 directly.", FutureWarning)
 
         thing = self.h5[item]
         if type(thing) is h5py.Group:
