@@ -89,8 +89,11 @@ def test_marker(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
     if f.format_version == 2:
+        with pytest.warns(FutureWarning):
+            m = f["Marker"]
+
         with pytest.raises(IndexError):
-            f["Marker"]["test_marker"]
+            m["test_marker"]
 
         assert np.isclose(f.markers["test_marker"].start, 100)
         assert np.isclose(f.markers["test_marker"].stop, 200)
@@ -128,20 +131,21 @@ def test_groups(h5_file):
 
 def test_redirect_list(h5_file):
     f = pylake.File.from_h5py(h5_file)
-    with pytest.raises(IndexError):
-        f["Calibration"]
+    if f.format_version == 2:
+        with pytest.warns(FutureWarning):
+            f["Calibration"]
 
-    with pytest.raises(IndexError):
-        f["Marker"]
+        with pytest.warns(FutureWarning):
+            f["Marker"]
 
-    with pytest.raises(IndexError):
-        f["FD Curve"]
+        with pytest.warns(FutureWarning):
+            f["FD Curve"]
 
-    with pytest.raises(IndexError):
-        f["Kymograph"]
+        with pytest.warns(FutureWarning):
+            f["Kymograph"]
 
-    with pytest.raises(IndexError):
-        f["Scan"]
+        with pytest.warns(FutureWarning):
+            f["Scan"]
 
 
 def test_repr_and_str(h5_file):
@@ -246,5 +250,8 @@ def test_invalid_access(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
     if f.format_version == 2:
+        with pytest.warns(FutureWarning):
+            m = f["Kymograph"]
+
         with pytest.raises(IndexError):
-            f["Kymograph"]["Kymo1"]
+            m["Kymo1"]
