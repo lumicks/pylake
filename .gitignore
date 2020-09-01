@@ -14,3 +14,5 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 *.egg
+
+lumicks/__init__.py
