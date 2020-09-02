@@ -2,6 +2,7 @@ import json
 import numpy as np
 import warnings
 
+from skimage.measure import block_reduce
 from .detail.mixin import PhotonCounts
 from .detail.mixin import ExcitationLaserPower
 from .detail.image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
@@ -25,18 +26,33 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         End point in the relevant info wave.
     json : dict
         Dictionary containing kymograph-specific metadata.
+    downsampled_by : int
+        downsampling factor
     """
-    def __init__(self, name, file, start, stop, json):
+    def __init__(self, name, file, start, stop, json, downsampled_by=1):
         self.start = start
         self.stop = stop
         self.name = name
         self.json = json
         self.file = file
+        self._downsampled_by = downsampled_by
         self._cache = {}
 
     def __repr__(self):
         name = self.__class__.__name__
-        return f"{name}(pixels={self.pixels_per_line})"
+        if self._downsampled_by > 1:
+            return f"{name}(pixels={self.pixels_per_line}, downsampled_by={self._downsampled_by})"
+        else:
+            return f"{name}(pixels={self.pixels_per_line})"
+
+    def downsampled_by(self, downsampling_factor):
+        """Downsample the kymograph by an integer factor
+
+        Parameters
+        ----------
+        downsampling_factor : int
+            Factor to downsample by."""
+        return Kymo(self.name, self.file, self.start, self.stop, self.json, self._downsampled_by * downsampling_factor)
 
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
@@ -108,6 +124,8 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         if color not in self._cache:
             photon_counts = getattr(self, f"{color}_photon_count").data
             self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line).T
+            if self._downsampled_by > 1:
+                self._cache[color] = block_reduce(self._cache[color], block_size=(1, self._downsampled_by), func=np.sum)
         return self._cache[color]
 
     def _has_incorrect_start(self, timeline_start):
@@ -126,8 +144,10 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
                                    "entire scan time in Bluelake?")
 
     def _timestamps(self, sample_timestamps):
-        return reconstruct_image(sample_timestamps, self.infowave.data,
-                                 self.pixels_per_line, reduce=np.mean).T
+        timestamps = reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line, reduce=np.mean).T
+        if self._downsampled_by > 1:
+            timestamps = block_reduce(timestamps, block_size=(1, self._downsampled_by), func=np.mean)
+        return timestamps
 
     @property
     def red_image(self):
@@ -151,6 +171,8 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         """Timestamps for image pixels, not for samples
 
         The returned array has the same shape as the `*_image` arrays.
+        Note that for downsampled kymographs, these timestamps are defined as the average of the timestamps
+        corresponding to the pixels which were summed.
         """
         # Uses the timestamps from the first non-zero-sized photon channel
         photon_counts = self.red_photon_count, self.green_photon_count, self.blue_photon_count

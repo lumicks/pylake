@@ -53,6 +53,6 @@ setup(
     python_requires='>=3.6',
     install_requires=['pytest>=3.5', 'h5py>=2.9, <3.0', 'numpy>=1.14, <2',
                       'scipy>=1.1, <2', 'matplotlib>=2.2', 'tifffile>=2018.11.6',
-                      'tabulate==0.8.6'],
+                      'tabulate==0.8.6', 'scikit-image>=0.17.2'],
     zip_safe=False,
 )

@@ -33,6 +33,9 @@ class Scan(Kymo):
     def __getitem__(self, item):
         raise NotImplementedError("Indexing and slicing are not implemented for scans")
 
+    def downsampled_by(self, downsampling_factor):
+        raise NotImplementedError("Downsampling is not supported for scans")
+
     @property
     def num_frames(self):
         if self._num_frames == 0:

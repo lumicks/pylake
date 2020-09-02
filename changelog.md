@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.2 | t.b.d.
+
+* Add `downsampled_by` to kymo. When downsampling photon counts of the pixels downsampled over are summed, while their timestamps are averaged.
+
 ## v0.6.1 | 2020-08-31
 
 * Added inverted simplified Marko Siggia model with only entropic contributions to `FdFitter`.

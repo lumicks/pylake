@@ -40,3 +40,16 @@ Kymographs can also be sliced in order to obtain a specific time range.
 For example, one can plot the region of the kymograph between 175 and 180 seconds using::
 
     kymo["175s":"180s"].plot_red()
+
+We can obtain the pixel timestamps by invoking `.timestamps`::
+
+    kymo.timestamps
+
+These timestamps are defined as the mean of the timestamps contributing to that pixel.
+
+Kymographs can also be downsampled in case the signal to noise isn't high enough::
+
+    kymo.downsampled_by(2)
+
+Note that for downsampled kymographs, the timestamps are defined as the average of the timestamps corresponding to the
+pixels which were summed.

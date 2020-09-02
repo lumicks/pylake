@@ -15,6 +15,8 @@ def test_kymo_properties(h5_file):
                                         [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
                                         [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]], np.int64)
 
+        kymo_reference = np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
+
         assert repr(kymo) == "Kymo(pixels=5)"
         assert kymo.has_fluorescence
         assert not kymo.has_force
@@ -25,7 +27,23 @@ def test_kymo_properties(h5_file):
         assert kymo.blue_image.shape == (5, 4)
         assert kymo.green_image.shape == (5, 4)
         assert np.allclose(kymo.timestamps, reference_timestamps)
+        assert np.allclose(kymo.red_image.data, kymo_reference)
         assert kymo.fast_axis == "X"
+
+        downsampled_kymo = kymo.downsampled_by(2)
+        reference_timestamps_downsampled = np.vstack((np.mean(reference_timestamps[:, 0:2], axis=1),
+                                                      np.mean(reference_timestamps[:, 2:4], axis=1))).transpose()
+        reference_downsampled = np.vstack((np.sum(kymo_reference[:, 0:2], axis=1),
+                                           np.sum(kymo_reference[:, 2:4], axis=1))).transpose()
+        assert repr(downsampled_kymo) == "Kymo(pixels=5, downsampled_by=2)"
+        assert downsampled_kymo.pixels_per_line == 5
+        assert downsampled_kymo.rgb_image.shape == (5, 2, 3)
+        assert downsampled_kymo.red_image.shape == (5, 2)
+        assert downsampled_kymo.blue_image.shape == (5, 2)
+        assert downsampled_kymo.green_image.shape == (5, 2)
+        assert np.allclose(downsampled_kymo.timestamps, reference_timestamps_downsampled)
+        assert np.allclose(downsampled_kymo.red_image.data, reference_downsampled)
+        assert downsampled_kymo.fast_axis == "X"
 
 
 def test_kymo_slicing(h5_file):
