@@ -29,3 +29,4 @@ These import conventions are used consistently in the tutorial.
     correlatedstacks
     fdfitting
     nbwidgets
+    kymotracking
