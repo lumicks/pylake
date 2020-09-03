@@ -3,7 +3,8 @@ import numpy as np
 from lumicks.pylake.kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from lumicks.pylake.kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine, detect_lines
-from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point, stitch_kymo_lines
+from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
+from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
 from copy import deepcopy
 
 
@@ -251,7 +252,21 @@ def test_kymo_line():
     k2 = k1.with_offset(2, 2)
     assert id(k2) != id(k1)
 
-    assert np.allclose(k2.coordinate, [3, 4, 5])
+    assert np.allclose(k2.coordinate_idx, [3, 4, 5])
+
+
+def test_kymoline_selection():
+    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 7)))
+    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 8)))
+    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (4, 8)))
+    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (5, 8)))
+
+    assert KymoLine([2], [6]).in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [5]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([4], [6]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([1], [6]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [4]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [8]).in_rect(((2, 5), (3, 8)))
 
 
 def test_kymoline_selection():
@@ -293,18 +308,18 @@ def test_stitching():
 
     stitched = stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 2, 2)
     assert len(stitched) == 2
-    assert np.allclose(stitched[0].coordinate, [0, 1, 2, 3])
-    assert np.allclose(stitched[1].coordinate, [0, 0])
+    assert np.allclose(stitched[0].coordinate_idx, [0, 1, 2, 3])
+    assert np.allclose(stitched[1].coordinate_idx, [0, 0])
 
     stitched = stitch_kymo_lines([segment_1b, segment_3, segment_2], radius, 2, 2)
-    assert np.allclose(stitched[0].coordinate, [0, 0, 0, 0])
-    assert np.allclose(stitched[0].time, [0, 1, 2, 3])
-    assert np.allclose(stitched[1].coordinate, [2, 3])
+    assert np.allclose(stitched[0].coordinate_idx, [0, 0, 0, 0])
+    assert np.allclose(stitched[0].time_idx, [0, 1, 2, 3])
+    assert np.allclose(stitched[1].coordinate_idx, [2, 3])
 
     # Check whether only the last two points are used (meaning we extrapolate [0, 0], [1, 1])
     stitched = stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 2)
-    assert np.allclose(stitched[0].coordinate, [0, 0, 1, 2, 3])
-    assert np.allclose(stitched[0].time, [-1, 0, 1, 2, 3])
+    assert np.allclose(stitched[0].coordinate_idx, [0, 0, 1, 2, 3])
+    assert np.allclose(stitched[0].time_idx, [-1, 0, 1, 2, 3])
 
     # When using all three points, we shouldn't stitch
     assert len(stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 3)) == 3
@@ -313,4 +328,36 @@ def test_stitching():
     # - and - should connect
     assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0]), KymoLine([2, 2.01], [0, 0])], radius, 1, 2)) == 1
     # - and | should not connect.
-    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0]), KymoLine([2, 2.01], [0, 1])], radius, 1, 2)) == 2
+    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], None),
+                                  KymoLine([2, 2.01], [0, 1], None)], radius, 1, 2)) == 2
+
+
+def test_kymotracker_integration_tests():
+    test_data = np.ones((30, 30))
+    test_data[10, 10:20] = 10
+    test_data[11, 10:20] = 30
+    test_data[12, 10:20] = 10
+
+    test_data[20, 15:25] = 10
+    test_data[21, 15:25] = 20
+    test_data[22, 15:25] = 10
+
+    lines = track_greedy(test_data, 3, 4)
+    assert np.allclose(lines[0].coordinate_idx, [11] * np.ones(10))
+    assert np.allclose(lines[1].coordinate_idx, [21] * np.ones(10))
+    assert np.allclose(lines[0].time_idx, np.arange(10, 20))
+    assert np.allclose(lines[1].time_idx, np.arange(15, 25))
+
+    lines = track_lines(test_data, 3, 4)
+    assert np.allclose(lines[0].coordinate_idx, [11] * len(lines[0].coordinate_idx))
+    assert np.allclose(lines[1].coordinate_idx, [21] * len(lines[0].coordinate_idx))
+    assert np.allclose(lines[0].time_idx, np.arange(9, 21))
+    assert np.allclose(lines[1].time_idx, np.arange(14, 26))
+
+    lines = track_greedy(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    assert np.allclose(lines[0].coordinate_idx, [21] * np.ones(10))
+    assert np.allclose(lines[0].time_idx, np.arange(15, 25))
+
+    lines = track_lines(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    assert np.allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
+    assert np.allclose(lines[0].time_idx, np.arange(14, 26))

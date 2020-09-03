@@ -17,6 +17,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     point_scan.PointScan
     correlated_stack.CorrelatedStack
 
+
 FD Fitting
 ----------
 
@@ -45,3 +46,15 @@ FD Fitting
     inverted_freely_jointed_chain
     twistable_wlc
     inverted_twistable_wlc
+
+
+Kymotracking
+------------
+
+.. autosummary::
+    :toctree: _api
+
+    kymotracker.kymoline.KymoLine
+    kymotracker.kymotracker.track_greedy
+    kymotracker.kymotracker.track_lines
+    kymotracker.kymotracker.filter_lines

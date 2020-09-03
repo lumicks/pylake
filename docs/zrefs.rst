@@ -16,6 +16,13 @@ interpolation rather than point-wise inversion through optimization analogously 
 estimation is performed via Maximum Likelihood Estimation :cite:`maiwald2016driving,raue2009structural`. We also
 implemented several asymptotic information criteria for ranking model fits :cite:`cavanaugh1997unifying`.
 
+Kymotracker
+-----------
+
+The line algorithm was based on sections 1, 2 and 3 from :cite:`steger1998unbiased` to find line centers based on local
+geometric considerations. The greedy algorithm was based on two papers. It initially detects feature points based on
+:cite:`sbalzarini2005feature`, followed by line tracing inspired by :cite:`mangeol2016kymographclear`.
+
 References
 ----------
 

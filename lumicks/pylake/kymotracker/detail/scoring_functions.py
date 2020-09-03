@@ -54,7 +54,7 @@ def build_score_matrix(lines, times, coordinates, model, sigma_cutoff):
 
     Parameters
     ----------
-    lines: List[pylake.Line]
+    lines: List[pylake.KymoLine]
     times: array_like
         Time points corresponding to the identified kymograph peaks.
     coordinates : array_like
@@ -68,8 +68,8 @@ def build_score_matrix(lines, times, coordinates, model, sigma_cutoff):
     score_matrix = -np.inf * np.ones((len(lines), len(coordinates)))
 
     for i, line in enumerate(lines):
-        tip_time = line.time[-1]
-        tip_position = line.coordinate[-1]
+        tip_time = line.time_idx[-1]
+        tip_position = line.coordinate_idx[-1]
 
         mu_t, sigma_t = model(tip_time, tip_position, times)
         cutoff_lb = mu_t - sigma_cutoff * sigma_t

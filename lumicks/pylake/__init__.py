@@ -7,6 +7,7 @@ from .correlated_stack import CorrelatedStack
 from .fitting.fit import FdFit
 from lumicks.pylake.fitting.parameter_trace import parameter_trace
 from lumicks.pylake.nb_widgets.fd_selector import FdRangeSelector, FdRangeSelectorWidget
+from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines, filter_lines
 
 
 def pytest(args=None, plugins=None):
