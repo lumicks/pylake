@@ -1,6 +1,8 @@
+import pytest
+import matplotlib.pyplot as plt
 import numpy as np
 from lumicks import pylake
-import pytest
+from matplotlib.testing.decorators import cleanup
 
 
 def test_scans(h5_file):
@@ -79,3 +81,18 @@ def test_damaged_scan(h5_file):
         scan.start = scan.red_photon_count.timestamps[0] - 1  # Assume the user incorrectly exported only a partial scan
         with pytest.raises(RuntimeError):
             scan.red_image.shape
+
+
+@cleanup
+def test_plotting(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        scan = f.scans["fast Y slow X multiframe"]
+        scan.plot_blue()
+        assert np.allclose(np.sort(plt.xlim()), [0, .197 * 3])
+        assert np.allclose(np.sort(plt.ylim()), [0, .191 * 4])
+
+        scan = f.scans["fast X slow Z multiframe"]
+        scan.plot_rgb()
+        assert np.allclose(np.sort(plt.xlim()), [0, .191 * 4])
+        assert np.allclose(np.sort(plt.ylim()), [0, .197 * 3])

@@ -211,17 +211,17 @@ def h5_file(tmpdir_factory, request):
                                 "axis": axis_1,
                                 "cereal_class_version": 1,
                                 "num of pixels": n_pixels_1,
-                                "pixel size (nm)": 10,
+                                "pixel size (nm)": 191,
                                 "scan time (ms)": 0,
-                                "scan width (um)": 36.07468112612217
+                                "scan width (um)": .191 * n_pixels_1
                             },
                             {
                                 "axis": axis_2,
                                 "cereal_class_version": 1,
                                 "num of pixels": n_pixels_2,
-                                "pixel size (nm)": 10,
+                                "pixel size (nm)": 197,
                                 "scan time (ms)": 0,
-                                "scan width (um)": 36.07468112612217
+                                "scan width (um)": .197 * n_pixels_2
                             }
                         ]
                     }

@@ -7,7 +7,10 @@ from .detail.mixin import ExcitationLaserPower
 from .detail.image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
     seek_timestamp_next_line
 from .detail.timeindex import to_timestamp
-from .detail.utilities import first
+
+
+"""Axis label used for plotting"""
+axis_label = ("x", "y", "z")
 
 
 class Kymo(PhotonCounts, ExcitationLaserPower):
@@ -77,8 +80,9 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
 
         return photon_count
 
-    def _get_axis_metadata(self, axis=0):
-        return first(self.json["scan volume"]["scan axes"], lambda x: x["axis"] == axis)
+    def _ordered_axes(self):
+        """Returns axis indices in spatial order"""
+        return sorted(self.json["scan volume"]["scan axes"], key=lambda x: x["axis"])
 
     @property
     def _fast_axis_metadata(self):
@@ -163,7 +167,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self._get_axis_metadata(0)["scan width (um)"]
+        width_um = self._ordered_axes()[0]["scan width (um)"]
         duration = (self.stop - self.start) / 1e9
 
         default_kwargs = dict(
