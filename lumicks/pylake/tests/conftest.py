@@ -228,15 +228,21 @@ def h5_file(tmpdir_factory, request):
                 }
             })
 
-        # Single frame image (fast axis Y, slow axis X)
+        # Single frame image
         ds = mock_file.make_json_data("Scan", "fast Y slow X",
                                       generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=5))
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
-        # Multi frame image (fast axis Y, slow axis X)
+        # Multi frame image
         ds = mock_file.make_json_data("Scan", "fast Y slow X multiframe",
                                       generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=3))
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
+
+        # Multiframe frame image
+        ds = mock_file.make_json_data("Scan", "fast X slow Z multiframe",
+                                      generate_scan_json(axis_1=0, n_pixels_1=4, axis_2=2, n_pixels_2=3))
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
