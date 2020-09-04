@@ -6,7 +6,7 @@ import pytest
 def test_scans(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
-        scan = f.scans["Scan1"]
+        scan = f.scans["fast Y slow X"]
 
         assert repr(scan) == "Scan(pixels=(4, 5))"
 
@@ -32,7 +32,7 @@ def test_scans(h5_file):
         with pytest.raises(NotImplementedError):
             scan["1s":"2s"]
 
-        scan = f.scans["Scan2"]
+        scan = f.scans["fast Y slow X multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
         reference_timestamps2[0, :, :] = reference_timestamps.T[:, :3]
         reference_timestamps2[1, :, :2] = reference_timestamps.T[:, 3:]
@@ -55,7 +55,7 @@ def test_damaged_scan(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
     if f.format_version == 2:
-        scan = f.scans["Scan1"]
+        scan = f.scans["fast Y slow X"]
 
         scan.start = scan.red_photon_count.timestamps[0] - 1  # Assume the user incorrectly exported only a partial scan
         with pytest.raises(RuntimeError):

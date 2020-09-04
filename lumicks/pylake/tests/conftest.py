@@ -191,83 +191,52 @@ def h5_file(tmpdir_factory, request):
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
-        json_string = enc.encode({
-            "value0": {
-                "cereal_class_version": 1,
-                "fluorescence": True,
-                "force": False,
-                "scan count": 0,
-                "scan volume": {
-                    "center point (um)": {
-                        "x": 58.075877109272604,
-                        "y": 31.978375270573267,
-                        "z": 0
-                    },
+        def generate_scan_json(axis_1, n_pixels_1, axis_2, n_pixels_2):
+            return enc.encode({
+                "value0": {
                     "cereal_class_version": 1,
-                    "pixel time (ms)": 0.2,
-                    "scan axes": [
-                        {
-                            "axis": 1,
-                            "cereal_class_version": 1,
-                            "num of pixels": 4,
-                            "pixel size (nm)": 10,
-                            "scan time (ms)": 0,
-                            "scan width (um)": 36.07468112612217
+                    "fluorescence": True,
+                    "force": False,
+                    "scan count": 0,
+                    "scan volume": {
+                        "center point (um)": {
+                            "x": 58.075877109272604,
+                            "y": 31.978375270573267,
+                            "z": 0
                         },
-                        {
-                            "axis": 0,
-                            "cereal_class_version": 1,
-                            "num of pixels": 5,
-                            "pixel size (nm)": 10,
-                            "scan time (ms)": 0,
-                            "scan width (um)": 36.07468112612217
-                        }
-                    ]
+                        "cereal_class_version": 1,
+                        "pixel time (ms)": 0.2,
+                        "scan axes": [
+                            {
+                                "axis": axis_1,
+                                "cereal_class_version": 1,
+                                "num of pixels": n_pixels_1,
+                                "pixel size (nm)": 10,
+                                "scan time (ms)": 0,
+                                "scan width (um)": 36.07468112612217
+                            },
+                            {
+                                "axis": axis_2,
+                                "cereal_class_version": 1,
+                                "num of pixels": n_pixels_2,
+                                "pixel size (nm)": 10,
+                                "scan time (ms)": 0,
+                                "scan width (um)": 36.07468112612217
+                            }
+                        ]
+                    }
                 }
-            }
-        })
+            })
 
-        ds = mock_file.make_json_data("Scan", "Scan1", json_string)
+        # Single frame image (fast axis Y, slow axis X)
+        ds = mock_file.make_json_data("Scan", "fast Y slow X",
+                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=5))
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
-        json_string = enc.encode({
-            "value0": {
-                "cereal_class_version": 1,
-                "fluorescence": True,
-                "force": False,
-                "scan count": 0,
-                "scan volume": {
-                    "center point (um)": {
-                        "x": 58.075877109272604,
-                        "y": 31.978375270573267,
-                        "z": 0
-                    },
-                    "cereal_class_version": 1,
-                    "pixel time (ms)": 0.2,
-                    "scan axes": [
-                        {
-                            "axis": 1,
-                            "cereal_class_version": 1,
-                            "num of pixels": 4,
-                            "pixel size (nm)": 10,
-                            "scan time (ms)": 0,
-                            "scan width (um)": 36.07468112612217
-                        },
-                        {
-                            "axis": 0,
-                            "cereal_class_version": 1,
-                            "num of pixels": 3,
-                            "pixel size (nm)": 10,
-                            "scan time (ms)": 0,
-                            "scan width (um)": 36.07468112612217
-                        },
-                    ]
-                }
-            }
-        })
-
-        ds = mock_file.make_json_data("Scan", "Scan2", json_string)
+        # Multi frame image (fast axis Y, slow axis X)
+        ds = mock_file.make_json_data("Scan", "fast Y slow X multiframe",
+                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=3))
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
