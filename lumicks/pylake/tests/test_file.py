@@ -110,7 +110,7 @@ def test_properties(h5_file):
     if f.format_version == 1:
         assert f.scans == {}
     else:
-        assert len(f.scans) == 2
+        assert len(f.scans) == 3
     assert f.point_scans == {}
     assert f.fdcurves == {}
 
@@ -231,6 +231,7 @@ def test_repr_and_str(h5_file):
               - Kymo1
             
             .scans
+              - fast X slow Z multiframe
               - fast Y slow X
               - fast Y slow X multiframe
             

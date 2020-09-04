@@ -50,6 +50,25 @@ def test_scans(h5_file):
         assert scan.green_image.shape == (2, 4, 3)
         assert scan.fast_axis == "Y"
 
+        scan = f.scans["fast X slow Z multiframe"]
+        reference_timestamps2 = np.zeros((2, 4, 3))
+        reference_timestamps2[0, :, :] = reference_timestamps.T[:, :3]
+        reference_timestamps2[1, :, :2] = reference_timestamps.T[:, 3:]
+        reference_timestamps2 = reference_timestamps2.transpose([0, 2, 1])
+
+        assert np.allclose(scan.timestamps, reference_timestamps2)
+        assert scan.num_frames == 2
+        assert scan.has_fluorescence
+        assert not scan.has_force
+        assert scan.pixels_per_line == 4
+        assert scan.lines_per_frame == 3
+        assert len(scan.infowave) == 64
+        assert scan.rgb_image.shape == (2, 3, 4, 3)
+        assert scan.red_image.shape == (2, 3, 4)
+        assert scan.blue_image.shape == (2, 3, 4)
+        assert scan.green_image.shape == (2, 3, 4)
+        assert scan.fast_axis == "X"
+
 
 def test_damaged_scan(h5_file):
     f = pylake.File.from_h5py(h5_file)
