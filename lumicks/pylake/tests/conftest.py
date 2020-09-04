@@ -246,6 +246,12 @@ def h5_file(tmpdir_factory, request):
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
+        # Multiframe frame image
+        ds = mock_file.make_json_data("Scan", "fast Y slow Z multiframe",
+                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=2, n_pixels_2=3))
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
+
     return mock_file.file
 
 

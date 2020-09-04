@@ -110,7 +110,7 @@ def test_properties(h5_file):
     if f.format_version == 1:
         assert f.scans == {}
     else:
-        assert len(f.scans) == 3
+        assert len(f.scans) == 4
     assert f.point_scans == {}
     assert f.fdcurves == {}
 
@@ -234,6 +234,7 @@ def test_repr_and_str(h5_file):
               - fast X slow Z multiframe
               - fast Y slow X
               - fast Y slow X multiframe
+              - fast Y slow Z multiframe
             
             .force1x
               .calibration
