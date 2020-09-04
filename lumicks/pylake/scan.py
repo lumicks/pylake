@@ -46,10 +46,14 @@ class Scan(Kymo):
         return self.json["scan volume"]["scan axes"][1]["num of pixels"]
 
     def _to_spatial(self, data):
-        """Checks whether the axes should be flipped w.r.t. the reconstruction. Reconstruction always produces images
+        """If the first axis of the reconstruction has a higher physical axis number than the second, we flip the axes.
+
+        Checks whether the axes should be flipped w.r.t. the reconstruction. Reconstruction always produces images
         with the slow axis first, and the fast axis second. Depending on the order of axes scanned, this may not
-        coincide with physical axes. This function converts it back to spatial axes when needed."""
-        if self._fast_axis_metadata["axis"] == 1:
+        coincide with physical axes. The axes should always be ordered from the lowest physical axis number to higher.
+        Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis."""
+        physical_axis = [axis["axis"] for axis in self.json["scan volume"]["scan axes"]]
+        if physical_axis[0] > physical_axis[1]:
             new_axis_order = np.arange(len(data.shape), dtype=np.int)
             new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]
             return np.transpose(data, new_axis_order)
