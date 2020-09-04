@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.2 | t.b.d.
+
+* Support plotting Z-axis scans. Z-axis scans would previously throw an exception due to how the physical dimensions were fetched. This issue is now resolved.
+
 ## v0.6.1 | 2020-08-31
 
 * Added inverted simplified Marko Siggia model with only entropic contributions to `FdFitter`.

@@ -1,5 +1,6 @@
 import numpy as np
 
+from .kymo import axis_label
 from .kymo import Kymo
 from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
 
@@ -77,8 +78,9 @@ class Scan(Kymo):
         if self.num_frames != 1:
             image = image[frame - 1]
 
-        x_um = self._get_axis_metadata(0)["scan width (um)"]
-        y_um = self._get_axis_metadata(1)["scan width (um)"]
+        axes = self._ordered_axes()
+        x_um = axes[0]["scan width (um)"]
+        y_um = axes[1]["scan width (um)"]
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
@@ -86,8 +88,8 @@ class Scan(Kymo):
         )
 
         plt.imshow(image, **{**default_kwargs, **kwargs})
-        plt.xlabel(r"x ($\mu$m)")
-        plt.ylabel(r"y ($\mu$m)")
+        plt.xlabel(f"{axis_label[axes[0]['axis']]} ($\\mu m$)")
+        plt.ylabel(f"{axis_label[axes[1]['axis']]} ($\\mu m$)")
         if self.num_frames == 1:
             plt.title(self.name)
         else:
