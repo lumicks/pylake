@@ -103,11 +103,8 @@ where `F` is the force and `k` is the trap stiffness. Force we already have, we 
 
 Get stiffness from force calibration::
 
-    params = file['Calibration']['9']['Force 1y'].h5
-    ky = params.attrs.get("kappa (pN/nm)")
-    
-    params = file['Calibration']['9']['Force 1x'].h5
-    kx = params.attrs.get("kappa (pN/nm)")
+    ky = file.force1y.calibration[0]["kappa (pN/nm)"]
+    kx = file.force1x.calibration[0]["kappa (pN/nm)"]
     
 The stiffness values are::
 
@@ -153,7 +150,6 @@ Plot::
     # create another axis
     ax2 = ax1.twinx()
 
-    # ax2.plot(time_downsampled, fy_downsamp.data+5*ky, 'r-')
     ax2.plot(time_downsampled, forcey_downsamp_data, 'r',label='Downsampled, 100 Hz')
 
     ax2.set_ylabel('Force (pN)', color='r')
