@@ -142,3 +142,30 @@ def test_kymotracker_two_integration():
     assert np.allclose(lines[1].coordinate, [4.0, 5.0, 6.0])
     assert np.allclose(lines[2].time, [5.0])
     assert np.allclose(lines[2].coordinate, [7.0])
+
+
+def test_sampling():
+    test_img = np.array([
+        [0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0],
+        [0, 1, 1, 0, 0],
+        [0, 0, 1, 1, 0],
+        [0, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+    ])
+
+    # Tests the bound handling
+    kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
+    assert np.allclose(kymoline.sample_from_image(test_img, 50), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(test_img, 2), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(test_img, 1), [0, 2, 2, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(test_img, 0), [0, 1, 1, 1, 0])
+    assert np.allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4]).sample_from_image(test_img, 0), [0, 0, 1, 1, 0])
+
+    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1])
+    assert np.allclose(kymoline.sample_from_image(test_img, 50), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(test_img, 2), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(test_img, 1), [0, 2, 2, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(test_img, 0), [0, 1, 1, 1, 0])
+    assert np.allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1]).sample_from_image(test_img, 0),
+                       [0, 0, 1, 1, 0])
