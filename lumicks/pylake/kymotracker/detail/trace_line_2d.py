@@ -173,6 +173,21 @@ class KymoLine:
     def __getitem__(self, item):
         return np.squeeze(np.array(np.vstack((self.time[item], self.coordinate[item]))).transpose())
 
+    def in_rect(self, rect):
+        """Check whether any point of this KymoLine falls in the rect given in rect.
+
+        Parameter
+        ---------
+        rect : Tuple[Tuple[float, float], Tuple[float, float]]
+            Only perform tracking over a subset of the image. Pixel coordinates should be given as:
+            ((min_time, min_coord), (max_time, max_coord)).
+        """
+        time = np.array(self.time)
+        coordinate = np.array(self.coordinate)
+        time_match = np.logical_and(time < rect[1][0], time >= rect[0][0])
+        coord_match = np.logical_and(coordinate < rect[1][1], coordinate >= rect[0][1])
+        return np.any(np.logical_and(time_match, coord_match))
+
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
 
