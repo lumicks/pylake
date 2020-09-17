@@ -254,6 +254,20 @@ def test_kymo_line():
     assert np.allclose(k2.coordinate, [3, 4, 5])
 
 
+def test_kymoline_selection():
+    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 7)))
+    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 8)))
+    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (4, 8)))
+    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (5, 8)))
+
+    assert KymoLine([2], [6]).in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [5]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([4], [6]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([1], [6]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [4]).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [8]).in_rect(((2, 5), (3, 8)))
+
+
 def test_distance_line_to_point():
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 1]), np.array([0, 2])) == np.inf
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 2]), np.array([0, 2])) == 0.0

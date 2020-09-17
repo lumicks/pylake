@@ -188,6 +188,27 @@ class KymoLine:
         coord_match = np.logical_and(coordinate < rect[1][1], coordinate >= rect[0][1])
         return np.any(np.logical_and(time_match, coord_match))
 
+    def sample_from_image(self, data, num_pixels, reduce=np.sum):
+        """Sample from image using coordinates from this KymoLine.
+
+        This function samples data from the image given in data based on the points in this KymoLine. It samples
+        from [time, position - num_pixels : position + num_pixels + 1] and then applies the function sum.
+
+        Parameters
+        ----------
+        data : array_like
+            Image to sample from using this KymoLine.
+        num_pixels : int
+            Number of pixels in either direction to include in the sample
+        reduce : callable
+            Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
+        """
+        y_size = data.shape[1]
+
+        # Time and coordinates are being cast to an integer since we use them to index into a data array.
+        return [reduce(data[max(int(c) - num_pixels, 0):min(int(c) + num_pixels + 1, y_size), int(t)])
+                for t, c in zip(self.time, self.coordinate)]
+
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
 
