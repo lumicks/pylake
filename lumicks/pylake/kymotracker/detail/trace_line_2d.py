@@ -157,10 +157,17 @@ class KymoLine:
         self.coordinate = list(coordinate)
 
     def append(self, time, coordinate):
+        """Append time, coordinate pair to the KymoLine"""
         self.time.append(time)
         self.coordinate.append(coordinate)
 
+    def with_offset(self, time_offset, coordinate_offset):
+        """Returns an offset version of the KymoLine"""
+        return KymoLine([time + time_offset for time in self.time],
+                        [coordinate + coordinate_offset for coordinate in self.coordinate])
+
     def __add__(self, other):
+        """Concatenate two KymoLines"""
         return KymoLine(self.time + other.time, self.coordinate + other.coordinate)
 
     def __getitem__(self, item):

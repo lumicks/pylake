@@ -247,6 +247,12 @@ def test_kymo_line():
     with pytest.raises(AssertionError):
         KymoLine([1, 2, 3], [1, 2, 3]).extrapolate(True, 1, 2.0)
 
+    k1 = KymoLine([1, 2, 3], [1, 2, 3])
+    k2 = k1.with_offset(2, 2)
+    assert id(k2) != id(k1)
+
+    assert np.allclose(k2.coordinate, [3, 4, 5])
+
 
 def test_distance_line_to_point():
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 1]), np.array([0, 2])) == np.inf
