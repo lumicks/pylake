@@ -171,7 +171,8 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         duration = (self.stop - self.start) / 1e9
 
         default_kwargs = dict(
-            extent=[0, duration, 0, width_um],
+            # With origin set to upper (default) bounds should be given as (0, n, n, 0)
+            extent=[0, duration, width_um, 0],
             aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
         )
 
