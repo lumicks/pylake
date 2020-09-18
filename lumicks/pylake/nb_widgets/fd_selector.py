@@ -39,7 +39,7 @@ class FdRangeSelectorWidget:
             self.update_plot()
 
         # Draw a vertical line for some immediate visual feedback
-        plt.axvline(self.to_seconds(fd_timestamp))
+        self._axes.axvline(self.to_seconds(fd_timestamp))
         self._axes.get_figure().canvas.draw()
 
     def _remove_range(self, fd_timestamp):
@@ -87,13 +87,16 @@ class FdRangeSelectorWidget:
             self._axes.axvline(t_start)
             self._axes.axvline(t_end)
             self._axes.axvspan(t_start, t_end, alpha=0.15, color='blue')
-            plt.text((t_start + t_end) / 2, 0, i)
+            self._axes.text((t_start + t_end) / 2, 0, i)
 
+        old_axis = plt.gca()
+        plt.sca(self._axes)
         self.fd_curve.f.plot(linestyle='', marker='.', markersize=1)
         self.connect_click_callback()
 
         plt.ylabel('Force [pN]')
         plt.xlabel('Time [s]')
+        plt.sca(old_axis)
 
     @property
     def fdcurves(self):
