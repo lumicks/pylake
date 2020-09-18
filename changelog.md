@@ -6,6 +6,7 @@
 * Add slicing (by time) for `FDCurve`.
 * Add widget to slice Fd's with from Jupyter Notebooks.
 * Fixed bug in `FdRangeSelectorWidget` that prevented drawing to the correct axes when other axes has focus.
+* Fixed displayed coordinates to correctly reflect position in `Kymo.plot_red()`, `Kymo.plot_green()`, `Kymo.plot_blue()` and `Kymo.plot_rgb()`. The data origin (e.g. `kymo.red_image[0, 0]`) is displayed on the top left of the image in these plots, whereas previously this was not reflected correctly in the coordinates displayed on the plot axes (placing the coordinate origin at the bottom left).
 
 ## v0.6.1 | 2020-08-31
 
