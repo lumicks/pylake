@@ -1,10 +1,10 @@
 # Changelog
 
-## v0.6.2 | t.b.d.
+## v0.6.2 | 2020-09-21
 
 * Support plotting Z-axis scans. Z-axis scans would previously throw an exception due to how the physical dimensions were fetched. This issue is now resolved.
 * Add slicing (by time) for `FDCurve`.
-* Add widget to slice Fd's with from Jupyter Notebooks.
+* Add widget to graphically slice `FDCurve` in Jupyter Notebooks. It can be opened by calling `pylake.FdRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
 * Fixed bug in `FdRangeSelectorWidget` that prevented drawing to the correct axes when other axes has focus.
 * Fixed displayed coordinates to correctly reflect position in `Kymo.plot_red()`, `Kymo.plot_green()`, `Kymo.plot_blue()` and `Kymo.plot_rgb()`. The data origin (e.g. `kymo.red_image[0, 0]`) is displayed on the top left of the image in these plots, whereas previously this was not reflected correctly in the coordinates displayed on the plot axes (placing the coordinate origin at the bottom left).
 
