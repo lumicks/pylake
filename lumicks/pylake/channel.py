@@ -63,6 +63,11 @@ class Slice:
         return self._src.timestamps
 
     @property
+    def seconds(self):
+        """Relative time (in seconds) that corresponds to the channel data"""
+        return (self._src.timestamps - self._src.start) * 1e-9
+
+    @property
     def calibration(self) -> list:
         """Calibration data slicing is deferred until calibration is requested to avoid
         slicing values that may be needed."""
@@ -155,8 +160,7 @@ class Slice:
         """
         import matplotlib.pyplot as plt
 
-        seconds = (self.timestamps - self.timestamps[0]) / 1e9
-        plt.plot(seconds, self.data, **kwargs)
+        plt.plot(self.seconds, self.data, **kwargs)
         plt.xlabel(self.labels.get("x", "Time") + " (s)")
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
