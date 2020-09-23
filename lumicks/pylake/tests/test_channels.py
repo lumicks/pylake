@@ -333,3 +333,11 @@ def test_downsampling():
         s.downsampled_by(-1)
     with pytest.raises(TypeError):
         s.downsampled_by(1.5)
+
+
+def test_seconds_property():
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], start=40, dt=1e9))
+    np.testing.assert_allclose(s.seconds, [0, 1, 2, 3])
+
+    s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [40e9, 41e9, 42e9, 43e9]))
+    np.testing.assert_allclose(s.seconds, [0, 1, 2, 3])

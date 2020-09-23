@@ -104,6 +104,12 @@ The channels have a few convenient methods, like `.plot()` which make it easy to
     f1x_timestamps = file.force1x.timestamps
     plt.plot(f1x_timestamps, f1x_data)
 
+The `timestamps` attribute returns absolute values in nanoseconds.
+The relative time values in seconds can also be accessed directly::
+
+    f1x_seconds = file.force1x.seconds
+    plt.plot(f1x_time, f1x_data)
+
 The above examples use the `force1x` channel.
 A full list of available channels can be found on the :class:`~lumicks.pylake.File` reference page.
 
