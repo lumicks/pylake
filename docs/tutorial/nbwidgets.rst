@@ -13,8 +13,8 @@ to help you analyze your data. To enable such widgets, start the notebook with::
 F,d selection
 -------------
 
-Assume we have an F,d curve we want to analyze we want to analyze. We know that this file contains one F,d curve which
-should be split up into two segments that we should be analyzing separately. Let's load the file and run the widget::
+Assume we have an F,d curve we want to analyze. We know that this file contains one F,d curve which should be split up
+into two segments that we should be analyzing separately. Let's load the file and run the widget::
 
     file = lk.File("file.h5")
     fdcurves = file.fdcurves
