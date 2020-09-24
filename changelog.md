@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.3 | t.b.d.
+
+* Add `save_as` to `File` for exporting compressed HDF5 files, or omitting specific channels from an HDF5 file.
+
 ## v0.6.2 | 2020-09-21
 
 * Support plotting Z-axis scans. Z-axis scans would previously throw an exception due to how the physical dimensions were fetched. This issue is now resolved.

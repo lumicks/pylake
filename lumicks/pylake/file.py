@@ -4,8 +4,9 @@ from typing import Dict
 
 from collections import OrderedDict
 from .calibration import ForceCalibration
-from .channel import Slice, Continuous, TimeSeries, TimeTags, channel_class
+from .channel import Slice, Continuous, TimeSeries, TimeTags
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
+from .detail.h5_helper import write_h5
 from .fdcurve import FDCurve
 from .group import Group
 from .kymo import Kymo
@@ -209,3 +210,38 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     @property
     def markers(self) -> Dict[str, Marker]:
         return self._get_object_dictionary("Marker", Marker)
+
+    def save_as(self, filename, compression_level=5, omit_data={}):
+        """Write a modified h5 file to disk.
+
+        When transferring data, it can be beneficial to omit some channels from the h5 file, or use a higher compression
+        ratio. High frequency channels tend to take up a lot of space and aren't always necessary for every single
+        analysis. It is also worth mentioning that Bluelake exports files at compression level 1 for performance
+        reasons, so this function can help reduce the file size even when no data is omitted.
+
+        Parameters
+        ----------
+        filename : str
+            Output file name.
+        compression_level : int
+            Compression level for gzip compression (default: 5).
+        omit_data : Set[str]
+            Which data sets to omit. Should be a set of h5 paths (e.g. {"Force HF/Force 1y"}). `fnmatch` patterns are
+            used to specify which fields to omit, which means you can use wildcards as well (see examples below).
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            file = lk.File("example.h5")
+            file.save_as("smaller.h5", compression_level=9)  # Saves a file with a high compression level
+
+            file.save_as("no_hf.h5", omit_data={"Force HF/*"})  # Omit high frequency force data.
+
+            file.save_as("no_hf.h5", omit_data={"*/Force 1y"})  # Omit Force 1y data
+
+            file.save_as("no_1y.h5", omit_data={"Force HF/Force 1y"})  # Omit high frequency force data for channel 1y
+        """
+        write_h5(self.h5, filename, compression_level, omit_data)
