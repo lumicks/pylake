@@ -2,6 +2,7 @@ import numpy as np
 from lumicks import pylake
 import pytest
 from textwrap import dedent
+from lumicks.pylake.detail.h5_helper import write_h5
 
 
 def test_scans(h5_file):
@@ -257,3 +258,75 @@ def test_invalid_access(h5_file):
 
         with pytest.raises(IndexError):
             m["Kymo1"]
+
+
+def _internal_h5_export_api(file, *args, **kwargs):
+    return write_h5(file.h5, *args, **kwargs)
+
+
+def _public_h5_export_api(file, *args, **kwargs):
+    return file.save_as(*args, **kwargs)
+
+
+@pytest.mark.parametrize("save_h5", [_internal_h5_export_api, _public_h5_export_api])
+def test_h5_export(tmpdir_factory, h5_file, save_h5):
+    f = pylake.File.from_h5py(h5_file)
+    tmpdir = tmpdir_factory.mktemp("pylake")
+
+    new_file = f"{tmpdir}/copy.h5"
+    save_h5(f, new_file, 5)
+    g = pylake.File(new_file)
+    assert str(g) == str(f)
+
+    # Verify that all attributes are there and correct
+    test_scans(g.h5)
+    test_kymos(g.h5)
+    test_attributes(g.h5)
+    test_channels(g.h5)
+    test_calibration(g.h5)
+    test_marker(g.h5)
+    test_properties(g.h5)
+
+    new_file = f"{tmpdir}/omit_LF1y.h5"
+    save_h5(f, new_file, 5, omit_data={"Force LF/Force 1y"})
+    omit_lf1y = pylake.File(new_file)
+
+    assert np.allclose(omit_lf1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    assert np.allclose(omit_lf1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+    assert np.allclose(omit_lf1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+    with pytest.raises(KeyError):
+        assert np.any(omit_lf1y["Force LF"]["Force 1y"].data)
+
+    new_file = f"{tmpdir}/omit_1y.h5"
+    save_h5(f, new_file, 5, omit_data={"*/Force 1y"})
+    omit_1y = pylake.File(new_file)
+
+    assert np.allclose(omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    assert np.allclose(omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+    with pytest.raises(KeyError):
+        assert np.allclose(omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+    with pytest.raises(KeyError):
+        assert np.any(omit_1y["Force LF"]["Force 1y"].data)
+
+    new_file = f"{tmpdir}/omit_hf.h5"
+    save_h5(f, new_file, 5, omit_data={"Force HF/*"})
+    omit_hf = pylake.File(new_file)
+
+    assert np.allclose(omit_hf["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    assert np.allclose(omit_hf["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
+    with pytest.raises(KeyError):
+        assert np.allclose(omit_hf["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+    with pytest.raises(KeyError):
+        assert np.allclose(omit_hf["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+
+    new_file = f"{tmpdir}/omit_two.h5"
+    save_h5(f, new_file, 5, omit_data={"Force HF/*", "*/Force 1y"})
+    omit_two = pylake.File(new_file)
+
+    assert np.allclose(omit_two["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    with pytest.raises(KeyError):
+        assert np.allclose(omit_two["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
+    with pytest.raises(KeyError):
+        assert np.allclose(omit_two["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+    with pytest.raises(KeyError):
+        assert np.allclose(omit_two["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)

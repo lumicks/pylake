@@ -177,3 +177,14 @@ We can find the start and stop time with ``.start`` and ``.stop``.
 
     >>> print(file.markers["FRAP 3"].stop)
     1573136602571107585
+
+Exporting h5 files
+------------------
+
+We can save the Bluelake HDF5 file to a different filename by using :meth:`~lumicks.pylake.File.save_as`. When
+transferring data, it can be beneficial to omit some channels from the h5 file, or use a higher compression ratio. In
+particular, high frequency channels tend to take up a lot of space, and aren't always necessary for every analysis::
+
+    file.save_as("no_hf.h5", omit_data={"Force HF/*"})  # Omit high frequency force data from export
+
+We use `fnmatch` patterns for specifying which fields to omit from the saved `h5` file.
