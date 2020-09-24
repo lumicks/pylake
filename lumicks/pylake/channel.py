@@ -274,7 +274,9 @@ class TimeSeries:
         return self.__class__(self.data[idx], self.timestamps[idx])
 
     def downsampled_by(self, factor, reduce):
-        raise NotImplementedError("Downsampling is currently not available for time series data")
+        dsdata = _downsample(self.data, factor, reduce)
+        timestamps = np.floor(_downsample(self.timestamps, factor, reduce))
+        return self.__class__(dsdata, timestamps)
 
 
 class TimeTags:
