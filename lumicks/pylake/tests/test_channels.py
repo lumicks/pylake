@@ -306,6 +306,7 @@ def test_channel(h5_file):
 
 
 def test_downsampling():
+    # Continuous
     s = channel.Slice(channel.Continuous([14, 15, 16, 17], start=40, dt=10))
     assert s.sample_rate == 1e8
 
@@ -333,3 +334,35 @@ def test_downsampling():
         s.downsampled_by(-1)
     with pytest.raises(TypeError):
         s.downsampled_by(1.5)
+
+    # TimeSeries - single frequency
+    s = channel.Slice(channel.TimeSeries([14, 15, 16, 17, 18, 19], 
+                                         [30, 31, 32, 33, 34, 35]))
+
+    s2 = s.downsampled_by(2)
+    np.testing.assert_allclose(s2.data, [14.5, 16.5, 18.5])
+    np.testing.assert_allclose(s2.timestamps, [30, 32, 34])
+
+    s4 = s.downsampled_by(4)
+    np.testing.assert_allclose(s4.data, [15.5])
+    np.testing.assert_allclose(s4.timestamps, [31])
+
+    s3 = s.downsampled_by(3)
+    np.testing.assert_allclose(s3.data, [15., 18.])
+    np.testing.assert_allclose(s3.timestamps, [31, 34])
+
+    # TimeSeries - variable frequency
+    s = channel.Slice(channel.TimeSeries([14, 15, 16, 17, 18, 19], 
+                                         [30, 31, 33, 35, 38, 41]))
+
+    s2 = s.downsampled_by(2)
+    np.testing.assert_allclose(s2.data, [14.5, 16.5, 18.5])
+    np.testing.assert_allclose(s2.timestamps, [30, 34, 39])
+
+    s4 = s.downsampled_by(4)
+    np.testing.assert_allclose(s4.data, [15.5])
+    np.testing.assert_allclose(s4.timestamps, [32])
+
+    s3 = s.downsampled_by(3)
+    np.testing.assert_allclose(s3.data, [15., 18.])
+    np.testing.assert_allclose(s3.timestamps, [31, 38])
