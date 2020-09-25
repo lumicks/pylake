@@ -191,7 +191,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         }
 
         image = getattr(self, f"{color}_image")
-        self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
+        return self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
 
     def plot_red(self, **kwargs):
         """Plot an image of the red photon channel
@@ -201,7 +201,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._plot_color("red", **kwargs)
+        return self._plot_color("red", **kwargs)
 
     def plot_green(self, **kwargs):
         """Plot an image of the green photon channel
@@ -211,7 +211,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._plot_color("green", **kwargs)
+        return self._plot_color("green", **kwargs)
 
     def plot_blue(self, **kwargs):
         """Plot an image of the blue photon channel
@@ -221,7 +221,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._plot_color("blue", **kwargs)
+        return self._plot_color("blue", **kwargs)
 
     def plot_rgb(self, **kwargs):
         """Plot a full rbg kymograph image
@@ -233,7 +233,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         """
         image = self.rgb_image
         image = image / np.max(image)
-        self._plot(image, **kwargs)
+        return self._plot(image, **kwargs)
 
     def save_tiff(self, filename, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image

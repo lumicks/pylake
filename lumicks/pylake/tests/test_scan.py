@@ -120,3 +120,17 @@ def test_plotting(h5_file):
         scan.plot_rgb()
         assert np.allclose(np.sort(plt.xlim()), [0, .191 * 4])
         assert np.allclose(np.sort(plt.ylim()), [0, .197 * 3])
+
+
+def test_movie_export(tmpdir_factory, h5_file):
+    from os import stat
+
+    f = pylake.File.from_h5py(h5_file)
+    tmpdir = tmpdir_factory.mktemp("pylake")
+
+    if f.format_version == 2:
+        scan = f.scans["fast Y slow X multiframe"]
+        scan.export_video_red(f"{tmpdir}/red.gif", 0, 4)
+        assert stat(f"{tmpdir}/red.gif").st_size > 0
+        scan.export_video_rgb(f"{tmpdir}/rgb.gif", 0, 4)
+        assert stat(f"{tmpdir}/rgb.gif").st_size > 0
