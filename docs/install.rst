@@ -98,6 +98,19 @@ If you already have Pylake installed and you want to update to the latest versio
     conda update lumicks.pylake
 
 
+.. _ffmpeg_installation:
+
+Optional dependencies
+---------------------
+
+.. rubric:: ffmpeg
+
+Exporting to compressed video formats requires an additional dependency named ffmpeg which must be installed separately.
+When using conda, ffmpeg can be installed as follows::
+
+    conda install -c conda-forge ffmpeg
+
+
 Troubleshooting
 ---------------
 

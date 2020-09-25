@@ -26,6 +26,11 @@ Or just pick a single one::
     scan = file.scans["name"]
     scan.plot_red()
 
+If a few pixels dominate the image, one might want to set the scale by hand. We can pass an extra argument to `plot_red`
+named `vmax` to accomplish this. This parameter gets forwarded to :func:`matplotlib.pyplot.imshow`::
+
+    scan.plot_red(vmax=5)
+
 Access the raw image data::
 
     rgb = scan.rgb_image  # matrix with `shape == (h, w, 3)`
@@ -51,3 +56,16 @@ Multi-frame scans are also supported::
     print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
 
     scan.plot(frame=3)  # plot the third frame -- defaults to the first frame if no argument is given
+
+Scans can also be exported to video formats.
+Exporting the red channel of a multi-scan GIF can be done as follows for example::
+
+    scan.export_video_red("test_red.gif")
+
+Or if we want to export a subset of frames (the first frame being 10, and the last frame being 40) of all three channels
+at a frame rate of 40 frames per second, we can do this::
+
+    scan.export_video_rgb("test_rgb.gif", start_frame=10, end_frame=40, fps=40)
+
+For other video formats such as `.mp4` or `.avi`, ffmpeg must be installed. See
+:ref:`installation instructions <ffmpeg_installation>` for more information on this.
