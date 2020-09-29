@@ -104,6 +104,13 @@ The channels have a few convenient methods, like `.plot()` which make it easy to
     f1x_timestamps = file.force1x.timestamps
     plt.plot(f1x_timestamps, f1x_data)
 
+A channel can also be downsampled by a given factor:: 
+
+    f1x_downsampled = file.force1x.downsampled_by(factor=5)
+
+A function to use for data reduction can be passed with the optional `reduce` argument. 
+The default function is `np.mean`, but `np.sum` could also be appropriate for some cases (e.g. photon counts).
+
 The above examples use the `force1x` channel.
 A full list of available channels can be found on the :class:`~lumicks.pylake.File` reference page.
 
