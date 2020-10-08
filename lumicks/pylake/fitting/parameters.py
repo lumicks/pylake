@@ -4,7 +4,7 @@ from tabulate import tabulate
 
 
 class Parameter:
-    __slots__ = ['value', 'lower_bound', 'upper_bound', 'fixed', 'shared', 'unit']  # Fixed attributes
+    __slots__ = ['value', 'lower_bound', 'upper_bound', 'fixed', 'shared', 'unit', 'profile']  # Fixed attributes
 
     def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, fixed=False, shared=False,
                  unit=None):
@@ -31,6 +31,7 @@ class Parameter:
         self.fixed = fixed
         self.shared = shared
         self.unit = unit
+        self.profile = None
 
     def __eq__(self, other):
         return all((getattr(self, x) == getattr(other, x) for x in self.__slots__)) \
