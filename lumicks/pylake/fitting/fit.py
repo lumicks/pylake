@@ -5,6 +5,7 @@ from collections import OrderedDict
 from ..detail.utilities import unique, lighten_color
 from .detail.derivative_manipulation import numerical_jacobian
 from .detail.utilities import print_styled, optimal_plot_layout
+from .profile_likelihood import ProfileLikelihood1D
 import numpy as np
 import scipy.optimize as optim
 import matplotlib.pyplot as plt
@@ -228,6 +229,63 @@ class Fit:
             self.params[name] = value
 
         return self
+
+    def profile_likelihood(self, parameter_name, min_step=1e-4, max_step=1.0, num_steps=100, step_factor=2.0,
+                           min_chi2_step=0.05, max_chi2_step=.25, termination_significance=.99, confidence_level=.95,
+                           verbose=False):
+        """Calculate a profile likelihood. This method traces an optimal path through parameter space in order to
+        estimate parameter confidence intervals. It iteratively performs a step for the profiled parameter, then fixes
+        that parameter and re-optimizes all the other parameters.
+
+        Parameters
+        ----------
+        parameter_name: str
+            Which parameter to evaluate a profile likelihood for.
+        min_step: float
+            Minimum step size. This is multiplied by the current parameter value to come to a minimum step size used
+            in the step-size estimation procedure (default: 1e-4).
+        max_step: float
+            Maximum step size (default: 1.0).
+        num_steps: integer
+            Number of steps to take (default: 100).
+        step_factor: float
+            Which factor to change the step-size by when step-size is too large or too small (default: 2).
+        min_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the step results in a fit
+            change smaller than this threshold, the step-size will be increased.
+        max_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the step results in a fit
+            change bigger than this threshold, the step-size will be reduced.
+        termination_significance: float
+            Significance level for terminating the parameter scan. When the fit quality exceeds the
+            termination_significance confidence level, it stops scanning.
+        confidence_level: float
+            Significance level for the chi squared test.
+        verbose: bool
+            Controls the verbosity of the output.
+        """
+
+        if parameter_name not in self.params:
+            raise KeyError(f"Parameter {parameter_name} not present in fitting object.")
+
+        if self.params[parameter_name].fixed:
+            raise RuntimeError(f"Parameter {parameter_name} is fixed in the fitting object.")
+
+        assert max_step > min_step
+        assert max_chi2_step > min_chi2_step
+
+        profile = ProfileLikelihood1D(parameter_name, min_step, max_step, step_factor, min_chi2_step, max_chi2_step,
+                                      termination_significance, confidence_level, 1)
+
+        def trial(parameters=[]):
+            return - 2.0 * self.log_likelihood(parameters, self.sigma)
+
+        profile._extend_profile(trial, self._fit, self.params, num_steps, True, verbose)
+        profile._extend_profile(trial, self._fit, self.params, num_steps, False, verbose)
+
+        self.params[parameter_name].profile = profile
+
+        return profile
 
     def _calculate_residual(self, parameter_values=[]):
         self._rebuild()
