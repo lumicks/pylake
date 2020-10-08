@@ -713,18 +713,20 @@ def test_uncertainty_analysis():
     quad_fit._add_data("test", x, y)
     quad_fit.fit()
 
-    assert np.allclose(linear_fit.cov, np.array([[0.06819348, -0.30687066], [-0.30687066,  1.94351415]]))
-    assert np.allclose(quad_fit.cov, np.array([[0.00973206, -0.08758855,  0.11678473],
-                                               [-0.08758855,  0.85058215, -1.33134597],
-                                               [0.11678473, -1.33134597,  3.17654476]]))
+    assert np.allclose(linear_fit.cov, np.array([[0.08524185, -0.38358832], [-0.38358832, 2.42939269]]))
+    assert np.allclose(quad_fit.cov, np.array([[0.01390294, -0.12512650,  0.16683533],
+                                               [-0.1251265,  1.21511735, -1.90192281],
+                                               [0.16683533, -1.90192281,  4.53792109]]))
 
-    assert np.allclose(linear_fit.aic, 49.652690269143434)
-    assert np.allclose(linear_fit.aicc, 51.36697598342915)
-    assert np.allclose(linear_fit.bic, 50.25786045513153)
+    assert np.allclose(linear_fit.sigma[0], 2.65187717)
+    assert np.allclose(linear_fit.aic, 49.88412577726061)
+    assert np.allclose(linear_fit.aicc, 51.59841149154632)
+    assert np.allclose(linear_fit.bic, 50.4892959632487)
 
-    assert np.allclose(quad_fit.aic, 50.74643780988533)
-    assert np.allclose(quad_fit.aicc, 54.74643780988533)
-    assert np.allclose(quad_fit.bic, 51.654193088867466)
+    assert np.allclose(quad_fit.sigma[0], 2.70938272)
+    assert np.allclose(quad_fit.aic, 51.31318724618379)
+    assert np.allclose(quad_fit.aicc, 55.31318724618379)
+    assert np.allclose(quad_fit.bic, 52.220942525165924)
 
 
 def test_parameter_availability():

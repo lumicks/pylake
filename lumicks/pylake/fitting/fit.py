@@ -386,9 +386,10 @@ class Fit:
     def sigma(self):
         """Error variance of the data points."""
         # TO DO: Ideally, this will eventually depend on the exact error model used. For now, we use the a-posteriori
-        # variance estimate based on the residual.
+        # noise standard deviation estimate based on the residual.
         res = self._calculate_residual()
-        return np.sqrt(np.var(res)) * np.ones(len(res))
+        est_sd = np.sqrt((res*res).sum() / (len(res) - np.sum(self.params.fitted)))
+        return est_sd * np.ones(len(res))
 
     def log_likelihood(self, params=[], sigma=None):
         """The model residual is given by chi squared = -2 log(L)"""
@@ -472,6 +473,7 @@ class Fit:
             Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to its limit: profile likelihood
             based model reduction. PloS one, 11(9).
         """
+        # Note that this approximation is only valid if the noise on each data set is the same.
         J = self._calculate_jacobian()
         J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
         return np.linalg.pinv(np.transpose(J).dot(J))
