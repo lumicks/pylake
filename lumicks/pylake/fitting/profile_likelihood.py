@@ -342,9 +342,24 @@ class ProfileLikelihood1D:
         plt.ylim([self.profile_info.minimum_chi2 - .1 * self.profile_info.delta_chi2,
                   self.profile_info.minimum_chi2 + 1.1 * self.profile_info.delta_chi2])
 
-    def plot_relations(self, **kwargs):
+    def plot_relations(self, params={}, **kwargs):
+        """Plot the relations between the different parameters.
+
+        Parameters
+        ----------
+        params : Set[str]
+            List of parameter names to plot (optional, omission plots all)
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`."""
         parameters = self.parameters
-        other = [x for x in range(parameters.shape[1]) if x != self.profile_info.profiled_parameter_index]
+
+        if len(params) == 0:
+            other = [x for x in range(parameters.shape[1]) if x != self.profile_info.profiled_parameter_index]
+        else:
+            other = [x for x in range(parameters.shape[1])
+                     if x != self.profile_info.profiled_parameter_index
+                     and self.profile_info.parameter_names[x] in params]
+
         line_handles = plt.plot(parameters[:, self.profile_info.profiled_parameter_index], self.parameters[:, other],
                                 **kwargs)
         plt.ylabel('Other parameter value')

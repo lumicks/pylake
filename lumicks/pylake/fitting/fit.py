@@ -228,6 +228,9 @@ class Fit:
         for name, value in zip(parameter_names, parameter_vector):
             self.params[name] = value
 
+        for name, value in zip(parameter_names, np.diag(self.cov)):
+            self.params[name].stderr = np.sqrt(value)
+
         return self
 
     def profile_likelihood(self, parameter_name, min_step=1e-4, max_step=1.0, num_steps=100, step_factor=2.0,
