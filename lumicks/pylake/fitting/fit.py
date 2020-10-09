@@ -450,6 +450,11 @@ class Fit:
         # noise standard deviation estimate based on the residual.
         res = self._calculate_residual()
         est_sd = np.sqrt((res*res).sum() / (len(res) - np.sum(self.params.fitted)))
+
+        # This is toy data. Computing a variance estimate here makes no sense.
+        if est_sd == 0:
+            return np.ones(len(res))
+
         return est_sd * np.ones(len(res))
 
     def log_likelihood(self, params=[], sigma=None):
