@@ -4,7 +4,7 @@ from tabulate import tabulate
 
 
 class Parameter:
-    __slots__ = ['value', 'lower_bound', 'upper_bound', 'fixed', 'shared', 'unit', 'profile']  # Fixed attributes
+    __slots__ = ['value', 'lower_bound', 'upper_bound', 'fixed', 'shared', 'unit', 'profile', 'stderr']
 
     def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, fixed=False, shared=False,
                  unit=None):
@@ -32,6 +32,7 @@ class Parameter:
         self.shared = shared
         self.unit = unit
         self.profile = None
+        self.stderr = None
 
     def __eq__(self, other):
         return all((getattr(self, x) == getattr(other, x) for x in self.__slots__)) \
@@ -43,6 +44,24 @@ class Parameter:
 
     def __str__(self):
         return self.__repr__()
+
+    def ci(self, percentile=0.95, dof=1):
+        """Calculate confidence intervals
+
+        Parameters
+        ----------
+        percentile : float
+            1 - Significance level
+        dof : float
+            Degrees of freedom (should be 1 for single parameter CIs)."""
+        from scipy import stats
+
+        if self.stderr:
+            dp = self.stderr * np.sqrt(stats.chi2.ppf(percentile, dof))
+            return [self.value - dp,
+                    self.value + dp]
+        else:
+            raise RuntimeError("These parameters are not associated with a fitted model.")
 
 
 class Params:

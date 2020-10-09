@@ -388,3 +388,54 @@ obtain the parameters for "data for model 1", we'd have to invoke::
 
 Note how we are now forced to index the model first using the square brackets, and only then access the data set by
 name. An unfortunate necessity when it comes to multi-model curve fitting.
+
+
+Confidence intervals and standard errors
+****************************************
+
+Once parameters have been fitted, standard errors can easily be obtained as follows::
+
+    fit["DNA/Lc"].stderr
+
+Assuming that the parameters are not at the bounds, the sum of random variables with finite moments converges to a
+Gaussian distribution. This allows for the computation of confidence intervals using the Wald test
+:cite:`press1990numerical`. To get these asymptotic intervals, we can use the member function `.ci` with a desired
+confidence interval::
+
+    fit["DNA/Lc"].ci(0.95)
+
+Note that the bounds returned by this call are only asymptotically correct and should be used with caution. Better
+confidence intervals can be obtained using the profile likelihood method :cite:`raue2009structural,maiwald2016driving`.
+Note that these profiles require iterative computation and are therefore time consuming to produce. Determining
+confidence intervals via profiles has two big advantages however:
+
+- The confidence intervals no longer depend on the parametrization of the model (for more information on this see :cite:`maiwald2016driving`).
+- By inspecting the profile, we can diagnose problems with the model we are using.
+
+Profiles can easily be computed by calling :func:`~lumicks.pylake.FdFit.profile_likelihood` on the fit::
+
+    profile = fit.profile_likelihood("DNA/Lc", num_steps=1000)
+
+For a well parametrized model with sufficient data, a profile plot results in a (near) parabolic shape, where the line
+of the parabola intersects with the confidence interval lines (dashed). The confidence intervals are then determined to
+be at those intersection points::
+
+    profile.plot()
+
+.. image:: profile_good.png
+
+One thing that may be of interest is to plot the relations between parameters in these profile likelihoods::
+
+    profile.plot_relations()
+
+These inferred relations can provide information on the coupling between different parameters. This can be quite
+informative when diagnosing fitting issues. For example, when fitting a contour length in the presence of an distance
+offset, we can observe that the two are related. To produce the following figure, we set a lower bound and upper bound
+of -0.1 and 0.1 for the distance respectively. We can see that the profile is perfectly flat until the distance reaches
+the bound. Only then does the profile suddenly jump.
+
+.. image:: profile_bad.png
+
+What this shows is that a change in one parameter (`DNA/Lc_RecA`) can be compensated by a change in the other. This
+highlights the importance of constraining distance offset parameters when trying to estimate an absolute contour length.
+In this sample case, fixing the distance offset to zero recovers the parabolic profile from before.

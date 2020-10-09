@@ -8,6 +8,7 @@
 * Add `Kymo.line_time_seconds` for obtaining the time step between two consecutive kymograph lines.
 * Add `Kymo.pixelsize_um` and `Scan.pixelsize_um` for obtaining the pixel size for various axes.
 * fdfit: To compute the covariance matrix of the estimates, it is required to estimate the standard deviation of the residuals. This calculation was previously biased by not correctly taking into account the number of degrees of freedom. This is fixed now.
+* fdfit: Add profile likelihood method to FdFitter. See [confidence intervals and standard errors](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html#confidence-intervals-and-standard-errors).
 
 ## v0.6.2 | 2020-09-21
 

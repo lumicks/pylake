@@ -31,8 +31,8 @@ class KymoLine:
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         rect : Tuple[Tuple[float, float], Tuple[float, float]]
             Only perform tracking over a subset of the image. Pixel coordinates should be given as:
             ((min_time, min_coord), (max_time, max_coord)).
