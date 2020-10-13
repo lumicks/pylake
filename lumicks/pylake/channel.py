@@ -88,6 +88,10 @@ class Slice:
         except AttributeError:
             return None
 
+    @property
+    def _timesteps(self):
+        return self._src._timesteps
+
     def downsampled_over(self, range_list, reduce=np.mean, where='center'):
         """Downsample channel data based on timestamp ranges. The downsampling function (e.g. np.mean) is evaluated for
         the time between a start and end time of each block. A list is returned that contains the data corresponding to
@@ -104,7 +108,7 @@ class Slice:
             cases, e.g. photon counts.
         where : str
             Where to put the final time point.
-            'center' time point is put at start + stop / 2
+            'center' time point is put at (start + stop) / 2
             'left' time point is put at start
 
         Examples
@@ -136,6 +140,64 @@ class Slice:
             d[i] = reduce(subset.data)
 
         return Slice(TimeSeries(d, t), self.labels)
+
+    def downsampled_to(self, frequency, reduce=np.mean, where='center', method="safe"):
+        """Return a copy of this slice downsampled to a specified frequency
+
+        Parameters
+        ----------
+        frequency : int
+            The desired downsampled frequency downsampled (Hz)
+        reduce : callable
+            The `numpy` function which is going to reduce multiple samples into one.
+            The default is `np.mean`, but `np.sum` could also be appropriate for some
+            cases, e.g. photon counts.
+        where : str
+            Where to put the final time point.
+            'center' time point is put at (start + stop) / 2
+            'left' time point is put at start
+        method : str
+            How to handle target sample times that are not exact multiples of the current sample time.
+
+            'safe'  new sample time must be an exact multiple of the current sample time, 
+                    else an exception is raised.
+            'ceil'  rounds the sample rate up to the nearest frequency which fulfills this condition
+            'force' downsample data with the target input frequency; this will result in variable 
+                    sample times and a variable number of sampling contributing to each target sample, 
+                    but must be used for variable-frequency data
+        """
+
+        if method not in ("safe", "ceil", "force"):
+            raise ValueError(f"method '{method}' is not recognized")
+
+        source_timestep = self._timesteps
+        target_timestep = int(1e9 / frequency) # Hz -> ns
+
+        # prevent upsampling
+        if np.any(target_timestep < source_timestep):
+            slow = 1e9 / np.max(source_timestep)
+            raise ValueError(f"requested frequency ({frequency:0.1g} Hz) is faster than slowest current sampling rate ({slow:0.1g} Hz)")
+
+        if method == "force":
+            pass
+        else:
+            # must specifically force downsampling for variable frequency
+            if len(source_timestep) > 1:
+                raise ValueError(("This slice contains variable sampling frequencies leading to a variable timestep and an unequal number of samples "
+                                  "contributing to each sample. Use 'force=True' to ignore this error and evaluate the result."))    
+            # ratio of current/new frequencies must be integer to ensure equal timesteps
+            remainder = target_timestep % source_timestep
+            if remainder != 0:
+                if method == "ceil":
+                    target_timestep -= remainder
+                else: # method == 'safe'
+                    raise ValueError(("The desired sample rate will not result in time steps that are an exact multiple of the current sampling time. "
+                                      "To round the sample rate up to the nearest frequency which fulfills this condition please specify method='ceil'. "
+                                      "To force the target sample rate (leading to unequal timesteps in the returned Slice, specify method='force'."))
+
+        t = np.arange(self._src.start, self._src.stop, target_timestep)
+        new_ranges = [(t1, t2) for t1, t2 in zip(t[:-1], t[1:])]
+        return self.downsampled_over(new_ranges, reduce=reduce, where=where)
 
     def downsampled_by(self, factor, reduce=np.mean):
         """Return a copy of this slice which is downsampled by `factor`
@@ -223,6 +285,10 @@ class Continuous:
     def sample_rate(self):
         return int(1e9 / self.dt)
 
+    @property
+    def _timesteps(self):
+        return np.asarray([self.dt], dtype=np.int)
+
     def slice(self, start, stop):
         def to_index(t):
             """Convert a timestamp into a continuous channel index (assumes t >= self.start)"""
@@ -278,6 +344,10 @@ class TimeSeries:
         else:
             raise IndexError("End of empty time series is undefined")
 
+    @property
+    def _timesteps(self):
+        return np.unique(np.diff(self.timestamps)).astype(np.int)
+
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
         return self.__class__(self.data[idx], self.timestamps[idx])
@@ -317,6 +387,10 @@ class TimeTags:
         # For time tag data, the data is the timestamps!
         return self.data
 
+    @property
+    def _timesteps(self):
+        raise NotImplementedError("_timesteps is currently not available for time series data")
+
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.data, self.data < stop)
         return self.__class__(self.data[idx], min(start, stop), max(start, stop))
@@ -341,6 +415,10 @@ class Empty:
     @property
     def timestamps(self):
         return np.empty(0)
+
+    @property
+    def _timesteps(self):
+        raise NotImplementedError("_timesteps is currently not available for time series data")
 
 
 empty_slice = Slice(Empty())

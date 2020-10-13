@@ -9,6 +9,7 @@
 * Add `Kymo.pixelsize_um` and `Scan.pixelsize_um` for obtaining the pixel size for various axes.
 * fdfit: To compute the covariance matrix of the estimates, it is required to estimate the standard deviation of the residuals. This calculation was previously biased by not correctly taking into account the number of degrees of freedom. This is fixed now.
 * fdfit: Add profile likelihood method to FdFitter. See [confidence intervals and standard errors](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html#confidence-intervals-and-standard-errors).
+* Add `downsampled_to` to `Slice` for downsampling channel data to a new sampling frequency.
 * Add widget to graphically slice a `Slice` in Jupyter Notebooks. It can be opened by calling `channel.range_selector`. For more information, see [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
 
 

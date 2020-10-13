@@ -341,3 +341,98 @@ def test_seconds_property():
 
     s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [40e9, 41e9, 42e9, 43e9]))
     np.testing.assert_allclose(s.seconds, [0, 1, 2, 3])
+    
+    
+def test_continuous_downsampling_to():
+    # Continuous
+    d = np.arange(1, 24)
+    s = channel.Slice(channel.Continuous(d, 0, 500)) # 2 MHz
+
+    # to 1000 ns step
+    s2a = s.downsampled_to(1e6, where='left')
+    assert np.all(np.equal(s2a.timestamps, [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]))
+    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+
+    s2b = s.downsampled_to(1e6, where='center')
+    assert np.all(np.equal(s2b.timestamps, [500, 1500, 2500, 3500, 4500, 5500, 6500, 7500, 8500, 9500, 10500]))
+    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+
+    # upsampling
+    with pytest.raises(ValueError):
+        s.downsampled_to(3e6, where="left")
+
+    # non-integer ratio
+    with pytest.raises(ValueError):
+        s.downsampled_to(3e5, where="left")
+
+    # force non-integer ratio
+    s3a = s.downsampled_to(3e5, where='left', method="ceil")
+    assert np.all(np.equal(s3a.timestamps, [0, 3000, 6000]))
+    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+    s3b = s.downsampled_to(3e5, where='center', method="ceil")
+    assert np.all(np.equal(s3b.timestamps, [1500, 4500, 7500]))
+    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+
+
+def test_continuous_like_downsampling_to():
+    # timesteps = 500 ns
+    # frequencies = 2 MHz
+    t = np.arange(0, 11001, 500)
+    d = np.arange(1, t.size+1)
+    s = channel.Slice(channel.TimeSeries(d, t))
+
+    # to 1000 ns step
+    s2a = s.downsampled_to(1e6, where='left')
+    assert np.all(np.equal(s2a.timestamps, [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]))
+    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+
+    s2b = s.downsampled_to(1e6, where='center')
+    assert np.all(np.equal(s2b.timestamps, [500, 1500, 2500, 3500, 4500, 5500, 6500, 7500, 8500, 9500, 10500]))
+    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+
+    # upsampling
+    with pytest.raises(ValueError):
+        s.downsampled_to(3e6, where="left")
+
+    # non-integer ratio
+    with pytest.raises(ValueError):
+        s.downsampled_to(3e5, where="left")
+
+    # force non-integer ratio
+    s3a = s.downsampled_to(3e5, where='left', method="ceil")
+    assert np.all(np.equal(s3a.timestamps, [0, 3000, 6000]))
+    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+    s3b = s.downsampled_to(3e5, where='center', method="ceil")
+    assert np.all(np.equal(s3b.timestamps, [1500, 4500, 7500]))
+    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+
+
+def test_variable_downsampling_to():
+    # timesteps = 500, 10000 ns
+    # frequencies = 2 MHz, 1 MHz
+    t = np.hstack((np.arange(0, 5001, 500),
+                   np.arange(6000, 14001, 1000)))
+    d = np.arange(1, t.size+1)
+    s = channel.Slice(channel.TimeSeries(data=d, timestamps=t))
+    
+    with pytest.raises(ValueError):
+        s.downsampled_to(3e6)
+
+    with pytest.raises(ValueError):
+        s.downsampled_to(5e5, where="left")
+
+    # to 2000 ns step
+    s2a = s.downsampled_to(5e5, where="left", method="force")
+    assert np.all(np.equal(s2a.timestamps, [0, 2000, 4000, 6000, 8000,10000, 12000]))
+    assert np.allclose(s2a.data, [2.5, 6.5, 10.0, 12.5, 14.5, 16.5, 18.5])
+    s2b = s.downsampled_to(5e5, where="center", method="force")
+    assert np.all(np.equal(s2b.timestamps, [1000, 3000, 5000, 7000, 9000, 11000, 13000]))
+    assert np.allclose(s2b.data, [2.5, 6.5, 10.0, 12.5, 14.5, 16.5, 18.5])
+
+    # to 3333 ns step
+    s3a = s.downsampled_to(3e5, where="left", method="force")
+    assert np.all(np.equal(s3a.timestamps, [0, 3333, 6666, 9999]))
+    assert np.allclose(s3a.data, [4.0, 10.0, 14.0, 17.5])
+    s3b = s.downsampled_to(3e5, where="center", method="force")
+    assert np.all(np.equal(s3b.timestamps, [1666, 4999, 8332, 11665]))
+    assert np.allclose(s3b.data, [4.0, 10.0, 14.0, 17.5])
