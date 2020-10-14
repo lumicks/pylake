@@ -77,16 +77,14 @@ def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.
     automated quantitative analysis of molecular and cellular dynamics using kymographs. Molecular biology of the
     cell, 27(12), 1948-1957.
     """
-
-    if rect:
-        data = _get_rect(data, rect)
+    data_selection = _get_rect(data, rect) if rect else data
 
     sigma = sigma if sigma else .5 * line_width
-    coordinates, time_points = peak_estimate(data, np.ceil(.5*line_width), pixel_threshold)
+    coordinates, time_points = peak_estimate(data_selection, np.ceil(.5*line_width), pixel_threshold)
     if len(coordinates) == 0:
         return []
 
-    peaks = refine_peak_based_on_moment(data, coordinates, time_points, np.ceil(.5*line_width))
+    peaks = refine_peak_based_on_moment(data_selection, coordinates, time_points, np.ceil(.5*line_width))
     peaks = merge_close_peaks(peaks, np.ceil(.5*line_width))
     lines = points_to_line_segments(
         peaks,
@@ -94,6 +92,10 @@ def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.
         window=window,
         sigma_cutoff=sigma_cutoff,
     )
+
+    # Note that this deliberately refers to the original data, not the tracked subset!
+    for line in lines:
+        line.image_data = data
 
     return [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
 
@@ -140,15 +142,12 @@ def track_lines(data, line_width, max_lines, start_threshold=0.005, continuation
 
     References
     ----------
-        [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on pattern analysis and
-        machine intelligence, 20(2), 113-125.
+    [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on pattern analysis and
+    machine intelligence, 20(2), 113-125.
     """
 
-    if rect:
-        data = _get_rect(data, rect)
-
     lines = detect_lines(
-        data,
+        _get_rect(data, rect) if rect else data,
         line_width,
         max_lines=max_lines,
         start_threshold=start_threshold,
@@ -156,6 +155,10 @@ def track_lines(data, line_width, max_lines, start_threshold=0.005, continuation
         angle_weight=angle_weight,
         force_dir=1,
     )
+
+    # Note that this deliberately refers to the original data, not the tracked subset!
+    for line in lines:
+        line.image_data = data
 
     return [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
 
