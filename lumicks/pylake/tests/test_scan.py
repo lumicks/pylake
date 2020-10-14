@@ -30,6 +30,7 @@ def test_scans(h5_file):
         assert scan.blue_image.shape == (4, 5)
         assert scan.green_image.shape == (4, 5)
         assert scan.fast_axis == "Y"
+        assert np.allclose(scan.pixelsize_um, [197/1000, 191/1000])
 
         with pytest.raises(NotImplementedError):
             scan["1s":"2s"]
@@ -51,6 +52,7 @@ def test_scans(h5_file):
         assert scan.blue_image.shape == (2, 4, 3)
         assert scan.green_image.shape == (2, 4, 3)
         assert scan.fast_axis == "Y"
+        assert np.allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
 
         scan = f.scans["fast X slow Z multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
@@ -70,6 +72,7 @@ def test_scans(h5_file):
         assert scan.blue_image.shape == (2, 3, 4)
         assert scan.green_image.shape == (2, 3, 4)
         assert scan.fast_axis == "X"
+        assert np.allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
 
         scan = f.scans["fast Y slow Z multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
@@ -89,6 +92,7 @@ def test_scans(h5_file):
         assert scan.blue_image.shape == (2, 3, 4)
         assert scan.green_image.shape == (2, 3, 4)
         assert scan.fast_axis == "Y"
+        assert np.allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
 
 
 def test_damaged_scan(h5_file):
