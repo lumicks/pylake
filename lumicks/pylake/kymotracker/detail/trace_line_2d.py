@@ -158,7 +158,7 @@ def traverse_line(indices, masked_derivative, positions, normals, continuation_t
                                            angle_weight, candidate_generator, -1, force_dir)
 
     indices_bwd.reverse()
-    line = np.array(indices_bwd + indices_fwd)
+    line = np.array(indices_bwd + indices_fwd[1:])
 
     if len(line) > 0:
         return KymoLine(time_idx=line[:, 1], coordinate_idx=line[:, 0])
