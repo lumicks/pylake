@@ -139,6 +139,14 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
 
     @property
+    def line_time_seconds(self):
+        """Line time in seconds"""
+        if self.timestamps.shape[1] > 1:
+            return (self.timestamps[0, 1] - self.timestamps[0, 0]) / 1e9
+        else:
+            raise RuntimeError("Line time is not defined for kymograph with only a single line")
+
+    @property
     def red_image(self):
         return self._image("red")
 

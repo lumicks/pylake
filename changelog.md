@@ -5,7 +5,7 @@
 * Add `save_as` to `File` for exporting compressed HDF5 files, or omitting specific channels from an HDF5 file See tutorial on [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#exporting-h5-files) for more information.
 * Add `Scan.export_video_red`, `Scan.export_video_green`, `Scan.export_video_blue` and `Scan.export_video_rgb` to export multi-frame videos to video files or GIFs. See tutorial on [confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) for more information.
 * Expose low-level kymograph API (still in alpha status!). See tutorial on [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html)
-* Add `Kymo.delta_t` for obtaining the time step between two consecutive kymograph lines.
+* Add `Kymo.line_time_seconds` for obtaining the time step between two consecutive kymograph lines.
 * Add `Kymo.pixelsize_um` and `Scan.pixelsize_um` for obtaining the pixel size for various axes.
 
 ## v0.6.2 | 2020-09-21
