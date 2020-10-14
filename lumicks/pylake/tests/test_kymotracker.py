@@ -5,7 +5,9 @@ from lumicks.pylake.kymotracker.detail.geometry_2d import calculate_image_geomet
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine, detect_lines
 from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
+from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines
 from copy import deepcopy
+from scipy.stats import norm
 
 
 def test_eigen_2d():
@@ -71,31 +73,28 @@ def test_eigen_2d():
     assert np.allclose(np.abs(np_eigenvector_x*eigenvector_x + np_eigenvector_y*eigenvector_y), np.ones(a.shape))
 
 
-def test_subpixel_methods():
-    @pytest.mark.parametrize("loc,scale,sig_x,sig_y,transpose", [
-        (25.25, 2, 3, 3, False),
-        (25.45, 2, 3, 3, False),
-        (25.65, 2, 3, 3, False),
-        (25.85, 2, 3, 3, False),
-        (25.25, 2, 3, 3, True),
-        (25.45, 2, 3, 3, True),
-        (25.65, 2, 3, 3, True),
-        (25.85, 2, 3, 3, True),
-    ])
-    def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol=1e-2):
-        from scipy.stats import norm
+@pytest.mark.parametrize("loc,scale,sig_x,sig_y,transpose", [
+    (25.25, 2, 3, 3, False),
+    (25.45, 2, 3, 3, False),
+    (25.65, 2, 3, 3, False),
+    (25.85, 2, 3, 3, False),
+    (25.25, 2, 3, 3, True),
+    (25.45, 2, 3, 3, True),
+    (25.65, 2, 3, 3, True),
+    (25.85, 2, 3, 3, True),
+])
+def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol=1e-2):
+    data = np.tile(.0001 + norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
+    if transpose:
+        data = data.transpose()
+    max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
 
-        data = np.tile(.0001 + norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
-        if transpose:
-            data = data.transpose()
-        max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
-
-        if transpose:
-            assert np.abs(positions[round(loc), 3, 0] - (loc - round(loc))) < tol
-            assert inside[round(loc), 3] == 1
-        else:
-            assert np.abs(positions[3, round(loc), 1] - (loc - round(loc))) < tol
-            assert inside[3, round(loc)] == 1
+    if transpose:
+        assert np.abs(positions[round(loc), 3, 0] - (loc - round(loc))) < tol
+        assert inside[round(loc), 3] == 1
+    else:
+        assert np.abs(positions[3, round(loc), 1] - (loc - round(loc))) < tol
+        assert inside[3, round(loc)] == 1
 
 
 def test_geometry():
@@ -230,57 +229,45 @@ def test_uni_directional():
 
 
 def test_kymo_line():
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]))
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), None)
     assert np.allclose(k1[1], [2, 3])
     assert np.allclose(k1[-1], [3, 4])
     assert np.allclose(k1[0:2], [[1, 2], [2, 3]])
     assert np.allclose(k1[0:2][:, 1], [2, 3])
 
-    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]))
+    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), None)
     assert np.allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
-
     assert np.allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
     # Need at least 2 points for linear extrapolation
     with pytest.raises(AssertionError):
-        KymoLine([1], [1]).extrapolate(True, 5, 2.0)
+        KymoLine([1], [1], None).extrapolate(True, 5, 2.0)
 
     with pytest.raises(AssertionError):
-        KymoLine([1, 2, 3], [1, 2, 3]).extrapolate(True, 1, 2.0)
+        KymoLine([1, 2, 3], [1, 2, 3], None).extrapolate(True, 1, 2.0)
 
-    k1 = KymoLine([1, 2, 3], [1, 2, 3])
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], None)
     k2 = k1.with_offset(2, 2)
     assert id(k2) != id(k1)
 
     assert np.allclose(k2.coordinate_idx, [3, 4, 5])
 
-
-def test_kymoline_selection():
-    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 7)))
-    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 8)))
-    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (4, 8)))
-    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (5, 8)))
-
-    assert KymoLine([2], [6]).in_rect(((2, 5), (3, 8)))
-    assert KymoLine([2], [5]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([4], [6]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([1], [6]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [4]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [8]).in_rect(((2, 5), (3, 8)))
+    with pytest.raises(RuntimeError):
+        assert k1.sample_from_image(2)
 
 
 def test_kymoline_selection():
-    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 7)))
-    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((4, 6), (6, 8)))
-    assert not KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (4, 8)))
-    assert KymoLine([4, 5, 6], [7, 7, 7]).in_rect(((3, 6), (5, 8)))
+    assert not KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((4, 6), (6, 7)))
+    assert KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((4, 6), (6, 8)))
+    assert not KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((3, 6), (4, 8)))
+    assert KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((3, 6), (5, 8)))
 
-    assert KymoLine([2], [6]).in_rect(((2, 5), (3, 8)))
-    assert KymoLine([2], [5]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([4], [6]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([1], [6]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [4]).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [8]).in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [6], None).in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [5], None).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([4], [6], None).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([1], [6], None).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [4], None).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [8], None).in_rect(((2, 5), (3, 8)))
 
 
 def test_distance_line_to_point():
@@ -291,14 +278,14 @@ def test_distance_line_to_point():
 
 
 def test_stitching():
-    segment_1 = KymoLine([0, 1], [0, 1])
-    segment_2 = KymoLine([2, 3], [2, 3])
-    segment_3 = KymoLine([2, 3], [0, 0])
-    segment_1b = KymoLine([0, 1], [0, 0])
-    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1])
+    segment_1 = KymoLine([0, 1], [0, 1], None)
+    segment_2 = KymoLine([2, 3], [2, 3], None)
+    segment_3 = KymoLine([2, 3], [0, 0], None)
+    segment_1b = KymoLine([0, 1], [0, 0], None)
+    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1], None)
 
     radius = 0.05
-    segment_1d = KymoLine([0.0, 1.0], [radius+.01, radius+.01])
+    segment_1d = KymoLine([0.0, 1.0], [radius+.01, radius+.01], None)
 
     # Out of stitch range (maximum extension = 1)
     assert len(stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 1, 2)) == 3
@@ -326,13 +313,14 @@ def test_stitching():
 
     # Check whether the alignment has to work in both directions
     # - and - should connect
-    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0]), KymoLine([2, 2.01], [0, 0])], radius, 1, 2)) == 1
+    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], None),
+                                  KymoLine([2, 2.01], [0, 0], None)], radius, 1, 2)) == 1
     # - and | should not connect.
     assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], None),
                                   KymoLine([2, 2.01], [0, 1], None)], radius, 1, 2)) == 2
 
 
-def test_kymotracker_integration_tests():
+def kymo_integration_test_data():
     test_data = np.ones((30, 30))
     test_data[10, 10:20] = 10
     test_data[11, 10:20] = 30
@@ -341,18 +329,27 @@ def test_kymotracker_integration_tests():
     test_data[20, 15:25] = 10
     test_data[21, 15:25] = 20
     test_data[22, 15:25] = 10
+    return test_data
+
+
+def test_kymotracker_integration_tests():
+    test_data = kymo_integration_test_data()
 
     lines = track_greedy(test_data, 3, 4)
     assert np.allclose(lines[0].coordinate_idx, [11] * np.ones(10))
     assert np.allclose(lines[1].coordinate_idx, [21] * np.ones(10))
     assert np.allclose(lines[0].time_idx, np.arange(10, 20))
     assert np.allclose(lines[1].time_idx, np.arange(15, 25))
+    assert np.allclose(lines[0].sample_from_image(1), [50] * np.ones(10))
+    assert np.allclose(lines[1].sample_from_image(1), [40] * np.ones(10))
 
     lines = track_lines(test_data, 3, 4)
     assert np.allclose(lines[0].coordinate_idx, [11] * len(lines[0].coordinate_idx))
-    assert np.allclose(lines[1].coordinate_idx, [21] * len(lines[0].coordinate_idx))
+    assert np.allclose(lines[1].coordinate_idx, [21] * len(lines[1].coordinate_idx))
     assert np.allclose(lines[0].time_idx, np.arange(9, 21))
     assert np.allclose(lines[1].time_idx, np.arange(14, 26))
+    assert np.allclose(np.sum(lines[0].sample_from_image(1)), 50 * 10 + 6)
+    assert np.allclose(np.sum(lines[1].sample_from_image(1)), 40 * 10 + 6)
 
     lines = track_greedy(test_data, 3, 4, rect=[[0, 15], [30, 30]])
     assert np.allclose(lines[0].coordinate_idx, [21] * np.ones(10))
@@ -361,3 +358,16 @@ def test_kymotracker_integration_tests():
     lines = track_lines(test_data, 3, 4, rect=[[0, 15], [30, 30]])
     assert np.allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
     assert np.allclose(lines[0].time_idx, np.arange(14, 26))
+
+
+def test_kymotracker_integration_tests_subset():
+    """If this test fires, it likely means that either the coordinates are not coordinates w.r.t. the original image,
+    or that the reference to the image held by KymoLine is a reference to a subset of the image, while the coordinates
+    are still in the global coordinate system."""
+    test_data = kymo_integration_test_data()
+
+    lines = track_greedy(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    assert np.allclose(lines[0].sample_from_image(1), [40] * np.ones(10))
+
+    lines = track_lines(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    assert np.allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)

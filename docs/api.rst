@@ -55,6 +55,6 @@ Kymotracking
     :toctree: _api
 
     kymotracker.kymoline.KymoLine
-    kymotracker.kymotracker.track_greedy
-    kymotracker.kymotracker.track_lines
-    kymotracker.kymotracker.filter_lines
+    track_greedy
+    track_lines
+    filter_lines

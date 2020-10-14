@@ -164,8 +164,8 @@ def traverse_line(indices, masked_derivative, positions, normals, continuation_t
         return KymoLine(time_idx=line[:, 1], coordinate_idx=line[:, 0])
 
 
-def detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
-                               max_lines, angle_weight, force_dir):
+def detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold,
+                               continuation_threshold, max_lines, angle_weight, force_dir):
     """Detect lines from precomputed geometry data.
 
     The precomputed geometry data contains the magnitude of the second image derivative in the direction of largest
@@ -180,6 +180,8 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
     As the algorithm progresses, it mutates the array masked_derivative along the way (marking seen pixels to avoid
     them from being tagged again).
 
+    Parameters
+    ----------
     masked_derivative: array_like
         Image containing the second derivative masked by whether a point is a peak or not. Note: this array is mutated.
     positions: array_like
@@ -224,6 +226,7 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
 
         # Traverse the line. Note that traverse_line modifies the masked_derivative image by marking some as seen.
         line = traverse_line(idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, force_dir)
+
         if line:
             lines.append(line)
 

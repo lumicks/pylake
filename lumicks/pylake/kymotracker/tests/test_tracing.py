@@ -8,7 +8,7 @@ import pytest
 
 
 def test_score_matrix():
-    lines = [KymoLine([0], [3])]
+    lines = [KymoLine([0], [3], None)]
     unique_coordinates = np.arange(0, 7)
     unique_times = np.arange(1, 7)
 
@@ -62,7 +62,7 @@ def test_score_matrix():
 
 
 def test_line_append():
-    kymoline = KymoLine([0.0], [2.0])
+    kymoline = KymoLine([0.0], [2.0], None)
     frame = KymoPeaks.Frame(np.array([1.0, 2.0, 2.5]), np.array([1.0, 1.0, 1.0]), np.array([1.0, 2.0, 3.0]))
     frame.reset_assignment()
 
@@ -103,25 +103,25 @@ def test_extend_line():
 
     # Starting from 4 we should get the extension 4, 5, 6 first. 7 will not be included, since it is at time point 5
     # and our window only goes up one frame
-    kymoline = KymoLine([0.0], [4.0])
+    kymoline = KymoLine([0.0], [4.0], None)
     extend_line(kymoline, peaks, 1, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0]))
 
     # 4, 5, 6 no longer being available, we should get 1, 2, 3
-    kymoline = KymoLine([0.0], [4.0])
+    kymoline = KymoLine([0.0], [4.0], None)
     extend_line(kymoline, peaks, 1, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 1.0, 2.0, 3.0]))
 
     # With a bigger window, we should get 7.0 too
     peaks.reset_assignment()
-    kymoline = KymoLine([0.0], [4.0])
+    kymoline = KymoLine([0.0], [4.0], None)
     extend_line(kymoline, peaks, 2, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0, 7.0]))
 
     # Starting from t=2, we should only get 6
     # and our window only goes up one frame
     peaks.reset_assignment()
-    kymoline = KymoLine([2.0], [5.0])
+    kymoline = KymoLine([2.0], [5.0], None)
     extend_line(kymoline, peaks, 1, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([5.0, 6.0]))
 
@@ -157,19 +157,19 @@ def test_sampling():
     ])
 
     # Tests the bound handling
-    kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
-    assert np.allclose(kymoline.sample_from_image(test_img, 50), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(test_img, 2), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(test_img, 1), [0, 2, 2, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(test_img, 0), [0, 1, 1, 1, 0])
-    assert np.allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4]).sample_from_image(test_img, 0), [0, 0, 1, 1, 0])
+    kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img)
+    assert np.allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
+    assert np.allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img).sample_from_image(0), [0, 0, 1, 1, 0])
 
-    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1])
-    assert np.allclose(kymoline.sample_from_image(test_img, 50), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(test_img, 2), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(test_img, 1), [0, 2, 2, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(test_img, 0), [0, 1, 1, 1, 0])
-    assert np.allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1]).sample_from_image(test_img, 0),
+    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img)
+    assert np.allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
+    assert np.allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
+    assert np.allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img).sample_from_image(0),
                        [0, 0, 1, 1, 0])
 
 

@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 
 class KymoLine:
     """A line on a kymograph"""
-    __slots__ = ['time_idx', 'coordinate_idx']
+    __slots__ = ['time_idx', 'coordinate_idx', 'image_data']
 
-    def __init__(self, time_idx, coordinate_idx):
+    def __init__(self, time_idx, coordinate_idx, image_data=None):
         self.time_idx = list(time_idx)
         self.coordinate_idx = list(coordinate_idx)
+        self.image_data = image_data
 
     def append(self, time_idx, coordinate_idx):
         """Append time, coordinate pair to the KymoLine"""
@@ -18,11 +19,11 @@ class KymoLine:
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""
         return KymoLine([time_idx + time_offset for time_idx in self.time_idx],
-                        [coordinate_idx + coordinate_offset for coordinate_idx in self.coordinate_idx])
+                        [coordinate_idx + coordinate_offset for coordinate_idx in self.coordinate_idx], self.image_data)
 
     def __add__(self, other):
         """Concatenate two KymoLines"""
-        return KymoLine(self.time_idx + other.time_idx, self.coordinate_idx + other.coordinate_idx)
+        return KymoLine(self.time_idx + other.time_idx, self.coordinate_idx + other.coordinate_idx, self.image_data)
 
     def __getitem__(self, item):
         return np.squeeze(np.array(np.vstack((self.time_idx[item], self.coordinate_idx[item]))).transpose())
@@ -42,7 +43,7 @@ class KymoLine:
         coord_match = np.logical_and(coordinate_idx < rect[1][1], coordinate_idx >= rect[0][1])
         return np.any(np.logical_and(time_match, coord_match))
 
-    def sample_from_image(self, data, num_pixels, reduce=np.sum):
+    def sample_from_image(self, num_pixels, reduce=np.sum):
         """Sample from image using coordinates from this KymoLine.
 
         This function samples data from the image given in data based on the points in this KymoLine. It samples
@@ -50,17 +51,18 @@ class KymoLine:
 
         Parameters
         ----------
-        data : array_like
-            Image to sample from using this KymoLine.
         num_pixels : int
             Number of pixels in either direction to include in the sample
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
         """
-        y_size = data.shape[1]
+        if self.image_data is None:
+            raise RuntimeError("No image data associated with this KymoLine")
+
+        y_size = self.image_data.shape[1]
 
         # Time and coordinates are being cast to an integer since we use them to index into a data array.
-        return [reduce(data[max(int(c) - num_pixels, 0):min(int(c) + num_pixels + 1, y_size), int(t)])
+        return [reduce(self.image_data[max(int(c) - num_pixels, 0):min(int(c) + num_pixels + 1, y_size), int(t)])
                 for t, c in zip(self.time_idx, self.coordinate_idx)]
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):

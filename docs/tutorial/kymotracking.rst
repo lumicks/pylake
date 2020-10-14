@@ -29,7 +29,7 @@ Using the greedy algorithm
 First, we need to get an image to perform the tracing on. Let's grab a kymograph from a Bluelake file::
 
     file = lk.File('kymograph.h5')
-    _, kymo = file.kymos.popitem()
+    name, kymo = file.kymos.popitem()
 
 We can extract the image data with one of the `_image` commands::
 
@@ -55,7 +55,7 @@ If we zoom in a bit, we can see that our traces in this image are about 3 pixels
 The peaks have an intensity of about 3-7 photon counts, whereas the background fluctuates around 0-2. Let's set our
 `pixel_threshold` to 3. We also see that sometimes, a particle momentarily disappears. To still connect these in a
 single trace, we want to allow for some gaps in the connection step. Let's use a `window` size of 6 in this test.
-Running the algorithm is easy::
+Running the algorithm is easy using the function :func:`~lumicks.pylake.track_greedy`::
 
     traces = lk.track_greedy(data, line_width=3, pixel_threshold=3, window=6)
 
@@ -65,7 +65,8 @@ The result of tracking is a list of kymograph traces::
     745
 
 Sometimes, we can have very short spurious traces. To remove these from the list of detected traces we can use
-filter_lines. To omit all traces with fewer than 4 detected points, we can invoke::
+:func:`~lumicks.pylake.filter_lines`. To omit all traces with fewer than 4 detected points, we
+can invoke::
 
     >>> traces = lk.filter_lines(traces, 3)
 
@@ -88,15 +89,12 @@ an acceptable result.
 
 Note that the determined time and coordinates of the traces and coordinates are defined in pixels and therefore need to
 be converted to actual time and position using the line time and pixel size of the kymograph. We can get the time
-between frames directly from the kymograph::
+between frames directly from the kymograph as :attr:`.Kymo.line_time_seconds` and the pixel size as
+:attr:`.Kymo.pixelsize_um`. This allows conversion from pixels back to position.
 
-    dt = kymo.line_time_seconds
 
-And the pixel size as well::
-
-    pixel_to_um = kymo.pixelsize_um
-
-This allows conversion from pixels back to position.
+Using the lines algorithm
+-------------------------
 
 The second algorithm present is an algorithm that works purely on signal derivative information. It works by blurring
 the image, and then performing sub-pixel accurate line detection. It can be a bit more robust to low signal levels,
@@ -112,8 +110,8 @@ Extracting summed intensities
 -----------------------------
 
 Sometimes, it can be desirable to extract pixel intensities in a region around our kymograph trace. We can quite easily
-extract these using the method `sample_from_image`. For instance, if we want to sum the pixels in a 9 pixel area around
-the longest kymograph trace, we can invoke::
+extract these using the method :func:`~lumicks.pylake.kymotracker.kymoline.KymoLine.sample_from_image`. For instance,
+if we want to sum the pixels in a 9 pixel area around the longest kymograph trace, we can invoke::
 
     plt.figure()
     longest_trace_idx = np.argmax([len(trace) for trace in traces])
@@ -128,11 +126,9 @@ that the trace was based on.
 .. image:: kymo_sumcounts.png
 
 
-Algorithms
-----------
-
-track_greedy
-************
+How the algorithms work
+-----------------------
+:func:`~lumicks.pylake.track_greedy`
 
 The first method implemented for performing such a tracking is based on :cite:`sbalzarini2005feature,mangeol2016kymographclear`.
 It starts by performing peak detection, performing a grey dilation on the image, and detection which pixels remain
@@ -184,8 +180,7 @@ peaks to be so unlikely to be connected that they shouldn't be. By default, this
 outside this cutoff are set to zero which means they will not be accepted as a new point.
 
 
-track_lines
-***********
+:func:`~lumicks.pylake.track_lines`
 
 The second algorithm is an algorithm that looks for curvilinear structures in an image. This method is based on sections
 1, 2 and 3 from :cite:`steger1998unbiased`. This method attempts to find lines purely based on the derivatives of the
