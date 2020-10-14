@@ -26,7 +26,7 @@ def test_kymo_properties(h5_file):
         assert kymo.green_image.shape == (5, 4)
         assert np.allclose(kymo.timestamps, reference_timestamps)
         assert kymo.fast_axis == "X"
-
+        assert np.allclose(kymo.pixelsize_um, 10/1000)
 
 def test_kymo_slicing(h5_file):
     f = pylake.File.from_h5py(h5_file)

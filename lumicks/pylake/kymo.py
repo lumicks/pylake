@@ -134,6 +134,11 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
                                  self.pixels_per_line, reduce=np.mean).T
 
     @property
+    def pixelsize_um(self):
+        """Returns a `List` of axes dimensions in um. The length of the list corresponds to the number of scan axes."""
+        return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
+
+    @property
     def red_image(self):
         return self._image("red")
 
