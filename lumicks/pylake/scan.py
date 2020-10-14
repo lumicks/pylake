@@ -35,6 +35,10 @@ class Scan(Kymo):
         raise NotImplementedError("Indexing and slicing are not implemented for scans")
 
     @property
+    def line_time_seconds(self):
+        raise NotImplementedError("line_time_seconds not implemented for scans")
+
+    @property
     def num_frames(self):
         if self._num_frames == 0:
             self._num_frames = reconstruct_num_frames(self.infowave.data, self.pixels_per_line,

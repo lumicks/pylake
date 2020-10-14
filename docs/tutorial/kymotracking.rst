@@ -87,10 +87,10 @@ one will have to resort to some fine tuning of the algorithm parameters over dif
 an acceptable result.
 
 Note that the determined time and coordinates of the traces and coordinates are defined in pixels and therefore need to
-be converted to actual time and position using the delta time and pixel size of the kymograph. We can get the time
+be converted to actual time and position using the line time and pixel size of the kymograph. We can get the time
 between frames directly from the kymograph::
 
-    dt = kymo.delta_t
+    dt = kymo.line_time_seconds
 
 And the pixel size as well::
 
@@ -118,7 +118,7 @@ the longest kymograph trace, we can invoke::
     plt.figure()
     longest_trace_idx = np.argmax([len(trace) for trace in traces])
     longest_trace = traces[longest_trace_idx]
-    plt.plot(np.array(longest_trace.time_idx) * kymo.delta_t, longest_trace.sample_from_image(num_pixels=5))
+    plt.plot(np.array(longest_trace.time_idx) * kymo.line_time_seconds, longest_trace.sample_from_image(num_pixels=5))
     plt.xlabel('Time [s]')
     plt.ylabel('Summed signal')
 
