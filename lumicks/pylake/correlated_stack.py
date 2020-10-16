@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import re
+import warnings
 
 
 class TiffFrame:
@@ -186,6 +187,10 @@ class CorrelatedStack:
         import matplotlib.pyplot as plt
 
         downsampled = channel_slice.downsampled_over(self.timestamps, where='left')
+
+        if len(downsampled.timestamps) < len(self.timestamps):
+            warnings.warn("Only subset of time range available for selected channel")
+
         fetched_frame = self._get_frame(frame)
         aspect_ratio = fetched_frame.data.shape[0] / np.max([fetched_frame.data.shape])
 
@@ -195,6 +200,7 @@ class CorrelatedStack:
         ax1.step(t, y, where='pre')
         ax2.tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
         image_object = ax2.imshow(fetched_frame.data, cmap='gray')
+        plt.title(f"Frame {frame}")
 
         # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
         y1, y2 = ax1.get_ylim()
@@ -218,7 +224,8 @@ class CorrelatedStack:
                 for img_idx in np.arange(0, self.num_frames):
                     current_frame = self._get_frame(img_idx)
 
-                    if current_frame.start < time < current_frame.stop:
+                    if current_frame.start <= time < current_frame.stop:
+                        plt.title(f"Frame {img_idx}")
                         poly.remove()
                         image_object.set_data(current_frame.data)
                         poly = update_position(current_frame)

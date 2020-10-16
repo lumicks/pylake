@@ -128,7 +128,7 @@ def test_correlation():
 
     # Regression test downsampled_over losing precision due to reverting to double rather than int64.
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 1588267266006287100, 1000))
-    ch = cc.downsampled_over([(1588267266006287100, 2588267266006287100)], where='left')
+    ch = cc.downsampled_over([(1588267266006287100, 1588267266006287120)], where='left')
     assert int(ch.timestamps[0]) == 1588267266006287100
 
 
@@ -152,3 +152,30 @@ def test_plot_correlated():
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
     assert len(imgs) == 1
     assert np.allclose(imgs[0].get_array(), np.ones((3, 3)) * 4)
+
+
+def test_plot_correlated_smaller_channel():
+    from matplotlib.backend_bases import MouseEvent
+
+    # Regression test for a bug where the start index was added twice. In the regression, this lead to an out of range
+    # error.
+    fake_tiff = TiffStack(MockTiff(data=[np.zeros((3, 3)), np.ones((3, 3)), np.ones((3, 3))*2,
+                                         np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
+                                   times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
+                                          ["60", "70"]]))
+
+    # Add test for when there's only a subset in terms of channel data
+    cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 30, 2), {"y": "mock", "title": "mock"})
+
+    with pytest.warns(UserWarning):
+        CorrelatedStack.from_data(fake_tiff).plot_correlated(cc)
+
+    def mock_click(fig, data_position):
+        pos = fig.axes[0].transData.transform(data_position)
+        fig.canvas.callbacks.process("button_press_event", MouseEvent("button_press_event", fig.canvas, pos[0], pos[1], 1))
+        images = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
+        assert len(images) == 1
+        return images[0].get_array()
+
+    assert np.allclose(mock_click(mpl.pyplot.gcf(), np.array([0, 40])), np.ones((3, 3)) * 2)
+    assert np.allclose(mock_click(mpl.pyplot.gcf(), np.array([10.1e-9, 40])), np.ones((3, 3)) * 3)
