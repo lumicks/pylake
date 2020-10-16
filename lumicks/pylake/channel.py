@@ -132,6 +132,10 @@ class Slice:
         if where != 'center' and where != 'left':
             raise ValueError("Invalid argument for where. Valid options are center and left")
 
+        # Only use the frames that are actually fully covered by channel data
+        range_list = [frame_range for frame_range in range_list
+                      if frame_range[0] >= self._src.start and frame_range[1] <= self._src.stop]
+
         t = np.zeros(len(range_list), dtype=self._src.timestamps.dtype)
         d = np.zeros(len(range_list))
         for i, time_range in enumerate(range_list):

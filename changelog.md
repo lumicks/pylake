@@ -13,6 +13,7 @@
 * Add widget to graphically slice a `Slice` in Jupyter Notebooks. It can be opened by calling `channel.range_selector`. For more information, see [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
 * Fixed bug in `CorrelatedStack.plot_correlated` which lead to the start index of the frame being added twice when the movie had been sliced.
 * *Bugfix: fixed bug in `downsampled_over` which affects people who used it with `where="center"`. With these settings the function returns timestamps at the center of the ranges being downsampled over. In the previous version, this timestamp included the end timestamp (i.e. x <= t <= x), now it has been changed to exclude the end timestamp (i.e. x <= t < x) making it consistent with `downsampled_by` for integer downsampling rates.*
+* Bugfix: fixed bug in `plot_correlated` which did not allow plotting camera images correlated to channel data when the channel data did not completely cover the camera image stack. 
 
 ## v0.6.2 | 2020-09-21
 
