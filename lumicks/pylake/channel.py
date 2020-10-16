@@ -108,7 +108,8 @@ class Slice:
             cases, e.g. photon counts.
         where : str
             Where to put the final time point.
-            'center' time point is put at (start + stop) / 2
+            'center' time point is put at (timestamps_subset[0] + timestamps_subset[-1]) / 2, where timestamps_subset
+            are the timestamps corresponding to the samples being downsampled over.
             'left' time point is put at start
 
         Examples
@@ -125,8 +126,8 @@ class Slice:
             raise TypeError("Did not pass timestamps to range_list.")
 
         assert len(range_list[0]) == 2, "Did not pass timestamps to range_list."
-        assert self._src.start < range_list[-1][1], "No overlap between CorrelatedStack and selected channel."
-        assert self._src.stop > range_list[0][0], "No overlap between CorrelatedStack and selected channel"
+        assert self._src.start < range_list[-1][1], "No overlap between range and selected channel."
+        assert self._src.stop > range_list[0][0], "No overlap between range and selected channel"
 
         if where != 'center' and where != 'left':
             raise ValueError("Invalid argument for where. Valid options are center and left")
@@ -136,7 +137,8 @@ class Slice:
         for i, time_range in enumerate(range_list):
             start, stop = time_range
             subset = self[start:stop]
-            t[i] = (start + stop) // 2 if where == 'center' else start
+            ts = subset.timestamps
+            t[i] = (ts[0] + ts[-1]) // 2 if where == 'center' else start
             d[i] = reduce(subset.data)
 
         return Slice(TimeSeries(d, t), self.labels)
@@ -154,7 +156,8 @@ class Slice:
             cases, e.g. photon counts.
         where : str
             Where to put the final time point.
-            'center' time point is put at (start + stop) / 2
+            'center' time point is put at (timestamps_subset[0] + timestamps_subset[-1]) / 2, where timestamps_subset
+            are the timestamps corresponding to the samples being downsampled over.
             'left' time point is put at start
         method : str
             How to handle target sample times that are not exact multiples of the current sample time.

@@ -102,11 +102,11 @@ def test_correlation():
     # slice based on a stack.
     ch = cc.downsampled_over(stack[0:3].timestamps)
     assert(np.allclose(ch.data, [np.mean(np.arange(10, 18, 2)), np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2))]))
-    assert (np.allclose(ch.timestamps, [(10 + 18) / 2, (20 + 28) / 2, (30 + 38) / 2]))
+    assert (np.allclose(ch.timestamps, [(10 + 16) / 2, (20 + 26) / 2, (30 + 36) / 2]))
 
     ch = cc.downsampled_over(stack[1:4].timestamps)
     assert (np.allclose(ch.data, [np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2)), np.mean(np.arange(40, 48, 2))]))
-    assert (np.allclose(ch.timestamps, [(20 + 28) / 2, (30 + 38) / 2, (40 + 48) / 2]))
+    assert (np.allclose(ch.timestamps, [(20 + 26) / 2, (30 + 36) / 2, (40 + 46) / 2]))
 
     with pytest.raises(TypeError):
         cc.downsampled_over(stack[1:4])

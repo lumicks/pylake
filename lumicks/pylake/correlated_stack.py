@@ -2,8 +2,6 @@ import numpy as np
 import os
 import re
 
-from .channel import Slice, TimeSeries
-
 
 class TiffFrame:
     """Thin wrapper around a TIFF frame stack. For camera videos timestamps are stored in the DateTime tag in
