@@ -1,4 +1,5 @@
 import h5py
+import warnings
 import numpy as np
 from typing import Dict
 
@@ -185,9 +186,17 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         return TimeTags.from_dataset(self.h5["Photon Time Tags"][name], "Photon time tags")
 
     def _get_object_dictionary(self, field, cls):
+        def try_from_dataset(*args):
+            try:
+                return cls.from_dataset(*args)
+            except Exception as e:
+                warnings.warn(e.args[0])
+                return None
+
         if field not in self.h5:
             return dict()
-        return {name: cls.from_dataset(dset, self) for name, dset in self.h5[field].items()}
+        scan_objects = [(name, try_from_dataset(dset, self)) for name, dset in self.h5[field].items()]
+        return {name: scan for name, scan in scan_objects if scan is not None}
 
     @property
     def kymos(self) -> Dict[str, Kymo]:
