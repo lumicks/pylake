@@ -281,7 +281,11 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         start = h5py_dset.attrs["Start time (ns)"]
         stop = h5py_dset.attrs["Stop time (ns)"]
         name = h5py_dset.name.split("/")[-1]
-        json_data = json.loads(h5py_dset[()])["value0"]
+        try:
+            json_data = json.loads(h5py_dset[()])["value0"]
+        except KeyError:
+            raise KeyError(f"Scan '{name}' is missing metadata and cannot be loaded")
+
         return cls(name, file, start, stop, json_data)
 
 

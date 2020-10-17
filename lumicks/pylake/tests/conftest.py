@@ -285,6 +285,77 @@ def h5_file(tmpdir_factory, request):
     return mock_file.file
 
 
+@pytest.fixture(scope="session", params=[MockDataFile_v1, MockDataFile_v2])
+def h5_file_missing_meta(tmpdir_factory, request):
+    mock_class = request.param
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join("%s.h5" % mock_class.__class__.__name__))
+    mock_file.write_metadata()
+
+    if mock_class == MockDataFile_v2:
+        infowave = np.uint8([1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                             0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
+                             1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                             0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2])
+
+        enc = json.JSONEncoder()
+
+        # Generate lines at 1 Hz
+        freq = 1e9 / 16
+
+        def generate_scan_json(axis_1, n_pixels_1, axis_2, n_pixels_2):
+            return enc.encode({
+                "value0": {
+                    "cereal_class_version": 1,
+                    "fluorescence": True,
+                    "force": False,
+                    "scan count": 0,
+                    "scan volume": {
+                        "center point (um)": {
+                            "x": 58.075877109272604,
+                            "y": 31.978375270573267,
+                            "z": 0
+                        },
+                        "cereal_class_version": 1,
+                        "pixel time (ms)": 0.2,
+                        "scan axes": [
+                            {
+                                "axis": axis_1,
+                                "cereal_class_version": 1,
+                                "num of pixels": n_pixels_1,
+                                "pixel size (nm)": 191,
+                                "scan time (ms)": 0,
+                                "scan width (um)": .191 * n_pixels_1
+                            },
+                            {
+                                "axis": axis_2,
+                                "cereal_class_version": 1,
+                                "num of pixels": n_pixels_2,
+                                "pixel size (nm)": 197,
+                                "scan time (ms)": 0,
+                                "scan width (um)": .197 * n_pixels_2
+                            }
+                        ]
+                    }
+                }
+            })
+
+        # Single frame image - NO metadata
+        ds = mock_file.make_json_data("Scan", "fast Y slow X no meta", 
+                                      enc.encode({}))
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
+
+        # Single frame image - ok loading
+        ds = mock_file.make_json_data("Scan", "fast Y slow X",
+                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=5))
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
+
+    return mock_file.file    
+
+
 @pytest.fixture(scope="session")
 def h5_file_invalid_version(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp("pylake")
