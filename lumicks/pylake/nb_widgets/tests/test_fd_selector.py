@@ -124,3 +124,10 @@ def test_multi_selector_widget():
 
     with pytest.raises(RuntimeError):
         FdRangeSelector({"fd1": fd_curve1, "fd2": fd_curve2})
+
+
+@cleanup
+def test_slice_widget_opens():
+    channel = Slice(TimeSeries([1, 2, 3, 4], [100, 200, 300, 400]))
+
+    channel.range_selector

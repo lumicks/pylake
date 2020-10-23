@@ -3,14 +3,14 @@ import numpy as np
 import time
 
 
-class FdRangeSelectorWidget:
-    def __init__(self, fd_curve, axes=None, show=True):
-        self._axes = axes if axes else plt.axes(label=f"lk_widget_{time.time()}")
-        self.fd_curve = fd_curve
-        self.time = self.fd_curve.f.timestamps
+class SliceRangeSelectorWidget:
+    def __init__(self, channel_slice, axes=None, show=True):
+        self._axes = axes if axes else plt.axes(label=f"lk_slice_widget_{time.time()}")
+        self.slice = channel_slice
+        self.time = self.slice.timestamps
         self.connection_id = None
         self.current_range = []
-        self.ranges = []
+        self._ranges = []
         self.open = show
 
         if show:
@@ -34,7 +34,7 @@ class FdRangeSelectorWidget:
 
         # We have a range selected. Append it to the list.
         if len(self.current_range) == 2:
-            self.ranges.append(np.sort(self.current_range))
+            self._ranges.append(np.sort(self.current_range))
             self.current_range = []
             self.update_plot()
 
@@ -44,12 +44,12 @@ class FdRangeSelectorWidget:
 
     def _remove_range(self, fd_timestamp):
         """Removes a range if the provided timestamp falls inside it."""
-        in_range = [start < fd_timestamp < stop for start, stop in self.ranges]
+        in_range = [start < fd_timestamp < stop for start, stop in self._ranges]
         selected = np.nonzero(in_range)[0]
         if len(selected) > 0:
-            selected_ranges = [self.ranges[x] for x in selected]
+            selected_ranges = [self._ranges[x] for x in selected]
             smallest_segment = np.argmin([stop - start for start, stop in selected_ranges])
-            self.ranges.pop(selected[smallest_segment])
+            self._ranges.pop(selected[smallest_segment])
         self.update_plot()
 
     def handle_button_event(self, event):
@@ -82,7 +82,7 @@ class FdRangeSelectorWidget:
     def update_plot(self):
         self._axes.clear()
 
-        for i, (t_start, t_end) in enumerate(self.ranges):
+        for i, (t_start, t_end) in enumerate(self._ranges):
             t_start, t_end = self.to_seconds(t_start), self.to_seconds(t_end)
             self._axes.axvline(t_start)
             self._axes.axvline(t_end)
@@ -91,7 +91,7 @@ class FdRangeSelectorWidget:
 
         old_axis = plt.gca()
         plt.sca(self._axes)
-        self.fd_curve.f.plot(linestyle='', marker='.', markersize=1)
+        self.slice.plot(linestyle='', marker='.', markersize=1)
         self.connect_click_callback()
 
         plt.ylabel('Force [pN]')
@@ -99,8 +99,25 @@ class FdRangeSelectorWidget:
         plt.sca(old_axis)
 
     @property
+    def ranges(self):
+        """Returns selected list of timestamp ranges"""
+        return np.copy(self._ranges)
+
+    @property
+    def slices(self):
+        """Return list of selected slices of data as `lumicks.pylake.Slice`"""
+        return [self.slice[start:stop] for start, stop in self._ranges]
+
+
+class FdRangeSelectorWidget(SliceRangeSelectorWidget):
+    def __init__(self, fd_curve, axes=None, show=True):
+        super().__init__(fd_curve.f, axes, show)
+        self.fd_curve = fd_curve
+
+    @property
     def fdcurves(self):
-        return [self.fd_curve[start:stop] for start, stop in self.ranges]
+        """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
+        return [self.fd_curve[start:stop] for start, stop in self._ranges]
 
 
 class FdRangeSelector:
@@ -110,7 +127,7 @@ class FdRangeSelector:
         Parameters
         ----------
         fd_curves : dict
-            Dictionary of `pylake.FdCurve`
+            Dictionary of `lumicks.pylake.FdCurve`
         """
 
         if len(fd_curves) == 0:
@@ -145,9 +162,10 @@ class FdRangeSelector:
 
     @property
     def ranges(self):
+        """Return list of range timestamps"""
         return {key: selector.ranges for key, selector in self.selectors.items()}
 
     @property
     def fdcurves(self):
+        """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
         return {key: selector.fdcurves for key, selector in self.selectors.items()}
-
