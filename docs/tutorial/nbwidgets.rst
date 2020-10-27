@@ -10,13 +10,43 @@ to help you analyze your data. To enable such widgets, start the notebook with::
 
     %matplotlib widget
 
+Channel slicing
+---------------
+
+Let's say we want to do some analyses on slices of channel data. It would be nice to just quickly visually select some
+regions using a widget. Let's load the file and run the widget::
+
+    file = lk.File("file.h5")
+    channel = file["Force LF"]["Force 1x"]
+    selector = channel.range_selector
+
+.. image:: slice_widget.png
+
+You can use the left mouse button to select time ranges (by clicking the left and then the right boundary of the region
+you wish to select). The right mouse button can be used to remove previous selections. We can access the selected
+timestamps of the ranges we selected by invoking
+:attr:`~lumicks.pylake.nb_widgets.fd_selector.SliceRangeSelector.ranges`::
+
+    >>> selector.ranges
+    [array([1572279165841737600, 1572279191523516800], dtype=int64),
+    array([1572279201850211200, 1572279224153072000], dtype=int64)]
+
+And the actual slices from :attr:`~lumicks.pylake.nb_widgets.fd_selector.SliceRangeSelector.slices`. If we want to
+plot all of our selections in separate plots for instance, we can do the following::
+
+    for data_slice in selector.slices:
+        plt.figure()
+        data_slice.plot()
+
+.. image:: slice_widget2.png
+
+
 F,d selection
 -------------
 
 Assume we have an F,d curve we want to analyze. We know that this file contains one F,d curve which should be split up
-into two segments that we should be analyzing separately. Let's load the file and run the widget::
+into two segments that we should be analyzing separately::
 
-    file = lk.File("file.h5")
     fdcurves = file.fdcurves
     selector = lk.FdRangeSelector(fdcurves)
 

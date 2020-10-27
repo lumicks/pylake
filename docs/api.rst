@@ -58,3 +58,13 @@ Kymotracking
     track_greedy
     track_lines
     filter_lines
+
+Notebook widgets
+----------------
+
+.. autosummary::
+    :toctree: _api
+
+    FdRangeSelector
+    nb_widgets.fd_selector.SliceRangeSelector
+    nb_widgets.fd_selector.FdRangeSelectorWidget

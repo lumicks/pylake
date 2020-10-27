@@ -3,6 +3,7 @@ import numpy as np
 
 from .detail.timeindex import to_timestamp
 from .calibration import ForceCalibration
+from lumicks.pylake.nb_widgets.fd_selector import SliceRangeSelector
 
 
 class Slice:
@@ -164,6 +165,10 @@ class Slice:
         plt.xlabel(self.labels.get("x", "Time") + " (s)")
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
+
+    @property
+    def range_selector(self):
+        return SliceRangeSelector(self)
 
 
 def _downsample(data, factor, reduce):
