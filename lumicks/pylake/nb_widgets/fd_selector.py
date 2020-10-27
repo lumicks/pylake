@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 
-class SliceRangeSelectorWidget:
+class SliceRangeSelector:
     def __init__(self, channel_slice, axes=None, show=True):
         self._axes = axes if axes else plt.axes(label=f"lk_slice_widget_{time.time()}")
         self.slice = channel_slice
@@ -109,7 +109,7 @@ class SliceRangeSelectorWidget:
         return [self.slice[start:stop] for start, stop in self._ranges]
 
 
-class FdRangeSelectorWidget(SliceRangeSelectorWidget):
+class FdRangeSelectorWidget(SliceRangeSelector):
     def __init__(self, fd_curve, axes=None, show=True):
         super().__init__(fd_curve.f, axes, show)
         self.fd_curve = fd_curve

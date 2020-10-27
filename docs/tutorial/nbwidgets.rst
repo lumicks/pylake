@@ -25,13 +25,13 @@ regions using a widget. Let's load the file and run the widget::
 You can use the left mouse button to select time ranges (by clicking the left and then the right boundary of the region
 you wish to select). The right mouse button can be used to remove previous selections. We can access the selected
 timestamps of the ranges we selected by invoking
-:attr:`~lumicks.pylake.nb_widgets.fd_selector.SliceRangeSelectorWidget.ranges`::
+:attr:`~lumicks.pylake.nb_widgets.fd_selector.SliceRangeSelector.ranges`::
 
     >>> selector.ranges
     [array([1572279165841737600, 1572279191523516800], dtype=int64),
     array([1572279201850211200, 1572279224153072000], dtype=int64)]
 
-And the actual slices from :attr:`~lumicks.pylake.nb_widgets.fd_selector.SliceRangeSelectorWidget.slices`. If we want to
+And the actual slices from :attr:`~lumicks.pylake.nb_widgets.fd_selector.SliceRangeSelector.slices`. If we want to
 plot all of our selections in separate plots for instance, we can do the following::
 
     for data_slice in selector.slices:

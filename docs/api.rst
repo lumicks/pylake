@@ -66,5 +66,5 @@ Notebook widgets
     :toctree: _api
 
     FdRangeSelector
-    nb_widgets.fd_selector.SliceRangeSelectorWidget
+    nb_widgets.fd_selector.SliceRangeSelector
     nb_widgets.fd_selector.FdRangeSelectorWidget
