@@ -2,24 +2,30 @@ import numpy as np
 import pytest
 from lumicks.pylake.correlated_stack import CorrelatedStack, TiffStack
 from lumicks.pylake import channel
+import matplotlib as mpl
+from matplotlib.testing.decorators import cleanup
 
 
 # Mock Camera TIFF file
 class TiffPage:
-    def __init__(self, start_time, end_time):
+    def __init__(self, data, start_time, end_time):
         class Tag:
             @property
             def value(self):
                 return f"{start_time}:{end_time}"
 
+        self._data = data
         self.tags = {"DateTime": Tag()}
+
+    def asarray(self):
+        return self._data.copy()
 
 
 class MockTiff:
-    def __init__(self, times):
+    def __init__(self, data, times):
         self.pages = []
-        for r in times:
-            self.pages.append(TiffPage(r[0], r[1]))
+        for d, r in zip(data, times):
+            self.pages.append(TiffPage(d, r[0], r[1]))
 
     @property
     def num_frames(self):
@@ -27,7 +33,8 @@ class MockTiff:
 
 
 def test_correlated_stack():
-    fake_tiff = TiffStack(MockTiff([["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]))
+    fake_tiff = TiffStack(MockTiff(data=[np.ones((3,3))]*6,
+                          times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]))
     stack = CorrelatedStack.from_data(fake_tiff)
 
     assert (stack[0].start == 10)
@@ -76,12 +83,16 @@ def test_correlation():
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 10, 2))
 
     # Test image stack without dead time
-    fake_tiff = TiffStack(MockTiff([["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]]))
+    fake_tiff = TiffStack(MockTiff(data=[np.ones((3, 3))] * 6,
+                                   times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
+                                          ["60", "70"]]))
     stack = CorrelatedStack.from_data(fake_tiff)
     assert (np.allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]), np.arange(30, 50, 2)))
 
     # Test image stack with dead time
-    fake_tiff = TiffStack(MockTiff([["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]))
+    fake_tiff = TiffStack(MockTiff(data=[np.ones((3, 3))] * 6,
+                                   times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"],
+                                          ["60", "68"]]))
     stack = CorrelatedStack.from_data(fake_tiff)
 
     assert (np.allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]),
@@ -119,3 +130,25 @@ def test_correlation():
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 1588267266006287100, 1000))
     ch = cc.downsampled_over([(1588267266006287100, 2588267266006287100)], where='left')
     assert int(ch.timestamps[0]) == 1588267266006287100
+
+
+@cleanup
+def test_plot_correlated():
+    cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 10, 2), {"y": "mock", "title": "mock"})
+
+    # Regression test for a bug where the start index was added twice. In the regression, this lead to an out of range
+    # error.
+    fake_tiff = TiffStack(MockTiff(data=[np.zeros((3, 3)), np.ones((3, 3)), np.ones((3, 3))*2,
+                                         np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
+                                   times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
+                                          ["60", "70"]]))
+
+    CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc)
+    imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
+    assert len(imgs) == 1
+    assert np.allclose(imgs[0].get_array(), np.ones((3, 3)) * 3)
+
+    CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc, frame=1)
+    imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
+    assert len(imgs) == 1
+    assert np.allclose(imgs[0].get_array(), np.ones((3, 3)) * 4)
