@@ -188,7 +188,7 @@ class CorrelatedStack:
         import matplotlib.pyplot as plt
 
         downsampled = channel_slice.downsampled_over(self.timestamps, where='left')
-        fetched_frame = self._get_frame(self.start_idx + frame)
+        fetched_frame = self._get_frame(frame)
         aspect_ratio = fetched_frame.data.shape[0] / np.max([fetched_frame.data.shape])
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=plt.figaspect(aspect_ratio/2))
@@ -217,8 +217,8 @@ class CorrelatedStack:
 
             if not event.canvas.widgetlock.locked() and event.inaxes == ax1:
                 time = event.xdata * 1e9 + t0
-                for img_idx in np.arange(self.start_idx, self.stop_idx):
-                    current_frame = self._get_frame(self.start_idx + img_idx)
+                for img_idx in np.arange(0, self.num_frames):
+                    current_frame = self._get_frame(img_idx)
 
                     if current_frame.start < time < current_frame.stop:
                         poly.remove()
