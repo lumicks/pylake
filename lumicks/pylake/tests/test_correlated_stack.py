@@ -18,10 +18,12 @@ class MockTag():
 
 
 class MockTiffPage:
-    def __init__(self, data, start_time, end_time, description=""):
+    def __init__(self, data, start_time, end_time, description="", bit_depth=8):
         self._data = data
+        bit_depth = bit_depth if data.ndim == 2 else (bit_depth, bit_depth, bit_depth)
         self.tags = {"DateTime": MockTag(f"{start_time}:{end_time}"),                   
                      "ImageDescription": MockTag(description),
+                     "BitsPerSample": MockTag(bit_depth),
                      "SamplesPerPixel": MockTag(1 if (data.ndim==2) else data.shape[2])}
 
     def asarray(self):
@@ -33,10 +35,10 @@ class MockTiffPage:
 
 
 class MockTiffFile:
-    def __init__(self, data, times, description=""):
+    def __init__(self, data, times, description="", bit_depth=8):
         self.pages = []
         for d, r in zip(data, times):
-            self.pages.append(MockTiffPage(d, r[0], r[1], description=description))
+            self.pages.append(MockTiffPage(d, r[0], r[1], description=description, bit_depth=bit_depth))
             
     @property
     def num_frames(self):
@@ -252,9 +254,10 @@ def test_plot_correlated():
     # Regression test for a bug where the start index was added twice. In the regression, this lead to an out of range
     # error.
     fake_tiff = TiffStack(MockTiffFile(data=[np.zeros((3, 3)), np.ones((3, 3)), np.ones((3, 3))*2,
-                                         np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
-                                   times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
-                                          ["60", "70"]]))
+                                             np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
+                                       times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
+                                              ["60", "70"]]),
+                                       align=True)
 
     CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc)
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
@@ -376,13 +379,14 @@ def test_image_reconstruction_grayscale():
 
     img0, img, description = make_alignment_image_data(**img_args)
     fake_tiff = TiffStack(MockTiffFile(data=[img[:, :, 0]], times=[["10", "18"]], 
-                                       description=json.dumps(description)), 
+                                       description=json.dumps(description), bit_depth=8),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)        
     fr = stack._get_frame(0)
 
     assert not fr.is_rgb
     assert np.all(fr.data == fr.raw_data)
+    assert np.allclose(fr.raw_data, fr._get_plot_data())
 
 
 def test_image_reconstruction_rgb():
@@ -401,31 +405,51 @@ def test_image_reconstruction_rgb():
     
     img0, img, description = make_alignment_image_data(**img_args)
     fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
-                                       description=json.dumps(description)), 
+                                       description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)        
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
+    max_signal = np.max(np.hstack([fr._get_plot_data("green"), fr._get_plot_data("red")]))
+    diff = np.abs(fr._get_plot_data('green').astype(np.float)-fr._get_plot_data("red").astype(np.float))
+    assert np.all(diff/max_signal < 0.05)
+    max_signal = np.max(np.hstack([fr._get_plot_data("green"), fr._get_plot_data("blue")]))
+    diff = np.abs(fr._get_plot_data('green').astype(np.float)-fr._get_plot_data("blue").astype(np.float))
+    assert np.all(diff/max_signal < 0.05)
+
+    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(np.float)
+    assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
+    assert np.allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
+    max_signal = np.max(np.hstack([img0[:, :, 0], fr._get_plot_data("red")]))
+    diff = np.abs(img0[:, :, 0].astype(np.float)-fr._get_plot_data("red").astype(np.float))
+    assert np.all(diff/max_signal < 0.05)
+
+    with pytest.raises(ValueError):
+        fr._get_plot_data(channel="purple")
 
     # test that bad alignment matrix gives high error compared to correct matrix
     description["Alignment red channel"][2] = 25
     fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
-                                       description=json.dumps(description)), 
+                                       description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)        
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
+    assert not np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
     # alignment ROI offset
     img_args["offsets"] = (50, 50) 
     img0, img, description = make_alignment_image_data(**img_args)
     fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
-                                       description=json.dumps(description)), 
+                                       description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)        
     fr = stack._get_frame(0)
+
+    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(np.float)
+    assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
 def test_image_reconstruction_rgb_multiframe():
@@ -445,12 +469,14 @@ def test_image_reconstruction_rgb_multiframe():
     img0, img, description = make_alignment_image_data(**img_args)
     fake_tiff = TiffStack(MockTiffFile(data=[img]*6,
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]],
-                                       description=json.dumps(description)),
+                                       description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)        
     fr = stack._get_frame(2)
 
     assert fr.is_rgb
+    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(np.float)
+    assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
 def test_image_reconstruction_rgb_missing_metadata():
@@ -470,7 +496,7 @@ def test_image_reconstruction_rgb_missing_metadata():
     # no metadata
     img0, img, description = make_alignment_image_data(**img_args)
     fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
-                                       description=""), 
+                                       description="", bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
@@ -483,7 +509,7 @@ def test_image_reconstruction_rgb_missing_metadata():
     # missing alignment matrices
     description.pop("Alignment red channel")
     fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
-                                       description=json.dumps(description)), 
+                                       description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
