@@ -11,6 +11,12 @@ These videos can be opened and sliced using `CorrelatedStack`::
     stack = lk.CorrelatedStack("example.tiff")  # Loading a stack.
     stack_slice = stack[2:10]  # Grab frame 2 to 9
 
+Full color RGB images are automatically reconstructed using the alignment matrices
+from Bluelake if available. This functionality can be turned off with the optional
+`align` keyword::
+
+    stack2 = lk.CorrelatedStack("example2.tiff", align=False)
+
 Quite often, it is interesting to correlate events on the camera's to `channel` data.
 To quickly explore the correlation between images in a `CorrelatedStack` and channel data
 you can use the following function::
