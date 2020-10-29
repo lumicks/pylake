@@ -23,9 +23,7 @@ class TiffFrame:
         self._align = align
 
     def _align_image(self):
-        """ reconstruct image using alignment matrices from Bluelake 
-            return aligned image as a NumPy array 
-        """
+        """ reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
 
         def correct_alignment_offset(alignment, x_offset, y_offset):
             # translate the origin of the image so that it matches that of the original transform
@@ -50,8 +48,8 @@ class TiffFrame:
             return self.raw_data
 
         try:
-            align_mats = [np.array(description[f"Alignment {color} channel"]).reshape((2,3))
-                        for color in ('red', 'blue')]
+            align_mats = [np.array(description[f"Alignment {color} channel"]).reshape((2, 3))
+                          for color in ('red', 'blue')]
             align_roi = np.array(description["Alignment region of interest (x, y, width, height)"])[:2]
             roi = np.array(description["Region of interest (x, y, width, height)"])[:2]
         except KeyError:
@@ -65,11 +63,10 @@ class TiffFrame:
         img = self.raw_data
         rows, cols, _ = img.shape
         for mat, channel in zip(align_mats, (0, 2)):
-            img[:,:,channel] = cv2.warpAffine(img[:,:,channel], mat, (cols,rows),
-                                              flags=(cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP),
-                                              borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+            img[:, :, channel] = cv2.warpAffine(img[:, :, channel], mat, (cols, rows),
+                                                flags=(cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP),
+                                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
         return img
-        
 
     @property
     def data(self):
@@ -80,8 +77,40 @@ class TiffFrame:
         return self._src.asarray()
 
     @property
+    def bit_depth(self):        
+        bit_depth = self._src.tags["BitsPerSample"].value
+        if self.is_rgb: # (int r, int g, int b)
+            return bit_depth[0]
+        else: # int
+            return bit_depth
+
+    @property
     def is_rgb(self):
         return self._src.tags["SamplesPerPixel"].value == 3
+
+    def _get_plot_data(self, channel="rgb", vmax=None): 
+        """ return data an numpy array, appropriate for use by `imshow`
+            if data is grayscale or channel in ('red', 'green', 'blue')
+                return data as is
+            if channel is 'rgb',  converted to float in range [0,1] and correct for optional vmax argument:
+                None  : normalize data to max signal of all channels
+                float : normalize data to vmax value
+        """
+        
+        if not self.is_rgb:
+            return self.data
+
+        if channel.lower() == "rgb":
+            data = (self.data / (2**self.bit_depth - 1)).astype(np.float)
+            if vmax is None:
+                return data/data.max()
+            else:
+                return data/vmax
+        else:
+            try:
+                return self.data[:, :, ("red", "green", "blue").index(channel.lower())]
+            except ValueError:
+                raise ValueError(f"'{channel}' is not a recognized channel")
 
     @property
     def start(self):
@@ -195,36 +224,45 @@ class CorrelatedStack:
         new_correlated_stack.stop_idx = (new_correlated_stack.src.num_frames if stop_idx is None else stop_idx)
         return new_correlated_stack
 
-    def plot(self, frame=0, **kwargs):
+    def plot(self, frame=0, channel="rgb", show_title=True, **kwargs):
         """Plot image from image stack
 
         Parameters
         ----------
         frame : int, optional
             Index of the frame to plot.
+        channel : 'rgb', 'red', 'green', 'blue', None; optional
+            Channel to plot for RGB images (None defaults to 'rgb')
+            Not used for grayscale images
+        show_title : bool, optional
+            Controls display of auto-generated plot title
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         import matplotlib.pyplot as plt
 
         default_kwargs = dict(
-            cmap='gray'
+            cmap='gray',
+            vmax=None
         )
+        kwargs = {**default_kwargs, **kwargs}
 
-        image = self._get_frame(frame).data
-        plt.imshow(image, **{**default_kwargs, **kwargs})
+        image = self._get_frame(frame)._get_plot_data(channel, vmax=kwargs["vmax"])
+        plt.imshow(image, **kwargs)
 
-        if self.num_frames == 1:
-            plt.title(self.name)
-        else:
-            plt.title(f"{self.name} [frame {frame}/{self.num_frames}]")
+        if show_title:
+            if self.num_frames == 1:
+                plt.title(self.name)
+            else:
+                # display with 1-based index for frames and total frames
+                plt.title(f"{self.name} [frame {frame+1}/{self.num_frames}]")
 
     def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:
             raise IndexError("Frame index out of range")
         return self.src.get_frame(self.start_idx + frame)
 
-    def plot_correlated(self, channel_slice, frame=0, reduce=np.mean):
+    def plot_correlated(self, channel_slice, frame=0, reduce=np.mean, channel="rgb"):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling function (e.g. np.mean)
         is evaluated for the time between a start and end time of a frame. Note: In environments which support
         interactive figures (e.g. jupyter notebook with ipywidgets or interactive python) this plot will be interactive.
@@ -239,6 +277,9 @@ class CorrelatedStack:
             The function which is going to reduce multiple samples into one. The default is
             :func:`numpy.mean`, but :func:`numpy.sum` could also be appropriate for some cases
             e.g. photon counts.
+        channel : 'rgb', 'red', 'green', 'blue', None; optional
+            Channel to plot for RGB images (None defaults to 'rgb')
+            Not used for grayscale images
 
 
         Examples
@@ -266,7 +307,7 @@ class CorrelatedStack:
         t, y = (downsampled.timestamps - t0)/1e9, downsampled.data
         ax1.step(t, y, where='pre')
         ax2.tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
-        image_object = ax2.imshow(fetched_frame.data, cmap='gray')
+        image_object = ax2.imshow(fetched_frame._get_plot_data(channel=channel), cmap='gray')
         plt.title(f"Frame {frame}")
 
         # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
@@ -294,7 +335,7 @@ class CorrelatedStack:
                     if current_frame.start <= time < current_frame.stop:
                         plt.title(f"Frame {img_idx}")
                         poly.remove()
-                        image_object.set_data(current_frame.data)
+                        image_object.set_data(current_frame._get_plot_data(channel=channel))
                         poly = update_position(current_frame)
                         fig.canvas.draw()
                         return
