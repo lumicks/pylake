@@ -258,6 +258,30 @@ def h5_file(tmpdir_factory, request):
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
+        ps_json_string = enc.encode({
+            "value0": {
+                "cereal_class_version": 1,
+                "fluorescence": True,
+                "force": False,
+                "scan count": 0,
+                "scan volume": {
+                    "center point (um)": {
+                        "x": 58.075877109272604,
+                        "y": 31.978375270573267,
+                        "z": 0
+                    },
+                    "cereal_class_version": 1,
+                    "pixel time (ms)": 0.2,
+                    "scan axes": []
+                    }
+                }
+            })
+
+        # Point Scan
+        ds = mock_file.make_json_data("Point Scan", "PointScan1", ps_json_string)
+        ds.attrs["Start time (ns)"] = np.int64(20e9)
+        ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
+
     return mock_file.file
 
 
