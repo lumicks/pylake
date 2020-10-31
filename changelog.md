@@ -12,7 +12,7 @@
 * Add `downsampled_to` to `Slice` for downsampling channel data to a new sampling frequency.
 * Add widget to graphically slice a `Slice` in Jupyter Notebooks. It can be opened by calling `channel.range_selector`. For more information, see [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
 * Fixed bug in `CorrelatedStack.plot_correlated` which lead to the start index of the frame being added twice when the movie had been sliced.
-* Fixed bug in `File.point_scans` to return `PointScan` instances. **Note that the `__init__` method arguments of `PointScan` have been changed to be in line with `Kymo` and `Scan`!**
+* Fixed bug in `File.point_scans` to return `PointScan` instances. Previously, attempts to access this property would cause an error due to missing `PointScan.from_dataset` method. **Note that the `__init__` method arguments of `PointScan` have been changed to be in line with `Kymo` and `Scan`!**
 * *Bugfix: fixed bug in `downsampled_over` which affects people who used it with `where="center"`. With these settings the function returns timestamps at the center of the ranges being downsampled over. In the previous version, this timestamp included the end timestamp (i.e. x <= t <= x), now it has been changed to exclude the end timestamp (i.e. x <= t < x) making it consistent with `downsampled_by` for integer downsampling rates.*
 * Bugfix: fixed bug in `plot_correlated` which did not allow plotting camera images correlated to channel data when the channel data did not completely cover the camera image stack. 
 

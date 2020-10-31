@@ -1,5 +1,4 @@
 import json
-import warnings
 
 from .detail.mixin import PhotonCounts
 from .detail.mixin import ExcitationLaserPower
@@ -86,8 +85,7 @@ class PointScan(PhotonCounts, ExcitationLaserPower):
 
     @classmethod
     def from_dataset(cls, h5py_dset, file):
-        """
-        Construct PointScan class from dataset.
+        """Construct PointScan class from dataset.
 
         Parameters
         ----------
