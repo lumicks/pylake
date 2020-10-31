@@ -112,7 +112,10 @@ def test_properties(h5_file):
         assert f.scans == {}
     else:
         assert len(f.scans) == 4
-    assert f.point_scans == {}
+    if f.format_version == 1:
+        assert f.point_scans == {}
+    else:
+        assert len(f.point_scans) == 1
     assert f.fdcurves == {}
 
 
@@ -223,6 +226,10 @@ def test_repr_and_str(h5_file):
               Red:
               - Data type: uint32
               - Size: 64
+            Point Scan:
+              PointScan1:
+              - Data type: object
+              - Size: 1
             
             .markers
               - test_marker
@@ -236,7 +243,7 @@ def test_repr_and_str(h5_file):
               - fast Y slow X
               - fast Y slow X multiframe
               - fast Y slow Z multiframe
-            
+
             .force1x
               .calibration
             .force1y
