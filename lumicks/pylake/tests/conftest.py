@@ -2,6 +2,12 @@ import h5py
 import numpy as np
 import pytest
 import json
+import matplotlib.pyplot as plt
+
+
+def pytest_configure():
+    # Use a headless backend for testing
+    plt.switch_backend('agg')
 
 
 # We generate mock data files for different versions of the Bluelake HDF5 file
