@@ -21,6 +21,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
     - name: Upload coverage to GH artefacts
-    - name: test-artifact
       uses: actions/upload-artifact@v2
-      path: ./cov_html/
+      with:
+        name: cool_artefact
+        path: ./cov_html/
