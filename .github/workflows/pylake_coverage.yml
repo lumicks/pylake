@@ -17,5 +17,11 @@ jobs:
     - name: Generate coverage report
       run: |
         pytest --cov=./ --cov-report=xml
+        pytest --cov=./cov_html/ --cov-report=html
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
+    - name: Upload coverage to GH artefacts
+    - uses: actions/upload-artifact@v2
+      with:
+        name: test-artifact
+        path: ./cov_html/
