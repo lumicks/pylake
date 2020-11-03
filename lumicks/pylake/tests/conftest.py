@@ -5,9 +5,25 @@ import json
 import matplotlib.pyplot as plt
 
 
-def pytest_configure():
+def pytest_addoption(parser):
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
+
+def pytest_configure(config):
     # Use a headless backend for testing
     plt.switch_backend('agg')
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
 
 
 # We generate mock data files for different versions of the Bluelake HDF5 file
@@ -366,3 +382,16 @@ def h5_file_invalid_version(tmpdir_factory):
 
     return mock_file
 
+
+@pytest.fixture(scope="session")
+def report_line():
+    import atexit
+
+    def reporter(text):
+        """Print this line to a report at the end of the testing procedure"""
+        def report():
+            print(text)
+
+        atexit.register(report)
+
+    return reporter
