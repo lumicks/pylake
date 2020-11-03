@@ -187,7 +187,8 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         import matplotlib.pyplot as plt
 
         width_um = self._ordered_axes()[0]["scan width (um)"]
-        duration = (self.stop - self.start) / 1e9
+        ts = self.timestamps
+        duration = (ts[0, -1] - ts[0, 0]) / 1e9
 
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)

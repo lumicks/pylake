@@ -2,6 +2,8 @@ import numpy as np
 from lumicks import pylake
 import pytest
 from lumicks.pylake.kymo import EmptyKymo
+import matplotlib.pyplot as plt
+from matplotlib.testing.decorators import cleanup
 
 
 def test_kymo_properties(h5_file):
@@ -117,3 +119,14 @@ def test_damaged_kymo(h5_file):
         with pytest.warns(RuntimeWarning):
             assert kymo.red_image.shape == (5, 3)
         assert np.allclose(kymo.red_image.data, kymo_reference[:, 1:])
+
+
+@cleanup
+def test_plotting(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+        
+        kymo.plot_red()
+        assert np.allclose(np.sort(plt.xlim()), [0, 3.03125])
+        assert np.allclose(np.sort(plt.ylim()), [0, 36.075])
