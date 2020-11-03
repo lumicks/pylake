@@ -2,6 +2,7 @@
 
 ![Build Status](https://github.com/lumicks/pylake/workflows/pytest/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/lumicks-pylake/badge/?version=latest)](https://lumicks-pylake.readthedocs.io/en/latest/?badge=latest)
+[![Code Coverage](https://codecov.io/gh/lumicks/pylake/branch/master/graph/badge.svg)](https://codecov.io/gh/lumicks/pylake)
 
 This Python package includes data analysis tools for Bluelake HDF5 data.
 
