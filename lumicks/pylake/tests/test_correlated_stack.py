@@ -164,11 +164,11 @@ def test_correlation():
     # slice based on a stack.
     ch = cc.downsampled_over(stack[0:3].timestamps)
     assert(np.allclose(ch.data, [np.mean(np.arange(10, 18, 2)), np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2))]))
-    assert (np.allclose(ch.timestamps, [(10 + 18) / 2, (20 + 28) / 2, (30 + 38) / 2]))
+    assert (np.allclose(ch.timestamps, [(10 + 16) / 2, (20 + 26) / 2, (30 + 36) / 2]))
 
     ch = cc.downsampled_over(stack[1:4].timestamps)
     assert (np.allclose(ch.data, [np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2)), np.mean(np.arange(40, 48, 2))]))
-    assert (np.allclose(ch.timestamps, [(20 + 28) / 2, (30 + 38) / 2, (40 + 48) / 2]))
+    assert (np.allclose(ch.timestamps, [(20 + 26) / 2, (30 + 36) / 2, (40 + 46) / 2]))
 
     with pytest.raises(TypeError):
         cc.downsampled_over(stack[1:4])
@@ -190,7 +190,7 @@ def test_correlation():
 
     # Regression test downsampled_over losing precision due to reverting to double rather than int64.
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 1588267266006287100, 1000))
-    ch = cc.downsampled_over([(1588267266006287100, 2588267266006287100)], where='left')
+    ch = cc.downsampled_over([(1588267266006287100, 1588267266006287120)], where='left')
     assert int(ch.timestamps[0]) == 1588267266006287100
 
 
@@ -275,10 +275,11 @@ def test_plot_correlated_smaller_channel():
 
     # Regression test for a bug where the start index was added twice. In the regression, this lead to an out of range
     # error.
-    fake_tiff = TiffStack(MockTiff(data=[np.zeros((3, 3)), np.ones((3, 3)), np.ones((3, 3))*2,
-                                         np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
-                                   times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
-                                          ["60", "70"]]))
+    fake_tiff = TiffStack(MockTiffFile(data=[np.zeros((3, 3)), np.ones((3, 3)), np.ones((3, 3))*2,
+                                             np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
+                                       times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
+                                              ["60", "70"]]),
+                                       align=True)
 
     # Add test for when there's only a subset in terms of channel data
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 30, 2), {"y": "mock", "title": "mock"})

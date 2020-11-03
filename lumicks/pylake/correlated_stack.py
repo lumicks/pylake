@@ -6,8 +6,6 @@ import cv2
 import tifffile
 import warnings
 
-from .channel import Slice, TimeSeries
-
 
 class TiffFrame:
     """Thin wrapper around a TIFF frame stack. For camera videos timestamps are stored in the DateTime tag in
@@ -294,7 +292,7 @@ class CorrelatedStack:
         """
         import matplotlib.pyplot as plt
 
-        downsampled = channel_slice.downsampled_over(self.timestamps, where='left')
+        downsampled = channel_slice.downsampled_over(self.timestamps, where='left', reduce=reduce)
 
         if len(downsampled.timestamps) < len(self.timestamps):
             warnings.warn("Only subset of time range available for selected channel")
