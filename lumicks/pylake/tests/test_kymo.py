@@ -112,7 +112,8 @@ def test_damaged_kymo(h5_file):
         kymo = f.kymos["Kymo1"]
         kymo_reference = np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
 
-        kymo.start = kymo.red_photon_count.timestamps[0] - 1  # Assume the user incorrectly exported only a partial Kymo
+        # Assume the user incorrectly exported only a partial Kymo
+        kymo.start = kymo.red_photon_count.timestamps[0] - 62500000
         with pytest.warns(RuntimeWarning):
             assert kymo.red_image.shape == (5, 3)
         assert np.allclose(kymo.red_image.data, kymo_reference[:, 1:])

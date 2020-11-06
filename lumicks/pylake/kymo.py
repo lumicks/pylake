@@ -75,7 +75,7 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
     def _get_photon_count(self, name):
         photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
-        if self._has_incorrect_start(photon_count._src.start):
+        if self._has_incorrect_start(photon_count._src.start, photon_count._src.dt):
             photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
 
         return photon_count
@@ -114,10 +114,16 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
             self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line).T
         return self._cache[color]
 
-    def _has_incorrect_start(self, timeline_start):
+    def _has_incorrect_start(self, timeline_start, timeline_dt):
         """Checks whether the scan or kymograph starts before the timeline information. If this is the case, it will
         lead to an incorrect reconstruction. For kymographs this is recoverable by omitting the first line. For scans
         it is currently unrecoverable."""
+
+        # Workaround for a bug in the STED delay mechanism which could result in scan start times ending up within
+        # the sample time.
+        if timeline_start - timeline_dt < self.start < timeline_start:
+            self.start = timeline_start
+
         if timeline_start > self.start:
             if type(self) == Kymo:
                 self.start = seek_timestamp_next_line(self.infowave[self.start:])

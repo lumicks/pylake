@@ -104,9 +104,16 @@ def test_damaged_scan(h5_file):
     if f.format_version == 2:
         scan = f.scans["fast Y slow X"]
 
-        scan.start = scan.red_photon_count.timestamps[0] - 1  # Assume the user incorrectly exported only a partial scan
+        # Assume the user incorrectly exported only a partial scan (62500000 is the time step)
+        scan.start = scan.red_photon_count.timestamps[0] - 62500000
         with pytest.raises(RuntimeError):
             scan.red_image.shape
+
+        # Test for workaround for a bug in the STED delay mechanism which could result in scan start times ending up
+        # within the sample time.
+        scan = f.scans["fast Y slow X"]
+        scan.start = scan.red_photon_count.timestamps[0] - 62400000
+        scan.red_image.shape
 
 
 @cleanup
