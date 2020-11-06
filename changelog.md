@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.7.1 | t. b. d.
+* Add workaround for `Scan` and `Kymo` which could prevent valid scans and kymos from being opened when the `start` timestamp of a scan or kymo had a value before the actual start of the timeline channels. The cause of this subsample time difference was the lack of quantization of a delay when acquiring STED images.
+
 ## v0.7.0 | 2020-11-04
 
 #### New features
