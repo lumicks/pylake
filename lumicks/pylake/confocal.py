@@ -112,7 +112,6 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         for color in ["red", "green", "blue"]:
             self._plot_color(color, **kwargs)
 
-
     @property
     def has_fluorescence(self) -> bool:
         return self.json["fluorescence"]
@@ -126,8 +125,7 @@ class ConfocalImage():
 
     def _has_incorrect_start(self, timeline_start, timeline_dt):
         """Checks whether the scan or kymograph starts before the timeline information. If this is the case, it will
-        lead to an incorrect reconstruction. For kymographs this is recoverable by omitting the first line. For scans
-        it is currently unrecoverable."""
+        lead to an incorrect reconstruction. If implemented, resolve the problem."""
 
         # Workaround for a bug in the STED delay mechanism which could result in scan start times ending up within
         # the sample time.
@@ -135,15 +133,11 @@ class ConfocalImage():
             self.start = timeline_start
 
         if timeline_start > self.start:
-            if type(self) == Kymo:
-                self.start = seek_timestamp_next_line(self.infowave[self.start:])
-                self._cache = {}
-                warnings.warn("Start of the kymograph was truncated. Omitting the truncated first line.",
-                              RuntimeWarning)
-                return True
-            else:
-                raise RuntimeError("Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
-                                   "entire scan time in Bluelake?")
+            self._fix_incorrect_start()
+            return True
+
+    def _fix_incorrect_start(self):
+        raise NotImplementedError
 
     def _ordered_axes(self):
         """Returns axis indices in spatial order"""

@@ -60,6 +60,14 @@ class Kymo(ConfocalImage, BaseScan):
 
         return Kymo(self.name, self.file, start, stop, self.json)
 
+    def _fix_incorrect_start(self):#, timeline_start, timeline_dt):
+        """ Resolve error when confocal scan starts before the timeline information.
+            For kymographs this is recoverable by omitting the first line. """
+        self.start = seek_timestamp_next_line(self.infowave[self.start:])
+        self._cache = {}
+        warnings.warn("Start of the kymograph was truncated. Omitting the truncated first line.",
+                        RuntimeWarning)
+
     def _image(self, color):
         if color not in self._cache:
             photon_counts = getattr(self, f"{color}_photon_count").data

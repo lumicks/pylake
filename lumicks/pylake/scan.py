@@ -48,6 +48,12 @@ class Scan(ConfocalImage, BaseScan):
     def lines_per_frame(self):
         return self.json["scan volume"]["scan axes"][1]["num of pixels"]
 
+    def _fix_incorrect_start(self):
+        """ Resolve error when confocal scan starts before the timeline information.
+            For scans, this is currently unrecoverable. """
+        raise RuntimeError("Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
+                            "entire scan time in Bluelake?")
+
     def _to_spatial(self, data):
         """If the first axis of the reconstruction has a higher physical axis number than the second, we flip the axes.
 
