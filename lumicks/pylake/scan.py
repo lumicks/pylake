@@ -1,10 +1,14 @@
 import numpy as np
 
-from .confocal import BaseScan, ConfocalImage, axis_label
+from .detail.confocal import ConfocalImage
 from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
 
 
-class Scan(BaseScan, ConfocalImage):
+"""Axis label used for plotting"""
+axis_label = ("x", "y", "z")
+
+
+class Scan(ConfocalImage):
     """A confocal scan exported from Bluelake
 
     Parameters
@@ -34,10 +38,6 @@ class Scan(BaseScan, ConfocalImage):
         raise NotImplementedError("Indexing and slicing are not implemented for scans")
 
     @property
-    def line_time_seconds(self):
-        raise NotImplementedError("line_time_seconds not implemented for scans")
-
-    @property
     def num_frames(self):
         if self._num_frames == 0:
             self._num_frames = reconstruct_num_frames(self.infowave.data, self.pixels_per_line,
@@ -47,6 +47,12 @@ class Scan(BaseScan, ConfocalImage):
     @property
     def lines_per_frame(self):
         return self.json["scan volume"]["scan axes"][1]["num of pixels"]
+
+    def _fix_incorrect_start(self):
+        """ Resolve error when confocal scan starts before the timeline information.
+            For scans, this is currently unrecoverable. """
+        raise RuntimeError("Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
+                            "entire scan time in Bluelake?")
 
     def _to_spatial(self, data):
         """If the first axis of the reconstruction has a higher physical axis number than the second, we flip the axes.

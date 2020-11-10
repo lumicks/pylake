@@ -94,9 +94,6 @@ def test_scans(h5_file):
         assert scan.fast_axis == "Y"
         assert np.allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
 
-        with pytest.raises(NotImplementedError):
-            scan.line_time_seconds
-
 
 def test_damaged_scan(h5_file):
     f = pylake.File.from_h5py(h5_file)
@@ -112,8 +109,11 @@ def test_damaged_scan(h5_file):
         # Test for workaround for a bug in the STED delay mechanism which could result in scan start times ending up
         # within the sample time.
         scan = f.scans["fast Y slow X"]
-        scan.start = scan.red_photon_count.timestamps[0] - 62400000
-        scan.red_image.shape
+
+        middle = scan.red_photon_count.timestamps[5]
+        scan.start = middle - 62400000
+        scan.red_image.shape  # should not raise, but change the start appropriately to work around sted bug
+        assert np.allclose(scan.start, middle)
 
 
 @cleanup
@@ -134,6 +134,22 @@ def test_plotting(h5_file):
         scan.plot_rgb()
         assert np.allclose(np.sort(plt.xlim()), [0, .191 * 4])
         assert np.allclose(np.sort(plt.ylim()), [0, .197 * 3])
+
+
+def test_save_tiff(tmpdir_factory, h5_file):
+    from os import stat
+
+    f = pylake.File.from_h5py(h5_file)
+    tmpdir = tmpdir_factory.mktemp("pylake")
+
+    if f.format_version == 2:
+        scan = f.scans["fast Y slow X"]
+        scan.save_tiff(f"{tmpdir}/single_frame.tiff")
+        assert stat(f"{tmpdir}/single_frame.tiff").st_size > 0
+
+        scan = f.scans["fast Y slow X multiframe"]
+        scan.save_tiff(f"{tmpdir}/multi_frame.tiff")
+        assert stat(f"{tmpdir}/multi_frame.tiff").st_size > 0
 
 
 def test_movie_export(tmpdir_factory, h5_file):
