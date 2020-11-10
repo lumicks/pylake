@@ -1,17 +1,16 @@
 import numpy as np
 
-from .kymo import axis_label
-from .kymo import Kymo
+from .confocal import BaseScan, ConfocalImage, axis_label
 from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
 
 
-class Scan(Kymo):
+class Scan(BaseScan, ConfocalImage):
     """A confocal scan exported from Bluelake
 
     Parameters
     ----------
     name : str
-        Kymograph name
+        Scan name
     file : lumicks.pylake.File
         Parent file. Contains the channel data.
     start : int
@@ -19,10 +18,10 @@ class Scan(Kymo):
     stop : int
         End point in the relevant info wave.
     json : dict
-        Dictionary containing kymograph-specific metadata.
+        Dictionary containing scan-specific metadata.
     """
     def __init__(self, name, file, start, stop, json):
-        super().__init__( name, file, start, stop, json)
+        super().__init__(name, file, start, stop, json)
         self._num_frames = self.json["scan count"]
         if len(self.json["scan volume"]["scan axes"]) > 2:
             raise RuntimeError("3D scans are not supported")
