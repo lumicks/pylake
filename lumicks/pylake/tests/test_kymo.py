@@ -145,3 +145,15 @@ def test_plotting_with_force(h5_file):
         kymo.plot_with_force(force_channel="2x", color_channel="red")
         assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
         assert np.allclose(np.sort(plt.ylim()), [10, 30])
+        
+        
+def test_save_tiff(tmpdir_factory, h5_file):
+    from os import stat
+
+    f = pylake.File.from_h5py(h5_file)
+    tmpdir = tmpdir_factory.mktemp("pylake")
+
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+        kymo.save_tiff(f"{tmpdir}/kymo1.tiff")
+        assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
