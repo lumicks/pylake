@@ -2,18 +2,13 @@ import json
 import numpy as np
 import warnings
 
-from .detail.mixin import PhotonCounts
-from .detail.mixin import ExcitationLaserPower
+from .confocal import BaseScan, ConfocalImage, axis_label
 from .detail.image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
     seek_timestamp_next_line
 from .detail.timeindex import to_timestamp
 
 
-"""Axis label used for plotting"""
-axis_label = ("x", "y", "z")
-
-
-class Kymo(PhotonCounts, ExcitationLaserPower):
+class Kymo(BaseScan, ConfocalImage):
     """A Kymograph exported from Bluelake
 
     Parameters
@@ -29,13 +24,6 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
     json : dict
         Dictionary containing kymograph-specific metadata.
     """
-    def __init__(self, name, file, start, stop, json):
-        self.start = start
-        self.stop = stop
-        self.name = name
-        self.json = json
-        self.file = file
-        self._cache = {}
 
     def __repr__(self):
         name = self.__class__.__name__
@@ -85,14 +73,6 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         return sorted(self.json["scan volume"]["scan axes"], key=lambda x: x["axis"])
 
     @property
-    def _fast_axis_metadata(self):
-        return self.json["scan volume"]["scan axes"][0]
-
-    @property
-    def fast_axis(self):
-        return "X" if self._fast_axis_metadata["axis"] == 0 else "Y"
-
-    @property
     def has_fluorescence(self) -> bool:
         return self.json["fluorescence"]
 
@@ -103,10 +83,6 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
     @property
     def infowave(self):
         return self.file["Info wave"]["Info wave"][self.start:self.stop]
-
-    @property
-    def pixels_per_line(self):
-        return self._fast_axis_metadata["num of pixels"]
 
     def _image(self, color):
         if color not in self._cache:
@@ -327,28 +303,6 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
 
-    @classmethod
-    def from_dataset(cls, h5py_dset, file):
-        """
-        Construct Kymograph class from dataset.
-
-        Parameters
-        ----------
-        h5py_dset : h5py.Dataset
-            The original HDF5 dataset containing kymo information
-        file : lumicks.pylake.File
-            The parent file. Used to loop up channel data
-        """
-        start = h5py_dset.attrs["Start time (ns)"]
-        stop = h5py_dset.attrs["Stop time (ns)"]
-        name = h5py_dset.name.split("/")[-1]
-        try:
-            json_data = json.loads(h5py_dset[()])["value0"]
-        except KeyError:
-            raise KeyError(f"Scan '{name}' is missing metadata and cannot be loaded")
-
-        return cls(name, file, start, stop, json_data)
-
 
 class EmptyKymo(Kymo):
     def plot_rgb(self):
@@ -359,4 +313,3 @@ class EmptyKymo(Kymo):
 
     def _image(self, color):
         return np.empty((self.pixels_per_line, 0))
-
