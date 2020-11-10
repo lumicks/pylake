@@ -4,7 +4,7 @@ from .confocal import BaseScan, ConfocalImage, axis_label
 from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
 
 
-class Scan(BaseScan, ConfocalImage):
+class Scan(ConfocalImage, BaseScan):
     """A confocal scan exported from Bluelake
 
     Parameters
