@@ -183,7 +183,7 @@ Note that this same flag can also be used to force a specific downsampling rate 
 A slice can also be downsampled over arbitrary time segments by using `downsampled_over` and supplying a 
 list of `(start, stop)` tuples indicating over which ranges to apply the function.
 
-Finally, a slice that contains equally spaced timestamps can be downsampled by a specific factor using `downsampled_by`
+A slice that contains equally spaced timestamps can be downsampled by a specific factor using `downsampled_by`
 *(note that the ratio of the original/final sampling frequencies must be an integer.)*::
 
     channel = file.force1x # original frequency 78125 Hz
@@ -191,6 +191,15 @@ Finally, a slice that contains equally spaced timestamps can be downsampled by a
 
     ds_channel = channel.downsampled_by(5)
     ds_timestep = np.diff(ds_channel.timestamps[:2]) * 1e-9  # timestep 64 us
+
+Sometimes, one may want to downsample a high frequency channel in exactly the same way that a Bluelake low frequency
+channel is sampled. For this purpose you can use `downsampled_like`::
+
+    lf_data = file["Force LF"]["Force 1x"]
+    downsampled = file["Force HF"]["Force 1x"].downsampled_like(lf_data)
+
+    plt.plot((lf_data.timestamps - lf_data.timestamps[0])/1e9, lf_data.data)
+    plt.plot((downsampled.timestamps - lf_data.timestamps[0])/1e9, downsampled.data)
 
 Calibrations
 ------------

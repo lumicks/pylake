@@ -505,3 +505,22 @@ def test_downsampling_over_subset():
     sd = s.downsampled_over([(20, 40), (40, 60), (60, 80)])
     np.allclose(sd.data, [(3+4)/2, (4+5)/2, (5+6)/2])
     np.allclose(sd.timestamps, [(20+30)/2, (40+50)/2, (60+70)/2])
+
+
+def test_downsampling_like():
+    d = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9]
+    s = channel.Slice(channel.Continuous(d, 100, 2))
+
+    t_downsampled = np.array([0, 4, 8, 12, 16, 34, 40, 46, 50, 54]) + 100
+    y_downsampled = np.array([0, 1, 2, 3, 4, 6, 7, 8, 9, 10])
+    reference = channel.Slice(channel.TimeSeries(y_downsampled, t_downsampled))
+
+    ds = s.downsampled_like(reference)
+    assert np.allclose(t_downsampled[1:-1], ds.timestamps)
+    assert np.allclose(y_downsampled[1:-1], ds.data)
+
+    with pytest.raises(NotImplementedError):
+        reference.downsampled_like(reference)
+
+    with pytest.raises(AssertionError):
+        s.downsampled_like(s)

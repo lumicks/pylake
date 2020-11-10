@@ -173,7 +173,6 @@ class Slice:
                     sample times and a variable number of sampling contributing to each target sample, 
                     but must be used for variable-frequency data
         """
-
         if method not in ("safe", "ceil", "force"):
             raise ValueError(f"method '{method}' is not recognized")
 
@@ -219,6 +218,53 @@ class Slice:
             cases, e.g. photon counts.
         """
         return self._with_data_source(self._src.downsampled_by(factor, reduce))
+
+    def downsampled_like(self, other_slice, reduce=np.mean):
+        """Downsample high frequency data analogously to a low frequency channel in the same way that Bluelake does it.
+
+        Parameters
+        ----------
+        other_slice : Slice
+            Timeline channel to downsample like. This should be a low frequency channel that provides the timestamps
+            to downsample to.
+        reduce : callable
+            The `numpy` function which is going to reduce multiple samples into one.
+            The default is `np.mean`, but `np.sum` could also be appropriate for some
+            cases, e.g. photon counts.
+        """
+        assert isinstance(other_slice._src, TimeSeries), "You did not pass a low frequency channel to serve as " \
+                                                         "reference channel."
+
+        if not isinstance(self._src, Continuous):
+            raise NotImplementedError("Downsampled_like is only available for high frequency channels")
+
+        timestamps = other_slice.timestamps
+        delta_time = np.diff(timestamps)
+
+        assert self._src.start < timestamps[-1], "No overlap between range and selected channel."
+        assert self._src.stop > timestamps[0] - delta_time[0], "No overlap between range and selected channel"
+
+        # When the frame rate changes, one frame is very long due to the delay of the camera. It should default to
+        # the new frame rate.
+        change_points, = np.nonzero(np.abs(np.diff(delta_time) > 0))
+        try:
+            for i in change_points:
+                delta_time[i + 1] = delta_time[i + 2]
+        except IndexError:
+            pass
+
+        # We copy the front delta_time to keep indices in sync with the main timeline.
+        delta_time = np.hstack((delta_time[0], delta_time))
+
+        start_idx = np.searchsorted(timestamps - delta_time[0], self._src.start)
+        stop_idx = np.searchsorted(timestamps, self._src.stop)
+        timestamps = timestamps[start_idx:stop_idx]
+        delta_time = delta_time[start_idx:stop_idx]
+
+        downsampled = np.array([reduce(self[start:stop].data)
+                                for start, stop in zip(timestamps - delta_time, timestamps)])
+
+        return Slice(TimeSeries(downsampled, timestamps))
 
     def plot(self, **kwargs):
         """A simple line plot to visualize the data over time
