@@ -54,6 +54,16 @@ class Slice:
         return self.__class__(data_source, self.labels, self._calibration)
 
     @property
+    def start(self):
+        """Starting timestamp of this time series in nanoseconds"""
+        return self._src.start
+
+    @property
+    def stop(self):
+        """End timestamp of this time series in nanoseconds"""
+        return self._src.stop
+
+    @property
     def data(self):
         """The primary values of this channel slice"""
         return self._src.data
