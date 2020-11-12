@@ -276,17 +276,20 @@ class Slice:
 
         return Slice(TimeSeries(downsampled, timestamps))
 
-    def plot(self, **kwargs):
+    def plot(self, start=None, **kwargs):
         """A simple line plot to visualize the data over time
 
         Parameters
         ----------
+        start : int64
+            Origin timestamp. This can be used to plot two slices starting at different times on the same axis.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
         """
         import matplotlib.pyplot as plt
 
-        plt.plot(self.seconds, self.data, **kwargs)
+        start = start if start is not None else self._src.start
+        plt.plot((self._src.timestamps - start) * 1e-9, self.data, **kwargs)
         plt.xlabel(self.labels.get("x", "Time") + " (s)")
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))

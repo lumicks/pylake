@@ -5,6 +5,7 @@
 * Fixed bug in `Kymo` plotting functions. Previously, the time limits were calculated using the fly-in/out times which could lead to subtle discrepancies when comparing against force channels. These dead times are now omitted.
 * Added `Slice.downsampled_like` to downsample a high frequency channel according to the timestamps of a low frequency channel, using the same downsampling method as Bluelake.
 * Add `start` and `stop` property to `Slice`.
+* Add `start` argument to `Slice.plot()` which allows you to use a specific timestamp as time point zero. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#channels) for more information.
 
 ## v0.7.0 | 2020-11-04
 
