@@ -94,9 +94,6 @@ def test_scans(h5_file):
         assert scan.fast_axis == "Y"
         assert np.allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
 
-        with pytest.raises(NotImplementedError):
-            scan.line_time_seconds
-
 
 def test_damaged_scan(h5_file):
     f = pylake.File.from_h5py(h5_file)
