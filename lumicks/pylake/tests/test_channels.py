@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
+import matplotlib as mpl
+from matplotlib.testing.decorators import cleanup
 
 
 def test_calibration_timeseries_channels():
@@ -542,3 +544,25 @@ def test_downsampling_like():
 
     with pytest.raises(AssertionError):
         s.downsampled_like(s)
+
+@cleanup
+def test_channel_plot():
+    def testLine(x, y):
+        data = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.lines.Line2D)]
+        assert len(data) == 1
+        line = data[0].get_data()
+        assert np.allclose(line[0], x)
+        assert np.allclose(line[1], y)
+
+    d = np.arange(1, 24)
+    s = channel.Slice(channel.Continuous(d, int(5e9), int(10e9)))
+    s.plot()
+    testLine(np.arange(0, 230, 10), d)
+
+    mpl.pyplot.gca().clear()
+    s.plot(start=0)
+    testLine(np.arange(5, 230, 10), d)
+
+    mpl.pyplot.gca().clear()
+    s.plot(start=100e9)
+    testLine(np.arange(0, 230, 10) - 100 + 5, d)

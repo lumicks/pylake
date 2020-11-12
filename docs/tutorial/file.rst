@@ -151,6 +151,13 @@ Once you access the raw data, those are regular arrays which use regular array i
     channel_slice = file.force1x['1.5s':'20s']  # timestamps
     data_slice = file.force1x.data[20:40]  # indices into the array
 
+Plotting is typically performed with the origin of the plot set to the timestamp of the start of the slice. Sometimes, you may want to plot two slices together that have different starting times. You can pass a custom reference timestamp to the plotting function to make sure they use the same time shift::
+
+    first_slice = file.force1x['5s':'10s']
+    second_slice = file.force1x['15s':'20s']
+    first_slice.plot()
+    second_slice.plot(start=first_slice.start)  # we want to use the start of first_slice as time point "zero"
+
 Downsampling
 ^^^^^^^^^^^^
 
