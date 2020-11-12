@@ -148,6 +148,24 @@ def test_empty_slice():
     assert len(s[1:2].timestamps) == 0
 
 
+def test_start_stop():
+    s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [4, 6, 8, 10]))
+    assert np.allclose(s.start, 4)
+    assert np.allclose(s.stop, 10 + 1)
+
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], 4, 2))
+    assert np.allclose(s.start, 4)
+    assert np.allclose(s.stop, 12)
+
+    s = channel.Slice(channel.TimeTags([14, 15, 16, 17]))
+    assert np.allclose(s.start, 14)
+    assert np.allclose(s.stop, 17 + 1)
+
+    s = channel.Slice(channel.TimeTags([14, 15, 16, 17], 4, 30))
+    assert np.allclose(s.start, 4)
+    assert np.allclose(s.stop, 30)
+
+
 def test_timeseries_indexing():
     """The default integer indices are in timestamps (ns)"""
     s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]))
