@@ -274,7 +274,7 @@ class Slice:
         downsampled = np.array([reduce(self[start:stop].data)
                                 for start, stop in zip(timestamps - delta_time, timestamps)])
 
-        return Slice(TimeSeries(downsampled, timestamps))
+        return self._with_data_source(TimeSeries(downsampled, timestamps))
 
     def plot(self, start=None, **kwargs):
         """A simple line plot to visualize the data over time
