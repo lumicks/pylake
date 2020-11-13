@@ -205,8 +205,8 @@ channel is sampled. For this purpose you can use `downsampled_like`::
     lf_data = file["Force LF"]["Force 1x"]
     downsampled = file["Force HF"]["Force 1x"].downsampled_like(lf_data)
 
-    plt.plot((lf_data.timestamps - lf_data.timestamps[0])/1e9, lf_data.data)
-    plt.plot((downsampled.timestamps - lf_data.timestamps[0])/1e9, downsampled.data)
+    lf_data.plot()
+    downsampled.plot(start=lf_data.start)
 
 Calibrations
 ------------
