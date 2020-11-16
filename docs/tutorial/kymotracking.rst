@@ -83,6 +83,28 @@ Plotting all the detected traces is also quite easy by iterating over the list o
 
 .. image:: kymotracked.png
 
+Once we are happy with the traces found by the algorithm, we may still want to refine them. Since the algorithm finds
+traces by determining local peaks and stringing these together, it is possible that some scan lines in the kymograph
+don't have an explicit point on the trace associated with them. Using :func:`~lumicks.pylake.refine_lines_centroid` we
+can refine the traces found by the algorithm. This function interpolates the lines such that each time point gets its
+own point on the trace. Subsequently, these points are then refined using a brightness weighted centroid. Let's perform
+line refinement and plot the longest trace::
+
+    longest_trace_idx = np.argmax([len(trace) for trace in traces])  # Get the longest trace
+
+    refined = lk.refine_lines_centroid(traces, line_width=3)
+
+    plt.plot(refined[longest_index].time_idx, refined[longest_index].coordinate_idx, '.')
+    plt.plot(traces[longest_index].time_idx, traces[longest_index].coordinate_idx, '.')
+    plt.legend(["Post refinement", "Pre-refinement"])
+    plt.ylabel('Position [pixels]')
+    plt.xlabel('Time [pixels]')
+
+.. image:: kymo_refine.png
+
+We can see now that a few points were added post refinement (shown in blue). The others remain unchanged, since we used
+the same `line_width`.
+
 Fortunately, the signal to noise level in this kymograph is quite good. In practice, when the signal to noise is lower,
 one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
 an acceptable result.

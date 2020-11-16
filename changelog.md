@@ -5,6 +5,7 @@
 * Support Python 3.9 on Windows (this required bumping the `h5py` requirement to >= 3.0).
 * Include `ipywidgets` as a dependency so users don't have to install it themselves.
 * Allow `nbAgg` backend to be used for interactive plots in Jupyter notebooks (i.e. `%matplotlib notebook`). Note that this backend doesn't work for JupyterLab (please see the [FAQ](https://lumicks-pylake.readthedocs.io/en/simplify_widgets/install.html#frequently-asked-questions) for more information).
+* Added `refine_lines_centroid` for refining lines detected by the kymotracking algorithm. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 ## v0.7.1 | 2020-11-19
 
