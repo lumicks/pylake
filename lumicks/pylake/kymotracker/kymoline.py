@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class KymoLine:
@@ -42,6 +41,12 @@ class KymoLine:
         time_match = np.logical_and(time_idx < rect[1][0], time_idx >= rect[0][0])
         coord_match = np.logical_and(coordinate_idx < rect[1][1], coordinate_idx >= rect[0][1])
         return np.any(np.logical_and(time_match, coord_match))
+
+    def interpolate(self):
+        """Interpolate Kymoline to whole pixel values"""
+        interpolated_time = np.arange(int(np.min(self.time_idx)), int(np.max(self.time_idx)) + 1, 1)
+        interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
+        return KymoLine(interpolated_time, interpolated_coord, self.image_data)
 
     def sample_from_image(self, num_pixels, reduce=np.sum):
         """Sample from image using coordinates from this KymoLine.
