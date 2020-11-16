@@ -123,7 +123,7 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
     else:
         raise RuntimeError("Iteration limit exceeded")
 
-    return KymoPeaks(coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points])
+    return coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points]
 
 
 def merge_close_peaks(peaks, minimum_distance):

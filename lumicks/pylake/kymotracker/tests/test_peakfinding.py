@@ -14,7 +14,7 @@ def test_peak_estimation(location):
 
     # Deliberately mis-shift the initial guess
     position = position + 5
-    peaks = refine_peak_based_on_moment(data, position, time, 4)
+    peaks = KymoPeaks(*refine_peak_based_on_moment(data, position, time, 4))
     assert np.abs(peaks.frames[0].coordinates[0] - location) < 1e-3
 
 

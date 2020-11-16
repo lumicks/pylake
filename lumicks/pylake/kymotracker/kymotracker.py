@@ -1,4 +1,5 @@
-from lumicks.pylake.kymotracker.detail.peakfinding import peak_estimate, refine_peak_based_on_moment, merge_close_peaks
+from lumicks.pylake.kymotracker.detail.peakfinding import peak_estimate, refine_peak_based_on_moment, merge_close_peaks, \
+    KymoPeaks
 from lumicks.pylake.kymotracker.detail.trace_line_2d import detect_lines, points_to_line_segments
 from lumicks.pylake.kymotracker.detail.scoring_functions import kymo_score
 import numpy as np
@@ -84,7 +85,7 @@ def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.
     if len(coordinates) == 0:
         return []
 
-    peaks = refine_peak_based_on_moment(data_selection, coordinates, time_points, np.ceil(.5*line_width))
+    peaks = KymoPeaks(*refine_peak_based_on_moment(data_selection, coordinates, time_points, np.ceil(.5*line_width)))
     peaks = merge_close_peaks(peaks, np.ceil(.5*line_width))
     lines = points_to_line_segments(
         peaks,
