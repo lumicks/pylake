@@ -175,3 +175,38 @@ def filter_lines(lines, minimum_length):
         Minimum length for the line to be accepted.
     """
     return [line for line in lines if len(line) >= minimum_length]
+
+
+def refine_lines_centroid(lines, line_width):
+    """Refine the lines based on the brightness-weighted centroid.
+
+    This function uses the pixels in the vicinity of the lines to make small adjustments to the estimated location. The
+    refinement correction is computed by considering the brightness weighted centroid:
+
+      m0 = sum_{i <= w}(I(x + i))
+      dx = (1 / m0) * sum_{i <= w} i(I(x + i))
+
+    Parameters
+    ----------
+    lines : List[pylake.KymoLine]
+        Detected traces on a kymograph.
+    line_width : int
+        Line width
+    """
+    lines = [line.interpolate() for line in lines]
+    time_idx = np.round(np.array(np.hstack([line.time_idx for line in lines]))).astype(np.int)
+    coordinate_idx = np.round(np.array(np.hstack([line.coordinate_idx for line in lines]))).astype(np.int)
+
+    coordinate_idx, time_idx, _ = refine_peak_based_on_moment(lines[0].image_data,
+                                                              coordinate_idx,
+                                                              time_idx,
+                                                              np.ceil(.5 * line_width))
+
+    current = 0
+    for line in lines:
+        line_length = len(line.time_idx)
+        line.time_idx = time_idx[current: current + line_length]
+        line.coordinate_idx = coordinate_idx[current: current + line_length]
+        current += line_length
+
+    return lines
