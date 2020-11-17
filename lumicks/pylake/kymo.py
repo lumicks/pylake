@@ -2,9 +2,8 @@ import json
 import numpy as np
 import warnings
 
-from .confocal import BaseScan, ConfocalImage, axis_label
-from .detail.image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata, line_timestamps_image, \
-    seek_timestamp_next_line
+from .confocal import BaseScan, ConfocalImage
+from .detail.image import reconstruct_image_sum, reconstruct_image, line_timestamps_image, seek_timestamp_next_line
 from .detail.timeindex import to_timestamp
 
 

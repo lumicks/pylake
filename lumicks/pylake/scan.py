@@ -1,7 +1,11 @@
 import numpy as np
 
-from .confocal import BaseScan, ConfocalImage, axis_label
+from .confocal import BaseScan, ConfocalImage
 from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
+
+
+"""Axis label used for plotting"""
+axis_label = ("x", "y", "z")
 
 
 class Scan(ConfocalImage, BaseScan):

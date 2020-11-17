@@ -3,10 +3,7 @@ import numpy as np
 
 from .detail.mixin import PhotonCounts
 from .detail.mixin import ExcitationLaserPower
-
-
-"""Axis label used for plotting"""
-axis_label = ("x", "y", "z")
+from .detail.image import save_tiff, ImageMetadata
 
 
 class BaseScan(PhotonCounts, ExcitationLaserPower):
@@ -79,7 +76,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        return self._plot_color("red", **kwargs) # ?? need to return here?
+        return self._plot_color("red", **kwargs)
 
     def plot_green(self, **kwargs):
         """Plot an image of the green photon channel
@@ -121,7 +118,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return self.json["force"]
 
 
-class ConfocalImage():
+class ConfocalImage:
 
     def _has_incorrect_start(self, timeline_start, timeline_dt):
         """Checks whether the scan or kymograph starts before the timeline information. If this is the case, it will
