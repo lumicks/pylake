@@ -55,15 +55,25 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return cls(name, file, start, stop, json_data)
 
     def _get_photon_count(self, name):
-        photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+        timeline_start = self.file.h5["Photon count"][name].attrs["Start time (ns)"]
+        timeline_sample_rate = self.file.h5["Photon count"][name].attrs["Sample rate (Hz)"]
+        timeline_dt = int(1e9 /timeline_sample_rate)
 
-        try:
-            if self._has_incorrect_start(photon_count._src.start, photon_count._src.dt):
-                photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
-        except AttributeError:
-            pass
+        # Workaround for a bug in the STED delay mechanism which could result in scan start times ending up within
+        # the sample time.
+        if timeline_start - timeline_dt < self.start < timeline_start:
+            self.start = timeline_start
 
-        return photon_count
+        # Checks whether the scan or kymograph starts before the timeline information. 
+        # If this is the case, it will lead to an incorrect reconstruction. 
+        # If implemented, resolve the problem.
+        if timeline_start > self.start:
+            self._fix_incorrect_start()
+
+        return getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+
+    def _fix_incorrect_start(self):
+        raise NotImplementedError
 
     def _plot_color(self, color, **kwargs):
         raise NotImplementedError
@@ -119,22 +129,6 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
 
 class ConfocalImage:
-
-    def _has_incorrect_start(self, timeline_start, timeline_dt):
-        """Checks whether the scan or kymograph starts before the timeline information. If this is the case, it will
-        lead to an incorrect reconstruction. If implemented, resolve the problem."""
-
-        # Workaround for a bug in the STED delay mechanism which could result in scan start times ending up within
-        # the sample time.
-        if timeline_start - timeline_dt < self.start < timeline_start:
-            self.start = timeline_start
-
-        if timeline_start > self.start:
-            self._fix_incorrect_start()
-            return True
-
-    def _fix_incorrect_start(self):
-        raise NotImplementedError
 
     def _ordered_axes(self):
         """Returns axis indices in spatial order"""
