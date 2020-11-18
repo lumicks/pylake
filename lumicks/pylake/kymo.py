@@ -67,15 +67,13 @@ class Kymo(ConfocalImage):
         warnings.warn("Start of the kymograph was truncated. Omitting the truncated first line.",
                         RuntimeWarning)
 
-    def _image(self, color):
-        if color not in self._cache:
-            photon_counts = getattr(self, f"{color}_photon_count").data
-            self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line).T
-        return self._cache[color]
+    def _to_spatial(self, data):
+        """Spatial data as rows, time as columns"""
+        return data.T
 
-    def _timestamps(self, sample_timestamps):
-        return reconstruct_image(sample_timestamps, self.infowave.data,
-                                 self.pixels_per_line, reduce=np.mean).T
+    @property
+    def _shape(self):
+        return (self.pixels_per_line, )
 
     @property
     def line_time_seconds(self):

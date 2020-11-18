@@ -3,7 +3,7 @@ import numpy as np
 
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
-from .image import save_tiff, ImageMetadata
+from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
 
 
 class BaseScan(PhotonCounts, ExcitationLaserPower):
@@ -136,6 +136,21 @@ class ConfocalImage(BaseScan):
         """Returns axis indices in spatial order"""
         return sorted(self.json["scan volume"]["scan axes"], key=lambda x: x["axis"])
 
+    def _to_spatial(self, data):
+        """Implements any necessary post-processing actions after image reconstruction from infowave """
+        raise NotImplementedError
+
+    def _image(self, color):
+        if color not in self._cache:
+            photon_counts = getattr(self, f"{color}_photon_count").data
+            self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self._shape)
+            self._cache[color] = self._to_spatial(self._cache[color])
+        return self._cache[color]
+
+    def _timestamps(self, sample_timestamps):
+        timestamps = reconstruct_image(sample_timestamps, self.infowave.data, self._shape, reduce=np.mean)
+        return self._to_spatial(timestamps)
+
     def _plot_color(self, color, **kwargs):
         from matplotlib.colors import LinearSegmentedColormap
 
@@ -186,6 +201,11 @@ class ConfocalImage(BaseScan):
         return self.file["Info wave"]["Info wave"][self.start:self.stop]
 
     @property
+    def _shape(self):
+        """The shape of the image ([optional: pixels on slow axis], pixels on fast axis)"""
+        raise NotImplementedError
+
+    @property
     def pixels_per_line(self):
         return self._fast_axis_metadata["num of pixels"]     
 
@@ -204,8 +224,8 @@ class ConfocalImage(BaseScan):
         The returned array has the same shape as the `*_image` arrays.
         """
         # Uses the timestamps from the first non-zero-sized photon channel
-        photon_counts = self.red_photon_count, self.green_photon_count, self.blue_photon_count
-        for photon_count in photon_counts:
+        for color in ("red", "green", "blue"):
+            photon_count = getattr(self, f"{color}_photon_count")
             if len(photon_count) == 0:
                 continue
             return self._timestamps(photon_count.timestamps)

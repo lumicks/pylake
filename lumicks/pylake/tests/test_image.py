@@ -49,19 +49,19 @@ def test_reconstruct():
     infowave = np.array([0, 1, 0, 1, 1, 0, 2, 1, 0, 1, 0, 0, 1, 2, 1, 1, 1, 2])
     the_data = np.array([1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3])
 
-    image = reconstruct_image(the_data, infowave, 5)
+    image = reconstruct_image(the_data, infowave, (5, ))
     assert image.shape == (1, 5)
     assert np.all(image == [4, 8, 12, 0, 0])
 
-    image = reconstruct_image(the_data, infowave, 2)
+    image = reconstruct_image(the_data, infowave, (2, ))
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
 
-    image = reconstruct_image_sum(the_data, infowave, 5)
+    image = reconstruct_image_sum(the_data, infowave, (5, ))
     assert image.shape == (1, 5)
     assert np.all(image == [4, 8, 12, 0, 0])
 
-    image = reconstruct_image_sum(the_data, infowave, 2)
+    image = reconstruct_image_sum(the_data, infowave, (2, ))
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
 
@@ -72,19 +72,19 @@ def test_reconstruct_multiframe():
     infowave[9::10] = 2
     the_data = np.arange(size)
 
-    assert reconstruct_image(the_data, infowave, 5).shape == (2, 5)
-    assert reconstruct_image(the_data, infowave, 2).shape == (5, 2)
-    assert reconstruct_image(the_data, infowave, 1).shape == (10, 1)
-    assert reconstruct_image(the_data, infowave, 2, 2).shape == (3, 2, 2)
-    assert reconstruct_image(the_data, infowave, 2, 3).shape == (2, 3, 2)
-    assert reconstruct_image(the_data, infowave, 2, 5).shape == (5, 2)
+    assert reconstruct_image(the_data, infowave, (5, )).shape == (2, 5)
+    assert reconstruct_image(the_data, infowave, (2, )).shape == (5, 2)
+    assert reconstruct_image(the_data, infowave, (1, )).shape == (10, 1)
+    assert reconstruct_image(the_data, infowave, (2, 2)).shape == (3, 2, 2)
+    assert reconstruct_image(the_data, infowave, (3, 2)).shape == (2, 3, 2)
+    assert reconstruct_image(the_data, infowave, (5, 2)).shape == (1, 5, 2)
 
-    assert reconstruct_image_sum(the_data, infowave, 5).shape == (2, 5)
-    assert reconstruct_image_sum(the_data, infowave, 2).shape == (5, 2)
-    assert reconstruct_image_sum(the_data, infowave, 1).shape == (10, 1)
-    assert reconstruct_image_sum(the_data, infowave, 2, 2).shape == (3, 2, 2)
-    assert reconstruct_image_sum(the_data, infowave, 2, 3).shape == (2, 3, 2)
-    assert reconstruct_image_sum(the_data, infowave, 2, 5).shape == (5, 2)
+    assert reconstruct_image_sum(the_data, infowave, (5, )).shape == (2, 5)
+    assert reconstruct_image_sum(the_data, infowave, (2, )).shape == (5, 2)
+    assert reconstruct_image_sum(the_data, infowave, (1, )).shape == (10, 1)
+    assert reconstruct_image_sum(the_data, infowave, (2, 2)).shape == (3, 2, 2)
+    assert reconstruct_image_sum(the_data, infowave, (3, 2)).shape == (2, 3, 2)
+    assert reconstruct_image_sum(the_data, infowave, (5, 2)).shape == (1, 5, 2)
 
     assert reconstruct_num_frames(infowave, 2, 2) == 3
     assert reconstruct_num_frames(infowave, 2, 3) == 2

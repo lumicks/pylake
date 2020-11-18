@@ -48,6 +48,10 @@ class Scan(ConfocalImage):
     def lines_per_frame(self):
         return self.json["scan volume"]["scan axes"][1]["num of pixels"]
 
+    @property
+    def _shape(self):
+        return (self.lines_per_frame, self.pixels_per_line)
+
     def _fix_incorrect_start(self):
         """ Resolve error when confocal scan starts before the timeline information.
             For scans, this is currently unrecoverable. """
@@ -61,6 +65,8 @@ class Scan(ConfocalImage):
         with the slow axis first, and the fast axis second. Depending on the order of axes scanned, this may not
         coincide with physical axes. The axes should always be ordered from the lowest physical axis number to higher.
         Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis."""
+        data = data.squeeze()
+
         physical_axis = [axis["axis"] for axis in self.json["scan volume"]["scan axes"]]
         if physical_axis[0] > physical_axis[1]:
             new_axis_order = np.arange(len(data.shape), dtype=np.int)
@@ -68,21 +74,6 @@ class Scan(ConfocalImage):
             return np.transpose(data, new_axis_order)
         else:
             return data
-
-    def _image(self, color):
-        if color not in self._cache:
-            photon_counts = getattr(self, f"{color}_photon_count").data
-            self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self.pixels_per_line,
-                                                       self.lines_per_frame)
-            self._cache[color] = self._to_spatial(self._cache[color])
-
-        return self._cache[color]
-
-    def _timestamps(self, sample_timestamps):
-        timestamps = reconstruct_image(sample_timestamps, self.infowave.data, self.pixels_per_line,
-                                       self.lines_per_frame, reduce=np.mean)
-
-        return self._to_spatial(timestamps)
 
     def _plot(self, image, frame=1, image_handle=None, **kwargs):
         """Plot a scan frame.
