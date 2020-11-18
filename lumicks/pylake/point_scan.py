@@ -27,3 +27,14 @@ class PointScan(BaseScan):
         plt.xlabel("time (s)")
         plt.ylabel(r"photon count")
         plt.title(self.name)
+
+    def plot_rgb(self, **kwargs):
+        """Plot all color channels
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to `~matplotlib.pyplot.plot`.
+        """
+        for color in ["red", "green", "blue"]:
+            self._plot_color(color, **kwargs)

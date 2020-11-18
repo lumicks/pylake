@@ -116,8 +116,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to `~matplotlib.pyplot.plot`.
         """
-        for color in ["red", "green", "blue"]:
-            self._plot_color(color, **kwargs)
+        raise NotImplementedError
 
     @property
     def has_fluorescence(self) -> bool:
