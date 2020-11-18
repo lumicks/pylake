@@ -60,6 +60,21 @@ class InfowaveCode(enum.IntEnum):
     pixel_boundary = 2  # useful data and marks the last data sample in a pixel
 
 
+def discard_zeros(infowave):
+    # Example infowave:
+    #  1 0 0 1 0 1 2 0 1 0 0 1 0 1 0 1 0 0 1 0 2 0 1 0 1 0 0 1 0 1 0 1 2 1 0 0 1
+    #              ^ <-----------------------> ^                       ^
+    #                       one pixel
+    valid_idx = infowave != InfowaveCode.discard
+    subset = infowave[valid_idx]
+
+    # After discard:
+    #  1 1 1 2 1 1 1 1 1 2 1 1 1 1 1 2 1 1 1
+    #        ^ <-------> ^           ^
+    #         pixel_size (i.e. data samples per pixel)
+    return subset, valid_idx
+
+
 def reconstruct_num_frames(infowave, pixels_per_line, lines_per_frame):
     """Reconstruct the number of frames in a continuous scan
 
@@ -109,9 +124,8 @@ def seek_timestamp_next_line(infowave):
     infowave = infowave.data
 
     # Discard unused acquisition
-    mask = infowave != InfowaveCode.discard
-    infowave = infowave[mask]
-    time = time[mask]
+    infowave, valid_idx = discard_zeros(infowave)
+    time = time[valid_idx]
 
     # Fetch start of pixels
     pixel_ends, = np.where(infowave == InfowaveCode.pixel_boundary)
@@ -129,9 +143,30 @@ def seek_timestamp_next_line(infowave):
     return pixel_start[idx + 1]
 
 
-def reconstruct_image_sum(data, infowave, pixels_per_line, lines_per_frame=None):
+def round_up(size, n):
+    """Round up `size` to the nearest multiple of `n`"""
+    return int(math.ceil(size / n)) * n
+
+
+def reshape_reconstructed_image(pixels, shape):
+    """Reshape reconstructed image data from 1D array into appropriate shape for plotting
+
+    Parameters
+    __________
+    pixels : array_like
+        Image data
+    shape : array_like
+        The shape of the image ([optional: pixels on slow axis], pixels on fast axis)
+    """
+    resized_pixels = np.zeros(round_up(pixels.size, np.prod(shape)))
+    resized_pixels[:pixels.size] = pixels
+    return resized_pixels.reshape(-1, *shape)
+
+
+def reconstruct_image_sum(data, infowave, shape):
     """Rapidly reconstruct a scan or kymograph image from raw data summing pixels where the infowave equates to 1.
-    See reconstruct_image for more information.
+    See reconstruct_image for more information. 
+    *NOTE*: this function should not be used to reconstruct timestamps as the result will overflow.
 
     Parameters
     ----------
@@ -139,38 +174,22 @@ def reconstruct_image_sum(data, infowave, pixels_per_line, lines_per_frame=None)
         Raw data to use for the reconstruction. E.g. photon counts or force samples.
     infowave : array_like
         The infamous infowave.
-    pixels_per_line : int
-        The number of pixels on the fast axis of the scan.
-    lines_per_frame : Optional[int]
-        The number of pixels on the slow axis of the scan. Only needed for multi-frame scans.
+    shape : array_like
+        The shape of the image ([optional: pixels on slow axis], pixels on fast axis)
 
     Returns
     -------
     np.ndarray
     """
     assert data.size == infowave.size
-
-    mask = infowave != InfowaveCode.discard
-    cumulative = np.cumsum(data[mask])
-    subset = infowave[mask]
+    subset, valid_idx = discard_zeros(infowave)
+    cumulative = np.cumsum(data[valid_idx])
     pixel_ends = cumulative[subset == InfowaveCode.pixel_boundary]
     pixels = np.hstack((pixel_ends[0], np.diff(pixel_ends)))
-
-    def round_up(size, n):
-        """Round up `size` to the nearest multiple of `n`"""
-        return int(math.ceil(size / n)) * n
-
-    if lines_per_frame is None:
-        resized_pixels = np.zeros(round_up(pixels.size, pixels_per_line))
-        resized_pixels[:pixels.size] = pixels
-        return resized_pixels.reshape(-1, pixels_per_line)
-    else:
-        resized_pixels = np.zeros(round_up(pixels.size, pixels_per_line * lines_per_frame))
-        resized_pixels[:pixels.size] = pixels
-        return resized_pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
+    return reshape_reconstructed_image(pixels, shape)
 
 
-def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, reduce=np.sum):
+def reconstruct_image(data, infowave, shape, reduce=np.sum):
     """Reconstruct a scan or kymograph image from raw data
 
     Parameters
@@ -179,10 +198,8 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
         Raw data to use for the reconstruction. E.g. photon counts or force samples.
     infowave : array_like
         The infamous infowave.
-    pixels_per_line : int
-        The number of pixels on the fast axis of the scan.
-    lines_per_frame : Optional[int]
-        The number of pixels on the slow axis of the scan. Only needed for multi-frame scans.
+    shape: array_like
+        The shape of the image ([optional: pixels on slow axis], pixels on fast axis)
     reduce : callable
         A function which reduces multiple sample into a pixel. Usually `np.sum`
         for photon counts and `np.mean` for force samples.
@@ -192,40 +209,15 @@ def reconstruct_image(data, infowave, pixels_per_line, lines_per_frame=None, red
     np.ndarray
     """
     assert data.size == infowave.size
-
-    # Example infowave:
-    #  1 0 0 1 0 1 2 0 1 0 0 1 0 1 0 1 0 0 1 0 2 0 1 0 1 0 0 1 0 1 0 1 2 1 0 0 1
-    #              ^ <-----------------------> ^                       ^
-    #                       one pixel
-    valid_idx = infowave != InfowaveCode.discard
-    infowave = infowave[valid_idx]
-
-    # After discard:
-    #  1 1 1 2 1 1 1 1 1 2 1 1 1 1 1 2 1 1 1
-    #        ^ <-------> ^           ^
-    #         pixel_size (i.e. data samples per pixel)
+    subset, valid_idx = discard_zeros(infowave)
     # This should be:
     #   pixel_sizes = np.diff(np.flatnonzero(infowave == InfowaveCode.pixel_boundary))
     # But for now we assume that every pixel consists of the same number of samples
-    pixel_size = np.argmax(infowave) + 1
-
-    def round_up(size, n):
-        """Round up `size` to the nearest multiple of `n`"""
-        return int(math.ceil(size / n)) * n
-
-    resized_data = np.zeros(round_up(infowave.size, pixel_size))
-    resized_data[:infowave.size] = data[valid_idx]
+    pixel_size = np.argmax(subset) + 1
+    resized_data = np.zeros(round_up(subset.size, pixel_size))
+    resized_data[:subset.size] = data[valid_idx]
     pixels = reduce(resized_data.reshape(-1, pixel_size), axis=1)
-
-    if lines_per_frame is None:
-        resized_pixels = np.zeros(round_up(pixels.size, pixels_per_line))
-        resized_pixels[:pixels.size] = pixels
-        return resized_pixels.reshape(-1, pixels_per_line)
-    else:
-        resized_pixels = np.zeros(round_up(pixels.size, pixels_per_line * lines_per_frame))
-        resized_pixels[:pixels.size] = pixels
-        return resized_pixels.reshape(-1, lines_per_frame, pixels_per_line).squeeze()
-
+    return reshape_reconstructed_image(pixels, shape)
 
 def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
     """Save an RGB `image` to TIFF
