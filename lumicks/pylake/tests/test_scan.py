@@ -109,8 +109,11 @@ def test_damaged_scan(h5_file):
         # Test for workaround for a bug in the STED delay mechanism which could result in scan start times ending up
         # within the sample time.
         scan = f.scans["fast Y slow X"]
-        scan.start = scan.red_photon_count.timestamps[0] - 62400000
-        scan.red_image.shape
+
+        middle = scan.red_photon_count.timestamps[5]
+        scan.start = middle - 62400000
+        scan.red_image.shape  # should not raise, but change the start appropriately to work around sted bug
+        assert np.allclose(scan.start, middle)
 
 
 @cleanup
