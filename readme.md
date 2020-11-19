@@ -1,5 +1,7 @@
 # Lumicks pylake 
 
+[![DOI](https://zenodo.org/badge/133832492.svg)](https://zenodo.org/badge/latestdoi/133832492)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](license.md)
 ![Build Status](https://github.com/lumicks/pylake/workflows/pytest/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/lumicks-pylake/badge/?version=latest)](https://lumicks-pylake.readthedocs.io/en/latest/?badge=latest)
 
