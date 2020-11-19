@@ -1,11 +1,12 @@
 # Changelog
 
-## v0.7.1 | t. b. d.
-* Add workaround for `Scan` and `Kymo` which could prevent valid scans and kymos from being opened when the `start` timestamp of a scan or kymo had a value before the actual start of the timeline channels. The cause of this subsample time difference was the lack of quantization of a delay when acquiring STED images.
-* Fixed bug in `Kymo` plotting functions. Previously, the time limits were calculated using the fly-in/out times which could lead to subtle discrepancies when comparing against force channels. These dead times are now omitted.
+## v0.7.1 | 2020-11-19
+
+* Add `start` and `stop` property to `Slice`. These return the timestamp in nanoseconds.
+* Add `start` argument to `Slice.plot()` which allows you to use a specific timestamp as time point zero in a plot. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#channels) for more information.
 * Added `Slice.downsampled_like` to downsample a high frequency channel according to the timestamps of a low frequency channel, using the same downsampling method as Bluelake.
-* Add `start` and `stop` property to `Slice`.
-* Add `start` argument to `Slice.plot()` which allows you to use a specific timestamp as time point zero. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#channels) for more information.
+* Fixed bug in `Kymo` plotting functions. Previously, the time limits were calculated including the fly-in/out times which could lead to subtle discrepancies when comparing against force channels. These dead times are now omitted.
+* Add workaround for `Scan` and `Kymo` which could prevent valid scans and kymos from being opened when the `start` timestamp of a scan or kymo had a timestamp earlier than the actual start of the timeline channels. The cause of this time difference was the lack of quantization of a delay when acquiring STED images. This delay resulted in a subsample offset between the `Scan`/`Kymo` start time and the start of the timeline data which was falsely detected as a corrupted `Scan` or `Kymo`.
 
 ## v0.7.0 | 2020-11-04
 
