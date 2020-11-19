@@ -61,6 +61,7 @@ setup(
         "tabulate==0.8.6",
         "opencv-python>=3.0",
         "ipywidgets>=7.0.0",
+        "cachetools>=3.1",
     ],
     zip_safe=False,
 )

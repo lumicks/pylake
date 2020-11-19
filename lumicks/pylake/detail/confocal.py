@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import cachetools
 
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
@@ -140,16 +141,24 @@ class ConfocalImage(BaseScan):
         """Implements any necessary post-processing actions after image reconstruction from infowave """
         raise NotImplementedError
 
-    def _image(self, color):
-        if color not in self._cache:
-            photon_counts = getattr(self, f"{color}_photon_count").data
-            self._cache[color] = reconstruct_image_sum(photon_counts, self.infowave.data, self._shape)
-            self._cache[color] = self._to_spatial(self._cache[color])
-        return self._cache[color]
+    @cachetools.cachedmethod(lambda self: self._cache)
+    def _image(self, channel):
+        channel_data = getattr(self, f"{channel}_photon_count").data
+        raw_image = reconstruct_image_sum(channel_data, self.infowave.data, self._shape)
+        return self._to_spatial(raw_image)
 
-    def _timestamps(self, sample_timestamps):
-        timestamps = reconstruct_image(sample_timestamps, self.infowave.data, self._shape, reduce=np.mean)
-        return self._to_spatial(timestamps)
+    @cachetools.cachedmethod(lambda self: self._cache)
+    def _timestamps(self, channel):
+        assert channel == "timestamps"
+        # Uses the timestamps from the first non-zero-sized photon channel
+        for color in ("red", "green", "blue"):
+            channel_data = getattr(self, f"{color}_photon_count").timestamps
+            if len(channel_data) != 0: 
+                break
+        else:
+            raise RuntimeError("Can't get pixel timestamps if there are no pixels")
+        raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=np.mean)
+        return self._to_spatial(raw_image)
 
     def _plot_color(self, color, **kwargs):
         from matplotlib.colors import LinearSegmentedColormap
@@ -223,13 +232,7 @@ class ConfocalImage(BaseScan):
 
         The returned array has the same shape as the `*_image` arrays.
         """
-        # Uses the timestamps from the first non-zero-sized photon channel
-        for color in ("red", "green", "blue"):
-            photon_count = getattr(self, f"{color}_photon_count")
-            if len(photon_count) == 0:
-                continue
-            return self._timestamps(photon_count.timestamps)
-        raise RuntimeError("Can't get pixel timestamps if there are no pixels")
+        return self._timestamps("timestamps")
 
     @property
     def pixelsize_um(self):

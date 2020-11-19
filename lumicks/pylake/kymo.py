@@ -158,5 +158,17 @@ class EmptyKymo(Kymo):
     def _plot(self, image, **kwargs):
         raise RuntimeError("Cannot plot empty kymograph")
 
-    def _image(self, color):
+    def _image(self):
         return np.empty((self.pixels_per_line, 0))
+
+    @property
+    def red_image(self):
+        return self._image()
+
+    @property
+    def green_image(self):
+        return self._image()
+
+    @property
+    def blue_image(self):
+        return self._image()
