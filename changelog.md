@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.2 | t.b.d.
+
+* Support Python 3.9 on Windows (this required bumping the `h5py` requirement to >= 3.0).
+
 ## v0.7.1 | 2020-11-19
 
 * Add `start` and `stop` property to `Slice`. These return the timestamp in nanoseconds.
