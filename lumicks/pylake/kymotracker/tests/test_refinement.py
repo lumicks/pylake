@@ -1,3 +1,4 @@
+from lumicks.pylake.kymotracker.detail.refinement import generate_clip_window
 from lumicks.pylake.kymotracker.kymotracker import refine_lines_centroid
 from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLine
 import numpy as np
@@ -34,3 +35,15 @@ def test_refinement_line(loc, inv_sigma=0.3):
     image = np.exp(-inv_sigma * xx * xx)
     line = refine_lines_centroid([KymoLine([0], [25], image_data=np.expand_dims(image, 1))], 5)[0]
     assert np.allclose(line.coordinate_idx, loc, rtol=1e-2)
+
+
+@pytest.mark.parametrize("line_length, peaks, window_size, result",
+                         [(5, [2], 1, [False, True, True, True, False]),
+                          (5, [2], 2, [True, True, True, True, True]),
+                          (5, [-1], 1, [True, False, False, False, False]),
+                          (5, [-2], 1, [False, False, False, False, False]),
+                          (5, [10], 1, [False, False, False, False, False]),
+                          (5, [5], 1, [False, False, False, False, True]),
+                          (5, [1, 3], 0, [False, True, False, True, False])])
+def test_clip_window(line_length, peaks, window_size, result):
+    assert np.allclose(generate_clip_window(line_length, peaks, window_size), result)
