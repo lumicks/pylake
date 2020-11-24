@@ -134,10 +134,12 @@ class FdRangeSelector:
         if len(fd_curves) == 0:
             raise ValueError("F,d selector widget cannot open without a non-empty dictionary containing F,d curves.")
 
-        if "ipympl" not in plt.get_backend():
-            raise RuntimeError(("Please enable the widgets backend for this plot to work. You can do this by invoking "
-                                "%matplotlib widget. Please note that you may have to restart the notebook kernel for "
-                                "this to work."))
+        if not any(backend in plt.get_backend() for backend in ("nbAgg", "ipympl")):
+            raise RuntimeError(("Please enable an interactive matplotlib backend for this plot to work. In jupyter"
+                                "notebook you can do this by invoking either %matplotlib notebook or %matplotlib "
+                                "widget (the latter requires ipympl to be installed). In Jupyter Lab only the latter "
+                                "works. Please note that you may have to restart the notebook kernel for this to "
+                                "work."))
 
         plt.figure()
         self.axes = plt.axes()

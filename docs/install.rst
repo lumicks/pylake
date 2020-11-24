@@ -117,3 +117,73 @@ Troubleshooting
 If you run into any errors after installation, try updating all conda packages to the latest versions using the following command::
 
     conda update --all
+
+
+Frequently asked questions
+--------------------------
+
+**Why are the plots in my notebook not interactive?**
+
+To enable interactive plots, you have to invoke the correct `magic commands <https://ipython.readthedocs.io/en/stable/interactive/magics.html>`_
+in the notebook. When using Jupyter notebook, the following command will switch the `matplotlib` backend from the inline
+one (which renders images) to the interactive backend::
+
+    %matplotlib notebook
+
+You can also choose to install `ipympl`, which can perform better in some cases. You can install it with `pip`::
+
+    pip install ipympl
+
+or `conda`::
+
+    conda install -c conda-forge ipympl
+
+The `ipympl` backend can be activated by invoking the following magic command in a notebook::
+
+    %matplotlib widget
+
+*Note that switching backends typically requires you to restart the Jupyter kernel*. When using JupyterLab, `ipympl` is
+the only backend that provides interactive plots with Pylake.
+
+
+**Conda takes a long time to resolve the environment and then fails. What can I do?**
+
+Several packages depend on each other. Sometimes, finding a suitable collection of packages that is compatible can be
+problematic. One way to work around this is to make a separate environment for working with `pylake`. You can create a
+new environment named `pylake` by invoking the following in the anaconda prompt::
+
+    conda create -n pylake
+
+The environment can then be activated by calling `activate`::
+
+    conda activate pylake
+
+You can see that it is activated, because `pylake` should now be prefixed to the path in your anaconda prompt. We can
+install `pylake` and `jupyter notebook` in this environment by invoking the following commands::
+
+    conda install -c conda-forge lumicks.pylake
+    conda install -c conda-forge jupyter notebook
+
+It should be possible to open a jupyter notebook in this environment by calling `jupyter notebook`. Note that if you
+are used to starting Jupyter from the anaconda navigator, you will have to set the environment to `pylake` for it to
+have access to the pylake package.
+
+
+**How do I check which version of pylake I have?**
+
+From within `python` or a `notebook` you can invoke::
+
+    import lumicks.pylake as lk
+    lk.__version__
+
+Which should return the version number.
+
+
+**How do I know whether Pylake installed correctly?**
+
+You can run the test suite as follows::
+
+    import lumicks.pylake as lk
+    lk.pytest()
+
+If all tests pass (except for the slow ones which are skipped) then your installation of `pylake` is good to go.
