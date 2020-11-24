@@ -3,6 +3,7 @@
 ## v0.7.2 | t.b.d.
 
 * Support Python 3.9 on Windows (this required bumping the `h5py` requirement to >= 3.0).
+* Include `ipywidgets` as a dependency so users don't have to install it themselves.
 
 ## v0.7.1 | 2020-11-19
 

@@ -60,6 +60,7 @@ setup(
         "tifffile>=2018.11.6",
         "tabulate==0.8.6",
         "opencv-python>=3.0",
+        "ipywidgets>=7.0.0",
     ],
     zip_safe=False,
 )

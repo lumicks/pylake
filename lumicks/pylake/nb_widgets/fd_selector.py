@@ -129,14 +129,10 @@ class FdRangeSelector:
         fd_curves : dict
             Dictionary of `lumicks.pylake.FdCurve`
         """
+        import ipywidgets
 
         if len(fd_curves) == 0:
             raise ValueError("F,d selector widget cannot open without a non-empty dictionary containing F,d curves.")
-
-        try:
-            import ipywidgets
-        except ImportError:
-            raise RuntimeError("This widget requires ipywidgets to be installed to work. Please install it.")
 
         if "ipympl" not in plt.get_backend():
             raise RuntimeError(("Please enable the widgets backend for this plot to work. You can do this by invoking "
