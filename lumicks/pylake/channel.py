@@ -192,24 +192,28 @@ class Slice:
         # prevent upsampling
         if np.any(target_timestep < source_timestep):
             slow = 1e9 / np.max(source_timestep)
-            raise ValueError(f"requested frequency ({frequency:0.1g} Hz) is faster than slowest current sampling rate ({slow:0.1g} Hz)")
+            raise ValueError(f"Requested frequency ({frequency:0.1g} Hz) is faster than slowest current sampling rate "
+                             f"({slow:0.1g} Hz)")
 
         if method == "force":
             pass
         else:
             # must specifically force downsampling for variable frequency
             if len(source_timestep) > 1:
-                raise ValueError(("This slice contains variable sampling frequencies leading to a variable timestep and an unequal number of samples "
-                                  "contributing to each sample. Use 'force=True' to ignore this error and evaluate the result."))    
+                raise ValueError(("This slice contains variable sampling frequencies leading to a variable timestep "
+                                  "and an unequal number of samples contributing to each sample. Use 'method='force' "
+                                  "to ignore this error and evaluate the result."))
             # ratio of current/new frequencies must be integer to ensure equal timesteps
             remainder = target_timestep % source_timestep
             if remainder != 0:
                 if method == "ceil":
                     target_timestep -= remainder
                 else: # method == 'safe'
-                    raise ValueError(("The desired sample rate will not result in time steps that are an exact multiple of the current sampling time. "
-                                      "To round the sample rate up to the nearest frequency which fulfills this condition please specify method='ceil'. "
-                                      "To force the target sample rate (leading to unequal timesteps in the returned Slice, specify method='force'."))
+                    raise ValueError(("The desired sample rate will not result in time steps that are an exact "
+                                      "multiple of the current sampling time. To round the sample rate up to the "
+                                      "nearest frequency which fulfills this condition please specify method='ceil'. "
+                                      "To force the target sample rate (leading to unequal timesteps in the returned "
+                                      "Slice, specify method='force'."))
 
         t = np.arange(self._src.start, self._src.stop, target_timestep)
         new_ranges = [(t1, t2) for t1, t2 in zip(t[:-1], t[1:])]
