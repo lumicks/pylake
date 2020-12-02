@@ -2,10 +2,11 @@ import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from lumicks.pylake.kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
-from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, KymoLine, detect_lines
+from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
 from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
-from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines
+from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines, filter_lines
+from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 from copy import deepcopy
 from scipy.stats import norm
 
@@ -371,3 +372,45 @@ def test_kymotracker_integration_tests_subset():
 
     lines = track_lines(test_data, 3, 4, rect=[[0, 15], [30, 30]])
     assert np.allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
+
+
+def test_kymolinegroup():
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), None)
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), None)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), None)
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), None)
+
+    lines = KymoLineGroup([k1, k2, k3, k4])
+    assert [k for k in lines] == [k1, k2, k3, k4]
+    assert len(lines) == 4
+    assert lines[0] == k1
+    assert lines[1] == k2
+    assert lines[0:2][0] == k1
+    assert lines[0:2][1] == k2
+
+    with pytest.raises(IndexError):
+        lines[0:2][2]
+
+    with pytest.raises(NotImplementedError):
+        lines[1] = 4
+
+    lines = KymoLineGroup([k1, k2])
+    lines.extend(KymoLineGroup([k3, k4]))
+    assert [k for k in lines] == [k1, k2, k3, k4]
+
+    lines = KymoLineGroup([k1, k2, k3])
+    lines.extend(k4)
+    assert [k for k in lines] == [k1, k2, k3, k4]
+
+    with pytest.raises(TypeError):
+        lines.extend(5)
+
+
+def test_filter_lines():
+    k1 = KymoLine([1, 2, 3], [1, 2, 3])
+    k2 = KymoLine([2, 3], [1, 2])
+    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5])
+    lines = KymoLineGroup([k1, k2, k3])
+    assert len(filter_lines(lines, 5)) == 0
+    assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])
+    assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 2), [k1, k2, k3])])

@@ -2,6 +2,7 @@ from lumicks.pylake.kymotracker.detail.peakfinding import peak_estimate, refine_
     KymoPeaks
 from lumicks.pylake.kymotracker.detail.trace_line_2d import detect_lines, points_to_line_segments
 from lumicks.pylake.kymotracker.detail.scoring_functions import kymo_score
+from lumicks.pylake.kymotracker.kymoline import KymoLineGroup
 import numpy as np
 
 
@@ -98,7 +99,7 @@ def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.
     for line in lines:
         line.image_data = data
 
-    return [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
+    return KymoLineGroup([line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines)
 
 
 def track_lines(data, line_width, max_lines, start_threshold=0.005, continuation_threshold=0.005, angle_weight=10.0,
@@ -161,7 +162,7 @@ def track_lines(data, line_width, max_lines, start_threshold=0.005, continuation
     for line in lines:
         line.image_data = data
 
-    return [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
+    return KymoLineGroup([line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines)
 
 
 def filter_lines(lines, minimum_length):
@@ -174,7 +175,7 @@ def filter_lines(lines, minimum_length):
     minimum_length : int
         Minimum length for the line to be accepted.
     """
-    return [line for line in lines if len(line) >= minimum_length]
+    return KymoLineGroup([line for line in lines if len(line) >= minimum_length])
 
 
 def refine_lines_centroid(lines, line_width):
@@ -207,4 +208,4 @@ def refine_lines_centroid(lines, line_width):
         line.coordinate_idx = coordinate_idx[current: current + line_length]
         current += line_length
 
-    return interpolated_lines
+    return KymoLineGroup(interpolated_lines)
