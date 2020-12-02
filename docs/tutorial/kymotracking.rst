@@ -148,6 +148,19 @@ that the trace was based on.
 .. image:: kymo_sumcounts.png
 
 
+Exporting kymograph traces
+--------------------------
+
+Exporting kymograph traces to `csv` files is easy. Just invoke `save` on the returned value::
+
+    traces.save("traces.csv")
+
+By default, this saves the kymograph in pixel coordinates. We can also save calibrated coordinates and photon counts by
+passing a calibration factor for the x-axis and y-axis and a width in pixels to sum counts over::
+
+    traces.save("traces_calibrated.csv", dt=kymo.line_time_seconds, dx=kymo.pixelsize_um, sampling_width=3)
+
+
 How the algorithms work
 -----------------------
 :func:`~lumicks.pylake.track_greedy`

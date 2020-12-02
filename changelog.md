@@ -9,6 +9,7 @@
 * Added `Kymo.plot_with_force` for plotting a kymograph and corresponding force channel downsampled to the same time ranges of the scan lines.
 * Fixed exception message in `downsampled_to` which erroneously suggested to use `force=True` when downsampling a variable frequency channel, while the correct argument is `method="force"`.
 * Fixed minor bug in `Kymo` plot functions which incorrectly set the time limits. Now, pixel centers are aligned with the mean time for each line.
+* Added `save` to KymoLineGroup for saving tracked Kymograph traces to a file. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 ## v0.7.1 | 2020-11-19
 
