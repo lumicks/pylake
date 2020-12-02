@@ -99,3 +99,33 @@ class KymoLine:
 
     def __len__(self):
         return len(self.coordinate_idx)
+
+
+class KymoLineGroup:
+    """Kymograph lines"""
+    def __init__(self, kymo_lines):
+        self._src = kymo_lines
+
+    def __iter__(self):
+        return self._src.__iter__()
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return KymoLineGroup(self._src[item])
+        else:
+            return self._src[item]
+
+    def __setitem__(self, item, value):
+        raise NotImplementedError("Cannot overwrite KymoLines.")
+
+    def __len__(self):
+        return len(self._src)
+
+    def extend(self, other):
+        if isinstance(other, self.__class__):
+            self._src.extend(other._src)
+        elif isinstance(other, self._src[0].__class__):
+            self._src.extend([other])
+        else:
+            raise TypeError(f"You can only extend a {self.__class__} with a {self.__class__} or "
+                            f"{self._src[0].__class__}")
