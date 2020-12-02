@@ -1,6 +1,80 @@
 import numpy as np
 
 
+def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sampling_width):
+    """Export KymoLineGroup to a csv file.
+
+    Parameters
+    ----------
+    filename : str
+        Filename to output KymoLineGroup to.
+    kymoline_group : KymoLineGroup
+        Kymograph traces to export.
+    dt : float
+        Calibration for the time axis.
+    dx : float
+        Calibration for the coordinate axis.
+    delimiter : str
+        Which delimiter to use in the csv file.
+    sampling_width : int or None
+        When supplied, this will sample the source image around the kymograph line and export the summed intensity with
+        the image. The value indicates the number of pixels in either direction to sum over.
+    """
+    if not kymoline_group:
+        raise RuntimeError("No kymograph traces to export")
+
+    idx = np.hstack([np.full(len(line), idx) for idx, line in enumerate(kymoline_group)])
+    coords_idx = np.hstack([line.coordinate_idx for line in kymoline_group])
+    times_idx = np.hstack([line.time_idx for line in kymoline_group])
+
+    data, header, fmt = [], [], []
+
+    def store_column(column_title, format_string, new_data):
+        data.append(new_data)
+        header.append(column_title)
+        fmt.append(format_string)
+
+    store_column("line index", "%d", idx)
+    store_column("time (pixels)", "%.18e", times_idx)
+    store_column("coordinate (pixels)", "%.18e", coords_idx)
+
+    if dt:
+        store_column("time", "%.18e", [times_idx * dt])
+
+    if dx:
+        store_column("coordinate", "%.18e", [coords_idx * dx])
+
+    if sampling_width is not None:
+        store_column(f"counts (summed over {2 * sampling_width + 1} pixels)", "%d",
+                     np.hstack([line.sample_from_image(sampling_width) for line in kymoline_group]))
+
+    data = np.vstack(data).T
+    np.savetxt(filename, data, fmt=fmt, header=delimiter.join(header), delimiter=delimiter)
+
+
+def import_kymolinegroup_from_csv(filename, image, delimiter=';'):
+    """Import kymolines from csv
+
+    Parameters
+    ----------
+    filename : str
+        filename to import from
+    image : array_like
+        2D image that these lines were tracked from
+    delimiter : str
+        A delimiter that delimits the column data.
+
+    The file format contains a series of columns as follows:
+    line index, time (pixels), coordinate (pixels), time (optional), coordinate (optional), sampled_counts (optional)"""
+    data = np.loadtxt(filename, delimiter=delimiter)
+    assert len(data.shape) == 2, "Invalid file format"
+    assert data.shape[0] > 2, "Invalid file format"
+
+    indices = data[:, 0]
+    lines = np.unique(indices)
+    return KymoLineGroup(KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines)
+
+
 class KymoLine:
     """A line on a kymograph"""
     __slots__ = ['time_idx', 'coordinate_idx', 'image_data']
@@ -124,8 +198,30 @@ class KymoLineGroup:
     def extend(self, other):
         if isinstance(other, self.__class__):
             self._src.extend(other._src)
-        elif isinstance(other, self._src[0].__class__):
+        elif isinstance(other, KymoLine):
             self._src.extend([other])
         else:
             raise TypeError(f"You can only extend a {self.__class__} with a {self.__class__} or "
-                            f"{self._src[0].__class__}")
+                            f"{KymoLine}")
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(N={len(self._src)})"
+
+    def save(self, filename, dt=None, dx=None, delimiter=';', sampling_width=None):
+        """Export kymograph lines to a csv file.
+
+        Parameters
+        ----------
+        filename : str
+            Filename to output kymograph traces to.
+        dt : float
+            Calibration for the time axis.
+        dx : float
+            Calibration for the coordinate axis.
+        delimiter : str
+            Which delimiter to use in the csv file.
+        sampling_width : int or None
+            When supplied, this will sample the source image around the kymograph line and export the summed intensity
+            with the image. The value indicates the number of pixels in either direction to sum over.
+        """
+        export_kymolinegroup_to_csv(filename, self._src, dt, dx, delimiter, sampling_width)
