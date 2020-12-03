@@ -209,9 +209,19 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_continuous_channel("Photon count", "Green", np.int64(20e9), freq, counts)
         mock_file.make_continuous_channel("Photon count", "Blue", np.int64(20e9), freq, counts)
         mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
+        
         ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
+        # Force channel that overlaps kymo; step from high to low force
+        force_data = np.hstack((np.ones(35) * 30,
+                                np.ones(35) * 10))
+        force_start = np.int64(ds.attrs["Start time (ns)"] - (freq*5)) # before infowave
+        mock_file.make_continuous_channel("Force HF", "Force 2x", force_start, freq, force_data)
+        mock_file.make_calibration_data("1", "Force 2x", {calibration_time_field: 0})
+        mock_file.make_calibration_data("2", "Force 2x", {calibration_time_field: 1})
+        mock_file.make_calibration_data("3", "Force 2x", {calibration_time_field: 10})
+        mock_file.make_calibration_data("4", "Force 2x", {calibration_time_field: 100})
 
         def generate_scan_json(axis_1, n_pixels_1, axis_2, n_pixels_2):
             return enc.encode({

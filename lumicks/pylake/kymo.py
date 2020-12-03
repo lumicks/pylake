@@ -255,6 +255,58 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         image = image / np.max(image)
         return self._plot(image, **kwargs)
 
+    def _downsample_channel(self, n, xy, reduce=np.mean):
+        force = self.file._get_force(n, xy)
+        # downsample exactly over the scanline time range
+        min_times = self.timestamps[0, :].astype(np.int64)
+        max_times = self.timestamps[-1, :].astype(np.int64)
+        time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]
+        return force.downsampled_over(time_ranges, reduce=reduce, where="center")
+
+    def plot_with_force(self, force_channel, color_channel, aspect_ratio=0.25,
+                        reduce=np.mean, **kwargs):
+        """Plot kymo with force channel downsampled over scan lines
+
+        Parameters
+        ----------
+        force_channel: str
+            name of force channel to downsample and plot
+        color_channel: str
+            color channel of kymo to plot ('red', 'green', 'blue', 'rgb')
+        aspect_ratio: float
+            aspect ratio of the axes (i.e. ratio of y-unit to x-unit)
+        reduce : callable
+            The `numpy` function which is going to reduce multiple samples into one.
+            Forwarded to :func:`Slice.downsampled_over`
+        **kwargs
+            Forwarded to :func:`Slice.plot`.
+        """
+        def set_aspect_ratio(axis, ar):
+            """This function forces a specific aspect ratio, can be useful when aligning figures"""
+            axis.set_aspect(ar * np.abs(np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim()))[0])
+
+        import matplotlib.pyplot as plt
+        _, (ax1, ax2) = plt.subplots(2, 1)
+        
+        # plot kymo
+        plt.sca(ax1)
+        getattr(self, f"plot_{color_channel}")()
+        ax1.set_xlabel(None)
+        
+        # plot force channel
+        plt.sca(ax2)
+        force = self._downsample_channel(force_channel[-2], force_channel[-1], reduce=reduce)
+        force.plot(**kwargs)
+        ax2.set_xlim(ax1.get_xlim())
+
+        m = np.vstack((self.timestamps[0,:3], self.timestamps[-1,:3])).mean(0)
+        print(m.astype(np.int64))
+        print(self.timestamps[0,:3].astype(np.int64))
+        print(force.timestamps[:3])
+        
+        set_aspect_ratio(ax1, aspect_ratio)
+        set_aspect_ratio(ax2, aspect_ratio)
+
     def save_tiff(self, filename, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image
 

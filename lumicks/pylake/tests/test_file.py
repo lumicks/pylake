@@ -201,6 +201,9 @@ def test_repr_and_str(h5_file):
               Force 1y:
               - Data type: float64
               - Size: 5
+              Force 2x:
+              - Data type: float64
+              - Size: 70
             Force LF:
               Force 1x:
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
@@ -247,6 +250,8 @@ def test_repr_and_str(h5_file):
             .force1x
               .calibration
             .force1y
+              .calibration
+            .force2x
               .calibration
         """)
 
