@@ -189,10 +189,12 @@ class Kymo(PhotonCounts, ExcitationLaserPower):
         width_um = self._ordered_axes()[0]["scan width (um)"]
         ts = self.timestamps
         duration = (ts[0, -1] - ts[0, 0]) / 1e9
+        linetime = (ts[0, 1] - ts[0, 0]) / 1e9
 
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
-            extent=[0, duration, width_um, 0],
+            # pixel center aligned with mean time per line
+            extent=[-0.5 * linetime, duration + 0.5 * linetime, width_um, 0],
             aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
         )
 
