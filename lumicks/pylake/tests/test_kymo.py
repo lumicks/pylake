@@ -130,3 +130,18 @@ def test_plotting(h5_file):
         kymo.plot_red()
         assert np.allclose(np.sort(plt.xlim()), [0, 3.03125])
         assert np.allclose(np.sort(plt.ylim()), [0, 36.075])
+
+
+@cleanup        
+def test_plotting_with_force(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+
+        ds = kymo._downsample_channel(2, "x", reduce=np.mean)
+        assert np.allclose(ds.data, [30, 30, 10, 10])
+        assert np.all(np.equal(ds.timestamps, kymo.timestamps[2]))
+
+        kymo.plot_with_force(force_channel="2x", color_channel="red")
+        assert np.allclose(np.sort(plt.xlim()), [0, 3], atol=0.05)
+        assert np.allclose(np.sort(plt.ylim()), [10, 30])
