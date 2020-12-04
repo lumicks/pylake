@@ -414,3 +414,21 @@ def test_filter_lines():
     assert len(filter_lines(lines, 5)) == 0
     assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])
     assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 2), [k1, k2, k3])])
+
+
+def test_kymolines_removal():
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), None)
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([2, 2, 2]), None)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), None)
+
+    def verify(rect, resulting_lines):
+        k = KymoLineGroup([k1, k2, k3])
+        k.remove_lines_in_rect(rect)
+        assert len(k._src) == len(resulting_lines)
+        assert all([l1 == l2 for l1, l2 in zip(k._src, resulting_lines)])
+
+    verify([[5, 3], [6, 4]], [k1, k2])
+    verify([[6, 3], [5, 4]], [k1, k2])
+    verify([[6, 5], [5, 3]], [k1, k2])
+    verify([[0, 0], [5, 5]], [])
+    verify([[15, 3], [16, 4]], [k1, k2, k3])

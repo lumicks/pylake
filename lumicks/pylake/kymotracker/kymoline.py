@@ -204,6 +204,23 @@ class KymoLineGroup:
             raise TypeError(f"You can only extend a {self.__class__} with a {self.__class__} or "
                             f"{KymoLine}")
 
+    def remove_lines_in_rect(self, rect):
+        """Removes traces that fall in a particular region. Note that if any point on a line files inside the selected
+        region it will be removed.
+
+        Parameters
+        ----------
+        rect : array_like
+            Array of 2D coordinates
+        """
+        if rect[0][0] > rect[1][0]:
+            rect[0][0], rect[1][0] = rect[1][0], rect[0][0]
+
+        if rect[0][1] > rect[1][1]:
+            rect[0][1], rect[1][1] = rect[1][1], rect[0][1]
+
+        self._src = [line for line in self._src if not line.in_rect(rect)]
+
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self._src)})"
 
