@@ -53,6 +53,7 @@ def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimit
 
     # Test raw fields
     data = read_txt(testfile, delimiter)
+    assert len(read_file) == len(lines)
 
     for line1, line2 in zip(lines, read_file):
         assert np.allclose(np.array(line1.coordinate_idx), np.array(line2.coordinate_idx))
