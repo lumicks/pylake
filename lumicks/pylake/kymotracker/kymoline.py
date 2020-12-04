@@ -72,7 +72,7 @@ def import_kymolinegroup_from_csv(filename, image, delimiter=';'):
 
     indices = data[:, 0]
     lines = np.unique(indices)
-    return KymoLineGroup(KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines)
+    return KymoLineGroup([KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines])
 
 
 class KymoLine:
@@ -205,7 +205,7 @@ class KymoLineGroup:
                             f"{KymoLine}")
 
     def remove_lines_in_rect(self, rect):
-        """Removes traces that fall in a particular region. Note that if any point on a line files inside the selected
+        """Removes traces that fall in a particular region. Note that if any point on a line falls inside the selected
         region it will be removed.
 
         Parameters
