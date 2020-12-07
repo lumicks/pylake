@@ -1110,3 +1110,17 @@ def test_interpolation_inversion():
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
     assert np.allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
+
+
+def test_no_jac():
+    x = np.arange(10)
+    y = np.array([8.24869073, 7.77648717, 11.9436565, 14.85406276, 22.73081526, 20.39692261, 32.48962353, 31.4775862,
+                  37.63807819, 40.50125925])
+
+    linear_model = Model("linear", lambda x, a, b: a * x + b)
+    linear_fit = Fit(linear_model)
+    linear_fit._add_data("test", x, y, {'linear/a': 5})
+    linear_fit.fit()
+
+    with pytest.raises(NotImplementedError):
+        linear_fit.cov

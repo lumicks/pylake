@@ -228,8 +228,9 @@ class Fit:
         for name, value in zip(parameter_names, parameter_vector):
             self.params[name] = value
 
-        for name, value in zip(parameter_names, np.diag(self.cov)):
-            self.params[name].stderr = np.sqrt(value)
+        if self.has_jacobian:
+            for name, value in zip(parameter_names, np.diag(self.cov)):
+                self.params[name].stderr = np.sqrt(value)
 
         return self
 
@@ -540,9 +541,13 @@ class Fit:
             based model reduction. PloS one, 11(9).
         """
         # Note that this approximation is only valid if the noise on each data set is the same.
-        J = self._calculate_jacobian()
-        J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
-        return np.linalg.pinv(np.transpose(J).dot(J))
+        if self.has_jacobian:
+            J = self._calculate_jacobian()
+            J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
+            return np.linalg.pinv(np.transpose(J).dot(J))
+        else:
+            raise NotImplementedError("In order to calculate a covariance matrix, a model Jacobian has to be specified"
+                                      "for the model.")
 
     def _repr_html_(self):
         out_string = "<h4>Fit</h4>\n"
