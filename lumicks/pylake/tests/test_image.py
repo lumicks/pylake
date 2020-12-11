@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from lumicks.pylake.detail.image import reconstruct_image, reconstruct_image_sum, reconstruct_num_frames, save_tiff,\
-    ImageMetadata, line_timestamps_image
+    ImageMetadata, line_timestamps_image, histogram_rows
 
 
 def test_metadata_from_json():
@@ -149,3 +149,23 @@ def test_float_tiff(tmpdir):
     with pytest.raises(RuntimeError) as excinfo:
         save_tiff(image32, str(tmpdir.join("1")), dtype=np.uint16)
     assert "Can't safely export image with `dtype=uint16` channels" in str(excinfo.value)
+
+
+def test_histogram_rows():
+    data = np.arange(36).reshape((6,6))
+
+    e, h, w = histogram_rows(data, 1, 0.1)
+    assert np.allclose(e, [0.0, 0.1, 0.2, 0.3, 0.4, 0.5])
+    assert np.all(np.equal(h, [15, 51, 87, 123, 159, 195]))
+    assert np.allclose(w, 0.1)
+
+    e, h, w = histogram_rows(data, 3, 0.1)
+    assert np.allclose(e, [0.0, 0.3])
+    assert np.all(np.equal(h, [153, 477]))
+    assert np.allclose(w, 0.3)
+
+    with pytest.warns(UserWarning):
+        e, h, w = histogram_rows(data, 5, 0.1)
+        assert np.allclose(e, [0.0, 0.5])
+        assert np.all(np.equal(h, [435, 195]))
+        assert np.allclose(w, [0.5, 0.1])
