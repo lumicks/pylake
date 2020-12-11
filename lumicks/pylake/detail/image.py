@@ -1,6 +1,7 @@
 import enum
 import math
 import numpy as np
+import warnings
 
 
 class ImageMetadata:
@@ -248,3 +249,22 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
     tifffile.imsave(filename, image.astype(dtype), resolution=metadata.resolution,
                     metadata=metadata.metadata)
 
+
+def histogram_rows(image, pixels_per_bin, pixel_width):
+        bin_width = pixels_per_bin * pixel_width # in physical units
+        n_rows = image.shape[0]
+        if pixels_per_bin > n_rows:
+            raise ValueError("bin size is larger than the available pixels")
+
+        n_bins = n_rows // pixels_per_bin
+        remainder = n_rows % pixels_per_bin
+        if remainder != 0:
+            warnings.warn(f"{n_rows} pixels is not divisible by {pixels_per_bin}, final bin only contains {remainder} pixels")
+            pad = np.zeros((pixels_per_bin-remainder, image.shape[1]))
+            image = np.vstack((image, pad))
+            n_bins += 1
+
+        counts = image.reshape((n_bins, -1)).sum(axis=1)
+        edges = np.arange(n_bins) * bin_width
+        widths = np.diff(np.hstack((edges, n_rows*pixel_width)))
+        return edges, counts, widths

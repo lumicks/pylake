@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 
 from .detail.confocal import ConfocalImage
-from .detail.image import reconstruct_image_sum, reconstruct_image, line_timestamps_image, seek_timestamp_next_line
+from .detail.image import reconstruct_image_sum, reconstruct_image, line_timestamps_image, seek_timestamp_next_line, histogram_rows
 from .detail.timeindex import to_timestamp
 
 
@@ -149,6 +149,71 @@ class Kymo(ConfocalImage):
         
         set_aspect_ratio(ax1, aspect_ratio)
         set_aspect_ratio(ax2, aspect_ratio)
+
+    def plot_with_position_histogram(self, color_channel, pixels_per_bin=1, hist_ratio=0.25, **kwargs):
+        """Plot kymo with histogram along position axis
+
+        Parameters
+        ----------
+        color_channel: str
+            color channel of kymo to plot ('red', 'green', 'blue', 'rgb').
+        pixels_per_bin: int
+            number of pixels along position axis to bin together.
+        hist_ratio: float
+            width of the histogram with respect to the kymo image.
+        **kwargs
+            Forwarded to histogram bar plot.
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.gridspec import GridSpec
+
+        image = getattr(self, f"{color_channel}_image")
+        pixel_width = self.pixelsize_um[0]
+        edges, counts, bin_widths = histogram_rows(image, pixels_per_bin, pixel_width)
+
+        gs = GridSpec(1, 2, width_ratios=(1, hist_ratio))
+        ax_kymo = plt.subplot(gs[0])
+        getattr(self, f"plot_{color_channel}")(aspect="auto")
+
+        ax_hist = plt.subplot(gs[1])
+        ax_hist.barh(edges, counts, bin_widths, align="edge", **kwargs)
+        ax_hist.invert_yaxis()
+        ax_hist.set_ylim(ax_kymo.get_ylim())
+        ax_hist.set_xlabel("counts")
+
+    def plot_with_time_histogram(self, color_channel, pixels_per_bin=1, hist_ratio=0.25, **kwargs):
+        """Plot kymo with histogram along time axis
+
+        Parameters
+        ----------
+        color_channel: str
+            color channel of kymo to plot ('red', 'green', 'blue', 'rgb').
+        pixels_per_bin: int
+            number of pixels along time axis to bin together.
+        hist_ratio: float
+            height of the histogram with respect to the kymo image.
+        **kwargs
+            Forwarded to histogram bar plot.
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.gridspec import GridSpec
+
+        image = getattr(self, f"{color_channel}_image").T
+        pixel_width = self.line_time_seconds
+        edges, counts, bin_widths = histogram_rows(image, pixels_per_bin, pixel_width)
+        # time points are defined at center of pixel
+        edges = edges - pixel_width / 2
+
+        gs = GridSpec(2, 1, height_ratios=(hist_ratio, 1))
+        ax_kymo = plt.subplot(gs[1])
+        getattr(self, f"plot_{color_channel}")(aspect="auto")
+        ax_kymo.set_title("")
+
+        ax_hist = plt.subplot(gs[0])
+        ax_hist.bar(edges, counts, bin_widths, align="edge", **kwargs)
+        ax_hist.set_xlim(ax_kymo.get_xlim())
+        ax_hist.set_ylabel("counts")
+        ax_hist.set_title(self.name)
 
 
 class EmptyKymo(Kymo):

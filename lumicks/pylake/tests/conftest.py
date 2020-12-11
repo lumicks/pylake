@@ -196,7 +196,7 @@ def h5_file(tmpdir_factory, request):
                             "num of pixels": 5,
                             "pixel size (nm)": 10,
                             "scan time (ms)": 0,
-                            "scan width (um)": 36.07468112612217
+                            "scan width (um)": 5 * 0.010
                         }
                     ]
                 }

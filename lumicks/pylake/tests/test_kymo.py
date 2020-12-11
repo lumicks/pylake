@@ -129,7 +129,7 @@ def test_plotting(h5_file):
         
         kymo.plot_red()
         assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
-        assert np.allclose(np.sort(plt.ylim()), [0, 36.075])
+        assert np.allclose(np.sort(plt.ylim()), [0, 0.05])
 
 
 @cleanup        
@@ -145,6 +145,50 @@ def test_plotting_with_force(h5_file):
         kymo.plot_with_force(force_channel="2x", color_channel="red")
         assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
         assert np.allclose(np.sort(plt.ylim()), [10, 30])
+
+
+@cleanup        
+def test_plotting_with_histograms(h5_file):
+    def get_rectangle_data():
+        widths = [p.get_width() for p in plt.gca().patches]
+        heights = [p.get_height() for p in plt.gca().patches]
+        return widths, heights
+
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+
+        kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=1)
+        w, h = get_rectangle_data()
+        assert np.allclose(h, 0.01)
+        assert np.all(np.equal(w, [3, 1, 1, 1, 3]))
+        assert np.allclose(np.sort(plt.xlim()), [0, 3], atol=0.05)
+
+        kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=1)
+        w, h = get_rectangle_data()
+        assert np.allclose(w, 1.03, atol=0.002)
+        assert np.all(np.equal(h, [4, 0, 2, 3]))
+        assert np.allclose(np.sort(plt.ylim()), [0, 4], atol=0.05)
+
+        with pytest.warns(UserWarning):
+            kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=3)
+            w, h = get_rectangle_data()
+            assert np.allclose(h, [0.03, 0.02])
+            assert np.all(np.equal(w, [5, 4]))
+            assert np.allclose(np.sort(plt.xlim()), [0, 5], atol=0.05)
+
+        with pytest.warns(UserWarning):
+            kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=3)
+            w, h = get_rectangle_data()
+            assert np.allclose(w, [3.09, 1.03], atol=0.02)
+            assert np.all(np.equal(h, [6, 3]))
+            assert np.allclose(np.sort(plt.ylim()), [0, 6], atol=0.05)
+
+        with pytest.raises(ValueError):
+            kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=6)
+
+        with pytest.raises(ValueError):
+            kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=6)
         
         
 def test_save_tiff(tmpdir_factory, h5_file):
