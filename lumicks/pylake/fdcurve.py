@@ -1,5 +1,5 @@
 import numpy as np
-from copy import copy
+from copy import copy, deepcopy
 from .channel import Slice, TimeSeries
 from .detail.mixin import DownsampledFD
 from .detail.utilities import find_contiguous
@@ -114,6 +114,33 @@ class FDCurve(DownsampledFD):
 
     def _get_distance(self, n):
         return getattr(self.file, f"distance{n}")[self.start:self.stop]
+
+    def with_offset(self, force_offset=0, distance_offset=0):
+        """Add a constant force offset from the force data in this F,d curve. Note that points where the
+        distance is defined as zero are ignored and that subtracting a distance offset bigger than the minimum distance
+        in the F,d curve will result in an error.
+
+        Parameters
+        ----------
+        force_offset : float
+        distance_offset : float
+        """
+        new_curve = self.__copy__()
+        new_curve._force_cache = Slice(TimeSeries(self.f.data + force_offset, self.f.timestamps), self.f.labels)
+
+        if distance_offset:
+            successful_tracking = self.d.data > 0
+            if -distance_offset >= np.min(self.d.data[successful_tracking]):
+                raise ValueError("Attempted to subtract a distance bigger than the smallest value. This would lead to "
+                                 "negative distances and is not allowed")
+
+            new_distance = np.copy(self.d.data)
+            new_distance[successful_tracking] = new_distance[successful_tracking] + distance_offset
+            new_curve._distance_cache = Slice(TimeSeries(new_distance, self.d.timestamps), self.d.labels)
+        else:
+            new_curve._distance_cache = deepcopy(self.d)
+
+        return new_curve
 
     @property
     def f(self):
