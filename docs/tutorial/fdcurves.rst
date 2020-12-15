@@ -50,3 +50,12 @@ The raw data can be accessed as well::
     plt.scatter(distance.data, force.data)
     # Plot manually: force timetrace
     plt.plot(force.timestamps, force.data)
+
+If you want only a subset of the FD points, you can obtain a filtered range using::
+
+    fd_slice = fd.sliced(force_min=0, force_max=30, distance_min=0, distance_max=100)
+
+After which you can access your data through the attributes `f` and `d`:
+
+    plt.plot(fd_slice.d, fd_slice.f)
+

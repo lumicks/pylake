@@ -2,6 +2,10 @@ import numpy as np
 from copy import copy, deepcopy
 from .channel import Slice, TimeSeries
 from .detail.mixin import DownsampledFD
+from collections import namedtuple
+
+
+FDSlice = namedtuple("FDSlice", "f d")
 
 
 class FDCurve(DownsampledFD):
@@ -125,6 +129,18 @@ class FDCurve(DownsampledFD):
         if self._distance_cache is None:
             self._distance_cache = getattr(self, f"distance{self._primary_distance_channel}")
         return self._distance_cache
+
+    def sliced(self, force_min=-np.inf, force_max=np.inf, distance_min=0, distance_max=np.inf):
+        """Get a slice of the fd curve. Note that distances smaller or equal than zero are always omitted.
+
+        Parameters
+        ----------
+        force_min, force_max, distance_min, distance_max: float
+            Force and distance limits.
+        """
+        f, d = self.f.data, self.d.data
+        valid_idx = np.logical_and.reduce((d > 0, d >= distance_min, d < distance_max, f >= force_min, f < force_max))
+        return FDSlice(f[valid_idx], d[valid_idx])
 
     def with_channels(self, force, distance):
         """Return a copy of this FD curve with difference primary force and distance channels"""
