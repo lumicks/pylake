@@ -155,6 +155,21 @@ def test_subtract_too_much_distance():
         fd1.with_offset(distance_offset=-4.0)
 
 
+@pytest.mark.parametrize("slice_parameters,f,d", [
+    ({}, np.arange(-0.5, 3, 0.5), np.arange(0.5, 4, .5)),
+    ({"force_max": 1}, np.arange(-0.5, 1, 0.5), np.arange(0.5, 2.0, .5)),
+    ({"force_min": 0}, np.arange(0, 3, 0.5), np.arange(1.0, 4, .5)),
+    ({"distance_min": 1}, np.arange(0.0, 3, 0.5), np.arange(1.0, 4, .5)),
+    ({"distance_max": 3}, np.arange(-0.5, 2, 0.5), np.arange(0.5, 3, .5)),
+])
+def test_fd_slice(slice_parameters, f, d):
+    fd1 = make_mock_fd(force=np.arange(-2, 3, .5), distance=np.arange(-1, 4, .5), start=0)
+
+    fdr = fd1._sliced(**slice_parameters)
+    assert np.allclose(fdr.f, f)
+    assert np.allclose(fdr.d, d)
+
+
 def test_copy_behaviour_with_offset(h5_file):
     """Test whether with_offset is successful when there's an actual file attached. The reason this is tested explicitly
     is because with_offset may not deepcopy the handle it holds to the parent file."""
