@@ -183,6 +183,9 @@ def test_repr_and_str(h5_file):
             
             .force1x
             .force1y
+
+            .downsampled_force1x
+            .downsampled_force1y
         """)
     if f.format_version == 2:
         assert str(f) == dedent("""\
@@ -252,6 +255,11 @@ def test_repr_and_str(h5_file):
             .force1y
               .calibration
             .force2x
+              .calibration
+
+            .downsampled_force1x
+              .calibration
+            .downsampled_force1y
               .calibration
         """)
 
