@@ -142,15 +142,23 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         return print_attributes(self.h5) + "\n" + print_group(self.h5) + \
             ''.join((print_dicts(field) for field in self.redirect_list.values())) + "\n" + \
             ''.join((print_force(field) for field in ['force1x', 'force1y', 'force2x', 'force2y',
-                                                      'force3x', 'force3y', 'force4x', 'force4y']))
+                                                      'force3x', 'force3y', 'force4x', 'force4y'])) + "\n" + \
+            ''.join((print_force(field) for field in ['downsampled_force1x', 'downsampled_force1y', 
+                                                      'downsampled_force2x', 'downsampled_force2y',
+                                                      'downsampled_force3x', 'downsampled_force3y', 
+                                                      'downsampled_force4x', 'downsampled_force4y']))
 
     def _get_force(self, n, xy):
+        """Return a Slice of force measurements, including calibration
+           Note: direct access to HDF dataset does not include calibration data """
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]
         calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
     def _get_downsampled_force(self, n, xy):
+        """Return a Slice of low frequency force measurements, including calibration if applicable
+           Note: direct access to HDF dataset does not include calibration data """
         group = self.h5["Force LF"]
 
         def make(channel):
