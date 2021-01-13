@@ -1,4 +1,5 @@
-from lumicks.pylake import FdRangeSelectorWidget, FdRangeSelector
+from lumicks.pylake import FdRangeSelector
+from lumicks.pylake.nb_widgets.range_selector import FdTimeRangeSelectorWidget
 from lumicks.pylake.fdcurve import FDCurve
 from lumicks.pylake.channel import TimeSeries, Slice
 from matplotlib.testing.decorators import cleanup
@@ -22,7 +23,7 @@ def test_selector_widget(mockevent):
     dt = int(600e9)
     fd_curve = make_mock_fd([0, 1, 2, 3], [0, 1, 2, 3], start=start_point, dt=dt)
 
-    selector = FdRangeSelectorWidget(fd_curve, show=False)
+    selector = FdTimeRangeSelectorWidget(fd_curve, show=False)
 
     assert selector.current_range == []
     selector._add_point(750)
@@ -38,7 +39,7 @@ def test_selector_widget(mockevent):
     assert selector.to_seconds(2500e9) == 0
     selector.update_plot()
 
-    selector = FdRangeSelectorWidget(fd_curve)
+    selector = FdTimeRangeSelectorWidget(fd_curve)
     lmb = 1
     rmb = 3
 

@@ -79,6 +79,14 @@ class FDCurve(DownsampledFD):
         new_curve.stop = new_curve.f._src.stop
         return new_curve
 
+    def _slice_by_distance(self, min_dist, max_dist):
+        """Return a subset of this FD curve within a selected distance range"""
+        # TODO => checking for one-way pass (no back and forth) variable time
+        # TODO => handle distance measurement noise in time channel
+        ix = np.logical_and(min_dist <= self.d.data, self.d.data <= max_dist)
+        timestamps = self.d.timestamps[ix]
+        return self[timestamps[0]:timestamps[-1]]
+
     def _get_downsampled_force(self, n, xy):
         return getattr(self.file, f"downsampled_force{n}{xy}")[self.start:self.stop]
 
