@@ -177,11 +177,6 @@ class KymoWidget:
                                 "works. Please note that you may have to restart the notebook kernel for this to "
                                 "work."))
 
-        output = ipywidgets.Output()
-        with output:
-            self._fig = plt.figure()
-            self._axes = self._fig.add_subplot(111)
-
         algorithm_sliders = self.create_algorithm_sliders()
 
         add_toggle = ipywidgets.interactive(
@@ -200,7 +195,8 @@ class KymoWidget:
 
         def set_show_lines(show_lines):
             self.show_lines = show_lines
-            self.update_lines()
+            if self._fig:
+                self.update_lines()
 
         show_lines_toggle = ipywidgets.interactive(
             set_show_lines,
@@ -242,6 +238,7 @@ class KymoWidget:
 
         self._label = ipywidgets.Label(value="")
 
+        output = ipywidgets.Output()
         ui = ipywidgets.HBox(
             [
                 ipywidgets.VBox([output]),
@@ -260,6 +257,10 @@ class KymoWidget:
         )
 
         display(ui)
+
+        with output:
+            self._fig = plt.figure()
+            self._axes = self._fig.add_subplot(111)
 
     def show(self, use_widgets, **kwargs):
         if self._fig:
