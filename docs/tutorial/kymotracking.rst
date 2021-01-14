@@ -114,6 +114,26 @@ be converted to actual time and position using the line time and pixel size of t
 between frames directly from the kymograph as :attr:`.Kymo.line_time_seconds` and the pixel size as
 :attr:`.Kymo.pixelsize_um`. This allows conversion from pixels back to position.
 
+Using the kymotracker widget
+----------------------------
+
+Using the algorithm purely by function calls can be challenging if not all parts of the kymograph look the same or
+when the signal to noise ratio is somewhat low. To help with this, we included a kymotracking widget that can help you
+track subsections of the kymograph and iteratively tweak the algorithm parameters as you do so. You can open this widget
+by invoking the following command::
+
+    kymowidget = lk.KymoWidgetGreedy(data)
+
+You can optionally also pass algorithm parameters when opening the widget::
+
+    KymoWidgetGreedy(data, axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=1.4)
+
+Traced lines are accessible through the `.lines` property::
+
+    >>> lines = kymowidget.lines
+    KymoLineGroup(N=199)
+
+For more information on its use, please see the example :ref:`cas9_kymotracking`.
 
 Using the lines algorithm
 -------------------------

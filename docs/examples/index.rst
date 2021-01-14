@@ -19,4 +19,4 @@ For all of the examples, it is assumed that the following lines precede any othe
     dna_rna_protein/index
     twlc_fitting/twlc_fitting
     reca_fitting/reca_fitting
-
+    cas9_kymotracking/cas9_kymotracking
