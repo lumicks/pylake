@@ -148,14 +148,17 @@ class Slice:
 
         t = np.zeros(len(range_list), dtype=self._src.timestamps.dtype)
         d = np.zeros(len(range_list))
-        for i, time_range in enumerate(range_list):
+        idx = 0
+        for time_range in range_list:
             start, stop = time_range
             subset = self[start:stop]
-            ts = subset.timestamps
-            t[i] = (ts[0] + ts[-1]) // 2 if where == 'center' else start
-            d[i] = reduce(subset.data)
+            if len(subset.timestamps) > 0:
+                ts = subset.timestamps
+                t[idx] = (ts[0] + ts[-1]) // 2 if where == 'center' else start
+                d[idx] = reduce(subset.data)
+                idx += 1
 
-        return Slice(TimeSeries(d, t), self.labels)
+        return Slice(TimeSeries(d[:idx], t[:idx]), self.labels)
 
     def downsampled_to(self, frequency, reduce=np.mean, where='center', method="safe"):
         """Return a copy of this slice downsampled to a specified frequency
