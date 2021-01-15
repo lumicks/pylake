@@ -518,6 +518,16 @@ def test_consistency_downsampled_to():
     assert np.allclose(one_step.timestamps, two_step.timestamps)
 
 
+def test_downsampled_over_no_data_gap():
+    t = np.array([0, 1, 2, 3, 10, 11, 12, 13, 14, 15])
+    d = np.arange(10)
+    s = channel.Slice(channel.TimeSeries(d, t))
+    ranges = [(t1, t2) for t1, t2 in zip(np.arange(0, 16, 2), np.arange(2, 18, 2))]
+    ts = s.downsampled_over(ranges)
+    assert np.allclose(ts.timestamps, [0, 2, 10, 12, 14])
+    assert np.allclose(ts.data, [0.5, 2.5, 4.5, 6.5, 8.5])
+
+
 def test_downsampling_over_subset():
     d = np.arange(1, 24)
     s = channel.Slice(channel.Continuous(d, 0, 10))

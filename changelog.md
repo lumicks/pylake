@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.3 | t.b.d.
+
+* Fix `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
+
 ## v0.7.2 | 2020-01-14
 
 #### New features
