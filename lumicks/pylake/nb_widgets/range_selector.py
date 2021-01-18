@@ -155,7 +155,9 @@ class FdTimeRangeSelectorWidget(SliceRangeSelectorWidget):
 
 
 class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
-    def __init__(self, fd_curve, axes=None, show=True):
+    def __init__(self, fd_curve, axes=None, show=True, max_gap=0):
+        self.fd_curve = fd_curve        
+        self._max_gap = max_gap
         super().__init__(axes, show)
         self.fd_curve = fd_curve        
 
@@ -169,7 +171,7 @@ class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
     @property
     def fdcurves(self):
         """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
-        return [self.fd_curve._slice_by_distance(min_dist, max_dist) for min_dist, max_dist in self._ranges]
+        return [self.fd_curve._sliced_by_distance(min_dist, max_dist, self._max_gap) for min_dist, max_dist in self._ranges]
 
 
 class FdRangeSelector:

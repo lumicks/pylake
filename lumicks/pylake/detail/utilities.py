@@ -35,3 +35,11 @@ def lighten_color(c, amount):
     hsv = mpl.colors.rgb_to_hsv(mpl.colors.to_rgb(c))
     hsv[2] = np.clip(hsv[2]+amount, 0.0, 1.0)
     return mpl.colors.hsv_to_rgb(hsv)
+
+def find_contiguous(mask):
+    """Find [start,stop] indices and lengths of contiguous blocks where mask is True."""
+    padded = np.hstack((0, np.asarray(mask, dtype=bool) == True, 0))
+    change_points = np.abs(np.diff(padded))
+    ranges = np.argwhere(change_points == 1).reshape(-1,2)
+    run_lengths = np.diff(ranges, axis=1).squeeze()
+    return ranges, np.atleast_1d(run_lengths)
