@@ -2,6 +2,8 @@ import numpy as np
 from copy import copy
 from .channel import Slice, TimeSeries
 from .detail.mixin import DownsampledFD
+from .detail.utilities import find_contiguous
+from .nb_widgets.range_selector import FdTimeRangeSelectorWidget, FdDistanceRangeSelectorWidget
 
 
 class FDCurve(DownsampledFD):
@@ -79,12 +81,24 @@ class FDCurve(DownsampledFD):
         new_curve.stop = new_curve.f._src.stop
         return new_curve
 
-    def _slice_by_distance(self, min_dist, max_dist):
+    def _sliced_by_distance(self, min_dist, max_dist, max_gap=0):
         """Return a subset of this FD curve within a selected distance range"""
-        # TODO => checking for one-way pass (no back and forth) variable time
-        # TODO => handle distance measurement noise in time channel
-        ix = np.logical_and(min_dist <= self.d.data, self.d.data <= max_dist)
-        timestamps = self.d.timestamps[ix]
+        # logical mask of data lying within selected distance range
+        mask_in_range = np.logical_and(min_dist <= self.d.data, self.d.data <= max_dist).astype(np.bool)
+
+        # find runs of data that are not in selected distance range
+        # runs shorter than the allowed gap should be allowed
+        ranges, lengths = find_contiguous(~mask_in_range)
+        for rng, ln in zip(ranges, lengths):
+            if ln < max_gap:
+                # ignore first and last runs of data, as total length is not defined
+                if rng[0] == 0 or rng[1] == self.d.data.size:
+                    continue
+                mask_in_range[slice(*rng)] = True
+
+        # find longest contiguous run of data and return corresponding FD curve
+        ranges, lengths = find_contiguous(mask_in_range)
+        timestamps = self.d.timestamps[slice(*ranges[np.argmax(lengths)])]
         return self[timestamps[0]:timestamps[-1]]
 
     def _get_downsampled_force(self, n, xy):
