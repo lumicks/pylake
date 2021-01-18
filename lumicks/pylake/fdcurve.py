@@ -82,24 +82,32 @@ class FDCurve(DownsampledFD):
         return new_curve
 
     def _sliced_by_distance(self, min_dist, max_dist, max_gap=0):
-        """Return a subset of this FD curve within a selected distance range"""
+        """Return the longest time-contiguous slice of this FD curve within a selected distance range"""
         # logical mask of data lying within selected distance range
-        mask_in_range = np.logical_and(min_dist <= self.d.data, self.d.data <= max_dist).astype(np.bool)
+        mask_in_range = np.logical_and(min_dist <= self.d.data, self.d.data <= max_dist)
 
         # find runs of data that are not in selected distance range
         # runs shorter than the allowed gap should be allowed
         ranges, lengths = find_contiguous(~mask_in_range)
         for rng, ln in zip(ranges, lengths):
             if ln < max_gap:
-                # ignore first and last runs of data, as total length is not defined
+                # We want to include short sections of data that fall outside the selected distance range, 
+                # when these excursions are caused by noise. However, we do not want to extend to the 
+                # start or end of the curve, since we cannot know whether we are simply going out of the 
+                # range because of noise, or whether we have just actually left the range.
                 if rng[0] == 0 or rng[1] == self.d.data.size:
                     continue
                 mask_in_range[slice(*rng)] = True
 
         # find longest contiguous run of data and return corresponding FD curve
         ranges, lengths = find_contiguous(mask_in_range)
-        timestamps = self.d.timestamps[slice(*ranges[np.argmax(lengths)])]
-        return self[timestamps[0]:timestamps[-1]]
+        longest_range = ranges[np.argmax(lengths)]
+        start = self.d.timestamps[longest_range[0]]
+        if self.d.timestamps.size == longest_range[-1]:
+            return self[start:]
+        else:
+            stop = self.d.timestamps[longest_range[-1]]
+            return self[start:stop]
 
     def _get_downsampled_force(self, n, xy):
         return getattr(self.file, f"downsampled_force{n}{xy}")[self.start:self.stop]

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from lumicks.pylake.fdcurve import FDCurve
 from lumicks.pylake.channel import Slice, TimeSeries
