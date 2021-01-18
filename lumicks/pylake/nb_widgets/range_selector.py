@@ -31,7 +31,7 @@ class BaseRangeSelectorWidget:
             self.update_plot()
 
     @property
-    def xdata(self):
+    def _xdata(self):
         raise NotImplementedError
 
     @property
@@ -81,7 +81,7 @@ class BaseRangeSelectorWidget:
 
         if event.button == 1:
             # Find the data point nearest to the event and determine its timestamp
-            point = self.xdata[np.argmin(np.abs(self.xdata - event.xdata))]
+            point = self._xdata[np.argmin(np.abs(self._xdata - event.xdata))]
             if point:
                 self._add_point(point)
         elif event.button == 3:
@@ -124,7 +124,7 @@ class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
         super().__init__(axes, show, self.to_seconds)
 
     @property
-    def xdata(self):
+    def _xdata(self):
         return self.time
 
     def to_seconds(self, timestamp):
@@ -145,8 +145,8 @@ class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
 
 class FdTimeRangeSelectorWidget(SliceRangeSelectorWidget):
     def __init__(self, fd_curve, axes=None, show=True):
-        super().__init__(fd_curve.f, axes, show)
         self.fd_curve = fd_curve
+        super().__init__(fd_curve.f, axes, show)
 
     @property
     def fdcurves(self):
@@ -159,10 +159,9 @@ class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
         self.fd_curve = fd_curve        
         self._max_gap = max_gap
         super().__init__(axes, show)
-        self.fd_curve = fd_curve        
 
     @property
-    def xdata(self):
+    def _xdata(self):
         return self.fd_curve.d.data
 
     def _plot_data(self):
@@ -174,8 +173,8 @@ class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
         return [self.fd_curve._sliced_by_distance(min_dist, max_dist, self._max_gap) for min_dist, max_dist in self._ranges]
 
 
-class FdRangeSelector:
-    def __init__(self, fd_curves, select_by="time"):
+class BaseRangeSelector:
+    def __init__(self, fd_curves):
         """Open widget to select regions in multiple F,d curves
 
         Parameters
@@ -195,21 +194,17 @@ class FdRangeSelector:
                                 "works. Please note that you may have to restart the notebook kernel for this to "
                                 "work."))
 
-        if select_by == "time":
-            widget = FdTimeRangeSelectorWidget
-        elif select_by == "distance":
-            widget = FdDistanceRangeSelectorWidget
-        else:
-            raise ValueError(f"selection by '{select_by}' is not recognized.")
-
         plt.figure()
         self.axes = plt.axes()
         self.active_plot = None
-        self.selectors = {key: widget(curve, self.axes, show=False) for key, curve in fd_curves.items()}
+        self.selectors = {key: self._add_widget(curve) for key, curve in fd_curves.items()}
         keys = [key for key, curve in fd_curves.items()]
         ipywidgets.interact(self.update_plot, curve=ipywidgets.Dropdown(options=keys))
 
         self.update_plot(keys[0])
+
+    def _add_widget(self, curve):
+        raise NotImplementedError
 
     def update_plot(self, curve):
         if curve:
@@ -228,3 +223,19 @@ class FdRangeSelector:
     def fdcurves(self):
         """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
         return {key: selector.fdcurves for key, selector in self.selectors.items()}
+
+
+class FdRangeSelector(BaseRangeSelector):
+
+    def _add_widget(self, curve):
+        return FdTimeRangeSelectorWidget(curve, self.axes, show=False)
+
+
+class FdDistanceRangeSelector(BaseRangeSelector):
+
+    def __init__(self, fd_curves, max_gap=3):
+        self._max_gap = max_gap
+        super().__init__(fd_curves)
+
+    def _add_widget(self, curve):
+        return FdDistanceRangeSelectorWidget(curve, self.axes, show=False, max_gap=self._max_gap)

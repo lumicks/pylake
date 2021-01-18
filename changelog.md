@@ -2,7 +2,13 @@
 
 ## v0.7.3 | t.b.d.
 
+#### New features
+* Add widget to graphically slice `FDCurve` by distance in Jupyter Notebooks. It can be opened by calling `pylake.FdDistanceRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
+
+#### Bug fixes
 * Fix `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
+
+#### Other
 * Add documentation for the Kymotracker widget. See the [Cas9 kymotracking example](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) or the [kymotracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 ## v0.7.2 | 2020-01-14

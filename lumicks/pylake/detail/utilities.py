@@ -38,7 +38,7 @@ def lighten_color(c, amount):
 
 def find_contiguous(mask):
     """Find [start,stop] indices and lengths of contiguous blocks where mask is True."""
-    padded = np.hstack((0, np.asarray(mask, dtype=bool) == True, 0))
+    padded = np.hstack((0, mask.astype(np.bool), 0))
     change_points = np.abs(np.diff(padded))
     ranges = np.argwhere(change_points == 1).reshape(-1,2)
     run_lengths = np.diff(ranges, axis=1).squeeze()
