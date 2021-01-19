@@ -9,6 +9,7 @@ from lumicks.pylake.fitting.parameter_trace import parameter_trace
 from lumicks.pylake.nb_widgets.range_selector import FdRangeSelector, FdDistanceRangeSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines, filter_lines, refine_lines_centroid
 from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy
+from lumicks.pylake.fdensemble import FdEnsemble
 
 
 def pytest(args=None, plugins=None):

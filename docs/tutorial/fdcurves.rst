@@ -50,3 +50,15 @@ The raw data can be accessed as well::
     plt.scatter(distance.data, force.data)
     # Plot manually: force timetrace
     plt.plot(force.timestamps, force.data)
+
+FD Ensembles
+------------
+
+It's also possible to work with multiple FD curves as an ensemble::
+
+    fd_ensemble = lk.FdEnsemble(file.fdcurves)
+
+and distance from such an ensemble using::
+
+    f = fd_ensemble.f
+    d = fd_ensemble.d
