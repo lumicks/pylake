@@ -7,6 +7,7 @@
 * Added `FDCurve.with_offset()` to `FDCurve` to add offsets to force and distance.
 * Added `FDCurve.sliced()` to `FDCurve` to obtain a range of raw data from an F,d curve. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html) for more information.
 * Added `FdEnsemble` to be able to process multiple `FDCurve` instances simultaneously.
+* Added `FdEnsemble.align_linear()` to align F,d curves in an ensemble by correcting for a constant offset in force and distance using two linear regressions. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html) for more information.
 
 ## v0.7.2 | 2020-01-14
 
