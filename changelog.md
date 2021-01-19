@@ -6,7 +6,7 @@
 * Add documentation for the Kymotracker widget. See the [Cas9 kymotracking example](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) or the [kymotracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 * Added `FDCurve.with_offset()` to `FDCurve` to add offsets to force and distance.
 * Added `FDCurve.sliced()` to `FDCurve` to obtain a range of raw data from an F,d curve. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html) for more information.
-
+* Added `FdEnsemble` to be able to process multiple `FDCurve` instances simultaneously.
 
 ## v0.7.2 | 2020-01-14
 

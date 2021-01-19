@@ -59,3 +59,14 @@ After which you can access your data through the attributes `f` and `d`:
 
     plt.plot(fd_slice.d, fd_slice.f)
 
+FD Ensembles
+------------
+
+It's also possible to work with multiple FD curves as an ensemble::
+
+    fd_ensemble = lk.FdEnsemble(file.fdcurves)
+
+and distance from such an ensemble using::
+
+    f = fd_ensemble.f
+    d = fd_ensemble.d
