@@ -58,6 +58,15 @@ It's also possible to work with multiple FD curves as an ensemble::
 
     fd_ensemble = lk.FdEnsemble(file.fdcurves)
 
+We can align the FD curves using the align function::
+
+    fd_ensemble.align_linear(distance_range_low=0.02, distance_range_high=0.02)
+
+This aligns all the curves to the first and estimates an offset in force and distance, which is subtracted from the
+data. Force is aligned by taking the mean of the lowest distances, while distance is aligned by considering the last
+segment of each FD curve and regressing linear lines there, from which the offset is computed. Note that this requires
+the ends of the aligned F,d curves to be in a comparably folded state and obtained in the elastic range of the force,
+distance curve. If any of these assumptions are not met, this method should not be applied. We can obtain the force
 and distance from such an ensemble using::
 
     f = fd_ensemble.f
