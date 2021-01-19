@@ -8,6 +8,7 @@
 * Added `center_point_um` property to `PointScan`, `Kymo` and `Scan` classes.
 * Added `scan_width_um` property to `Kymo` and `Scan` classes.
 * Added `FDCurve.with_offset()` to `FDCurve` to add offsets to force and distance.
+* Added `FdEnsemble` to be able to process multiple `FDCurve` instances simultaneously.
 
 #### Bug fixes
 * Fixed `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
