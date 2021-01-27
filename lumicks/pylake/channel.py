@@ -301,9 +301,8 @@ class Slice:
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
 
-    @property
-    def range_selector(self):
-        return SliceRangeSelectorWidget(self)
+    def range_selector(self, show=True):
+        return SliceRangeSelectorWidget(self, show=show)
 
 
 def _downsample(data, factor, reduce):

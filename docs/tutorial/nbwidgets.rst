@@ -18,7 +18,7 @@ regions using a widget. Let's load the file and run the widget::
 
     file = lk.File("file.h5")
     channel = file["Force LF"]["Force 1x"]
-    selector = channel.range_selector
+    selector = channel.range_selector()
 
 .. image:: slice_widget.png
 
@@ -148,3 +148,12 @@ is zero, such that all data points are guaranteed to fall within the selected di
 argument is shown below for an F,d curve sliced with the same distance thresholds:
 
 .. image:: fd_dist_widget3.png
+
+Range selection of single curve
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The selector widgets can also be easily accessed from single F,d curve instances::
+
+    fdcurve = fdcurves["Fd pull #6"]
+    t_selector = fdcurve.range_selector()
+    d_selector = fdcurve.distance_range_selector(max_gap=3)
