@@ -1,5 +1,7 @@
 from lumicks.pylake import FdRangeSelector
-from lumicks.pylake.nb_widgets.range_selector import FdTimeRangeSelectorWidget, FdDistanceRangeSelectorWidget
+from lumicks.pylake.nb_widgets.range_selector import (FdTimeRangeSelectorWidget, 
+                                                      FdDistanceRangeSelectorWidget, 
+                                                      BaseRangeSelectorWidget)
 from lumicks.pylake.fdcurve import FDCurve
 from lumicks.pylake.channel import TimeSeries, Slice
 from matplotlib.testing.decorators import cleanup
@@ -102,7 +104,7 @@ def test_distance_selector_widget(mockevent):
     dt = int(600e9)
     fd_curve = make_mock_fd(np.arange(10), np.arange(10), start=start_point, dt=dt)
 
-    selector = FdDistanceRangeSelectorWidget(fd_curve, show=False)
+    selector = fd_curve.distance_range_selector(show=False)
 
     assert selector.current_range == []
     selector._add_point(2)
@@ -117,7 +119,7 @@ def test_distance_selector_widget(mockevent):
 
     selector.update_plot()
 
-    selector = FdDistanceRangeSelectorWidget(fd_curve, show=True)
+    selector = fd_curve.distance_range_selector(show=True)
     lmb = 1
     rmb = 3
 
@@ -199,7 +201,14 @@ def test_multi_distance_selector_widget():
 
 
 @cleanup
-def test_slice_widget_opens():
+def test_selector_widgets_open():
     channel = Slice(TimeSeries([1, 2, 3, 4], [100, 200, 300, 400]))
+    widget = channel.range_selector()
+    assert isinstance(widget, BaseRangeSelectorWidget)
 
-    channel.range_selector
+    fd_curve = make_mock_fd(np.arange(10), np.arange(10), start=int(2500e9))
+    widget = fd_curve.range_selector()
+    assert isinstance(widget, BaseRangeSelectorWidget)
+
+    widget = fd_curve.distance_range_selector()
+    assert isinstance(widget, BaseRangeSelectorWidget)

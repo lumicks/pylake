@@ -150,3 +150,9 @@ class FDCurve(DownsampledFD):
         plt.xlabel(self.d.labels.get("y", "distance"))
         plt.ylabel(self.f.labels.get("y", "force"))
         plt.title(self.name)
+
+    def range_selector(self, show=True):
+        return FdTimeRangeSelectorWidget(self, show=show)
+
+    def distance_range_selector(self, show=True, max_gap=0):
+        return FdDistanceRangeSelectorWidget(self, show=show, max_gap=max_gap)
