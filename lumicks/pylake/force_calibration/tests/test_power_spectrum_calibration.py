@@ -1,6 +1,7 @@
 from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
 import numpy as np
 import scipy as sp
+import os
 import pytest
 
 
@@ -213,3 +214,26 @@ def test_bad_data():
 
     # What?? This doesn't seem good, but for parity, we test the current strange behaviour explicitly.
     assert ps_calibration.results.is_success() is True
+
+def test_actual_spectrum():
+
+    data = np.load(os.path.join(os.path.dirname(__file__), "reference_spectrum.npz"))
+    reference_spectrum = data["arr_0"]
+    params = psc.CalibrationParameters(4.4, temperature=20, viscosity=0.001002)
+    settings = psc.CalibrationSettings(fit_range=(100.0, 23000.0), n_points_per_block=int(100))
+
+    ps_calibration = psc.PowerSpectrumCalibration(data=reference_spectrum, sampling_rate=78125, params=params,
+                                                  settings=settings)
+    ps_calibration.run_fit()
+
+    assert np.allclose(ps_calibration.results.D, 0.0018512665210876748, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.Rd, 7.253645956145265, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.Rf, 1243.9711315478219, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.kappa, 0.17149598134079505, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.alpha, 0.5006103727942776, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.backing, 66.4331056392512, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.chi_squared_per_deg, 1.063783302378645, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.err_fc, 32.23007993226726, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.err_D, 6.43082000774291e-05, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.err_alpha, 0.013141463933316694, rtol=1e-4)
+    assert np.allclose(ps_calibration.results.err_f_diode, 561.6377089699399, rtol=1e-4)
