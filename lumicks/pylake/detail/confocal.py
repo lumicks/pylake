@@ -130,6 +130,11 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
     def has_force(self) -> bool:
         return self.json["force"]
 
+    @property
+    def center_point_um(self):
+        """Returns a dictionary of the x/y/z center coordinates of the scan (w.r.t. brightfield field of view) """
+        return self.json["scan volume"]["center point (um)"]
+
 
 class ConfocalImage(BaseScan):
 
@@ -238,6 +243,11 @@ class ConfocalImage(BaseScan):
     def pixelsize_um(self):
         """Returns a `List` of axes dimensions in um. The length of the list corresponds to the number of scan axes."""
         return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
+
+    @property
+    def scan_width_um(self):
+        """Returns a `List` of scan widths in um along axes. The length of the list corresponds to the number of scan axes."""
+        return [axes["scan width (um)"] for axes in self._ordered_axes()]
 
     @property
     def red_image(self):

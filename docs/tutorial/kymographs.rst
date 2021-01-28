@@ -24,6 +24,9 @@ Or just pick a single one::
     kymo = file.kymos["name"]
     kymo.plot_red()
 
+Kymo data and details
+---------------------
+
 Access the raw image data::
 
     rgb = kymo.rgb_image  # matrix with `shape == (h, w, 3)`
@@ -31,6 +34,23 @@ Access the raw image data::
 
     # Plot manually
     plt.imshow(rgb)
+
+Kymographs can also be sliced in order to obtain a specific time range.
+For example, one can plot the region of the kymograph between 175 and 180 seconds using::
+
+    kymo["175s":"180s"].plot_red()
+
+There are also several properties available for convenient access to the kymograph metadata:
+
+* `kymo.center_point_um` provides a dictionary of the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field of view
+* `kymo.scan_width_um` provides a list of scan widths in micrometers along the axes of the scan
+* `kymo.pixelsize_um` provides the pixel size in micrometers
+* `kymo.pixels_per_line` provides the number of pixels in each line of the kymograph
+* `kymo.fast_axis` provides the axis that was scanned (x or y)
+* `kymo.line_time_seconds` provides the time between successive lines
+
+Plotting and exporting
+----------------------
 
 There are also convenience functions to plot individual color channels and the full RGB image::
 
@@ -42,8 +62,3 @@ There are also convenience functions to plot individual color channels and the f
 The images can also be exported in the TIFF format::
 
     kymo.save_tiff("image.tiff")
-
-Kymographs can also be sliced in order to obtain a specific time range.
-For example, one can plot the region of the kymograph between 175 and 180 seconds using::
-
-    kymo["175s":"180s"].plot_red()
