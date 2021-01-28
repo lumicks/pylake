@@ -5,6 +5,8 @@
 #### New features
 * Added widget to graphically slice `FDCurve` by distance in Jupyter Notebooks. It can be opened by calling `pylake.FdDistanceRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
 * Added `FDCurve.range_selector()` and `FDCurve.distance_range_selector()`
+* Added `center_point_um` property to `PointScan`, `Kymo` and `Scan` classes.
+* Added `scan_width_um` property to `Kymo` and `Scan` classes.
 
 #### Bug fixes
 * Fixed `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.

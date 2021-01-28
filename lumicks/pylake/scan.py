@@ -96,9 +96,7 @@ class Scan(ConfocalImage):
         if self.num_frames != 1:
             image = image[frame - 1]
 
-        axes = self._ordered_axes()
-        x_um = axes[0]["scan width (um)"]
-        y_um = axes[1]["scan width (um)"]
+        x_um, y_um = self.scan_width_um
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
@@ -111,6 +109,7 @@ class Scan(ConfocalImage):
             # Updating the image data in an existing plot is a lot faster than re-plotting with `imshow`.
             image_handle.set_data(image)
 
+        axes = self._ordered_axes()
         plt.xlabel(f"{axis_label[axes[0]['axis']]} ($\\mu m$)")
         plt.ylabel(f"{axis_label[axes[1]['axis']]} ($\\mu m$)")
         if self.num_frames == 1:

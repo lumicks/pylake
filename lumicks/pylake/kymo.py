@@ -86,7 +86,7 @@ class Kymo(ConfocalImage):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self._ordered_axes()[0]["scan width (um)"]
+        width_um = self.scan_width_um[0]
         ts = self.timestamps
         duration = (ts[0, -1] - ts[0, 0]) / 1e9
         linetime = (ts[0, 1] - ts[0, 0]) / 1e9

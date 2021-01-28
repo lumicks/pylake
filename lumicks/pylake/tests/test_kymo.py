@@ -30,6 +30,10 @@ def test_kymo_properties(h5_file):
         assert kymo.fast_axis == "X"
         assert np.allclose(kymo.pixelsize_um, 10/1000)
         assert np.allclose(kymo.line_time_seconds, 1.03125)
+        assert np.allclose(kymo.center_point_um["x"], 58.075877109272604)
+        assert np.allclose(kymo.center_point_um["y"], 31.978375270573267)
+        assert np.allclose(kymo.center_point_um["z"], 0)
+        assert np.allclose(kymo.scan_width_um, [0.050])
 
 
 def test_kymo_slicing(h5_file):

@@ -31,6 +31,10 @@ def test_scans(h5_file):
         assert scan.green_image.shape == (4, 5)
         assert scan.fast_axis == "Y"
         assert np.allclose(scan.pixelsize_um, [197/1000, 191/1000])
+        assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
+        assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
+        assert np.allclose(scan.center_point_um["z"], 0)
+        assert np.allclose(scan.scan_width_um, [0.197*5, 0.191*4])
 
         with pytest.raises(NotImplementedError):
             scan["1s":"2s"]
@@ -53,6 +57,10 @@ def test_scans(h5_file):
         assert scan.green_image.shape == (2, 4, 3)
         assert scan.fast_axis == "Y"
         assert np.allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
+        assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
+        assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
+        assert np.allclose(scan.center_point_um["z"], 0)
+        assert np.allclose(scan.scan_width_um, [0.197*3, 0.191*4])
 
         scan = f.scans["fast X slow Z multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
@@ -73,6 +81,10 @@ def test_scans(h5_file):
         assert scan.green_image.shape == (2, 3, 4)
         assert scan.fast_axis == "X"
         assert np.allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
+        assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
+        assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
+        assert np.allclose(scan.center_point_um["z"], 0)
+        assert np.allclose(scan.scan_width_um, [0.191*4, 0.197*3])
 
         scan = f.scans["fast Y slow Z multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
@@ -93,6 +105,10 @@ def test_scans(h5_file):
         assert scan.green_image.shape == (2, 3, 4)
         assert scan.fast_axis == "Y"
         assert np.allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
+        assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
+        assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
+        assert np.allclose(scan.center_point_um["z"], 0)
+        assert np.allclose(scan.scan_width_um, [0.191*4, 0.197*3])
 
 
 def test_damaged_scan(h5_file):

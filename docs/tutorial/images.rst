@@ -26,12 +26,10 @@ Or just pick a single one::
     scan = file.scans["name"]
     scan.plot_red()
 
-If a few pixels dominate the image, one might want to set the scale by hand. We can pass an extra argument to `plot_red`
-named `vmax` to accomplish this. This parameter gets forwarded to :func:`matplotlib.pyplot.imshow`::
+Scan data and details
+---------------------
 
-    scan.plot_red(vmax=5)
-
-Access the raw image data::
+You can access the raw image data::
 
     rgb = scan.rgb_image  # matrix with `shape == (h, w, 3)`
     blue = scan.blue_image  # single color so `shape == (h, w)`
@@ -39,15 +37,31 @@ Access the raw image data::
     # Plot manually
     plt.imshow(rgb)
 
-The images contain pixel data where each pixel is made up a multiple photon count samples collected by the scanner.
+The images contain pixel data where each pixel represents summed photon counts.
 For an even lower-level look at data, the raw photon count samples can be accessed::
 
     photons = scan.red_photons
     plt.plot(photons.timestamps, photons.data)
 
-The images can also be exported in the TIFF format::
+There are also several properties available for convenient access to the scan metadata:
 
-    scan.save_tiff("image.tiff")
+* `scan.center_point_um` provides a dictionary of the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field of view
+* `scan.scan_width_um` provides a list of scan widths in micrometers along the axes of the scan
+* `scan.pixelsize_um` provides the pixel size in micrometers
+* `scan.lines_per_frame` provides the number scanned lines in each frame (number of rows in the raw data array)
+* `scan.pixels_per_line` provides the number of pixels in each line of the scan (number of columns in the raw data array)
+* `scan.fast_axis` provides the fastest axis that was scanned (x or y)
+* `scan.num_frames` provides the number of frames available
+
+
+Plotting and Exporting
+----------------------
+
+As shown above, there are convenience functions for plotting either the full RGB image or a single color channel.
+If a few pixels dominate the image, one might want to set the scale by hand. We can pass an extra argument to `plot_red`
+named `vmax` to accomplish this. This parameter gets forwarded to :func:`matplotlib.pyplot.imshow`::
+
+    scan.plot_red(vmax=5)
 
 Multi-frame scans are also supported::
 
@@ -56,6 +70,10 @@ Multi-frame scans are also supported::
     print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
 
     scan.plot(frame=3)  # plot the third frame -- defaults to the first frame if no argument is given
+
+The images can also be exported in the TIFF format::
+
+    scan.save_tiff("image.tiff")
 
 Scans can also be exported to video formats.
 Exporting the red channel of a multi-scan GIF can be done as follows for example::
