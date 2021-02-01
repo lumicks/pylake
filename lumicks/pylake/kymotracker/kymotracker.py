@@ -193,8 +193,8 @@ def refine_lines_centroid(lines, line_width):
         Line width
     """
     interpolated_lines = [line.interpolate() for line in lines]
-    time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(np.int)
-    coordinate_idx = np.round(np.array(np.hstack([line.coordinate_idx for line in interpolated_lines]))).astype(np.int)
+    time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(int)
+    coordinate_idx = np.round(np.array(np.hstack([line.coordinate_idx for line in interpolated_lines]))).astype(int)
 
     coordinate_idx, time_idx, _ = refine_peak_based_on_moment(interpolated_lines[0].image_data,
                                                               coordinate_idx,

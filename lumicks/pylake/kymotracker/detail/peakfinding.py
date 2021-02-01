@@ -41,7 +41,7 @@ class KymoPeaks:
             self.unassigned = []
 
         def reset_assignment(self):
-            self.unassigned = np.ones(self.time_points.shape, dtype=np.bool)
+            self.unassigned = np.ones(self.time_points.shape, dtype=bool)
 
     def __init__(self, coordinates, time_points, peak_amplitudes):
         assert len(coordinates) == len(time_points)
@@ -110,7 +110,7 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
     for iteration in range(max_iter):
         offsets = subpixel_offset[coordinates, time_points]
         out_of_bounds, = np.nonzero(abs(offsets) > 0.5)
-        coordinates[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(np.int)
+        coordinates[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(int)
 
         # Edge cases (literally)
         low = coordinates < 0
@@ -151,7 +151,7 @@ def merge_close_peaks(peaks, minimum_distance):
         right_lower = peak_amplitudes[too_close + 1] < peak_amplitudes[too_close]
         too_close[right_lower] += 1
 
-        mask = np.ones(current_frame.coordinates.shape, dtype=np.bool)
+        mask = np.ones(current_frame.coordinates.shape, dtype=bool)
         mask[sort_order[too_close]] = False  # too_close was in sorted ordering.
 
         current_frame.coordinates = current_frame.coordinates[mask]

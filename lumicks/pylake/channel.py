@@ -359,7 +359,7 @@ class Continuous:
 
     @property
     def _timesteps(self):
-        return np.asarray([self.dt], dtype=np.int)
+        return np.asarray([self.dt], dtype=int)
 
     def slice(self, start, stop):
         def to_index(t):
@@ -418,7 +418,7 @@ class TimeSeries:
 
     @property
     def _timesteps(self):
-        return np.unique(np.diff(self.timestamps)).astype(np.int)
+        return np.unique(np.diff(self.timestamps)).astype(int)
 
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
