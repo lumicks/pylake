@@ -876,19 +876,19 @@ def test_parameter_slicing():
 
 
 def test_analytic_roots():
-    a = np.array([0])
-    b = np.array([-3])
-    c = np.array([1])
+    a = np.array([0.0])
+    b = np.array([-3.0])
+    c = np.array([1.0])
 
     assert np.allclose(
-        np.sort(np.roots(np.array([np.array(1.0), a, b, c], dtype=np.float64))),
+        np.sort(np.roots(np.hstack((np.array([1.0]), a, b, c)))),
         np.sort(
             np.array(
                 [
                     solve_cubic_wlc(a, b, c, 0)[0],
                     solve_cubic_wlc(a, b, c, 1)[0],
                     solve_cubic_wlc(a, b, c, 2)[0],
-                ],
+                ]
             )
         ),
     )
