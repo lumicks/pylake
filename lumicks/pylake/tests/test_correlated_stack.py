@@ -413,17 +413,17 @@ def test_image_reconstruction_rgb():
 
     assert fr.is_rgb
     max_signal = np.max(np.hstack([fr._get_plot_data("green"), fr._get_plot_data("red")]))
-    diff = np.abs(fr._get_plot_data('green').astype(np.float)-fr._get_plot_data("red").astype(np.float))
+    diff = np.abs(fr._get_plot_data('green').astype(float)-fr._get_plot_data("red").astype(float))
     assert np.all(diff/max_signal < 0.05)
     max_signal = np.max(np.hstack([fr._get_plot_data("green"), fr._get_plot_data("blue")]))
-    diff = np.abs(fr._get_plot_data('green').astype(np.float)-fr._get_plot_data("blue").astype(np.float))
+    diff = np.abs(fr._get_plot_data('green').astype(float)-fr._get_plot_data("blue").astype(float))
     assert np.all(diff/max_signal < 0.05)
 
-    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(np.float)
+    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(float)
     assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
     assert np.allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
     max_signal = np.max(np.hstack([img0[:, :, 0], fr._get_plot_data("red")]))
-    diff = np.abs(img0[:, :, 0].astype(np.float)-fr._get_plot_data("red").astype(np.float))
+    diff = np.abs(img0[:, :, 0].astype(float)-fr._get_plot_data("red").astype(float))
     assert np.all(diff/max_signal < 0.05)
 
     with pytest.raises(ValueError):
@@ -449,7 +449,7 @@ def test_image_reconstruction_rgb():
     stack = CorrelatedStack.from_data(fake_tiff)        
     fr = stack._get_frame(0)
 
-    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(np.float)
+    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(float)
     assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
@@ -476,7 +476,7 @@ def test_image_reconstruction_rgb_multiframe():
     fr = stack._get_frame(2)
 
     assert fr.is_rgb
-    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(np.float)
+    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(float)
     assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 

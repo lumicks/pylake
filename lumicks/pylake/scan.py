@@ -69,7 +69,7 @@ class Scan(ConfocalImage):
 
         physical_axis = [axis["axis"] for axis in self.json["scan volume"]["scan axes"]]
         if physical_axis[0] > physical_axis[1]:
-            new_axis_order = np.arange(len(data.shape), dtype=np.int)
+            new_axis_order = np.arange(len(data.shape), dtype=int)
             new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]
             return np.transpose(data, new_axis_order)
         else:

@@ -196,7 +196,7 @@ class Params:
 
     @property
     def fitted(self):
-        return np.asarray([not param.fixed for param in self._src.values()], dtype=np.bool)
+        return np.asarray([not param.fixed for param in self._src.values()], dtype=bool)
 
     @property
     def lower_bounds(self):
