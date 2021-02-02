@@ -32,3 +32,14 @@ using timestamps obtained from the `CorrelatedStack`::
 
     # Determine the force trace averaged over frame 2...9.
     file.force1x.downsampled_over(stack[2:10].timestamps)
+
+The aligned image stack can also be exported to tiff format::
+
+    stack.export_tiff("aligned_stack.tiff")
+    stack[5:20].export_tiff("aligned_short_stack.tiff") # export a slice of the CorrelatedStack
+
+Generally, the edges of an aligned image can become corrupted due interopolation artefacts. 
+In this case, we can export a cropped region of interest by supplying the `roi` kwarg in the form
+`[min_x_pixel, max_x_pixel, min_y_pixel, max_y_pixel]`::
+
+    stack.export_tiff("aligned_cropped_stack.tiff", roi=[20, 280, 20, 180])

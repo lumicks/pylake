@@ -10,6 +10,7 @@
 * Added `FDCurve.with_offset()` to `FDCurve` to add offsets to force and distance.
 * Added `FdEnsemble` to be able to process multiple `FDCurve` instances simultaneously.
 * Added `FdEnsemble.align_linear()` to align F,d curves in an ensemble by correcting for a constant offset in force and distance using two linear regressions. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html) for more information.
+* Added `CorrelatedStack.export_tiff()` for exporting aligned image stacks.
 
 #### Bug fixes
 * Fixed `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
