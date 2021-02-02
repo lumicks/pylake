@@ -1,5 +1,6 @@
 import numpy as np
 import json
+import tifffile
 import pytest
 from lumicks.pylake.correlated_stack import CorrelatedStack, TiffStack
 from lumicks.pylake import channel
@@ -21,7 +22,7 @@ class MockTiffPage:
     def __init__(self, data, start_time, end_time, description="", bit_depth=8):
         self._data = data
         bit_depth = bit_depth if data.ndim == 2 else (bit_depth, bit_depth, bit_depth)
-        self.tags = {"DateTime": MockTag(f"{start_time}:{end_time}"),                   
+        self.tags = {"DateTime": MockTag(f"{start_time}:{end_time}"),
                      "ImageDescription": MockTag(description),
                      "BitsPerSample": MockTag(bit_depth),
                      "SamplesPerPixel": MockTag(1 if (data.ndim==2) else data.shape[2])}
@@ -39,11 +40,11 @@ class MockTiffFile:
         self.pages = []
         for d, r in zip(data, times):
             self.pages.append(MockTiffPage(d, r[0], r[1], description=description, bit_depth=bit_depth))
-            
+
     @property
     def num_frames(self):
         return len(self._src.pages)
-            
+
 
 def test_correlated_stack():
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones((3,3))]*6,
@@ -296,8 +297,8 @@ def test_plot_correlated_smaller_channel():
 
     assert np.allclose(mock_click(mpl.pyplot.gcf(), np.array([0, 40])), np.ones((3, 3)) * 2)
     assert np.allclose(mock_click(mpl.pyplot.gcf(), np.array([10.1e-9, 40])), np.ones((3, 3)) * 3)
-    
-    
+
+
 def make_alignment_image_data(spots, Tx_red, Ty_red, theta_red, Tx_blue, Ty_blue, theta_blue, bit_depth,
                               offsets=None):
     def make_transform_matrix(Tx, Ty, theta):
@@ -328,7 +329,7 @@ def make_alignment_image_data(spots, Tx_red, Ty_red, theta_red, Tx_blue, Ty_blue
                 mu = np.array([x,y])[:,np.newaxis]
                 XX = np.vstack((X.ravel(), Y.ravel())) - mu
                 quad_form = np.sum(np.dot(XX.T, np.linalg.inv(sigma)) * XX.T, axis=1)
-                Z = np.exp(-0.5 * quad_form) 
+                Z = np.exp(-0.5 * quad_form)
                 img[:, :, j] += Z.reshape(X.shape)
             img[:, :, j] = img[:, :, j] / img[:, :, j].max()
         return (img * (2**bit_depth - 1)).astype(f"uint{bit_depth}")
@@ -357,32 +358,123 @@ def make_alignment_image_data(spots, Tx_red, Ty_red, theta_red, Tx_blue, Ty_blue
         for tmp_spots in (red_spots, spots, blue_spots):
             tmp_spots[0] += offsets[0]
             tmp_spots[1] += offsets[1]
-    
+
     img = make_image(red_spots, spots, blue_spots, bit_depth)
     description = make_description(m_red, m_blue, offsets)
 
-    return img0, img, description            
+    return img0, img, description
 
 
-def test_image_reconstruction_grayscale():
-    img_args = {"spots": [[20, 30], 
-                          [50, 50], 
-                          [120, 30], 
-                          [50, 70], 
-                          [150, 60]],
-                "Tx_red": 20,
-                "Ty_red": 10,
-                "theta_red": 3,
-                "Tx_blue": 10,
-                "Ty_blue": 20,
-                "theta_blue": -3,
+@pytest.fixture(scope="session")
+def tiff_dir(tmpdir_factory):
+    return tmpdir_factory.mktemp("tiffs")
+
+
+@pytest.fixture(scope="session")
+def spot_coordinates():
+    return [[20, 30], [50, 50], [120, 30], [50, 70], [150, 60]]
+
+
+@pytest.fixture(scope="session")
+def warp_parameters():
+    return {"Tx_red": 20, "Ty_red": 10, "theta_red": 3,
+            "Tx_blue": 10, "Ty_blue": 20, "theta_blue": -3}
+
+
+@pytest.fixture(scope="session")
+def gray_alignment_image_data(spot_coordinates, warp_parameters):
+    img_args = {"spots": spot_coordinates,
+                **warp_parameters,
                 "bit_depth": 8}
-
     img0, img, description = make_alignment_image_data(**img_args)
-    fake_tiff = TiffStack(MockTiffFile(data=[img[:, :, 0]], times=[["10", "18"]], 
+    return img0, img, description, img_args["bit_depth"]
+
+
+@pytest.fixture(scope="session")
+def rgb_alignment_image_data(spot_coordinates, warp_parameters):
+    img_args = {"spots": spot_coordinates,
+                **warp_parameters,
+                "bit_depth": 16}
+    img0, img, description = make_alignment_image_data(**img_args)
+    return img0, img, description, img_args["bit_depth"]
+
+
+@pytest.fixture(scope="session")
+def rgb_alignment_image_bad_description(spot_coordinates, warp_parameters):
+    img_args = {"spots": spot_coordinates,
+                **warp_parameters,
+                "bit_depth": 16}
+    img0, img, description = make_alignment_image_data(**img_args)
+    description["Alignment red channel"][2] = 25
+    return img0, img, description, img_args["bit_depth"]
+
+
+@pytest.fixture(scope="session")
+def rgb_alignment_image_data_offset(spot_coordinates, warp_parameters):
+    img_args = {"spots": spot_coordinates,
+                **warp_parameters,
+                "bit_depth": 16,
+                "offsets": (50, 50)}
+    img0, img, description = make_alignment_image_data(**img_args)
+    return img0, img, description, img_args["bit_depth"]
+
+
+def write_tiff_file(img0, img, description, bit_depth, n_frames, filename):
+    if bit_depth == 8:
+        img = img[:,:,0]
+        channels = 1
+    else:
+        channels = 3
+    movie = np.stack([img for n in range(n_frames)], axis=0)
+
+    tag_orientation = (274, 'H', 1, 1, False) # Orientation = ORIENTATION.TOPLEFT
+    tag_sample_format = (339, 'H', channels, (1, )*channels, False) # SampleFormat = SAMPLEFORMAT.UINT
+
+    with tifffile.TiffWriter(filename) as tif:
+        for n, frame in enumerate(movie):
+            str_datetime = f"{n*10+10}:{n*10+18}"
+            tag_datetime = (306, 's', len(str_datetime), str_datetime, False)
+            tif.save(frame,
+                    description=json.dumps(description, indent=4),
+                    software="Bluelake Unknown",
+                    metadata=None, contiguous=False,
+                    extratags=(tag_orientation, tag_sample_format, tag_datetime))
+
+
+@pytest.fixture(scope="session")
+def rgb_tiff_file(tiff_dir, rgb_alignment_image_data):
+    mock_filename = tiff_dir.join("rgb_single.tiff")
+    write_tiff_file(*rgb_alignment_image_data, n_frames=1, filename=str(mock_filename))
+    return mock_filename
+
+
+@pytest.fixture(scope="session")
+def rgb_tiff_file_multi(tiff_dir, rgb_alignment_image_data):
+    mock_filename = tiff_dir.join("rgb_multi.tiff")
+    write_tiff_file(*rgb_alignment_image_data, n_frames=2, filename=str(mock_filename))
+    return mock_filename
+
+
+@pytest.fixture(scope="session")
+def gray_tiff_file(tiff_dir, gray_alignment_image_data):
+    mock_filename = tiff_dir.join("gray_single.tiff")
+    write_tiff_file(*gray_alignment_image_data, n_frames=1, filename=str(mock_filename))
+    return mock_filename
+
+
+@pytest.fixture(scope="session")
+def gray_tiff_file_multi(tiff_dir, gray_alignment_image_data):
+    mock_filename = tiff_dir.join("gray_multi.tiff")
+    write_tiff_file(*gray_alignment_image_data, n_frames=2, filename=str(mock_filename))
+    return mock_filename
+
+
+def test_image_reconstruction_grayscale(gray_alignment_image_data):
+    img0, img, description, bit_depth = gray_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[img[:, :, 0]], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=8),
                           align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)        
+    stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
     assert not fr.is_rgb
@@ -390,25 +482,13 @@ def test_image_reconstruction_grayscale():
     assert np.allclose(fr.raw_data, fr._get_plot_data())
 
 
-def test_image_reconstruction_rgb():
-    img_args = {"spots": [[20, 30], 
-                          [50, 50], 
-                          [120, 30], 
-                          [50, 70], 
-                          [150, 60]],
-                "Tx_red": 20,
-                "Ty_red": 10,
-                "theta_red": 3,
-                "Tx_blue": 10,
-                "Ty_blue": 20,
-                "theta_blue": -3,
-                "bit_depth": 16}
-    
-    img0, img, description = make_alignment_image_data(**img_args)
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
+def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_data_offset,
+                                  rgb_alignment_image_bad_description):
+    img0, img, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)        
+    stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
@@ -419,7 +499,7 @@ def test_image_reconstruction_rgb():
     diff = np.abs(fr._get_plot_data('green').astype(float)-fr._get_plot_data("blue").astype(float))
     assert np.all(diff/max_signal < 0.05)
 
-    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(float)
+    original_data = (img0 / (2**bit_depth - 1)).astype(float)
     assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
     assert np.allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
     max_signal = np.max(np.hstack([img0[:, :, 0], fr._get_plot_data("red")]))
@@ -430,93 +510,105 @@ def test_image_reconstruction_rgb():
         fr._get_plot_data(channel="purple")
 
     # test that bad alignment matrix gives high error compared to correct matrix
-    description["Alignment red channel"][2] = 25
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
+    img0, img, description, bit_depth = rgb_alignment_image_bad_description
+    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)        
+    stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
     assert not np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
-    # alignment ROI offset
-    img_args["offsets"] = (50, 50) 
-    img0, img, description = make_alignment_image_data(**img_args)
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
+    img0, img, description, bit_depth = rgb_alignment_image_data_offset
+    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)        
+    stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
-    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(float)
+    original_data = (img0 / (2**bit_depth - 1)).astype(float)
     assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
-def test_image_reconstruction_rgb_multiframe():
-    img_args = {"spots": [[20, 30], 
-                          [50, 50], 
-                          [120, 30], 
-                          [50, 70], 
-                          [150, 60]],
-                "Tx_red": 20,
-                "Ty_red": 10,
-                "theta_red": 3,
-                "Tx_blue": 10,
-                "Ty_blue": 20,
-                "theta_blue": -3,
-                "bit_depth": 16}
-
-    img0, img, description = make_alignment_image_data(**img_args)
+def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
+    img0, img, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(MockTiffFile(data=[img]*6,
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)        
+    stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(2)
 
     assert fr.is_rgb
-    original_data = (img0 / (2**img_args["bit_depth"] - 1)).astype(float)
+    original_data = (img0 / (2**bit_depth - 1)).astype(float)
     assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
-def test_image_reconstruction_rgb_missing_metadata():
-    img_args = {"spots": [[20, 30], 
-                          [50, 50], 
-                          [120, 30], 
-                          [50, 70], 
-                          [150, 60]],
-                "Tx_red": 20,
-                "Ty_red": 10,
-                "theta_red": 3,
-                "Tx_blue": 10,
-                "Ty_blue": 20,
-                "theta_blue": -3,
-                "bit_depth": 16}
-
+def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
     # no metadata
-    img0, img, description = make_alignment_image_data(**img_args)
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
+    img0, img, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
                                        description="", bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
-    
+
     with pytest.warns(UserWarning) as record:
-        fr.data      
+        fr.data
     assert len(record) == 1
     assert record[0].message.args[0] == "File does not contain metadata. Only raw data is available"
 
     # missing alignment matrices
-    description.pop("Alignment red channel")
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]], 
+    red = description.pop("Alignment red channel")
+    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
-    
+
     with pytest.warns(UserWarning) as record:
-        fr.data      
+        fr.data
     assert len(record) == 1
     assert record[0].message.args[0] == "File does not contain alignment matrices. Only raw data is available"
+    description["Alignment red channel"] = red # reset fixture
 
+
+def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+    from os import stat
+
+    for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+        savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
+        stack = CorrelatedStack(str(filename))
+        stack.export_tiff(savename)
+        stack.src._src.close()
+        assert stat(savename).st_size > 0
+
+        with tifffile.TiffFile(str(filename)) as tif0, tifffile.TiffFile(savename) as tif:
+            assert len(tif0.pages) == len(tif.pages)
+            assert tif0.pages[0].software != tif.pages[0].software
+            assert "pylake" in tif.pages[0].software
+            assert "Applied alignment red channel" in tif.pages[0].description
+            for page0, page in zip(tif0.pages, tif.pages):
+                assert page0.tags["DateTime"].value == page.tags["DateTime"].value
+
+
+def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+    from os import stat
+
+    for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+        savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
+        stack = CorrelatedStack(str(filename))
+        stack.export_tiff(savename, roi=[10, 190, 20, 80])
+        assert stat(savename).st_size > 0
+
+        with tifffile.TiffFile(savename) as tif:
+            assert tif.pages[0].tags["ImageWidth"].value == 180
+            assert tif.pages[0].tags["ImageLength"].value == 60
+
+        with pytest.raises(ValueError):
+            stack.export_tiff(savename, roi=[-10, 190, 20, 80])
+
+        with pytest.raises(ValueError):
+            stack.export_tiff(savename, roi=[190, 10, 20, 80])
+        stack.src._src.close()

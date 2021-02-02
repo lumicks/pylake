@@ -28,10 +28,10 @@ class TiffFrame:
             translation = np.eye(3)
             translation[0, -1] = -x_offset
             translation[1, -1] = -y_offset
-            # apply the original transform to the translated image. 
+            # apply the original transform to the translated image.
             # it only needs to be resized from a 2x3 to a 3x3 matrix
             original = np.vstack((alignment, [0, 0, 1]))
-            # translate the image back to the original origin. 
+            # translate the image back to the original origin.
             # takes into account both the offset and the scaling performed by the first step
             back_translation = np.eye(3)
             back_translation[0, -1] = original[0, 0] * x_offset
@@ -53,7 +53,7 @@ class TiffFrame:
         except KeyError:
             warnings.warn("File does not contain alignment matrices. Only raw data is available")
             return self.raw_data
-        
+
         x_offset, y_offset = align_roi - roi
         if not (x_offset == 0 and y_offset == 0):
             align_mats = [correct_alignment_offset(mat, x_offset, y_offset) for mat in align_mats]
@@ -75,7 +75,7 @@ class TiffFrame:
         return self._src.asarray()
 
     @property
-    def bit_depth(self):        
+    def bit_depth(self):
         bit_depth = self._src.tags["BitsPerSample"].value
         if self.is_rgb: # (int r, int g, int b)
             return bit_depth[0]
@@ -86,7 +86,7 @@ class TiffFrame:
     def is_rgb(self):
         return self._src.tags["SamplesPerPixel"].value == 3
 
-    def _get_plot_data(self, channel="rgb", vmax=None): 
+    def _get_plot_data(self, channel="rgb", vmax=None):
         """ return data an numpy array, appropriate for use by `imshow`
             if data is grayscale or channel in ('red', 'green', 'blue')
                 return data as is
@@ -94,7 +94,7 @@ class TiffFrame:
                 None  : normalize data to max signal of all channels
                 float : normalize data to vmax value
         """
-        
+
         if not self.is_rgb:
             return self.data
 
@@ -339,6 +339,78 @@ class CorrelatedStack:
                         return
 
         fig.canvas.mpl_connect('button_press_event', select_frame)
+
+    def export_tiff(self, file_name, roi=None):
+        """Export a video of a particular scan plot
+
+        Parameters
+        ----------
+        file_name : str
+            File name to export to.
+        roi : list_like
+            region of interest in pixel values [xmin, xmax, ymin, ymax]
+        """
+        from . import __version__ as version
+
+        def parse_tags(frame):
+            # Parse original file tags into list of tuples
+            #   [(code, dtype, count, value, writeonce)]
+            #   code is defined by the TIFF specification
+            #   dtype is defined in tifffile
+            # Only tags that are not resolved automatically by `TiffWriter.save()` are needed
+
+            # Orientation, uint16, len, ORIENTATION.TOPLEFT
+            orientation = (274, "H", 1, 1)
+
+            # SampleFormat, uint16, len, number of channels
+            n_channels = 3 if frame.is_rgb else 1
+            sample_format = (339, "H", n_channels, (1, )*n_channels)
+
+            # DateTime, str, len, start:stop
+            datetime = frame._src.tags["DateTime"].value
+            datetime = (306, "s", len(datetime), datetime)
+
+            return (orientation, sample_format, datetime)
+
+        # get ROI coordinates
+        if roi is not None:
+            if np.any([val < 0 for val in roi]):
+                raise ValueError("ROI coordinates cannot be negative")
+            xmin, xmax, ymin, ymax = roi
+            if (xmax < xmin) or (ymax < ymin):
+                raise ValueError("max coordinate must be larger than min coordinate")
+        else:
+            ymin, xmin = 0, 0
+            ymax = self._get_frame(0).data.shape[0]
+            xmax = self._get_frame(0).data.shape[1]
+
+        # re-name alignment matrices fields in image description
+        # to reflect the fact that the image has already been processed
+        description = self._get_frame(0)._src.description
+        if description:
+            description = json.loads(description)
+            for color in ("blue", "green", "red"):
+                key = f"Alignment {color} channel"
+                try:
+                    description["Applied " + key.lower()] = description.pop(key)
+                except KeyError:
+                    pass
+            description = json.dumps(description, indent=4)
+
+        # add pylake to Software tag
+        software = self._get_frame(0)._src.tags["Software"].value
+        if "pylake" not in software:
+            software += f", pylake v{version}"
+
+        # write frames sequentially
+        with tifffile.TiffWriter(file_name) as tif:
+            for frame in self:
+                tif.save(frame.data[ymin:ymax, xmin:xmax],
+                         description=description,
+                         software=software,
+                         metadata=None,    # suppress tifffile default ImageDescription tag
+                         contiguous=False, # needed to write tags on each page
+                         extratags=parse_tags(frame))
 
     @property
     def num_frames(self):
