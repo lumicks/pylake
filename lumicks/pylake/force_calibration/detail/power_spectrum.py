@@ -100,8 +100,9 @@ class PowerSpectrum:
     def in_range(self, f_min, f_max):
         """Returns part of the power spectrum within a given frequency range."""
         ir = PowerSpectrum()
-        ir.f = self.f[(self.f > f_min) & (self.f <= f_max)]
-        ir.P = self.P[(self.f > f_min) & (self.f <= f_max)]
+        mask = (self.f > f_min) & (self.f <= f_max)
+        ir.f = self.f[mask]
+        ir.P = self.P[mask]
         ir.sampling_rate = self.sampling_rate
         ir.T_measure = self.T_measure
         return ir

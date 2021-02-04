@@ -18,11 +18,9 @@ def test_calibration_parameters():
 
 
 def test_calibration_settings():
-    settings = psc.CalibrationSettings(n_points_per_block=15)
-    assert settings.n_points_per_block == 15
-    assert settings.fit_range == (1e2, 23e3)
+    settings = psc.CalibrationSettings(ftol=1e-6)
     assert settings.analytical_fit_range == (1e1, 1e4)
-    assert settings.ftol == 1e-7
+    assert settings.ftol == 1e-6
     assert settings.maxfev == 10000
 
     with pytest.raises(TypeError):
@@ -34,27 +32,17 @@ def test_input_validation_power_spectrum_calibration():
 
     # Wrong dimensions
     with pytest.raises(TypeError):
-        psc.PowerSpectrumCalibration(data=np.array([[1, 2, 3], [1, 2, 3]]), sampling_rate=78125, params=params)
+        psc.fit_power_spectrum(data=np.array([[1, 2, 3], [1, 2, 3]]), sampling_rate=78125, params=params)
 
     # Wrong type
     with pytest.raises(TypeError):
-        psc.PowerSpectrumCalibration(data="bloop", sampling_rate=78125, params=params)
+        psc.fit_power_spectrum(data="bloop", sampling_rate=78125, params=params)
 
     with pytest.raises(TypeError):
-        psc.PowerSpectrumCalibration(data=np.array([1, 2, 3]), sampling_rate=78125, params="invalid")
+        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, params="invalid")
 
     with pytest.raises(TypeError):
-        psc.PowerSpectrumCalibration(data=np.array([1, 2, 3]), sampling_rate=78125, params=params, settings="invalid")
-
-
-def test_default_calibration_settings():
-    power_spectrum = psc.PowerSpectrumCalibration(data=np.array([1, 2, 3]), sampling_rate=78125,
-                                                  params=psc.CalibrationParameters(1))
-
-    attrs = ['n_points_per_block', 'fit_range', 'analytical_fit_range', 'ftol', 'maxfev']
-    defaults = psc.CalibrationSettings()
-    for attr in attrs:
-        assert getattr(power_spectrum.settings, attr) == getattr(defaults, attr)
+        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, params=params, settings="invalid")
 
 
 def test_calibration_result():
@@ -98,15 +86,13 @@ def test_good_fit_integration_test(
 ):
     data, f_sample = reference_models.lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples)
     params = psc.CalibrationParameters(bead_diameter, temperature=temperature, viscosity=viscosity)
-    settings = psc.CalibrationSettings(fit_range=(0, 15000), n_points_per_block=20)
-    ps_calibration = psc.PowerSpectrumCalibration(data=data, sampling_rate=f_sample, params=params, settings=settings)
+    power_spectrum = psc.calculate_power_spectrum(data, f_sample, fit_range=(0, 15000), num_points_per_block=20)
+    ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, params=params)
 
-    ps_calibration.run_fit()
-
-    assert np.allclose(ps_calibration.results.fc, corner_frequency, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.D, diffusion_constant, rtol=1e-5)
-    assert np.allclose(ps_calibration.results.alpha, alpha, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.f_diode, f_diode, rtol=1e-4)
+    assert np.allclose(ps_calibration.fc, corner_frequency, rtol=1e-4)
+    assert np.allclose(ps_calibration.D, diffusion_constant, rtol=1e-5)
+    assert np.allclose(ps_calibration.alpha, alpha, rtol=1e-4)
+    assert np.allclose(ps_calibration.f_diode, f_diode, rtol=1e-4)
 
     gamma = psc.sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
@@ -114,21 +100,21 @@ def test_good_fit_integration_test(
         np.sqrt(sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K") / gamma / diffusion_constant)
         * 1e6
     )
-    assert np.allclose(ps_calibration.results.kappa, kappa_true, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.Rd, rd_true, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.Rf, rd_true * kappa_true * 1e3, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.chi_squared_per_deg, 0)  # Noise free
+    assert np.allclose(ps_calibration.kappa, kappa_true, rtol=1e-4)
+    assert np.allclose(ps_calibration.Rd, rd_true, rtol=1e-4)
+    assert np.allclose(ps_calibration.Rf, rd_true * kappa_true * 1e3, rtol=1e-4)
+    assert np.allclose(ps_calibration.chi_squared_per_deg, 0)  # Noise free
 
-    assert np.allclose(ps_calibration.results.err_fc, err_fc)
-    assert np.allclose(ps_calibration.results.err_D, err_d)
-    assert np.allclose(ps_calibration.results.err_f_diode, err_f_diode)
-    assert np.allclose(ps_calibration.results.err_alpha, err_alpha)
+    assert np.allclose(ps_calibration.err_fc, err_fc)
+    assert np.allclose(ps_calibration.err_D, err_d)
+    assert np.allclose(ps_calibration.err_f_diode, err_f_diode)
+    assert np.allclose(ps_calibration.err_alpha, err_alpha)
 
-    assert ps_calibration.results.is_success() is True
+    assert ps_calibration.is_success() is True
 
     # This field actually never gets set, which is very strange. But for exact parity, we keep it.
-    setattr(ps_calibration.results, "error", "Error!")
-    assert ps_calibration.results.is_success() is False
+    setattr(ps_calibration, "error", "Error!")
+    assert ps_calibration.is_success() is False
 
 
 def test_bad_calibration_result_arg():
@@ -140,34 +126,28 @@ def test_bad_data():
     num_samples = 30000
     data = np.sin(.1*np.arange(num_samples))
     params = psc.CalibrationParameters(1, temperature=20, viscosity=0.0001)
-    settings = psc.CalibrationSettings(fit_range=(0, 15000), n_points_per_block=20)
+    power_spectrum = psc.PowerSpectrum(data, num_samples)
 
-    ps_calibration = psc.PowerSpectrumCalibration(data=data, sampling_rate=num_samples, params=params, settings=settings)
     with pytest.raises(psc.CalibrationError):
-        ps_calibration.run_fit()
+        psc.fit_power_spectrum(power_spectrum, params=params)
 
-    # What?? This doesn't seem good, but for parity, we test the current strange behaviour explicitly.
-    assert ps_calibration.results.is_success() is True
 
 def test_actual_spectrum():
-
     data = np.load(os.path.join(os.path.dirname(__file__), "reference_spectrum.npz"))
     reference_spectrum = data["arr_0"]
     params = psc.CalibrationParameters(4.4, temperature=20, viscosity=0.001002)
-    settings = psc.CalibrationSettings(fit_range=(100.0, 23000.0), n_points_per_block=int(100))
+    reference_spectrum = psc.calculate_power_spectrum(reference_spectrum, sampling_rate=78125,
+                                                      num_points_per_block=100, fit_range=(100.0, 23000.0))
+    ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum, params=params)
 
-    ps_calibration = psc.PowerSpectrumCalibration(data=reference_spectrum, sampling_rate=78125, params=params,
-                                                  settings=settings)
-    ps_calibration.run_fit()
-
-    assert np.allclose(ps_calibration.results.D, 0.0018512665210876748, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.Rd, 7.253645956145265, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.Rf, 1243.9711315478219, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.kappa, 0.17149598134079505, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.alpha, 0.5006103727942776, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.backing, 66.4331056392512, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.chi_squared_per_deg, 1.063783302378645, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.err_fc, 32.23007993226726, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.err_D, 6.43082000774291e-05, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.err_alpha, 0.013141463933316694, rtol=1e-4)
-    assert np.allclose(ps_calibration.results.err_f_diode, 561.6377089699399, rtol=1e-4)
+    assert np.allclose(ps_calibration.D, 0.0018512665210876748, rtol=1e-4)
+    assert np.allclose(ps_calibration.Rd, 7.253645956145265, rtol=1e-4)
+    assert np.allclose(ps_calibration.Rf, 1243.9711315478219, rtol=1e-4)
+    assert np.allclose(ps_calibration.kappa, 0.17149598134079505, rtol=1e-4)
+    assert np.allclose(ps_calibration.alpha, 0.5006103727942776, rtol=1e-4)
+    assert np.allclose(ps_calibration.backing, 66.4331056392512, rtol=1e-4)
+    assert np.allclose(ps_calibration.chi_squared_per_deg, 1.063783302378645, rtol=1e-4)
+    assert np.allclose(ps_calibration.err_fc, 32.23007993226726, rtol=1e-4)
+    assert np.allclose(ps_calibration.err_D, 6.43082000774291e-05, rtol=1e-4)
+    assert np.allclose(ps_calibration.err_alpha, 0.013141463933316694, rtol=1e-4)
+    assert np.allclose(ps_calibration.err_f_diode, 561.6377089699399, rtol=1e-4)
