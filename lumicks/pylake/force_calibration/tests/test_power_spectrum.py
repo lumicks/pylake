@@ -1,4 +1,4 @@
-from lumicks.pylake.force_calibration.power_spectrum_calibration import PowerSpectrum, block_average, block_average_std
+from lumicks.pylake.force_calibration.detail.power_spectrum import block_average, block_average_std, PowerSpectrum
 import numpy as np
 import pytest
 

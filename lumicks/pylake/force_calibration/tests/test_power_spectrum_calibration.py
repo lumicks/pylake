@@ -5,25 +5,6 @@ import os
 import pytest
 
 
-def lorentzian(f, fc, diffusion_constant):
-    return diffusion_constant / (2.0 * np.pi ** 2) / (fc ** 2 + f ** 2)
-
-
-def lorentzian_filtered(f, fc, diffusion_constant, alpha, f_diode):
-    return lorentzian(f, fc, diffusion_constant) * (alpha ** 2 + (1.0 - alpha ** 2) / (1.0 + (f / f_diode) ** 2))
-
-
-def lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples):
-    f = np.arange(0, num_samples)
-    power_spectrum = lorentzian_filtered(f, corner_frequency, diffusion_constant, alpha, f_diode)
-    data = np.fft.irfft(np.sqrt(np.abs(power_spectrum))) * (num_samples - 1) * 2
-    return data, len(data)
-
-
-def test_friction_coefficient():
-    assert np.allclose(psc.sphere_friction_coefficient(5, 1), 3 * np.pi * 5 * 1)
-
-
 def test_calibration_parameters():
     params = psc.CalibrationParameters(10, temperature=30)
     assert params.bead_diameter == 10
@@ -76,54 +57,6 @@ def test_default_calibration_settings():
         assert getattr(power_spectrum.settings, attr) == getattr(defaults, attr)
 
 
-def test_spectrum():
-    assert np.allclose(psc.FullPSFitModel.P(np.arange(10000), 1000, 1e9, 10000, 0.5),
-                       lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000))
-
-
-def test_spectrum_parameter_scaling():
-    f = np.arange(10000)
-    scaling = [2.0, 3.0, 4.0, 5.0]
-    scaled_psc = psc.FullPSFitModel(scaling)
-
-    alpha = 0.5
-    inverted_alpha = np.sqrt(((1.0 / alpha) ** 2.0 - 1.0) / scaling[3]**2)
-
-    assert np.allclose(scaled_psc(f, 1000 / scaling[0], 1e9 / scaling[1], 10000 / scaling[2], inverted_alpha),
-                       lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000))
-
-
-@pytest.mark.parametrize(
-    "corner_frequency,diffusion_constant,num_samples,sigma_fc,sigma_diffusion",
-    [
-        [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
-        [1500, 1.2e-9, 50000, 28.054469036154266, 1.5342555193009045e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
-        [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
-    ],
-)
-def test_fit_analytic(corner_frequency, diffusion_constant, num_samples, sigma_fc, sigma_diffusion):
-    power_spectrum = lorentzian(np.arange(0, num_samples), corner_frequency, diffusion_constant)
-    data = np.fft.irfft(np.sqrt(np.abs(power_spectrum))) * (num_samples - 1) * 2
-
-    ps = psc.PowerSpectrum(data, sampling_rate=len(data))
-    settings = psc.CalibrationSettings(fit_range=(0, 15000), n_points_per_block=20)
-
-    ps = ps.in_range(0, 15000)
-    ps = ps.block_averaged(n_blocks=ps.P.size // settings.n_points_per_block)
-
-    fit = psc.fit_analytical_lorentzian(ps.in_range(*settings.analytical_fit_range))
-
-    assert np.allclose(fit.fc, corner_frequency)
-    assert np.allclose(fit.D, diffusion_constant)
-    assert np.allclose(fit.sigma_fc, sigma_fc)
-    assert np.allclose(fit.sigma_D, sigma_diffusion)
-
-
 def test_calibration_result():
     with pytest.raises(TypeError):
         psc.CalibrationResults(invalid=5)
@@ -149,6 +82,7 @@ def test_calibration_result():
     ],
 )
 def test_good_fit_integration_test(
+    reference_models,
     corner_frequency,
     diffusion_constant,
     alpha,
@@ -162,7 +96,7 @@ def test_good_fit_integration_test(
     err_f_diode,
     err_alpha,
 ):
-    data, f_sample = lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples)
+    data, f_sample = reference_models.lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples)
     params = psc.CalibrationParameters(bead_diameter, temperature=temperature, viscosity=viscosity)
     settings = psc.CalibrationSettings(fit_range=(0, 15000), n_points_per_block=20)
     ps_calibration = psc.PowerSpectrumCalibration(data=data, sampling_rate=f_sample, params=params, settings=settings)
