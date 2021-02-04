@@ -43,13 +43,13 @@ def test_fit_analytic(reference_models, corner_frequency, diffusion_constant, nu
     power_spectrum = reference_models.lorentzian(np.arange(0, num_samples), corner_frequency, diffusion_constant)
     data = np.fft.irfft(np.sqrt(np.abs(power_spectrum))) * (num_samples - 1) * 2
 
+    num_points_per_block = 20
+    fit_range = (0, 15000)
     ps = PowerSpectrum(data, sampling_rate=len(data))
-    settings = CalibrationSettings(fit_range=(0, 15000), n_points_per_block=20)
+    ps = ps.in_range(*fit_range)
+    ps = ps.block_averaged(num_blocks=ps.P.size // num_points_per_block)
 
-    ps = ps.in_range(0, 15000)
-    ps = ps.block_averaged(n_blocks=ps.P.size // settings.n_points_per_block)
-
-    fit = fit_analytical_lorentzian(ps.in_range(*settings.analytical_fit_range))
+    fit = fit_analytical_lorentzian(ps.in_range(1e1, 1e4))
 
     assert np.allclose(fit.fc, corner_frequency)
     assert np.allclose(fit.D, diffusion_constant)

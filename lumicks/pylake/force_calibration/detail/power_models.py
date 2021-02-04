@@ -33,41 +33,39 @@ def fit_analytical_lorentzian(ps):
     for p in range(3):
         for q in range(3):
             Spq[p, q] = np.sum(np.power(ps.f, 2 * p) * np.power(ps.P, q))
-    try:
-        # Calculate a and b parameters (Ref. 1, Eq. 13-14).
-        a = (Spq[0, 1] * Spq[2, 2] - Spq[1, 1] * Spq[1, 2]) / (Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2])
-        b = (Spq[1, 1] * Spq[0, 2] - Spq[0, 1] * Spq[1, 2]) / (Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2])
 
-        # Having a and b, calculating fc and D is trivial.
-        fc = math.sqrt(a / b)  # corner frequency [Hz]
-        D = (1 / b) * 2 * (math.pi ** 2)  # diffusion constant [V^2/s]
+    # Calculate a and b parameters (Ref. 1, Eq. 13-14).
+    a = (Spq[0, 1] * Spq[2, 2] - Spq[1, 1] * Spq[1, 2]) / (Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2])
+    b = (Spq[1, 1] * Spq[0, 2] - Spq[0, 1] * Spq[1, 2]) / (Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2])
 
-        # Fitted power spectrum values.
-        ps_fit = PowerSpectrum()
-        ps_fit.f = ps.f
-        ps_fit.P = 1 / (a + b * np.power(ps.f, 2))
-        ps_fit.sampling_rate = ps.sampling_rate
-        ps_fit.T_measure = ps.T_measure
+    # Having a and b, calculating fc and D is trivial.
+    fc = math.sqrt(a / b)  # corner frequency [Hz]
+    D = (1 / b) * 2 * (math.pi ** 2)  # diffusion constant [V^2/s]
 
-        # Error propagation (Ref. 1, Eq. 25-28).
-        x_min = ps.f.min() / fc
-        x_max = ps.f.max() / fc
+    # Fitted power spectrum values.
+    ps_fit = PowerSpectrum()
+    ps_fit.f = ps.f
+    ps_fit.P = 1 / (a + b * np.power(ps.f, 2))
+    ps_fit.sampling_rate = ps.sampling_rate
+    ps_fit.T_measure = ps.T_measure
 
-        u = (
-            (2 * x_max) / (1 + x_max ** 2)
-            - (2 * x_min) / (1 + x_min ** 2)
-            + 2 * math.atan((x_max - x_min) / (1 + x_min * x_max))
-        )
-        v = (4 / (x_max - x_min)) * (math.atan((x_max - x_min) / (1 + x_min * x_max))) ** 2
-        s_fc = math.sqrt(math.pi / (u - v))
-        sigma_fc = fc * s_fc / math.sqrt(math.pi * fc * ps.T_measure)
+    # Error propagation (Ref. 1, Eq. 25-28).
+    x_min = ps.f.min() / fc
+    x_max = ps.f.max() / fc
 
-        s_D = math.sqrt(u / ((1 + math.pi / 2) * (x_max - x_min))) * s_fc
-        sigma_D = D * math.sqrt((1 + math.pi / 2) / (math.pi * fc * ps.T_measure)) * s_D
+    u = (
+        (2 * x_max) / (1 + x_max ** 2)
+        - (2 * x_min) / (1 + x_min ** 2)
+        + 2 * math.atan((x_max - x_min) / (1 + x_min * x_max))
+    )
+    v = (4 / (x_max - x_min)) * (math.atan((x_max - x_min) / (1 + x_min * x_max))) ** 2
+    s_fc = math.sqrt(math.pi / (u - v))
+    sigma_fc = fc * s_fc / math.sqrt(math.pi * fc * ps.T_measure)
 
-        return FitResults(fc, D, sigma_fc, sigma_D, ps_fit)
-    except ValueError:
-        return None
+    s_D = math.sqrt(u / ((1 + math.pi / 2) * (x_max - x_min))) * s_fc
+    sigma_D = D * math.sqrt((1 + math.pi / 2) / (math.pi * fc * ps.T_measure)) * s_D
+
+    return FitResults(fc, D, sigma_fc, sigma_D, ps_fit)
 
 
 def _alpha(a):

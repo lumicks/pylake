@@ -69,12 +69,6 @@ class CalibrationSettings:
 
     Attributes
     ----------
-    n_points_per_block : int, optional
-        The data in `ps` is first blocked, with approximately this number of
-        points per block. Default: 350.
-    fit_range : tuple (f_min, f_max), optional
-        Tuple of two floats, indicating the frequency range to use for the
-        full model fit. Default: (1e2, 23e3) [Hz]
     analytical_fit_range : tuple (f_min, f_max), optional
         Tuple of two floats, indicating the frequency range to use for the
         analytical simple Lorentzian fit, used to obtain initial parameter
@@ -86,8 +80,6 @@ class CalibrationSettings:
     """
 
     def __init__(self, **kwargs):
-        self.n_points_per_block = 350
-        self.fit_range = (1e2, 23e3)
         self.analytical_fit_range = (1e1, 1e4)
         self.ftol = 1e-7
         self.maxfev = 10000
@@ -173,202 +165,204 @@ class CalibrationError(Exception):
     pass
 
 
-class PowerSpectrumCalibration:
-    """Power Spectrum Calibration
+def guess_f_diode_initial_value(ps, guess_fc, guess_D):
+    """Calculates a good initial guess for the fit parameter `f_diode`.
 
-    Attributes
+    Parameters
     ----------
     ps : PowerSpectrum
-        Power spectrum calculated from input data
+        Power spectrum data, as will be passed into the `fit_full_powerspectrum`
+        function.
+    guess_fc : float
+        Guess for the corner frequency, in Hz.
+    guess_D : float
+        Guess for the diffusion constant, in (a.u.)^2/s.
+
+    Returns
+    -------
+    float:
+        A good initial value for the parameter `f_diode`, for fitting the full
+        power spectrum.
+    """
+    f_nyquist = ps.sampling_rate / 2
+    P_aliased_nyq = (guess_D / (2 * math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
+    if ps.P[-1] < P_aliased_nyq:
+        dif = ps.P[-1] / P_aliased_nyq
+        return math.sqrt(dif * f_nyquist ** 2 / (1.0 - dif))
+    else:
+        return 2 * f_nyquist
+
+
+def calculate_power_spectrum(data, sampling_rate, fit_range=(1e2, 23e3), num_points_per_block=350):
+    """Compute power spectrum.
+
+    Parameters
+    ----------
+    data : np.array
+        Data used for calibration.
+    sampling_rate : float
+        Sampling rate [Hz]
+    fit_range : tuple (f_min, f_max), optional
+        Tuple of two floats, indicating the frequency range to use for the
+        full model fit. Default: (1e2, 23e3) [Hz]
+    num_points_per_block : int, optional
+        The spectrum is first block averaged with approximately this number of points per block.
+        Default: 350.
+    """
+    if not isinstance(data, np.ndarray) or (data.ndim != 1):
+        raise TypeError('Argument "data" must be a numpy vector')
+
+    power_spectrum = PowerSpectrum(data, sampling_rate)
+    power_spectrum = power_spectrum.in_range(*fit_range)
+    power_spectrum = power_spectrum.block_averaged(num_blocks=power_spectrum.P.size // num_points_per_block)
+    return power_spectrum
+
+
+def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(), print_diagnostics=False):
+    """Power Spectrum Calibration
+
+    Parameters
+    ----------
+    power_spectrum : PowerSpectrum
+        A powerspectrum used for calibration
     params : CalibrationParameters
         Calibration parameters.
     settings : CalibrationSettings
         Calibration algorithm settings.
-    results : CalibrationResults
-        Any results from the calibration. Can be `None`.
+    print_diagnostics : bool
+        If True, prints diagnostics about the fitting procedure to STDOUT.
     """
+    if not isinstance(power_spectrum, PowerSpectrum):
+        raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
 
-    def __init__(self, data, sampling_rate, params, settings=None):
-        if not isinstance(data, np.ndarray) or (data.ndim != 1):
-            raise TypeError('Argument "data" must be a numpy vector')
-        self.ps = PowerSpectrum(data, sampling_rate)
+    if not isinstance(params, CalibrationParameters):
+        raise TypeError('Argument "params" must be of type CalibrationParameters')
 
-        if not isinstance(params, CalibrationParameters):
-            raise TypeError('Argument "params" must be of type CalibrationParameters')
-        self.params = params
+    if not isinstance(settings, CalibrationSettings):
+        raise TypeError('Argument "settings" must be of type CalibrationSettings')
 
-        if settings:
-            if not isinstance(settings, CalibrationSettings):
-                raise TypeError('Argument "settings" must be of type CalibrationSettings')
-            self.settings = settings
-        else:
-            self.settings = CalibrationSettings()
-        self.results = None
+    # Fit analytical Lorentzian to get initial guesses for the full power spectrum model.
+    try:
+        anl_fit_res = fit_analytical_lorentzian(power_spectrum.in_range(*settings.analytical_fit_range))
+    except ValueError as e:
+        raise CalibrationError("Analytical fit failed.")
 
-    @staticmethod
-    def guess_f_diode_initial_value(ps, guess_fc, guess_D):
-        """Calculates a good initial guess for the fit parameter `f_diode`.
+    initial_params = (
+        anl_fit_res.fc,
+        anl_fit_res.D,
+        guess_f_diode_initial_value(power_spectrum, anl_fit_res.fc, anl_fit_res.D),
+        0.3,
+    )
 
-        Parameters
-        ----------
-        ps : PowerSpectrum
-            Power spectrum data, as will be passed into the `fit_full_powerspectrum`
-            function.
-        guess_fc : float
-            Guess for the corner frequency, in Hz.
-        guess_D : float
-            Guess for the diffusion constant, in (a.u.)^2/s.
+    if print_diagnostics:
+        print("Initial fit parameters:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % initial_params)
 
-        Returns
-        -------
-        float:
-            A good initial value for the parameter `f_diode`, for fitting the full
-            power spectrum.
-        """
-        f_nyquist = ps.sampling_rate / 2
-        P_aliased_nyq = (guess_D / (2 * math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
-        if ps.P[-1] < P_aliased_nyq:
-            dif = ps.P[-1] / P_aliased_nyq
-            return math.sqrt(dif * f_nyquist ** 2 / (1.0 - dif))
-        else:
-            return 2 * f_nyquist
+    # Then do a Levenberg-Marquardt weighted least-squares fit on the full model.
+    #
+    # Technical notes:
+    #
+    # - Instead of directly fitting the model parameter alpha (a characteristic
+    #   of the PSD diode), we instead plug a transformed variable "a = sqrt(1/alpha^2-1)"
+    #   into the optimization process. In the model, we then transform "a" back
+    #   using "alpha = 1/sqrt(1+a^2)". The latter function is bounded between
+    #   [0,1], so we have effectively created a bound constraint on alpha.
+    #
+    # - The actual curve fitting process is driven by a set of fit parameters
+    #   that are of order unity. This increases the robustness of the fit
+    #   (see ref. 3). The "FullPSFitModel" model class takes care of this
+    #   parameter rescaling.
+    #
+    # - What we *actually* have to minimize, is the chi^2 expression in Eq. 39
+    #   of ref. 1. We're "hacking" `scipy.optimize.curve_fit` for this purpose,
+    #   and passing in "y" values of "1/ps.P" instead of just "ps.P",
+    #   and a model function "1/model(...)" instead of "model(...)". This
+    #   effectively transforms the curve fitter's objective function
+    #   "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression
+    #   in Eq. 39 of ref. 1.
 
-    def run_fit(self, print_diagnostics=False):
-        """Runs the actual fitting procedure
+    model = FullPSFitModel(
+        scale_factors=(
+            *initial_params[0:3],
+            _a(initial_params[3]),
+        )
+    )
+    sigma = (1 / power_spectrum.P) / math.sqrt(power_spectrum.num_points_per_block)
+    (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
+        lambda f, fc, D, f_diode, a: 1 / model(f, fc, D, f_diode, a),
+        power_spectrum.f,
+        1 / power_spectrum.P,
+        p0=np.ones(4),
+        sigma=sigma,
+        absolute_sigma=True,
+        method="lm",
+        ftol=settings.ftol,
+        maxfev=settings.maxfev,
+    )
+    solution_params_rescaled = np.abs(solution_params_rescaled)
+    # the model function is symmetric in alpha and f_diode...
+    solution_params = model.get_params_from_rescaled_params(solution_params_rescaled)
 
-        Parameters
-        ----------
-        print_diagnostics : bool
-            If True, prints diagnostics about the fitting procedure to STDOUT.
-        """
-        # Filter and block the power spectrum.
-        ps = self.ps.in_range(*self.settings.fit_range)
-        ps = ps.block_averaged(n_blocks=ps.P.size // self.settings.n_points_per_block)
+    # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
+    chi_squared = np.sum(((1 / model(power_spectrum.f, *solution_params_rescaled) - 1 / power_spectrum.P) / sigma) ** 2)
+    n_degrees_of_freedom = power_spectrum.P.size - len(solution_params)
+    chi_squared_per_deg = chi_squared / n_degrees_of_freedom
+    backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
 
-        try:
-            # First do an analytical simple Lorentzian fit, to get some initial
-            # parameter guesses for the fit.
-            anl_fit_ps = ps.in_range(*self.settings.analytical_fit_range)
-            anl_fit_res = fit_analytical_lorentzian(anl_fit_ps)
-            if not anl_fit_res:
-                raise ValueError("Analytical fit failed")
-            initial_params = (
-                anl_fit_res.fc,
-                anl_fit_res.D,
-                self.guess_f_diode_initial_value(ps, anl_fit_res.fc, anl_fit_res.D),
-                0.3,
-            )
+    # We also have to un-rescale the covariance matrix.
+    # There's actually a rescaling factor *squared* in there, as the Jacobian
+    # appears twice in the equation for the covariance matrix.
+    perr = np.sqrt(np.diag(pcov) * (np.array(model.scale_factors) ** 2))
 
-            if print_diagnostics:
-                print("Initial fit parameters:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % initial_params)
-            # Then do a Levenberg-Marquardt weighted least-squares fit on the full model.
-            #
-            # Technical notes:
-            #
-            # - Instead of directly fitting the model parameter alpha (a characteristic
-            #   of the PSD diode), we instead plug a transformed variable "a = sqrt(1/alpha^2-1)"
-            #   into the optimization process. In the model, we then transform "a" back
-            #   using "alpha = 1/sqrt(1+a^2)". The latter function is bounded between
-            #   [0,1], so we have effectively created a bound constraint on alpha.
-            #
-            # - The actual curve fitting process is driven by a set of fit parameters
-            #   that are of order unity. This increases the robustness of the fit
-            #   (see ref. 3). The "FullPSFitModel" model class takes care of this
-            #   parameter rescaling.
-            #
-            # - What we *actually* have to minimize, is the chi^2 expression in Eq. 39
-            #   of ref. 1. We're "hacking" `scipy.optimize.curve_fit` for this purpose,
-            #   and passing in "y" values of "1/ps.P" instead of just "ps.P",
-            #   and a model function "1/model(...)" instead of "model(...)". This
-            #   effectively transforms the curve fitter's objective function
-            #   "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression
-            #   in Eq. 39 of ref. 1.
+    # TODO Fix calculation of alpha confidence interval.
+    # The previous step calculated the confidence interval in the transformed
+    # variable 'a', *not* in 'alpha'! We're using this rather ugly, most likely
+    # not-quite-statistically-correct trick to transform the 'a' confidence
+    # interval into an 'alpha' confidence interval. Note that this also seems
+    # to give us different results for the alpha confidence interval than the
+    # original tweezercalib-2.1 code from ref. 3.
+    perr[3] = (
+        abs(
+            _alpha(solution_params_rescaled[3] * model.scale_factors[3] + perr[3])
+            - _alpha(solution_params_rescaled[3] * model.scale_factors[3] - perr[3])
+        )
+        / 2
+    )
 
-            model = FullPSFitModel(
-                scale_factors=(
-                    *initial_params[0:3],
-                    _a(initial_params[3]),
-                )
-            )
-            sigma = (1 / ps.P) / math.sqrt(self.settings.n_points_per_block)
-            (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
-                lambda f, fc, D, f_diode, a: 1 / model(f, fc, D, f_diode, a),
-                ps.f,
-                1 / ps.P,
-                p0=np.ones(4),
-                sigma=sigma,
-                absolute_sigma=True,
-                method="lm",
-                ftol=self.settings.ftol,
-                maxfev=self.settings.maxfev,
-            )
-            solution_params_rescaled = np.abs(solution_params_rescaled)
-            # the model function is symmetric in alpha and f_diode...
-            solution_params = model.get_params_from_rescaled_params(solution_params_rescaled)
+    # Fitted power spectrum values.
+    ps_model_fit = PowerSpectrum()
+    ps_model_fit.f = power_spectrum.f
+    ps_model_fit.P = model.P(power_spectrum.f, *solution_params)
+    ps_model_fit.sampling_rate = power_spectrum.sampling_rate
+    ps_model_fit.T_measure = power_spectrum.T_measure
 
-            # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
-            chi_squared = np.sum(((1 / model(ps.f, *solution_params_rescaled) - 1 / ps.P) / sigma) ** 2)
-            n_degrees_of_freedom = ps.P.size - len(solution_params)
-            chi_squared_per_deg = chi_squared / n_degrees_of_freedom
-            backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
+    if print_diagnostics:
+        print("Solution:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % solution_params)
+        print("Errors:     fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % tuple(perr))
+        print("Units:      fc : Hz        D : V^2/s f_diode : Hz")
+        print("Chi^2 per degree of freedom = %.2f" % chi_squared_per_deg)
+        print("Statistical backing = %.1f%%" % backing)
 
-            # We also have to un-rescale the covariance matrix.
-            # There's actually a rescaling factor *squared* in there, as the Jacobian
-            # appears twice in the equation for the covariance matrix.
-            perr = np.sqrt(np.diag(pcov) * (np.array(model.scale_factors) ** 2))
+    # Calculate additional calibration constants.
+    gamma_0 = sphere_friction_coefficient(params.viscosity, params.bead_diameter * 1e-6)
+    Rd = math.sqrt(scipy.constants.k * params.temperature_K() / gamma_0 / solution_params[1]) * 1e6
+    kappa = 2 * math.pi * gamma_0 * solution_params[0] * 1e3
+    Rf = Rd * kappa * 1e3
 
-            # TODO Fix calculation of alpha confidence interval.
-            # The previous step calculated the confidence interval in the transformed
-            # variable 'a', *not* in 'alpha'! We're using this rather ugly, most likely
-            # not-quite-statistically-correct trick to transform the 'a' confidence
-            # interval into an 'alpha' confidence interval. Note that this also seems
-            # to give us different results for the alpha confidence interval than the
-            # original tweezercalib-2.1 code from ref. 3.
-            perr[3] = (
-                abs(
-                    _alpha(solution_params_rescaled[3] * model.scale_factors[3] + perr[3])
-                    - _alpha(solution_params_rescaled[3] * model.scale_factors[3] - perr[3])
-                )
-                / 2
-            )
-
-            # Fitted power spectrum values.
-            ps_model_fit = PowerSpectrum()
-            ps_model_fit.f = ps.f
-            ps_model_fit.P = model.P(ps.f, *solution_params)
-            ps_model_fit.sampling_rate = ps.sampling_rate
-            ps_model_fit.T_measure = ps.T_measure
-
-            if print_diagnostics:
-                print("Solution:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % solution_params)
-                print("Errors:     fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % tuple(perr))
-                print("Units:      fc : Hz        D : V^2/s f_diode : Hz")
-                print("Chi^2 per degree of freedom = %.2f" % chi_squared_per_deg)
-                print("Statistical backing = %.1f%%" % backing)
-            # Calculate additional calibration constants.
-            gamma_0 = sphere_friction_coefficient(self.params.viscosity, self.params.bead_diameter * 1e-6)
-            Rd = math.sqrt(scipy.constants.k * self.params.temperature_K() / gamma_0 / solution_params[1]) * 1e6
-            kappa = 2 * math.pi * gamma_0 * solution_params[0] * 1e3
-            Rf = Rd * kappa * 1e3
-
-            # Return fit results.
-            self.results = CalibrationResults(
-                fc=solution_params[0],
-                D=solution_params[1],
-                f_diode=solution_params[2],
-                alpha=solution_params[3],
-                err_fc=perr[0],
-                err_D=perr[1],
-                err_f_diode=perr[2],
-                err_alpha=perr[3],
-                chi_squared_per_deg=chi_squared_per_deg,
-                backing=backing,
-                ps_fitted=ps,
-                ps_model_fit=ps_model_fit,
-                Rd=Rd,
-                kappa=kappa,
-                Rf=Rf,
-            )
-        except (ValueError, RuntimeError) as e:
-            self.results = CalibrationResults(ps_fitted=ps)
-            raise CalibrationError(str(e))
+    # Return fit results.
+    return CalibrationResults(
+        fc=solution_params[0],
+        D=solution_params[1],
+        f_diode=solution_params[2],
+        alpha=solution_params[3],
+        err_fc=perr[0],
+        err_D=perr[1],
+        err_f_diode=perr[2],
+        err_alpha=perr[3],
+        chi_squared_per_deg=chi_squared_per_deg,
+        backing=backing,
+        ps_fitted=power_spectrum,
+        ps_model_fit=ps_model_fit,
+        Rd=Rd,
+        kappa=kappa,
+        Rf=Rf,
+    )
