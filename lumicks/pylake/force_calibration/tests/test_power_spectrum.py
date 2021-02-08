@@ -1,4 +1,4 @@
-from lumicks.pylake.force_calibration.detail.power_spectrum import block_average, block_average_std, PowerSpectrum
+from lumicks.pylake.force_calibration.detail.power_spectrum import block_reduce, PowerSpectrum
 import numpy as np
 import pytest
 
@@ -13,8 +13,8 @@ import pytest
     ],
 )
 def test_blocking_separate(data, num_blocks, avg, std):
-    assert np.allclose(avg, block_average(data, num_blocks))
-    assert np.allclose(std, block_average_std(data, num_blocks))
+    assert np.allclose(avg, block_reduce(data, num_blocks))
+    assert np.allclose(std, block_reduce(data, num_blocks, reduce=np.std))
 
 
 def test_power_spectrum_none():
@@ -63,6 +63,7 @@ def test_power_spectrum_attrs(frequency, num_data, sampling_rate):
         [400, 50, 2000, 4, [100, 340, 580, 820], [0, 1.04166667e-3, 0, 0]],
         [400, 50, 4000, 4, [200, 680, 1160, 1640], [5.20833333e-04, 0, 0, 0]],
         [400, 50, 4000, 8, [80, 320, 560, 800, 1040, 1280, 1520, 1760], [0, 1.04166667e-03, 0, 0, 0, 0, 0, 0]],
+        [400, 50, 4000, 7, [80, 320, 560, 800, 1040, 1280, 1520], [0, 1.04166667e-03, 0, 0, 0, 0, 0]],
     ],
 )
 def test_power_spectrum_blocking(frequency, num_data, sampling_rate, num_blocks, f_blocked, p_blocked):
@@ -74,6 +75,12 @@ def test_power_spectrum_blocking(frequency, num_data, sampling_rate, num_blocks,
     assert np.allclose(blocked.f, f_blocked)
     assert np.allclose(blocked.P, p_blocked)
     assert np.allclose(blocked.n_samples(), len(f_blocked))
+    assert np.allclose(len(power_spectrum.P), num_data // 2 + 1)
+    assert np.allclose(blocked.num_points_per_block, np.floor(len(power_spectrum.P) / num_blocks))
+
+    # Downsample again and make sure the num_points_per_block is correct
+    dual_blocked = blocked.block_averaged(2)
+    assert np.allclose(dual_blocked.num_points_per_block, blocked.num_points_per_block * (len(blocked.P) // 2))
 
 
 @pytest.mark.parametrize(
