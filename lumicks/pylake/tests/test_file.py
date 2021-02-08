@@ -41,7 +41,7 @@ def test_attributes(h5_file):
     assert type(f.experiment) is str
     assert type(f.description) is str
     assert type(f.guid) is str
-    assert np.issubdtype(f.export_time, int)
+    assert np.issubdtype(f.export_time, np.dtype(int).type)
 
 
 def test_channels(h5_file):
