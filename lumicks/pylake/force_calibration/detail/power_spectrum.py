@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 
-def block_average(data, n_blocks):
+def block_reduce(data, n_blocks, reduce=np.mean):
     """Calculates the block average of a dataset.
 
     For an array ``A`` of length ``N``, returns an array ``B`` of length
@@ -13,22 +13,7 @@ def block_average(data, n_blocks):
     """
     block_size = math.floor(data.size / n_blocks)
     length = block_size * n_blocks
-    return np.mean(np.reshape(data[:length], (-1, block_size)), axis=1)
-
-
-def block_average_std(data, n_blocks):
-    """Calculates the block standard deviation of a dataset.
-
-    Works as `block_average`, but calculates the standard deviation
-    instead of the average.
-
-    See Also
-    --------
-    block_average
-    """
-    block_size = math.floor(data.size / n_blocks)
-    length = block_size * n_blocks
-    return np.std(np.reshape(data[:length], (-1, block_size)), axis=1)
+    return reduce(np.reshape(data[:length], (-1, block_size)), axis=1)
 
 
 class PowerSpectrum:
@@ -72,18 +57,20 @@ class PowerSpectrum:
             # Store metadata
             self.sampling_rate = sampling_rate
             self.T_measure = data.size / sampling_rate
+            self.num_points_per_block = 1
         else:
             # Initialize empty object.
             self.f = None
             self.P = None
             self.sampling_rate = None
             self.T_measure = None
+            self.num_points_per_block = None
 
     def as_dict(self):
         """"Returns a representation of the PowerSpectrum suitable for serialization"""
         return {"f": self.f.tolist(), "P": self.P.tolist()}
 
-    def block_averaged(self, n_blocks=2000):
+    def block_averaged(self, num_blocks=2000):
         """Returns a block-averaged power spectrum.
 
         See Also
@@ -91,10 +78,12 @@ class PowerSpectrum:
         block_average
         """
         ba = PowerSpectrum()
-        ba.f = block_average(self.f, n_blocks)
-        ba.P = block_average(self.P, n_blocks)
+        ba.f = block_reduce(self.f, num_blocks)
+        ba.P = block_reduce(self.P, num_blocks)
         ba.sampling_rate = self.sampling_rate
         ba.T_measure = self.T_measure
+        ba.num_points_per_block = self.num_points_per_block * math.floor(self.P.size / num_blocks)
+
         return ba
 
     def in_range(self, f_min, f_max):
@@ -105,6 +94,7 @@ class PowerSpectrum:
         ir.P = self.P[mask]
         ir.sampling_rate = self.sampling_rate
         ir.T_measure = self.T_measure
+        ir.num_points_per_block = self.num_points_per_block
         return ir
 
     def n_samples(self):
