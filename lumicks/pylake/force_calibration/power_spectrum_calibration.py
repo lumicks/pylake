@@ -28,10 +28,9 @@ import scipy.optimize
 import scipy.constants
 from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.detail.power_models import (
+    ScaledModel,
     fit_analytical_lorentzian,
-    FullPSFitModel,
-    _a,
-    _alpha,
+    passive_power_spectrum_model,
     sphere_friction_coefficient,
 )
 
@@ -218,7 +217,9 @@ def calculate_power_spectrum(data, sampling_rate, fit_range=(1e2, 23e3), num_poi
     return power_spectrum
 
 
-def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(), print_diagnostics=False):
+def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
+                       power_spectrum_model=passive_power_spectrum_model,
+                       print_diagnostics=False):
     """Power Spectrum Calibration
 
     Parameters
@@ -255,40 +256,26 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(), p
     )
 
     if print_diagnostics:
-        print("Initial fit parameters:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % initial_params)
+        print(f"Initial fit parameters:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % initial_params)
 
-    # Then do a Levenberg-Marquardt weighted least-squares fit on the full model.
+    # Instead of directly fitting the model parameter alpha (a characteristic of the PSD diode),
+    # we instead plug a transformed variable "a = sqrt(1/alpha^2-1)" into the optimization process.
+    # In the model, we then transform "a" back using "alpha = 1/sqrt(1+a^2)". The latter function
+    # is bounded between [0,1], so we have effectively created a bound constraint on alpha.
     #
-    # Technical notes:
-    #
-    # - Instead of directly fitting the model parameter alpha (a characteristic
-    #   of the PSD diode), we instead plug a transformed variable "a = sqrt(1/alpha^2-1)"
-    #   into the optimization process. In the model, we then transform "a" back
-    #   using "alpha = 1/sqrt(1+a^2)". The latter function is bounded between
-    #   [0,1], so we have effectively created a bound constraint on alpha.
-    #
-    # - The actual curve fitting process is driven by a set of fit parameters
-    #   that are of order unity. This increases the robustness of the fit
-    #   (see ref. 3). The "FullPSFitModel" model class takes care of this
-    #   parameter rescaling.
-    #
-    # - What we *actually* have to minimize, is the chi^2 expression in Eq. 39
-    #   of ref. 1. We're "hacking" `scipy.optimize.curve_fit` for this purpose,
-    #   and passing in "y" values of "1/ps.P" instead of just "ps.P",
-    #   and a model function "1/model(...)" instead of "model(...)". This
-    #   effectively transforms the curve fitter's objective function
-    #   "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression
-    #   in Eq. 39 of ref. 1.
+    # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
+    # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
+    # care of this parameter rescaling.
+    scaled_model = ScaledModel(model, initial_params)
 
-    model = FullPSFitModel(
-        scale_factors=(
-            *initial_params[0:3],
-            _a(initial_params[3]),
-        )
-    )
+    # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
+    # "hacking" `scipy.optimize.curve_fit` for this purpose, and passing in "y" values of "1/ps.P"
+    # instead of just "ps.P", and a model function "1/model(...)" instead of "model(...)". This
+    # effectively transforms the curve fitter's objective function
+    # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
     sigma = (1 / power_spectrum.P) / math.sqrt(power_spectrum.num_points_per_block)
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
-        lambda f, fc, D, f_diode, a: 1 / model(f, fc, D, f_diode, a),
+        lambda f, fc, D, f_diode, a: 1 / scaled_model(f, fc, D, f_diode, a),
         power_spectrum.f,
         1 / power_spectrum.P,
         p0=np.ones(4),
@@ -299,39 +286,22 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(), p
         maxfev=settings.maxfev,
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
+    perr = np.sqrt(np.diag(pcov))
+
     # the model function is symmetric in alpha and f_diode...
-    solution_params = model.get_params_from_rescaled_params(solution_params_rescaled)
+    solution_params = scaled_model.scale_params(solution_params_rescaled)
+    perr = scaled_model.scale_stderrs(solution_params_rescaled, perr)
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
-    chi_squared = np.sum(((1 / model(power_spectrum.f, *solution_params_rescaled) - 1 / power_spectrum.P) / sigma) ** 2)
+    chi_squared = np.sum(((1 / scaled_model(power_spectrum.f, *solution_params_rescaled) - 1 / power_spectrum.P) / sigma) ** 2)
     n_degrees_of_freedom = power_spectrum.P.size - len(solution_params)
     chi_squared_per_deg = chi_squared / n_degrees_of_freedom
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
 
-    # We also have to un-rescale the covariance matrix.
-    # There's actually a rescaling factor *squared* in there, as the Jacobian
-    # appears twice in the equation for the covariance matrix.
-    perr = np.sqrt(np.diag(pcov) * (np.array(model.scale_factors) ** 2))
-
-    # TODO Fix calculation of alpha confidence interval.
-    # The previous step calculated the confidence interval in the transformed
-    # variable 'a', *not* in 'alpha'! We're using this rather ugly, most likely
-    # not-quite-statistically-correct trick to transform the 'a' confidence
-    # interval into an 'alpha' confidence interval. Note that this also seems
-    # to give us different results for the alpha confidence interval than the
-    # original tweezercalib-2.1 code from ref. 3.
-    perr[3] = (
-        abs(
-            _alpha(solution_params_rescaled[3] * model.scale_factors[3] + perr[3])
-            - _alpha(solution_params_rescaled[3] * model.scale_factors[3] - perr[3])
-        )
-        / 2
-    )
-
     # Fitted power spectrum values.
     ps_model_fit = PowerSpectrum()
     ps_model_fit.f = power_spectrum.f
-    ps_model_fit.P = model.P(power_spectrum.f, *solution_params)
+    ps_model_fit.P = power_spectrum_model(power_spectrum.f, *solution_params)
     ps_model_fit.sampling_rate = power_spectrum.sampling_rate
     ps_model_fit.T_measure = power_spectrum.T_measure
 
