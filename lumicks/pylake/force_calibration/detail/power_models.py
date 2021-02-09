@@ -26,7 +26,8 @@ def fit_analytical_lorentzian(ps):
 
         Note: returns None if the fit fails.
     """
-    FitResults = namedtuple("AnalyticalLorentzianFitResults", ["fc", "D", "sigma_fc", "sigma_D", "ps_fit"])
+    FitResults = namedtuple("AnalyticalLorentzianFitResults",
+                            ["fc", "D", "sigma_fc", "sigma_D", "ps_fit"])
 
     # Calculate S[p,q] elements (Ref. 1, Eq. 13-14).
     Spq = np.zeros((3, 3))

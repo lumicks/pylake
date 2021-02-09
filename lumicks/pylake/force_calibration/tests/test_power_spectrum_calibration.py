@@ -1,20 +1,19 @@
 from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
+from lumicks.pylake.force_calibration.calibration_models import PassiveCalibrationModel, sphere_friction_coefficient
 import numpy as np
 import scipy as sp
 import os
 import pytest
 
 
-def test_calibration_parameters():
-    params = psc.CalibrationParameters(10, temperature=30)
+def test_model_parameters():
+    params = PassiveCalibrationModel(10, temperature=30)
     assert params.bead_diameter == 10
     assert params.viscosity == 1.002e-3
     assert params.temperature == 30
 
     with pytest.raises(TypeError):
-        psc.CalibrationParameters(10, invalid_parameter=5)
-
-    assert np.allclose(params.temperature_K(), 303.15)
+        PassiveCalibrationModel(10, invalid_parameter=5)
 
 
 def test_calibration_settings():
@@ -28,21 +27,21 @@ def test_calibration_settings():
 
 
 def test_input_validation_power_spectrum_calibration():
-    params = psc.CalibrationParameters(1)
+    model = PassiveCalibrationModel(1)
 
     # Wrong dimensions
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([[1, 2, 3], [1, 2, 3]]), sampling_rate=78125, params=params)
+        psc.fit_power_spectrum(data=np.array([[1, 2, 3], [1, 2, 3]]), sampling_rate=78125, model=model)
 
     # Wrong type
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data="bloop", sampling_rate=78125, params=params)
+        psc.fit_power_spectrum(data="bloop", sampling_rate=78125, model=model)
 
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, params="invalid")
+        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, model="invalid")
 
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, params=params, settings="invalid")
+        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, model=model, settings="invalid")
 
 
 def test_calibration_result():
@@ -85,16 +84,16 @@ def test_good_fit_integration_test(
     err_alpha,
 ):
     data, f_sample = reference_models.lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples)
-    params = psc.CalibrationParameters(bead_diameter, temperature=temperature, viscosity=viscosity)
+    model = PassiveCalibrationModel(bead_diameter, temperature=temperature, viscosity=viscosity)
     power_spectrum = psc.calculate_power_spectrum(data, f_sample, fit_range=(0, 15000), num_points_per_block=20)
-    ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, params=params)
+    ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model)
 
     assert np.allclose(ps_calibration.fc, corner_frequency, rtol=1e-4)
     assert np.allclose(ps_calibration.D, diffusion_constant, rtol=1e-5)
     assert np.allclose(ps_calibration.alpha, alpha, rtol=1e-4)
     assert np.allclose(ps_calibration.f_diode, f_diode, rtol=1e-4)
 
-    gamma = psc.sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
+    gamma = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
     rd_true = (
         np.sqrt(sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K") / gamma / diffusion_constant)
@@ -125,20 +124,20 @@ def test_bad_calibration_result_arg():
 def test_bad_data():
     num_samples = 30000
     data = np.sin(.1*np.arange(num_samples))
-    params = psc.CalibrationParameters(1, temperature=20, viscosity=0.0001)
+    model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0001)
     power_spectrum = psc.PowerSpectrum(data, num_samples)
 
     with pytest.raises(psc.CalibrationError):
-        psc.fit_power_spectrum(power_spectrum, params=params)
+        psc.fit_power_spectrum(power_spectrum, model=model)
 
 
 def test_actual_spectrum():
     data = np.load(os.path.join(os.path.dirname(__file__), "reference_spectrum.npz"))
     reference_spectrum = data["arr_0"]
-    params = psc.CalibrationParameters(4.4, temperature=20, viscosity=0.001002)
+    model = PassiveCalibrationModel(4.4, temperature=20, viscosity=0.001002)
     reference_spectrum = psc.calculate_power_spectrum(reference_spectrum, sampling_rate=78125,
                                                       num_points_per_block=100, fit_range=(100.0, 23000.0))
-    ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum, params=params)
+    ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum, model=model)
 
     assert np.allclose(ps_calibration.D, 0.0018512665210876748, rtol=1e-4)
     assert np.allclose(ps_calibration.Rd, 7.253645956145265, rtol=1e-4)
