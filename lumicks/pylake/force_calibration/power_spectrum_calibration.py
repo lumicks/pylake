@@ -30,37 +30,7 @@ from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.detail.power_models import (
     ScaledModel,
     fit_analytical_lorentzian,
-    passive_power_spectrum_model,
-    sphere_friction_coefficient,
 )
-
-
-class CalibrationParameters:
-    """Power spectrum calibration parameters
-
-    Attributes
-    ----------
-    bead_diameter : float
-        Bead diameter [um].
-    viscosity : float, optional
-        Liquid viscosity [Pa*s]. Default: 1.002e-3 Pa*s.
-    temperature : float, optional
-        Liquid temperature [Celsius].
-    """
-
-    def __init__(self, bead_diameter, **kwargs):
-        self.bead_diameter = bead_diameter
-        self.viscosity = 1.002e-3
-        self.temperature = 20
-
-        for k, v in kwargs.items():
-            if k in self.__dict__:
-                setattr(self, k, v)
-            else:
-                raise TypeError("Unknown argument %s" % k)
-
-    def temperature_K(self):
-        return scipy.constants.convert_temperature(self.temperature, "C", "K")
 
 
 class CalibrationSettings:
@@ -217,17 +187,16 @@ def calculate_power_spectrum(data, sampling_rate, fit_range=(1e2, 23e3), num_poi
     return power_spectrum
 
 
-def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
-                       power_spectrum_model=passive_power_spectrum_model,
+def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings(),
                        print_diagnostics=False):
     """Power Spectrum Calibration
 
     Parameters
     ----------
     power_spectrum : PowerSpectrum
-        A powerspectrum used for calibration
-    params : CalibrationParameters
-        Calibration parameters.
+        A power spectrum used for calibration
+    model : CalibrationModel
+        The model to be used for power spectrum calibration.
     settings : CalibrationSettings
         Calibration algorithm settings.
     print_diagnostics : bool
@@ -235,9 +204,6 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
     """
     if not isinstance(power_spectrum, PowerSpectrum):
         raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
-
-    if not isinstance(params, CalibrationParameters):
-        raise TypeError('Argument "params" must be of type CalibrationParameters')
 
     if not isinstance(settings, CalibrationSettings):
         raise TypeError('Argument "settings" must be of type CalibrationSettings')
@@ -288,12 +254,12 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
     solution_params_rescaled = np.abs(solution_params_rescaled)
     perr = np.sqrt(np.diag(pcov))
 
-    # the model function is symmetric in alpha and f_diode...
+    # Undo the scaling
     solution_params = scaled_model.scale_params(solution_params_rescaled)
     perr = scaled_model.scale_stderrs(solution_params_rescaled, perr)
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
-    chi_squared = np.sum(((1 / scaled_model(power_spectrum.f, *solution_params_rescaled) - 1 / power_spectrum.P) / sigma) ** 2)
+    chi_squared = np.sum(((1 / model(power_spectrum.f, *solution_params) - 1 / power_spectrum.P) / sigma) ** 2)
     n_degrees_of_freedom = power_spectrum.P.size - len(solution_params)
     chi_squared_per_deg = chi_squared / n_degrees_of_freedom
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
@@ -301,7 +267,7 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
     # Fitted power spectrum values.
     ps_model_fit = PowerSpectrum()
     ps_model_fit.f = power_spectrum.f
-    ps_model_fit.P = power_spectrum_model(power_spectrum.f, *solution_params)
+    ps_model_fit.P = model(power_spectrum.f, *solution_params)
     ps_model_fit.sampling_rate = power_spectrum.sampling_rate
     ps_model_fit.T_measure = power_spectrum.T_measure
 
@@ -312,11 +278,10 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
         print("Chi^2 per degree of freedom = %.2f" % chi_squared_per_deg)
         print("Statistical backing = %.1f%%" % backing)
 
-    # Calculate additional calibration constants.
-    gamma_0 = sphere_friction_coefficient(params.viscosity, params.bead_diameter * 1e-6)
-    Rd = math.sqrt(scipy.constants.k * params.temperature_K() / gamma_0 / solution_params[1]) * 1e6
-    kappa = 2 * math.pi * gamma_0 * solution_params[0] * 1e3
-    Rf = Rd * kappa * 1e3
+    calibration_parameters = model.calibration_parameters(
+        fc=solution_params[0],
+        diffusion_constant=solution_params[1]
+    )
 
     # Return fit results.
     return CalibrationResults(
@@ -332,7 +297,7 @@ def fit_power_spectrum(power_spectrum, params, settings=CalibrationSettings(),
         backing=backing,
         ps_fitted=power_spectrum,
         ps_model_fit=ps_model_fit,
-        Rd=Rd,
-        kappa=kappa,
-        Rf=Rf,
+        Rd=calibration_parameters.Rd,
+        kappa=calibration_parameters.kappa,
+        Rf=calibration_parameters.Rf,
     )
