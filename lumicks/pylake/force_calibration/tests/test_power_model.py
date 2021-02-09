@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 from lumicks.pylake.force_calibration.detail.power_models import *
-from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationSettings
 from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
 
 
@@ -10,20 +9,33 @@ def test_friction_coefficient():
 
 
 def test_spectrum(reference_models):
-    assert np.allclose(FullPSFitModel.P(np.arange(10000), 1000, 1e9, 10000, 0.5),
+    assert np.allclose(passive_power_spectrum_model(np.arange(10000), 1000, 1e9, 10000, 0.5),
                        reference_models.lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000))
 
 
 def test_spectrum_parameter_scaling(reference_models):
+    from ..detail.power_models import _convert_to_alpha, _convert_to_a
+
     f = np.arange(10000)
-    scaling = [2.0, 3.0, 4.0, 5.0]
-    scaled_psc = FullPSFitModel(scaling)
+    a_true = 5.0
+    initials = [2.0, 3.0, 4.0, _convert_to_alpha(a_true)]
+    scaled_psc = ScaledModel(passive_power_spectrum_model, initials)
 
-    alpha = 0.5
-    inverted_alpha = np.sqrt(((1.0 / alpha) ** 2.0 - 1.0) / scaling[3]**2)
+    fc, diff, alpha, diode = 1000, 1e9, 0.5, 10000
+    a_scaled = _convert_to_a(alpha) / a_true
 
-    assert np.allclose(scaled_psc(f, 1000 / scaling[0], 1e9 / scaling[1], 10000 / scaling[2], inverted_alpha),
-                       reference_models.lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000))
+    assert np.allclose(
+        scaled_psc(f, fc / initials[0], diff / initials[1], diode / initials[2], a_scaled),
+        reference_models.lorentzian_filtered(f, fc, diff, alpha, diode),
+    )
+
+    # Test whether unity values in scaled-world indeed lead to the correct initial parameters
+    assert np.allclose(scaled_psc.scale_params((1.0, 1.0, 1.0, 1.0)), initials)
+    assert np.allclose(
+        scaled_psc(f, 1.0, 1.0, 1.0, 1.0),
+        reference_models.lorentzian_filtered(f, initials[0], initials[1], initials[3], initials[2]),
+        rtol=1e-6,
+    )
 
 
 @pytest.mark.parametrize(
