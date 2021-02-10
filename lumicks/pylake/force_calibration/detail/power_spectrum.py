@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from copy import copy
 
 
 def block_reduce(data, n_blocks, reduce=np.mean):
@@ -28,46 +29,34 @@ class PowerSpectrum:
         Power values for the power spectrum (typically in V^2/s).
     sampling_rate : float
         The sampling rate for the original data. [Hz]
-    T_measure : float
+    total_duration : float
         The total duration of the original data. [seconds]
     """
 
-    def __init__(self, data=None, sampling_rate=None, unit="V"):
-        """Constructor
-
-        If neither parameter is given, an empty object is created.
+    def __init__(self, data, sampling_rate, unit="V"):
+        """Power spectrum
 
         Parameters
         ----------
-        data : numpy.ndarray, optional
+        data : numpy.ndarray
             Data from which to calculate a power spectrum.
-        sampling_rate : float, optional
-        unit : str, optional
+        sampling_rate : float
+            Sampling rate at which this data was acquired.
+        unit : str
+            Units the data is in (default: V).
         """
         self.unit = unit
-        if data is not None:
-            # Initialize from raw sensor data.
-            assert sampling_rate is not None
+        data = data - np.mean(data)
 
-            # Subtract average position.
-            data = data - np.mean(data)
+        # Calculate power spectrum.
+        fft = np.fft.rfft(data)
+        self.f = np.fft.rfftfreq(data.size, 1.0 / sampling_rate)
+        self.P = (1.0 / sampling_rate) * np.square(np.abs(fft)) / data.size
 
-            # Calculate power spectrum.
-            fft = np.fft.rfft(data)
-            self.f = np.fft.rfftfreq(data.size, 1.0 / sampling_rate)
-            self.P = (1.0 / sampling_rate) * np.square(np.abs(fft)) / data.size
-
-            # Store metadata
-            self.sampling_rate = sampling_rate
-            self.T_measure = data.size / sampling_rate
-            self.num_points_per_block = 1
-        else:
-            # Initialize empty object.
-            self.f = None
-            self.P = None
-            self.sampling_rate = None
-            self.T_measure = None
-            self.num_points_per_block = None
+        # Store metadata
+        self.sampling_rate = sampling_rate
+        self.total_duration = data.size / sampling_rate
+        self.num_points_per_block = 1
 
     def as_dict(self):
         """"Returns a representation of the PowerSpectrum suitable for serialization"""
@@ -80,36 +69,41 @@ class PowerSpectrum:
         --------
         block_average
         """
-        ba = PowerSpectrum()
+        ba = copy(self)
         ba.f = block_reduce(self.f, num_blocks)
         ba.P = block_reduce(self.P, num_blocks)
-        ba.sampling_rate = self.sampling_rate
-        ba.T_measure = self.T_measure
         ba.num_points_per_block = self.num_points_per_block * math.floor(self.P.size / num_blocks)
 
         return ba
 
     def in_range(self, f_min, f_max):
         """Returns part of the power spectrum within a given frequency range."""
-        ir = PowerSpectrum()
+        ir = copy(self)
         mask = (self.f > f_min) & (self.f <= f_max)
         ir.f = self.f[mask]
         ir.P = self.P[mask]
-        ir.sampling_rate = self.sampling_rate
-        ir.T_measure = self.T_measure
-        ir.num_points_per_block = self.num_points_per_block
         return ir
 
-    def n_samples(self):
+    def num_samples(self):
         return self.f.size
+
+    def with_spectrum(self, power, num_points_per_block=1):
+        """Return a copy with a different spectrum"""
+        assert len(power) == len(self.P), "Power has incorrect length"
+
+        ps = copy(self)
+        ps.P = power
+        ps.num_points_per_block = num_points_per_block
+
+        return ps
 
     def plot(self):
         """Plot power spectrum"""
         plt.plot(self.f, self.P)
         plt.xlabel("Frequency [Hz]")
-        plt.ylabel(f"Power [{self.unit}^2/Hz]")
-        plt.xscale('log')
-        plt.yscale('log')
+        plt.ylabel(f"Power [${self.unit}^2/Hz$]")
+        plt.xscale("log")
+        plt.yscale("log")
         if self.num_points_per_block:
             plt.title(f"Blocked Power spectrum (N={self.num_points_per_block})")
         else:

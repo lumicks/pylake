@@ -67,3 +67,11 @@ def test_fit_analytic(reference_models, corner_frequency, diffusion_constant, nu
     assert np.allclose(fit.D, diffusion_constant)
     assert np.allclose(fit.sigma_fc, sigma_fc)
     assert np.allclose(fit.sigma_D, sigma_diffusion)
+
+
+def test_fit_analytic_curve():
+    ps = PowerSpectrum([3, 3, 4, 5, 1, 3, 2, 4, 5, 2], 100)
+    ref = [0.0396382, 0.0389208, 0.03691641, 0.03399826, 0.03061068, 0.02713453]
+    fit = fit_analytical_lorentzian(ps)
+    assert np.allclose(fit.ps_fit.f, np.arange(0, 60, 10))
+    assert np.allclose(fit.ps_fit.P, ref)

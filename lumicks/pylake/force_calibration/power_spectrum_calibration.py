@@ -239,11 +239,7 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
 
     # Fitted power spectrum values.
-    ps_model_fit = PowerSpectrum()
-    ps_model_fit.f = power_spectrum.f
-    ps_model_fit.P = model(power_spectrum.f, *solution_params)
-    ps_model_fit.sampling_rate = power_spectrum.sampling_rate
-    ps_model_fit.T_measure = power_spectrum.T_measure
+    ps_model_fit = power_spectrum.with_spectrum(model(power_spectrum.f, *solution_params))
 
     return CalibrationResults(
         model=model,
