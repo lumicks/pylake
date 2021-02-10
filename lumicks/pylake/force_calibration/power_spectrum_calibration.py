@@ -26,6 +26,9 @@ import math
 import scipy
 import scipy.optimize
 import scipy.constants
+import matplotlib.pyplot as plt
+from tabulate import tabulate
+from collections import namedtuple
 from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.detail.power_models import (
     ScaledModel,
@@ -47,7 +50,6 @@ class CalibrationSettings:
     maxfev : int
         Maximum number of function evaluations during the fit. Default: 10000
     """
-
     def __init__(self, **kwargs):
         self.analytical_fit_range = (1e1, 1e4)
         self.ftol = 1e-7
@@ -60,74 +62,50 @@ class CalibrationSettings:
                 raise TypeError("Unknown argument %s" % k)
 
 
+CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value", "unit"])
+
+
 class CalibrationResults:
-    """Power spectrum calibration results
+    """Power spectrum calibration results."""
+    def __init__(self, model, ps_model_fit, ps_fitted, params):
+        self.model = model
+        self.ps_model_fit = ps_model_fit
+        self.ps_fitted = ps_fitted
+        self.params = params
 
-    Attributes
-    ----------
-    fc : float
-        Corner frequency [Hz]
-    D : float
-        Diffusion constant [V^2/s]
-    f_diode : float
-        Diode low-pass filtering roll-off frequency [Hz]
-    alpha : float
-        Diode 'relaxation factor' (number between 0 and 1)
-    err_fc : float
-        1-sigma error for the parameters fc
-    err_D
-    err_f_diode
-    err_alpha
-    Rd : float
-        Distance response [um/V]
-    kappa : float
-        Trap stiffness [pN/nm]
-    Rf : float
-        Force response [pN/V]
-    chi_squared_per_deg : float
-        Chi-squared per degree of freedom
-    backing : float
-        Statistical backing [%]
-    ps_fitted : PowerSpectrum
-        Power spectrum that was actually fitted (filtered and block-averaged)
-    ps_model_fit : PowerSpectrum
-        Model fit to the power spectrum (for, e.g., plotting)
-    error : str
-        Optional error message, in case problems were encountered during the
-        fit.
+        # A few parameters have to be present for this calibration to be used.
+        mandatory_params = ["kappa (pN/nm)", "Rd (um/V)", "Rf (pN/V)"]
+        for key in mandatory_params:
+            if key not in params:
+                raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
 
-    NOTE: Any of the above attributes can be absent, in case of errors. In such
-    cases, the ``error`` attribute typically explains what went wrong.
-    """
+    def __getitem__(self, item):
+        # Provides the same access pattern as ForceCalibration
+        return self.params[item].value
 
-    def __init__(self, **kwargs):
-        _valid_attr = [
-            "fc",
-            "D",
-            "f_diode",
-            "alpha",
-            "err_fc",
-            "err_D",
-            "err_f_diode",
-            "err_alpha",
-            "chi_squared_per_deg",
-            "backing",
-            "ps_fitted",
-            "ps_model_fit",
-            "Rd",
-            "kappa",
-            "Rf",
-            "error",
+    def plot(self):
+        """Plot the fitted spectrum"""
+        self.ps_model_fit.plot()
+        self.ps_fitted.plot()
+        plt.legend(["Data", "Model"])
+
+    def _print_data(self, tablefmt="text"):
+        table = [
+            [
+                key,
+                f"{param.description} ({param.unit})",
+                param.value if isinstance(param.value, str) else f"{param.value:.6g}",
+            ]
+            for key, param in self.params.items()
         ]
 
-        for k, v in kwargs.items():
-            if k in _valid_attr:
-                setattr(self, k, v)
-            else:
-                raise TypeError("Unknown argument/attribute %s" % k)
+        return tabulate(table, ["Name", "Description", "Value"], tablefmt=tablefmt)
 
-    def is_success(self):
-        return not hasattr(self, "error")
+    def _repr_html_(self):
+        return self._print_data(tablefmt="html")
+
+    def __str__(self):
+        return self._print_data()
 
 
 class CalibrationError(Exception):
@@ -180,15 +158,15 @@ def calculate_power_spectrum(data, sampling_rate, fit_range=(1e2, 23e3), num_poi
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
-
     power_spectrum = PowerSpectrum(data, sampling_rate)
     power_spectrum = power_spectrum.in_range(*fit_range)
-    power_spectrum = power_spectrum.block_averaged(num_blocks=power_spectrum.P.size // num_points_per_block)
+    power_spectrum = power_spectrum.block_averaged(
+        num_blocks=power_spectrum.P.size // num_points_per_block
+    )
     return power_spectrum
 
 
-def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings(),
-                       print_diagnostics=False):
+def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
     """Power Spectrum Calibration
 
     Parameters
@@ -199,30 +177,24 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings(),
         The model to be used for power spectrum calibration.
     settings : CalibrationSettings
         Calibration algorithm settings.
-    print_diagnostics : bool
-        If True, prints diagnostics about the fitting procedure to STDOUT.
     """
     if not isinstance(power_spectrum, PowerSpectrum):
         raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
-
     if not isinstance(settings, CalibrationSettings):
         raise TypeError('Argument "settings" must be of type CalibrationSettings')
-
     # Fit analytical Lorentzian to get initial guesses for the full power spectrum model.
     try:
-        anl_fit_res = fit_analytical_lorentzian(power_spectrum.in_range(*settings.analytical_fit_range))
+        anl_fit_res = fit_analytical_lorentzian(
+            power_spectrum.in_range(*settings.analytical_fit_range)
+        )
     except ValueError as e:
         raise CalibrationError("Analytical fit failed.")
-
     initial_params = (
         anl_fit_res.fc,
         anl_fit_res.D,
         guess_f_diode_initial_value(power_spectrum, anl_fit_res.fc, anl_fit_res.D),
         0.3,
     )
-
-    if print_diagnostics:
-        print(f"Initial fit parameters:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % initial_params)
 
     # Instead of directly fitting the model parameter alpha (a characteristic of the PSD diode),
     # we instead plug a transformed variable "a = sqrt(1/alpha^2-1)" into the optimization process.
@@ -259,7 +231,9 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings(),
     perr = scaled_model.scale_stderrs(solution_params_rescaled, perr)
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
-    chi_squared = np.sum(((1 / model(power_spectrum.f, *solution_params) - 1 / power_spectrum.P) / sigma) ** 2)
+    chi_squared = np.sum(
+        ((1 / model(power_spectrum.f, *solution_params) - 1 / power_spectrum.P) / sigma) ** 2
+    )
     n_degrees_of_freedom = power_spectrum.P.size - len(solution_params)
     chi_squared_per_deg = chi_squared / n_degrees_of_freedom
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
@@ -271,33 +245,40 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings(),
     ps_model_fit.sampling_rate = power_spectrum.sampling_rate
     ps_model_fit.T_measure = power_spectrum.T_measure
 
-    if print_diagnostics:
-        print("Solution:   fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % solution_params)
-        print("Errors:     fc = %.2e  D = %.2f  f_diode = %.2e  alpha = %.2f" % tuple(perr))
-        print("Units:      fc : Hz        D : V^2/s f_diode : Hz")
-        print("Chi^2 per degree of freedom = %.2f" % chi_squared_per_deg)
-        print("Statistical backing = %.1f%%" % backing)
-
-    calibration_parameters = model.calibration_parameters(
-        fc=solution_params[0],
-        diffusion_constant=solution_params[1]
-    )
-
-    # Return fit results.
     return CalibrationResults(
-        fc=solution_params[0],
-        D=solution_params[1],
-        f_diode=solution_params[2],
-        alpha=solution_params[3],
-        err_fc=perr[0],
-        err_D=perr[1],
-        err_f_diode=perr[2],
-        err_alpha=perr[3],
-        chi_squared_per_deg=chi_squared_per_deg,
-        backing=backing,
+        model=model,
         ps_fitted=power_spectrum,
         ps_model_fit=ps_model_fit,
-        Rd=calibration_parameters.Rd,
-        kappa=calibration_parameters.kappa,
-        Rf=calibration_parameters.Rf,
+        params={
+            **model.calibration_parameters(
+                fc=solution_params[0], diffusion_constant=solution_params[1]
+            ),
+            "fc (Hz)": CalibrationParameter("Corner frequency", solution_params[0], "Hz"),
+            "D (V^2/s)": CalibrationParameter("Diffusion constant", solution_params[1], "V^2/s"),
+            "f_diode (Hz)": CalibrationParameter(
+                "Diode low-pass filtering roll-off frequency", solution_params[2], "Hz"
+            ),
+            "alpha": CalibrationParameter("Diode 'relaxation factor'", solution_params[3], "-"),
+            "err_fc": CalibrationParameter("Corner frequency Std Err", perr[0], "Hz"),
+            "err_D": CalibrationParameter("Diffusion constant Std Err", perr[1], "V^2/s"),
+            "err_f_diode": CalibrationParameter(
+                "Diode low-pass filtering roll-off frequency Std Err", perr[2], "Hz"
+            ),
+            "err_alpha": CalibrationParameter("Diode 'relaxation factor' Std Err", perr[3], "-"),
+            "chi_squared_per_deg": CalibrationParameter(
+                "Chi squared per degree of freedom", chi_squared_per_deg, "-"
+            ),
+            "backing (%)": CalibrationParameter("Statistical backing", backing, "%"),
+            "Max iterations": CalibrationParameter(
+                "Maximum number of function evaluations", settings.maxfev, "-"
+            ),
+            "Model": CalibrationParameter("Calibration model", model.__name__(), "-"),
+            "Fit tolerance": CalibrationParameter("Fitting tolerance", settings.ftol, "-"),
+            "Points per block": CalibrationParameter(
+                "Number of points per block", power_spectrum.num_points_per_block, "-"
+            ),
+            "Sample rate (Hz)": CalibrationParameter(
+                "Sample rate", power_spectrum.sampling_rate, "Hz"
+            ),
+        },
     )

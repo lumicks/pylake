@@ -1,4 +1,5 @@
 from lumicks.pylake.force_calibration.detail.power_spectrum import block_reduce, PowerSpectrum
+from matplotlib.testing.decorators import cleanup
 import numpy as np
 import pytest
 
@@ -109,3 +110,9 @@ def test_in_range(frequency, num_data, sampling_rate, num_blocks, f_min, f_max):
     assert np.allclose(power_subset.P, power_spectrum.P[mask])
     assert np.allclose(power_spectrum.T_measure, power_subset.T_measure)
     assert np.allclose(power_spectrum.sampling_rate, power_subset.sampling_rate)
+
+
+@cleanup
+def test_plot():
+    ps = PowerSpectrum(np.sin(2.0 * np.pi * 100 / 78125 * np.arange(100)), 78125)
+    ps.plot()

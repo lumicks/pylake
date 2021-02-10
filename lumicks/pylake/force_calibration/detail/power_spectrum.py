@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import math
 
 
@@ -31,7 +32,7 @@ class PowerSpectrum:
         The total duration of the original data. [seconds]
     """
 
-    def __init__(self, data=None, sampling_rate=None):
+    def __init__(self, data=None, sampling_rate=None, unit="V"):
         """Constructor
 
         If neither parameter is given, an empty object is created.
@@ -41,7 +42,9 @@ class PowerSpectrum:
         data : numpy.ndarray, optional
             Data from which to calculate a power spectrum.
         sampling_rate : float, optional
+        unit : str, optional
         """
+        self.unit = unit
         if data is not None:
             # Initialize from raw sensor data.
             assert sampling_rate is not None
@@ -99,3 +102,15 @@ class PowerSpectrum:
 
     def n_samples(self):
         return self.f.size
+
+    def plot(self):
+        """Plot power spectrum"""
+        plt.plot(self.f, self.P)
+        plt.xlabel("Frequency [Hz]")
+        plt.ylabel(f"Power [{self.unit}^2/Hz]")
+        plt.xscale('log')
+        plt.yscale('log')
+        if self.num_points_per_block:
+            plt.title(f"Blocked Power spectrum (N={self.num_points_per_block})")
+        else:
+            plt.title("Power spectrum")
