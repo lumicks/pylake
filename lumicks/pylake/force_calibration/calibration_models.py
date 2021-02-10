@@ -1,17 +1,23 @@
 import math
 import scipy
-from collections import namedtuple
 from .detail.power_models import passive_power_spectrum_model, sphere_friction_coefficient
+from .power_spectrum_calibration import CalibrationParameter
 
 
 class CalibrationModel:
-    def __init__(self):
-        pass
+    def __init__(self, bead_diameter):
+        self.bead_diameter = bead_diameter
+
+    def __name__(self):
+        raise NotImplementedError
 
     def __call__(self):
         raise NotImplementedError
 
-    def calibration_parameters(self, params):
+    def __repr__(self):
+        return f"{self.__name__()}({''.join([f'{k}={v}, ' for k, v in vars(self).items()])[:-2]})"
+
+    def calibration_parameters(self, fc, diffusion_constant):
         raise NotImplementedError
 
 
@@ -43,8 +49,11 @@ class PassiveCalibrationModel(CalibrationModel):
     temperature : float, optional
         Liquid temperature [Celsius].
     """
+    def __name__(self):
+        return "PassiveCalibrationModel"
+
     def __init__(self, bead_diameter, viscosity=1.002e-3, temperature=20):
-        self.bead_diameter = bead_diameter
+        super().__init__(bead_diameter)
         self.viscosity = viscosity
         self.temperature = temperature
 
@@ -60,25 +69,25 @@ class PassiveCalibrationModel(CalibrationModel):
             Corner frequency, in Hz.
         diffusion_constant : float
             Diffusion constant, in (a.u.)^2/s
-
-        Returns
-        -------
-        namedtuple (Rd, kappa, Rf)
-            Attributes:
-                Rd : float
-                    Distance response [um/V]
-                kappa : float
-                    Trap stiffness [pN/nm]
-                Rf : float
-                    Force response [pN/V]
-            Note: returns None if the fit fails.
         """
-        CalibrationParameters = namedtuple("PassiveCalibrationFitResults", ["Rd", "kappa", "Rf"])
-
+        # diameter [um] -> [m]
         gamma_0 = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
         temperature_k = scipy.constants.convert_temperature(self.temperature, "C", "K")
+
+        # Rd needs to be output in um/V (m -> um or 1e6)
         Rd = math.sqrt(scipy.constants.k * temperature_k / gamma_0 / diffusion_constant) * 1e6
+
+        # Kappa is output in pN/nm (N/m -> pN/nm or 1e12 / 1e9 = 1e3)
         kappa = 2 * math.pi * gamma_0 * fc * 1e3
+
+        # Rf is output in pN/V. Rd [um/V], kappa [pN/nm]: um -> nm = 1e3
         Rf = Rd * kappa * 1e3
 
-        return CalibrationParameters(Rd, kappa, Rf)
+        return {
+            "Bead diameter (um)": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
+            "Viscosity (Pa*s)": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
+            "Temperature (C)": CalibrationParameter("Liquid temperature", self.temperature, "C"),
+            "Rd (um/V)": CalibrationParameter("Distance response", Rd, "um/V"),
+            "kappa (pN/nm)": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
+            "Rf (pN/V)": CalibrationParameter("Force response", Rf, "pN/V"),
+        }
