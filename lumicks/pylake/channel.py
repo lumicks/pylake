@@ -340,7 +340,7 @@ class Continuous:
     def from_dataset(dset, y_label="y", calibration=None):
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
-        return Slice(Continuous(dset[()], start, dt),
+        return Slice(Continuous(dset, start, dt),
                      labels={"title": dset.name.strip("/"), "y": y_label}, calibration=calibration)
 
     @property
@@ -452,7 +452,7 @@ class TimeTags:
 
     @staticmethod
     def from_dataset(dset, y_label="y"):
-        return Slice(TimeTags(dset[()]))
+        return Slice(TimeTags(dset))
 
     @property
     def timestamps(self):

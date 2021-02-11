@@ -14,6 +14,7 @@
 
 #### Bug fixes
 * Fixed `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
+* Fixed bug in `Continuous` which lead to excessive memory usage and degraded performance.
 
 #### Breaking changes
 * `FdRangeSelectorWidget` is no longer public.

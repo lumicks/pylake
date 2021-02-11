@@ -1,3 +1,4 @@
+import h5py
 import pytest
 import numpy as np
 from lumicks.pylake import channel
@@ -576,3 +577,8 @@ def test_channel_plot():
     mpl.pyplot.gca().clear()
     s.plot(start=100e9)
     testLine(np.arange(0, 230, 10) - 100 + 5, d)
+
+
+def test_regression_lazy_loading(h5_file):
+    ch = channel.Continuous.from_dataset(h5_file["Force HF"]["Force 1x"])
+    assert type(ch._src._src_data) == h5py.Dataset
