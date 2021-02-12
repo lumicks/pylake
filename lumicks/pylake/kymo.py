@@ -47,17 +47,17 @@ class Kymo(ConfocalImage):
         i_max = np.searchsorted(line_timestamps, stop, side='left')
 
         if i_min >= len(line_timestamps):
-            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self.json)
+            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._json)
 
         if i_min >= i_max:
-            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self.json)
+            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._json)
 
         if i_max < len(line_timestamps):
             stop = line_timestamps[i_max]
 
         start = line_timestamps[i_min]
 
-        return Kymo(self.name, self.file, start, stop, self.json)
+        return Kymo(self.name, self.file, start, stop, self._json)
 
     def _fix_incorrect_start(self):#, timeline_start, timeline_dt):
         """ Resolve error when confocal scan starts before the timeline information.
@@ -135,18 +135,18 @@ class Kymo(ConfocalImage):
 
         import matplotlib.pyplot as plt
         _, (ax1, ax2) = plt.subplots(2, 1)
-        
+
         # plot kymo
         plt.sca(ax1)
         getattr(self, f"plot_{color_channel}")()
         ax1.set_xlabel(None)
-        
+
         # plot force channel
         plt.sca(ax2)
         force = self._downsample_channel(force_channel[-2], force_channel[-1], reduce=reduce)
         force.plot(**kwargs)
         ax2.set_xlim(ax1.get_xlim())
-        
+
         set_aspect_ratio(ax1, aspect_ratio)
         set_aspect_ratio(ax2, aspect_ratio)
 

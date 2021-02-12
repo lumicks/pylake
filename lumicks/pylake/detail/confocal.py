@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import cachetools
+from deprecated.sphinx import deprecated
 
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
@@ -28,7 +29,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         self.start = start
         self.stop = stop
         self.name = name
-        self.json = json
+        self._json = json
         self.file = file
         self._cache = {}
 
@@ -54,6 +55,13 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
         return cls(name, file, start, stop, json_data)
 
+    @property
+    @deprecated(reason=("Access to raw metadata will be removed in a future release. "
+                        "Use accessor properties instead. (see docs)"),
+                        action="always", version="0.8.0")
+    def json(self):
+        return self._json
+
     def _get_photon_count(self, name):
         """Grab the portion of the photon count that overlaps with the scan."""
         photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
@@ -65,13 +73,13 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         if timeline_start - timeline_dt < self.start < timeline_start:
             self.start = timeline_start
 
-        # Checks whether the scan or kymograph starts before the timeline information. 
-        # If this is the case, it will lead to an incorrect reconstruction. 
+        # Checks whether the scan or kymograph starts before the timeline information.
+        # If this is the case, it will lead to an incorrect reconstruction.
         # If implemented, resolve the problem.
         if timeline_start > self.start:
             self._fix_incorrect_start()
             photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
-        
+
         return photon_count
 
     def _fix_incorrect_start(self):
@@ -123,24 +131,28 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         raise NotImplementedError
 
     @property
+    @deprecated(reason="By definition, confocal images always have fluorescence data.",
+                version="0.8.0", action="always")
     def has_fluorescence(self) -> bool:
-        return self.json["fluorescence"]
+        return True
 
     @property
+    @deprecated(reason="This property is always False and therefore not needed.",
+                version="0.8.0", action="always")
     def has_force(self) -> bool:
-        return self.json["force"]
+        return False
 
     @property
     def center_point_um(self):
         """Returns a dictionary of the x/y/z center coordinates of the scan (w.r.t. brightfield field of view) """
-        return self.json["scan volume"]["center point (um)"]
+        return self._json["scan volume"]["center point (um)"]
 
 
 class ConfocalImage(BaseScan):
 
     def _ordered_axes(self):
         """Returns axis indices in spatial order"""
-        return sorted(self.json["scan volume"]["scan axes"], key=lambda x: x["axis"])
+        return sorted(self._json["scan volume"]["scan axes"], key=lambda x: x["axis"])
 
     def _to_spatial(self, data):
         """Implements any necessary post-processing actions after image reconstruction from infowave """
@@ -158,7 +170,7 @@ class ConfocalImage(BaseScan):
         # Uses the timestamps from the first non-zero-sized photon channel
         for color in ("red", "green", "blue"):
             channel_data = getattr(self, f"{color}_photon_count").timestamps
-            if len(channel_data) != 0: 
+            if len(channel_data) != 0:
                 break
         else:
             raise RuntimeError("Can't get pixel timestamps if there are no pixels")
@@ -206,7 +218,7 @@ class ConfocalImage(BaseScan):
             This option is disabled by default: an error will be raise if the data does not fit.
         """
         if self.rgb_image.size > 0:
-            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self.json))
+            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self._json))
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
 
@@ -221,11 +233,11 @@ class ConfocalImage(BaseScan):
 
     @property
     def pixels_per_line(self):
-        return self._fast_axis_metadata["num of pixels"]     
+        return self._fast_axis_metadata["num of pixels"]
 
     @property
     def _fast_axis_metadata(self):
-        return self.json["scan volume"]["scan axes"][0]
+        return self._json["scan volume"]["scan axes"][0]
 
     @property
     def fast_axis(self):

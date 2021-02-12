@@ -26,8 +26,8 @@ class Scan(ConfocalImage):
     """
     def __init__(self, name, file, start, stop, json):
         super().__init__(name, file, start, stop, json)
-        self._num_frames = self.json["scan count"]
-        if len(self.json["scan volume"]["scan axes"]) > 2:
+        self._num_frames = self._json["scan count"]
+        if len(self._json["scan volume"]["scan axes"]) > 2:
             raise RuntimeError("3D scans are not supported")
 
     def __repr__(self):
@@ -46,7 +46,7 @@ class Scan(ConfocalImage):
 
     @property
     def lines_per_frame(self):
-        return self.json["scan volume"]["scan axes"][1]["num of pixels"]
+        return self._json["scan volume"]["scan axes"][1]["num of pixels"]
 
     @property
     def _shape(self):
@@ -67,7 +67,7 @@ class Scan(ConfocalImage):
         Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis."""
         data = data.squeeze()
 
-        physical_axis = [axis["axis"] for axis in self.json["scan volume"]["scan axes"]]
+        physical_axis = [axis["axis"] for axis in self._json["scan volume"]["scan axes"]]
         if physical_axis[0] > physical_axis[1]:
             new_axis_order = np.arange(len(data.shape), dtype=int)
             new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]

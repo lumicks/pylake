@@ -19,9 +19,13 @@ def test_point_scans(h5_file):
                                    0, 1, 0, 0, 0, 8, 0])
         assert np.allclose(ps_red.timestamps, reference_timestamps)
         assert np.allclose(ps_red.data, reference_data)
-        
-        assert ps.has_fluorescence
-        assert not ps.has_force
+
+        with pytest.deprecated_call():
+            ps.json
+        with pytest.deprecated_call():
+            assert ps.has_fluorescence
+        with pytest.deprecated_call():
+            assert not ps.has_force
 
 
 @cleanup

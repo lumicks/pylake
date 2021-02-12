@@ -18,8 +18,12 @@ def test_kymo_properties(h5_file):
                                         [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]], np.int64)
 
         assert repr(kymo) == "Kymo(pixels=5)"
-        assert kymo.has_fluorescence
-        assert not kymo.has_force
+        with pytest.deprecated_call():
+            kymo.json
+        with pytest.deprecated_call():
+            assert kymo.has_fluorescence
+        with pytest.deprecated_call():
+            assert not kymo.has_force
         assert kymo.pixels_per_line == 5
         assert len(kymo.infowave) == 64
         assert kymo.rgb_image.shape == (5, 4, 3)
@@ -103,8 +107,12 @@ def test_kymo_slicing(h5_file):
             empty_kymograph.plot_rgb()
 
         assert empty_kymograph.red_image.shape == (5, 0)
-        assert empty_kymograph.has_fluorescence
-        assert not empty_kymograph.has_force
+        with pytest.deprecated_call():
+            empty_kymograph.json
+        with pytest.deprecated_call():
+            assert empty_kymograph.has_fluorescence
+        with pytest.deprecated_call():
+            assert not empty_kymograph.has_force
         assert empty_kymograph.infowave.data.size == 0
         assert empty_kymograph.pixels_per_line == 5
         assert empty_kymograph.red_image.size == 0
@@ -130,13 +138,13 @@ def test_plotting(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
         kymo = f.kymos["Kymo1"]
-        
+
         kymo.plot_red()
         assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
         assert np.allclose(np.sort(plt.ylim()), [0, 0.05])
 
 
-@cleanup        
+@cleanup
 def test_plotting_with_force(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
@@ -151,7 +159,7 @@ def test_plotting_with_force(h5_file):
         assert np.allclose(np.sort(plt.ylim()), [10, 30])
 
 
-@cleanup        
+@cleanup
 def test_plotting_with_histograms(h5_file):
     def get_rectangle_data():
         widths = [p.get_width() for p in plt.gca().patches]
@@ -193,8 +201,8 @@ def test_plotting_with_histograms(h5_file):
 
         with pytest.raises(ValueError):
             kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=6)
-        
-        
+
+
 def test_save_tiff(tmpdir_factory, h5_file):
     from os import stat
 
