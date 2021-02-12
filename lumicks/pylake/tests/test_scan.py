@@ -20,8 +20,12 @@ def test_scans(h5_file):
 
         assert np.allclose(scan.timestamps, np.transpose(reference_timestamps))
         assert scan.num_frames == 1
-        assert scan.has_fluorescence
-        assert not scan.has_force
+        with pytest.deprecated_call():
+            scan.json
+        with pytest.deprecated_call():
+            assert scan.has_fluorescence
+        with pytest.deprecated_call():
+            assert not scan.has_force
         assert scan.pixels_per_line == 4
         assert scan.lines_per_frame == 5
         assert len(scan.infowave) == 64
@@ -46,8 +50,12 @@ def test_scans(h5_file):
 
         assert np.allclose(scan.timestamps, reference_timestamps2)
         assert scan.num_frames == 2
-        assert scan.has_fluorescence
-        assert not scan.has_force
+        with pytest.deprecated_call():
+            scan.json
+        with pytest.deprecated_call():
+            assert scan.has_fluorescence
+        with pytest.deprecated_call():
+            assert not scan.has_force
         assert scan.pixels_per_line == 4
         assert scan.lines_per_frame == 3
         assert len(scan.infowave) == 64
@@ -70,8 +78,12 @@ def test_scans(h5_file):
 
         assert np.allclose(scan.timestamps, reference_timestamps2)
         assert scan.num_frames == 2
-        assert scan.has_fluorescence
-        assert not scan.has_force
+        with pytest.deprecated_call():
+            scan.json
+        with pytest.deprecated_call():
+            assert scan.has_fluorescence
+        with pytest.deprecated_call():
+            assert not scan.has_force
         assert scan.pixels_per_line == 4
         assert scan.lines_per_frame == 3
         assert len(scan.infowave) == 64
@@ -94,8 +106,12 @@ def test_scans(h5_file):
 
         assert np.allclose(scan.timestamps, reference_timestamps2)
         assert scan.num_frames == 2
-        assert scan.has_fluorescence
-        assert not scan.has_force
+        with pytest.deprecated_call():
+            scan.json
+        with pytest.deprecated_call():
+            assert scan.has_fluorescence
+        with pytest.deprecated_call():
+            assert not scan.has_force
         assert scan.pixels_per_line == 4
         assert scan.lines_per_frame == 3
         assert len(scan.infowave) == 64
