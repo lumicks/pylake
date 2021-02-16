@@ -3,12 +3,12 @@
 ## v0.8.0 | t.b.d.
 
 #### New features
-* Added widget to graphically slice `FDCurve` by distance in Jupyter Notebooks. It can be opened by calling `pylake.FdDistanceRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
-* Added `FDCurve.range_selector()` and `FDCurve.distance_range_selector()`
+* Added widget to graphically slice `FdCurve` by distance in Jupyter Notebooks. It can be opened by calling `pylake.FdDistanceRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
+* Added `FdCurve.range_selector()` and `FdCurve.distance_range_selector()`
 * Added `center_point_um` property to `PointScan`, `Kymo` and `Scan` classes.
 * Added `scan_width_um` property to `Kymo` and `Scan` classes.
-* Added `FDCurve.with_offset()` to `FDCurve` to add offsets to force and distance.
-* Added `FdEnsemble` to be able to process multiple `FDCurve` instances simultaneously.
+* Added `FdCurve.with_offset()` to `FdCurve` to add offsets to force and distance.
+* Added `FdEnsemble` to be able to process multiple `FdCurve` instances simultaneously.
 * Added `FdEnsemble.align_linear()` to align F,d curves in an ensemble by correcting for a constant offset in force and distance using two linear regressions. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html) for more information.
 * Added `CorrelatedStack.export_tiff()` for exporting aligned image stacks.
 
@@ -22,6 +22,7 @@
 * `Slice.range_selector()` is now a method instead of a property
 * Deprecated `json` attribute in confocal classes `PointScan`, `Scan`, and `Kymo`. **Note: The format of the raw metadata exported from Bluelake is likely to change in future releases and therefore should not be accessed directly. Instead, use the accessor properties, as documented for [scans](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) and [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html).**
 * Deprecated `has_force` and `has_fluorescence` properties in confocal classes `PointScan`, `Scan`, and `Kymo`.
+* Renamed `FDCurve` and `FDSlice` to `FdCurve` and `FdSlice`.
 
 #### Other
 * Added documentation for the Kymotracker widget. See the [Cas9 kymotracking example](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) or the [kymotracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
@@ -87,8 +88,8 @@
 ## v0.6.2 | 2020-09-21
 
 * Support plotting Z-axis scans. Z-axis scans would previously throw an exception due to how the physical dimensions were fetched. This issue is now resolved.
-* Add slicing (by time) for `FDCurve`.
-* Add widget to graphically slice `FDCurve` in Jupyter Notebooks. It can be opened by calling `pylake.FdRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
+* Add slicing (by time) for `FdCurve`.
+* Add widget to graphically slice `FdCurve` in Jupyter Notebooks. It can be opened by calling `pylake.FdRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
 * Fixed bug in `FdRangeSelectorWidget` that prevented drawing to the correct axes when other axes has focus.
 * Fixed displayed coordinates to correctly reflect position in `Kymo.plot_red()`, `Kymo.plot_green()`, `Kymo.plot_blue()` and `Kymo.plot_rgb()`. The data origin (e.g. `kymo.red_image[0, 0]`) is displayed on the top left of the image in these plots, whereas previously this was not reflected correctly in the coordinates displayed on the plot axes (placing the coordinate origin at the bottom left).
 
@@ -146,7 +147,7 @@
 ## v0.2.0 | 2018-07-27
 
 * Channel slices can be downsampled: `lf_force = hf_force.downsampled_by(factor=20)`
-* `FDCurve`s now support subtraction, e.g. `fd = f.fdcurves["measured"] - f.fdcurves["baseline"]`
+* `FdCurve`s now support subtraction, e.g. `fd = f.fdcurves["measured"] - f.fdcurves["baseline"]`
 * Scans and kymos now have a `.timestamps` property with per-pixel timestamps with the same shape as the image arrays
 * Added Matlab compatibility examples to the repository in `examples/matlab`
 * `h5py` >= v2.8 is now required

@@ -25,8 +25,8 @@ Let's first load our data and see which curves are present in these files::
     >>> print(control_file.fdcurves)
     >>> print(reca_file.fdcurves)
 
-    {'FD_5_control_forw': <lumicks.pylake.fdcurve.FDCurve object at 0x0000022C8514E780>}
-    {'FD_5_3_RecA_forw_after_2_quick_manual_FD': <lumicks.pylake.fdcurve.FDCurve object at 0x0000022C8514E860>}
+    {'FD_5_control_forw': <lumicks.pylake.fdcurve.FdCurve object at 0x0000022C8514E780>}
+    {'FD_5_3_RecA_forw_after_2_quick_manual_FD': <lumicks.pylake.fdcurve.FdCurve object at 0x0000022C8514E860>}
 
 Plot the data
 -------------

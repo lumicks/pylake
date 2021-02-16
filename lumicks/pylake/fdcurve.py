@@ -1,3 +1,4 @@
+import deprecated
 import numpy as np
 from copy import copy, deepcopy
 from .channel import Slice, TimeSeries
@@ -7,14 +8,14 @@ from .nb_widgets.range_selector import FdTimeRangeSelectorWidget, FdDistanceRang
 from collections import namedtuple
 
 
-FDSlice = namedtuple("FDSlice", "f d")
+FdSlice = namedtuple("FdSlice", "f d")
 
 
-class FDCurve(DownsampledFD):
+class FdCurve(DownsampledFD):
     """An FD curve exported from Bluelake
 
     By default, the primary force and distance channels are `downsampled_force2`
-    and `distance1`. Alternatives can be selected using `FDCurve.with_channels()`.
+    and `distance1`. Alternatives can be selected using `FdCurve.with_channels()`.
     Note that it does not modify the FD curve in place but returns a copy.
 
     Attributes
@@ -170,7 +171,7 @@ class FDCurve(DownsampledFD):
         """
         f, d = self.f.data, self.d.data
         valid_idx = np.logical_and.reduce((d > 0, d >= distance_min, d < distance_max, f >= force_min, f < force_max))
-        return FDSlice(f[valid_idx], d[valid_idx])
+        return FdSlice(f[valid_idx], d[valid_idx])
 
     def with_channels(self, force, distance):
         """Return a copy of this FD curve with difference primary force and distance channels"""
@@ -199,3 +200,8 @@ class FDCurve(DownsampledFD):
 
     def distance_range_selector(self, show=True, max_gap=0):
         return FdDistanceRangeSelectorWidget(self, show=show, max_gap=max_gap)
+
+
+@deprecated.deprecated(version='0.8.0', reason="The class FDCurve was renamed to FdCurve.")
+class FDCurve(FdCurve):
+    pass
