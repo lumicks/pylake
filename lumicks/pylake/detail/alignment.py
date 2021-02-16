@@ -54,7 +54,7 @@ def align_fd_simple(fd_curves, distance_range_low, distance_range_high):
 
     Parameters
     ----------
-    fd_curves : Dict[lumicks.pylake.FDCurve]
+    fd_curves : Dict[lumicks.pylake.FdCurve]
         List of F,d curves to apply the method to.
     distance_range_low : float
         Range of distances to use for the force alignment. Distances in the range [smallest_distance,

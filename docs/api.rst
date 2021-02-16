@@ -11,7 +11,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
 
     File
     channel.Slice
-    fdcurve.FDCurve
+    fdcurve.FdCurve
     kymo.Kymo
     scan.Scan
     point_scan.PointScan

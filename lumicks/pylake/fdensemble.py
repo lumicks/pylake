@@ -9,9 +9,9 @@ class FdEnsemble:
 
     Attributes
     ----------
-    fd_curves : Dict[lumicks.pylake.FDCurve]
+    fd_curves : Dict[lumicks.pylake.FdCurve]
         Dictionary of unprocessed FD curves.
-    fd_curves_processed : Dict[lumicks.pylake.FDCurve]
+    fd_curves_processed : Dict[lumicks.pylake.FdCurve]
         Dictionary of FD curves that were processed by the ensemble.
 
     Methods

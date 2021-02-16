@@ -8,7 +8,7 @@ from .calibration import ForceCalibration
 from .channel import Slice, Continuous, TimeSeries, TimeTags
 from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
 from .detail.h5_helper import write_h5
-from .fdcurve import FDCurve
+from .fdcurve import FdCurve
 from .group import Group
 from .kymo import Kymo
 from .point_scan import PointScan
@@ -219,8 +219,8 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         return self._get_object_dictionary("Scan", Scan)
 
     @property
-    def fdcurves(self) -> Dict[str, FDCurve]:
-        return self._get_object_dictionary("FD Curve", FDCurve)
+    def fdcurves(self) -> Dict[str, FdCurve]:
+        return self._get_object_dictionary("FD Curve", FdCurve)
 
     @property
     def markers(self) -> Dict[str, Marker]:

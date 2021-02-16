@@ -2,7 +2,7 @@ from lumicks.pylake import FdRangeSelector
 from lumicks.pylake.nb_widgets.range_selector import (FdTimeRangeSelectorWidget, 
                                                       FdDistanceRangeSelectorWidget, 
                                                       BaseRangeSelectorWidget)
-from lumicks.pylake.fdcurve import FDCurve
+from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import TimeSeries, Slice
 from matplotlib.testing.decorators import cleanup
 import pytest
@@ -12,7 +12,7 @@ import numpy as np
 def make_mock_fd(force, distance, start=0, dt=600e9):
     """Mock FD curve which is not attached to an actual file, timestamps start at `start`"""
     assert len(force) == len(distance)
-    fd = FDCurve(file=None, start=None, stop=None, name="")
+    fd = FdCurve(file=None, start=None, stop=None, name="")
     timestamps = int(dt) * np.arange(len(force)) + start
     fd._force_cache = Slice(TimeSeries(force, timestamps))
     fd._distance_cache = Slice(TimeSeries(distance, timestamps))
