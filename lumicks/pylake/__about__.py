@@ -1,5 +1,5 @@
 __title__ = "lumicks.pylake"
-__version__ = "0.7.2"
+__version__ = "0.8.0"
 __summary__ = "Bluelake data analysis tools"
 __url__ = "https://github.com/lumicks/pylake"
 

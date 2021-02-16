@@ -1,30 +1,34 @@
 # Changelog
 
-## v0.8.0 | t.b.d.
+## v0.8.0 | 2021-02-17
 
 #### New features
+
 * Added widget to graphically slice `FdCurve` by distance in Jupyter Notebooks. It can be opened by calling `pylake.FdDistanceRangeSelector(fdcurves)`. For more information, see the tutorials section on [notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html).
-* Added `FdCurve.range_selector()` and `FdCurve.distance_range_selector()`
-* Added `center_point_um` property to `PointScan`, `Kymo` and `Scan` classes.
-* Added `scan_width_um` property to `Kymo` and `Scan` classes.
+* Added `FdCurve.range_selector()` and `FdCurve.distance_range_selector()`. See [Notebook widgets](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html#range-selection-by-distance) for more information.
+* Added `center_point_um` property to `PointScan`, `Kymo` and `Scan` classes. Use these properties to access the metadata for [scans](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) and [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) instead of the deprecated `json` field.
+* Added `scan_width_um` property to `Kymo` and `Scan` classes. Use these properties to access the metadata for [scans](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) and [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html). instead of the deprecated `json` field.
 * Added `FdCurve.with_offset()` to `FdCurve` to add offsets to force and distance.
-* Added `FdEnsemble` to be able to process multiple `FdCurve` instances simultaneously.
-* Added `FdEnsemble.align_linear()` to align F,d curves in an ensemble by correcting for a constant offset in force and distance using two linear regressions. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html) for more information.
-* Added `CorrelatedStack.export_tiff()` for exporting aligned image stacks.
+* Added `FdEnsemble` to be able to process multiple `FdCurve` instances simultaneously. See [FD Curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html#fd-ensembles) for more information.
+* Added `FdEnsemble.align_linear()` to align F,d curves in an ensemble by correcting for a constant offset in force and distance using two linear regressions. See [FD curves](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html#fd-ensembles) for more information.
+* Added `CorrelatedStack.export_tiff()` for exporting aligned image stacks. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 
 #### Bug fixes
-* Fixed `downsampled_over` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `downsampled_over` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
-* Fixed bug in `Continuous` which lead to excessive memory usage and degraded performance.
+
+* Fixed bug when using continuous channels which lead to excessive memory usage and degraded performance.
+* Fixed `Slice.downsampled_over()` to ignore gaps rather than result in an unhandled exception. Previously when you downsampled a `TimeSeries` channel which had a gap in its data, `Slice.downsampled_over()` would try to compute the mean of an empty subsection, which raises an exception. Now this case is gracefully handled.
 
 #### Breaking changes
-* `FdRangeSelectorWidget` is no longer public.
-* Renamed `fd_selector.py` to `range_selector.py`
-* `Slice.range_selector()` is now a method instead of a property
+
 * Deprecated `json` attribute in confocal classes `PointScan`, `Scan`, and `Kymo`. **Note: The format of the raw metadata exported from Bluelake is likely to change in future releases and therefore should not be accessed directly. Instead, use the accessor properties, as documented for [scans](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) and [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html).**
+* `Slice.range_selector()` is now a method instead of a property.
 * Deprecated `has_force` and `has_fluorescence` properties in confocal classes `PointScan`, `Scan`, and `Kymo`.
+* Renamed `fd_selector.py` to `range_selector.py`.
+* `FdRangeSelectorWidget` is no longer public.
 * Renamed `FDCurve` and `FDSlice` to `FdCurve` and `FdSlice`.
 
 #### Other
+
 * Added documentation for the Kymotracker widget. See the [Cas9 kymotracking example](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) or the [kymotracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 ## v0.7.2 | 2020-01-14
