@@ -50,6 +50,7 @@ setup(
     ],
 
     packages=PEP420PackageFinder.find(include=["lumicks.*"]),
+    include_package_data=True,
     python_requires='>=3.6',
     install_requires=[
         "pytest>=3.5",
