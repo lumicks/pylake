@@ -16,7 +16,7 @@ If you're already familiar with Python and have the above prerequisites, install
 
     pip install lumicks.pylake
 
-Alternatively, if you're using Anaconda, please see the more detailed instructions below.
+Alternatively, if you are using Anaconda, please see the more detailed instructions below.
 
 
 Anaconda
@@ -43,13 +43,13 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
     conda activate pylake
 
-#. The line where you enter your next command should now start with the text `(pylake)` instead of `(base)`, to indicate you're in the pylake environment you just created.
+#. The line where you enter your next command should now start with the text `(pylake)` instead of `(base)`, to indicate you are in the pylake environment you just created.
 
 #. Pylake can be found on `conda-forge`_. Add `conda-forge`_ to the list of sources as follows::
 
     conda config --add channels conda-forge
 
-#. We can install Pylake in this environment by invoking the following commands::
+#. We can install Pylake in this environment by invoking the following command::
 
     conda install lumicks.pylake
 
@@ -70,7 +70,7 @@ You can activate this environment by calling::
 
     conda activate pylake
 
-That's it, all done. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
 
 .. rubric:: Linux
@@ -100,19 +100,19 @@ That's it, all done. Check out the :doc:`Tutorial </tutorial/index>` for some ex
 
     conda config --add channels conda-forge
 
-#. We can install Pylake in this environment by invoking the following commands::
+#. We can install Pylake in this environment by invoking the following command::
 
     conda install lumicks.pylake
 
-#. It should be possible to open a Jupyter notebook in this environment by calling `jupyter notebook` from the terminal.
+#. You can open a Jupyter notebook in this environment by calling `jupyter notebook` from the terminal.
 
-#. It should also be possible to now start the Anaconda Navigator by calling `anaconda-navigator` from the terminal.
+#. You can also now start the Anaconda Navigator by calling `anaconda-navigator` from the terminal.
 
 Note that if you are used to starting Jupyter notebook from the Anaconda Navigator, you will have to set the environment to `pylake` for it to have access to the environment where you just installed Pylake.
 You can do this in the drop down menu that normally defaults to the environment `base`.
 If you are used to starting Jupyter notebook from the terminal, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
-That's it, all done. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
 
 .. rubric:: macOS
@@ -133,11 +133,11 @@ That's it, all done. Check out the :doc:`Tutorial </tutorial/index>` for some ex
 
     conda config --add channels conda-forge
 
-#. Install Pylake in this environment by invoking the following commands::
+#. Install Pylake in this environment by invoking the following command::
 
     conda install lumicks.pylake
 
-#. It should be possible to open a jupyter notebook in this environment by calling::
+#. You can open a jupyter notebook in this environment by calling::
 
     jupyter notebook
 
@@ -145,7 +145,7 @@ Note that if you are used to starting Jupyter notebook from the Anaconda Navigat
 You can do this in the drop down menu that normally defaults to the environment `base`.
 If you are used to starting Jupyter from `Terminal`, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
-That's it, all done. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
 
 Updating
@@ -203,13 +203,13 @@ This means that not all of them will be completely backwards compatible.
 Therefore, it can be challenging to find a set of packages and package versions that all work together.
 
 One pragmatic solution to this is to maintain separate Python environments for different projects.
-This means that you create independent "copies" of Python and its installed packages, so that the different projects you're working on don't interfere with each other.
+This means that you create independent "copies" of Python and its installed packages, so that the different projects you are working on do not interfere with each other.
 Anaconda is one solution to this problem. With Anaconda, you can have multiple installations of Python (with all their installed modules) installed on your computer.
 These installations are referred to as environments.
 
 **Why do we install Pylake in a separate environment by default?**
 
-Conda sources the packages it uses from a channel, these are locations where conda and the Anaconda Navigator search for packages.
+Conda fetches the packages it uses from a channel, these are locations where conda and the Anaconda Navigator search for packages.
 The default one is called Anaconda, but Pylake is available on a channel named `conda-forge`_.
 Conda forge and Anaconda both have different versions of different packages.
 Some of these are not compatible with each other.
@@ -269,15 +269,15 @@ It is therefore wise to choose one package manager as your go-to package manager
 
 While using `pip` within conda is perfectly possible, note that if you do decide to go down this route, you should install all packages in that environment via `pip` and none via `conda`.
 If you decide to use this configuration then you have to make sure that you install it using the version of `pip` inside your conda environment.
-You can get problematic incompatibilities if you use a system-wide install of `pip` in conjunction with an active `conda` environment.
+You may experience incompatibility issues if you use a system-wide install of `pip` in conjunction with an active `conda` environment.
 
 On Windows, the easiest way to find out which `pip` you are using is to invoke `where pip` on the anaconda prompt that you are using.
 The `pip` executable that will be called when you invoke it from the command prompt will be at the top and should be located in your conda environment.
 You can verify this by checking whether the path contains your currently active environment in it.
 
-If you see that `pip` is either not on your path or it is being sourced from a different location, double check whether you have activated the correct conda environment.
+If you see that `pip` is either not on your path or it is being fetched from a different location, verify whether you have activated the correct conda environment.
 You can activate an environment by invoking `conda activate <environment name>`, where `<environment name>` should be replaced with the environment you want to activate.
-If you have already activated the correct environment, but you still don't see `pip` being sourced from there then you can install it into this environment by invoking `conda install pip`.
+If you have already activated the correct environment, but you still do not see `pip` being fetched from it then you can install it into this environment by invoking `conda install pip`.
 
 
 Frequently asked questions
@@ -336,7 +336,41 @@ If all tests pass (except for the slow ones which are skipped) then your install
 
 **I tried the installation instructions but conda still won't install pylake**
 
-If creating a new environment doesn't work then it may be time to uninstall and reinstall conda.
-Note that this means you will lose all the environments you have created.
+If creating a new environment does not work then it may be best to uninstall and reinstall conda.
+*Note that this means you will lose all the environments you have created!*
 Please follow these `uninstall instructions`_ to uninstall conda.
 After uninstalling, you should be able to reinstall using the regular installation instructions.
+
+
+**Conda-forge is very slow in China, what can I do?**
+
+Conda-forge can be slow when accessed from China.
+This can be resolved by using a Chinese mirror to install Pylake.
+Since there is no mirror for `conda-forge`, Pylake then has to be installed using pip, as outlined below.
+
+If you normally manage your environments with `pip`, you can just invoke::
+
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
+
+If you use Anaconda, then it is best to create a new environment for this installation. You can do this as follows::
+
+    conda create -n pylake_pip
+
+Activate the environment as follows::
+
+    conda activate pylake_pip
+
+Install pip in the activated environment by invoking::
+
+    conda install pip
+
+Then install Pylake as follows::
+
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
+
+On Windows, you should also make sure that Jupyter notebook can connect to the ipython kernel by invoking::
+
+    conda install pywin32
+    python -m ipykernel install --user
+
+Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip, and do not install additional dependencies via `conda install`, since this can break your environment.
