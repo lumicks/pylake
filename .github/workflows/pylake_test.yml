@@ -24,6 +24,8 @@ jobs:
         pip install .
         pip install black==20.8b1
     - name: Pytest
-      run: pytest lumicks/pylake --color=yes --runslow
+      run: |
+        cd .github/workflows
+        python pylake_test.py
     - name: Black
       run: black --check --diff --color .
