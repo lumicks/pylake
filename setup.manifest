@@ -1,1 +1,2 @@
 include license.md readme.md
+global-include *.npz
