@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 import pytest
 import json
+import warnings
 import matplotlib.pyplot as plt
 
 
@@ -405,3 +406,30 @@ def report_line():
         atexit.register(report)
 
     return reporter
+
+
+@pytest.fixture(autouse=True)
+def configure_warnings():
+    # make warnings into errors but ignore certain third-party extension issues
+    warnings.filterwarnings("error")
+
+    # importing scipy submodules on some version of Python
+    warnings.filterwarnings("ignore", category=ImportWarning)
+
+    # bogus numpy ABI warning (see numpy/#432)
+    warnings.filterwarnings(
+        "ignore", category=ImportWarning, message=".*numpy.dtype size changed.*"
+    )
+    warnings.filterwarnings(
+        "ignore", category=ImportWarning, message=".*numpy.ufunc size changed.*"
+    )
+
+    # h5py triggers a numpy DeprecationWarning when accessing empty datasets (such as our json
+    # fields). Here they pass a None shape argument where () is expected by numpy. This will likely
+    # be fixed in next h5py release, see the following PR on h5py:
+    #   https://github.com/h5py/h5py/pull/1780/files
+    warnings.filterwarnings(
+        "ignore",
+        category=DeprecationWarning,
+        message=".*None into shape arguments as an alias for \\(\\) is.*",
+    )
