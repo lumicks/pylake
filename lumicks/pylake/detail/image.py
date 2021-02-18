@@ -16,7 +16,7 @@ class ImageMetadata:
         When omitted, assumed to be identical to pixel_size_x
     pixel_time : float
         How long does pixel acquisition take [ms]
-    """ ""
+    """
 
     def __init__(self, pixel_size_x=1.0, pixel_size_y=None, pixel_time=1.0):
         self._pixel_time = pixel_time
