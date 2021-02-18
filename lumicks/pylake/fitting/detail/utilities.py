@@ -19,31 +19,33 @@ def parse_transformation(params, param_transform={}):
         if key in transformed:
             transformed[key] = value
         else:
-            raise KeyError(f"Parameter {key} to be substituted not found in model. Valid keys for this model are: "
-                           f"{[x for x in transformed.keys()]}.")
+            raise KeyError(
+                f"Parameter {key} to be substituted not found in model. Valid keys for this model are: "
+                f"{[x for x in transformed.keys()]}."
+            )
 
     return transformed
 
 
 def optimal_plot_layout(n_plots):
     n_x = int(np.ceil(np.sqrt(n_plots)))
-    n_y = int(np.ceil(n_plots/n_x))
+    n_y = int(np.ceil(n_plots / n_x))
 
     return n_x, n_y
 
 
 def print_styled(style, print_string, **kwargs):
     print_dict = {
-        'header': '\033[95m',
-        'ok_blue': '\033[94m',
-        'ok_green': '\033[92m',
-        'warning': '\033[93m',
-        'fail': '\033[91m',
-        'bold': '\033[1m',
-        'underline': '\033[4m'
+        "header": "\033[95m",
+        "ok_blue": "\033[94m",
+        "ok_green": "\033[92m",
+        "warning": "\033[93m",
+        "fail": "\033[91m",
+        "bold": "\033[1m",
+        "underline": "\033[4m",
     }
     if style in print_dict:
-        print(print_dict[style] + print_string + '\033[0m')
+        print(print_dict[style] + print_string + "\033[0m")
 
 
 def latex_sqrt(arg):
@@ -65,10 +67,10 @@ def solve_formatter_tex(a, solved_for, rhs):
 
 def escape_tex(name):
     def escape_underscores(txt):
-        return '\\_'.join(txt.split('_'))
+        return "\\_".join(txt.split("_"))
 
-    splits = name.split('/')
+    splits = name.split("/")
     if len(splits) > 1:
-        return escape_underscores(splits[1]) + '_{' + escape_underscores(splits[0]) + "}"
+        return escape_underscores(splits[1]) + "_{" + escape_underscores(splits[0]) + "}"
     else:
         return escape_underscores(name)

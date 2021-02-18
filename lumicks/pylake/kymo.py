@@ -3,7 +3,13 @@ import numpy as np
 import warnings
 
 from .detail.confocal import ConfocalImage
-from .detail.image import reconstruct_image_sum, reconstruct_image, line_timestamps_image, seek_timestamp_next_line, histogram_rows
+from .detail.image import (
+    reconstruct_image_sum,
+    reconstruct_image,
+    line_timestamps_image,
+    seek_timestamp_next_line,
+    histogram_rows,
+)
 from .detail.timeindex import to_timestamp
 
 
@@ -40,17 +46,23 @@ class Kymo(ConfocalImage):
         start, stop = (to_timestamp(v, self.start, self.stop) for v in (start, stop))
 
         timestamps = self.infowave.timestamps
-        line_timestamps = line_timestamps_image(timestamps, self.infowave.data, self.pixels_per_line)
+        line_timestamps = line_timestamps_image(
+            timestamps, self.infowave.data, self.pixels_per_line
+        )
         line_timestamps = np.append(line_timestamps, timestamps[-1])
 
-        i_min = np.searchsorted(line_timestamps, start, side='left')
-        i_max = np.searchsorted(line_timestamps, stop, side='left')
+        i_min = np.searchsorted(line_timestamps, start, side="left")
+        i_max = np.searchsorted(line_timestamps, stop, side="left")
 
         if i_min >= len(line_timestamps):
-            return EmptyKymo(self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._json)
+            return EmptyKymo(
+                self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._json
+            )
 
         if i_min >= i_max:
-            return EmptyKymo(self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._json)
+            return EmptyKymo(
+                self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._json
+            )
 
         if i_max < len(line_timestamps):
             stop = line_timestamps[i_max]
@@ -59,13 +71,15 @@ class Kymo(ConfocalImage):
 
         return Kymo(self.name, self.file, start, stop, self._json)
 
-    def _fix_incorrect_start(self):#, timeline_start, timeline_dt):
-        """ Resolve error when confocal scan starts before the timeline information.
-            For kymographs this is recoverable by omitting the first line. """
-        self.start = seek_timestamp_next_line(self.infowave[self.start:])
+    def _fix_incorrect_start(self):  # , timeline_start, timeline_dt):
+        """Resolve error when confocal scan starts before the timeline information.
+        For kymographs this is recoverable by omitting the first line."""
+        self.start = seek_timestamp_next_line(self.infowave[self.start :])
         self._cache = {}
-        warnings.warn("Start of the kymograph was truncated. Omitting the truncated first line.",
-                        RuntimeWarning)
+        warnings.warn(
+            "Start of the kymograph was truncated. Omitting the truncated first line.",
+            RuntimeWarning,
+        )
 
     def _to_spatial(self, data):
         """Spatial data as rows, time as columns"""
@@ -73,7 +87,7 @@ class Kymo(ConfocalImage):
 
     @property
     def _shape(self):
-        return (self.pixels_per_line, )
+        return (self.pixels_per_line,)
 
     @property
     def line_time_seconds(self):
@@ -95,7 +109,7 @@ class Kymo(ConfocalImage):
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             # pixel center aligned with mean time per line
             extent=[-0.5 * linetime, duration + 0.5 * linetime, width_um, 0],
-            aspect=(image.shape[0] / image.shape[1]) * (duration / width_um)
+            aspect=(image.shape[0] / image.shape[1]) * (duration / width_um),
         )
 
         plt.imshow(image, **{**default_kwargs, **kwargs})
@@ -111,8 +125,9 @@ class Kymo(ConfocalImage):
         time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]
         return force.downsampled_over(time_ranges, reduce=reduce, where="center")
 
-    def plot_with_force(self, force_channel, color_channel, aspect_ratio=0.25,
-                        reduce=np.mean, **kwargs):
+    def plot_with_force(
+        self, force_channel, color_channel, aspect_ratio=0.25, reduce=np.mean, **kwargs
+    ):
         """Plot kymo with force channel downsampled over scan lines
 
         Parameters
@@ -129,11 +144,13 @@ class Kymo(ConfocalImage):
         **kwargs
             Forwarded to :func:`Slice.plot`.
         """
+
         def set_aspect_ratio(axis, ar):
             """This function forces a specific aspect ratio, can be useful when aligning figures"""
             axis.set_aspect(ar * np.abs(np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim()))[0])
 
         import matplotlib.pyplot as plt
+
         _, (ax1, ax2) = plt.subplots(2, 1)
 
         # plot kymo
@@ -150,7 +167,9 @@ class Kymo(ConfocalImage):
         set_aspect_ratio(ax1, aspect_ratio)
         set_aspect_ratio(ax2, aspect_ratio)
 
-    def plot_with_position_histogram(self, color_channel, pixels_per_bin=1, hist_ratio=0.25, **kwargs):
+    def plot_with_position_histogram(
+        self, color_channel, pixels_per_bin=1, hist_ratio=0.25, **kwargs
+    ):
         """Plot kymo with histogram along position axis
 
         Parameters

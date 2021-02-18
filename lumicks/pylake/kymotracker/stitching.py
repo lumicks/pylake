@@ -30,8 +30,12 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
     """
     stitched_lines = deepcopy(lines)
 
-    forward_extrapolants = [(line[-1], line.extrapolate(True, n_points, max_extension)) for line in stitched_lines]
-    backward_extrapolants = [(line[0], line.extrapolate(False, n_points, max_extension)) for line in stitched_lines]
+    forward_extrapolants = [
+        (line[-1], line.extrapolate(True, n_points, max_extension)) for line in stitched_lines
+    ]
+    backward_extrapolants = [
+        (line[0], line.extrapolate(False, n_points, max_extension)) for line in stitched_lines
+    ]
 
     origin_idx = 0
     while origin_idx < len(stitched_lines):
@@ -39,11 +43,17 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
         origin_line = stitched_lines[origin_idx]
 
         # Compute distance to all other lines
-        distances = np.array([np.linalg.norm(origin_line[-1] - target_line[0], 2) for target_line in stitched_lines])
+        distances = np.array(
+            [np.linalg.norm(origin_line[-1] - target_line[0], 2) for target_line in stitched_lines]
+        )
 
         forward_extrapolant = forward_extrapolants[origin_idx]
-        perpendicular_distance = np.array([minimum_distance_extrapolants(forward_extrapolant, backward_extrapolant) for
-                                           backward_extrapolant in backward_extrapolants])
+        perpendicular_distance = np.array(
+            [
+                minimum_distance_extrapolants(forward_extrapolant, backward_extrapolant)
+                for backward_extrapolant in backward_extrapolants
+            ]
+        )
 
         # Make sure our origin line isn't a candidate
         distances[origin_idx] = np.inf
@@ -59,8 +69,14 @@ def stitch_kymo_lines(lines, radius, max_extension, n_points):
         if distances[min_dist_idx] < np.inf:
             merged_line = stitched_lines[origin_idx] + stitched_lines[min_dist_idx]
             stitched_lines[origin_idx] = merged_line
-            forward_extrapolants[origin_idx] = (merged_line[-1], merged_line.extrapolate(True, n_points, max_extension))
-            backward_extrapolants[origin_idx] = (merged_line[0], merged_line.extrapolate(False, n_points, max_extension))
+            forward_extrapolants[origin_idx] = (
+                merged_line[-1],
+                merged_line.extrapolate(True, n_points, max_extension),
+            )
+            backward_extrapolants[origin_idx] = (
+                merged_line[0],
+                merged_line.extrapolate(False, n_points, max_extension),
+            )
 
             del stitched_lines[min_dist_idx]
             del forward_extrapolants[min_dist_idx]

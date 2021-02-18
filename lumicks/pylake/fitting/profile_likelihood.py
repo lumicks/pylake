@@ -8,7 +8,9 @@ import enum
 
 def clamp_step(x_origin, x_step, lb, ub):
     """Shortens a step to stay within some box constraints."""
-    assert np.all(np.logical_and(x_origin >= lb, x_origin <= ub)), "Initial position was not in box constraints."
+    assert np.all(
+        np.logical_and(x_origin >= lb, x_origin <= ub)
+    ), "Initial position was not in box constraints."
 
     alpha_ub = np.inf * np.ones(x_step.shape)
     alpha_lb = np.inf * np.ones(x_step.shape)
@@ -45,6 +47,7 @@ class StepConfig(NamedTuple):
     upper_bound: array_like
         maximal value the parameters can take
     """
+
     min_abs_step: float
     max_abs_step: float
     step_factor: float
@@ -67,6 +70,7 @@ class ScanConfig(NamedTuple):
     termination_level: float
         chi squared value at which the optimization terminates
     """
+
     lower_bounds: np.array
     upper_bounds: np.array
     fitted: np.array
@@ -97,8 +101,15 @@ class StepCode(enum.IntEnum):
             return StepCode.nochange
 
 
-def do_step(chi2_function, step_direction_function, chi2_last, parameter_vector, current_step_size, step_sign,
-            step_config):
+def do_step(
+    chi2_function,
+    step_direction_function,
+    chi2_last,
+    parameter_vector,
+    current_step_size,
+    step_sign,
+    step_config,
+):
     """
     Parameters
     ----------
@@ -125,8 +136,12 @@ def do_step(chi2_function, step_direction_function, chi2_last, parameter_vector,
     while last_step != StepCode.nochange:
         # Make sure the parameter step doesn't exceed the bounds. If it goes over the edge, scale it back.
         current_step_size = new_step_size
-        p_trial, clamped = clamp_step(parameter_vector, step_sign * current_step_size * step_direction,
-                                      step_config.lower_bounds, step_config.upper_bounds)
+        p_trial, clamped = clamp_step(
+            parameter_vector,
+            step_sign * current_step_size * step_direction,
+            step_config.lower_bounds,
+            step_config.upper_bounds,
+        )
 
         if clamped:
             last_step = StepCode.shrink
@@ -151,8 +166,16 @@ def do_step(chi2_function, step_direction_function, chi2_last, parameter_vector,
     return current_step_size, p_trial
 
 
-def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vector, num_steps, step_sign, scan_config,
-                          verbose):
+def scan_dir_optimisation(
+    chi2_function,
+    fit_function,
+    chi2_last,
+    parameter_vector,
+    num_steps,
+    step_sign,
+    scan_config,
+    verbose,
+):
     """Makes a 1D scan, optimizing parameters at every level.
 
     Parameters
@@ -181,8 +204,12 @@ def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vect
     parameter_vectors = []
 
     for step in range(num_steps):
-        current_step_size, p_next = scan_config.step_function(chi2_last, p_next, current_step_size, step_sign)
-        p_next = fit_function(p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted)
+        current_step_size, p_next = scan_config.step_function(
+            chi2_last, p_next, current_step_size, step_sign
+        )
+        p_next = fit_function(
+            p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted
+        )
         chi2_last = chi2_function(p_next)
         chi2_list.append(chi2_last)
         parameter_vectors.append(p_next)
@@ -198,7 +225,7 @@ def scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vect
 
 
 def find_crossing(x, y, crossing):
-    indices, = np.where(y >= crossing)
+    (indices,) = np.where(y >= crossing)
 
     if np.any(indices):
         index = indices[0]
@@ -210,16 +237,32 @@ def find_crossing(x, y, crossing):
 
 
 class ProfileLikelihood1D:
-    def __init__(self, parameter_name, min_step=1e-4, max_step=1.0, step_factor=2.0, min_chi2_step=0.05,
-                 max_chi2_step=0.5, termination_significance=.99, confidence_level=.95, num_dof=1):
+    def __init__(
+        self,
+        parameter_name,
+        min_step=1e-4,
+        max_step=1.0,
+        step_factor=2.0,
+        min_chi2_step=0.05,
+        max_chi2_step=0.5,
+        termination_significance=0.99,
+        confidence_level=0.95,
+        num_dof=1,
+    ):
         self.parameter_name = parameter_name
 
         # These are the user exposed options. They can be modified by the user in the struct if desired. THey are parsed
         # into actual algorithm parameters once the algorithm starts.
-        self.options = {"min_step": min_step, "max_step": max_step, "step_factor": step_factor,
-                        "min_chi2_step": min_chi2_step, "max_chi2_step": max_chi2_step,
-                        "termination_significance": termination_significance, "confidence_level": confidence_level,
-                        "num_dof": num_dof}
+        self.options = {
+            "min_step": min_step,
+            "max_step": max_step,
+            "step_factor": step_factor,
+            "min_chi2_step": min_chi2_step,
+            "max_chi2_step": max_chi2_step,
+            "termination_significance": termination_significance,
+            "confidence_level": confidence_level,
+            "num_dof": num_dof,
+        }
 
         self.profile_info = None
         self._chi2 = {}
@@ -229,12 +272,13 @@ class ProfileLikelihood1D:
         def bound_string(value):
             return f"{value:.2f}" if value else "undefined"
 
-        return (f"Profile likelihood for {self.parameter_name} ({len(self.chi2)} points)\n"
-                f"  - chi2\n"
-                f"  - p\n"
-                f"  - lower_bound: {bound_string(self.lower_bound)}\n"
-                f"  - upper_bound: {bound_string(self.upper_bound)}\n"
-                )
+        return (
+            f"Profile likelihood for {self.parameter_name} ({len(self.chi2)} points)\n"
+            f"  - chi2\n"
+            f"  - p\n"
+            f"  - lower_bound: {bound_string(self.lower_bound)}\n"
+            f"  - upper_bound: {bound_string(self.upper_bound)}\n"
+        )
 
     def prepare_profile(self, chi2_function, fit_function, parameters, parameter_name):
         options = self.options
@@ -242,11 +286,13 @@ class ProfileLikelihood1D:
         assert options["max_step"] > options["min_step"]
         assert options["max_chi2_step"] > options["min_chi2_step"]
 
-        self.profile_info = ProfileInfo(minimum_chi2=chi2_function(parameters.values),
-                                        profiled_parameter_index=list(parameters.keys).index(parameter_name),
-                                        delta_chi2=chi2.ppf(options["confidence_level"], options["num_dof"]),
-                                        confidence_level=options["confidence_level"],
-                                        parameter_names=list(parameters.keys))
+        self.profile_info = ProfileInfo(
+            minimum_chi2=chi2_function(parameters.values),
+            profiled_parameter_index=list(parameters.keys).index(parameter_name),
+            delta_chi2=chi2.ppf(options["confidence_level"], options["num_dof"]),
+            confidence_level=options["confidence_level"],
+            parameter_names=list(parameters.keys),
+        )
 
         fitted = parameters.fitted
         fitted[self.profile_info.profiled_parameter_index] = 0
@@ -258,44 +304,69 @@ class ProfileLikelihood1D:
         def step_direction_function():
             return step_direction
 
-        step_config = StepConfig(min_abs_step=options["min_step"] * np.abs(parameters[parameter_name].value),
-                                 max_abs_step=options["max_step"] * np.abs(parameters[parameter_name].value),
-                                 step_factor=options["step_factor"],
-                                 min_chi2_step_size=options["min_chi2_step"] * self.profile_info.delta_chi2,
-                                 max_chi2_step_size=options["max_chi2_step"] * self.profile_info.delta_chi2,
-                                 lower_bounds=parameters.lower_bounds,
-                                 upper_bounds=parameters.upper_bounds)
+        step_config = StepConfig(
+            min_abs_step=options["min_step"] * np.abs(parameters[parameter_name].value),
+            max_abs_step=options["max_step"] * np.abs(parameters[parameter_name].value),
+            step_factor=options["step_factor"],
+            min_chi2_step_size=options["min_chi2_step"] * self.profile_info.delta_chi2,
+            max_chi2_step_size=options["max_chi2_step"] * self.profile_info.delta_chi2,
+            lower_bounds=parameters.lower_bounds,
+            upper_bounds=parameters.upper_bounds,
+        )
 
         def step_function(chi2_last, parameter_vector, current_step_size, step_sign):
-            return do_step(chi2_function, step_direction_function, chi2_last, parameter_vector, current_step_size,
-                           step_sign, step_config)
+            return do_step(
+                chi2_function,
+                step_direction_function,
+                chi2_last,
+                parameter_vector,
+                current_step_size,
+                step_sign,
+                step_config,
+            )
 
-        scan_config = ScanConfig(lower_bounds=parameters.lower_bounds,
-                                 upper_bounds=parameters.upper_bounds,
-                                 fitted=fitted,
-                                 step_function=step_function,
-                                 termination_level=self.profile_info.minimum_chi2 +
-                                                   chi2.ppf(options["termination_significance"], options["num_dof"]))
+        scan_config = ScanConfig(
+            lower_bounds=parameters.lower_bounds,
+            upper_bounds=parameters.upper_bounds,
+            fitted=fitted,
+            step_function=step_function,
+            termination_level=self.profile_info.minimum_chi2
+            + chi2.ppf(options["termination_significance"], options["num_dof"]),
+        )
 
         def scan_direction(chi2_last, parameter_vector, step_sign, num_steps, verbose):
-            return scan_dir_optimisation(chi2_function, fit_function, chi2_last, parameter_vector, num_steps, step_sign,
-                                         scan_config, verbose)
+            return scan_dir_optimisation(
+                chi2_function,
+                fit_function,
+                chi2_last,
+                parameter_vector,
+                num_steps,
+                step_sign,
+                scan_config,
+                verbose,
+            )
 
         return scan_direction
 
     # TODO: Add mechanism which stores a hash coming from the FitObject and validates it against what's already done
     def _extend_profile(self, chi2_function, fit_function, parameters, num_steps, forward, verbose):
-        scan_direction = self.prepare_profile(chi2_function, fit_function, parameters, self.parameter_name)
+        scan_direction = self.prepare_profile(
+            chi2_function, fit_function, parameters, self.parameter_name
+        )
 
         field = "fwd" if forward else "bwd"
-        parameter_vectors = self._parameters[field] if field in self._parameters else np.expand_dims(parameters.values,
-                                                                                                     0)
+        parameter_vectors = (
+            self._parameters[field]
+            if field in self._parameters
+            else np.expand_dims(parameters.values, 0)
+        )
         initial_parameters = parameter_vectors[-1, :]
         chi2_list = self._chi2[field] if field in self._chi2 else [self.profile_info.minimum_chi2]
         chi2_last = chi2_list[-1]
 
-        chi2_new, parameters_new = scan_direction(chi2_last, initial_parameters, 1 if forward else -1, num_steps,
-                                                  verbose)
+        chi2_new, parameters_new = scan_direction(
+            chi2_last, initial_parameters, 1 if forward else -1, num_steps, verbose
+        )
 
         self._parameters[field] = np.vstack((parameter_vectors, parameters_new))
         self._chi2[field] = np.hstack((chi2_list, chi2_new))
@@ -328,19 +399,23 @@ class ProfileLikelihood1D:
         dash_length = 5
         plt.plot(self.p, self.chi2, **kwargs)
         confidence_chi2 = self.profile_info.minimum_chi2 + self.profile_info.delta_chi2
-        plt.axhline(y=confidence_chi2, linewidth=1, color='k', dashes=[dash_length, dash_length])
+        plt.axhline(y=confidence_chi2, linewidth=1, color="k", dashes=[dash_length, dash_length])
 
         ci_min, ci_max = self.lower_bound, self.upper_bound
         if ci_min:
-            plt.axvline(x=ci_min, linewidth=1, color='k', dashes=[dash_length, dash_length])
+            plt.axvline(x=ci_min, linewidth=1, color="k", dashes=[dash_length, dash_length])
         if ci_max:
-            plt.axvline(x=ci_max, linewidth=1, color='k', dashes=[dash_length, dash_length])
+            plt.axvline(x=ci_max, linewidth=1, color="k", dashes=[dash_length, dash_length])
 
         plt.text(min(self.p), confidence_chi2, f"{self.profile_info.confidence_level * 100}%")
-        plt.ylabel('$\\chi^2$')
+        plt.ylabel("$\\chi^2$")
         plt.xlabel(self.parameter_name)
-        plt.ylim([self.profile_info.minimum_chi2 - .1 * self.profile_info.delta_chi2,
-                  self.profile_info.minimum_chi2 + 1.1 * self.profile_info.delta_chi2])
+        plt.ylim(
+            [
+                self.profile_info.minimum_chi2 - 0.1 * self.profile_info.delta_chi2,
+                self.profile_info.minimum_chi2 + 1.1 * self.profile_info.delta_chi2,
+            ]
+        )
 
     def plot_relations(self, params={}, **kwargs):
         """Plot the relations between the different parameters.
@@ -354,14 +429,24 @@ class ProfileLikelihood1D:
         parameters = self.parameters
 
         if len(params) == 0:
-            other = [x for x in range(parameters.shape[1]) if x != self.profile_info.profiled_parameter_index]
+            other = [
+                x
+                for x in range(parameters.shape[1])
+                if x != self.profile_info.profiled_parameter_index
+            ]
         else:
-            other = [x for x in range(parameters.shape[1])
-                     if x != self.profile_info.profiled_parameter_index
-                     and self.profile_info.parameter_names[x] in params]
+            other = [
+                x
+                for x in range(parameters.shape[1])
+                if x != self.profile_info.profiled_parameter_index
+                and self.profile_info.parameter_names[x] in params
+            ]
 
-        line_handles = plt.plot(parameters[:, self.profile_info.profiled_parameter_index], self.parameters[:, other],
-                                **kwargs)
-        plt.ylabel('Other parameter value')
+        line_handles = plt.plot(
+            parameters[:, self.profile_info.profiled_parameter_index],
+            self.parameters[:, other],
+            **kwargs,
+        )
+        plt.ylabel("Other parameter value")
         plt.xlabel(self.parameter_name)
         plt.legend(line_handles, [self.profile_info.parameter_names[idx] for idx in other])

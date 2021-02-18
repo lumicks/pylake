@@ -1,7 +1,19 @@
 from .parameters import Parameter, Params
-from .detail.utilities import optimal_plot_layout, print_styled, solve_formatter_tex, escape_tex, solve_formatter
-from .detail.derivative_manipulation import numerical_jacobian, numerical_diff, invert_function, invert_jacobian, \
-    invert_derivative, invert_function_interpolation
+from .detail.utilities import (
+    optimal_plot_layout,
+    print_styled,
+    solve_formatter_tex,
+    escape_tex,
+    solve_formatter,
+)
+from .detail.derivative_manipulation import (
+    numerical_jacobian,
+    numerical_diff,
+    invert_function,
+    invert_jacobian,
+    invert_derivative,
+    invert_function_interpolation,
+)
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -12,8 +24,18 @@ import matplotlib.pyplot as plt
 
 
 class Model:
-    def __init__(self, name, model_function, dependent=None, independent=None, jacobian=None, derivative=None, eqn=None,
-                 eqn_tex=None, **kwargs):
+    def __init__(
+        self,
+        name,
+        model_function,
+        dependent=None,
+        independent=None,
+        jacobian=None,
+        derivative=None,
+        eqn=None,
+        eqn_tex=None,
+        **kwargs,
+    ):
         """
         Model constructor. A Model must be named, and this name will appear in the model parameters.
 
@@ -84,12 +106,16 @@ class Model:
         self.dependent = dependent
 
         for key in kwargs:
-            assert key in parameter_names, "Attempted to set default for parameter which is not present in model."
+            assert (
+                key in parameter_names
+            ), "Attempted to set default for parameter which is not present in model."
 
         self._params = OrderedDict()
         for key in parameter_names:
             if key in kwargs:
-                assert isinstance(kwargs[key], Parameter), "Passed a non-parameter as model default."
+                assert isinstance(
+                    kwargs[key], Parameter
+                ), "Passed a non-parameter as model default."
                 if kwargs[key].shared:
                     self._params[key] = deepcopy(kwargs[key])
                 else:
@@ -109,8 +135,10 @@ class Model:
         params : ``pylake.fitting.Params``
         """
         independent = np.asarray(independent, dtype=np.float64)
-        return self._raw_call(independent, np.asarray([params[name].value for name in self.parameter_names],
-                                                      dtype=np.float64))
+        return self._raw_call(
+            independent,
+            np.asarray([params[name].value for name in self.parameter_names], dtype=np.float64),
+        )
 
     def _raw_call(self, independent, param_vector):
         return self.model_function(independent, *param_vector)
@@ -136,16 +164,20 @@ class Model:
     def get_formatted_equation_string(self, tex):
         if self.eqn:
             if tex:
-                return (f"${self.dependent}\\left({self.independent}\\right) = "
-                        f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._params.keys()])}$")
+                return (
+                    f"${self.dependent}\\left({self.independent}\\right) = "
+                    f"{self.eqn_tex(self.independent, *[escape_tex(x) for x in self._params.keys()])}$"
+                )
             else:
-                return (f"{self.dependent}({self.independent}) = "
-                        f"{self.eqn(self.independent, *[x.replace('/', '.') for x in self._params.keys()])}")
+                return (
+                    f"{self.dependent}({self.independent}) = "
+                    f"{self.eqn(self.independent, *[x.replace('/', '.') for x in self._params.keys()])}"
+                )
 
     def _repr_html_(self):
-        doc_string = ''
+        doc_string = ""
         try:
-            doc = self.model_function.__doc__.replace('\n', '  <br>\n')
+            doc = self.model_function.__doc__.replace("\n", "  <br>\n")
             doc_string = f"{doc}  <br><br>\n"
         except AttributeError:
             # If it is not a top level model, there will be no docstring. This is fine.
@@ -154,10 +186,12 @@ class Model:
         equation = self.get_formatted_equation_string(tex=True)
         equation = f"<h5>Model equation:</h5>\n{equation}<br><br>\n" if equation else ""
 
-        model_info = (f"<h5>Model: {self.name}</h5>\n"
-                      f"{doc_string}{equation}"
-                      f"<h5>Parameter defaults:</h5>\n"
-                      f"{Params(**self._params)._repr_html_()}\n")
+        model_info = (
+            f"<h5>Model: {self.name}</h5>\n"
+            f"{doc_string}{equation}"
+            f"<h5>Parameter defaults:</h5>\n"
+            f"{Params(**self._params)._repr_html_()}\n"
+        )
 
         return model_info
 
@@ -165,9 +199,11 @@ class Model:
         equation = self.get_formatted_equation_string(tex=False)
         equation = f"Model equation:\n\n{equation}\n\n" if equation else ""
 
-        model_info = (f"Model: {self.name}\n\n"
-                      f"{equation}Parameter defaults:\n\n"
-                      f"{Params(**self._params)._repr_()}\n")
+        model_info = (
+            f"Model: {self.name}\n\n"
+            f"{equation}Parameter defaults:\n\n"
+            f"{Params(**self._params)._repr_()}\n"
+        )
 
         return model_info
 
@@ -181,7 +217,9 @@ class Model:
         """
         Subtract a constant offset from independent variable of this model.
         """
-        param_name = f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
+        param_name = (
+            f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
+        )
         return SubtractIndependentOffset(self, param_name)
 
     @property
@@ -241,8 +279,7 @@ class Model:
             return True
 
     def _calculate_residual(self, data_sets, global_param_values):
-        """Calculate the model residual
-        """
+        """Calculate the model residual"""
         residual_idx = 0
         residual = np.zeros(data_sets.n_residuals)
         for condition, data_list in data_sets.conditions():
@@ -250,7 +287,7 @@ class Model:
             for data in data_list:
                 y_model = self._raw_call(data.x, p_local)
 
-                residual[residual_idx:residual_idx + len(y_model)] = data.y - y_model
+                residual[residual_idx : residual_idx + len(y_model)] = data.y - y_model
                 residual_idx += len(y_model)
 
         return residual
@@ -262,10 +299,12 @@ class Model:
             p_local = condition.get_local_params(global_param_values)
             p_indices = condition.p_indices
             for data in data_list:
-                sensitivities = condition.localize_sensitivities(np.transpose(self.jacobian(data.x, p_local)))
+                sensitivities = condition.localize_sensitivities(
+                    np.transpose(self.jacobian(data.x, p_local))
+                )
                 n_res = sensitivities.shape[0]
 
-                jacobian[residual_idx:residual_idx + n_res, p_indices] -= sensitivities
+                jacobian[residual_idx : residual_idx + n_res, p_indices] -= sensitivities
 
                 residual_idx += n_res
 
@@ -292,23 +331,26 @@ class Model:
             Forwarded to `~matplotlib.pyplot.plot`.
         """
         if len(params) != len(self._params):
-            raise ValueError("Parameter vector has invalid length. "
-                             f"Expected: {len(self._params)}, got: {len(params)}.")
+            raise ValueError(
+                "Parameter vector has invalid length. "
+                f"Expected: {len(self._params)}, got: {len(params)}."
+            )
 
         independent = np.asarray(independent, dtype=np.float64)
         jacobian = self.jacobian(independent, params)
-        jacobian_fd = numerical_jacobian(lambda param_values: self._raw_call(independent, param_values),
-                                         params, dx=dx)
+        jacobian_fd = numerical_jacobian(
+            lambda param_values: self._raw_call(independent, param_values), params, dx=dx
+        )
 
         jacobian = np.asarray(jacobian)
         if plot:
             n_x, n_y = optimal_plot_layout(len(self._params))
             for i_param, param in enumerate(self._params):
-                plt.subplot(n_x, n_y, i_param+1)
+                plt.subplot(n_x, n_y, i_param + 1)
                 l1 = plt.plot(independent, np.transpose(jacobian[i_param, :]))
-                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_param, :]), '--')
+                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_param, :]), "--")
                 plt.title(param)
-                plt.legend({'Analytic', 'FD'})
+                plt.legend({"Analytic", "FD"})
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
         if not is_close:
@@ -318,7 +360,7 @@ class Model:
                     if np.allclose(jacobian[i, :], jacobian_fd[i, :]):
                         print(f"Parameter {self.parameter_names[i]}({i}): {v}")
                     else:
-                        print_styled('warning', f'Parameter {self.parameter_names[i]}({i}): {v}')
+                        print_styled("warning", f"Parameter {self.parameter_names[i]}({i}): {v}")
 
         return is_close
 
@@ -338,15 +380,17 @@ class Model:
         """
 
         if len(params) != len(self._params):
-            raise ValueError("Parameter vector has invalid length. "
-                             f"Expected: {len(self._params)}, got: {len(params)}.")
+            raise ValueError(
+                "Parameter vector has invalid length. "
+                f"Expected: {len(self._params)}, got: {len(params)}."
+            )
 
         derivative = self.derivative(independent, params)
         derivative_fd = numerical_diff(lambda x: self._raw_call(x, params), independent, dx=dx)
 
         return np.allclose(derivative, derivative_fd, **kwargs)
 
-    def plot(self, params, independent, fmt='', **kwargs):
+    def plot(self, params, independent, fmt="", **kwargs):
         """Plot this model for a specific data set.
 
         Parameters
@@ -380,7 +424,7 @@ class Model:
         """
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(params, Params):
-            raise RuntimeError('Did not pass Params')
+            raise RuntimeError("Did not pass Params")
 
         return plt.plot(independent, self(independent, params), fmt, **kwargs)
 
@@ -398,11 +442,13 @@ class CompositeModel(Model):
         self.lhs = lhs
         self.rhs = rhs
 
-        assert self.lhs.independent == self.rhs.independent, \
-            f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
+        assert (
+            self.lhs.independent == self.rhs.independent
+        ), f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
 
-        assert self.lhs.dependent == self.rhs.dependent, \
-            f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+        assert (
+            self.lhs.dependent == self.rhs.dependent
+        ), f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
 
         self.name = self.lhs.name + "_with_" + self.rhs.name
         self._params = OrderedDict()
@@ -427,12 +473,18 @@ class CompositeModel(Model):
         return self.lhs.independent
 
     def eqn(self, independent_name, *parameter_names):
-        return self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_params]) + " + " +\
-            self.rhs.eqn(independent_name, *[parameter_names[x] for x in self.rhs_params])
+        return (
+            self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_params])
+            + " + "
+            + self.rhs.eqn(independent_name, *[parameter_names[x] for x in self.rhs_params])
+        )
 
     def eqn_tex(self, independent, *parameter_names):
-        return self.lhs.eqn_tex(independent, *[parameter_names[x] for x in self.lhs_params]) + \
-               " + " + self.rhs.eqn_tex(independent, *[parameter_names[x] for x in self.rhs_params])
+        return (
+            self.lhs.eqn_tex(independent, *[parameter_names[x] for x in self.lhs_params])
+            + " + "
+            + self.rhs.eqn_tex(independent, *[parameter_names[x] for x in self.rhs_params])
+        )
 
     def _raw_call(self, independent, param_vector):
         lhs_residual = self.lhs._raw_call(independent, [param_vector[x] for x in self.lhs_params])
@@ -451,15 +503,23 @@ class CompositeModel(Model):
     def jacobian(self, independent, param_vector):
         if self.has_jacobian:
             jacobian = np.zeros((len(param_vector), len(independent)))
-            jacobian[self.lhs_params, :] += self.lhs.jacobian(independent, [param_vector[x] for x in self.lhs_params])
-            jacobian[self.rhs_params, :] += self.rhs.jacobian(independent, [param_vector[x] for x in self.rhs_params])
+            jacobian[self.lhs_params, :] += self.lhs.jacobian(
+                independent, [param_vector[x] for x in self.lhs_params]
+            )
+            jacobian[self.rhs_params, :] += self.rhs.jacobian(
+                independent, [param_vector[x] for x in self.rhs_params]
+            )
 
             return jacobian
 
     def derivative(self, independent, param_vector):
         if self.has_derivative:
-            lhs_derivative = self.lhs.derivative(independent, [param_vector[x] for x in self.lhs_params])
-            rhs_derivative = self.rhs.derivative(independent, [param_vector[x] for x in self.rhs_params])
+            lhs_derivative = self.lhs.derivative(
+                independent, [param_vector[x] for x in self.lhs_params]
+            )
+            rhs_derivative = self.rhs.derivative(
+                independent, [param_vector[x] for x in self.rhs_params]
+            )
 
             return lhs_derivative + rhs_derivative
 
@@ -486,8 +546,9 @@ class InverseModel(Model):
         self.independent_min = independent_min
         self.independent_max = independent_max
         if self.interpolate:
-            assert np.isfinite(independent_min) and np.isfinite(independent_max), \
-                "Inversion limits have to be finite when using interpolation method."
+            assert np.isfinite(independent_min) and np.isfinite(
+                independent_max
+            ), "Inversion limits have to be finite when using interpolation method."
 
     @property
     def dependent(self):
@@ -498,21 +559,34 @@ class InverseModel(Model):
         return self.model.dependent
 
     def eqn(self, independent_name, *parameter_names):
-        return solve_formatter(self.model.eqn(independent_name, *parameter_names), self.dependent, self.independent)
+        return solve_formatter(
+            self.model.eqn(independent_name, *parameter_names), self.dependent, self.independent
+        )
 
     def eqn_tex(self, independent_name, *parameter_names):
-        return solve_formatter_tex(self.model.eqn_tex(independent_name, *parameter_names), self.dependent,
-                                   self.independent)
+        return solve_formatter_tex(
+            self.model.eqn_tex(independent_name, *parameter_names), self.dependent, self.independent
+        )
 
     def _raw_call(self, independent, param_vector):
         if self.interpolate:
-            return invert_function_interpolation(independent, 1.0, self.independent_min, self.independent_max,
-                                                 lambda f_trial: self.model._raw_call(f_trial, param_vector),
-                                                 lambda f_trial: self.model.derivative(f_trial, param_vector))
+            return invert_function_interpolation(
+                independent,
+                1.0,
+                self.independent_min,
+                self.independent_max,
+                lambda f_trial: self.model._raw_call(f_trial, param_vector),
+                lambda f_trial: self.model.derivative(f_trial, param_vector),
+            )
         else:
-            return invert_function(independent, 1.0, self.independent_min, self.independent_max,
-                                   lambda f_trial: self.model._raw_call(f_trial, param_vector),  # Forward model
-                                   lambda f_trial: self.model.derivative(f_trial, param_vector))
+            return invert_function(
+                independent,
+                1.0,
+                self.independent_min,
+                self.independent_max,
+                lambda f_trial: self.model._raw_call(f_trial, param_vector),  # Forward model
+                lambda f_trial: self.model.derivative(f_trial, param_vector),
+            )
 
     @property
     def has_jacobian(self):
@@ -526,16 +600,20 @@ class InverseModel(Model):
 
     def jacobian(self, independent, param_vector):
         """Jacobian of the inverted model"""
-        return invert_jacobian(independent,
-                               lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
-                               lambda f_trial: self.model.jacobian(f_trial, param_vector),
-                               lambda f_trial: self.model.derivative(f_trial, param_vector))
+        return invert_jacobian(
+            independent,
+            lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
+            lambda f_trial: self.model.jacobian(f_trial, param_vector),
+            lambda f_trial: self.model.derivative(f_trial, param_vector),
+        )
 
     def derivative(self, independent, param_vector):
         """Derivative of the inverted model"""
-        return invert_derivative(independent,
-                                 lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
-                                 lambda f_trial: self.model.derivative(f_trial, param_vector))
+        return invert_derivative(
+            independent,
+            lambda f_trial: self._raw_call(f_trial, param_vector),  # Inverse model (me)
+            lambda f_trial: self.model.derivative(f_trial, param_vector),
+        )
 
     @property
     def _params(self):
@@ -543,7 +621,7 @@ class InverseModel(Model):
 
 
 class SubtractIndependentOffset(Model):
-    def __init__(self, model, parameter_name='independent_offset'):
+    def __init__(self, model, parameter_name="independent_offset"):
         """
         Combine two model outputs to form a new model (addition).
 
@@ -556,7 +634,9 @@ class SubtractIndependentOffset(Model):
 
         self.name = self.model.name + "(x-d)"
         self._params = OrderedDict()
-        self._params[offset_name] = Parameter(value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au")
+        self._params[offset_name] = Parameter(
+            value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au"
+        )
         for i, v in self.model._params.items():
             self._params[i] = v
 
@@ -567,16 +647,22 @@ class SubtractIndependentOffset(Model):
         self.offset_parameter = params_all.index(offset_name)
 
     def _raw_call(self, independent, param_vector):
-        return self.model._raw_call(independent - param_vector[self.offset_parameter],
-                                    [param_vector[x] for x in self.model_params])
+        return self.model._raw_call(
+            independent - param_vector[self.offset_parameter],
+            [param_vector[x] for x in self.model_params],
+        )
 
     def eqn(self, independent_name, *parameter_names):
-        return self.model.eqn(f"({independent_name} - {parameter_names[self.offset_parameter]})",
-                              *[parameter_names[x] for x in self.model_params])
+        return self.model.eqn(
+            f"({independent_name} - {parameter_names[self.offset_parameter]})",
+            *[parameter_names[x] for x in self.model_params],
+        )
 
     def eqn_tex(self, independent_name, *parameter_names):
-        return self.model.eqn_tex(f"({independent_name} - {parameter_names[self.offset_parameter]})",
-                                  *[parameter_names[x] for x in self.model_params])
+        return self.model.eqn_tex(
+            f"({independent_name} - {parameter_names[self.offset_parameter]})",
+            *[parameter_names[x] for x in self.model_params],
+        )
 
     @property
     def dependent(self):
@@ -598,10 +684,12 @@ class SubtractIndependentOffset(Model):
         if self.has_jacobian:
             with_offset = independent - param_vector[self.offset_parameter]
             jacobian = np.zeros((len(param_vector), len(with_offset)))
-            jacobian[self.model_params, :] += self.model.jacobian(with_offset, [param_vector[x] for x in
-                                                                                self.model_params])
-            jacobian[self.offset_parameter, :] = - self.model.derivative(with_offset, [param_vector[x] for x in
-                                                                                       self.model_params])
+            jacobian[self.model_params, :] += self.model.jacobian(
+                with_offset, [param_vector[x] for x in self.model_params]
+            )
+            jacobian[self.offset_parameter, :] = -self.model.derivative(
+                with_offset, [param_vector[x] for x in self.model_params]
+            )
 
             return jacobian
 

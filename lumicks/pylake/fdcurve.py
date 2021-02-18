@@ -27,6 +27,7 @@ class FdCurve(DownsampledFD):
     name : str
         The name of this FD curve as it appeared in the timeline.
     """
+
     def __init__(self, file, start, stop, name, force="2", distance="1"):
         self.file = file
         self.start = start
@@ -39,9 +40,13 @@ class FdCurve(DownsampledFD):
 
     @classmethod
     def from_dataset(cls, h5py_dset, file, **kwargs):
-        return cls(file=file, start=h5py_dset.attrs["Start time (ns)"],
-                   stop=h5py_dset.attrs["Stop time (ns)"], name=h5py_dset.name.split("/")[-1],
-                   **kwargs)
+        return cls(
+            file=file,
+            start=h5py_dset.attrs["Start time (ns)"],
+            stop=h5py_dset.attrs["Stop time (ns)"],
+            name=h5py_dset.name.split("/")[-1],
+            **kwargs,
+        )
 
     def __copy__(self):
         """Custom implementation of copy because the caches need to be cleared"""
@@ -64,8 +69,9 @@ class FdCurve(DownsampledFD):
         baseline_distance = baseline.d.data
         baseline_force = baseline.f.data
 
-        clipped_idx = np.logical_and(np.min(baseline_distance) <= self.d.data,
-                                     self.d.data <= np.max(baseline_distance))
+        clipped_idx = np.logical_and(
+            np.min(baseline_distance) <= self.d.data, self.d.data <= np.max(baseline_distance)
+        )
         distance = self.d.data[clipped_idx]
         force = self.f.data[clipped_idx]
         timestamps = self.f.timestamps[clipped_idx]
@@ -96,9 +102,9 @@ class FdCurve(DownsampledFD):
         ranges, lengths = find_contiguous(~mask_in_range)
         for rng, ln in zip(ranges, lengths):
             if ln < max_gap:
-                # We want to include short sections of data that fall outside the selected distance range, 
-                # when these excursions are caused by noise. However, we do not want to extend to the 
-                # start or end of the curve, since we cannot know whether we are simply going out of the 
+                # We want to include short sections of data that fall outside the selected distance range,
+                # when these excursions are caused by noise. However, we do not want to extend to the
+                # start or end of the curve, since we cannot know whether we are simply going out of the
                 # range because of noise, or whether we have just actually left the range.
                 if rng[0] == 0 or rng[1] == self.d.data.size:
                     continue
@@ -115,10 +121,10 @@ class FdCurve(DownsampledFD):
             return self[start:stop]
 
     def _get_downsampled_force(self, n, xy):
-        return getattr(self.file, f"downsampled_force{n}{xy}")[self.start:self.stop]
+        return getattr(self.file, f"downsampled_force{n}{xy}")[self.start : self.stop]
 
     def _get_distance(self, n):
-        return getattr(self.file, f"distance{n}")[self.start:self.stop]
+        return getattr(self.file, f"distance{n}")[self.start : self.stop]
 
     def with_offset(self, force_offset=0, distance_offset=0):
         """Add a constant force offset from the force data in this F,d curve. Note that points where the
@@ -131,17 +137,23 @@ class FdCurve(DownsampledFD):
         distance_offset : float
         """
         new_curve = self.__copy__()
-        new_curve._force_cache = Slice(TimeSeries(self.f.data + force_offset, self.f.timestamps), self.f.labels)
+        new_curve._force_cache = Slice(
+            TimeSeries(self.f.data + force_offset, self.f.timestamps), self.f.labels
+        )
 
         if distance_offset:
             successful_tracking = self.d.data > 0
             if -distance_offset >= np.min(self.d.data[successful_tracking]):
-                raise ValueError("Attempted to subtract a distance bigger than the smallest value. This would lead to "
-                                 "negative distances and is not allowed")
+                raise ValueError(
+                    "Attempted to subtract a distance bigger than the smallest value. This would lead to "
+                    "negative distances and is not allowed"
+                )
 
             new_distance = np.copy(self.d.data)
             new_distance[successful_tracking] = new_distance[successful_tracking] + distance_offset
-            new_curve._distance_cache = Slice(TimeSeries(new_distance, self.d.timestamps), self.d.labels)
+            new_curve._distance_cache = Slice(
+                TimeSeries(new_distance, self.d.timestamps), self.d.labels
+            )
         else:
             new_curve._distance_cache = deepcopy(self.d)
 
@@ -170,7 +182,9 @@ class FdCurve(DownsampledFD):
             Force and distance limits.
         """
         f, d = self.f.data, self.d.data
-        valid_idx = np.logical_and.reduce((d > 0, d >= distance_min, d < distance_max, f >= force_min, f < force_max))
+        valid_idx = np.logical_and.reduce(
+            (d > 0, d >= distance_min, d < distance_max, f >= force_min, f < force_max)
+        )
         return FdSlice(f[valid_idx], d[valid_idx])
 
     def with_channels(self, force, distance):
@@ -202,6 +216,6 @@ class FdCurve(DownsampledFD):
         return FdDistanceRangeSelectorWidget(self, show=show, max_gap=max_gap)
 
 
-@deprecated.deprecated(version='0.8.0', reason="The class FDCurve was renamed to FdCurve.")
+@deprecated.deprecated(version="0.8.0", reason="The class FDCurve was renamed to FdCurve.")
 class FDCurve(FdCurve):
     pass

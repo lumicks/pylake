@@ -4,21 +4,22 @@ import time
 
 
 class BaseRangeSelectorWidget:
-    """ Base class for range selection widgets.
-        Takes care of setting up connections and internal event handling.
+    """Base class for range selection widgets.
+    Takes care of setting up connections and internal event handling.
 
-        Parameters
-        __________
-        axes : matplotlib.axes.Axes
-            Axes instance used for plotting
-        show : bool
-            Controls if plot is rendered immediately
-        range_conversion_function : function
-            Function to convert from units of the underlying data to plotting units,
-            for example: timestamps -> seconds in the case of a Slice
-            default simply returns the value unchanged.
+    Parameters
+    __________
+    axes : matplotlib.axes.Axes
+        Axes instance used for plotting
+    show : bool
+        Controls if plot is rendered immediately
+    range_conversion_function : function
+        Function to convert from units of the underlying data to plotting units,
+        for example: timestamps -> seconds in the case of a Slice
+        default simply returns the value unchanged.
     """
-    def __init__(self, axes=None, show=True, range_conversion_fcn=lambda point:point):
+
+    def __init__(self, axes=None, show=True, range_conversion_fcn=lambda point: point):
         self._axes = axes if axes else plt.axes(label=f"lk_slice_widget_{time.time()}")
         self.connection_id = None
         self.current_range = []
@@ -27,7 +28,7 @@ class BaseRangeSelectorWidget:
         self.open = show
 
         if show:
-            self._axes.get_figure().canvas.mpl_connect('close_event', self.close)
+            self._axes.get_figure().canvas.mpl_connect("close_event", self.close)
             self.update_plot()
 
     @property
@@ -90,7 +91,9 @@ class BaseRangeSelectorWidget:
 
     def connect_click_callback(self):
         """Connects a callback for clicking the axes"""
-        self.connection_id = self._axes.get_figure().canvas.mpl_connect('button_press_event', self.handle_button_event)
+        self.connection_id = self._axes.get_figure().canvas.mpl_connect(
+            "button_press_event", self.handle_button_event
+        )
 
     def disconnect_click_callback(self):
         """Disconnects the clicking callback if it exists"""
@@ -104,7 +107,7 @@ class BaseRangeSelectorWidget:
             t_start, t_end = self.range_conversion_fcn(t_start), self.range_conversion_fcn(t_end)
             self._axes.axvline(t_start)
             self._axes.axvline(t_end)
-            self._axes.axvspan(t_start, t_end, alpha=0.15, color='blue')
+            self._axes.axvspan(t_start, t_end, alpha=0.15, color="blue")
             self._axes.text((t_start + t_end) / 2, 0, i)
 
         old_axis = plt.gca()
@@ -131,11 +134,11 @@ class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
         return (timestamp - self.time[0]) / 1e9
 
     def handle_button_event(self, event):
-        event.xdata = event.xdata * 1e9 + self.time[0] # convert seconds to timestamp
+        event.xdata = event.xdata * 1e9 + self.time[0]  # convert seconds to timestamp
         super().handle_button_event(event)
 
     def _plot_data(self):
-        self.slice.plot(linestyle='', marker='.', markersize=1)
+        self.slice.plot(linestyle="", marker=".", markersize=1)
 
     @property
     def slices(self):
@@ -156,7 +159,7 @@ class FdTimeRangeSelectorWidget(SliceRangeSelectorWidget):
 
 class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
     def __init__(self, fd_curve, axes=None, show=True, max_gap=0):
-        self.fd_curve = fd_curve        
+        self.fd_curve = fd_curve
         self._max_gap = max_gap
         super().__init__(axes, show)
 
@@ -170,7 +173,10 @@ class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
     @property
     def fdcurves(self):
         """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
-        return [self.fd_curve._sliced_by_distance(min_dist, max_dist, self._max_gap) for min_dist, max_dist in self._ranges]
+        return [
+            self.fd_curve._sliced_by_distance(min_dist, max_dist, self._max_gap)
+            for min_dist, max_dist in self._ranges
+        ]
 
 
 class BaseRangeSelector:
@@ -185,14 +191,20 @@ class BaseRangeSelector:
         import ipywidgets
 
         if len(fd_curves) == 0:
-            raise ValueError("F,d selector widget cannot open without a non-empty dictionary containing F,d curves.")
+            raise ValueError(
+                "F,d selector widget cannot open without a non-empty dictionary containing F,d curves."
+            )
 
         if not any(backend in plt.get_backend() for backend in ("nbAgg", "ipympl")):
-            raise RuntimeError(("Please enable an interactive matplotlib backend for this plot to work. In jupyter"
-                                "notebook you can do this by invoking either %matplotlib notebook or %matplotlib "
-                                "widget (the latter requires ipympl to be installed). In Jupyter Lab only the latter "
-                                "works. Please note that you may have to restart the notebook kernel for this to "
-                                "work."))
+            raise RuntimeError(
+                (
+                    "Please enable an interactive matplotlib backend for this plot to work. In jupyter"
+                    "notebook you can do this by invoking either %matplotlib notebook or %matplotlib "
+                    "widget (the latter requires ipympl to be installed). In Jupyter Lab only the latter "
+                    "works. Please note that you may have to restart the notebook kernel for this to "
+                    "work."
+                )
+            )
 
         plt.figure()
         self.axes = plt.axes()
@@ -226,13 +238,11 @@ class BaseRangeSelector:
 
 
 class FdRangeSelector(BaseRangeSelector):
-
     def _add_widget(self, curve):
         return FdTimeRangeSelectorWidget(curve, self.axes, show=False)
 
 
 class FdDistanceRangeSelector(BaseRangeSelector):
-
     def __init__(self, fd_curves, max_gap=3):
         self._max_gap = max_gap
         super().__init__(fd_curves)

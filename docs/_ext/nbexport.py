@@ -20,6 +20,7 @@ def _finilize_markdown_cells(nb):
 
 class NBWriter(writers.Writer):
     """Jupyter notebook writer"""
+
     def __init__(self, app, docpath):
         super().__init__()
         self.app = app
@@ -33,7 +34,7 @@ class NBWriter(writers.Writer):
         if self.app.config.nbexport_execute:
             ep = ExecutePreprocessor(allow_errors=True)
             try:
-                ep.preprocess(nb, {'metadata': {}})
+                ep.preprocess(nb, {"metadata": {}})
             except CellExecutionError as e:
                 self.app.warn(str(e))
 
@@ -42,13 +43,13 @@ class NBWriter(writers.Writer):
 
 def _split_doctest(code):
     """Split a single doctest string into multiple code block strings"""
+
     def is_code(x):
         return x.startswith(">>>") or x.startswith("...")
 
     groups = itertools.groupby(code.splitlines(), is_code)
     raw_code_blocks = (lines for is_code, lines in groups if is_code)
-    code_blocks = ["\n".join(line[3:].strip() for line in lines)
-                   for lines in raw_code_blocks]
+    code_blocks = ["\n".join(line[3:].strip() for line in lines) for lines in raw_code_blocks]
     return code_blocks
 
 
@@ -64,26 +65,24 @@ class NBTranslator(nodes.NodeVisitor):
         self.config = app.config
         self.docpath = docpath
 
-        self.nb = nbformat.from_dict({
-            "cells": [],
-            "metadata": {},
-            "nbformat": nbformat.current_nbformat,
-            "nbformat_minor": nbformat.current_nbformat_minor
-        })
+        self.nb = nbformat.from_dict(
+            {
+                "cells": [],
+                "metadata": {},
+                "nbformat": nbformat.current_nbformat,
+                "nbformat_minor": nbformat.current_nbformat_minor,
+            }
+        )
         if self.config.nbexport_pre_code:
             self.write_code(self.config.nbexport_pre_code)
 
     def write_markdown(self, text):
         if self.nb.cells[-1].cell_type != "markdown":
-            self.nb.cells.append(nbformat.from_dict({
-                "cell_type": "markdown",
-                "metadata": {},
-                "source": []
-            }))
+            self.nb.cells.append(
+                nbformat.from_dict({"cell_type": "markdown", "metadata": {}, "source": []})
+            )
 
-        self.nb.cells[-1].source.append(
-            text.replace("\n", "\n" + " " * self.indent)
-        )
+        self.nb.cells[-1].source.append(text.replace("\n", "\n" + " " * self.indent))
 
     def rstrip_markdown(self, chars=None):
         if self.nb.cells[-1].cell_type != "markdown":
@@ -91,13 +90,17 @@ class NBTranslator(nodes.NodeVisitor):
         self.nb.cells[-1].source[-1] = self.nb.cells[-1].source[-1].rstrip(chars)
 
     def add_codecell(self, code):
-        self.nb.cells.append(nbformat.from_dict({
-            "cell_type": "code",
-            "execution_count": None,
-            "metadata": {},
-            "source": code.strip(),
-            "outputs": []
-        }))
+        self.nb.cells.append(
+            nbformat.from_dict(
+                {
+                    "cell_type": "code",
+                    "execution_count": None,
+                    "metadata": {},
+                    "source": code.strip(),
+                    "outputs": [],
+                }
+            )
+        )
 
     def write_code(self, code):
         if ">>>" in code:
@@ -149,19 +152,19 @@ class NBTranslator(nodes.NodeVisitor):
         self.write_markdown("[")
 
     def depart_reference(self, node):
-        url = node['refuri']
-        if node.get('internal'):
+        url = node["refuri"]
+        if node.get("internal"):
             url = posixpath.join(self.config.nbexport_baseurl, self.docpath, url)
         self.write_markdown("]({})".format(url))
 
     def visit_download_reference(self, node):
-        if node.hasattr('filename'):
+        if node.hasattr("filename"):
             self.write_markdown("[" + node.astext())
             raise nodes.SkipChildren
 
     def depart_download_reference(self, node):
-        if node.hasattr('filename'):
-            url = posixpath.join(self.config.nbexport_baseurl, "_downloads", node['filename'])
+        if node.hasattr("filename"):
+            url = posixpath.join(self.config.nbexport_baseurl, "_downloads", node["filename"])
             self.write_markdown("]({})".format(url))
 
     def visit_literal(self, node):
@@ -171,11 +174,13 @@ class NBTranslator(nodes.NodeVisitor):
         self.write_markdown("`")
 
     def visit_literal_block(self, node):
-        dont_execute = ('highlight_args' in node and
-                        'hl_lines' in node['highlight_args'] and
-                        0 in node['highlight_args']['hl_lines'])
+        dont_execute = (
+            "highlight_args" in node
+            and "hl_lines" in node["highlight_args"]
+            and 0 in node["highlight_args"]["hl_lines"]
+        )
         if dont_execute:
-            self.write_markdown("```{}\n{}\n```\n\n".format(node['language'], node.astext()))
+            self.write_markdown("```{}\n{}\n```\n\n".format(node["language"], node.astext()))
         else:
             self.write_code(node.astext())
         raise nodes.SkipNode
@@ -184,11 +189,11 @@ class NBTranslator(nodes.NodeVisitor):
         self.visit_literal_block(node)
 
     def visit_math(self, node):
-        self.write_markdown("${}$".format(node['latex']))
+        self.write_markdown("${}$".format(node["latex"]))
         raise nodes.SkipNode
 
     def visit_displaymath(self, node):
-        self.write_markdown("$$\n{}\n$$\n\n".format(node['latex'].strip()))
+        self.write_markdown("$$\n{}\n$$\n\n".format(node["latex"].strip()))
         raise nodes.SkipNode
 
     def unknown_visit(self, node):
@@ -200,21 +205,21 @@ class NBTranslator(nodes.NodeVisitor):
 
 def export_notebooks(app, document, docname):
     """"Export the recently resolved document to a Jupyter notebook"""
-    if not hasattr(app.env, 'nbfiles'):
+    if not hasattr(app.env, "nbfiles"):
         return
     if docname not in app.env.nbfiles:
         return
 
     docpath = os.path.dirname(docname)
     ipynb_path = app.env.nbfiles[docname]
-    with open(ipynb_path, 'w', encoding='utf-8') as file:
+    with open(ipynb_path, "w", encoding="utf-8") as file:
         writer = NBWriter(app, docpath)
         writer.write(document, file)
 
 
 def cleanup_notebooks(app, _):
     """Delete cache"""
-    if hasattr(app.env, 'nbfiles'):
+    if hasattr(app.env, "nbfiles"):
         del app.env.nbfiles
 
 
@@ -226,7 +231,7 @@ def remove_notebooks_from_deps(app, _):
     a document is updated anyway, so the dependency checking is not needed.
     """
     env = app.env
-    if not hasattr(env, 'nbfiles'):
+    if not hasattr(env, "nbfiles"):
         return
 
     for target_docname, ipynb_path in env.nbfiles.items():
@@ -242,7 +247,7 @@ def _make_empty_file(abspath):
     absdir = os.path.dirname(abspath)
     if not os.path.exists(absdir):
         os.makedirs(absdir)
-    open(abspath, 'w').close()
+    open(abspath, "w").close()
 
 
 class NotebookExportRole(roles.XRefRole):
@@ -261,28 +266,28 @@ class NotebookExportRole(roles.XRefRole):
         ipynb_abspath = os.path.join(build_dir, ipynb_name)
         _make_empty_file(ipynb_abspath)  # placeholder file so the reference can be resolved
 
-        if not hasattr(env, 'nbfiles'):
+        if not hasattr(env, "nbfiles"):
             env.nbfiles = {}
         env.nbfiles[target_docname] = ipynb_abspath  # doc to be converted -> abs path to notebook
 
         absdocpath = os.path.dirname(os.path.join(env.srcdir, env.docname))
-        ipynb_relpath = os.path.relpath(ipynb_abspath, absdocpath).replace(os.path.sep, '/')
+        ipynb_relpath = os.path.relpath(ipynb_abspath, absdocpath).replace(os.path.sep, "/")
         return super().process_link(env, refnode, has_explicit_title, title, ipynb_relpath)
 
     def result_nodes(self, document, env, node, is_ref):
-        node.children[0]['classes'].append("download")
+        node.children[0]["classes"].append("download")
         return super().result_nodes(document, env, node, is_ref)
 
 
 def setup(app):
-    app.add_role('nbexport', NotebookExportRole(nodeclass=addnodes.download_reference))
+    app.add_role("nbexport", NotebookExportRole(nodeclass=addnodes.download_reference))
 
-    app.connect('doctree-resolved', export_notebooks)
-    app.connect('build-finished', cleanup_notebooks)
-    app.connect('doctree-read', remove_notebooks_from_deps)
+    app.connect("doctree-resolved", export_notebooks)
+    app.connect("build-finished", cleanup_notebooks)
+    app.connect("doctree-read", remove_notebooks_from_deps)
 
-    app.add_config_value('nbexport_pre_code', None, 'html')
-    app.add_config_value('nbexport_baseurl', "", 'html')
-    app.add_config_value('nbexport_execute', False, 'html')
+    app.add_config_value("nbexport_pre_code", None, "html")
+    app.add_config_value("nbexport_baseurl", "", "html")
+    app.add_config_value("nbexport_execute", False, "html")
 
-    return {'version': "0.1"}
+    return {"version": "0.1"}

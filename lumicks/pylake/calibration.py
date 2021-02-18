@@ -30,6 +30,7 @@ class ForceCalibration:
     items : list
         list of dictionaries containing raw calibration attribute data
     """
+
     def __init__(self, time_field, items):
         self._time_field = time_field
         self._items = items
@@ -46,8 +47,9 @@ class ForceCalibration:
         return _filter_calibration(self._time_field, self._items, start, stop)
 
     @staticmethod
-    def from_dataset(hdf5, n, xy, time_field='Stop time (ns)'):
+    def from_dataset(hdf5, n, xy, time_field="Stop time (ns)"):
         """Fetch the force calibration data from the HDF5 file"""
+
         def parse_force_calibration(cdata, force_idx, force_axis) -> list:
             items = []
             for v in cdata:
@@ -63,7 +65,9 @@ class ForceCalibration:
             if xy:
                 calibration_data = parse_force_calibration(hdf5["Calibration"], n, xy)
             else:
-                raise NotImplementedError("Calibration is currently only implemented for single axis data")
+                raise NotImplementedError(
+                    "Calibration is currently only implemented for single axis data"
+                )
         else:
             calibration_data = ForceCalibration(time_field=time_field, items=[])
 

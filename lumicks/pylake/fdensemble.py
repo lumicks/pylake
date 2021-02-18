@@ -35,6 +35,7 @@ class FdEnsemble:
         for fd in fd_ensemble.values():
             fd.plot_scatter()
     """
+
     def __init__(self, fd_curves):
         self.fd_curves = fd_curves
         self.fd_curves_processed = fd_curves
@@ -83,4 +84,6 @@ class FdEnsemble:
         distance_range_high : float
             Upper range of distances to use. Distances in the range [largest_distance - distance_range_high,
             largest_distance] are used for the distance alignment."""
-        self.fd_curves_processed = align_fd_simple(self.fd_curves, distance_range_low, distance_range_high)
+        self.fd_curves_processed = align_fd_simple(
+            self.fd_curves, distance_range_low, distance_range_high
+        )

@@ -38,15 +38,15 @@ def find_subpixel_location(gx, gy, largest_eigenvalue, nx, ny):
     # Evaluate the subpixel location of the line.
     # x = r'/r'', note that the largest eigenvalue corresponds to the directional derivative in the direction
     # perpendicular to the line (i.e. gxx * nx * nx + 2.0 * gxy * nx * ny + gyy * ny * ny)
-    t = - (gx * nx + gy * ny) / largest_eigenvalue
+    t = -(gx * nx + gy * ny) / largest_eigenvalue
 
     px = t * nx
     py = t * ny
 
     # Find points where the subpixel fit is inside
     inside = np.zeros(px.shape)
-    x_condition = np.logical_and(px >= -.5, px <= .5)
-    y_condition = np.logical_and(py >= -.5, py <= .5)
+    x_condition = np.logical_and(px >= -0.5, px <= 0.5)
+    y_condition = np.logical_and(py >= -0.5, py <= 0.5)
     inside[np.logical_and(x_condition, y_condition)] = 1
 
     return px, py, inside
@@ -144,7 +144,12 @@ def is_opposite(trial_normals, reference):
 
 def is_in_2d(coord, shape):
     # TO DO: Find a better way.
-    return (coord[:, 0] >= 0) & (coord[:, 0] < shape[0]) & (coord[:, 1] >= 0) & (coord[:, 1] < shape[1])
+    return (
+        (coord[:, 0] >= 0)
+        & (coord[:, 0] < shape[0])
+        & (coord[:, 1] >= 0)
+        & (coord[:, 1] < shape[1])
+    )
 
 
 def get_candidate_generator():
@@ -161,17 +166,20 @@ def get_candidate_generator():
     # perpendicular to that the normal is pointing at and its adjacent pixels closest to the origin.
     # It assumes the angle is discretized as np.round(4.0/np.pi*angle) + 4, mapping from[-pi, pi] to [0, 8].
     # Index 0 corresponds to the normal pointing to -pi. This means the line is pointing to .5 * pi or [0 -1].
-    candidate_lut = np.array([
-        [[1, -1], [0, -1], [-1, -1]],  # - Pi
-        [[1, 0], [1, -1], [0, -1]],
-        [[1, -1], [1, 0], [1, 1]],
-        [[0, 1], [1, 1], [1, 0]],
-        [[-1, 1], [0, 1], [1, 1]],
-        [[-1, 0], [-1, 1], [0, 1]],
-        [[-1, -1], [-1, 0], [-1, 1]],
-        [[0, -1], [-1, -1], [-1, 0]],
-        [[1, -1], [0, -1], [-1, -1]],  # Pi
-    ], dtype=int)
+    candidate_lut = np.array(
+        [
+            [[1, -1], [0, -1], [-1, -1]],  # - Pi
+            [[1, 0], [1, -1], [0, -1]],
+            [[1, -1], [1, 0], [1, 1]],
+            [[0, 1], [1, 1], [1, 0]],
+            [[-1, 1], [0, 1], [1, 1]],
+            [[-1, 0], [-1, 1], [0, 1]],
+            [[-1, -1], [-1, 0], [-1, 1]],
+            [[0, -1], [-1, -1], [-1, 0]],
+            [[1, -1], [0, -1], [-1, -1]],  # Pi
+        ],
+        dtype=int,
+    )
 
     def generate_candidates(angle):
         return candidate_lut[int(np.round(4 * angle / np.pi) + 4)]

@@ -24,6 +24,7 @@ class Scan(ConfocalImage):
     json : dict
         Dictionary containing scan-specific metadata.
     """
+
     def __init__(self, name, file, start, stop, json):
         super().__init__(name, file, start, stop, json)
         self._num_frames = self._json["scan count"]
@@ -40,8 +41,9 @@ class Scan(ConfocalImage):
     @property
     def num_frames(self):
         if self._num_frames == 0:
-            self._num_frames = reconstruct_num_frames(self.infowave.data, self.pixels_per_line,
-                                                      self.lines_per_frame)
+            self._num_frames = reconstruct_num_frames(
+                self.infowave.data, self.pixels_per_line, self.lines_per_frame
+            )
         return self._num_frames
 
     @property
@@ -53,10 +55,12 @@ class Scan(ConfocalImage):
         return (self.lines_per_frame, self.pixels_per_line)
 
     def _fix_incorrect_start(self):
-        """ Resolve error when confocal scan starts before the timeline information.
-            For scans, this is currently unrecoverable. """
-        raise RuntimeError("Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
-                            "entire scan time in Bluelake?")
+        """Resolve error when confocal scan starts before the timeline information.
+        For scans, this is currently unrecoverable."""
+        raise RuntimeError(
+            "Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
+            "entire scan time in Bluelake?"
+        )
 
     def _to_spatial(self, data):
         """If the first axis of the reconstruction has a higher physical axis number than the second, we flip the axes.
@@ -100,7 +104,7 @@ class Scan(ConfocalImage):
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
-            aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um)
+            aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um),
         )
 
         if not image_handle:
@@ -170,7 +174,9 @@ class Scan(ConfocalImage):
             return plt.gca().get_children()
 
         fig = plt.gcf()
-        line_ani = animation.FuncAnimation(fig, plot, end_frame - start_frame, interval=1, blit=True)
+        line_ani = animation.FuncAnimation(
+            fig, plot, end_frame - start_frame, interval=1, blit=True
+        )
         line_ani.save(file_name, writer=writer)
         plt.close(fig)
 

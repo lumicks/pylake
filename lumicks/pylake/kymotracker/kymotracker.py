@@ -1,5 +1,9 @@
-from lumicks.pylake.kymotracker.detail.peakfinding import peak_estimate, refine_peak_based_on_moment, merge_close_peaks, \
-    KymoPeaks
+from lumicks.pylake.kymotracker.detail.peakfinding import (
+    peak_estimate,
+    refine_peak_based_on_moment,
+    merge_close_peaks,
+    KymoPeaks,
+)
 from lumicks.pylake.kymotracker.detail.trace_line_2d import detect_lines, points_to_line_segments
 from lumicks.pylake.kymotracker.detail.scoring_functions import kymo_score
 from lumicks.pylake.kymotracker.kymoline import KymoLineGroup
@@ -10,7 +14,9 @@ def _get_rect(data, rect):
     ((t0, p0), (t1, p1)) = rect
 
     if p0 > data.shape[0]:
-        raise IndexError(f"Specified minimum position {p0} beyond the valid coordinate range {data.shape[0]}")
+        raise IndexError(
+            f"Specified minimum position {p0} beyond the valid coordinate range {data.shape[0]}"
+        )
 
     if t0 > data.shape[1]:
         raise IndexError(f"Specified minimum time {t0} beyond the time range {data.shape[1]}")
@@ -24,8 +30,17 @@ def _get_rect(data, rect):
     return data[p0:p1, t0:t1]
 
 
-def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.0, diffusion=0.0, sigma_cutoff=2.0,
-                 rect=None):
+def track_greedy(
+    data,
+    line_width,
+    pixel_threshold,
+    window=8,
+    sigma=None,
+    vel=0.0,
+    diffusion=0.0,
+    sigma_cutoff=2.0,
+    rect=None,
+):
     """Track particles on an image using a greedy algorithm.
 
     Note: This is ALPHA functionality. It has not been tested in a sufficient number of cases yet, and the API is still
@@ -81,13 +96,19 @@ def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.
     """
     data_selection = _get_rect(data, rect) if rect else data
 
-    sigma = sigma if sigma else .5 * line_width
-    coordinates, time_points = peak_estimate(data_selection, np.ceil(.5*line_width), pixel_threshold)
+    sigma = sigma if sigma else 0.5 * line_width
+    coordinates, time_points = peak_estimate(
+        data_selection, np.ceil(0.5 * line_width), pixel_threshold
+    )
     if len(coordinates) == 0:
         return []
 
-    peaks = KymoPeaks(*refine_peak_based_on_moment(data_selection, coordinates, time_points, np.ceil(.5*line_width)))
-    peaks = merge_close_peaks(peaks, np.ceil(.5*line_width))
+    peaks = KymoPeaks(
+        *refine_peak_based_on_moment(
+            data_selection, coordinates, time_points, np.ceil(0.5 * line_width)
+        )
+    )
+    peaks = merge_close_peaks(peaks, np.ceil(0.5 * line_width))
     lines = points_to_line_segments(
         peaks,
         kymo_score(vel=vel, sigma=sigma, diffusion=diffusion),
@@ -99,11 +120,20 @@ def track_greedy(data, line_width, pixel_threshold, window=8, sigma=None, vel=0.
     for line in lines:
         line.image_data = data
 
-    return KymoLineGroup([line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines)
+    return KymoLineGroup(
+        [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
+    )
 
 
-def track_lines(data, line_width, max_lines, start_threshold=0.005, continuation_threshold=0.005, angle_weight=10.0,
-                rect=None):
+def track_lines(
+    data,
+    line_width,
+    max_lines,
+    start_threshold=0.005,
+    continuation_threshold=0.005,
+    angle_weight=10.0,
+    rect=None,
+):
     """Track particles on an image using an algorithm that looks for line-like structures.
 
     Note: This is ALPHA functionality. It has not been tested in a sufficient number of cases yet, and the API is still
@@ -162,7 +192,9 @@ def track_lines(data, line_width, max_lines, start_threshold=0.005, continuation
     for line in lines:
         line.image_data = data
 
-    return KymoLineGroup([line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines)
+    return KymoLineGroup(
+        [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
+    )
 
 
 def filter_lines(lines, minimum_length):
@@ -193,19 +225,22 @@ def refine_lines_centroid(lines, line_width):
         Line width
     """
     interpolated_lines = [line.interpolate() for line in lines]
-    time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(int)
-    coordinate_idx = np.round(np.array(np.hstack([line.coordinate_idx for line in interpolated_lines]))).astype(int)
+    time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(
+        int
+    )
+    coordinate_idx = np.round(
+        np.array(np.hstack([line.coordinate_idx for line in interpolated_lines]))
+    ).astype(int)
 
-    coordinate_idx, time_idx, _ = refine_peak_based_on_moment(interpolated_lines[0].image_data,
-                                                              coordinate_idx,
-                                                              time_idx,
-                                                              np.ceil(.5 * line_width))
+    coordinate_idx, time_idx, _ = refine_peak_based_on_moment(
+        interpolated_lines[0].image_data, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
+    )
 
     current = 0
     for line in interpolated_lines:
         line_length = len(line.time_idx)
-        line.time_idx = time_idx[current: current + line_length]
-        line.coordinate_idx = coordinate_idx[current: current + line_length]
+        line.time_idx = time_idx[current : current + line_length]
+        line.coordinate_idx = coordinate_idx[current : current + line_length]
         current += line_length
 
     return KymoLineGroup(interpolated_lines)

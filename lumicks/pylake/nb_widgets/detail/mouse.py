@@ -20,9 +20,15 @@ class MouseDragCallback:
         self.dragging = 0
         self.x_last = 0
         self.y_last = 0
-        self._axes.get_figure().canvas.mpl_connect("button_press_event", lambda event: self.button_down(event))
-        self._axes.get_figure().canvas.mpl_connect("button_release_event", lambda event: self.button_release(event))
-        self._axes.get_figure().canvas.mpl_connect("motion_notify_event", lambda event: self.handle_motion(event))
+        self._axes.get_figure().canvas.mpl_connect(
+            "button_press_event", lambda event: self.button_down(event)
+        )
+        self._axes.get_figure().canvas.mpl_connect(
+            "button_release_event", lambda event: self.button_release(event)
+        )
+        self._axes.get_figure().canvas.mpl_connect(
+            "motion_notify_event", lambda event: self.handle_motion(event)
+        )
 
     def button_down(self, event):
         if event.inaxes == self._axes and not event.canvas.widgetlock.locked():

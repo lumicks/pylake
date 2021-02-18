@@ -40,6 +40,7 @@ class Fit:
 
         fit.plot("Dataset 1", "k--")  # Plot the fitted model
     """
+
     def __init__(self, *models):
         self.models = {id(m): m for m in models}
         self.datasets = {id(m): self._dataset(m) for m in models}
@@ -74,15 +75,19 @@ class Fit:
     @property
     def data(self):
         if len(self.datasets) > 1:
-            raise RuntimeError("This Fit is comprised of multiple models. Please access data for a particular model by "
-                               "invoking fit[model].data[dataset_name].")
+            raise RuntimeError(
+                "This Fit is comprised of multiple models. Please access data for a particular model by "
+                "invoking fit[model].data[dataset_name]."
+            )
 
         return front(self.datasets.values()).data
 
     def _add_data(self, name, x, y, params={}):
         if len(self.datasets) > 1:
-            raise RuntimeError("This Fit is comprised of multiple models. Please add data to a particular model by "
-                               "invoking fit[model].add_data(...)")
+            raise RuntimeError(
+                "This Fit is comprised of multiple models. Please add data to a particular model by "
+                "invoking fit[model].add_data(...)"
+            )
 
         return front(self.datasets.values())._add_data(name, x, y, params)
 
@@ -138,10 +143,14 @@ class Fit:
     def _build_fit(self):
         """This function generates the global parameter list from the parameters of the individual sub models.
         It also generates unique conditions from the data specification."""
-        all_parameter_names = [p for data_set in self.datasets.values() for p in data_set._transformed_params]
+        all_parameter_names = [
+            p for data_set in self.datasets.values() for p in data_set._transformed_params
+        ]
         all_defaults = [d for data_set in self.datasets.values() for d in data_set._defaults]
         unique_parameter_names = unique(all_parameter_names)
-        parameter_lookup = OrderedDict(zip(unique_parameter_names, np.arange(len(unique_parameter_names))))
+        parameter_lookup = OrderedDict(
+            zip(unique_parameter_names, np.arange(len(unique_parameter_names)))
+        )
 
         for data in self.datasets.values():
             data._link_data(parameter_lookup)
@@ -156,7 +165,12 @@ class Fit:
         self._rebuild()
         assert self.n_residuals > 0, "This model has no data associated with it."
         assert self.n_params > 0, "This model has no parameters. There is nothing to fit."
-        return self.params.values, self.params.fitted, self.params.lower_bounds, self.params.upper_bounds
+        return (
+            self.params.values,
+            self.params.fitted,
+            self.params.lower_bounds,
+            self.params.upper_bounds,
+        )
 
     def _fit(self, parameter_vector, lb, ub, fitted, show_fit=False, **kwargs):
         """Fit the model
@@ -197,10 +211,17 @@ class Fit:
             parameter_vector[fitted] = params
             return self._calculate_jacobian(parameter_vector)[:, fitted]
 
-        result = optim.least_squares(residual, parameter_vector[fitted],
-                                     jac=jacobian if self.has_jacobian else "2-point",
-                                     bounds=(lb[fitted], ub[fitted]),
-                                     method='trf', ftol=1e-8, xtol=1e-8, gtol=1e-8, **kwargs)
+        result = optim.least_squares(
+            residual,
+            parameter_vector[fitted],
+            jac=jacobian if self.has_jacobian else "2-point",
+            bounds=(lb[fitted], ub[fitted]),
+            method="trf",
+            ftol=1e-8,
+            xtol=1e-8,
+            gtol=1e-8,
+            **kwargs,
+        )
 
         parameter_vector[fitted] = result.x
 
@@ -216,11 +237,15 @@ class Fit:
         """
         parameter_vector, fitted, lb, ub = self._prepare_fit()
 
-        out_of_bounds = np.logical_or(parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted])
+        out_of_bounds = np.logical_or(
+            parameter_vector[fitted] < lb[fitted], parameter_vector[fitted] > ub[fitted]
+        )
         if np.any(out_of_bounds):
-            raise ValueError(f"Initial parameters {self.params.keys[fitted][out_of_bounds]} are outside the "
-                             f"parameter bounds. Please set value, lower_bound and upper_bound for these parameters"
-                             f"to consistent values.")
+            raise ValueError(
+                f"Initial parameters {self.params.keys[fitted][out_of_bounds]} are outside the "
+                f"parameter bounds. Please set value, lower_bound and upper_bound for these parameters"
+                f"to consistent values."
+            )
 
         parameter_vector = self._fit(parameter_vector, lb, ub, fitted, show_fit=show_fit, **kwargs)
 
@@ -234,9 +259,19 @@ class Fit:
 
         return self
 
-    def profile_likelihood(self, parameter_name, min_step=1e-4, max_step=1.0, num_steps=100, step_factor=2.0,
-                           min_chi2_step=0.05, max_chi2_step=.25, termination_significance=.99, confidence_level=.95,
-                           verbose=False):
+    def profile_likelihood(
+        self,
+        parameter_name,
+        min_step=1e-4,
+        max_step=1.0,
+        num_steps=100,
+        step_factor=2.0,
+        min_chi2_step=0.05,
+        max_chi2_step=0.25,
+        termination_significance=0.99,
+        confidence_level=0.95,
+        verbose=False,
+    ):
         """Calculate a profile likelihood. This method traces an optimal path through parameter space in order to
         estimate parameter confidence intervals. It iteratively performs a step for the profiled parameter, then fixes
         that parameter and re-optimizes all the other parameters.
@@ -278,11 +313,20 @@ class Fit:
         assert max_step > min_step
         assert max_chi2_step > min_chi2_step
 
-        profile = ProfileLikelihood1D(parameter_name, min_step, max_step, step_factor, min_chi2_step, max_chi2_step,
-                                      termination_significance, confidence_level, 1)
+        profile = ProfileLikelihood1D(
+            parameter_name,
+            min_step,
+            max_step,
+            step_factor,
+            min_chi2_step,
+            max_chi2_step,
+            termination_significance,
+            confidence_level,
+            1,
+        )
 
         def trial(parameters=[]):
-            return - 2.0 * self.log_likelihood(parameters, self.sigma)
+            return -2.0 * self.log_likelihood(parameters, self.sigma)
 
         profile._extend_profile(trial, self._fit, self.params, num_steps, True, verbose)
         profile._extend_profile(trial, self._fit, self.params, num_steps, False, verbose)
@@ -301,7 +345,7 @@ class Fit:
         for model in self.models.values():
             current_residual = model._calculate_residual(self.datasets[id(model)], parameter_values)
             current_n = len(current_residual)
-            residual[residual_idx:residual_idx + current_n] = current_residual
+            residual[residual_idx : residual_idx + current_n] = current_residual
             residual_idx += current_n
 
         return residual
@@ -316,7 +360,7 @@ class Fit:
         for model in self.models.values():
             current_jacobian = model._calculate_jacobian(self.datasets[id(model)], parameter_values)
             current_n = current_jacobian.shape[0]
-            jacobian[residual_idx:residual_idx + current_n, :] = current_jacobian
+            jacobian[residual_idx : residual_idx + current_n, :] = current_jacobian
             residual_idx += current_n
 
         return jacobian
@@ -324,8 +368,10 @@ class Fit:
     def verify_jacobian(self, params, plot=0, verbose=True, dx=1e-6, **kwargs):
         self._rebuild()
         if len(params) != len(self._params):
-            raise ValueError("Parameter vector has invalid length. "
-                             f"Expected: {len(self._params)}, got: {len(params)}.")
+            raise ValueError(
+                "Parameter vector has invalid length. "
+                f"Expected: {len(self._params)}, got: {len(params)}."
+            )
 
         jacobian = self._calculate_jacobian(params).transpose()
         jacobian_fd = numerical_jacobian(self._calculate_residual, params, dx)
@@ -335,9 +381,9 @@ class Fit:
             for i_parameter, parameter in enumerate(self.params):
                 plt.subplot(n_x, n_y, i_parameter + 1)
                 plt.plot(np.transpose(jacobian[i_parameter, :]), linewidth=2)
-                plt.plot(np.transpose(jacobian_fd[i_parameter, :]), '--', linewidth=1)
+                plt.plot(np.transpose(jacobian_fd[i_parameter, :]), "--", linewidth=1)
                 plt.title(parameter)
-                plt.legend(['Analytic', 'FD'])
+                plt.legend(["Analytic", "FD"])
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
         if not is_close:
@@ -348,11 +394,20 @@ class Fit:
                     if np.allclose(jacobian[i, :], jacobian_fd[i, :]):
                         print(f"Parameter {parameter_names[i]}({i}): {v}")
                     else:
-                        print_styled('warning', f'Parameter {parameter_names[i]}({i}): {v}')
+                        print_styled("warning", f"Parameter {parameter_names[i]}({i}): {v}")
 
         return is_close
 
-    def plot(self, data=None, fmt='', independent=None, legend=True, plot_data=True, overrides=None, **kwargs):
+    def plot(
+        self,
+        data=None,
+        fmt="",
+        independent=None,
+        legend=True,
+        plot_data=True,
+        overrides=None,
+        **kwargs,
+    ):
         """Plot model and data
 
         Parameters
@@ -403,7 +458,16 @@ class Fit:
             fit[model2].plot("Control")  # Plots data set Control for model 2
         """
         assert len(self.models) == 1, "Please select a model to plot using fit[model].plot(...)."
-        self._plot(front(self.models.values()), data, fmt, overrides, independent, legend, plot_data, **kwargs)
+        self._plot(
+            front(self.models.values()),
+            data,
+            fmt,
+            overrides,
+            independent,
+            legend,
+            plot_data,
+            **kwargs,
+        )
 
     def _plot(self, model, data, fmt, overrides, independent, legend, plot_data, **kwargs):
         self._rebuild()
@@ -413,12 +477,24 @@ class Fit:
 
         def plot(fit_data):
             x_values = fit_data.x if independent is None else independent
-            model_lines = model.plot(params[fit_data], x_values, fmt, **kwargs, zorder=1,
-                                     label=fit_data.name + " (model)")
+            model_lines = model.plot(
+                params[fit_data],
+                x_values,
+                fmt,
+                **kwargs,
+                zorder=1,
+                label=fit_data.name + " (model)",
+            )
 
             if plot_data:
                 color = model_lines[0].get_color()
-                fit_data.plot('.', **kwargs, color=lighten_color(color, -.3), zorder=0, label=fit_data.name + " (data)")
+                fit_data.plot(
+                    ".",
+                    **kwargs,
+                    color=lighten_color(color, -0.3),
+                    zorder=0,
+                    label=fit_data.name + " (data)",
+                )
 
         if data:
             assert data in dataset.data, f"Error: Did not find dataset with name {data}"
@@ -432,6 +508,7 @@ class Fit:
 
     def _override_params(self, overrides=None):
         from copy import deepcopy
+
         params = self.params
 
         params = deepcopy(params)
@@ -450,7 +527,7 @@ class Fit:
         # TO DO: Ideally, this will eventually depend on the exact error model used. For now, we use the a-posteriori
         # noise standard deviation estimate based on the residual.
         res = self._calculate_residual()
-        est_sd = np.sqrt((res*res).sum() / (len(res) - np.sum(self.params.fitted)))
+        est_sd = np.sqrt((res * res).sum() / (len(res) - np.sum(self.params.fitted)))
 
         # This is toy data. Computing a variance estimate here makes no sense.
         if est_sd == 0:
@@ -463,7 +540,11 @@ class Fit:
         self._rebuild()
         res = self._calculate_residual(params)
         sigma = sigma if np.any(sigma) else self.sigma
-        return - (self.n_residuals/2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) - sum((res/sigma)**2) / 2.0
+        return (
+            -(self.n_residuals / 2.0) * np.log(2.0 * np.pi)
+            - np.sum(np.log(sigma))
+            - sum((res / sigma) ** 2) / 2.0
+        )
 
     @property
     def aic(self):
@@ -506,7 +587,7 @@ class Fit:
 
         aic = self.aic
         k = sum(self.params.fitted)
-        return aic + (2.0 * k * k + 2.0 * k)/(self.n_residuals - k - 1.0)
+        return aic + (2.0 * k * k + 2.0 * k) / (self.n_residuals - k - 1.0)
 
     @property
     def bic(self):
@@ -546,14 +627,16 @@ class Fit:
             J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
             return np.linalg.pinv(np.transpose(J).dot(J))
         else:
-            raise NotImplementedError("In order to calculate a covariance matrix, a model Jacobian has to be specified"
-                                      "for the model.")
+            raise NotImplementedError(
+                "In order to calculate a covariance matrix, a model Jacobian has to be specified"
+                "for the model."
+            )
 
     def _repr_html_(self):
         out_string = "<h4>Fit</h4>\n"
 
         for model in self.models.values():
-            datasets = ''.join(f"{self.datasets[id(model)]._repr_html_()}<br>\n")
+            datasets = "".join(f"{self.datasets[id(model)]._repr_html_()}<br>\n")
             out_string += f"<h5>Model: {model.name}</h5>\n"
             eqn = model.get_formatted_equation_string(tex=True)
             if eqn:
@@ -563,17 +646,19 @@ class Fit:
         return out_string + f"<h5>&ensp;Fitted parameters:</h5>\n{self.params._repr_html_()}"
 
     def __repr__(self):
-        return (f"lumicks.pylake.{self.__class__.__name__}"
-                f"(models={{{', '.join([x.name for x in self.models.values()])}}}, "
-                f"N={self.n_residuals})")
+        return (
+            f"lumicks.pylake.{self.__class__.__name__}"
+            f"(models={{{', '.join([x.name for x in self.models.values()])}}}, "
+            f"N={self.n_residuals})"
+        )
 
     def __str__(self):
         indent = 2
         out_string = "Fit\n"
 
         for model in self.models.values():
-            datasets = (' ' * indent + '- ' + self.datasets[id(model)].__str__()).splitlines(True)
-            datasets = (' ' * (2 * indent)).join(datasets)
+            datasets = (" " * indent + "- " + self.datasets[id(model)].__str__()).splitlines(True)
+            datasets = (" " * (2 * indent)).join(datasets)
 
             out_string += f"{' ' * indent}- Model: {model.name}\n"
 
@@ -584,7 +669,8 @@ class Fit:
         return out_string + (
             f"\n{' ' * indent}- Fitted parameters:\n"
             f"{(' ' * (2 * indent))}"
-            f"{(' ' * (2 * indent)).join(self.params.__str__().splitlines(True))}")
+            f"{(' ' * (2 * indent)).join(self.params.__str__().splitlines(True))}"
+        )
 
 
 class FdFit(Fit):

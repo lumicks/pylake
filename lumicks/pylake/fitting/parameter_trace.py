@@ -39,7 +39,9 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
         lcs = parameter_trace(model, current_fit[data_handle], "model/Lc", distance, force)
     """
     param_names = model.parameter_names
-    assert inverted_parameter in params, f"Inverted parameter not in model parameter vector {params}."
+    assert (
+        inverted_parameter in params
+    ), f"Inverted parameter not in model parameter vector {params}."
     for key in param_names:
         assert key in params, f"Missing parameter {key} in supplied parameter vector."
 
@@ -61,8 +63,14 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
             return -model.jacobian(x, param_vector)[inverted_parameter_index]
 
         jac = jacobian if model.has_jacobian else "2-point"
-        result = optim.least_squares(residual, param_vector[inverted_parameter_index], jac=jac,
-                                     bounds=(lb, ub), method='trf', **kwargs)
+        result = optim.least_squares(
+            residual,
+            param_vector[inverted_parameter_index],
+            jac=jac,
+            bounds=(lb, ub),
+            method="trf",
+            **kwargs,
+        )
 
         return result.x[0]
 

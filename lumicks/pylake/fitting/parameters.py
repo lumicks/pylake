@@ -4,10 +4,26 @@ from tabulate import tabulate
 
 
 class Parameter:
-    __slots__ = ['value', 'lower_bound', 'upper_bound', 'fixed', 'shared', 'unit', 'profile', 'stderr']
+    __slots__ = [
+        "value",
+        "lower_bound",
+        "upper_bound",
+        "fixed",
+        "shared",
+        "unit",
+        "profile",
+        "stderr",
+    ]
 
-    def __init__(self, value=0.0, lower_bound=-np.inf, upper_bound=np.inf, fixed=False, shared=False,
-                 unit=None):
+    def __init__(
+        self,
+        value=0.0,
+        lower_bound=-np.inf,
+        upper_bound=np.inf,
+        fixed=False,
+        shared=False,
+        unit=None,
+    ):
         """Model parameter
 
         Parameters
@@ -35,12 +51,17 @@ class Parameter:
         self.stderr = None
 
     def __eq__(self, other):
-        return all((getattr(self, x) == getattr(other, x) for x in self.__slots__)) \
-            if isinstance(other, self.__class__) else False
+        return (
+            all((getattr(self, x) == getattr(other, x) for x in self.__slots__))
+            if isinstance(other, self.__class__)
+            else False
+        )
 
     def __repr__(self):
-        return f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lower bound: {self.lower_bound}, upper bound: " \
-               f"{self.upper_bound}, fixed: {self.fixed})"
+        return (
+            f"lumicks.pylake.fdfit.Parameter(value: {self.value}, lower bound: {self.lower_bound}, upper bound: "
+            f"{self.upper_bound}, fixed: {self.fixed})"
+        )
 
     def __str__(self):
         return self.__repr__()
@@ -58,8 +79,7 @@ class Parameter:
 
         if self.stderr:
             dp = self.stderr * np.sqrt(stats.chi2.ppf(percentile, dof))
-            return [self.value - dp,
-                    self.value + dp]
+            return [self.value - dp, self.value + dp]
         else:
             raise RuntimeError("These parameters are not associated with a fitted model.")
 
@@ -83,6 +103,7 @@ class Params:
         # Copy the parameters from an earlier fit into the combined model.
         fit_combined_model.update_params(fit)
     """
+
     def __init__(self, **kwargs):
         self._src = OrderedDict()
         for key, value in kwargs.items():
@@ -113,7 +134,9 @@ class Params:
                     found = True
 
             if not found:
-                raise RuntimeError("Tried to set parameters which do not exist in the target model.")
+                raise RuntimeError(
+                    "Tried to set parameters which do not exist in the target model."
+                )
         else:
             raise RuntimeError("Attempt to stream non-parameter list to parameter list.")
 
@@ -144,9 +167,18 @@ class Params:
         return len(self._src)
 
     def _print_data(self):
-        table = [[key, par.value, f'[{par.unit}]' if par.unit else 'NA', not par.fixed, par.lower_bound,
-                  par.upper_bound] for key, par in self._src.items()]
-        header = ['Name', 'Value', 'Unit', 'Fitted', 'Lower bound', 'Upper bound']
+        table = [
+            [
+                key,
+                par.value,
+                f"[{par.unit}]" if par.unit else "NA",
+                not par.fixed,
+                par.lower_bound,
+                par.upper_bound,
+            ]
+            for key, par in self._src.items()
+        ]
+        header = ["Name", "Value", "Unit", "Fitted", "Lower bound", "Upper bound"]
         return table, header
 
     def _repr_html_(self):
@@ -179,7 +211,9 @@ class Params:
         defaults : Parameter or None
             default parameter objects
         """
-        new_params = OrderedDict(zip(params, [x if isinstance(x, Parameter) else Parameter() for x in defaults]))
+        new_params = OrderedDict(
+            zip(params, [x if isinstance(x, Parameter) else Parameter() for x in defaults])
+        )
         for key, value in self._src.items():
             if key in new_params:
                 new_params[key] = value

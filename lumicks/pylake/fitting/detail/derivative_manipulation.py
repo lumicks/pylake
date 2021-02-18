@@ -16,7 +16,7 @@ def numerical_jacobian(fn, parameter_vector, dx=1e-6):
         up = fn(params)
         params[i] = params[i] - 2.0 * dx
         down = fn(params)
-        finite_difference_jacobian[i, :] = (up - down) / (2.0*dx)
+        finite_difference_jacobian[i, :] = (up - down) / (2.0 * dx)
 
     return finite_difference_jacobian
 
@@ -28,8 +28,16 @@ def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
     def fit_single(single_distance, initial_guess):
         """Invert a single independent / dependent data point"""
         jac = derivative_function if derivative_function else "2-point"
-        single_estimate = optim.least_squares(lambda f: model_function(f) - single_distance, initial_guess, jac=jac,
-                                              bounds=(f_min, f_max), method='trf', ftol=tol, xtol=tol, gtol=tol)
+        single_estimate = optim.least_squares(
+            lambda f: model_function(f) - single_distance,
+            initial_guess,
+            jac=jac,
+            bounds=(f_min, f_max),
+            method="trf",
+            ftol=tol,
+            xtol=tol,
+            gtol=tol,
+        )
 
         return single_estimate.x[0]
 
@@ -61,13 +69,16 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
     tol : float
         optimization tolerances
     """
-    manual_inversion, _ = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
+    manual_inversion, _ = inversion_functions(
+        model_function, f_min, f_max, derivative_function, tol
+    )
 
     return manual_inversion(d, initial)
 
 
-def invert_function_interpolation(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8,
-                                  dx=1e-2):
+def invert_function_interpolation(
+    d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8, dx=1e-2
+):
     """This function inverts a function using interpolation. For models where this is required, this is the most time
     consuming step. Specifying a sensible f_max for this method is crucial.
 
@@ -90,7 +101,9 @@ def invert_function_interpolation(d, initial, f_min, f_max, model_function, deri
     tol : float
         optimization tolerances
     """
-    manual_inversion, fit_single = inversion_functions(model_function, f_min, f_max, derivative_function, tol)
+    manual_inversion, fit_single = inversion_functions(
+        model_function, f_min, f_max, derivative_function, tol
+    )
     f_min_data = max([f_min, fit_single(np.min(d), initial)])
     f_max_data = min([f_max, fit_single(np.max(d), initial)])
 
@@ -111,14 +124,18 @@ def invert_function_interpolation(d, initial, f_min, f_max, model_function, deri
             interp = InterpolatedUnivariateSpline(d_range, f_range, k=3)
             result[interpolated_idx] = interp(d[interpolated_idx])
         except Exception as e:
-            warnings.warn(f"Interpolation failed. Cause: {e}. Falling back to brute force evaluation. "
-                          f"Results should be fine, but slower.")
+            warnings.warn(
+                f"Interpolation failed. Cause: {e}. Falling back to brute force evaluation. "
+                f"Results should be fine, but slower."
+            )
             result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
     else:
         result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
 
     # Do the manual inversion for the others
-    result[np.logical_not(interpolated_idx)] = manual_inversion(d[np.logical_not(interpolated_idx)], initial)
+    result[np.logical_not(interpolated_idx)] = manual_inversion(
+        d[np.logical_not(interpolated_idx)], initial
+    )
 
     return result
 
@@ -164,7 +181,7 @@ def invert_jacobian(d, inverted_model_function, jacobian_function, derivative_fu
     F = inverted_model_function(d)
     jacobian = jacobian_function(F)
     derivative = derivative_function(F)
-    inverse = 1.0/derivative
+    inverse = 1.0 / derivative
     inverted_dyda = np.tile(inverse, (jacobian.shape[0], 1))
     jacobian = -jacobian * inverted_dyda
 

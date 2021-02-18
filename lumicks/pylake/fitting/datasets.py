@@ -28,8 +28,9 @@ class Datasets:
         return self._fit.params[self.data.__getitem__(item)]
 
     def _link_data(self, parameter_lookup):
-        self._conditions, self._data_link = generate_conditions(self.data, parameter_lookup,
-                                                                self._model.parameter_names)
+        self._conditions, self._data_link = generate_conditions(
+            self.data, parameter_lookup, self._model.parameter_names
+        )
         self.built = True
 
     def conditions(self):
@@ -84,7 +85,9 @@ class Datasets:
         y = np.asarray(y, dtype=np.float64)
         assert x.ndim == 1, "Independent variable should be one dimension"
         assert y.ndim == 1, "Dependent variable should be one dimension"
-        assert len(x) == len(y), "Every value for the independent variable should have a corresponding data point"
+        assert len(x) == len(
+            y
+        ), "Every value for the independent variable should have a corresponding data point"
 
         filter_nan = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
         y = y[filter_nan]
@@ -97,7 +100,16 @@ class Datasets:
 
         return data
 
-    def plot(self, data=None, fmt='', independent=None, legend=True, plot_data=True, overrides=None, **kwargs):
+    def plot(
+        self,
+        data=None,
+        fmt="",
+        independent=None,
+        legend=True,
+        plot_data=True,
+        overrides=None,
+        **kwargs,
+    ):
         """Plot model and data
 
         Parameters
@@ -160,25 +172,30 @@ class Datasets:
     @property
     def _defaults(self):
         if self.data:
-            return [deepcopy(self._model.defaults[name]) for data in self.data.values() for name in
-                    data.source_parameter_names]
+            return [
+                deepcopy(self._model.defaults[name])
+                for data in self.data.values()
+                for name in data.source_parameter_names
+            ]
         else:
             return [deepcopy(self._model.defaults[name]) for name in self._model.parameter_names]
 
     def _repr_html_(self):
-        repr_text = ''
+        repr_text = ""
         for d in self.data.values():
             repr_text += f"&ensp;&ensp;{d.__str__()}<br>\n"
 
         return repr_text
 
     def __repr__(self):
-        return (f"lumicks.pylake.{self.__class__.__name__}"
-                f"(datasets={{{', '.join([x.name for x in self.data.values()])}}}, "
-                f"N={self.n_residuals})")
+        return (
+            f"lumicks.pylake.{self.__class__.__name__}"
+            f"(datasets={{{', '.join([x.name for x in self.data.values()])}}}, "
+            f"N={self.n_residuals})"
+        )
 
     def __str__(self):
-        repr_text = 'Data sets:\n'
+        repr_text = "Data sets:\n"
         for d in self.data.values():
             repr_text += f"- {d.__repr__()}\n"
 

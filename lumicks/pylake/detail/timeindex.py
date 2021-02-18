@@ -35,6 +35,7 @@ class Timeindex:
     timestring : str
 
     """
+
     def __init__(self, timestring):
         match = regex.match(timestring)
         if not match:

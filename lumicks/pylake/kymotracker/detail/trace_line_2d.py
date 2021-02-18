@@ -30,20 +30,32 @@ def generate_trial_points(sign, normal, candidate_generator):
     return candidate_steps
 
 
-def filter_candidates(subpixel_origin, indices, candidate_steps, masked_derivative, continuation_threshold,
-                      positions, forced_direction):
+def filter_candidates(
+    subpixel_origin,
+    indices,
+    candidate_steps,
+    masked_derivative,
+    continuation_threshold,
+    positions,
+    forced_direction,
+):
     """Checks whether the candidates listed in candidate_steps are valid line candidates or not. Returns both the valid
     steps and indices."""
 
     candidate_indices = indices + candidate_steps
     valid = is_in_2d(candidate_indices, masked_derivative.shape)
-    line_like = masked_derivative[candidate_indices[valid, 0], candidate_indices[valid, 1]] < continuation_threshold
+    line_like = (
+        masked_derivative[candidate_indices[valid, 0], candidate_indices[valid, 1]]
+        < continuation_threshold
+    )
     valid[valid] = valid[valid] & line_like
 
     line_steps = candidate_steps[valid, :]
     line_indices = candidate_indices[valid, :]
 
-    subpixel_steps = line_steps + positions[line_indices[:, 0], line_indices[:, 1]] - subpixel_origin
+    subpixel_steps = (
+        line_steps + positions[line_indices[:, 0], line_indices[:, 1]] - subpixel_origin
+    )
 
     if forced_direction:
         if forced_direction > 0:
@@ -89,8 +101,17 @@ def do_step(subpixel_steps, normal, candidate_indices, candidate_normals, angle_
         return candidate_indices[np.argmin(scores), :]
 
 
-def _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold, angle_weight,
-                             candidate_generator, direction, force_dir):
+def _traverse_line_direction(
+    indices,
+    masked_derivative,
+    positions,
+    normals,
+    continuation_threshold,
+    angle_weight,
+    candidate_generator,
+    direction,
+    force_dir,
+):
     """Traverse a line along single direction perpendicular to the normal. While traversing, it sets visited pixels in
     the derivative image to zero to mark them as seen. Only candidates with a negative derivative are considered.
 
@@ -134,12 +155,23 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
         normal = normals[indices[0], indices[1]]
         candidate_steps = generate_trial_points(sign, normal, candidate_generator)
 
-        candidate_indices, subpixel_steps = filter_candidates(subpixel_origin, indices, candidate_steps,
-                                                              masked_derivative, continuation_threshold, positions,
-                                                              forced_direction)
+        candidate_indices, subpixel_steps = filter_candidates(
+            subpixel_origin,
+            indices,
+            candidate_steps,
+            masked_derivative,
+            continuation_threshold,
+            positions,
+            forced_direction,
+        )
 
-        indices = do_step(subpixel_steps, normal, candidate_indices,
-                          normals[candidate_indices[:, 0], candidate_indices[:, 1]], angle_weight)
+        indices = do_step(
+            subpixel_steps,
+            normal,
+            candidate_indices,
+            normals[candidate_indices[:, 0], candidate_indices[:, 1]],
+            angle_weight,
+        )
 
         if indices is not None:
             # Check if normal needs to be flipped to ensure a minimal angle between the current and previous normal.
@@ -149,13 +181,39 @@ def _traverse_line_direction(indices, masked_derivative, positions, normals, con
     return nodes
 
 
-def traverse_line(indices, masked_derivative, positions, normals, continuation_threshold, candidate_generator,
-                  angle_weight, force_dir):
+def traverse_line(
+    indices,
+    masked_derivative,
+    positions,
+    normals,
+    continuation_threshold,
+    candidate_generator,
+    angle_weight,
+    force_dir,
+):
     """Traverse a line in both directions."""
-    indices_fwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
-                                           angle_weight, candidate_generator, 1, force_dir)
-    indices_bwd = _traverse_line_direction(indices, masked_derivative, positions, normals, continuation_threshold,
-                                           angle_weight, candidate_generator, -1, force_dir)
+    indices_fwd = _traverse_line_direction(
+        indices,
+        masked_derivative,
+        positions,
+        normals,
+        continuation_threshold,
+        angle_weight,
+        candidate_generator,
+        1,
+        force_dir,
+    )
+    indices_bwd = _traverse_line_direction(
+        indices,
+        masked_derivative,
+        positions,
+        normals,
+        continuation_threshold,
+        angle_weight,
+        candidate_generator,
+        -1,
+        force_dir,
+    )
 
     indices_bwd.reverse()
     line = np.array(indices_bwd + indices_fwd[1:])
@@ -164,8 +222,16 @@ def traverse_line(indices, masked_derivative, positions, normals, continuation_t
         return KymoLine(time_idx=line[:, 1], coordinate_idx=line[:, 0])
 
 
-def detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold,
-                               continuation_threshold, max_lines, angle_weight, force_dir):
+def detect_lines_from_geometry(
+    masked_derivative,
+    positions,
+    normals,
+    start_threshold,
+    continuation_threshold,
+    max_lines,
+    angle_weight,
+    force_dir,
+):
     """Detect lines from precomputed geometry data.
 
     The precomputed geometry data contains the magnitude of the second image derivative in the direction of largest
@@ -209,7 +275,11 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
         return -((mx - mn) * threshold + mn)
 
     thresh = to_absolute_threshold(masked_derivative, start_threshold)
-    proceed = thresh if not continuation_threshold else to_absolute_threshold(masked_derivative, continuation_threshold)
+    proceed = (
+        thresh
+        if not continuation_threshold
+        else to_absolute_threshold(masked_derivative, continuation_threshold)
+    )
 
     # Generate lookup table which convert normal angle into table of points to be trialed
     candidates = get_candidate_generator()
@@ -225,7 +295,9 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
             break
 
         # Traverse the line. Note that traverse_line modifies the masked_derivative image by marking some as seen.
-        line = traverse_line(idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, force_dir)
+        line = traverse_line(
+            idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, force_dir
+        )
 
         if line:
             lines.append(line)
@@ -233,8 +305,15 @@ def detect_lines_from_geometry(masked_derivative, positions, normals, start_thre
     return lines
 
 
-def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1, max_lines=200, angle_weight=10.0,
-                 force_dir=False):
+def detect_lines(
+    data,
+    line_width,
+    start_threshold=0.5,
+    continuation_threshold=0.1,
+    max_lines=200,
+    angle_weight=10.0,
+    force_dir=False,
+):
     """Detect lines in an image, based on Steger at al, "An unbiased detector of curvilinear structures".
 
     data: np_array
@@ -255,7 +334,7 @@ def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1
     """
     # See Steger et al, "An unbiased detector of curvilinear structures. IEEE Transactions on Pattern Analysis and
     # Machine Intelligence, 20(2), pp.113–125. for a motivation of this scale.
-    sig_x = line_width / (2.0 * np.sqrt(3)) + .5
+    sig_x = line_width / (2.0 * np.sqrt(3)) + 0.5
     sig_y = sig_x
 
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
@@ -264,8 +343,16 @@ def detect_lines(data, line_width, start_threshold=.5, continuation_threshold=.1
     masked_derivative = inside * max_derivative
     masked_derivative[masked_derivative > 0] = 1
 
-    return detect_lines_from_geometry(masked_derivative, positions, normals, start_threshold, continuation_threshold,
-                                      max_lines, angle_weight, force_dir)
+    return detect_lines_from_geometry(
+        masked_derivative,
+        positions,
+        normals,
+        start_threshold,
+        continuation_threshold,
+        max_lines,
+        angle_weight,
+        force_dir,
+    )
 
 
 def append_next_point(line, frame, score_fun):
@@ -282,7 +369,7 @@ def append_next_point(line, frame, score_fun):
         for points that should not be considered viable candidates.
     """
     if np.any(frame.unassigned):
-        candidate_idx, = np.where(frame.unassigned)
+        (candidate_idx,) = np.where(frame.unassigned)
         candidate_times = frame.time_points[candidate_idx]
         candidate_coordinates = frame.coordinates[candidate_idx]
 
@@ -356,14 +443,18 @@ def points_to_line_segments(peaks, prediction_model, window=10, sigma_cutoff=2):
     peaks.reset_assignment()
 
     def score_matrix(line_list, time, coord):
-        return build_score_matrix(line_list, time, coord, prediction_model, sigma_cutoff=sigma_cutoff).flatten()
+        return build_score_matrix(
+            line_list, time, coord, prediction_model, sigma_cutoff=sigma_cutoff
+        ).flatten()
 
     lines = []
     for frame in peaks.frames:
         # Give precedence to lines with higher peak amplitudes
         for starting_point in np.argsort(-frame.peak_amplitudes * frame.unassigned):
             if frame.unassigned[starting_point]:
-                line = KymoLine([frame.time_points[starting_point]], [frame.coordinates[starting_point]])
+                line = KymoLine(
+                    [frame.time_points[starting_point]], [frame.coordinates[starting_point]]
+                )
                 frame.unassigned[starting_point] = False
 
                 extend_line(line, peaks, window, score_matrix)

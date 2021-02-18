@@ -16,6 +16,7 @@ class TiffFrame:
     page : tifffile.tifffile.TiffPage
         Tiff page recorded from a camera in Bluelake.
     """
+
     def __init__(self, page, align):
         self._src = page
         self._align = align
@@ -46,9 +47,13 @@ class TiffFrame:
             return self.raw_data
 
         try:
-            align_mats = [np.array(description[f"Alignment {color} channel"]).reshape((2, 3))
-                          for color in ('red', 'blue')]
-            align_roi = np.array(description["Alignment region of interest (x, y, width, height)"])[:2]
+            align_mats = [
+                np.array(description[f"Alignment {color} channel"]).reshape((2, 3))
+                for color in ("red", "blue")
+            ]
+            align_roi = np.array(description["Alignment region of interest (x, y, width, height)"])[
+                :2
+            ]
             roi = np.array(description["Region of interest (x, y, width, height)"])[:2]
         except KeyError:
             warnings.warn("File does not contain alignment matrices. Only raw data is available")
@@ -61,9 +66,14 @@ class TiffFrame:
         img = self.raw_data
         rows, cols, _ = img.shape
         for mat, channel in zip(align_mats, (0, 2)):
-            img[:, :, channel] = cv2.warpAffine(img[:, :, channel], mat, (cols, rows),
-                                                flags=(cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP),
-                                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+            img[:, :, channel] = cv2.warpAffine(
+                img[:, :, channel],
+                mat,
+                (cols, rows),
+                flags=(cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP),
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=0,
+            )
         return img
 
     @property
@@ -77,9 +87,9 @@ class TiffFrame:
     @property
     def bit_depth(self):
         bit_depth = self._src.tags["BitsPerSample"].value
-        if self.is_rgb: # (int r, int g, int b)
+        if self.is_rgb:  # (int r, int g, int b)
             return bit_depth[0]
-        else: # int
+        else:  # int
             return bit_depth
 
     @property
@@ -87,23 +97,23 @@ class TiffFrame:
         return self._src.tags["SamplesPerPixel"].value == 3
 
     def _get_plot_data(self, channel="rgb", vmax=None):
-        """ return data an numpy array, appropriate for use by `imshow`
-            if data is grayscale or channel in ('red', 'green', 'blue')
-                return data as is
-            if channel is 'rgb',  converted to float in range [0,1] and correct for optional vmax argument:
-                None  : normalize data to max signal of all channels
-                float : normalize data to vmax value
+        """return data an numpy array, appropriate for use by `imshow`
+        if data is grayscale or channel in ('red', 'green', 'blue')
+            return data as is
+        if channel is 'rgb',  converted to float in range [0,1] and correct for optional vmax argument:
+            None  : normalize data to max signal of all channels
+            float : normalize data to vmax value
         """
 
         if not self.is_rgb:
             return self.data
 
         if channel.lower() == "rgb":
-            data = (self.data / (2**self.bit_depth - 1)).astype(float)
+            data = (self.data / (2 ** self.bit_depth - 1)).astype(float)
             if vmax is None:
-                return data/data.max()
+                return data / data.max()
             else:
-                return data/vmax
+                return data / vmax
         else:
             try:
                 return self.data[:, :, ("red", "green", "blue").index(channel.lower())]
@@ -112,12 +122,12 @@ class TiffFrame:
 
     @property
     def start(self):
-        timestamp_string = re.search(r'^(\d+):\d+$', self._src.tags['DateTime'].value)
+        timestamp_string = re.search(r"^(\d+):\d+$", self._src.tags["DateTime"].value)
         return np.int64(timestamp_string.group(1)) if timestamp_string else None
 
     @property
     def stop(self):
-        timestamp_string = re.search(r'^\d+:(\d+)$', self._src.tags['DateTime'].value)
+        timestamp_string = re.search(r"^\d+:(\d+)$", self._src.tags["DateTime"].value)
         return np.int64(timestamp_string.group(1)) if timestamp_string else None
 
 
@@ -129,6 +139,7 @@ class TiffStack:
     tiff_file : tifffile.TiffFile
         TIFF file recorded from a camera in Bluelake.
     """
+
     def __init__(self, tiff_file, align):
         self._src = tiff_file
         self._align = align
@@ -174,6 +185,7 @@ class CorrelatedStack:
         # Determine the force trace averaged over frame 2...9.
         file.force1x.downsampled_over(stack[2:10].timestamps)
     """
+
     def __init__(self, image_name, align=True):
         self.src = TiffStack.from_file(image_name, align=align)
         self.name = os.path.splitext(os.path.basename(image_name))[0]
@@ -187,7 +199,9 @@ class CorrelatedStack:
                 raise IndexError("Slice steps are not supported")
 
             start, stop, _ = item.indices(self.num_frames)
-            return CorrelatedStack.from_data(self.src, self.name, self.start_idx + start, self.start_idx + stop)
+            return CorrelatedStack.from_data(
+                self.src, self.name, self.start_idx + start, self.start_idx + stop
+            )
         else:
             item = self.start_idx + item if item >= 0 else self.stop_idx + item
             if item >= self.stop_idx or item < self.start_idx:
@@ -219,7 +233,9 @@ class CorrelatedStack:
         new_correlated_stack.src = data
         new_correlated_stack.name = name
         new_correlated_stack.start_idx = start_idx
-        new_correlated_stack.stop_idx = (new_correlated_stack.src.num_frames if stop_idx is None else stop_idx)
+        new_correlated_stack.stop_idx = (
+            new_correlated_stack.src.num_frames if stop_idx is None else stop_idx
+        )
         return new_correlated_stack
 
     def plot(self, frame=0, channel="rgb", show_title=True, **kwargs):
@@ -239,10 +255,7 @@ class CorrelatedStack:
         """
         import matplotlib.pyplot as plt
 
-        default_kwargs = dict(
-            cmap='gray',
-            vmax=None
-        )
+        default_kwargs = dict(cmap="gray", vmax=None)
         kwargs = {**default_kwargs, **kwargs}
 
         image = self._get_frame(frame)._get_plot_data(channel, vmax=kwargs["vmax"])
@@ -292,7 +305,7 @@ class CorrelatedStack:
         """
         import matplotlib.pyplot as plt
 
-        downsampled = channel_slice.downsampled_over(self.timestamps, where='left', reduce=reduce)
+        downsampled = channel_slice.downsampled_over(self.timestamps, where="left", reduce=reduce)
 
         if len(downsampled.timestamps) < len(self.timestamps):
             warnings.warn("Only subset of time range available for selected channel")
@@ -300,12 +313,14 @@ class CorrelatedStack:
         fetched_frame = self._get_frame(frame)
         aspect_ratio = fetched_frame.data.shape[0] / np.max([fetched_frame.data.shape])
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=plt.figaspect(aspect_ratio/2))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=plt.figaspect(aspect_ratio / 2))
         t0 = downsampled.timestamps[0]
-        t, y = (downsampled.timestamps - t0)/1e9, downsampled.data
-        ax1.step(t, y, where='pre')
-        ax2.tick_params(axis='both', which='both', bottom=False, left=False, labelbottom=False, labelleft=False)
-        image_object = ax2.imshow(fetched_frame._get_plot_data(channel=channel), cmap='gray')
+        t, y = (downsampled.timestamps - t0) / 1e9, downsampled.data
+        ax1.step(t, y, where="pre")
+        ax2.tick_params(
+            axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
+        )
+        image_object = ax2.imshow(fetched_frame._get_plot_data(channel=channel), cmap="gray")
         plt.title(f"Frame {frame}")
 
         # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
@@ -313,13 +328,19 @@ class CorrelatedStack:
         ax1.set_ylim(y1, y2)
 
         def update_position(new_frame):
-            return ax1.fill_between((np.array([new_frame.start, new_frame.stop]) - t0)/1e9, y1, y2, alpha=0.7, color='r')
+            return ax1.fill_between(
+                (np.array([new_frame.start, new_frame.stop]) - t0) / 1e9,
+                y1,
+                y2,
+                alpha=0.7,
+                color="r",
+            )
 
         poly = update_position(fetched_frame)
 
-        ax1.set_xlabel('Time [s]')
-        ax1.set_ylabel(downsampled.labels['y'])
-        ax1.set_title(downsampled.labels['title'])
+        ax1.set_xlabel("Time [s]")
+        ax1.set_ylabel(downsampled.labels["y"])
+        ax1.set_title(downsampled.labels["title"])
         ax1.set_xlim([np.min(t), np.max(t)])
 
         def select_frame(event):
@@ -338,7 +359,7 @@ class CorrelatedStack:
                         fig.canvas.draw()
                         return
 
-        fig.canvas.mpl_connect('button_press_event', select_frame)
+        fig.canvas.mpl_connect("button_press_event", select_frame)
 
     def export_tiff(self, file_name, roi=None):
         """Export a video of a particular scan plot
@@ -364,7 +385,7 @@ class CorrelatedStack:
 
             # SampleFormat, uint16, len, number of channels
             n_channels = 3 if frame.is_rgb else 1
-            sample_format = (339, "H", n_channels, (1, )*n_channels)
+            sample_format = (339, "H", n_channels, (1,) * n_channels)
 
             # DateTime, str, len, start:stop
             datetime = frame._src.tags["DateTime"].value
@@ -405,12 +426,14 @@ class CorrelatedStack:
         # write frames sequentially
         with tifffile.TiffWriter(file_name) as tif:
             for frame in self:
-                tif.save(frame.data[ymin:ymax, xmin:xmax],
-                         description=description,
-                         software=software,
-                         metadata=None,    # suppress tifffile default ImageDescription tag
-                         contiguous=False, # needed to write tags on each page
-                         extratags=parse_tags(frame))
+                tif.save(
+                    frame.data[ymin:ymax, xmin:xmax],
+                    description=description,
+                    software=software,
+                    metadata=None,  # suppress tifffile default ImageDescription tag
+                    contiguous=False,  # needed to write tags on each page
+                    extratags=parse_tags(frame),
+                )
 
     @property
     def num_frames(self):
@@ -438,4 +461,7 @@ class CorrelatedStack:
     @property
     def timestamps(self):
         """List of time stamps."""
-        return [(self._get_frame(idx).start, self._get_frame(idx).stop) for idx in range(self.num_frames)]
+        return [
+            (self._get_frame(idx).start, self._get_frame(idx).stop)
+            for idx in range(self.num_frames)
+        ]
