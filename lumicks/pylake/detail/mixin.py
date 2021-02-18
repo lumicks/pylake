@@ -12,6 +12,7 @@ def _try_get_or_empty(f, *args, **kwargs):
 
 class Force:
     """Full frequency force channels"""
+
     def _get_force(self, n, xy):
         raise NotImplementedError
 
@@ -50,6 +51,7 @@ class Force:
 
 class DownsampledFD:
     """Downsampled force and distance channels"""
+
     def _get_downsampled_force(self, n, xy):
         raise NotImplementedError
 
@@ -115,6 +117,7 @@ class DownsampledFD:
 
 class PhotonCounts:
     """Red, green and blue photon channels"""
+
     def _get_photon_count(self, name):
         raise NotImplementedError
 
@@ -133,6 +136,7 @@ class PhotonCounts:
 
 class PhotonTimeTags:
     """Red, green, and blue photon time tag channels"""
+
     def _get_photon_time_tags(self, name):
         raise NotImplementedError
 
@@ -148,14 +152,16 @@ class PhotonTimeTags:
     def blue_photon_time_tags(self) -> Slice:
         return _try_get_or_empty(self._get_photon_time_tags, "Blue")
 
+
 class ExcitationLaserPower:
     """Red, green, blue, and sted laser power"""
+
     def _get_laser_power(self, name):
         power_data = self.file["Confocal diagnostics"][f"Excitation Laser {name}"]
         # fetch the timestamp of the last datapoint before the beginning of the item
-        start_time = power_data[:self.start].timestamps[-1]
-        return power_data[start_time:self.stop]
-        
+        start_time = power_data[: self.start].timestamps[-1]
+        return power_data[start_time : self.stop]
+
     @property
     def red_power(self) -> Slice:
         return _try_get_or_empty(self._get_laser_power, "Red")

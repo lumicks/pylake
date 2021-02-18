@@ -22,12 +22,14 @@ def generate_conditions(data_sets, parameter_lookup, model_params):
     for data_set in data_sets.values():
         str_conditions.append(data_set.condition_string)
 
-        assert set(data_set.transformations.keys()) == set(model_params), \
-            "Source parameters in data parameter transformations are incompatible with the specified model parameters."
+        assert set(data_set.transformations.keys()) == set(
+            model_params
+        ), "Source parameters in data parameter transformations are incompatible with the specified model parameters."
 
         target_params = [x for x in data_set.transformations.values() if isinstance(x, str)]
-        assert set(target_params).issubset(parameter_lookup.keys()), \
-            "Parameter transformations contain transformed parameter names that are not in the combined parameter list."
+        assert set(target_params).issubset(
+            parameter_lookup.keys()
+        ), "Parameter transformations contain transformed parameter names that are not in the combined parameter list."
 
     # Determine unique parameter conditions and the indices to get the appropriate unique condition from data index.
     unique_condition_strings, indices = unique_idx(str_conditions)
@@ -36,7 +38,7 @@ def generate_conditions(data_sets, parameter_lookup, model_params):
     data_link = []
     keys = list(data_sets.keys())
     for condition_idx in np.arange(len(unique_condition_strings)):
-        data_indices, = np.nonzero(np.equal(indices, condition_idx))
+        (data_indices,) = np.nonzero(np.equal(indices, condition_idx))
         data_link.append([data_sets[keys[x]] for x in data_indices])
 
     conditions = []

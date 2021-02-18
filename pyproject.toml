@@ -1,0 +1,20 @@
+[tool.black]
+line-length = 100
+target-version = ['py36']
+exclude = '''
+(
+  /(
+      \.git
+    | \.direnv
+    | \.eggs
+    | \.nox
+    | \.tox
+    | \.venv
+    | _build
+    | build
+    | dist
+    | tests  # ignore test directories until we have a better solution for test datasets
+    | force_calibration  # ignore it for now since a big refactoring effort is ongoing
+  )/
+)
+'''

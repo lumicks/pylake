@@ -18,8 +18,8 @@ def eigenvalues_2d_symmetric(a, b, d):
     t = a + d
     bsq4 = 4 * b ** 2
     amdsq = (a - d) ** 2
-    ht = .5 * t
-    half_sqrt_discriminant = .5 * np.sqrt(bsq4 + amdsq)
+    ht = 0.5 * t
+    half_sqrt_discriminant = 0.5 * np.sqrt(bsq4 + amdsq)
     eig1 = ht + half_sqrt_discriminant
     eig2 = ht - half_sqrt_discriminant
 

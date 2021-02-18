@@ -15,7 +15,10 @@ def align_force_simple(fd_curves, distance_range=1):
         return np.mean(force)
 
     reference_offset = get_offset(first(fd_curves.values()))
-    return {key: fd.with_offset(force_offset=reference_offset - get_offset(fd)) for key, fd in fd_curves.items()}
+    return {
+        key: fd.with_offset(force_offset=reference_offset - get_offset(fd))
+        for key, fd in fd_curves.items()
+    }
 
 
 def align_distance_simple(fd_curves, distance_range=1):
@@ -62,4 +65,6 @@ def align_fd_simple(fd_curves, distance_range_low, distance_range_high):
     distance_range_high : float
         Upper range of distances to use. Distances in the range [largest_distance - distance_range_high,
         largest_distance] are used for the distance alignment."""
-    return align_distance_simple(align_force_simple(fd_curves, distance_range_low), distance_range_high)
+    return align_distance_simple(
+        align_force_simple(fd_curves, distance_range_low), distance_range_high
+    )

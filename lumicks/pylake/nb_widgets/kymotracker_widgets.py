@@ -8,8 +8,17 @@ from lumicks.pylake.kymotracker.kymoline import KymoLineGroup, import_kymolinegr
 
 
 class KymoWidget:
-    def __init__(self, data, axis_aspect_ratio, min_length, use_widgets, output_filename, algorithm,
-                 algorithm_parameters, **kwargs):
+    def __init__(
+        self,
+        data,
+        axis_aspect_ratio,
+        min_length,
+        use_widgets,
+        output_filename,
+        algorithm,
+        algorithm_parameters,
+        **kwargs,
+    ):
         """Create a widget for performing kymotracking.
 
         Parameters
@@ -33,7 +42,9 @@ class KymoWidget:
             Extra arguments forwarded to imshow.
         """
         # Forcing the aspect ratio only makes sense when the time axis is longer.
-        self.axis_aspect_ratio = min(axis_aspect_ratio, data.shape[1] / data.shape[0]) if axis_aspect_ratio else None
+        self.axis_aspect_ratio = (
+            min(axis_aspect_ratio, data.shape[1] / data.shape[0]) if axis_aspect_ratio else None
+        )
         self.lines = KymoLineGroup([])
         self.plotted_lines = []
         self.min_length = min_length
@@ -74,7 +85,9 @@ class KymoWidget:
         self.update_lines()
 
     def _track(self, rect=None):
-        return filter_lines(self._algorithm(self.data, **self.algorithm_parameters, rect=rect), self.min_length)
+        return filter_lines(
+            self._algorithm(self.data, **self.algorithm_parameters, rect=rect), self.min_length
+        )
 
     def _connect_drag_callback(self):
         def set_xlim(_x, _y, dx, _dy):
@@ -95,22 +108,30 @@ class KymoWidget:
         self.plotted_lines = []
 
         if self.show_lines:
-            self.plotted_lines = [self._axes.plot(line.time_idx, line.coordinate_idx, color='black', linewidth=5)[0]
-                                  for line in self.lines]
+            self.plotted_lines = [
+                self._axes.plot(line.time_idx, line.coordinate_idx, color="black", linewidth=5)[0]
+                for line in self.lines
+            ]
             self.plotted_lines.extend(
-                [self._axes.plot(line.time_idx, line.coordinate_idx, markersize=8)[0] for line in self.lines])
+                [
+                    self._axes.plot(line.time_idx, line.coordinate_idx, markersize=8)[0]
+                    for line in self.lines
+                ]
+            )
 
         self._fig.canvas.draw()
 
     def _save_from_ui(self):
         try:
-            self.lines.save(self.output_filename,
-                            sampling_width=int(np.ceil(.5 * self.algorithm_parameters["line_width"])))
+            self.lines.save(
+                self.output_filename,
+                sampling_width=int(np.ceil(0.5 * self.algorithm_parameters["line_width"])),
+            )
             self._set_label(f"Saved {self.output_filename}")
         except (RuntimeError, IOError) as exception:
             self._set_label(str(exception))
 
-    def save_lines(self, filename, dt=None, dx=None, delimiter=';', sampling_width=None):
+    def save_lines(self, filename, dt=None, dx=None, delimiter=";", sampling_width=None):
         """Export KymoLineGroup to a csv file.
 
         Parameters
@@ -138,28 +159,35 @@ class KymoWidget:
         except (RuntimeError, IOError) as exception:
             self._set_label(str(exception))
 
-    def _add_slider(self, description, name, tooltip, minimum, maximum, step_size=None, slider_type=None):
+    def _add_slider(
+        self, description, name, tooltip, minimum, maximum, step_size=None, slider_type=None
+    ):
         import ipywidgets
 
         def set_value(value):
             self.algorithm_parameters[name] = value
 
-        return ipywidgets.interactive(set_value,
-                                      value=slider_type(
-                                          description=description,
-                                          description_tooltip=tooltip,
-                                          min=minimum,
-                                          max=maximum,
-                                          step=step_size,
-                                          value=self.algorithm_parameters[name]))
+        return ipywidgets.interactive(
+            set_value,
+            value=slider_type(
+                description=description,
+                description_tooltip=tooltip,
+                min=minimum,
+                max=maximum,
+                step=step_size,
+                value=self.algorithm_parameters[name],
+            ),
+        )
 
     def refine(self):
         self.lines = refine_lines_centroid(self.lines, self.algorithm_parameters["line_width"])
         self.update_lines()
 
     def create_algorithm_sliders(self):
-        raise NotImplementedError("You should be using a class derived from this class to interact with the "
-                                  "kymotracker algorithm")
+        raise NotImplementedError(
+            "You should be using a class derived from this class to interact with the "
+            "kymotracker algorithm"
+        )
 
     def _set_label(self, label):
         if self._label:
@@ -171,11 +199,15 @@ class KymoWidget:
         import ipywidgets
 
         if not max([backend in plt.get_backend() for backend in ("nbAgg", "ipympl")]):
-            raise RuntimeError(("Please enable an interactive matplotlib backend for this widget to work. In jupyter "
-                                "notebook you can do this by invoking either %matplotlib notebook or %matplotlib "
-                                "widget (the latter requires ipympl to be installed). In Jupyter Lab only the latter "
-                                "works. Please note that you may have to restart the notebook kernel for this to "
-                                "work."))
+            raise RuntimeError(
+                (
+                    "Please enable an interactive matplotlib backend for this widget to work. In jupyter "
+                    "notebook you can do this by invoking either %matplotlib notebook or %matplotlib "
+                    "widget (the latter requires ipympl to be installed). In Jupyter Lab only the latter "
+                    "works. Please note that you may have to restart the notebook kernel for this to "
+                    "work."
+                )
+            )
 
         algorithm_sliders = self.create_algorithm_sliders()
 
@@ -209,7 +241,9 @@ class KymoWidget:
             ),
         )
 
-        all_button = ipywidgets.Button(description="Track all", tooltip="Reset all lines and track all lines")
+        all_button = ipywidgets.Button(
+            description="Track all", tooltip="Reset all lines and track all lines"
+        )
         all_button.on_click(lambda button: self.track_all())
 
         minimum_length = ipywidgets.interactive(
@@ -233,8 +267,8 @@ class KymoWidget:
         def set_fn(value):
             self.output_filename = value.new
 
-        fn_widget = ipywidgets.Text(value=self.output_filename, description='File')
-        fn_widget.observe(set_fn, 'value')
+        fn_widget = ipywidgets.Text(value=self.output_filename, description="File")
+        fn_widget.observe(set_fn, "value")
 
         self._label = ipywidgets.Label(value="")
 
@@ -250,8 +284,9 @@ class KymoWidget:
                         ipywidgets.HBox([refine_button, show_lines_toggle]),
                         fn_widget,
                         ipywidgets.HBox([load_button, save_button]),
-                        self._label
-                    ], layout=ipywidgets.Layout(width='32%')
+                        self._label,
+                    ],
+                    layout=ipywidgets.Layout(width="32%"),
                 ),
             ]
         )
@@ -284,21 +319,39 @@ class KymoWidget:
         self._axes.autoscale(enable=False)
         plt.tight_layout()
 
-        self.area_selector = RectangleSelector(self._axes, self.track_kymo,
-                                               drawtype='box', useblit=True,
-                                               button=[3],
-                                               minspanx=5, minspany=5,
-                                               spancoords='pixels',
-                                               interactive=False)
+        self.area_selector = RectangleSelector(
+            self._axes,
+            self.track_kymo,
+            drawtype="box",
+            useblit=True,
+            button=[3],
+            minspanx=5,
+            minspany=5,
+            spancoords="pixels",
+            interactive=False,
+        )
 
         self.update_lines()
         self._connect_drag_callback()
 
 
 class KymoWidgetGreedy(KymoWidget):
-    def __init__(self, data, axis_aspect_ratio=None, line_width=4, pixel_threshold=None, window=4, sigma=None, vel=0.0,
-                 diffusion=0.0, sigma_cutoff=2.0, min_length=3, use_widgets=True, output_filename="kymotracks.txt",
-                 **kwargs):
+    def __init__(
+        self,
+        data,
+        axis_aspect_ratio=None,
+        line_width=4,
+        pixel_threshold=None,
+        window=4,
+        sigma=None,
+        vel=0.0,
+        diffusion=0.0,
+        sigma_cutoff=2.0,
+        min_length=3,
+        use_widgets=True,
+        output_filename="kymotracks.txt",
+        **kwargs,
+    ):
         """Create a widget for performing kymotracking.
 
         Parameters
@@ -339,25 +392,49 @@ class KymoWidgetGreedy(KymoWidget):
             Filename to save to and load from.
         """
         algorithm = track_greedy
-        algorithm_parameters = {"line_width": line_width,
-                                "pixel_threshold": np.percentile(data.flatten(), 98) if pixel_threshold is None
-                                else pixel_threshold,
-                                "window": window,
-                                "sigma": .5 * line_width if sigma is None else sigma,
-                                "vel": vel,
-                                "diffusion": diffusion,
-                                "sigma_cutoff": sigma_cutoff}
+        algorithm_parameters = {
+            "line_width": line_width,
+            "pixel_threshold": np.percentile(data.flatten(), 98)
+            if pixel_threshold is None
+            else pixel_threshold,
+            "window": window,
+            "sigma": 0.5 * line_width if sigma is None else sigma,
+            "vel": vel,
+            "diffusion": diffusion,
+            "sigma_cutoff": sigma_cutoff,
+        }
 
-        super().__init__(data, axis_aspect_ratio, min_length, use_widgets, output_filename, algorithm,
-                         algorithm_parameters, **kwargs)
+        super().__init__(
+            data,
+            axis_aspect_ratio,
+            min_length,
+            use_widgets,
+            output_filename,
+            algorithm,
+            algorithm_parameters,
+            **kwargs,
+        )
 
     def create_algorithm_sliders(self):
         import ipywidgets
 
-        window_slider = self._add_slider("Window", "window", "How many frames can a line disappear.", minimum=1,
-                                         maximum=15, slider_type=ipywidgets.IntSlider)
-        thresh_slider = self._add_slider("Threshold", "pixel_threshold", "Set the pixel threshold.", minimum=1,
-                                         maximum=np.max(self.data), step_size=1, slider_type=ipywidgets.IntSlider)
+        window_slider = self._add_slider(
+            "Window",
+            "window",
+            "How many frames can a line disappear.",
+            minimum=1,
+            maximum=15,
+            slider_type=ipywidgets.IntSlider,
+        )
+        thresh_slider = self._add_slider(
+            "Threshold",
+            "pixel_threshold",
+            "Set the pixel threshold.",
+            minimum=1,
+            maximum=np.max(self.data),
+            step_size=1,
+            slider_type=ipywidgets.IntSlider,
+        )
         line_width_slider = self._add_slider(
             "Line width",
             "line_width",

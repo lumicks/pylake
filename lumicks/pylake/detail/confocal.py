@@ -56,15 +56,20 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return cls(name, file, start, stop, json_data)
 
     @property
-    @deprecated(reason=("Access to raw metadata will be removed in a future release. "
-                        "Use accessor properties instead. (see docs)"),
-                        action="always", version="0.8.0")
+    @deprecated(
+        reason=(
+            "Access to raw metadata will be removed in a future release. "
+            "Use accessor properties instead. (see docs)"
+        ),
+        action="always",
+        version="0.8.0",
+    )
     def json(self):
         return self._json
 
     def _get_photon_count(self, name):
         """Grab the portion of the photon count that overlaps with the scan."""
-        photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+        photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start : self.stop]
         timeline_start = photon_count._src.start
         timeline_dt = photon_count._src.dt
 
@@ -78,7 +83,9 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         # If implemented, resolve the problem.
         if timeline_start > self.start:
             self._fix_incorrect_start()
-            photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start:self.stop]
+            photon_count = getattr(self.file, f"{name}_photon_count".lower())[
+                self.start : self.stop
+            ]
 
         return photon_count
 
@@ -131,14 +138,20 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         raise NotImplementedError
 
     @property
-    @deprecated(reason="By definition, confocal images always have fluorescence data.",
-                version="0.8.0", action="always")
+    @deprecated(
+        reason="By definition, confocal images always have fluorescence data.",
+        version="0.8.0",
+        action="always",
+    )
     def has_fluorescence(self) -> bool:
         return True
 
     @property
-    @deprecated(reason="This property is always False and therefore not needed.",
-                version="0.8.0", action="always")
+    @deprecated(
+        reason="This property is always False and therefore not needed.",
+        version="0.8.0",
+        action="always",
+    )
     def has_force(self) -> bool:
         return False
 
@@ -149,7 +162,6 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
 
 class ConfocalImage(BaseScan):
-
     def _ordered_axes(self):
         """Returns axis indices in spatial order"""
         return sorted(self._json["scan volume"]["scan axes"], key=lambda x: x["axis"])
@@ -224,7 +236,7 @@ class ConfocalImage(BaseScan):
 
     @property
     def infowave(self):
-        return self.file["Info wave"]["Info wave"][self.start:self.stop]
+        return self.file["Info wave"]["Info wave"][self.start : self.stop]
 
     @property
     def _shape(self):

@@ -77,7 +77,9 @@ def build_score_matrix(lines, times, coordinates, model, sigma_cutoff):
 
         candidates = np.logical_and(coordinates > cutoff_lb, coordinates < cutoff_ub)
 
-        score_matrix[i, candidates] = -((coordinates[candidates] - mu_t[candidates]) / sigma_t[candidates]) ** 2
+        score_matrix[i, candidates] = -(
+            ((coordinates[candidates] - mu_t[candidates]) / sigma_t[candidates]) ** 2
+        )
 
     return score_matrix
 
@@ -102,6 +104,7 @@ def kymo_score(vel=0, sigma=2, diffusion=0):
     diffusion: float
         diffusion constant.
     """
+
     def prediction_model(t, coordinate, t_prediction):
         return kymo_diff_score(t, coordinate, t_prediction, vel, sigma, np.sqrt(2 * diffusion))
 

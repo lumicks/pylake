@@ -30,9 +30,11 @@ def write_h5(h5_file, output_filename, compression_level=5, omit_data={}):
                     out_file.create_dataset(name, data=node)
                 else:
                     # Numerical data can benefit a lot from compression
-                    out_file.create_dataset(name, data=node, compression="gzip", compression_opts=compression_level)
+                    out_file.create_dataset(
+                        name, data=node, compression="gzip", compression_opts=compression_level
+                    )
             else:
-                out_file.create_group(f'{name}')
+                out_file.create_group(f"{name}")
 
             out_file[name].attrs.update(node.attrs)
 

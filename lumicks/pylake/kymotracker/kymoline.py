@@ -45,14 +45,17 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sam
         store_column("coordinate", "%.18e", [coords_idx * dx])
 
     if sampling_width is not None:
-        store_column(f"counts (summed over {2 * sampling_width + 1} pixels)", "%d",
-                     np.hstack([line.sample_from_image(sampling_width) for line in kymoline_group]))
+        store_column(
+            f"counts (summed over {2 * sampling_width + 1} pixels)",
+            "%d",
+            np.hstack([line.sample_from_image(sampling_width) for line in kymoline_group]),
+        )
 
     data = np.vstack(data).T
     np.savetxt(filename, data, fmt=fmt, header=delimiter.join(header), delimiter=delimiter)
 
 
-def import_kymolinegroup_from_csv(filename, image, delimiter=';'):
+def import_kymolinegroup_from_csv(filename, image, delimiter=";"):
     """Import kymolines from csv
 
     Parameters
@@ -72,12 +75,15 @@ def import_kymolinegroup_from_csv(filename, image, delimiter=';'):
 
     indices = data[:, 0]
     lines = np.unique(indices)
-    return KymoLineGroup([KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines])
+    return KymoLineGroup(
+        [KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines]
+    )
 
 
 class KymoLine:
     """A line on a kymograph"""
-    __slots__ = ['time_idx', 'coordinate_idx', 'image_data']
+
+    __slots__ = ["time_idx", "coordinate_idx", "image_data"]
 
     def __init__(self, time_idx, coordinate_idx, image_data=None):
         self.time_idx = list(time_idx)
@@ -91,15 +97,24 @@ class KymoLine:
 
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""
-        return KymoLine([time_idx + time_offset for time_idx in self.time_idx],
-                        [coordinate_idx + coordinate_offset for coordinate_idx in self.coordinate_idx], self.image_data)
+        return KymoLine(
+            [time_idx + time_offset for time_idx in self.time_idx],
+            [coordinate_idx + coordinate_offset for coordinate_idx in self.coordinate_idx],
+            self.image_data,
+        )
 
     def __add__(self, other):
         """Concatenate two KymoLines"""
-        return KymoLine(self.time_idx + other.time_idx, self.coordinate_idx + other.coordinate_idx, self.image_data)
+        return KymoLine(
+            self.time_idx + other.time_idx,
+            self.coordinate_idx + other.coordinate_idx,
+            self.image_data,
+        )
 
     def __getitem__(self, item):
-        return np.squeeze(np.array(np.vstack((self.time_idx[item], self.coordinate_idx[item]))).transpose())
+        return np.squeeze(
+            np.array(np.vstack((self.time_idx[item], self.coordinate_idx[item]))).transpose()
+        )
 
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
@@ -141,8 +156,14 @@ class KymoLine:
         y_size = self.image_data.shape[1]
 
         # Time and coordinates are being cast to an integer since we use them to index into a data array.
-        return [reduce(self.image_data[max(int(c) - num_pixels, 0):min(int(c) + num_pixels + 1, y_size), int(t)])
-                for t, c in zip(self.time_idx, self.coordinate_idx)]
+        return [
+            reduce(
+                self.image_data[
+                    max(int(c) - num_pixels, 0) : min(int(c) + num_pixels + 1, y_size), int(t)
+                ]
+            )
+            for t, c in zip(self.time_idx, self.coordinate_idx)
+        ]
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
@@ -164,12 +185,20 @@ class KymoLine:
 
         if forward:
             coeffs = np.polyfit(time_idx[-n_estimate:], coordinate_idx[-n_estimate:], 1)
-            return np.array([time_idx[-1] + extrapolation_length,
-                             coordinate_idx[-1] + coeffs[0] * extrapolation_length])
+            return np.array(
+                [
+                    time_idx[-1] + extrapolation_length,
+                    coordinate_idx[-1] + coeffs[0] * extrapolation_length,
+                ]
+            )
         else:
             coeffs = np.polyfit(time_idx[:n_estimate], coordinate_idx[:n_estimate], 1)
-            return np.array([time_idx[0] - extrapolation_length,
-                             coordinate_idx[0] - coeffs[0] * extrapolation_length])
+            return np.array(
+                [
+                    time_idx[0] - extrapolation_length,
+                    coordinate_idx[0] - coeffs[0] * extrapolation_length,
+                ]
+            )
 
     def __len__(self):
         return len(self.coordinate_idx)
@@ -177,6 +206,7 @@ class KymoLine:
 
 class KymoLineGroup:
     """Kymograph lines"""
+
     def __init__(self, kymo_lines):
         self._src = kymo_lines
 
@@ -201,8 +231,9 @@ class KymoLineGroup:
         elif isinstance(other, KymoLine):
             self._src.extend([other])
         else:
-            raise TypeError(f"You can only extend a {self.__class__} with a {self.__class__} or "
-                            f"{KymoLine}")
+            raise TypeError(
+                f"You can only extend a {self.__class__} with a {self.__class__} or " f"{KymoLine}"
+            )
 
     def remove_lines_in_rect(self, rect):
         """Removes traces that fall in a particular region. Note that if any point on a line falls inside the selected
@@ -224,7 +255,7 @@ class KymoLineGroup:
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self._src)})"
 
-    def save(self, filename, dt=None, dx=None, delimiter=';', sampling_width=None):
+    def save(self, filename, dt=None, dx=None, delimiter=";", sampling_width=None):
         """Export kymograph lines to a csv file.
 
         Parameters

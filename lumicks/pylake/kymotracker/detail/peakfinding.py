@@ -22,7 +22,7 @@ def peak_estimate(data, half_width, thresh):
         Threshold for accepting something as a peak.
     """
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
-    data = gaussian_filter(data, [.5, .5])
+    data = gaussian_filter(data, [0.5, 0.5])
     dilated = grey_dilation(data, (dilation_factor, 0))
     dilated[dilated < thresh] = -1
     coordinates, time_points = np.where(data == dilated)
@@ -34,6 +34,7 @@ class KymoPeaks:
 
     class Frame:
         """Stores local maxima found in a kymograph for a single frame."""
+
         def __init__(self, coordinates, time_points, peak_amplitudes):
             self.coordinates = coordinates
             self.time_points = time_points
@@ -51,9 +52,7 @@ class KymoPeaks:
         max_frame = math.ceil(np.max(time_points))
         for current_frame in np.arange(max_frame + 1):
             (in_frame_idx,) = np.where(
-                np.logical_and(
-                    time_points >= current_frame, time_points < current_frame + 1
-                )
+                np.logical_and(time_points >= current_frame, time_points < current_frame + 1)
             )
             self.frames.append(
                 self.Frame(
@@ -75,7 +74,9 @@ class KymoPeaks:
         return coordinates, time_points, peak_amplitudes
 
 
-def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7):
+def refine_peak_based_on_moment(
+    data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7
+):
     """This function adjusts the coordinates estimate by a brightness weighted centroid around the initial estimate.
     This estimate is obtained by filtering the image with a kernel. If a pixel offset has a larger magnitude than 0.5
     then the pixel is moved and the centroid recomputed. The process is repeated until there are no more changes.
@@ -103,13 +104,13 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
     mean_kernel = np.ones((2 * half_kernel_size + 1, 1))
     coordinates = np.copy(coordinates)
 
-    m0 = convolve2d(data, mean_kernel, 'same')
-    subpixel_offset = convolve2d(data, dir_kernel, 'same') / (m0 + eps)
+    m0 = convolve2d(data, mean_kernel, "same")
+    subpixel_offset = convolve2d(data, dir_kernel, "same") / (m0 + eps)
 
     max_coordinates = subpixel_offset.shape[0]
     for iteration in range(max_iter):
         offsets = subpixel_offset[coordinates, time_points]
-        out_of_bounds, = np.nonzero(abs(offsets) > 0.5)
+        (out_of_bounds,) = np.nonzero(abs(offsets) > 0.5)
         coordinates[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(int)
 
         # Edge cases (literally)
@@ -123,7 +124,11 @@ def refine_peak_based_on_moment(data, coordinates, time_points, half_kernel_size
     else:
         raise RuntimeError("Iteration limit exceeded")
 
-    return coordinates + subpixel_offset[coordinates, time_points], time_points, m0[coordinates, time_points]
+    return (
+        coordinates + subpixel_offset[coordinates, time_points],
+        time_points,
+        m0[coordinates, time_points],
+    )
 
 
 def merge_close_peaks(peaks, minimum_distance):
@@ -142,10 +147,13 @@ def merge_close_peaks(peaks, minimum_distance):
     for current_frame in peaks.frames:
         # Sort frame indices by the coordinate
         sort_order = np.argsort(current_frame.coordinates)
-        coordinates, peak_amplitudes = current_frame.coordinates[sort_order], current_frame.peak_amplitudes[sort_order]
+        coordinates, peak_amplitudes = (
+            current_frame.coordinates[sort_order],
+            current_frame.peak_amplitudes[sort_order],
+        )
 
         coordinate_difference = np.diff(coordinates)
-        too_close, = np.where(np.abs(coordinate_difference) < minimum_distance)
+        (too_close,) = np.where(np.abs(coordinate_difference) < minimum_distance)
 
         # If the right peak of the two candidates is smaller than the left one, take that one for removal instead
         right_lower = peak_amplitudes[too_close + 1] < peak_amplitudes[too_close]

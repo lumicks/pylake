@@ -40,7 +40,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
     SUPPORTED_FILE_FORMAT_VERSIONS = [1, 2]
 
     def __init__(self, filename):
-        super().__init__(h5py.File(filename, 'r'))
+        super().__init__(h5py.File(filename, "r"))
         self._check_file_format()
 
     def _check_file_format(self):
@@ -54,11 +54,15 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
         # List of fields which should not be accessed directly from the h5 and their actual API accessors. Note that
         # top level fields are automatically printed when print is invoked.
-        self.redirect_list = OrderedDict([('Calibration', "force1x.calibration"),
-                                          ('Marker', "markers"),
-                                          ('FD Curve', "fdcurves"),
-                                          ('Kymograph', "kymos"),
-                                          ('Scan', "scans")])
+        self.redirect_list = OrderedDict(
+            [
+                ("Calibration", "force1x.calibration"),
+                ("Marker", "markers"),
+                ("FD Curve", "fdcurves"),
+                ("Kymograph", "kymos"),
+                ("Scan", "scans"),
+            ]
+        )
 
     @classmethod
     def from_h5py(cls, h5py_file):
@@ -103,6 +107,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def __str__(self):
         """Show a quick ASCII overview of the file's contents"""
+
         def print_attributes(h5file):
             r = "File root metadata:\n"
             for key, value in sorted(h5file.attrs.items()):
@@ -132,25 +137,59 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
         def print_dicts(field_name):
             field = getattr(self, field_name, None)
-            return f'\n.{field_name}\n' + ''.join(f'  - {key}\n' for key in field.keys()) if field else ''
+            return (
+                f"\n.{field_name}\n" + "".join(f"  - {key}\n" for key in field.keys())
+                if field
+                else ""
+            )
 
         def print_force(field_name):
             field = getattr(self, field_name)
-            calibration = '  .calibration\n' if field.calibration else ''
-            return f'.{field_name}\n{calibration}' if field else ''
+            calibration = "  .calibration\n" if field.calibration else ""
+            return f".{field_name}\n{calibration}" if field else ""
 
-        return print_attributes(self.h5) + "\n" + print_group(self.h5) + \
-            ''.join((print_dicts(field) for field in self.redirect_list.values())) + "\n" + \
-            ''.join((print_force(field) for field in ['force1x', 'force1y', 'force2x', 'force2y',
-                                                      'force3x', 'force3y', 'force4x', 'force4y'])) + "\n" + \
-            ''.join((print_force(field) for field in ['downsampled_force1x', 'downsampled_force1y', 
-                                                      'downsampled_force2x', 'downsampled_force2y',
-                                                      'downsampled_force3x', 'downsampled_force3y', 
-                                                      'downsampled_force4x', 'downsampled_force4y']))
+        return (
+            print_attributes(self.h5)
+            + "\n"
+            + print_group(self.h5)
+            + "".join((print_dicts(field) for field in self.redirect_list.values()))
+            + "\n"
+            + "".join(
+                (
+                    print_force(field)
+                    for field in [
+                        "force1x",
+                        "force1y",
+                        "force2x",
+                        "force2y",
+                        "force3x",
+                        "force3y",
+                        "force4x",
+                        "force4y",
+                    ]
+                )
+            )
+            + "\n"
+            + "".join(
+                (
+                    print_force(field)
+                    for field in [
+                        "downsampled_force1x",
+                        "downsampled_force1y",
+                        "downsampled_force2x",
+                        "downsampled_force2y",
+                        "downsampled_force3x",
+                        "downsampled_force3y",
+                        "downsampled_force4x",
+                        "downsampled_force4y",
+                    ]
+                )
+            )
+        )
 
     def _get_force(self, n, xy):
         """Return a Slice of force measurements, including calibration
-           Note: direct access to HDF dataset does not include calibration data """
+        Note: direct access to HDF dataset does not include calibration data"""
         force_group = self.h5["Force HF"][f"Force {n}{xy}"]
         calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
 
@@ -158,7 +197,7 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
     def _get_downsampled_force(self, n, xy):
         """Return a Slice of low frequency force measurements, including calibration if applicable
-           Note: direct access to HDF dataset does not include calibration data """
+        Note: direct access to HDF dataset does not include calibration data"""
         group = self.h5["Force LF"]
 
         def make(channel):
@@ -180,12 +219,13 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
         # If it's completely missing, we can reconstruct it from the x and y components
         fx = make(f"Force {n}x")
         fy = make(f"Force {n}y")
-        return Slice(TimeSeries(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps),
-                     labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"})
+        return Slice(
+            TimeSeries(np.sqrt(fx.data ** 2 + fy.data ** 2), fx.timestamps),
+            labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"},
+        )
 
     def _get_distance(self, n):
-        return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"],
-                                       r"Distance ($\mu$m)")
+        return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"], r"Distance ($\mu$m)")
 
     def _get_photon_count(self, name):
         return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count")
@@ -203,7 +243,9 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
 
         if field not in self.h5:
             return dict()
-        scan_objects = [(name, try_from_dataset(dset, self)) for name, dset in self.h5[field].items()]
+        scan_objects = [
+            (name, try_from_dataset(dset, self)) for name, dset in self.h5[field].items()
+        ]
         return {name: scan for name, scan in scan_objects if scan is not None}
 
     @property

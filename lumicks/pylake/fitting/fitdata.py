@@ -19,6 +19,7 @@ class FitData:
     transformations : OrderedDict
         set of transformations from internal model parameters to outer parameters
     """
+
     def __init__(self, name, x, y, transformations):
         self.x = np.asarray(x, dtype=np.float64)
         self.y = np.asarray(y, dtype=np.float64)
@@ -37,7 +38,7 @@ class FitData:
 
     @property
     def condition_string(self):
-        return '|'.join(str(x) for x in self.transformations.values())
+        return "|".join(str(x) for x in self.transformations.values())
 
     def get_params(self, params):
         """
@@ -49,8 +50,10 @@ class FitData:
         params : Params
             Fit parameters, typically obtained from a Fit.
         """
-        mapping = OrderedDict((key, params[x]) if isinstance(x, str) else (key, float(x)) for
-                              key, x in self.transformations.items())
+        mapping = OrderedDict(
+            (key, params[x]) if isinstance(x, str) else (key, float(x))
+            for key, x in self.transformations.items()
+        )
         return Params(**mapping)
 
     @property
@@ -71,7 +74,7 @@ class FitData:
         return plt.plot(self.x, self.y, fmt, **kwargs)
 
     def __repr__(self):
-        out_string = f'{self.__class__.__name__}({self.name}, N={len(self.independent)}'
+        out_string = f"{self.__class__.__name__}({self.name}, N={len(self.independent)}"
 
         changes = []
         for i, v in self.transformations.items():
@@ -79,9 +82,9 @@ class FitData:
                 changes.append([i, str(v)])
 
         if len(changes) > 0:
-            out_string += ', Transformations: ' + ', '.join([' → '.join(s) for s in changes])
+            out_string += ", Transformations: " + ", ".join([" → ".join(s) for s in changes])
 
-        return out_string + ')'
+        return out_string + ")"
 
 
 class Condition:
@@ -89,12 +92,16 @@ class Condition:
     This class maintains the linkage between the index-based parameter vectors and matrices for a data-set. It is not
     intended to be a user facing class as working with raw indices is error prone.
     """
+
     def __init__(self, transformations, global_dictionary):
         from copy import deepcopy
+
         self.transformations = deepcopy(transformations)
 
         # Which sensitivities actually need to be exported?
-        self.p_external = np.flatnonzero([True if isinstance(x, str) else False for x in self.transformed])
+        self.p_external = np.flatnonzero(
+            [True if isinstance(x, str) else False for x in self.transformed]
+        )
 
         # p_global_indices contains a list with indices for each parameter that is mapped to the globals
         self._p_global_indices = [global_dictionary.get(key, None) for key in self.transformed]
@@ -117,4 +124,7 @@ class Condition:
     def get_local_params(self, par_global):
         """Grab parameters required to simulate the model from the global parameter vector. Merge in the local
         parameters as well."""
-        return [par_global[a] if a is not None else b for a, b in zip(self._p_global_indices, self.p_local)]
+        return [
+            par_global[a] if a is not None else b
+            for a, b in zip(self._p_global_indices, self.p_local)
+        ]

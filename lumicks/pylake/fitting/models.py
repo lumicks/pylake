@@ -15,7 +15,7 @@ def force_offset(name):
         offset_model_jac,
         offset_model_derivative,
         offset_equation,
-        offset_equation_tex
+        offset_equation_tex,
     )
 
     return Model(
@@ -44,7 +44,7 @@ def distance_offset(name):
         offset_model_jac,
         offset_model_derivative,
         offset_equation,
-        offset_equation_tex
+        offset_equation_tex,
     )
 
     return Model(
@@ -222,7 +222,14 @@ def odijk(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import WLC, WLC_jac, WLC_derivative, WLC_equation, WLC_equation_tex, Defaults
+    from .detail.model_implementation import (
+        WLC,
+        WLC_jac,
+        WLC_derivative,
+        WLC_equation,
+        WLC_equation_tex,
+        Defaults,
+    )
 
     return Model(
         name,
@@ -260,7 +267,7 @@ def inverted_odijk(name):
         invWLC_derivative,
         invWLC_equation,
         invWLC_equation_tex,
-        Defaults
+        Defaults,
     )
 
     return Model(
@@ -294,7 +301,14 @@ def freely_jointed_chain(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import Model
-    from .detail.model_implementation import FJC, FJC_jac, FJC_derivative, FJC_equation, FJC_equation_tex, Defaults
+    from .detail.model_implementation import (
+        FJC,
+        FJC_jac,
+        FJC_derivative,
+        FJC_equation,
+        FJC_equation_tex,
+        Defaults,
+    )
 
     return Model(
         name,
@@ -327,6 +341,7 @@ def inverted_freely_jointed_chain(name):
         Name for the model. This name will be prefixed to the model parameter names.
     """
     from .model import InverseModel
+
     return InverseModel(freely_jointed_chain(name))
 
 
@@ -352,7 +367,7 @@ def twistable_wlc(name):
         tWLC_derivative,
         tWLC_equation,
         tWLC_equation_tex,
-        Defaults
+        Defaults,
     )
 
     return Model(
@@ -397,7 +412,7 @@ def inverted_twistable_wlc(name):
         invtWLC_jac,
         invtWLC_equation,
         invtWLC_equation_tex,
-        Defaults
+        Defaults,
     )
 
     return Model(

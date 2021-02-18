@@ -16,7 +16,8 @@ class ImageMetadata:
         When omitted, assumed to be identical to pixel_size_x
     pixel_time : float
         How long does pixel acquisition take [ms]
-    """""
+    """
+
     def __init__(self, pixel_size_x=1.0, pixel_size_y=None, pixel_time=1.0):
         self._pixel_time = pixel_time
         self._pixel_size_x = pixel_size_x
@@ -52,7 +53,7 @@ class ImageMetadata:
     def metadata(self):
         """Dictionary with metadata"""
         pixel_time = self._pixel_time * 1e-3  # ms => s
-        return {'PixelTime': pixel_time, 'PixelTimeUnit': 's'}
+        return {"PixelTime": pixel_time, "PixelTimeUnit": "s"}
 
 
 class InfowaveCode(enum.IntEnum):
@@ -129,7 +130,7 @@ def seek_timestamp_next_line(infowave):
     time = time[valid_idx]
 
     # Fetch start of pixels
-    pixel_ends, = np.where(infowave == InfowaveCode.pixel_boundary)
+    (pixel_ends,) = np.where(infowave == InfowaveCode.pixel_boundary)
     pixel_start = time[pixel_ends[:-1] + 1]
 
     # Determine pixel times
@@ -160,13 +161,13 @@ def reshape_reconstructed_image(pixels, shape):
         The shape of the image ([optional: pixels on slow axis], pixels on fast axis)
     """
     resized_pixels = np.zeros(round_up(pixels.size, np.prod(shape)))
-    resized_pixels[:pixels.size] = pixels
+    resized_pixels[: pixels.size] = pixels
     return resized_pixels.reshape(-1, *shape)
 
 
 def reconstruct_image_sum(data, infowave, shape):
     """Rapidly reconstruct a scan or kymograph image from raw data summing pixels where the infowave equates to 1.
-    See reconstruct_image for more information. 
+    See reconstruct_image for more information.
     *NOTE*: this function should not be used to reconstruct timestamps as the result will overflow.
 
     Parameters
@@ -216,9 +217,10 @@ def reconstruct_image(data, infowave, shape, reduce=np.sum):
     # But for now we assume that every pixel consists of the same number of samples
     pixel_size = np.argmax(subset) + 1
     resized_data = np.zeros(round_up(subset.size, pixel_size))
-    resized_data[:subset.size] = data[valid_idx]
+    resized_data[: subset.size] = data[valid_idx]
     pixels = reduce(resized_data.reshape(-1, pixel_size), axis=1)
     return reshape_reconstructed_image(pixels, shape)
+
 
 def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
     """Save an RGB `image` to TIFF
@@ -242,29 +244,34 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
 
     info = np.finfo(dtype) if np.dtype(dtype).kind == "f" else np.iinfo(dtype)
     if not clip and (np.min(image) < info.min or np.max(image) > info.max):
-        raise RuntimeError(f"Can't safely export image with `dtype={dtype.__name__}` channels."
-                           f" Switch to a larger `dtype` in order to safely store everything"
-                           f" or pass `force=True` to clip the data.")
+        raise RuntimeError(
+            f"Can't safely export image with `dtype={dtype.__name__}` channels."
+            f" Switch to a larger `dtype` in order to safely store everything"
+            f" or pass `force=True` to clip the data."
+        )
 
-    tifffile.imsave(filename, image.astype(dtype), resolution=metadata.resolution,
-                    metadata=metadata.metadata)
+    tifffile.imsave(
+        filename, image.astype(dtype), resolution=metadata.resolution, metadata=metadata.metadata
+    )
 
 
 def histogram_rows(image, pixels_per_bin, pixel_width):
-        bin_width = pixels_per_bin * pixel_width # in physical units
-        n_rows = image.shape[0]
-        if pixels_per_bin > n_rows:
-            raise ValueError("bin size is larger than the available pixels")
+    bin_width = pixels_per_bin * pixel_width  # in physical units
+    n_rows = image.shape[0]
+    if pixels_per_bin > n_rows:
+        raise ValueError("bin size is larger than the available pixels")
 
-        n_bins = n_rows // pixels_per_bin
-        remainder = n_rows % pixels_per_bin
-        if remainder != 0:
-            warnings.warn(f"{n_rows} pixels is not divisible by {pixels_per_bin}, final bin only contains {remainder} pixels")
-            pad = np.zeros((pixels_per_bin-remainder, image.shape[1]))
-            image = np.vstack((image, pad))
-            n_bins += 1
+    n_bins = n_rows // pixels_per_bin
+    remainder = n_rows % pixels_per_bin
+    if remainder != 0:
+        warnings.warn(
+            f"{n_rows} pixels is not divisible by {pixels_per_bin}, final bin only contains {remainder} pixels"
+        )
+        pad = np.zeros((pixels_per_bin - remainder, image.shape[1]))
+        image = np.vstack((image, pad))
+        n_bins += 1
 
-        counts = image.reshape((n_bins, -1)).sum(axis=1)
-        edges = np.arange(n_bins) * bin_width
-        widths = np.diff(np.hstack((edges, n_rows*pixel_width)))
-        return edges, counts, widths
+    counts = image.reshape((n_bins, -1)).sum(axis=1)
+    edges = np.arange(n_bins) * bin_width
+    widths = np.diff(np.hstack((edges, n_rows * pixel_width)))
+    return edges, counts, widths
