@@ -1,21 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 from copy import copy
-
-
-def block_reduce(data, n_blocks, reduce=np.mean):
-    """Calculates the block average of a dataset.
-
-    For an array ``A`` of length ``N``, returns an array ``B`` of length
-    ``M``, where each element of ``B`` is the average of ``q`` neighboring
-    elements. ``q`` is equal to ``floor(N/M)``. This implies that if ``N*q``
-    is not exactly equal to ``M``, the last partially complete window is
-    thrown away by this function.
-    """
-    block_size = math.floor(data.size / n_blocks)
-    length = block_size * n_blocks
-    return reduce(np.reshape(data[:length], (-1, block_size)), axis=1)
+from lumicks.pylake.detail.utilities import downsample
 
 
 class PowerSpectrum:
@@ -62,17 +48,12 @@ class PowerSpectrum:
         """"Returns a representation of the PowerSpectrum suitable for serialization"""
         return {"f": self.f.tolist(), "P": self.P.tolist()}
 
-    def block_averaged(self, num_blocks=2000):
-        """Returns a block-averaged power spectrum.
-
-        See Also
-        --------
-        block_average
-        """
+    def downsampled_by(self, factor, reduce=np.mean):
+        """Returns a spectrum downsampled by a given factor."""
         ba = copy(self)
-        ba.f = block_reduce(self.f, num_blocks)
-        ba.P = block_reduce(self.P, num_blocks)
-        ba.num_points_per_block = self.num_points_per_block * math.floor(self.P.size / num_blocks)
+        ba.f = downsample(self.f, factor, reduce)
+        ba.P = downsample(self.P, factor, reduce)
+        ba.num_points_per_block = self.num_points_per_block * factor
 
         return ba
 

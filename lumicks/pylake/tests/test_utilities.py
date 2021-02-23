@@ -1,4 +1,4 @@
-from lumicks.pylake.detail.utilities import first, unique, get_color, lighten_color, find_contiguous
+from lumicks.pylake.detail.utilities import *
 import pytest
 import matplotlib as mpl
 import numpy as np
@@ -69,3 +69,17 @@ def test_find_contiguous():
     assert np.all(np.equal(ranges, [[5, 10]]))
     assert np.all(np.equal(lengths, [5]))
     check_blocks_are_true(mask, ranges)
+
+
+@pytest.mark.parametrize(
+    "data,factor,avg,std",
+    [
+        [np.arange(10), 2, [0.5, 2.5, 4.5, 6.5, 8.5], [0.5, 0.5, 0.5, 0.5, 0.5]],
+        [np.arange(0, 10, 2), 1, [0.0, 2.0, 4.0, 6.0, 8.0], [0.0, 0.0, 0.0, 0.0, 0.0]],
+        [np.arange(0, 10, 2), 2, [1.0, 5.0], [1.0, 1.0]],
+        [np.arange(0, 11, 2), 2, [1.0, 5.0, 9.0], [1.0, 1.0, 1.0]],
+    ],
+)
+def test_downsample(data, factor, avg, std):
+    assert np.allclose(avg, downsample(data, factor, reduce=np.mean))
+    assert np.allclose(std, downsample(data, factor, reduce=np.std))

@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from lumicks.pylake.force_calibration.detail.power_models import *
 from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
 
@@ -59,7 +58,7 @@ def test_fit_analytic(reference_models, corner_frequency, diffusion_constant, nu
     fit_range = (0, 15000)
     ps = PowerSpectrum(data, sample_rate=len(data))
     ps = ps.in_range(*fit_range)
-    ps = ps.block_averaged(num_blocks=ps.P.size // num_points_per_block)
+    ps = ps.downsampled_by(num_points_per_block)
 
     fit = fit_analytical_lorentzian(ps.in_range(1e1, 1e4))
 
