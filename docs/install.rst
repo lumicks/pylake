@@ -280,14 +280,6 @@ You can activate an environment by invoking `conda activate <environment name>`,
 If you have already activated the correct environment, but you still don't see `pip` being sourced from there then you can install it into this environment by invoking `conda install pip`.
 
 
-Troubleshooting
----------------
-
-If you run into any errors after installation, try updating all conda packages to the latest versions using the following command::
-
-    conda update --all
-
-
 Frequently asked questions
 --------------------------
 
