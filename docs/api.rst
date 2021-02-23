@@ -18,6 +18,18 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     correlated_stack.CorrelatedStack
 
 
+Force calibration
+-----------------
+
+.. autosummary::
+    :toctree: _api
+
+
+    calculate_power_spectrum
+    fit_power_spectrum
+    PassiveCalibrationModel
+
+
 FD Fitting
 ----------
 

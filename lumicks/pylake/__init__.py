@@ -19,6 +19,11 @@ from .nb_widgets.range_selector import FdRangeSelector, FdDistanceRangeSelector
 from .kymotracker.kymotracker import *
 from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from .fdensemble import FdEnsemble
+from .force_calibration.calibration_models import PassiveCalibrationModel
+from .force_calibration.power_spectrum_calibration import (
+    calculate_power_spectrum,
+    fit_power_spectrum,
+)
 
 
 def pytest(args=None, plugins=None):

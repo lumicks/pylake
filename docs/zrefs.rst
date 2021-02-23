@@ -1,6 +1,11 @@
 This page lists references used for implementing specific functionality into Pylake. Please see below for more
 information on these topics.
 
+Force Calibration
+-----------------
+
+The passive force calibration method was based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2006power`.
+
 F,d Fitting
 -----------
 

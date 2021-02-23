@@ -30,3 +30,4 @@ These import conventions are used consistently in the tutorial.
     fdfitting
     nbwidgets
     kymotracking
+    force_calibration
