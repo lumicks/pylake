@@ -33,17 +33,17 @@ def test_input_validation_power_spectrum_calibration():
 
     # Wrong dimensions
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([[1, 2, 3], [1, 2, 3]]), sampling_rate=78125, model=model)
+        psc.fit_power_spectrum(data=np.array([[1, 2, 3], [1, 2, 3]]), sample_rate=78125, model=model)
 
     # Wrong type
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data="bloop", sampling_rate=78125, model=model)
+        psc.fit_power_spectrum(data="bloop", sample_rate=78125, model=model)
 
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, model="invalid")
+        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sample_rate=78125, model="invalid")
 
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sampling_rate=78125, model=model, settings="invalid")
+        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sample_rate=78125, model=model, settings="invalid")
 
 
 def test_calibration_result():
@@ -127,7 +127,7 @@ def reference_calibration_result():
     data = np.load(os.path.join(os.path.dirname(__file__), "reference_spectrum.npz"))
     reference_spectrum = data["arr_0"]
     model = PassiveCalibrationModel(4.4, temperature=20, viscosity=0.001002)
-    reference_spectrum = psc.calculate_power_spectrum(reference_spectrum, sampling_rate=78125,
+    reference_spectrum = psc.calculate_power_spectrum(reference_spectrum, sample_rate=78125,
                                                       num_points_per_block=100,
                                                       fit_range=(100.0, 23000.0))
     ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum, model=model)

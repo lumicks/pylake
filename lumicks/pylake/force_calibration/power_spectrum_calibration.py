@@ -131,7 +131,7 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
         A good initial value for the parameter `f_diode`, for fitting the full
         power spectrum.
     """
-    f_nyquist = ps.sampling_rate / 2
+    f_nyquist = ps.sample_rate / 2
     P_aliased_nyq = (guess_D / (2 * math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
     if ps.P[-1] < P_aliased_nyq:
         dif = ps.P[-1] / P_aliased_nyq
@@ -140,14 +140,14 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
         return 2 * f_nyquist
 
 
-def calculate_power_spectrum(data, sampling_rate, fit_range=(1e2, 23e3), num_points_per_block=350):
+def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350):
     """Compute power spectrum.
 
     Parameters
     ----------
     data : np.array
         Data used for calibration.
-    sampling_rate : float
+    sample_rate : float
         Sampling rate [Hz]
     fit_range : tuple (f_min, f_max), optional
         Tuple of two floats, indicating the frequency range to use for the
@@ -158,7 +158,7 @@ def calculate_power_spectrum(data, sampling_rate, fit_range=(1e2, 23e3), num_poi
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
-    power_spectrum = PowerSpectrum(data, sampling_rate)
+    power_spectrum = PowerSpectrum(data, sample_rate)
     power_spectrum = power_spectrum.in_range(*fit_range)
     power_spectrum = power_spectrum.block_averaged(
         num_blocks=power_spectrum.P.size // num_points_per_block
@@ -274,7 +274,7 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
                 "Number of points per block", power_spectrum.num_points_per_block, "-"
             ),
             "Sample rate (Hz)": CalibrationParameter(
-                "Sample rate", power_spectrum.sampling_rate, "Hz"
+                "Sample rate", power_spectrum.sample_rate, "Hz"
             ),
         },
     )

@@ -27,20 +27,20 @@ class PowerSpectrum:
         Frequency values for the power spectrum. [Hz]
     P : numpy.ndarray
         Power values for the power spectrum (typically in V^2/s).
-    sampling_rate : float
+    sample_rate : float
         The sampling rate for the original data. [Hz]
     total_duration : float
         The total duration of the original data. [seconds]
     """
 
-    def __init__(self, data, sampling_rate, unit="V"):
+    def __init__(self, data, sample_rate, unit="V"):
         """Power spectrum
 
         Parameters
         ----------
         data : numpy.ndarray
             Data from which to calculate a power spectrum.
-        sampling_rate : float
+        sample_rate : float
             Sampling rate at which this data was acquired.
         unit : str
             Units the data is in (default: V).
@@ -50,12 +50,12 @@ class PowerSpectrum:
 
         # Calculate power spectrum.
         fft = np.fft.rfft(data)
-        self.f = np.fft.rfftfreq(data.size, 1.0 / sampling_rate)
-        self.P = (1.0 / sampling_rate) * np.square(np.abs(fft)) / data.size
+        self.f = np.fft.rfftfreq(data.size, 1.0 / sample_rate)
+        self.P = (1.0 / sample_rate) * np.square(np.abs(fft)) / data.size
 
         # Store metadata
-        self.sampling_rate = sampling_rate
-        self.total_duration = data.size / sampling_rate
+        self.sample_rate = sample_rate
+        self.total_duration = data.size / sample_rate
         self.num_points_per_block = 1
 
     def as_dict(self):

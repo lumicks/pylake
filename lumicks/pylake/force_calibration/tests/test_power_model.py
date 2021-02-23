@@ -57,7 +57,7 @@ def test_fit_analytic(reference_models, corner_frequency, diffusion_constant, nu
 
     num_points_per_block = 20
     fit_range = (0, 15000)
-    ps = PowerSpectrum(data, sampling_rate=len(data))
+    ps = PowerSpectrum(data, sample_rate=len(data))
     ps = ps.in_range(*fit_range)
     ps = ps.block_averaged(num_blocks=ps.P.size // num_points_per_block)
 
