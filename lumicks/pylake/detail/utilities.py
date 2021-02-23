@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import math
 
 
 def first(iterable, condition=lambda x: True):
@@ -44,3 +45,27 @@ def find_contiguous(mask):
     ranges = np.argwhere(change_points == 1).reshape(-1, 2)
     run_lengths = np.diff(ranges, axis=1).squeeze()
     return ranges, np.atleast_1d(run_lengths)
+
+
+def downsample(data, factor, reduce):
+    """This function is used to downsample data in blocks of size `factor`.
+
+    This function downsamples blocks of size `factor` using the function specified in reduce. If
+    there are insufficient points to fill a final block, this last block is discarded.
+
+    Parameters
+    ----------
+    data : array_like
+        Input data
+    factor : int
+        Factor to downsample by
+    reduce : callable
+        Function to use for reducing the data
+    """
+
+    def round_down(size, n):
+        """Round down `size` to the nearest multiple of `n`"""
+        return int(math.floor(size / n)) * n
+
+    data = data[: round_down(data.size, factor)]
+    return reduce(data.reshape(-1, factor), axis=1)

@@ -153,16 +153,14 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
         Tuple of two floats, indicating the frequency range to use for the
         full model fit. Default: (1e2, 23e3) [Hz]
     num_points_per_block : int, optional
-        The spectrum is first block averaged with approximately this number of points per block.
+        The spectrum is first block averaged by this number of points per block.
         Default: 350.
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
     power_spectrum = PowerSpectrum(data, sample_rate)
     power_spectrum = power_spectrum.in_range(*fit_range)
-    power_spectrum = power_spectrum.block_averaged(
-        num_blocks=power_spectrum.P.size // num_points_per_block
-    )
+    power_spectrum = power_spectrum.downsampled_by(num_points_per_block)
     return power_spectrum
 
 

@@ -1,6 +1,6 @@
-import math
 import numpy as np
 
+from .detail.utilities import downsample
 from .detail.timeindex import to_timestamp
 from .calibration import ForceCalibration
 from lumicks.pylake.nb_widgets.range_selector import SliceRangeSelectorWidget
@@ -328,15 +328,6 @@ class Slice:
         return SliceRangeSelectorWidget(self, show=show)
 
 
-def _downsample(data, factor, reduce):
-    def round_down(size, n):
-        """Round down `size` to the nearest multiple of `n`"""
-        return int(math.floor(size / n)) * n
-
-    data = data[: round_down(data.size, factor)]
-    return reduce(data.reshape(-1, factor), axis=1)
-
-
 class Continuous:
     """A source of continuous data for a timeline slice
 
@@ -402,7 +393,7 @@ class Continuous:
 
     def downsampled_by(self, factor, reduce):
         return self.__class__(
-            _downsample(self.data, factor, reduce),
+            downsample(self.data, factor, reduce),
             start=self.start + self.dt * (factor - 1) // 2,
             dt=self.dt * factor,
         )
