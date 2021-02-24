@@ -51,6 +51,22 @@ def test_calibration_result():
         psc.CalibrationResults(invalid=5)
 
 
+def test_compatibility_mode():
+    d = np.arange(0.0, 50.0, 1.0)
+    spectrum = psc.calculate_power_spectrum(
+        d, 4000, fit_range=(0, np.inf), num_points_per_block=7, compatibility_mode=False
+    )
+    spectrum_compat = psc.calculate_power_spectrum(
+        d, 4000, fit_range=(0, np.inf), num_points_per_block=7, compatibility_mode=True
+    )
+
+    # Despite actually having been downsampled with different ratios, they seemingly have the same
+    # down-sampling ratio.
+    assert np.allclose(spectrum.P, [0.17201502, 0.00841408, 0.00392077])
+    assert np.allclose(spectrum_compat.P, [0.15219624, 0.00682399, 0.00347977])
+    assert np.allclose(spectrum.num_points_per_block, spectrum_compat.num_points_per_block)
+
+
 @pytest.mark.parametrize(
     "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,temperature,err_fc,err_d,"
     "err_f_diode,err_alpha,",
