@@ -140,7 +140,8 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
         return 2 * f_nyquist
 
 
-def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350):
+def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350,
+                             compatibility_mode=False):
     """Compute power spectrum.
 
     Parameters
@@ -155,12 +156,30 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
     num_points_per_block : int, optional
         The spectrum is first block averaged by this number of points per block.
         Default: 350.
+    compatibility_mode : bool
+        The force calibration routine used in Bluelake 1.6.x and older had a bug which resulted in
+        a different downsampling factor being used than specified, but then using the wrong
+        downsampling factor in subsequent computations (leading to a slightly different weighting
+        of the data when calibrating). Enabling this flag computes a Power Spectrum which has the
+        same error when used for calibration. Note that this difference only resulted in small
+        deviations (starting from the third significant digit of most calibration properties for
+        a typical calibration spectrum). The only parameter that was largely effect was the
+        `chi_squared_per_deg`, which could be about 20% off.
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
+
     power_spectrum = PowerSpectrum(data, sample_rate)
     power_spectrum = power_spectrum.in_range(*fit_range)
-    power_spectrum = power_spectrum.downsampled_by(num_points_per_block)
+
+    if compatibility_mode:
+        # The original code ended up applying the following rounding to the down-sampling
+        factor = power_spectrum.f.size // (power_spectrum.f.size // num_points_per_block)
+        power_spectrum = power_spectrum.downsampled_by(factor)
+        power_spectrum.num_points_per_block = num_points_per_block  # Different actual factor!
+    else:
+        power_spectrum = power_spectrum.downsampled_by(num_points_per_block)
+
     return power_spectrum
 
 
