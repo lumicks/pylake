@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.2 | t.b.d.
+
+* Fixed bug in kymotracker which could result in a line being extended one pixel too far in either direction. Reason for the bug was that a blurring step in the peak-finding routine was being applied on both axes, while it should have only been applied to one axis. Note that while this bug affects peak detection (finding one too many), it should not affect peak localization as that is performed in a separate step.
+
 ## v0.8.1 | 2021-02-17
 
 #### New features
