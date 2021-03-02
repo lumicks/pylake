@@ -22,7 +22,7 @@ def peak_estimate(data, half_width, thresh):
         Threshold for accepting something as a peak.
     """
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
-    data = gaussian_filter(data, [0.5, 0.5])
+    data = gaussian_filter(data, [0.5, 0])
     dilated = grey_dilation(data, (dilation_factor, 0))
     dilated[dilated < thresh] = -1
     coordinates, time_points = np.where(data == dilated)

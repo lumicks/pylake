@@ -18,6 +18,18 @@ def test_peak_estimation(location):
     assert np.abs(peaks.frames[0].coordinates[0] - location) < 1e-3
 
 
+def test_regression_peak_estimation():
+    # This test tests a regression where a peak could be found adjacent to a very bright structure.
+    # The error originated from the blurring used to get rid of pixelation noise being applied
+    # in two directions rather than only one.
+    data = np.array([[0, 0, 0, 0, 0],
+                     [255, 255, 255, 0, 0],
+                     [0, 0, 0, 0, 0]])
+
+    position, time = peak_estimate(data, 1, thresh=10)
+    assert len(position) == 3
+
+
 def test_kymopeaks():
     # First time frame we choose the right one first, then the second one. Second time frame vice versa.
     coordinates = np.array([3.2, 4.1, 6.4, 8.2])
