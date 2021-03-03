@@ -31,3 +31,4 @@ These import conventions are used consistently in the tutorial.
     nbwidgets
     kymotracking
     force_calibration
+    population_dynamics

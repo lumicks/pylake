@@ -84,3 +84,11 @@ Notebook widgets
     FdRangeSelector
     nb_widgets.fd_selector.SliceRangeSelector
     nb_widgets.fd_selector.FdRangeSelectorWidget
+
+Population Dynamics
+-------------------
+
+.. autosummary::
+    :toctree: _api
+
+    GaussianMixtureModel
