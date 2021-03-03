@@ -61,6 +61,7 @@ setup(
         "ipywidgets>=7.0.0",
         "cachetools>=3.1",
         "deprecated>=1.2.8",
+        "scikit-learn>=0.18.0",
     ],
     zip_safe=False,
 )

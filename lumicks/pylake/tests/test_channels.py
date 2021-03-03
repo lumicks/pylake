@@ -363,8 +363,8 @@ def test_seconds_property():
 
     s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [40e9, 41e9, 42e9, 43e9]))
     np.testing.assert_allclose(s.seconds, [0, 1, 2, 3])
-    
-    
+
+
 def test_continuous_downsampling_to():
     # Continuous
     d = np.arange(1, 24)
