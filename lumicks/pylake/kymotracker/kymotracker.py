@@ -120,7 +120,7 @@ def track_greedy(
 
     # Note that this deliberately refers to the original data, not the tracked subset!
     for line in lines:
-        line.image_data = data
+        line._image_data = data
 
     return KymoLineGroup(
         [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
@@ -192,7 +192,7 @@ def track_lines(
 
     # Note that this deliberately refers to the original data, not the tracked subset!
     for line in lines:
-        line.image_data = data
+        line._image_data = data
 
     return KymoLineGroup(
         [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
