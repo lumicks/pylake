@@ -1,11 +1,9 @@
-import json
 import numpy as np
 import warnings
+import cachetools
 
 from .detail.confocal import ConfocalImage
 from .detail.image import (
-    reconstruct_image_sum,
-    reconstruct_image,
     line_timestamps_image,
     seek_timestamp_next_line,
     histogram_rows,
@@ -45,12 +43,7 @@ class Kymo(ConfocalImage):
         stop = self.stop if item.stop is None else item.stop
         start, stop = (to_timestamp(v, self.start, self.stop) for v in (start, stop))
 
-        timestamps = self.infowave.timestamps
-        line_timestamps = line_timestamps_image(
-            timestamps, self.infowave.data, self.pixels_per_line
-        )
-        line_timestamps = np.append(line_timestamps, timestamps[-1])
-
+        line_timestamps = self._line_start_timestamps()
         i_min = np.searchsorted(line_timestamps, start, side="left")
         i_max = np.searchsorted(line_timestamps, stop, side="left")
 
@@ -71,7 +64,17 @@ class Kymo(ConfocalImage):
 
         return Kymo(self.name, self.file, start, stop, self._json)
 
-    def _fix_incorrect_start(self):  # , timeline_start, timeline_dt):
+    @cachetools.cachedmethod(lambda self: self._cache)
+    def _line_start_timestamps(self):
+        """Compute starting timestamp of each line (first DAQ sample corresponding to that line),
+        not the first pixel timestamp."""
+        timestamps = self.infowave.timestamps
+        line_timestamps = line_timestamps_image(
+            timestamps, self.infowave.data, self.pixels_per_line
+        )
+        return np.append(line_timestamps, timestamps[-1])
+
+    def _fix_incorrect_start(self):
         """Resolve error when confocal scan starts before the timeline information.
         For kymographs this is recoverable by omitting the first line."""
         self.start = seek_timestamp_next_line(self.infowave[self.start :])

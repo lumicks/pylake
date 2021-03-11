@@ -114,10 +114,8 @@ def line_timestamps_image(time_stamps, infowave, pixels_per_line):
     pixels_per_line : int
         The number of pixels on the fast axis of the scan.
     """
-    pixel_start_idx = np.flatnonzero(infowave == InfowaveCode.pixel_boundary)
-    pixel_start_idx = np.concatenate(([0], pixel_start_idx + 1))
-
-    return time_stamps[pixel_start_idx[0:-1:pixels_per_line]]
+    min_stamps = reconstruct_image(time_stamps, infowave, shape=(pixels_per_line,), reduce=np.min)
+    return min_stamps.astype(np.int64)[:, 0]
 
 
 def seek_timestamp_next_line(infowave):
