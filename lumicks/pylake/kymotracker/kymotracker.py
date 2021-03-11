@@ -1,3 +1,4 @@
+from lumicks.pylake.detail.calibrated_images import CalibratedKymographChannel
 from .detail.peakfinding import (
     peak_estimate,
     refine_peak_based_on_moment,
@@ -8,32 +9,27 @@ from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
 from .kymoline import KymoLineGroup
 import numpy as np
+import warnings
 
 __all__ = ["track_greedy", "track_lines", "filter_lines", "refine_lines_centroid"]
 
 
-def _get_rect(data, rect):
-    ((t0, p0), (t1, p1)) = rect
-
-    if p0 > data.shape[0]:
-        raise IndexError(
-            f"Specified minimum position {p0} beyond the valid coordinate range {data.shape[0]}"
+def upconvert(image):
+    if isinstance(image, np.ndarray):
+        warnings.warn(
+            DeprecationWarning(
+                "Using raw numpy arrays with the kymotracker is "
+                "deprecated. Please use a channel obtained from a "
+                'Kymo (i.e. kymo.get_channel("red"))'
+            )
         )
-
-    if t0 > data.shape[1]:
-        raise IndexError(f"Specified minimum time {t0} beyond the time range {data.shape[1]}")
-
-    if t0 >= t1:
-        raise IndexError("Please specify rectangle from minimum time to maximum time")
-
-    if p0 >= p1:
-        raise IndexError("Please specify rectangle from minimum position to maximum position")
-
-    return data[p0:p1, t0:t1]
+        return CalibratedKymographChannel.from_array(image)
+    else:
+        return image
 
 
 def track_greedy(
-    data,
+    kymograph_channel,
     line_width,
     pixel_threshold,
     window=8,
@@ -61,8 +57,8 @@ def track_greedy(
 
     Parameters
     ----------
-    data : array_like
-        N by M image containing a single color channel.
+    kymograph_channel : lumicks.pylake.detail.calibrated_images.CalibratedKymographChannel
+        Calibrated kymograph image containing a single color channel.
     line_width : float
         Expected line width in pixels.
     pixel_threshold : float
@@ -96,7 +92,11 @@ def track_greedy(
     automated quantitative analysis of molecular and cellular dynamics using kymographs. Molecular biology of the
     cell, 27(12), 1948-1957.
     """
-    data_selection = _get_rect(data, rect) if rect else data
+    kymograph_channel = upconvert(
+        kymograph_channel
+    )  # Convert ndarray to calibrated image if needed
+
+    data_selection = kymograph_channel._get_rect(rect) if rect else kymograph_channel.data
 
     sigma = sigma if sigma else 0.5 * line_width
     coordinates, time_points = peak_estimate(
@@ -114,13 +114,10 @@ def track_greedy(
     lines = points_to_line_segments(
         peaks,
         kymo_score(vel=vel, sigma=sigma, diffusion=diffusion),
+        kymograph_channel=kymograph_channel,
         window=window,
         sigma_cutoff=sigma_cutoff,
     )
-
-    # Note that this deliberately refers to the original data, not the tracked subset!
-    for line in lines:
-        line._image_data = data
 
     return KymoLineGroup(
         [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
@@ -128,7 +125,7 @@ def track_greedy(
 
 
 def track_lines(
-    data,
+    channel,
     line_width,
     max_lines,
     start_threshold=0.005,
@@ -157,8 +154,8 @@ def track_lines(
 
     Parameters
     ----------
-    data : array_like
-        N by M image containing a single color channel.
+    channel : lumicks.pylake.detail.calibrated_images.CalibratedKymographChannel
+        N by M image containing a single kymograph color channel.
     line_width : float
         Expected line width in pixels.
     max_lines : int
@@ -179,20 +176,18 @@ def track_lines(
     [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on pattern analysis and
     machine intelligence, 20(2), 113-125.
     """
+    channel = upconvert(channel)  # Convert ndarray to calibrated image if needed
 
     lines = detect_lines(
-        _get_rect(data, rect) if rect else data,
+        channel._get_rect(rect) if rect else channel.data,
         line_width,
+        kymograph_channel=channel,
         max_lines=max_lines,
         start_threshold=start_threshold,
         continuation_threshold=continuation_threshold,
         angle_weight=angle_weight,
         force_dir=1,
     )
-
-    # Note that this deliberately refers to the original data, not the tracked subset!
-    for line in lines:
-        line._image_data = data
 
     return KymoLineGroup(
         [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
@@ -235,7 +230,7 @@ def refine_lines_centroid(lines, line_width):
     ).astype(int)
 
     coordinate_idx, time_idx, _ = refine_peak_based_on_moment(
-        interpolated_lines[0].image_data, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
+        interpolated_lines[0]._image.data, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
     )
 
     current = 0

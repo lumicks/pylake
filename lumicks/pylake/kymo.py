@@ -3,6 +3,7 @@ import warnings
 import cachetools
 
 from .detail.confocal import ConfocalImage
+from .detail.calibrated_images import CalibratedKymographChannel
 from .detail.image import (
     line_timestamps_image,
     seek_timestamp_next_line,
@@ -96,6 +97,7 @@ class Kymo(ConfocalImage):
     def line_time_seconds(self):
         """Line time in seconds"""
         if self.timestamps.shape[1] > 1:
+            # TODO: Assert on non-unique line times
             return (self.timestamps[0, 1] - self.timestamps[0, 0]) / 1e9
         else:
             raise RuntimeError("Line time is not defined for kymograph with only a single line")
@@ -237,6 +239,10 @@ class Kymo(ConfocalImage):
         ax_hist.set_ylabel("counts")
         ax_hist.set_title(self.name)
 
+    def get_channel(self, channel):
+        """Fetch a calibrated Kymograph channel"""
+        return CalibratedKymographChannel.from_kymo(self, channel)
+
 
 class EmptyKymo(Kymo):
     def plot_rgb(self):
@@ -259,3 +265,7 @@ class EmptyKymo(Kymo):
     @property
     def blue_image(self):
         return self._image()
+
+    def get_channel(self, channel):
+        """Fetch a calibrated Kymograph channel"""
+        return CalibratedKymographChannel.from_kymo(self, channel)

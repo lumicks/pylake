@@ -31,21 +31,22 @@ First, we need to get an image to perform the tracing on. Let's grab a kymograph
     file = lk.File('kymograph.h5')
     name, kymo = file.kymos.popitem()
 
-We can extract the image data with one of the `_image` commands::
+We can extract a channel with the `get_channel` command::
 
-    data = kymo.green_image
+    green_channel = kymo.get_channel("green")
 
 Let's have a look at what it looks like::
 
-    plt.imshow(data, aspect="auto", vmax=5)
+    green_channel.plot(aspect="auto", vmax=5)
 
 .. image:: kymo_unscaled.png
 
 What we also see is that we can clearly see the bead edges in the kymograph. Let's only take a subsection of the
-kymograph, to make sure that we don't get any spurious line detections that come from the bead edges. We only use the
-70th to the 220th pixel.
+kymograph, to make sure that we don't get any spurious line detections that come from the bead edges. Let's only
+use the region from 7 to 22 micrometer. Let's have a look at what that looks like::
 
-    >>> data = data[70:220, :]
+    >>> green_channel.plot(aspect="auto", vmax=5)
+    >>> plt.ylim([22, 7])
 
 If we zoom in a bit, we can see that our traces in this image are about 3 pixels wide, so let's set this as our
 `line_width`. Note that we invoked `plt.colorbar()` to add a little color legend here.
@@ -53,33 +54,35 @@ If we zoom in a bit, we can see that our traces in this image are about 3 pixels
 .. image:: kymo_zoom.png
 
 The peaks have an intensity of about 3-7 photon counts, whereas the background fluctuates around 0-2. Let's set our
-`pixel_threshold` to 3. We also see that sometimes, a particle momentarily disappears. To still connect these in a
-single trace, we want to allow for some gaps in the connection step. Let's use a `window` size of 6 in this test.
+`pixel_threshold` to 4. We also see that sometimes, a particle momentarily disappears. To still connect these in a
+single trace, we want to allow for some gaps in the connection step. Let's use a `window` size of 9 in this test.
+Considering that we only want to run the kymotracker on part of the image, we also pass the rect argument, which defines a rectangle over which to track peaks.
+In this case, we track particles between 0 and 350 seconds, and 7 and 22 micron.
 Running the algorithm is easy using the function :func:`~lumicks.pylake.track_greedy`::
 
-    traces = lk.track_greedy(data, line_width=3, pixel_threshold=3, window=6)
+    traces = lk.track_greedy(green_channel, line_width=3, pixel_threshold=3, window=6, rect=[[0, 7], [350, 22]])
 
 The result of tracking is a list of kymograph traces::
 
     >>> print(len(traces))  # the number of traces found in the kymo
-    745
+    7411
 
 Sometimes, we can have very short spurious traces. To remove these from the list of detected traces we can use
 :func:`~lumicks.pylake.filter_lines`. To omit all traces with fewer than 4 detected points, we
 can invoke::
 
-    >>> traces = lk.filter_lines(traces, 3)
+    >>> traces = lk.filter_lines(traces, 4)
 
-We can get the determined time and coordinate indices of these traces from the `time_idx` and `coordinate_idx`
+We can get the determined time and coordinate indices of these traces from the `time` and `coordinate`
 attributes. Let's plot the first trace::
 
-    plt.plot(traces[0].time_idx, traces[0].coordinate_idx)
+    plt.plot(traces[0].time, traces[0].coordinate)
 
 Plotting all the detected traces is also quite easy by iterating over the list of traces::
 
-    plt.imshow(data, aspect="auto", vmax=5)
+    green_channel.plot(aspect="auto")
     for trace in traces:
-        plt.plot(trace.time_idx, trace.coordinate_idx)
+        plt.plot(trace.time, trace.coordinate)
 
 .. image:: kymotracked.png
 
@@ -92,13 +95,13 @@ line refinement and plot the longest trace::
 
     longest_trace_idx = np.argmax([len(trace) for trace in traces])  # Get the longest trace
 
-    refined = lk.refine_lines_centroid(traces, line_width=3)
+    refined = lk.refine_lines_centroid(traces, line_width=4)
 
-    plt.plot(refined[longest_index].time_idx, refined[longest_index].coordinate_idx, '.')
-    plt.plot(traces[longest_index].time_idx, traces[longest_index].coordinate_idx, '.')
+    plt.plot(refined[longest_trace_idx].time, refined[longest_trace_idx].coordinate, '.')
+    plt.plot(traces[longest_trace_idx].time, traces[longest_trace_idx].coordinate, '.')
     plt.legend(["Post refinement", "Pre-refinement"])
-    plt.ylabel('Position [pixels]')
-    plt.xlabel('Time [pixels]')
+    plt.ylabel('Position [um]')
+    plt.xlabel('Time [s]')
 
 .. image:: kymo_refine.png
 
@@ -108,11 +111,6 @@ the same `line_width`.
 Fortunately, the signal to noise level in this kymograph is quite good. In practice, when the signal to noise is lower,
 one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
 an acceptable result.
-
-Note that the determined time and coordinates of the traces and coordinates are defined in pixels and therefore need to
-be converted to actual time and position using the line time and pixel size of the kymograph. We can get the time
-between frames directly from the kymograph as :attr:`.Kymo.line_time_seconds` and the pixel size as
-:attr:`.Kymo.pixelsize_um`. This allows conversion from pixels back to position.
 
 Using the kymotracker widget
 ----------------------------
@@ -158,7 +156,7 @@ if we want to sum the pixels in a 9 pixel area around the longest kymograph trac
     plt.figure()
     longest_trace_idx = np.argmax([len(trace) for trace in traces])
     longest_trace = traces[longest_trace_idx]
-    plt.plot(np.array(longest_trace.time_idx) * kymo.line_time_seconds, longest_trace.sample_from_image(num_pixels=5))
+    plt.plot(np.array(longest_trace.time), longest_trace.sample_from_image(num_pixels=5))
     plt.xlabel('Time [s]')
     plt.ylabel('Summed signal')
 
@@ -175,10 +173,10 @@ Exporting kymograph traces to `csv` files is easy. Just invoke `save` on the ret
 
     traces.save("traces.csv")
 
-By default, this saves the kymograph in pixel coordinates. We can also save calibrated coordinates and photon counts by
-passing a calibration factor for the x-axis and y-axis and a width in pixels to sum counts over::
+By default, this saves the kymograph in pixel coordinates. We can also save photon counts by
+passing a width in pixels to sum counts over::
 
-    traces.save("traces_calibrated.csv", dt=kymo.line_time_seconds, dx=kymo.pixelsize_um, sampling_width=3)
+    traces.save("traces_calibrated.csv", sampling_width=3)
 
 
 How the algorithms work

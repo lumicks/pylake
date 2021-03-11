@@ -61,6 +61,7 @@ setup(
         "ipywidgets>=7.0.0",
         "cachetools>=3.1",
         "deprecated>=1.2.8",
+        "scikit-image>=0.17.2",
     ],
     zip_safe=False,
 )

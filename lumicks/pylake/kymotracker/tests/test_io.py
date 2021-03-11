@@ -1,3 +1,4 @@
+from lumicks.pylake.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup, import_kymolinegroup_from_csv
 import numpy as np
 import pytest
@@ -5,8 +6,10 @@ import pytest
 
 @pytest.fixture(scope="session")
 def kymolinegroup_io_data():
-    test_img = np.zeros((8, 8))
+    test_data = np.zeros((8, 8))
 
+    test_img = CalibratedKymographChannel("test", data=test_data, start=100e9, time_step=100e9,
+                                          calibration=2)
     k1 = KymoLine([1, 2, 3], [2, 3, 4], test_img)
     k2 = KymoLine([2, 3, 4], [3, 4, 5], test_img)
     k3 = KymoLine([3, 4, 5], [4, 5, 6], test_img)
@@ -14,8 +17,8 @@ def kymolinegroup_io_data():
     lines = KymoLineGroup([k1, k2, k3, k4])
 
     for k in lines:
-        test_img[k.coordinate_idx, k.time_idx] = 2
-        test_img[np.array(k.coordinate_idx) - 1, k.time_idx] = 1
+        test_data[k.coordinate_idx, k.time_idx] = 2
+        test_data[np.array(k.coordinate_idx) - 1, k.time_idx] = 1
 
     return test_img, lines
 

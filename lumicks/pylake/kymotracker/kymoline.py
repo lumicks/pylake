@@ -62,8 +62,8 @@ def import_kymolinegroup_from_csv(filename, image, delimiter=";"):
     ----------
     filename : str
         filename to import from
-    image : array_like
-        2D image that these lines were tracked from
+    image : CalibratedKymographChannel
+        Calibrated 2D kymograph channel that these lines were tracked from
     delimiter : str
         A delimiter that delimits the column data.
 
@@ -83,33 +83,37 @@ def import_kymolinegroup_from_csv(filename, image, delimiter=";"):
 class KymoLine:
     """A line on a kymograph"""
 
-    __slots__ = ["time_idx", "coordinate_idx", "_image_data"]
+    __slots__ = ["time_idx", "coordinate_idx", "_image"]
 
-    def __init__(self, time_idx, coordinate_idx, image_data=None):
+    def __init__(self, time_idx, coordinate_idx, image):
         """A kymograph line.
 
         time_idx : array_like
-            List of time indices.
+            List of time indices [pixels].
         coordinate_idx : array_like
-            List of coordinate indices.
-        image_data : array_like
-            Raw image data.
+            List of coordinate indices [pixels].
+        image : CalibratedKymographChannel
+            Calibrated image data.
         """
         self.time_idx = list(time_idx)
         self.coordinate_idx = list(coordinate_idx)
-        self._image_data = image_data
+        self._image = image
 
     def append(self, time_idx, coordinate_idx):
-        """Append time, coordinate pair to the KymoLine"""
+        """Append time [pixels], coordinate pair [pixels] to the KymoLine"""
         self.time_idx.append(time_idx)
         self.coordinate_idx.append(coordinate_idx)
 
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""
+        # Convert from image units to pixels
+        time_offset = self._image.from_seconds(time_offset)
+        coordinate_offset = self._image.from_coord(coordinate_offset)
+
         return KymoLine(
             [time_idx + time_offset for time_idx in self.time_idx],
             [coordinate_idx + coordinate_offset for coordinate_idx in self.coordinate_idx],
-            self._image_data
+            self._image,
         )
 
     def __add__(self, other):
@@ -117,7 +121,7 @@ class KymoLine:
         return KymoLine(
             self.time_idx + other.time_idx,
             self.coordinate_idx + other.coordinate_idx,
-            self._image_data,
+            self._image,
         )
 
     def __getitem__(self, item):
@@ -125,17 +129,26 @@ class KymoLine:
             np.array(np.vstack((self.time_idx[item], self.coordinate_idx[item]))).transpose()
         )
 
+    @property
+    def time(self):
+        return [self._image.to_seconds(t) for t in self.time_idx]
+
+    @property
+    def coordinate(self):
+        return [self._image.to_coord(t) for t in self.coordinate_idx]
+
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
 
         Parameters
         ----------
         rect : Tuple[Tuple[float, float], Tuple[float, float]]
-            Only perform tracking over a subset of the image. Pixel coordinates should be given as:
+            Only perform tracking over a subset of the image. Coordinates should be given as:
             ((min_time, min_coord), (max_time, max_coord)).
         """
-        time_idx = np.array(self.time_idx)
-        coordinate_idx = np.array(self.coordinate_idx)
+        time_idx = np.array([self._image.from_seconds(t) for t in self.time_idx])
+        coordinate_idx = np.array([self._image.from_coord(c) for c in self.coordinate_idx])
+
         time_match = np.logical_and(time_idx < rect[1][0], time_idx >= rect[0][0])
         coord_match = np.logical_and(coordinate_idx < rect[1][1], coordinate_idx >= rect[0][1])
         return np.any(np.logical_and(time_match, coord_match))
@@ -144,7 +157,7 @@ class KymoLine:
         """Interpolate Kymoline to whole pixel values"""
         interpolated_time = np.arange(int(np.min(self.time_idx)), int(np.max(self.time_idx)) + 1, 1)
         interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
-        return KymoLine(interpolated_time, interpolated_coord, self._image_data)
+        return KymoLine(interpolated_time, interpolated_coord, self._image)
 
     def sample_from_image(self, num_pixels, reduce=np.sum):
         """Sample from image using coordinates from this KymoLine.
@@ -159,15 +172,12 @@ class KymoLine:
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
         """
-        if self._image_data is None:
-            raise RuntimeError("No image data associated with this KymoLine")
-
-        y_size = self._image_data.shape[1]
+        y_size = self._image.data.shape[1]
 
         # Time and coordinates are being cast to an integer since we use them to index into a data array.
         return [
             reduce(
-                self._image_data[
+                self._image.data[
                     max(int(c) - num_pixels, 0) : min(int(c) + num_pixels + 1, y_size), int(t)
                 ]
             )
@@ -245,8 +255,8 @@ class KymoLineGroup:
             )
 
     def remove_lines_in_rect(self, rect):
-        """Removes traces that fall in a particular region. Note that if any point on a line falls inside the selected
-        region it will be removed.
+        """Removes traces that fall in a particular region. Note that if any point on a line falls
+        inside the selected region it will be removed.
 
         Parameters
         ----------

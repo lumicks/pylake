@@ -190,6 +190,7 @@ def traverse_line(
     candidate_generator,
     angle_weight,
     force_dir,
+    kymograph_channel,
 ):
     """Traverse a line in both directions."""
     indices_fwd = _traverse_line_direction(
@@ -219,7 +220,7 @@ def traverse_line(
     line = np.array(indices_bwd + indices_fwd[1:])
 
     if len(line) > 0:
-        return KymoLine(time_idx=line[:, 1], coordinate_idx=line[:, 0])
+        return KymoLine(time_idx=line[:, 1], coordinate_idx=line[:, 0], image=kymograph_channel)
 
 
 def detect_lines_from_geometry(
@@ -231,25 +232,28 @@ def detect_lines_from_geometry(
     max_lines,
     angle_weight,
     force_dir,
+    kymograph_channel,
 ):
     """Detect lines from precomputed geometry data.
 
-    The precomputed geometry data contains the magnitude of the second image derivative in the direction of largest
-    change masked by pixels that are deemed to be a potential line center by the fact that they have their subpixel
-    location in the range [-.5, .5] for both coordinates (see geometry_2d/find_subpixel_location for more information
-    on how this is done). It also contains the normals to the potential line. The algorithm then traverses the line
-    along the direction perpendicular to the normal vector. At each point, it will generate three candidates for a
-    potential next move. If there is more than one valid candidate, a score comprised of the distance to the next
-    subpixel minimum and angle between the successive normal vectors is computed. The candidate with the lowest score
-    is then selected.
+    The precomputed geometry data contains the magnitude of the second image derivative in the
+    direction of largest change masked by pixels that are deemed to be a potential line center by
+    the fact that they have their subpixel location in the range [-.5, .5] for both coordinates
+    (see geometry_2d/find_subpixel_location for more information on how this is done). It also
+    contains the normals to the potential line. The algorithm then traverses the line along the
+    direction perpendicular to the normal vector. At each point, it will generate three candidates
+    for a potential next move. If there is more than one valid candidate, a score comprised of the
+    distance to the next subpixel minimum and angle between the successive normal vectors is
+    computed. The candidate with the lowest score is then selected.
 
-    As the algorithm progresses, it mutates the array masked_derivative along the way (marking seen pixels to avoid
-    them from being tagged again).
+    As the algorithm progresses, it mutates the array masked_derivative along the way (marking seen
+    pixels to avoid them from being tagged again).
 
     Parameters
     ----------
     masked_derivative: array_like
-        Image containing the second derivative masked by whether a point is a peak or not. Note: this array is mutated.
+        Image containing the second derivative masked by whether a point is a peak or not.
+        Note: this array is mutated.
     positions: array_like
         NxMx2 array containing subpixel coordinates of the peak within this pixel.
     normals: array_like
@@ -261,10 +265,13 @@ def detect_lines_from_geometry(
     max_lines: integer
         After how many lines should we terminate.
     angle_weight: float
-        Factor which determines how the angle between normals needs to be weighted relative to distance.
-        High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference
+        Factor which determines how the angle between normals needs to be weighted relative to
+        distance. High values push for straighter lines. Weighting occurs according to
+        distance + angle_weight * angle difference
     force_dir: bool
         Do not allow lines to backtrack in time.
+    kymograph_channel : lumicks.pylake.detail.calibrated_images.CalibratedKymographChannel
+        Kymograph channel that is being traced (KymoLine keeps a reference to the calibrated image).
     """
 
     def to_absolute_threshold(filtered_image, threshold):
@@ -294,9 +301,18 @@ def detect_lines_from_geometry(
         if masked_derivative[idx[0], idx[1]] >= thresh or len(lines) > max_lines:
             break
 
-        # Traverse the line. Note that traverse_line modifies the masked_derivative image by marking some as seen.
+        # Traverse the line. Note that traverse_line modifies the masked_derivative image by
+        # marking some as seen.
         line = traverse_line(
-            idx, masked_derivative, positions, normals, proceed, candidates, angle_weight, force_dir
+            idx,
+            masked_derivative,
+            positions,
+            normals,
+            proceed,
+            candidates,
+            angle_weight,
+            force_dir,
+            kymograph_channel,
         )
 
         if line:
@@ -308,18 +324,20 @@ def detect_lines_from_geometry(
 def detect_lines(
     data,
     line_width,
+    kymograph_channel,
     start_threshold=0.5,
     continuation_threshold=0.1,
     max_lines=200,
     angle_weight=10.0,
     force_dir=False,
 ):
-    """Detect lines in an image, based on Steger at al, "An unbiased detector of curvilinear structures".
+    """Detect lines in an image, based on Steger at al, "An unbiased detector of curvilinear
+    structures".
 
-    data: np_array
-        Image data.
+    kymograph_channel: np_array
+        Calibrated image data.
     line_width: float
-        Expected line width of the lines we are looking for.
+        Expected line width of the lines we are looking for [pixels].
     start_threshold: float
         Relative threshold to start tracing a candidate line. Must be between 0 and 1 (default: .5).
     continuation_threshold: float
@@ -327,13 +345,14 @@ def detect_lines(
     max_lines: integer
         Maximum number of lines to detect (default: 200).
     angle_weight: float
-        Factor which determines how the angle between normals needs to be weighted relative to distance.
-        High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference.
+        Factor which determines how the angle between normals needs to be weighted relative to
+        distance. High values push for straighter lines. Weighting occurs according to
+        distance + angle_weight * angle difference.
     force_dir: bool
         Do not allow lines to backtrack in time.
     """
-    # See Steger et al, "An unbiased detector of curvilinear structures. IEEE Transactions on Pattern Analysis and
-    # Machine Intelligence, 20(2), pp.113–125. for a motivation of this scale.
+    # See Steger et al, "An unbiased detector of curvilinear structures. IEEE Transactions on
+    # Pattern Analysis and Machine Intelligence, 20(2), pp.113–125. for a motivation of this scale.
     sig_x = line_width / (2.0 * np.sqrt(3)) + 0.5
     sig_y = sig_x
 
@@ -352,6 +371,7 @@ def detect_lines(
         max_lines,
         angle_weight,
         force_dir,
+        kymograph_channel,
     )
 
 
@@ -361,7 +381,7 @@ def append_next_point(line, frame, score_fun):
 
     Parameters
     ----------
-    line : pylake.kymotracker.trace_line_2d.KymoLine
+    line : pylake.kymotracker.kymoline.KymoLine
     frame : KymoPeaks.kymotracker.peakfinding.KymoPeaks.Frame
     score_fun : callable
         Function which takes a list of N lines and M points (in the form of candidate_times and candidate_coordinates)
@@ -389,7 +409,7 @@ def extend_line(line, peaks, window, score_fun):
 
     Parameters
     ----------
-    line : pylake.kymotracker.trace_line_2d.KymoLine
+    line : pylake.kymotracker.kymoline.KymoLine
         Contains the line currently being traced.
     peaks : KymoPeaks.kymotracker.peakfinding.KymoPeaks
         Contains all the peak data.
@@ -409,25 +429,29 @@ def extend_line(line, peaks, window, score_fun):
             break
 
 
-def points_to_line_segments(peaks, prediction_model, window=10, sigma_cutoff=2):
+def points_to_line_segments(peaks, prediction_model, kymograph_channel, window=10, sigma_cutoff=2):
     """Starts from a list of coordinates and attempts to string them together.
 
         For each frame:
-        - All points that haven't been assigned yet are considered line starts. We start a line at point with the
-          highest signal.
+        - All points that haven't been assigned yet are considered line starts. We start a line at
+        point with the highest signal.
         - For each line:
-          - We check whether we can extend the line to the next frame by connecting it to the most likely next point.
-          - If we cannot find a point that is sufficiently likely, we iteratively try the next N window frames.
-          - If we've exhausted the maximum number of window frames to look ahead, we terminate the line.
+          - We check whether we can extend the line to the next frame by connecting it to the most
+            likely next point.
+          - If we cannot find a point that is sufficiently likely, we iteratively try the next N
+            window frames.
+          - If we've exhausted the maximum number of window frames to look ahead, we terminate the
+            line.
         - When there are no more line starts, go to the next frame.
 
-    Which point to connect to is determined by considering a prediction model. This prediction model returns a mu and
-    sigma that describes a Gaussian curve which reflects the probability of finding a particle in a certain area
-    on a future frame. In addition to a maximum window (maximum number of frames that a particle is expected to be able
-    to disappear), there is also a sigma_cutoff parameter. This parameter controls the width of the cone in which
-    particles may be accepted. Setting this value to two (meaning two sigma), means you'd accept the most optimal point
-    falling within two sigma or 95.45% of the mean of the prediction. The lower this value, the fewer points you'll
-    accept and the narrower you expect lines to be.
+    Which point to connect to is determined by considering a prediction model. This prediction model
+    returns a mu and sigma that describes a Gaussian curve which reflects the probability of finding
+    a particle in a certain area on a future frame. In addition to a maximum window (maximum number
+    of frames that a particle is expected to be able to disappear), there is also a sigma_cutoff
+    parameter. This parameter controls the width of the cone in which particles may be accepted.
+    Setting this value to two (meaning two sigma), means you'd accept the most optimal point falling
+    within two sigma or 95.45% of the mean of the prediction. The lower this value, the fewer points
+    you'll accept and the narrower you expect lines to be.
 
     Parameters
     ----------
@@ -435,6 +459,8 @@ def points_to_line_segments(peaks, prediction_model, window=10, sigma_cutoff=2):
         peaks identified as potential lines.
     window: int
         How many frames can a particle disappear before we assume it isn't the same line.
+    kymograph_channel : lumicks.pylake.detail.calibrated_images.CalibratedKymographChannel
+        Kymograph channel that is being traced (KymoLine keeps a reference to the calibrated image).
     sigma_cutoff: float
         sigma cutoff points for the classification on whether it could belong to the same line.
     prediction_model : callable
@@ -453,7 +479,9 @@ def points_to_line_segments(peaks, prediction_model, window=10, sigma_cutoff=2):
         for starting_point in np.argsort(-frame.peak_amplitudes * frame.unassigned):
             if frame.unassigned[starting_point]:
                 line = KymoLine(
-                    [frame.time_points[starting_point]], [frame.coordinates[starting_point]]
+                    [frame.time_points[starting_point]],
+                    [frame.coordinates[starting_point]],
+                    kymograph_channel,
                 )
                 frame.unassigned[starting_point] = False
 
