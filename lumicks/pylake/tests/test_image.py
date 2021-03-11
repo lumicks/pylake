@@ -32,17 +32,19 @@ def test_metadata_from_json():
     assert image_metadata.metadata['PixelTimeUnit'] == 's'
 
 
-def test_timestamps_image():
-    infowave = np.array([0, 1, 0, 1, 1, 0, 2, 1, 0, 1,  0,  0,  1,  2,  1,  1,  1, 2])
-    time = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+@pytest.mark.parametrize("num_lines, pixels_per_line, pad_size", [(5, 3, 3), (5, 4, 2), (4, 7, 5)])
+def test_timestamps_image(num_lines, pixels_per_line, pad_size):
+    line_info_wave = np.tile(np.array([1, 1, 2], dtype=np.int32), (pixels_per_line, ))
+    line_selector = np.zeros(line_info_wave.shape)
+    line_selector[0] = True
+    pad = np.zeros(pad_size, dtype=np.int32)
+    infowave = np.hstack([np.hstack([pad, line_info_wave, pad]) for _ in np.arange(num_lines)])
+    start_indices = np.hstack([np.hstack([pad, line_selector, pad]) for _ in np.arange(num_lines)])
+    time = np.arange(len(infowave), dtype=np.int64) + 100
 
-    line_stamps = line_timestamps_image(time, infowave, 5)
-    assert line_stamps.shape == (1,)
-    assert np.all(line_stamps == [1])
-
-    line_stamps = line_timestamps_image(time, infowave, 2)
-    assert line_stamps.shape == (2,)
-    assert np.all(line_stamps == [1, 15])
+    line_stamps = line_timestamps_image(time, infowave, pixels_per_line)
+    assert line_stamps.shape == (sum(start_indices), )
+    assert np.all(np.allclose(line_stamps, time[start_indices == 1]))
 
 
 def test_reconstruct():
