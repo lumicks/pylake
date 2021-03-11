@@ -2,6 +2,7 @@ import re
 import numpy as np
 from lumicks import pylake
 import pytest
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymo import EmptyKymo
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
@@ -266,3 +267,30 @@ def test_downsampled_kymo():
 
     # Verify that we can pass a different reduce function
     assert np.allclose(kymo.downsampled_by(2, reduce=np.mean).red_image, ds / 2)
+
+
+def test_calibrated_channels():
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0],
+            [0, 0, 0, 0, 0],
+            [12, 0, 0, 0, 12],
+            [0, 12, 12, 12, 0],
+        ],
+        dtype=np.uint8,
+    )
+
+    kymo = generate_kymo(
+        "Mock",
+        image,
+        pixel_size_nm=7e3,
+        start=int(4e9),
+        dt=int(3e9),
+        samples_per_pixel=5,
+        line_padding=2
+    )
+
+    calibrated_channel = CalibratedKymographChannel.from_kymo(kymo, "red")
+    assert np.allclose(calibrated_channel.data, image)
+    assert np.allclose(calibrated_channel.time_step, kymo.line_time_seconds * int(1e9))
+    assert np.allclose(calibrated_channel._pixel_size, kymo.pixelsize_um[0])
