@@ -46,7 +46,7 @@ For an even lower-level look at data, the raw photon count samples can be access
 There are also several properties available for convenient access to the scan metadata:
 
 * `scan.center_point_um` provides a dictionary of the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field of view
-* `scan.scan_width_um` provides a list of scan widths in micrometers along the axes of the scan
+* `scan.size_um` provides a list of scan sizes in micrometers along the axes of the scan
 * `scan.pixelsize_um` provides the pixel size in micrometers
 * `scan.lines_per_frame` provides the number scanned lines in each frame (number of rows in the raw data array)
 * `scan.pixels_per_line` provides the number of pixels in each line of the scan (number of columns in the raw data array)

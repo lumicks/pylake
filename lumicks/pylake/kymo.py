@@ -103,7 +103,7 @@ class Kymo(ConfocalImage):
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        width_um = self.scan_width_um[0]
+        size_um = self.size_um[0]
         ts = self.timestamps
         duration = (ts[0, -1] - ts[0, 0]) / 1e9
         linetime = (ts[0, 1] - ts[0, 0]) / 1e9
@@ -111,8 +111,8 @@ class Kymo(ConfocalImage):
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             # pixel center aligned with mean time per line
-            extent=[-0.5 * linetime, duration + 0.5 * linetime, width_um, 0],
-            aspect=(image.shape[0] / image.shape[1]) * (duration / width_um),
+            extent=[-0.5 * linetime, duration + 0.5 * linetime, size_um, 0],
+            aspect=(image.shape[0] / image.shape[1]) * (duration / size_um),
         )
 
         plt.imshow(image, **{**default_kwargs, **kwargs})

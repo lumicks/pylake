@@ -197,7 +197,7 @@ def h5_file(tmpdir_factory, request):
                             "num of pixels": 5,
                             "pixel size (nm)": 10,
                             "scan time (ms)": 0,
-                            "scan width (um)": 5 * 0.010
+                            "scan width (um)": 5 * 0.010 + .5
                         }
                     ]
                 }
@@ -246,7 +246,7 @@ def h5_file(tmpdir_factory, request):
                                 "num of pixels": n_pixels_1,
                                 "pixel size (nm)": 191,
                                 "scan time (ms)": 0,
-                                "scan width (um)": .191 * n_pixels_1
+                                "scan width (um)": .191 * n_pixels_1 + .5
                             },
                             {
                                 "axis": axis_2,
@@ -254,7 +254,7 @@ def h5_file(tmpdir_factory, request):
                                 "num of pixels": n_pixels_2,
                                 "pixel size (nm)": 197,
                                 "scan time (ms)": 0,
-                                "scan width (um)": .197 * n_pixels_2
+                                "scan width (um)": .197 * n_pixels_2 + .5
                             }
                         ]
                     }
@@ -353,7 +353,7 @@ def h5_file_missing_meta(tmpdir_factory, request):
                                 "num of pixels": n_pixels_1,
                                 "pixel size (nm)": 191,
                                 "scan time (ms)": 0,
-                                "scan width (um)": .191 * n_pixels_1
+                                "scan width (um)": .191 * n_pixels_1 + .5
                             },
                             {
                                 "axis": axis_2,
@@ -361,7 +361,7 @@ def h5_file_missing_meta(tmpdir_factory, request):
                                 "num of pixels": n_pixels_2,
                                 "pixel size (nm)": 197,
                                 "scan time (ms)": 0,
-                                "scan width (um)": .197 * n_pixels_2
+                                "scan width (um)": .197 * n_pixels_2 + .5
                             }
                         ]
                     }
