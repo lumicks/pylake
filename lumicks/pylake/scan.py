@@ -100,7 +100,7 @@ class Scan(ConfocalImage):
         if self.num_frames != 1:
             image = image[frame - 1]
 
-        x_um, y_um = self.scan_width_um
+        x_um, y_um = self.size_um
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],

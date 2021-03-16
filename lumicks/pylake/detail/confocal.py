@@ -265,12 +265,33 @@ class ConfocalImage(BaseScan):
 
     @property
     def pixelsize_um(self):
-        """Returns a `List` of axes dimensions in um. The length of the list corresponds to the number of scan axes."""
+        """Returns a `List` of axes dimensions in um. The length of the list corresponds to the
+        number of scan axes."""
         return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
 
     @property
+    def size_um(self):
+        """Returns a `List` of scan sizes in um along axes. The length of the list corresponds to
+        the number of scan axes."""
+        return [
+            axes["pixel size (nm)"] * axes["num of pixels"] / 1000 for axes in self._ordered_axes()
+        ]
+
+    @property
+    @deprecated(
+        reason=(
+            "The property `scan_width_um` has been deprecated. Use `size_um` to get the actual "
+            "size of the scan. When performing a scan, Bluelake determines an appropriate scan "
+            "width based on the desired pixel size and the desired scan width. This means that the "
+            "size of the performed scan could deviate from the width provided in this property."
+        ),
+        action="always",
+        version="0.8.2",
+    )
     def scan_width_um(self):
-        """Returns a `List` of scan widths in um along axes. The length of the list corresponds to the number of scan axes."""
+        """Returns a `List` of scan widths as configured in the Bluelake UI. The length of the list
+        corresponds to the number of scan axes. Note that these widths can deviate from the actual
+        scan widths performed in practice"""
         return [axes["scan width (um)"] for axes in self._ordered_axes()]
 
     @property

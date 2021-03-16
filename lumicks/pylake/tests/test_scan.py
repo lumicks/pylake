@@ -38,7 +38,9 @@ def test_scans(h5_file):
         assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
         assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
         assert np.allclose(scan.center_point_um["z"], 0)
-        assert np.allclose(scan.scan_width_um, [0.197*5, 0.191*4])
+        assert np.allclose(scan.size_um, [0.197*5, 0.191*4])
+        with pytest.warns(DeprecationWarning):
+            assert np.allclose(scan.scan_width_um, [[0.197*5 + .5, 0.191*4 + .5]])
 
         with pytest.raises(NotImplementedError):
             scan["1s":"2s"]
@@ -68,7 +70,7 @@ def test_scans(h5_file):
         assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
         assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
         assert np.allclose(scan.center_point_um["z"], 0)
-        assert np.allclose(scan.scan_width_um, [0.197*3, 0.191*4])
+        assert np.allclose(scan.size_um, [0.197*3, 0.191*4])
 
         scan = f.scans["fast X slow Z multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
@@ -96,7 +98,7 @@ def test_scans(h5_file):
         assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
         assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
         assert np.allclose(scan.center_point_um["z"], 0)
-        assert np.allclose(scan.scan_width_um, [0.191*4, 0.197*3])
+        assert np.allclose(scan.size_um, [0.191*4, 0.197*3])
 
         scan = f.scans["fast Y slow Z multiframe"]
         reference_timestamps2 = np.zeros((2, 4, 3))
@@ -124,7 +126,7 @@ def test_scans(h5_file):
         assert np.allclose(scan.center_point_um["x"], 58.075877109272604)
         assert np.allclose(scan.center_point_um["y"], 31.978375270573267)
         assert np.allclose(scan.center_point_um["z"], 0)
-        assert np.allclose(scan.scan_width_um, [0.191*4, 0.197*3])
+        assert np.allclose(scan.size_um, [0.191*4, 0.197*3])
 
 
 def test_damaged_scan(h5_file):

@@ -43,7 +43,7 @@ For example, one can plot the region of the kymograph between 175 and 180 second
 There are also several properties available for convenient access to the kymograph metadata:
 
 * `kymo.center_point_um` provides a dictionary of the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field of view
-* `kymo.scan_width_um` provides a list of scan widths in micrometers along the axes of the scan
+* `kymo.size_um` provides a list of scan sizes in micrometers along the axes of the scan
 * `kymo.pixelsize_um` provides the pixel size in micrometers
 * `kymo.pixels_per_line` provides the number of pixels in each line of the kymograph
 * `kymo.fast_axis` provides the axis that was scanned (x or y)
