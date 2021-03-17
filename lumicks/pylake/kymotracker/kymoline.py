@@ -1,4 +1,5 @@
 import numpy as np
+from ..population.kinetics import ExponentialDistribution
 
 
 def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sampling_width):
@@ -273,3 +274,9 @@ class KymoLineGroup:
             with the image. The value indicates the number of pixels in either direction to sum over.
         """
         export_kymolinegroup_to_csv(filename, self._src, dt, dx, delimiter, sampling_width)
+
+    def estimate_off_rate(self):
+        """Estimate the off rate from an exponential distribution of binding times."""
+        dwells = np.hstack([line.time_idx[-1] - line.time_idx[0] for line in self])
+        # TODO: t_min = line time
+        return ExponentialDistribution(dwells)
