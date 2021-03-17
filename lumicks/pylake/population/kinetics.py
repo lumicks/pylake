@@ -5,8 +5,8 @@ from .detail.random import draw_bootstrap_indices
 
 def exponential_mle(t, t_min=0):
     """Maximum likelihood estimate of scale parameter (tau)
-       corrected for minimum observation time.
-       Return rate parameter (k = 1/tau)."""
+    corrected for minimum observation time.
+    Return rate parameter (k = 1/tau)."""
     tau = np.mean(t) - t_min
     return 1 / tau
 
@@ -69,5 +69,3 @@ class ExponentialDistribution:
         t = np.linspace(bins[0] + step / 2, bins[-1] - step / 2, 300)
         plt.hist(self._data, bins=bins, density=True, **hist_kwargs)
         plt.plot(t, self.pdf(t), **plot_kwargs)
-
-        plt.show()
