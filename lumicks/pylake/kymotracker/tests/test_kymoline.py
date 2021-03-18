@@ -2,6 +2,8 @@ import pytest
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import *
 from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
+import matplotlib.pyplot as plt
+from matplotlib.testing.decorators import cleanup
 
 
 def test_kymo_line():
@@ -55,8 +57,8 @@ def test_kymoline_selection_non_unit_calibration():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
 
     time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
-    assert not KymoLine(time, pos, channel).in_rect(((4, 6*5), (6, 7*5)))
-    assert KymoLine(time, pos, channel).in_rect(((4, 6*5), (6, 8*5)))
+    assert not KymoLine(time, pos, channel).in_rect(((4, 6 * 5), (6, 7 * 5)))
+    assert KymoLine(time, pos, channel).in_rect(((4, 6 * 5), (6, 8 * 5)))
 
 
 def test_kymoline_from_kymolinedata():
@@ -157,3 +159,73 @@ def test_kymoline_concat():
     group._concatenate_lines(k1, k2)
     assert np.allclose(group[0].seconds, [1, 2, 3, 6, 7, 8])
     assert np.allclose(group[1].seconds, [3, 4, 5])
+
+
+@pytest.mark.parametrize(
+    "time_scale, position_scale",
+    [
+        (1, 1),
+        (2, 1),
+        (1, 2),
+        (1, 0.5),
+    ],
+)
+def test_msd_api(time_scale, position_scale):
+    # Tests whether the calibrations from the image are picked up correctly through the API
+    time_idx = np.arange(25) * 4
+    position_idx = np.arange(25.0) * 2.0
+
+    # What we do is we apply the scaling to the indices used in the KymoLine construction. If we
+    # define the calibration as exactly the opposite of this, we should get no change.
+    image = CalibratedKymographChannel(
+        "test", np.array([[]]), int(1e9 / time_scale), 1.0 / position_scale
+    )
+    k = KymoLine(time_scale * time_idx, position_scale * position_idx, image=image)
+
+    lags, msd = k.msd()
+    assert np.allclose(lags, time_idx[1:])
+    assert np.allclose(msd, position_idx[1:] ** 2)
+
+    lags, msd = k.msd(max_lag=4)
+    assert np.allclose(lags, time_idx[1:5])
+    assert np.allclose(msd, position_idx[1:5] ** 2)
+
+
+@pytest.mark.parametrize(
+    "time_idx, coordinate, pixel_size, time_step, max_lag, diffusion_const",
+    [
+        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 2, 0.5e9, 50, 4.53333333),
+        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 3, 1.0e9, 50, 2.26666667),
+        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 5, 1.0e9, 2, 3.33333333),
+    ],
+)
+def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, diffusion_const):
+    """Tests whether the calibrations from the image are picked up correctly through the API.
+    The actual tests of the diffusion estimation can be found in test_msd."""
+
+    # What we do is we apply the scaling to the indices used in the KymoLine construction. If we
+    # define the calibration as exactly the opposite of this, we should get no change.
+    image = CalibratedKymographChannel("test", np.array([[]]), time_step, pixel_size)
+    k = KymoLine(time_idx, coordinate / pixel_size, image=image)
+
+    assert np.allclose(k.estimate_diffusion_ols(max_lag=max_lag), diffusion_const)
+
+
+@pytest.mark.parametrize(
+    "max_lag, x_data, y_data",
+    [
+        (None, [2, 4], (3 * np.arange(1, 3)) ** 2),
+        (100, [2, 4, 6, 8], (3 * np.arange(1, 5)) ** 2),
+        (3, [2, 4, 6], (3 * np.arange(1, 4)) ** 2),
+    ],
+)
+@cleanup
+def test_kymoline_msd_plot(max_lag, x_data, y_data):
+    # See whether the plot spins up
+    image = CalibratedKymographChannel("test", np.array([[]]), int(2e9), 3.0)
+
+    plt.figure()
+    k = KymoLine(np.arange(1, 6), np.arange(1, 6), image=image)
+    k.plot_msd(max_lag=max_lag)
+    assert np.allclose(plt.gca().lines[0].get_xdata(), x_data)
+    assert np.allclose(plt.gca().lines[0].get_ydata(), y_data)

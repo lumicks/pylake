@@ -6,6 +6,7 @@
 
 * Added `Kymo.downsampled_by()` for downsampling Kymographs. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 * Added option to stitch Kymograph lines via the Jupyter notebook widget.
+* Added Mean Square Displacement (MSD) and diffusion constant estimation to `KymoLine`. For more information, please refer to [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html)
 
 #### Breaking changes
 

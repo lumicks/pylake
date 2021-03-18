@@ -32,7 +32,7 @@ def calculate_msd(frame_idx, position, max_lag):
 
     # Look up only the rho elements we need
     frame_lags = frame_lags[frame_lags > 0][:max_lag]
-    msd = [np.mean(summand[frame_diff == delta_frame]) for delta_frame in frame_lags]
+    msd = np.array([np.mean(summand[frame_diff == delta_frame]) for delta_frame in frame_lags])
 
     return frame_lags, msd
 
@@ -122,8 +122,10 @@ def optimal_points(localization_error, num_points):
     single-particle tracking. Physical Review E, 85(6), 061916.
     """
     if num_points < 4:
-        raise RuntimeError("You need at least 5 time points to estimate the number of points to "
-                           "include in the fit.")
+        raise RuntimeError(
+            "You need at least 5 time points to estimate the number of points to include in the "
+            "fit."
+        )
 
     fa = 2.0 + 1.6 * localization_error ** 0.51
     limit_a = 3 + (4.5 * num_points ** 0.4 - 8.5) ** 1.2

@@ -248,3 +248,87 @@ The candidate with the lowest score is then selected.
 Since this algorithm is specifically looking for curvilinear structures, it can have issues with structures that are
 more blob-like (such as short-lived fluorescent events) or diffusive traces, where the particle moves randomly rather
 than in a uniform direction.
+
+
+Studying diffusion processes
+----------------------------
+
+To study diffusive processes we can make use of the Mean Squared Displacement (MSD).
+There are multiple ways to estimate this quantity.
+We use the following estimator:
+
+.. math::
+
+    \hat{\rho}[n] = \frac{1}{N - n} \sum_{i=1}^{N-n}\left(x_{i+n} - x_{i}\right)^2
+
+where :math:`\hat{\rho}[n]` corresponds to the estimate of the MSD for lag :math:`n`, :math:`N` is the number of time points in the tracked line, and :math:`x_i` is the trace position at time frame :math:`i`.
+
+What we can see in this definition is that it uses the same data points several times, thereby resulting in a well averaged estimate.
+However, the downside of this estimator is that the calculated values are highly correlated :cite:`qian1991single,michalet2010mean,michalet2012optimal` which needs to be accounted for in subsequent analyses.
+
+In the following, we'll use three simulated :class:`~lumicks.pylake.kymotracker.kymoline.KymoLine` instances of length 62 based on a diffusion constant of `10.0`.
+
+With Pylake, we can calculate the MSD from a :class:`~lumicks.pylake.kymotracker.kymoline.KymoLine` with a single command::
+
+    kymolines[0].msd()
+
+This returns a tuple of lags and MSD estimates. If we only wish MSDs up to a certain lag, we can provide a `max_lag` argument::
+
+    >>> kymolines[0].msd(mag_lag = 5)
+    (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([12.48593965, 16.34844311, 17.21359513, 27.25210869, 32.34473104]))
+
+MSDs are typically used to calculate diffusion constants.
+With pure diffusive motion (a complete absence of drift) in an isotropic medium, 1-dimensional MSDs can be fitted by the following relation:
+
+.. math::
+
+    \rho[n] = 2 D t + offset
+
+where :math:`D` is the diffusion constant in :math:`um^2/s`, :math:`t` is time, and the offset is determined by the localization accuracy:
+
+.. math::
+
+    offset = 2 \sigma^2 - 4 R D \Delta t
+
+where :math:`\sigma` is the static localization accuracy, :math:`R` is a motion blur constant and :math:`\Delta t` represents the time step.
+
+While it may be tempting to use a large number of MSDs in the diffusion estimation procedure, this actually produces poor estimates of the diffusion constant :cite:`qian1991single,michalet2010mean,michalet2012optimal`.
+There exists an optimal number of lags to fit such that the estimation error is minimal.
+This optimal number of lags depends on the ratio between the diffusion constant and the dynamic localization accuracy:
+
+.. math::
+
+    \epsilon_{localization} = \frac{offset}{slope} = \frac{2 \sigma^2 - 4 R D \Delta t}{2 D \Delta t} = \frac{\sigma^2}{D \Delta t} - 2 R
+
+When localization is infinitely accurate, the optimal number of points is two :cite:`michalet2010mean`.
+At the optimal number of lags, it doesn't matter whether we use a weighted or unweighted least squares algorithm to fit the curve :cite:`michalet2010mean`, and therefore we opt for the latter, analogously to :cite:`michalet2012optimal`.
+With Pylake, you can obtain an estimated diffusion constant by invoking::
+
+    >>> kymolines[0].estimate_diffusion_ols()
+    7.386961688211464
+
+Let's get diffusion constants for all three :class:`~lumicks.pylake.kymotracker.kymoline.KymoLine` instances::
+
+    >>> [kymoline.estimate_diffusion_ols() for kymoline in kymolines]
+    [7.386961688211464, 9.052904296390873, 11.551531668363802]
+
+We can see that there is considerable variation in the estimates, which is unfortunately typical for diffusion coefficient estimates.
+By default, `estimate_diffusion_ols` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
+
+    >>> [kymoline.estimate_diffusion_ols(max_lag=30) for kymoline in kymolines]
+    [3.064522711727202, 1.7564518650402365, 1.9175754533226452]
+
+Note however, that this will likely degrade your estimate.
+We can also plot the MSD estimates::
+
+    [kymoline.plot_msd(marker='.') for kymoline in kymolines]
+
+.. image:: msdplot_default_lags.png
+
+By default, this will use the optimal number of lags (which in this case seems to be around 3-4), but once again a `max_lag` parameter can be specified to plot a larger number of lags::
+
+    [kymoline.plot_msd(max_lag=100, marker='.') for kymoline in kymolines]
+
+.. image:: msdplot_100_lags.png
+
+It's not hard to see from this graph why taking too many lags results in unacceptably large variances.
