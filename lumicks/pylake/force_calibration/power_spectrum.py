@@ -9,9 +9,9 @@ class PowerSpectrum:
 
     Attributes
     ----------
-    f : numpy.ndarray
+    frequency : numpy.ndarray
         Frequency values for the power spectrum. [Hz]
-    P : numpy.ndarray
+    power : numpy.ndarray
         Power values for the power spectrum (typically in V^2/s).
     sample_rate : float
         The sampling rate for the original data. [Hz]
@@ -36,51 +36,47 @@ class PowerSpectrum:
 
         # Calculate power spectrum.
         fft = np.fft.rfft(data)
-        self.f = np.fft.rfftfreq(data.size, 1.0 / sample_rate)
-        self.P = (1.0 / sample_rate) * np.square(np.abs(fft)) / data.size
+        self.frequency = np.fft.rfftfreq(data.size, 1.0 / sample_rate)
+        self.power = (1.0 / sample_rate) * np.square(np.abs(fft)) / data.size
 
         # Store metadata
         self.sample_rate = sample_rate
         self.total_duration = data.size / sample_rate
         self.num_points_per_block = 1
 
-    def as_dict(self):
-        """"Returns a representation of the PowerSpectrum suitable for serialization"""
-        return {"f": self.f.tolist(), "P": self.P.tolist()}
-
     def downsampled_by(self, factor, reduce=np.mean):
         """Returns a spectrum downsampled by a given factor."""
         ba = copy(self)
-        ba.f = downsample(self.f, factor, reduce)
-        ba.P = downsample(self.P, factor, reduce)
+        ba.frequency = downsample(self.frequency, factor, reduce)
+        ba.power = downsample(self.power, factor, reduce)
         ba.num_points_per_block = self.num_points_per_block * factor
 
         return ba
 
-    def in_range(self, f_min, f_max):
+    def in_range(self, frequency_min, frequency_max):
         """Returns part of the power spectrum within a given frequency range."""
         ir = copy(self)
-        mask = (self.f > f_min) & (self.f <= f_max)
-        ir.f = self.f[mask]
-        ir.P = self.P[mask]
+        mask = (self.frequency > frequency_min) & (self.frequency <= frequency_max)
+        ir.frequency = self.frequency[mask]
+        ir.power = self.power[mask]
         return ir
 
     def num_samples(self):
-        return self.f.size
+        return self.frequency.size
 
     def with_spectrum(self, power, num_points_per_block=1):
         """Return a copy with a different spectrum"""
-        assert len(power) == len(self.P), "Power has incorrect length"
+        assert len(power) == len(self.power), "Power has incorrect length"
 
         ps = copy(self)
-        ps.P = power
+        ps.power = power
         ps.num_points_per_block = num_points_per_block
 
         return ps
 
     def plot(self):
         """Plot power spectrum"""
-        plt.plot(self.f, self.P)
+        plt.plot(self.frequency, self.power)
         plt.xlabel("Frequency [Hz]")
         plt.ylabel(f"Power [${self.unit}^2/Hz$]")
         plt.xscale("log")

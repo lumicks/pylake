@@ -62,8 +62,8 @@ def test_compatibility_mode():
 
     # Despite actually having been downsampled with different ratios, they seemingly have the same
     # down-sampling ratio.
-    assert np.allclose(spectrum.P, [0.17201502, 0.00841408, 0.00392077])
-    assert np.allclose(spectrum_compat.P, [0.15219624, 0.00682399, 0.00347977])
+    assert np.allclose(spectrum.power, [0.17201502, 0.00841408, 0.00392077])
+    assert np.allclose(spectrum_compat.power, [0.15219624, 0.00682399, 0.00347977])
     assert np.allclose(spectrum.num_points_per_block, spectrum_compat.num_points_per_block)
 
 
@@ -134,7 +134,7 @@ def test_bad_data():
     model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0001)
     power_spectrum = psc.PowerSpectrum(data, num_samples)
 
-    with pytest.raises(psc.CalibrationError):
+    with pytest.raises(RuntimeError):
         psc.fit_power_spectrum(power_spectrum, model=model)
 
 

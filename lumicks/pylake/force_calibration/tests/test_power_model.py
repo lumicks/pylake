@@ -1,6 +1,6 @@
 import pytest
 from lumicks.pylake.force_calibration.detail.power_models import *
-from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
+from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
 def test_friction_coefficient():
@@ -72,5 +72,5 @@ def test_fit_analytic_curve():
     ps = PowerSpectrum([3, 3, 4, 5, 1, 3, 2, 4, 5, 2], 100)
     ref = [0.0396382, 0.0389208, 0.03691641, 0.03399826, 0.03061068, 0.02713453]
     fit = fit_analytical_lorentzian(ps)
-    assert np.allclose(fit.ps_fit.f, np.arange(0, 60, 10))
-    assert np.allclose(fit.ps_fit.P, ref)
+    assert np.allclose(fit.ps_fit.frequency, np.arange(0, 60, 10))
+    assert np.allclose(fit.ps_fit.power, ref)

@@ -49,6 +49,7 @@ class PassiveCalibrationModel(CalibrationModel):
     temperature : float, optional
         Liquid temperature [Celsius].
     """
+
     def __name__(self):
         return "PassiveCalibrationModel"
 
