@@ -1,4 +1,4 @@
-import numpy as np
+from lumicks.pylake.kymotracker.detail.msd_estimation import *
 
 
 def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):
@@ -203,6 +203,107 @@ class KymoLine:
 
     def __len__(self):
         return len(self.coordinate_idx)
+
+    def msd(self, max_lag=None):
+        """Estimate the Mean Square Displacement (MSD) for various time lags.
+
+        The estimator for the MSD (rho) is defined as:
+
+            rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+
+        Note: This estimator leads to highly correlated estimates, which should not be treated
+        as independent measurements. See [1] for more information.
+
+        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+        single-particle tracking. Physical Review E, 85(6), 061916.
+
+        Parameters
+        ----------
+        max_lag : int
+            Maximum lag to include.
+
+        Returns
+        -------
+        lag_time : array_like
+            array of lag times
+        msd : array_like
+            array of mean square distance estimates for the corresponding lag times
+        """
+        frame_lag, msd = calculate_msd(
+            np.array(self.time_idx, dtype=int),
+            np.array(self.position),
+            max_lag if max_lag else len(self.time_idx),
+        )
+
+        return frame_lag * self._image.line_time_seconds, msd
+
+    def plot_msd(self, max_lag=None, **kwargs):
+        """Plot Mean Squared Differences of this trace
+
+        The estimator for the MSD (rho) is defined as:
+
+            rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+
+        Note: This estimator leads to highly correlated estimates, which should not be treated
+        as independent measurements. See [1] for more information.
+
+        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+        single-particle tracking. Physical Review E, 85(6), 061916.
+
+        Parameters
+        ----------
+        max_lag : int (optional)
+            Maximum lag to include. When omitted, an optimal number of lags is chosen [1].
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
+        import matplotlib.pyplot as plt
+
+        frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
+        max_lag = max_lag if max_lag else determine_optimal_points(frame_idx, positions)[0]
+        lag_time, msd = self.msd(max_lag)
+        plt.plot(lag_time, msd, **kwargs)
+        plt.xlabel("Lag time [s]")
+        plt.ylabel("Mean Squared Displacement [$\\mu m^2$]")
+
+    def estimate_diffusion_ols(self, max_lag=None):
+        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
+
+        The estimator for the MSD (rho) is defined as:
+
+          rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+
+        In a diffusion problem, the MSD can be fitted to a linear curve.
+
+            intercept = 2 * d * (sigma**2 - 2 * R * D * delta_t)
+            slope = 2 * d * D * delta_t
+
+        Here d is the dimensionality of the problem. D is the diffusion constant. R is a motion blur
+        constant. delta_t is the time step and sigma represents the dynamic localization error.
+
+        One aspect that is import to consider is that this estimator uses every data point multiple
+        times. As a consequence the elements of rho_n are highly correlated. This means that
+        including more points doesn't necessarily make the estimates better and can actually make
+        the estimate worse. It is therefore a good idea to estimate an appropriate number of MSD
+        estimates to use. See [1] for more information on this.
+
+        Note that this estimation procedure should only be used for pure diffusion in the absence
+        of drift.
+
+        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+        single-particle tracking. Physical Review E, 85(6), 061916.
+
+        Parameters
+        ----------
+        max_lag : int (optional)
+            Number of lags to include. When omitted, the method uses an optimal number of lags
+            as determined by [1].
+        """
+        frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
+        max_lag = max_lag if max_lag else determine_optimal_points(frame_idx, positions)[0]
+        return estimate_diffusion_constant_simple(
+            frame_idx, positions, self._image.line_time_seconds, max_lag
+        )
 
 
 class KymoLineGroup:
