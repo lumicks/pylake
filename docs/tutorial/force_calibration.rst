@@ -20,7 +20,9 @@ We grab the chunk of data that was used for the calibration last time::
 To be able to calibrate our forces, we first convert back our data to raw voltages.
 We can do this using the previous calibration performed in Bluelake (in this case, the first one in the file)::
 
-    volts = force_slice.data / f.force1x.calibration[0]["Rf (pN/V)"]
+    offset = f.force1x.calibration[0]["Offset (pN)"]
+    response = f.force1x.calibration[0]["Rf (pN/V)"]
+    volts = (force_slice.data - offset) / response
 
 Force calibration models are fit to power spectra. To compute a power spectrum from our data::
 
@@ -38,7 +40,7 @@ If you wish to change the amount of downsampling applied or which range to compu
     lk.calculate_power_spectrum(volts, sample_rate=force_slice.sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350)
 
 To fit the passive calibration data, we will use a model based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2006power`.
-This model can be found in `PassiveCalibrationModel`. It is calibrated by fitting the following equation to the power spectrum:
+This model can be found in :class:`~.PassiveCalibrationModel`. It is calibrated by fitting the following equation to the power spectrum:
 
 .. math::
 

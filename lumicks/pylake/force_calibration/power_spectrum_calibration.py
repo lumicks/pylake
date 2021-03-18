@@ -29,7 +29,7 @@ import scipy.constants
 import matplotlib.pyplot as plt
 from tabulate import tabulate
 from collections import namedtuple
-from lumicks.pylake.force_calibration.detail.power_spectrum import PowerSpectrum
+from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.detail.power_models import (
     ScaledModel,
     fit_analytical_lorentzian,
@@ -50,6 +50,7 @@ class CalibrationSettings:
     maxfev : int
         Maximum number of function evaluations during the fit. Default: 10000
     """
+
     def __init__(self, **kwargs):
         self.analytical_fit_range = (1e1, 1e4)
         self.ftol = 1e-7
@@ -67,6 +68,7 @@ CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value
 
 class CalibrationResults:
     """Power spectrum calibration results."""
+
     def __init__(self, model, ps_model_fit, ps_fitted, params):
         self.model = model
         self.ps_model_fit = ps_model_fit
@@ -108,10 +110,6 @@ class CalibrationResults:
         return self._print_data()
 
 
-class CalibrationError(Exception):
-    pass
-
-
 def guess_f_diode_initial_value(ps, guess_fc, guess_D):
     """Calculates a good initial guess for the fit parameter `f_diode`.
 
@@ -133,16 +131,17 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
     """
     f_nyquist = ps.sample_rate / 2
     P_aliased_nyq = (guess_D / (2 * math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
-    if ps.P[-1] < P_aliased_nyq:
-        dif = ps.P[-1] / P_aliased_nyq
+    if ps.power[-1] < P_aliased_nyq:
+        dif = ps.power[-1] / P_aliased_nyq
         return math.sqrt(dif * f_nyquist ** 2 / (1.0 - dif))
     else:
         return 2 * f_nyquist
 
 
-def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350,
-                             compatibility_mode=False):
-    """Compute power spectrum.
+def calculate_power_spectrum(
+    data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350, compatibility_mode=False
+):
+    """Compute power spectrum and returns it as a :class:`~.PowerSpectrum`.
 
     Parameters
     ----------
@@ -165,6 +164,11 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
         deviations (starting from the third significant digit of most calibration properties for
         a typical calibration spectrum). The only parameter that was largely effect was the
         `chi_squared_per_deg`, which could be about 20% off.
+
+    Returns
+    -------
+    :class:`~.PowerSpectrum`
+        Estimated power spectrum based.
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
@@ -174,7 +178,9 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
 
     if compatibility_mode:
         # The original code ended up applying the following rounding to the down-sampling
-        factor = power_spectrum.f.size // (power_spectrum.f.size // num_points_per_block)
+        factor = power_spectrum.frequency.size // (
+            power_spectrum.frequency.size // num_points_per_block
+        )
         power_spectrum = power_spectrum.downsampled_by(factor)
         power_spectrum.num_points_per_block = num_points_per_block  # Different actual factor!
     else:
@@ -194,6 +200,11 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
         The model to be used for power spectrum calibration.
     settings : CalibrationSettings
         Calibration algorithm settings.
+
+    Returns
+    -------
+    :class:`~.CalibrationResults`
+        Parameters obtained from the calibration procedure.
     """
     if not isinstance(power_spectrum, PowerSpectrum):
         raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
@@ -205,7 +216,7 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
             power_spectrum.in_range(*settings.analytical_fit_range)
         )
     except ValueError as e:
-        raise CalibrationError("Analytical fit failed.")
+        raise RuntimeError("Analytical fit failed.")
     initial_params = (
         anl_fit_res.fc,
         anl_fit_res.D,
@@ -224,15 +235,15 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
     scaled_model = ScaledModel(model, initial_params)
 
     # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
-    # "hacking" `scipy.optimize.curve_fit` for this purpose, and passing in "y" values of "1/ps.P"
-    # instead of just "ps.P", and a model function "1/model(...)" instead of "model(...)". This
+    # "hacking" `scipy.optimize.curve_fit` for this purpose, and passing in "y" values of "1/ps.power"
+    # instead of just "ps.power", and a model function "1/model(...)" instead of "model(...)". This
     # effectively transforms the curve fitter's objective function
     # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
-    sigma = (1 / power_spectrum.P) / math.sqrt(power_spectrum.num_points_per_block)
+    sigma = (1 / power_spectrum.power) / math.sqrt(power_spectrum.num_points_per_block)
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
         lambda f, fc, D, f_diode, a: 1 / scaled_model(f, fc, D, f_diode, a),
-        power_spectrum.f,
-        1 / power_spectrum.P,
+        power_spectrum.frequency,
+        1 / power_spectrum.power,
         p0=np.ones(4),
         sigma=sigma,
         absolute_sigma=True,
@@ -249,14 +260,15 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
     chi_squared = np.sum(
-        ((1 / model(power_spectrum.f, *solution_params) - 1 / power_spectrum.P) / sigma) ** 2
+        ((1 / model(power_spectrum.frequency, *solution_params) - 1 / power_spectrum.power) / sigma)
+        ** 2
     )
-    n_degrees_of_freedom = power_spectrum.P.size - len(solution_params)
+    n_degrees_of_freedom = power_spectrum.power.size - len(solution_params)
     chi_squared_per_deg = chi_squared / n_degrees_of_freedom
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
 
     # Fitted power spectrum values.
-    ps_model_fit = power_spectrum.with_spectrum(model(power_spectrum.f, *solution_params))
+    ps_model_fit = power_spectrum.with_spectrum(model(power_spectrum.frequency, *solution_params))
 
     return CalibrationResults(
         model=model,
