@@ -139,7 +139,7 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
 
 
 def calculate_power_spectrum(
-    data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=350, compatibility_mode=False
+    data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, compatibility_mode=False
 ):
     """Compute power spectrum and returns it as a :class:`~.PowerSpectrum`.
 
@@ -154,7 +154,7 @@ def calculate_power_spectrum(
         full model fit. Default: (1e2, 23e3) [Hz]
     num_points_per_block : int, optional
         The spectrum is first block averaged by this number of points per block.
-        Default: 350.
+        Default: 2000.
     compatibility_mode : bool
         The force calibration routine used in Bluelake 1.6.x and older had a bug which resulted in
         a different downsampling factor being used than specified, but then using the wrong
