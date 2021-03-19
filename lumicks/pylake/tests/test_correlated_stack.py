@@ -202,7 +202,7 @@ def test_plot_correlated_smaller_channel():
 
 
 def make_alignment_image_data(spots, Tx_red, Ty_red, theta_red, Tx_blue, Ty_blue, theta_blue, bit_depth,
-                              offsets=None):
+                              offsets=None, version=1):
     def make_transform_matrix(Tx, Ty, theta):
         M = np.eye(3)
         M[0, -1] = Tx
@@ -240,9 +240,13 @@ def make_alignment_image_data(spots, Tx_red, Ty_red, theta_red, Tx_blue, Ty_blue
         if offsets is None:
             offsets = [0, 0]
         # WARP_INVERSE_MAP flag requires original transformation that resulted in un-aligned image
-        return {"Alignment red channel": m_red[:2].ravel().tolist(),
-                "Alignment green channel": np.eye(3)[:2].ravel().tolist(),
-                "Alignment blue channel": m_blue[:2].ravel().tolist(),
+        if version == 1:
+            labels = [f"Alignment {c} channel" for c in ("red", "green", "blue")]
+        elif version == 2:
+            labels = [f"Channel {x} alignment" for x in range(3)]
+        return {labels[0]: m_red[:2].ravel().tolist(),
+                labels[1]: np.eye(3)[:2].ravel().tolist(),
+                labels[2]: m_blue[:2].ravel().tolist(),
                 "Alignment region of interest (x, y, width, height)": [offsets[0], offsets[1], 200, 100],
                 "Region of interest (x, y, width, height)": [0, 0, 200, 100]}
 
@@ -292,31 +296,35 @@ def gray_alignment_image_data(spot_coordinates, warp_parameters):
     return img0, img, description, img_args["bit_depth"]
 
 
-@pytest.fixture(scope="session")
-def rgb_alignment_image_data(spot_coordinates, warp_parameters):
-    img_args = {"spots": spot_coordinates,
-                **warp_parameters,
-                "bit_depth": 16}
-    img0, img, description = make_alignment_image_data(**img_args)
-    return img0, img, description, img_args["bit_depth"]
-
-
-@pytest.fixture(scope="session")
-def rgb_alignment_image_bad_description(spot_coordinates, warp_parameters):
-    img_args = {"spots": spot_coordinates,
-                **warp_parameters,
-                "bit_depth": 16}
-    img0, img, description = make_alignment_image_data(**img_args)
-    description["Alignment red channel"][2] = 25
-    return img0, img, description, img_args["bit_depth"]
-
-
-@pytest.fixture(scope="session")
-def rgb_alignment_image_data_offset(spot_coordinates, warp_parameters):
+@pytest.fixture(scope="session", params=[1, 2])
+def rgb_alignment_image_data(spot_coordinates, warp_parameters, request):
     img_args = {"spots": spot_coordinates,
                 **warp_parameters,
                 "bit_depth": 16,
-                "offsets": (50, 50)}
+                "version": request.param}
+    img0, img, description = make_alignment_image_data(**img_args)
+    return img0, img, description, img_args["bit_depth"]
+
+
+@pytest.fixture(scope="session", params=[1, 2])
+def rgb_alignment_image_bad_description(spot_coordinates, warp_parameters, request):
+    img_args = {"spots": spot_coordinates,
+                **warp_parameters,
+                "bit_depth": 16,
+                "version": request.param}
+    img0, img, description = make_alignment_image_data(**img_args)
+    label = "Alignment red channel" if request.param == 1 else "Channel 0 alignment"
+    description[label][2] = 25
+    return img0, img, description, img_args["bit_depth"]
+
+
+@pytest.fixture(scope="session", params=[1,2])
+def rgb_alignment_image_data_offset(spot_coordinates, warp_parameters, request):
+    img_args = {"spots": spot_coordinates,
+                **warp_parameters,
+                "bit_depth": 16,
+                "offsets": (50, 50),
+                "version": request.param}
     img0, img, description = make_alignment_image_data(**img_args)
     return img0, img, description, img_args["bit_depth"]
 
@@ -456,13 +464,14 @@ def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
-    with pytest.warns(UserWarning) as record:
+    with pytest.warns(UserWarning, match="File does not contain metadata. Only raw data is available"):
         fr.data
-    assert len(record) == 1
-    assert record[0].message.args[0] == "File does not contain metadata. Only raw data is available"
 
     # missing alignment matrices
-    red = description.pop("Alignment red channel")
+    for label in ("Alignment red channel", "Channel 0 alignment"):
+        if label in description:
+            removed = description.pop(label)
+            break
     fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
@@ -473,7 +482,7 @@ def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
         fr.data
     assert len(record) == 1
     assert record[0].message.args[0] == "File does not contain alignment matrices. Only raw data is available"
-    description["Alignment red channel"] = red # reset fixture
+    description[label] = removed # reset fixture
 
 
 def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
@@ -490,7 +499,8 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
             assert len(tif0.pages) == len(tif.pages)
             assert tif0.pages[0].software != tif.pages[0].software
             assert "pylake" in tif.pages[0].software
-            assert "Applied alignment red channel" in tif.pages[0].description
+            assert "Applied channel 0 alignment" in tif.pages[0].description
+            assert "Channel 0 alignment" not in tif.pages[0].description
             for page0, page in zip(tif0.pages, tif.pages):
                 assert page0.tags["DateTime"].value == page.tags["DateTime"].value
 

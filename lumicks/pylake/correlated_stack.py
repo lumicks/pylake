@@ -257,16 +257,7 @@ class CorrelatedStack:
 
         # re-name alignment matrices fields in image description
         # to reflect the fact that the image has already been processed
-        description = self._get_frame(0)._src.description
-        if description:
-            description = json.loads(description)
-            for color in ("blue", "green", "red"):
-                key = f"Alignment {color} channel"
-                try:
-                    description["Applied " + key.lower()] = description.pop(key)
-                except KeyError:
-                    pass
-            description = json.dumps(description, indent=4)
+        description = self._get_frame(0)._description.for_export
 
         # add pylake to Software tag
         software = self._get_frame(0)._src.tags["Software"].value
