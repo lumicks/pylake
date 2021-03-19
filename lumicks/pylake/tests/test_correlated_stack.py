@@ -2,7 +2,8 @@ import numpy as np
 import json
 import tifffile
 import pytest
-from lumicks.pylake.correlated_stack import CorrelatedStack, TiffStack
+from lumicks.pylake.correlated_stack import CorrelatedStack
+from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake import channel
 import matplotlib as mpl
 from matplotlib.testing.decorators import cleanup
