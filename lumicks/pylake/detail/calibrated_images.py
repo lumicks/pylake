@@ -45,7 +45,14 @@ class CalibratedKymographChannel:
         )
 
     def _get_rect(self, rect):
-        """Grab a subset of the image in the coordinates of the image"""
+        """Grab a subset of the image in the coordinates of the image
+
+        Parameters
+        ----------
+        rect : ((float, float), (float, float))
+            Rectangle specified in time and coordinate units according to
+            ((min_time, min_position), (max_time, max_position))
+        """
         ((t0, p0), (t1, p1)) = rect
         t0_pixels, t1_pixels = self.from_seconds(t0), self.from_seconds(t1)
         p0_pixels, p1_pixels = self.from_coord(p0), self.from_coord(p1)
