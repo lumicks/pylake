@@ -43,4 +43,4 @@ def kymograph():
     data[8, 10:25] = 8
     data[12, 5:7] = 10
     data[12, 9:20] = 10
-    return CalibratedKymographChannel("kymo", data, start=0, time_step=1e9, calibration=1)
+    return CalibratedKymographChannel("kymo", data, start=0, time_step=1e9, pixel_size=1)
