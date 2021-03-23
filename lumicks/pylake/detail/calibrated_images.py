@@ -15,9 +15,17 @@ class CalibratedKymographChannel:
         self.downsampling_factor = downsampling_factor
 
     @classmethod
-    def from_array(cls, image, start=0, time_step=int(1e9), calibration=1, downsampling_factor=1):
+    def from_array(
+        cls,
+        image,
+        name="from_array",
+        start=0,
+        time_step=int(1e9),
+        calibration=1,
+        downsampling_factor=1,
+    ):
         return cls(
-            "test",
+            name,
             image,
             start=start,
             time_step=time_step,
