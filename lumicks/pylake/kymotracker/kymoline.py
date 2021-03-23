@@ -131,11 +131,11 @@ class KymoLine:
 
     @property
     def time(self):
-        return [self._image.to_seconds(t) for t in self.time_idx]
+        return np.array([self._image.to_seconds(t) for t in self.time_idx])
 
     @property
     def coordinate(self):
-        return [self._image.to_coord(t) for t in self.coordinate_idx]
+        return np.array([self._image.to_coord(x) for x in self.coordinate_idx])
 
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
