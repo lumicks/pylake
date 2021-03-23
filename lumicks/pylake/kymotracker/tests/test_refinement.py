@@ -7,7 +7,7 @@ import pytest
 
 def test_kymoline_interpolation():
     channel = CalibratedKymographChannel(
-        "test", np.array([[]]), start=1e9, time_step=1e9, calibration=1
+        "test", np.array([[]]), start=1e9, time_step=1e9, pixel_size=1
     )
     time_idx = [1.0, 3.0, 5.0]
     coordinate_idx = [1.0, 3.0, 3.0]

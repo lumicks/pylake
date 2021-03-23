@@ -6,12 +6,12 @@ from skimage.measure import block_reduce
 class CalibratedKymographChannel:
     """A kymograph image along with its calibration"""
 
-    def __init__(self, name, data, start, time_step, calibration, downsampling_factor=1):
+    def __init__(self, name, data, start, time_step, pixel_size, downsampling_factor=1):
         self.name = name
         self.data = data
         self.start = start
         self.time_step = time_step
-        self._calibration = calibration
+        self._pixel_size = pixel_size
         self.downsampling_factor = downsampling_factor
 
     @classmethod
@@ -21,7 +21,7 @@ class CalibratedKymographChannel:
         name="from_array",
         start=0,
         time_step=int(1e9),
-        calibration=1,
+        pixel_size=1,
         downsampling_factor=1,
     ):
         return cls(
@@ -29,7 +29,7 @@ class CalibratedKymographChannel:
             image,
             start=start,
             time_step=time_step,
-            calibration=calibration,
+            pixel_size=pixel_size,
             downsampling_factor=downsampling_factor,
         )
 
@@ -84,7 +84,7 @@ class CalibratedKymographChannel:
             block_reduce(self.data, (1, factor), func=reduce)[:, : self.data.shape[1] // factor],
             self.start,
             self.time_step * factor,
-            self._calibration,
+            self._pixel_size,
             self.downsampling_factor * factor,
         )
 
@@ -93,14 +93,14 @@ class CalibratedKymographChannel:
         return self.time_step / 1e9
 
     def from_coord(self, coord):
-        return int(coord / self._calibration)
+        return int(coord / self._pixel_size)
 
     def from_seconds(self, time):
         return int(time / self.line_time_seconds)
 
     def to_coord(self, pixels):
         """Convert from pixels to the coordinate system of this image"""
-        return self._calibration * pixels
+        return self._pixel_size * pixels
 
     def to_seconds(self, x):
         """Convert from pixels to time in seconds"""
@@ -116,7 +116,7 @@ class CalibratedKymographChannel:
         """
         # TODO: Deduplicate this with Kymo after tests are refactored to incorporate a constant
         #  linetime kymograph.
-        width_um = self._calibration * self.data.shape[0]
+        width_um = self._pixel_size * self.data.shape[0]
         duration = self.line_time_seconds * self.data.shape[1]
 
         default_kwargs = dict(
@@ -125,8 +125,8 @@ class CalibratedKymographChannel:
             extent=[
                 -0.5 * self.line_time_seconds,
                 duration - 0.5 * self.line_time_seconds,
-                width_um - 0.5 * self._calibration,
-                -0.5 * self._calibration,
+                width_um - 0.5 * self._pixel_size,
+                -0.5 * self._pixel_size,
             ],
             aspect=(self.data.shape[0] / self.data.shape[1]) * (duration / width_um),
         )

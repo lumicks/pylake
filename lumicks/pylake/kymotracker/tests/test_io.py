@@ -9,7 +9,7 @@ def kymolinegroup_io_data():
     test_data = np.zeros((8, 8))
 
     test_img = CalibratedKymographChannel("test", data=test_data, start=100e9, time_step=100e9,
-                                          calibration=2)
+                                          pixel_size=2)
     k1 = KymoLine([1, 2, 3], [2, 3, 4], test_img)
     k2 = KymoLine([2, 3, 4], [3, 4, 5], test_img)
     k3 = KymoLine([3, 4, 5], [4, 5, 6], test_img)
