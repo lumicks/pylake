@@ -1,14 +1,13 @@
 import numpy as np
 
-from .detail.confocal import ConfocalImage
-from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
+from .detail.confocal import ConfocalImageAPI
 
 
 """Axis label used for plotting"""
 axis_label = ("x", "y", "z")
 
 
-class Scan(ConfocalImage):
+class Scan(ConfocalImageAPI):
     """A confocal scan exported from Bluelake
 
     Parameters
@@ -25,12 +24,6 @@ class Scan(ConfocalImage):
         Dictionary containing scan-specific metadata.
     """
 
-    def __init__(self, name, file, start, stop, json):
-        super().__init__(name, file, start, stop, json)
-        self._num_frames = self._json["scan count"]
-        if len(self._json["scan volume"]["scan axes"]) > 2:
-            raise RuntimeError("3D scans are not supported")
-
     def __repr__(self):
         name = self.__class__.__name__
         return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
@@ -40,44 +33,11 @@ class Scan(ConfocalImage):
 
     @property
     def num_frames(self):
-        if self._num_frames == 0:
-            self._num_frames = reconstruct_num_frames(
-                self.infowave.data, self.pixels_per_line, self.lines_per_frame
-            )
-        return self._num_frames
+        return self._src.num_frames
 
     @property
     def lines_per_frame(self):
-        return self._json["scan volume"]["scan axes"][1]["num of pixels"]
-
-    @property
-    def _shape(self):
-        return (self.lines_per_frame, self.pixels_per_line)
-
-    def _fix_incorrect_start(self):
-        """Resolve error when confocal scan starts before the timeline information.
-        For scans, this is currently unrecoverable."""
-        raise RuntimeError(
-            "Start of the scan was truncated. Reconstruction cannot proceed. Did you export the "
-            "entire scan time in Bluelake?"
-        )
-
-    def _to_spatial(self, data):
-        """If the first axis of the reconstruction has a higher physical axis number than the second, we flip the axes.
-
-        Checks whether the axes should be flipped w.r.t. the reconstruction. Reconstruction always produces images
-        with the slow axis first, and the fast axis second. Depending on the order of axes scanned, this may not
-        coincide with physical axes. The axes should always be ordered from the lowest physical axis number to higher.
-        Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis."""
-        data = data.squeeze()
-
-        physical_axis = [axis["axis"] for axis in self._json["scan volume"]["scan axes"]]
-        if physical_axis[0] > physical_axis[1]:
-            new_axis_order = np.arange(len(data.shape), dtype=int)
-            new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]
-            return np.transpose(data, new_axis_order)
-        else:
-            return data
+        return self._src.lines_per_frame
 
     def _plot(self, image, frame=1, image_handle=None, **kwargs):
         """Plot a scan frame.
@@ -113,7 +73,7 @@ class Scan(ConfocalImage):
             # Updating the image data in an existing plot is a lot faster than re-plotting with `imshow`.
             image_handle.set_data(image)
 
-        axes = self._ordered_axes()
+        axes = self._src._ordered_axes()
         plt.xlabel(f"{axis_label[axes[0]['axis']]} ($\\mu m$)")
         plt.ylabel(f"{axis_label[axes[1]['axis']]} ($\\mu m$)")
         if self.num_frames == 1:

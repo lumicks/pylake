@@ -1,7 +1,8 @@
-from .detail.confocal import BaseScan
+from .detail.confocal import BaseScan, ConfocalPlotting
+from .detail.mixin import ExcitationLaserPower
 
 
-class PointScan(BaseScan):
+class PointScan(BaseScan, ConfocalPlotting, ExcitationLaserPower):
     """A confocal point scan exported from Bluelake
 
     Parameters

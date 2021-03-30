@@ -2,16 +2,13 @@ import numpy as np
 import warnings
 import cachetools
 
-from .detail.confocal import ConfocalImage
-from .detail.image import (
-    line_timestamps_image,
-    seek_timestamp_next_line,
-    histogram_rows,
-)
+from .channel import empty_slice
+from .detail.confocal import ConfocalImageAPI
+from .detail.image import histogram_rows
 from .detail.timeindex import to_timestamp
 
 
-class Kymo(ConfocalImage):
+class Kymo(ConfocalImageAPI):
     """A Kymograph exported from Bluelake
 
     Parameters
@@ -43,54 +40,11 @@ class Kymo(ConfocalImage):
         stop = self.stop if item.stop is None else item.stop
         start, stop = (to_timestamp(v, self.start, self.stop) for v in (start, stop))
 
-        line_timestamps = self._line_start_timestamps()
-        i_min = np.searchsorted(line_timestamps, start, side="left")
-        i_max = np.searchsorted(line_timestamps, stop, side="left")
-
-        if i_min >= len(line_timestamps):
-            return EmptyKymo(
-                self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._json
-            )
-
-        if i_min >= i_max:
-            return EmptyKymo(
-                self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._json
-            )
-
-        if i_max < len(line_timestamps):
-            stop = line_timestamps[i_max]
-
-        start = line_timestamps[i_min]
-
-        return Kymo(self.name, self.file, start, stop, self._json)
-
-    @cachetools.cachedmethod(lambda self: self._cache)
-    def _line_start_timestamps(self):
-        """Compute starting timestamp of each line (first DAQ sample corresponding to that line),
-        not the first pixel timestamp."""
-        timestamps = self.infowave.timestamps
-        line_timestamps = line_timestamps_image(
-            timestamps, self.infowave.data, self.pixels_per_line
-        )
-        return np.append(line_timestamps, timestamps[-1])
-
-    def _fix_incorrect_start(self):
-        """Resolve error when confocal scan starts before the timeline information.
-        For kymographs this is recoverable by omitting the first line."""
-        self.start = seek_timestamp_next_line(self.infowave[self.start :])
-        self._cache = {}
-        warnings.warn(
-            "Start of the kymograph was truncated. Omitting the truncated first line.",
-            RuntimeWarning,
-        )
-
-    def _to_spatial(self, data):
-        """Spatial data as rows, time as columns"""
-        return data.T
-
-    @property
-    def _shape(self):
-        return (self.pixels_per_line,)
+        sliced_scan = self._src.slice(start, stop)
+        if not sliced_scan:
+            return EmptyKymo(self._src)
+        else:
+            return Kymo(sliced_scan)
 
     @property
     def line_time_seconds(self):
@@ -246,7 +200,15 @@ class EmptyKymo(Kymo):
         raise RuntimeError("Cannot plot empty kymograph")
 
     def _image(self):
-        return np.empty((self.pixels_per_line, 0))
+        return np.empty((self._src.pixels_per_line, 0))
+
+    @property
+    def timestamps(self):
+        raise RuntimeError("Empty kymograph has no timestamps")
+
+    @property
+    def infowave(self):
+        return empty_slice
 
     @property
     def red_image(self):

@@ -283,7 +283,8 @@ def test_invalid_access(h5_file):
 def test_missing_metadata(h5_file_missing_meta):
     f = pylake.File.from_h5py(h5_file_missing_meta)
     if f.format_version == 2:
-        with pytest.warns(UserWarning, match="Scan 'fast Y slow X no meta' is missing metadata and cannot be loaded"):
+        with pytest.warns(UserWarning, match="ScannedImage 'fast Y slow X no meta' is "
+                                             "missing metadata and cannot be loaded"):
             scans = f.scans
             assert len(scans) == 1
 
