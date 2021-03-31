@@ -326,8 +326,9 @@ class ScannedImage(BaseScan):
 
 
 class ConfocalImageAPI(DeprecatedBooleanProperties, ConfocalPlotting, ExcitationLaserPower):
-    def __init__(self, image):
+    def __init__(self, image, file):
         self._src = image
+        self.file = file
         self._cache = {}
 
     def _plot_color(self, color, **kwargs):
@@ -462,7 +463,7 @@ class ConfocalImageAPI(DeprecatedBooleanProperties, ConfocalPlotting, Excitation
 
     @classmethod
     def from_dataset(cls, h5py_dset, file):
-        return cls(ScannedImage.from_dataset(h5py_dset, file))
+        return cls(ScannedImage.from_dataset(h5py_dset, file), file)
 
     @property
     @deprecated(
