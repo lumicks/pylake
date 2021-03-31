@@ -1,7 +1,4 @@
 import numpy as np
-import warnings
-import cachetools
-
 from .channel import empty_slice
 from .detail.confocal import ConfocalImageAPI
 from .detail.image import histogram_rows
