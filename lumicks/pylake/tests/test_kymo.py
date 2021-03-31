@@ -140,7 +140,11 @@ def test_plotting(h5_file):
         kymo = f.kymos["Kymo1"]
 
         kymo.plot_red()
-        assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
+        # The following assertion fails because of unequal line times in the test data. These
+        # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
+        # which is why the old version of this test fails.
+        # assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
+        assert np.allclose(plt.xlim(), [-0.515625, 3.609375])
         assert np.allclose(np.sort(plt.ylim()), [0, 0.05])
 
 
@@ -155,7 +159,12 @@ def test_plotting_with_force(h5_file):
         assert np.all(np.equal(ds.timestamps, kymo.timestamps[2]))
 
         kymo.plot_with_force(force_channel="2x", color_channel="red")
-        assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
+
+        # The following assertion fails because of unequal line times in the test data. These
+        # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
+        # which is why the old version of this test fails.
+        # assert np.allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
+        assert np.allclose(plt.xlim(), [-0.515625, 3.609375])
         assert np.allclose(np.sort(plt.ylim()), [10, 30])
 
 
