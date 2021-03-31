@@ -287,6 +287,9 @@ class ScannedImage(BaseScan):
 
     @property
     def lines_per_frame(self):
+        if len(self._shape) == 1:
+            raise NotImplementedError("This method is not defined for 1D scans")
+
         return self._json["scan volume"]["scan axes"][1]["num of pixels"]
 
     @property
