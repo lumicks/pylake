@@ -42,9 +42,9 @@ class Kymo(ConfocalImageAPI):
 
         sliced_scan = self._src.slice(start, stop)
         if not sliced_scan:
-            return EmptyKymo(self._src)
+            return EmptyKymo(self._src, self.file)
         else:
-            return Kymo(sliced_scan)
+            return Kymo(sliced_scan, self.file)
 
     @property
     def line_time_seconds(self):

@@ -308,6 +308,10 @@ class ScannedImage(BaseScan):
         ]
 
     @property
+    def pixel_time_ms(self):
+        return self._json["scan volume"]["pixel time (ms)"]
+
+    @property
     @deprecated(
         reason=(
             "The property `scan_width_um` has been deprecated. Use `size_um` to get the actual "
@@ -371,9 +375,16 @@ class ConfocalImageAPI(DeprecatedBooleanProperties, ConfocalPlotting, Excitation
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
+        pixelsize_um = self._src.pixelsize_um
+        pixelsize_x_nm = pixelsize_um[0] * 1000
+        pixelsize_y_nm = pixelsize_um[-1] * 1000
         if self.rgb_image.size > 0:
             save_tiff(
-                self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self._src._json)
+                self.rgb_image,
+                filename,
+                dtype,
+                clip,
+                ImageMetadata(pixelsize_x_nm, pixelsize_y_nm, self._src.pixel_time_ms),
             )
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")

@@ -5,23 +5,7 @@ from lumicks.pylake.detail.image import reconstruct_image, reconstruct_image_sum
 
 
 def test_metadata_from_json():
-    json = { 'cereal_class_version': 1,
-             'fluorescence': True,
-             'force': False,
-             'scan count': 0,
-             'scan volume': {'center point (um)': {'x': 58.075877109272604,
-                                                   'y': 31.978375270573267,
-                                                   'z': 0},
-                             'cereal_class_version': 1,
-                             'pixel time (ms)': 0.5,
-                             'scan axes': [{'axis': 0,
-                                            'cereal_class_version': 1,
-                                            'num of pixels': 240,
-                                            'pixel size (nm)': 150,
-                                            'scan time (ms)': 0,
-                                            'scan width (um)': 36.07468112612217}]}}
-
-    image_metadata = ImageMetadata.from_dataset(json)
+    image_metadata = ImageMetadata(150, 150, 0.5)
 
     res = image_metadata.resolution
     assert np.isclose(res[0], 1e7 / 150)
