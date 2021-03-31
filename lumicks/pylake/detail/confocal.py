@@ -213,7 +213,6 @@ class ScannedImage(BaseScan):
         if physical_axis[0] > physical_axis[1]:
             new_axis_order = np.arange(len(data.shape), dtype=int)
             new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]
-            print(new_axis_order)
             return np.transpose(data, new_axis_order)
         else:
             return data
