@@ -4,6 +4,7 @@ import pytest
 import json
 import warnings
 import matplotlib.pyplot as plt
+from .data.mock_confocal import generate_scan_json
 
 
 def pytest_addoption(parser):
@@ -174,35 +175,7 @@ def h5_file(tmpdir_factory, request):
                              1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
                              0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2])
 
-        enc = json.JSONEncoder()
-
-        json_string = enc.encode({
-            "value0": {
-                "cereal_class_version": 1,
-                "fluorescence": True,
-                "force": False,
-                "scan count": 0,
-                "scan volume": {
-                    "center point (um)": {
-                        "x": 58.075877109272604,
-                        "y": 31.978375270573267,
-                        "z": 0
-                    },
-                    "cereal_class_version": 1,
-                    "pixel time (ms)": 0.2,
-                    "scan axes": [
-                        {
-                            "axis": 0,
-                            "cereal_class_version": 1,
-                            "num of pixels": 5,
-                            "pixel size (nm)": 10,
-                            "scan time (ms)": 0,
-                            "scan width (um)": 5 * 0.010 + .5
-                        }
-                    ]
-                }
-            }
-        })
+        json_kymo = generate_scan_json([{"axis": 0, "num of pixels": 5, "pixel size (nm)": 10.0}])
 
         # Generate lines at 1 Hz
         freq = 1e9 / 16
@@ -211,7 +184,7 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_continuous_channel("Photon count", "Blue", np.int64(20e9), freq, counts)
         mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
         
-        ds = mock_file.make_json_data("Kymograph", "Kymo1", json_string)
+        ds = mock_file.make_json_data("Kymograph", "Kymo1", json_kymo)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
         # Force channel that overlaps kymo; step from high to low force
@@ -224,87 +197,64 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data("3", "Force 2x", {calibration_time_field: 10})
         mock_file.make_calibration_data("4", "Force 2x", {calibration_time_field: 100})
 
-        def generate_scan_json(axis_1, n_pixels_1, axis_2, n_pixels_2):
-            return enc.encode({
-                "value0": {
-                    "cereal_class_version": 1,
-                    "fluorescence": True,
-                    "force": False,
-                    "scan count": 0,
-                    "scan volume": {
-                        "center point (um)": {
-                            "x": 58.075877109272604,
-                            "y": 31.978375270573267,
-                            "z": 0
-                        },
-                        "cereal_class_version": 1,
-                        "pixel time (ms)": 0.2,
-                        "scan axes": [
-                            {
-                                "axis": axis_1,
-                                "cereal_class_version": 1,
-                                "num of pixels": n_pixels_1,
-                                "pixel size (nm)": 191,
-                                "scan time (ms)": 0,
-                                "scan width (um)": .191 * n_pixels_1 + .5
-                            },
-                            {
-                                "axis": axis_2,
-                                "cereal_class_version": 1,
-                                "num of pixels": n_pixels_2,
-                                "pixel size (nm)": 197,
-                                "scan time (ms)": 0,
-                                "scan width (um)": .197 * n_pixels_2 + .5
-                            }
-                        ]
-                    }
-                }
-            })
-
         # Single frame image
-        ds = mock_file.make_json_data("Scan", "fast Y slow X",
-                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=5))
+        ds = mock_file.make_json_data(
+            "Scan",
+            "fast Y slow X",
+            generate_scan_json(
+                [
+                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                    {"axis": 0, "num of pixels": 5, "pixel size (nm)": 197.0},
+                ]
+            ),
+        )
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Multi frame image
-        ds = mock_file.make_json_data("Scan", "fast Y slow X multiframe",
-                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=3))
+        ds = mock_file.make_json_data(
+            "Scan",
+            "fast Y slow X multiframe",
+            generate_scan_json(
+                [
+                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                    {"axis": 0, "num of pixels": 3, "pixel size (nm)": 197.0}
+                ]
+            ),
+        )
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Multiframe frame image
-        ds = mock_file.make_json_data("Scan", "fast X slow Z multiframe",
-                                      generate_scan_json(axis_1=0, n_pixels_1=4, axis_2=2, n_pixels_2=3))
+        ds = mock_file.make_json_data(
+            "Scan",
+            "fast X slow Z multiframe",
+            generate_scan_json(
+                [
+                    {"axis": 0, "num of pixels": 4, "pixel size (nm)": 191.0},
+                    {"axis": 2, "num of pixels": 3, "pixel size (nm)": 197.0}
+                ]
+            ),
+        )
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Multiframe frame image
-        ds = mock_file.make_json_data("Scan", "fast Y slow Z multiframe",
-                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=2, n_pixels_2=3))
+        ds = mock_file.make_json_data(
+            "Scan",
+            "fast Y slow Z multiframe",
+            generate_scan_json(
+                [
+                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                    {"axis": 2, "num of pixels": 3, "pixel size (nm)": 197.0}
+                ]
+            ),
+        )
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
-
-        ps_json_string = enc.encode({
-            "value0": {
-                "cereal_class_version": 1,
-                "fluorescence": True,
-                "force": False,
-                "scan count": 0,
-                "scan volume": {
-                    "center point (um)": {
-                        "x": 58.075877109272604,
-                        "y": 31.978375270573267,
-                        "z": 0
-                    },
-                    "cereal_class_version": 1,
-                    "pixel time (ms)": 0.2,
-                    "scan axes": []
-                    }
-                }
-            })
 
         # Point Scan
+        ps_json_string = generate_scan_json([])
         ds = mock_file.make_json_data("Point Scan", "PointScan1", ps_json_string)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
@@ -331,52 +281,22 @@ def h5_file_missing_meta(tmpdir_factory, request):
         # Generate lines at 1 Hz
         freq = 1e9 / 16
 
-        def generate_scan_json(axis_1, n_pixels_1, axis_2, n_pixels_2):
-            return enc.encode({
-                "value0": {
-                    "cereal_class_version": 1,
-                    "fluorescence": True,
-                    "force": False,
-                    "scan count": 0,
-                    "scan volume": {
-                        "center point (um)": {
-                            "x": 58.075877109272604,
-                            "y": 31.978375270573267,
-                            "z": 0
-                        },
-                        "cereal_class_version": 1,
-                        "pixel time (ms)": 0.2,
-                        "scan axes": [
-                            {
-                                "axis": axis_1,
-                                "cereal_class_version": 1,
-                                "num of pixels": n_pixels_1,
-                                "pixel size (nm)": 191,
-                                "scan time (ms)": 0,
-                                "scan width (um)": .191 * n_pixels_1 + .5
-                            },
-                            {
-                                "axis": axis_2,
-                                "cereal_class_version": 1,
-                                "num of pixels": n_pixels_2,
-                                "pixel size (nm)": 197,
-                                "scan time (ms)": 0,
-                                "scan width (um)": .197 * n_pixels_2 + .5
-                            }
-                        ]
-                    }
-                }
-            })
-
         # Single frame image - NO metadata
-        ds = mock_file.make_json_data("Scan", "fast Y slow X no meta", 
-                                      enc.encode({}))
+        ds = mock_file.make_json_data("Scan", "fast Y slow X no meta", enc.encode({}))
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Single frame image - ok loading
-        ds = mock_file.make_json_data("Scan", "fast Y slow X",
-                                      generate_scan_json(axis_1=1, n_pixels_1=4, axis_2=0, n_pixels_2=5))
+        ds = mock_file.make_json_data(
+            "Scan",
+            "fast Y slow X",
+            generate_scan_json(
+                [
+                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                    {"axis": 0, "num of pixels": 5, "pixel size (nm)": 197.0}
+                ]
+            ),
+        )
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
