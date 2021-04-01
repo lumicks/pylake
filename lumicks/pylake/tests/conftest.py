@@ -198,58 +198,46 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data("4", "Force 2x", {calibration_time_field: 100})
 
         # Single frame image
-        ds = mock_file.make_json_data(
-            "Scan",
-            "fast Y slow X",
-            generate_scan_json(
-                [
-                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
-                    {"axis": 0, "num of pixels": 5, "pixel size (nm)": 197.0},
-                ]
-            ),
+        json = generate_scan_json(
+            [
+                {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                {"axis": 0, "num of pixels": 5, "pixel size (nm)": 197.0},
+            ],
         )
+        ds = mock_file.make_json_data("Scan", "fast Y slow X", json)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Multi frame image
-        ds = mock_file.make_json_data(
-            "Scan",
-            "fast Y slow X multiframe",
-            generate_scan_json(
-                [
-                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
-                    {"axis": 0, "num of pixels": 3, "pixel size (nm)": 197.0}
-                ]
-            ),
+        json = generate_scan_json(
+            [
+                {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                {"axis": 0, "num of pixels": 3, "pixel size (nm)": 197.0},
+            ],
         )
+        ds = mock_file.make_json_data("Scan", "fast Y slow X multiframe", json)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Multiframe frame image
-        ds = mock_file.make_json_data(
-            "Scan",
-            "fast X slow Z multiframe",
-            generate_scan_json(
-                [
-                    {"axis": 0, "num of pixels": 4, "pixel size (nm)": 191.0},
-                    {"axis": 2, "num of pixels": 3, "pixel size (nm)": 197.0}
-                ]
-            ),
+        json = generate_scan_json(
+            [
+                {"axis": 0, "num of pixels": 4, "pixel size (nm)": 191.0},
+                {"axis": 2, "num of pixels": 3, "pixel size (nm)": 197.0},
+            ],
         )
+        ds = mock_file.make_json_data("Scan", "fast X slow Z multiframe", json)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
         # Multiframe frame image
-        ds = mock_file.make_json_data(
-            "Scan",
-            "fast Y slow Z multiframe",
-            generate_scan_json(
-                [
-                    {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
-                    {"axis": 2, "num of pixels": 3, "pixel size (nm)": 197.0}
-                ]
-            ),
+        json = generate_scan_json(
+            [
+                {"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0},
+                {"axis": 2, "num of pixels": 3, "pixel size (nm)": 197.0},
+            ],
         )
+        ds = mock_file.make_json_data("Scan", "fast Y slow Z multiframe", json)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
