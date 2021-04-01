@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.0 | t.b.d.
+
+#### New features
+
+* Added `Kymo.downsampled_by()` for downsampling Kymographs. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
+
 ## v0.8.2 | 2021-04-30
 
 #### New features

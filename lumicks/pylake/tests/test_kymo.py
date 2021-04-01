@@ -1,9 +1,11 @@
+import re
 import numpy as np
 from lumicks import pylake
 import pytest
 from lumicks.pylake.kymo import EmptyKymo
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
+from .data.mock_confocal import generate_kymo
 
 
 def test_kymo_properties(h5_file):
@@ -222,3 +224,45 @@ def test_save_tiff(tmpdir_factory, h5_file):
         kymo = f.kymos["Kymo1"]
         kymo.save_tiff(f"{tmpdir}/kymo1.tiff")
         assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
+
+
+def test_downsampled_kymo():
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    kymo = generate_kymo(
+        "Mock", image, pixel_size_nm=1, start=100, dt=7, samples_per_pixel=5, line_padding=2
+    )
+
+    kymo_ds = kymo.downsampled_by(2)
+    ds = np.array(
+        [
+            [12, 12, 6],
+            [0, 0, 6],
+            [12, 0, 18],
+            [12, 24, 6],
+        ],
+        dtype=np.uint8
+    )
+
+    assert kymo_ds.name == "Mock"
+    assert np.allclose(kymo_ds.red_image, ds)
+    assert np.allclose(kymo_ds.start, 100)
+    assert np.allclose(kymo_ds.pixelsize_um, 1 / 1000)
+    assert np.allclose(kymo_ds.line_time_seconds, 2 * 7 * (5 * 4 + 2 + 2) / 1e9)
+
+    with pytest.raises(
+            AttributeError,
+            match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
+    ):
+        kymo_ds.timestamps
+
+    # Verify that we can pass a different reduce function
+    assert np.allclose(kymo.downsampled_by(2, reduce=np.mean).red_image, ds / 2)

@@ -8,6 +8,24 @@ from .mixin import ExcitationLaserPower
 from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
 
 
+def _default_image_factory(self: "ConfocalImage", color):
+    channel_data = getattr(self, f"{color}_photon_count").data
+    raw_image = reconstruct_image_sum(channel_data, self.infowave.data, self._shape)
+    return self._to_spatial(raw_image)
+
+
+def _default_timestamp_factory(self: "ConfocalImage"):
+    # Uses the timestamps from the first non-zero-sized photon channel
+    for color in ("red", "green", "blue"):
+        channel_data = getattr(self, f"{color}_photon_count").timestamps
+        if len(channel_data) != 0:
+            break
+    else:
+        raise RuntimeError("Can't get pixel timestamps if there are no pixels")
+    raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=np.mean)
+    return self._to_spatial(raw_image)
+
+
 class BaseScan(PhotonCounts, ExcitationLaserPower):
     """Base class for confocal scans
 
@@ -31,6 +49,8 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         self.name = name
         self._json = json
         self.file = file
+        self._image_factory = _default_image_factory
+        self._timestamp_factory = _default_timestamp_factory
         self._cache = {}
 
     @classmethod
@@ -172,22 +192,13 @@ class ConfocalImage(BaseScan):
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _image(self, channel):
-        channel_data = getattr(self, f"{channel}_photon_count").data
-        raw_image = reconstruct_image_sum(channel_data, self.infowave.data, self._shape)
-        return self._to_spatial(raw_image)
+        assert channel in ("red", "green", "blue")
+        return self._image_factory(self, channel)
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _timestamps(self, channel):
         assert channel == "timestamps"
-        # Uses the timestamps from the first non-zero-sized photon channel
-        for color in ("red", "green", "blue"):
-            channel_data = getattr(self, f"{color}_photon_count").timestamps
-            if len(channel_data) != 0:
-                break
-        else:
-            raise RuntimeError("Can't get pixel timestamps if there are no pixels")
-        raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=np.mean)
-        return self._to_spatial(raw_image)
+        return self._timestamp_factory(self)
 
     def _plot_color(self, color, **kwargs):
         from matplotlib.colors import LinearSegmentedColormap

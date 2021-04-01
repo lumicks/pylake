@@ -62,6 +62,7 @@ setup(
         "cachetools>=3.1",
         "deprecated>=1.2.8",
         "scikit-learn>=0.18.0",
+        "scikit-image>=0.17.2",
     ],
     zip_safe=False,
 )

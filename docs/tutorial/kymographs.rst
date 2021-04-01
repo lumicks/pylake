@@ -49,6 +49,20 @@ There are also several properties available for convenient access to the kymogra
 * `kymo.fast_axis` provides the axis that was scanned (x or y)
 * `kymo.line_time_seconds` provides the time between successive lines
 
+Downsampling kymograph
+----------------------
+
+We can downsample a kymograph by invoking::
+
+    kymo_ds = kymo.downsampled_by(time_factor=2)
+
+Note however, that not all functionalities are present anymore when downsampling a kymograph. For
+example, we can no longer access the per pixel timestamps::
+
+    >>> kymo_ds.timestamps
+    AttributeError: Per pixel timestamps are no longer available after downsampling a kymograph since they are not well defined (the downsampling occurs over a non contiguous time window).
+    Line timestamps are still available however. See: `Kymo.line_time_seconds`.
+
 Plotting and exporting
 ----------------------
 

@@ -2,6 +2,7 @@ import numpy as np
 import warnings
 import cachetools
 
+from skimage.measure import block_reduce
 from .detail.confocal import ConfocalImage
 from .detail.image import (
     line_timestamps_image,
@@ -9,6 +10,18 @@ from .detail.image import (
     histogram_rows,
 )
 from .detail.timeindex import to_timestamp
+
+
+def _default_line_time_factory(self: "Kymo"):
+    """Line time in seconds"""
+    if self.timestamps.shape[1] > 1:
+        ns_to_sec = 1e-9
+        return (self.timestamps[0, 1] - self.timestamps[0, 0]) * ns_to_sec
+    else:
+        raise RuntimeError(
+            "This kymograph consists of only a single line. It is not possible to determine the "
+            "kymograph line time for a kymograph consisting only of a single line."
+        )
 
 
 class Kymo(ConfocalImage):
@@ -27,6 +40,10 @@ class Kymo(ConfocalImage):
     json : dict
         Dictionary containing kymograph-specific metadata.
     """
+
+    def __init__(self, name, file, start, stop, json):
+        super().__init__(name, file, start, stop, json)
+        self._line_time_factory = _default_line_time_factory
 
     def __repr__(self):
         name = self.__class__.__name__
@@ -95,10 +112,7 @@ class Kymo(ConfocalImage):
     @property
     def line_time_seconds(self):
         """Line time in seconds"""
-        if self.timestamps.shape[1] > 1:
-            return (self.timestamps[0, 1] - self.timestamps[0, 0]) / 1e9
-        else:
-            raise RuntimeError("Line time is not defined for kymograph with only a single line")
+        return self._line_time_factory(self)
 
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
@@ -235,6 +249,41 @@ class Kymo(ConfocalImage):
         ax_hist.set_xlim(ax_kymo.get_xlim())
         ax_hist.set_ylabel("counts")
         ax_hist.set_title(self.name)
+
+    def downsampled_by(self, time_factor, reduce=np.sum):
+        """Return a copy of this Kymograph which is downsampled by `time_factor`
+
+        Parameters
+        ----------
+        time_factor : int
+            The number of pixels that will be averaged in time.
+        reduce : callable
+            The `numpy` function which is going to reduce multiple pixels into one.
+            The default is `np.sum`.
+        """
+        result = Kymo(self.name, self.file, self.start, self.stop, self._json)
+
+        def image_factory(_, channel):
+            data = self._image(channel)
+            return block_reduce(data, (1, time_factor), func=reduce)[
+                :, : data.shape[1] // time_factor
+            ]
+
+        def timestamp_factory(_):
+            raise AttributeError(
+                "Per-pixel timestamps are no longer available after downsampling a kymograph since "
+                "they are not well defined (the downsampling occurs over a non contiguous time "
+                "window). Line timestamps are still available however. See: "
+                "`Kymo.line_time_seconds`."
+            )
+
+        def line_time_factory(_):
+            return self.line_time_seconds * time_factor
+
+        result._image_factory = image_factory
+        result._timestamp_factory = timestamp_factory
+        result._line_time_factory = line_time_factory
+        return result
 
 
 class EmptyKymo(Kymo):
