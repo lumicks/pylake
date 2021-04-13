@@ -2,7 +2,9 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
-from lumicks.pylake import track_greedy, filter_lines, refine_lines_centroid
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
+from lumicks.pylake.kymotracker.kymotracker import track_greedy
+from lumicks.pylake import filter_lines, refine_lines_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.kymotracker.kymoline import KymoLineGroup, import_kymolinegroup_from_csv
 
@@ -10,7 +12,8 @@ from lumicks.pylake.kymotracker.kymoline import KymoLineGroup, import_kymolinegr
 class KymoWidget:
     def __init__(
         self,
-        data,
+        kymo,
+        channel,
         axis_aspect_ratio,
         min_length,
         use_widgets,
@@ -23,11 +26,13 @@ class KymoWidget:
 
         Parameters
         ----------
-        data : array_like
-            Image data.
+        kymo : lumicks.pylake.Kymo
+            Kymograph.
+        channel : str
+            Kymograph channel to use.
         axis_aspect_ratio : float
-            Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin. This helps you
-            visualize them anyway.
+            Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
+            This helps you visualize them.
         min_length : int
             Minimum length of a trace. Traces shorter than this are discarded.
         use_widgets : bool
@@ -41,14 +46,23 @@ class KymoWidget:
         **kwargs
             Extra arguments forwarded to imshow.
         """
+        calibrated_image = CalibratedKymographChannel.from_kymo(kymo, channel)
+
         # Forcing the aspect ratio only makes sense when the time axis is longer.
         self.axis_aspect_ratio = (
-            min(axis_aspect_ratio, data.shape[1] / data.shape[0]) if axis_aspect_ratio else None
+            min(
+                axis_aspect_ratio,
+                calibrated_image.to_position(calibrated_image.data.shape[1])
+                / calibrated_image.to_seconds(calibrated_image.data.shape[0]),
+            )
+            if axis_aspect_ratio
+            else None
         )
         self.lines = KymoLineGroup([])
         self.plotted_lines = []
         self.min_length = min_length
-        self.data = data
+        self._kymo = kymo
+        self._channel = channel
         self._label = None
         self._fig = None
         self._axes = None
@@ -69,8 +83,8 @@ class KymoWidget:
         """Handle mouse release event.
 
         Removes lines in a region, and traces new ones."""
-        p1 = [int(click.xdata), int(click.ydata)]
-        p2 = [int(release.xdata), int(release.ydata)]
+        p1 = [click.xdata, click.ydata]
+        p2 = [release.xdata, release.ydata]
         self.lines.remove_lines_in_rect([p1, p2])
 
         if self.adding:
@@ -86,7 +100,13 @@ class KymoWidget:
 
     def _track(self, rect=None):
         return filter_lines(
-            self._algorithm(self.data, **self.algorithm_parameters, rect=rect), self.min_length
+            self._algorithm(
+                self._kymo,
+                self._channel,
+                **self.algorithm_parameters,
+                rect=rect,
+            ),
+            self.min_length,
         )
 
     def _connect_drag_callback(self):
@@ -109,12 +129,12 @@ class KymoWidget:
 
         if self.show_lines:
             self.plotted_lines = [
-                self._axes.plot(line.time_idx, line.coordinate_idx, color="black", linewidth=5)[0]
+                self._axes.plot(line.seconds, line.position, color="black", linewidth=5)[0]
                 for line in self.lines
             ]
             self.plotted_lines.extend(
                 [
-                    self._axes.plot(line.time_idx, line.coordinate_idx, markersize=8)[0]
+                    self._axes.plot(line.seconds, line.position, markersize=8)[0]
                     for line in self.lines
                 ]
             )
@@ -123,7 +143,7 @@ class KymoWidget:
 
     def _save_from_ui(self):
         try:
-            self.lines.save(
+            self.save_lines(
                 self.output_filename,
                 sampling_width=int(np.ceil(0.5 * self.algorithm_parameters["line_width"])),
             )
@@ -131,17 +151,13 @@ class KymoWidget:
         except (RuntimeError, IOError) as exception:
             self._set_label(str(exception))
 
-    def save_lines(self, filename, dt=None, dx=None, delimiter=";", sampling_width=None):
+    def save_lines(self, filename, delimiter=";", sampling_width=None):
         """Export KymoLineGroup to a csv file.
 
         Parameters
         ----------
         filename : str
             Filename to output kymograph traces to.
-        dt : float
-            Calibration for the time axis.
-        dx : float
-            Calibration for the coordinate axis.
         delimiter : str
             Which delimiter to use in the csv file.
         sampling_width : int or None
@@ -149,11 +165,14 @@ class KymoWidget:
             the summed intensity with the image. The value indicates the number of pixels in either direction
             to sum over.
         """
-        self.lines.save(filename, dt, dx, delimiter, sampling_width)
+        self.lines.save(filename, delimiter, sampling_width)
 
     def _load_from_ui(self):
         try:
-            self.lines = import_kymolinegroup_from_csv(self.output_filename, self.data)
+            self.lines = import_kymolinegroup_from_csv(
+                self.output_filename,
+                CalibratedKymographChannel.from_kymo(self._kymo, self._channel),
+            )
             self.update_lines()
             self._set_label(f"Loaded {self.output_filename}")
         except (RuntimeError, IOError) as exception:
@@ -310,10 +329,17 @@ class KymoWidget:
 
         self._dx = 0
         self._last_update = time.time()
-        plt.imshow(self.data, interpolation="nearest", **kwargs)
+        calibrated_image = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
+        calibrated_image.plot(interpolation="nearest", **kwargs)
 
         if self.axis_aspect_ratio:
-            self._axes.set_xlim([0, self.axis_aspect_ratio * self.data.shape[0]])
+            self._axes.set_xlim(
+                [
+                    0,
+                    self.axis_aspect_ratio
+                    * calibrated_image.to_seconds(calibrated_image.data.shape[0]),
+                ]
+            )
 
         # Prevents the axes from resetting every time new lines are drawn
         self._axes.autoscale(enable=False)
@@ -338,7 +364,8 @@ class KymoWidget:
 class KymoWidgetGreedy(KymoWidget):
     def __init__(
         self,
-        data,
+        kymo,
+        channel,
         axis_aspect_ratio=None,
         line_width=4,
         pixel_threshold=None,
@@ -356,8 +383,10 @@ class KymoWidgetGreedy(KymoWidget):
 
         Parameters
         ----------
-        data : array_like
-            Image data.
+        kymo : lumicks.pylake.Kymo
+            Kymograph.
+        channel : str
+            Kymograph channel to use.
         axis_aspect_ratio : float
             Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin. This helps you
             visualize them anyway.
@@ -394,7 +423,9 @@ class KymoWidgetGreedy(KymoWidget):
         algorithm = track_greedy
         algorithm_parameters = {
             "line_width": line_width,
-            "pixel_threshold": np.percentile(data.flatten(), 98)
+            "pixel_threshold": np.percentile(
+                CalibratedKymographChannel.from_kymo(kymo, channel).data.flatten(), 98
+            )
             if pixel_threshold is None
             else pixel_threshold,
             "window": window,
@@ -405,7 +436,8 @@ class KymoWidgetGreedy(KymoWidget):
         }
 
         super().__init__(
-            data,
+            kymo,
+            channel,
             axis_aspect_ratio,
             min_length,
             use_widgets,
@@ -431,7 +463,7 @@ class KymoWidgetGreedy(KymoWidget):
             "pixel_threshold",
             "Set the pixel threshold.",
             minimum=1,
-            maximum=np.max(self.data),
+            maximum=np.max(CalibratedKymographChannel.from_kymo(self._kymo, self._channel).data),
             step_size=1,
             slider_type=ipywidgets.IntSlider,
         )

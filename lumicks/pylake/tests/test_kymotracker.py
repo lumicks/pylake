@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.detail.linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 from lumicks.pylake.kymotracker.detail.geometry_2d import calculate_image_geometry, get_candidate_generator
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
@@ -7,6 +8,7 @@ from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
 from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines, filter_lines
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from copy import deepcopy
 from scipy.stats import norm
 
@@ -220,8 +222,8 @@ def test_uni_directional():
             data[int(50 + j * np.sin(.01 * i)), int(50 + j * np.cos(.01 * i))] = 1
 
     def detect(min_length, force_dir):
-        lines = detect_lines(data, 6, max_lines=5, start_threshold=.005, continuation_threshold=.095, angle_weight=1,
-                             force_dir=force_dir)
+        lines = detect_lines(data, 6, max_lines=5, start_threshold=.005,
+                             continuation_threshold=.095, angle_weight=1, force_dir=force_dir)
 
         return [line for line in lines if len(line) > min_length]
 
@@ -230,60 +232,76 @@ def test_uni_directional():
 
 
 def test_kymo_line():
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), None)
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
     assert np.allclose(k1[1], [2, 3])
     assert np.allclose(k1[-1], [3, 4])
     assert np.allclose(k1[0:2], [[1, 2], [2, 3]])
     assert np.allclose(k1[0:2][:, 1], [2, 3])
 
-    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), None)
+    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
     assert np.allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
     assert np.allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
     # Need at least 2 points for linear extrapolation
     with pytest.raises(AssertionError):
-        KymoLine([1], [1], None).extrapolate(True, 5, 2.0)
+        KymoLine([1], [1], channel).extrapolate(True, 5, 2.0)
 
     with pytest.raises(AssertionError):
-        KymoLine([1, 2, 3], [1, 2, 3], None).extrapolate(True, 1, 2.0)
+        KymoLine([1, 2, 3], [1, 2, 3], channel).extrapolate(True, 1, 2.0)
 
-    k1 = KymoLine([1, 2, 3], [1, 2, 3], None)
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], channel)
     k2 = k1.with_offset(2, 2)
     assert id(k2) != id(k1)
 
     assert np.allclose(k2.coordinate_idx, [3, 4, 5])
+    assert k1._image == channel
+    assert k2._image == channel
 
 
 def test_kymoline_selection():
-    assert not KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((4, 6), (6, 7)))
-    assert KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((4, 6), (6, 8)))
-    assert not KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((3, 6), (4, 8)))
-    assert KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((3, 6), (5, 8)))
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
 
-    assert KymoLine([2], [6], None).in_rect(((2, 5), (3, 8)))
-    assert KymoLine([2], [5], None).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([4], [6], None).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([1], [6], None).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [4], None).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [8], None).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6), (6, 7)))
+    assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6), (6, 8)))
+    assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((3, 6), (4, 8)))
+    assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((3, 6), (5, 8)))
+
+    assert KymoLine([2], [6], channel).in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [5], channel).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([4], [6], channel).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([1], [6], channel).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [4], channel).in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [8], channel).in_rect(((2, 5), (3, 8)))
+
+
+def test_kymoline_selection_non_unit_calibration():
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
+
+    assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6*5), (6, 7*5)))
+    assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6*5), (6, 8*5)))
 
 
 def test_distance_line_to_point():
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 1]), np.array([0, 2])) == np.inf
     assert distance_line_to_point(np.array([0, 0]), np.array([0, 2]), np.array([0, 2])) == 0.0
-    assert distance_line_to_point(np.array([0, 0]), np.array([1, 1]), np.array([0, 1])) == np.sqrt(.5)
+    assert distance_line_to_point(np.array([0, 0]), np.array([1, 1]), np.array([0, 1])) == \
+           np.sqrt(0.5)
     assert distance_line_to_point(np.array([0, 0]), np.array([1, 0]), np.array([0, 1])) == 1.0
 
 
 def test_stitching():
-    segment_1 = KymoLine([0, 1], [0, 1], None)
-    segment_2 = KymoLine([2, 3], [2, 3], None)
-    segment_3 = KymoLine([2, 3], [0, 0], None)
-    segment_1b = KymoLine([0, 1], [0, 0], None)
-    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1], None)
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    segment_1 = KymoLine([0, 1], [0, 1], channel)
+    segment_2 = KymoLine([2, 3], [2, 3], channel)
+    segment_3 = KymoLine([2, 3], [0, 0], channel)
+    segment_1b = KymoLine([0, 1], [0, 0], channel)
+    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1], channel)
 
     radius = 0.05
-    segment_1d = KymoLine([0.0, 1.0], [radius+.01, radius+.01], None)
+    segment_1d = KymoLine([0.0, 1.0], [radius+.01, radius+.01], channel)
 
     # Out of stitch range (maximum extension = 1)
     assert len(stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 1, 2)) == 3
@@ -311,14 +329,14 @@ def test_stitching():
 
     # Check whether the alignment has to work in both directions
     # - and - should connect
-    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], None),
-                                  KymoLine([2, 2.01], [0, 0], None)], radius, 1, 2)) == 1
+    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], channel),
+                                  KymoLine([2, 2.01], [0, 0], channel)], radius, 1, 2)) == 1
     # - and | should not connect.
-    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], None),
-                                  KymoLine([2, 2.01], [0, 1], None)], radius, 1, 2)) == 2
+    assert len(stitch_kymo_lines([KymoLine([0, 1], [0, 0], channel),
+                                  KymoLine([2, 2.01], [0, 1], channel)], radius, 1, 2)) == 2
 
 
-def kymo_integration_test_data():
+def raw_test_data():
     test_data = np.ones((30, 30))
     test_data[10, 10:20] = 10
     test_data[11, 10:20] = 30
@@ -330,18 +348,35 @@ def kymo_integration_test_data():
     return test_data
 
 
+def kymo_integration_test_data():
+    return generate_kymo("test",
+                         raw_test_data(),
+                         pixel_size_nm=5000,
+                         start=int(4e9),
+                         dt=int(5e9 / 100),
+                         samples_per_pixel=3,
+                         line_padding=5)
+
+
 def test_kymotracker_integration_tests():
     test_data = kymo_integration_test_data()
 
-    lines = track_greedy(test_data, 3, 4)
+    line_time = test_data.line_time_seconds
+    pixel_size = test_data.pixelsize_um[0]
+
+    lines = track_greedy(test_data, "red", 3, 4)
     assert np.allclose(lines[0].coordinate_idx, [11] * np.ones(10))
     assert np.allclose(lines[1].coordinate_idx, [21] * np.ones(10))
+    assert np.allclose(lines[0].position, [11 * pixel_size] * np.ones(10))
+    assert np.allclose(lines[1].position, [21 * pixel_size] * np.ones(10))
     assert np.allclose(lines[0].time_idx, np.arange(10, 20))
     assert np.allclose(lines[1].time_idx, np.arange(15, 25))
+    assert np.allclose(lines[0].seconds, np.arange(10, 20) * line_time)
+    assert np.allclose(lines[1].seconds, np.arange(15, 25) * line_time)
     assert np.allclose(lines[0].sample_from_image(1), [50] * np.ones(10))
     assert np.allclose(lines[1].sample_from_image(1), [40] * np.ones(10))
 
-    lines = track_lines(test_data, 3, 4)
+    lines = track_lines(test_data, "red", 3, 4)
     assert np.allclose(lines[0].coordinate_idx, [11] * len(lines[0].coordinate_idx))
     assert np.allclose(lines[1].coordinate_idx, [21] * len(lines[1].coordinate_idx))
     assert np.allclose(lines[0].time_idx, np.arange(9, 21))
@@ -349,11 +384,15 @@ def test_kymotracker_integration_tests():
     assert np.allclose(np.sum(lines[0].sample_from_image(1)), 50 * 10 + 6)
     assert np.allclose(np.sum(lines[1].sample_from_image(1)), 40 * 10 + 6)
 
-    lines = track_greedy(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    line_time = test_data.line_time_seconds
+    pixel_size = test_data.pixelsize_um[0]
+    rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
+
+    lines = track_greedy(test_data, "red", 3, 4, rect=rect)
     assert np.allclose(lines[0].coordinate_idx, [21] * np.ones(10))
     assert np.allclose(lines[0].time_idx, np.arange(15, 25))
 
-    lines = track_lines(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    lines = track_lines(test_data, "red", 3, 4, rect=rect)
     assert np.allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
     assert np.allclose(lines[0].time_idx, np.arange(14, 26))
 
@@ -364,18 +403,24 @@ def test_kymotracker_integration_tests_subset():
     are still in the global coordinate system."""
     test_data = kymo_integration_test_data()
 
-    lines = track_greedy(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    line_time = test_data.line_time_seconds
+    pixel_size = test_data.pixelsize_um[0]
+    rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
+
+    lines = track_greedy(test_data, "red", 3, 4, rect=rect)
     assert np.allclose(lines[0].sample_from_image(1), [40] * np.ones(10))
 
-    lines = track_lines(test_data, 3, 4, rect=[[0, 15], [30, 30]])
+    lines = track_lines(test_data, "red", 3, 4, rect=rect)
     assert np.allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
 
 
 def test_kymolinegroup():
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), None)
-    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), None)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), None)
-    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), None)
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), channel)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), channel)
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
 
     lines = KymoLineGroup([k1, k2, k3, k4])
     assert [k for k in lines] == [k1, k2, k3, k4]
@@ -404,9 +449,11 @@ def test_kymolinegroup():
 
 
 def test_filter_lines():
-    k1 = KymoLine([1, 2, 3], [1, 2, 3], [])
-    k2 = KymoLine([2, 3], [1, 2], [])
-    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], [])
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], channel)
+    k2 = KymoLine([2, 3], [1, 2], channel)
+    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], channel)
     lines = KymoLineGroup([k1, k2, k3])
     assert len(filter_lines(lines, 5)) == 0
     assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])
@@ -414,9 +461,11 @@ def test_filter_lines():
 
 
 def test_kymolines_removal():
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), None)
-    k2 = KymoLine(np.array([2, 3, 4]), np.array([2, 2, 2]), None)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), None)
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), channel)
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([2, 2, 2]), channel)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), channel)
 
     def verify(rect, resulting_lines):
         k = KymoLineGroup([k1, k2, k3])

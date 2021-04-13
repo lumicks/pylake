@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
 class MockEvent:
@@ -42,4 +43,13 @@ def kymograph():
     data[8, 10:25] = 8
     data[12, 5:7] = 10
     data[12, 9:20] = 10
-    return data
+
+    return generate_kymo(
+        "test",
+        data,
+        pixel_size_nm=1000,
+        start=int(4e9),
+        dt=int(1e9 / 100),
+        samples_per_pixel=3,
+        line_padding=20,
+    )
