@@ -6,6 +6,10 @@
 
 * Added `Kymo.downsampled_by()` for downsampling Kymographs. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 
+#### Breaking changes
+
+* The attribute `image_data` in `KymoLine` is now private.
+
 ## v0.8.2 | 2021-04-30
 
 #### New features
