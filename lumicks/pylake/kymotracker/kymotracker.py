@@ -6,7 +6,7 @@ from .detail.peakfinding import (
 )
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
-from .kymoline import KymoLineGroup
+from .kymoline import KymoLineGroup, KymoLine
 import numpy as np
 
 __all__ = ["track_greedy", "track_lines", "filter_lines", "refine_lines_centroid"]
@@ -118,9 +118,7 @@ def track_greedy(
         sigma_cutoff=sigma_cutoff,
     )
 
-    # Note that this deliberately refers to the original data, not the tracked subset!
-    for line in lines:
-        line.image_data = data
+    lines = [KymoLine(line.time_idx, line.coordinate_idx, data) for line in lines]
 
     return KymoLineGroup(
         [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
@@ -190,9 +188,7 @@ def track_lines(
         force_dir=1,
     )
 
-    # Note that this deliberately refers to the original data, not the tracked subset!
-    for line in lines:
-        line.image_data = data
+    lines = [KymoLine(line.time_idx, line.coordinate_idx, data) for line in lines]
 
     return KymoLineGroup(
         [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines

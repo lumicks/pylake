@@ -2,7 +2,6 @@ import enum
 import numpy as np
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
 from .scoring_functions import build_score_matrix
-from lumicks.pylake.kymotracker.kymoline import KymoLine
 
 
 class KymoCode(enum.IntEnum):
@@ -181,6 +180,24 @@ def _traverse_line_direction(
     return nodes
 
 
+class KymoLineData:
+    __slots__ = ["time_idx", "coordinate_idx"]
+
+    def __init__(self, time_idx, coordinate_idx):
+        """Some of the kymotracker classes return numpy arrays. Appending to many small numpy
+        arrays was a bottleneck and therefore we explicitly use lists."""
+        self.time_idx = list(time_idx)
+        self.coordinate_idx = list(coordinate_idx)
+
+    def append(self, time_idx, coordinate_idx):
+        """Append time [pixels], coordinate pair [pixels] to the KymoLine"""
+        self.time_idx.append(time_idx)
+        self.coordinate_idx.append(coordinate_idx)
+
+    def __len__(self):
+        return len(self.coordinate_idx)
+
+
 def traverse_line(
     indices,
     masked_derivative,
@@ -219,7 +236,7 @@ def traverse_line(
     line = np.array(indices_bwd + indices_fwd[1:])
 
     if len(line) > 0:
-        return KymoLine(time_idx=line[:, 1], coordinate_idx=line[:, 0])
+        return KymoLineData(time_idx=line[:, 1], coordinate_idx=line[:, 0])
 
 
 def detect_lines_from_geometry(
@@ -361,7 +378,7 @@ def append_next_point(line, frame, score_fun):
 
     Parameters
     ----------
-    line : pylake.kymotracker.trace_line_2d.KymoLine
+    line : pylake.kymotracker.trace_line_2d.KymoLineData
     frame : KymoPeaks.kymotracker.peakfinding.KymoPeaks.Frame
     score_fun : callable
         Function which takes a list of N lines and M points (in the form of candidate_times and candidate_coordinates)
@@ -389,7 +406,7 @@ def extend_line(line, peaks, window, score_fun):
 
     Parameters
     ----------
-    line : pylake.kymotracker.trace_line_2d.KymoLine
+    line : pylake.kymotracker.trace_line_2d.KymoLineData
         Contains the line currently being traced.
     peaks : KymoPeaks.kymotracker.peakfinding.KymoPeaks
         Contains all the peak data.
@@ -452,7 +469,7 @@ def points_to_line_segments(peaks, prediction_model, window=10, sigma_cutoff=2):
         # Give precedence to lines with higher peak amplitudes
         for starting_point in np.argsort(-frame.peak_amplitudes * frame.unassigned):
             if frame.unassigned[starting_point]:
-                line = KymoLine(
+                line = KymoLineData(
                     [frame.time_points[starting_point]], [frame.coordinates[starting_point]]
                 )
                 frame.unassigned[starting_point] = False
