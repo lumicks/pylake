@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sampling_width):
+def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):
     """Export KymoLineGroup to a csv file.
 
     Parameters
@@ -10,10 +10,6 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sam
         Filename to output KymoLineGroup to.
     kymoline_group : KymoLineGroup
         Kymograph traces to export.
-    dt : float
-        Calibration for the time axis.
-    dx : float
-        Calibration for the coordinate axis.
     delimiter : str
         Which delimiter to use in the csv file.
     sampling_width : int or None
@@ -27,6 +23,9 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sam
     coords_idx = np.hstack([line.coordinate_idx for line in kymoline_group])
     times_idx = np.hstack([line.time_idx for line in kymoline_group])
 
+    position = np.hstack([line.position for line in kymoline_group])
+    seconds = np.hstack([line.seconds for line in kymoline_group])
+
     data, header, fmt = [], [], []
 
     def store_column(column_title, format_string, new_data):
@@ -38,11 +37,8 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, dt, dx, delimiter, sam
     store_column("time (pixels)", "%.18e", times_idx)
     store_column("coordinate (pixels)", "%.18e", coords_idx)
 
-    if dt:
-        store_column("time", "%.18e", [times_idx * dt])
-
-    if dx:
-        store_column("coordinate", "%.18e", [coords_idx * dx])
+    store_column("time", "%.18e", seconds)
+    store_column("position", "%.18e", position)
 
     if sampling_width is not None:
         store_column(
@@ -62,8 +58,8 @@ def import_kymolinegroup_from_csv(filename, image, delimiter=";"):
     ----------
     filename : str
         filename to import from
-    image : array_like
-        2D image that these lines were tracked from
+    image : CalibratedKymographChannel
+        Calibrated 2D kymograph channel that these lines were tracked from
     delimiter : str
         A delimiter that delimits the column data.
 
@@ -92,9 +88,13 @@ class KymoLine:
 
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""
+        # Convert from image units to pixels
+        time_pixel_offset = self._image.from_seconds(time_offset)
+        coordinate_pixel_offset = self._image.from_position(coordinate_offset)
+
         return KymoLine(
-            [time_idx + time_offset for time_idx in self.time_idx],
-            [coordinate_idx + coordinate_offset for coordinate_idx in self.coordinate_idx],
+            [time_idx + time_pixel_offset for time_idx in self.time_idx],
+            [coordinate_idx + coordinate_pixel_offset for coordinate_idx in self.coordinate_idx],
             self._image,
         )
 
@@ -111,20 +111,25 @@ class KymoLine:
             np.array(np.vstack((self.time_idx[item], self.coordinate_idx[item]))).transpose()
         )
 
+    @property
+    def seconds(self):
+        return np.array([self._image.to_seconds(t) for t in self.time_idx])
+
+    @property
+    def position(self):
+        return np.array([self._image.to_position(x) for x in self.coordinate_idx])
+
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
 
         Parameters
         ----------
         rect : Tuple[Tuple[float, float], Tuple[float, float]]
-            Only perform tracking over a subset of the image. Pixel coordinates should be given as:
-            ((min_time, min_coord), (max_time, max_coord)).
+            Coordinates should be given as ((min_time, min_coord), (max_time, max_coord)).
         """
-        time_idx = np.array(self.time_idx)
-        coordinate_idx = np.array(self.coordinate_idx)
-        time_match = np.logical_and(time_idx < rect[1][0], time_idx >= rect[0][0])
-        coord_match = np.logical_and(coordinate_idx < rect[1][1], coordinate_idx >= rect[0][1])
-        return np.any(np.logical_and(time_match, coord_match))
+        time_match = np.logical_and(self.seconds < rect[1][0], self.seconds >= rect[0][0])
+        position_match = np.logical_and(self.position < rect[1][1], self.position >= rect[0][1])
+        return np.any(np.logical_and(time_match, position_match))
 
     def interpolate(self):
         """Interpolate Kymoline to whole pixel values"""
@@ -145,12 +150,12 @@ class KymoLine:
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
         """
-        y_size = self._image.shape[1]
+        y_size = self._image.data.shape[1]
 
         # Time and coordinates are being cast to an integer since we use them to index into a data array.
         return [
             reduce(
-                self._image[
+                self._image.data[
                     max(int(c) - num_pixels, 0) : min(int(c) + num_pixels + 1, y_size), int(t)
                 ]
             )
@@ -228,13 +233,13 @@ class KymoLineGroup:
             )
 
     def remove_lines_in_rect(self, rect):
-        """Removes traces that fall in a particular region. Note that if any point on a line falls inside the selected
-        region it will be removed.
+        """Removes traces that fall in a particular region. Note that if any point on a line falls
+        inside the selected region it will be removed.
 
         Parameters
         ----------
         rect : array_like
-            Array of 2D coordinates
+            Array of 2D coordinates in time and space units (not pixels)
         """
         if rect[0][0] > rect[1][0]:
             rect[0][0], rect[1][0] = rect[1][0], rect[0][0]
@@ -247,21 +252,17 @@ class KymoLineGroup:
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self._src)})"
 
-    def save(self, filename, dt=None, dx=None, delimiter=";", sampling_width=None):
+    def save(self, filename, delimiter=";", sampling_width=None):
         """Export kymograph lines to a csv file.
 
         Parameters
         ----------
         filename : str
             Filename to output kymograph traces to.
-        dt : float
-            Calibration for the time axis.
-        dx : float
-            Calibration for the coordinate axis.
         delimiter : str
             Which delimiter to use in the csv file.
         sampling_width : int or None
             When supplied, this will sample the source image around the kymograph line and export the summed intensity
             with the image. The value indicates the number of pixels in either direction to sum over.
         """
-        export_kymolinegroup_to_csv(filename, self._src, dt, dx, delimiter, sampling_width)
+        export_kymolinegroup_to_csv(filename, self._src, delimiter, sampling_width)

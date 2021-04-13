@@ -1,3 +1,4 @@
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymotracker import refine_lines_centroid
 from lumicks.pylake.kymotracker.kymoline import KymoLine
 import numpy as np
@@ -18,10 +19,11 @@ def test_refinement_2d():
 
     # Draw image with a deliberate offset
     offset = 2
-    image = np.zeros((7, 7))
-    image[coordinate_idx + offset, time_idx] = 5
-    image[coordinate_idx - 1 + offset, time_idx] = 1
-    image[coordinate_idx + 1 + offset, time_idx] = 1
+    data = np.zeros((7, 7))
+    data[coordinate_idx + offset, time_idx] = 5
+    data[coordinate_idx - 1 + offset, time_idx] = 1
+    data[coordinate_idx + 1 + offset, time_idx] = 1
+    image = CalibratedKymographChannel.from_array(data)
 
     line = refine_lines_centroid([KymoLine(time_idx[::2], coordinate_idx[::2], image=image)], 5)[0]
     assert np.allclose(line.time_idx, time_idx)
@@ -32,5 +34,6 @@ def test_refinement_2d():
 def test_refinement_line(loc, inv_sigma=0.3):
     xx = np.arange(0, 50) - loc
     image = np.exp(-inv_sigma * xx * xx)
-    line = refine_lines_centroid([KymoLine([0], [25], image=np.expand_dims(image, 1))], 5)[0]
+    calibrated_image = CalibratedKymographChannel.from_array(np.expand_dims(image, 1))
+    line = refine_lines_centroid([KymoLine([0], [25], image=calibrated_image)], 5)[0]
     assert np.allclose(line.coordinate_idx, loc, rtol=1e-2)

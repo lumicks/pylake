@@ -6,14 +6,14 @@ import pytest
 
 @cleanup
 def test_widget_open(kymograph):
-    KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
 
 
 @cleanup
 def test_parameters_kymo(kymograph, mockevent):
     """Test whether the parameter setting is passed correctly to the algorithm. By setting the threshold to different
     values we can check which lines are detected and use that to verify that the parameter is used."""
-    kymo_widget = KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     kymo_widget.algorithm_parameters["pixel_threshold"] = 30
     kymo_widget.track_all()
     assert len(kymo_widget.lines) == 0
@@ -29,7 +29,7 @@ def test_parameters_kymo(kymograph, mockevent):
 
 @cleanup
 def test_invalid_algorithm_parameter(kymograph, mockevent):
-    kymo_widget = KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     with pytest.raises(TypeError):
         kymo_widget.algorithm_parameters["bob"] = 5
         kymo_widget.track_all()
@@ -37,7 +37,7 @@ def test_invalid_algorithm_parameter(kymograph, mockevent):
 
 @cleanup
 def test_track_kymo(kymograph, region_select):
-    kymo_widget = KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     assert len(kymo_widget.lines) == 0
 
     # Track a line in a particular region. Only a single line exists in this region.
@@ -67,7 +67,7 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
     """Check if a round trip through the UI saving function works."""
     testfile = f"{tmpdir_factory.mktemp('pylake')}/kymo.csv"
 
-    kymo_widget = KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
     kymo_widget.track_all()
     kymo_widget.output_filename = testfile
@@ -75,7 +75,7 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
 
     lines = kymo_widget.lines
 
-    kymo_widget = KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     assert len(kymo_widget.lines) == 0
 
     kymo_widget.output_filename = testfile
@@ -87,7 +87,7 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
 
 
 def test_refine_from_widget(kymograph, region_select):
-    kymo_widget = KymoWidgetGreedy(kymograph, 1, use_widgets=False)
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
 
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
     kymo_widget.track_kymo(*region_select(12, 5, 13, 20))

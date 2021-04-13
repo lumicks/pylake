@@ -9,6 +9,11 @@
 #### Breaking changes
 
 * The attribute `image_data` in `KymoLine` is now private.
+* Make kymotracker functions `track_greedy()`, `track_lines()`, and class `KymoWidgetGreedy` take `Kymo` and a channel (e.g. "red") as their input. 
+  The advantage of this is that now units of time (seconds) and space (microns) are propagated automatically to the tracked `KymoLine`s. 
+  See the [Cas9 kymotracking example](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) or the [kymotracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
+* `KymoLineGroup.save()` and `KymoWidgetGreedy.save_lines()` no longer take `dx` and `dt` arguments. 
+  Instead, the correct time and position calibration is now passed automatically to these functions. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 
 ## v0.8.2 | 2021-04-30
 

@@ -1,3 +1,4 @@
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup, import_kymolinegroup_from_csv
 import numpy as np
 import pytest
@@ -5,8 +6,9 @@ import pytest
 
 @pytest.fixture(scope="session")
 def kymolinegroup_io_data():
-    test_img = np.zeros((8, 8))
+    test_data = np.zeros((8, 8))
 
+    test_img = CalibratedKymographChannel("test", data=test_data, time_step_ns=100e9, pixel_size=2)
     k1 = KymoLine([1, 2, 3], [2, 3, 4], test_img)
     k2 = KymoLine([2, 3, 4], [3, 4, 5], test_img)
     k3 = KymoLine([3, 4, 5], [4, 5, 6], test_img)
@@ -14,8 +16,8 @@ def kymolinegroup_io_data():
     lines = KymoLineGroup([k1, k2, k3, k4])
 
     for k in lines:
-        test_img[k.coordinate_idx, k.time_idx] = 2
-        test_img[np.array(k.coordinate_idx) - 1, k.time_idx] = 1
+        test_data[k.coordinate_idx, k.time_idx] = 2
+        test_data[np.array(k.coordinate_idx) - 1, k.time_idx] = 1
 
     return test_img, lines
 
@@ -33,22 +35,21 @@ def read_txt(testfile, delimiter):
 
 
 @pytest.mark.parametrize("dt, dx, delimiter, sampling_width, sampling_outcome",
-                         [[1.0, 1.0, ';', 0, 2],
-                          [2.0, 1.0, ';', 0, 2],
-                          [1.0, 2.0, ';', 0, 2],
-                          [1.0, 1.0, ',', 0, 2],
-                          [1.0, 1.0, ';', 1, 3],
-                          [None, None, ';', 1, 3],
-                          [None, None, ';', None, 3],
-                          [1.0, 2.0, ';', None, None],
-                          [None, 1.0, ';', None, None],
-                          [1.0, None, ';', None, None]])
+                         [[int(1e9), 1.0, ';', 0, 2],
+                          [int(2e9), 1.0, ';', 0, 2],
+                          [int(1e9), 2.0, ';', 0, 2],
+                          [int(1e9), 1.0, ',', 0, 2],
+                          [int(1e9), 1.0, ';', 1, 3],
+                          [int(1e9), 2.0, ';', None, None]])
 def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimiter, sampling_width, sampling_outcome):
     test_img, lines = kymolinegroup_io_data
 
+    test_img.time_step_ns = dt
+    test_img._pixel_size = dx
+
     # Test round trip through the API
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
-    lines.save(testfile, dt, dx, delimiter, sampling_width)
+    lines.save(testfile, delimiter, sampling_width)
     read_file = import_kymolinegroup_from_csv(testfile, test_img, delimiter=delimiter)
 
     # Test raw fields
@@ -59,17 +60,11 @@ def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimit
         assert np.allclose(np.array(line1.coordinate_idx), np.array(line2.coordinate_idx))
         assert np.allclose(np.array(line1.time_idx), np.array(line2.time_idx))
 
-    if not dt:
-        assert "time" not in data
-    else:
-        for line1, time in zip(lines, data["time"]):
-            assert np.allclose(np.array(line1.time_idx) * dt, time)
+    for line1, time in zip(lines, data["time"]):
+        assert np.allclose(line1.seconds, time)
 
-    if not dx:
-        assert "coordinate" not in data
-    else:
-        for line1, coord in zip(lines, data["coordinate"]):
-            assert np.allclose(np.array(line1.coordinate_idx) * dx, coord)
+    for line1, coord in zip(lines, data["position"]):
+        assert np.allclose(line1.position, coord)
 
     if sampling_width is None:
         assert len([key for key in data.keys() if "counts" in key]) == 0

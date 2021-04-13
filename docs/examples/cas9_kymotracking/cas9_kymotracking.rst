@@ -15,8 +15,7 @@ Analyzing Cas9 binding to DNA
 -----------------------------
 
 In this notebook we will analyze some measurements of Cas9 activity obtained while stretching the DNA tether at
-different forces. Note that this notebook relies on `scikit-image <https://scikit-image.org>`_ being installed on your
-system.
+different forces.
 
 Choosing an interactive backend allows us to interact with the plots. Note that depending on whether you are using
 Jupyter notebook or Jupyter lab, you should be using a different interactive backend. For Jupyter lab that means also
@@ -25,7 +24,6 @@ required Python modules and choosing an interactive backend for `matplotlib`::
 
     import matplotlib.pyplot as plt
     import numpy as np
-    from skimage.measure import block_reduce
 
     # Use notebook if you're in Jupyter Notebook
     # %matplotlib notebook
@@ -72,32 +70,16 @@ if we can put the kymotracker to some good use and quantify these.
 Downsampling the kymograph
 --------------------------
 
-To make it a bit easier to tweak the algorithm parameters, we will make use of a notebook widget. While we could work
-on the full time resolution data, we can make things a little easier for the kymotracking algorithm by downsampling the
-data a little bit. Here we extract the data corresponding to the green channel using the `kymo` attribute
-`green_image` and downsample the image by a factor of `2` using
-`block_reduce() <https://scikit-image.org/docs/dev/api/skimage.measure.html#skimage.measure.block_reduce>`_ from
-`scikit image`. This function takes an image and downsamples it according to its second argument. Here the downsampling
-factor is given for each dimension. In our case we have two dimensions: position and time. We only want to downsample
-time and not position, so we provide `(1, downsample_factor)`::
+To make it a bit easier to tweak the algorithm parameters, we will make use of a notebook widget.
+While we could work on the full time resolution data, we can make things a little easier for the kymotracking algorithm by downsampling the data a little bit.
+We downsample the data by a factor of `2`::
 
-    data = kymo.green_image
-    downsample_factor = 2
-    data = block_reduce(data, (1, downsample_factor))
-
-Given that we have downsampled the data, we should also use a time axis that takes this into account. We can calculate
-the time step per line using the line time found in `Kymo`::
-
-    dt = downsample_factor * kymo.line_time_seconds
-
-The physical size of a pixel along the line we can obtain from the `json` field of the `Kymo`::
-
-    pixel_size = kymo.pixelsize_um
+    kymo_ds = kymo.downsampled_by(2)
 
 Performing the kymotracking
 ---------------------------
 
-Now that we’ve loaded some data, we can begin tracing lines on it. For this, we open the KymoWidget we’ve imported.
+Now that we’ve loaded some data, we can begin tracing lines on it. For this, we open the widget.
 This will provide us with a view of the kymograph and some dials to tune in algorithm settings. We open with a
 custom `axis_aspect_ratio` which determines our field of view. This input is not necessary, but provides a better
 view of our data.
@@ -129,24 +111,23 @@ functionality can be used to remove spurious detections.
 Note that in this data for example, there are some regions where fluorescence starts building up on the surface of the
 bead. This binding should be omitted from the analysis::
 
-    kymowidget = lk.KymoWidgetGreedy(data, axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=1.4, vmax=8)
+    kymowidget = lk.KymoWidgetGreedy(kymo_ds, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=1.4, vmax=8)
 
 .. image:: kymowidget.png
 
 One last thing to note is that we assigned the `KymoWidgetGreedy` to the variable `kymowidget`. That means that from
 this point on, we can interact with it through the handle name `kymowidget`.
 
-Exporting from the widget results in a file that contains the line coordinates in pixels. If we wish to calibrate them,
-we can export manually and pass a `dt` and `dx` argument which correspond to the pixel size. If we also want to
-export the photon counts in a region around the traced line, we can include a `sampling_width`. This sums the photon
-counts from `pixel_position - sampling_width` to (and including) `pixel_position + sampling_width`::
+Exporting from the widget results in a file that contains the line coordinates in pixels and real units.
+If we also want to export the photon counts in a region around the traced line, we can include a `sampling_width`.
+This sums the photon counts from `pixel_position - sampling_width` to (and including) `pixel_position + sampling_width`::
 
-    kymowidget.save_lines("kymotracks_calibrated.txt", dt=dt, dx=pixel_size, sampling_width=3)
+    kymowidget.save_lines("kymotracks_calibrated.txt", sampling_width=3)
 
 Analyzing the results
 ---------------------
 
-Once traced, the lines are available in `kymowidget.lines`. Lines have a `coordinate` list and a `time` list. Let’s grab
+Once traced, the lines are available in `kymowidget.lines`. Lines have a `position` list and a `time` list. Let’s grab
 the longest line we found, and have a look at its position over time::
 
     lengths = [len(line) for line in kymowidget.lines]
@@ -158,7 +139,7 @@ the longest line we found, and have a look at its position over time::
     longest_line = kymowidget.lines[longest_index]
 
     plt.figure(figsize=(5, 3))
-    plt.plot(np.array(longest_line.time_idx) * dt, np.array(longest_line.coordinate_idx) * pixel_size / 1000)
+    plt.plot(longest_line.seconds, longest_line.position)
     plt.xlabel('Time [s]')
     plt.ylabel('Position [$\mu$m]')
     plt.tight_layout()
@@ -170,9 +151,9 @@ We can use such a line to sample the photon counts in the image. If we want to s
 around the line from -3 to 3, we can achieve this by::
 
     plt.figure()
-    plt.plot(longest_line.time_idx, longest_line.sample_from_image(3))
+    plt.plot(longest_line.seconds, longest_line.sample_from_image(3))
     plt.ylabel('Photon count')
-    plt.xlabel('Time [pixels]')
+    plt.xlabel('Time [s]')
     plt.title('Photon counts along the longest line')
     plt.tight_layout()
     plt.show()
@@ -184,15 +165,15 @@ segments are when we compare them to the force::
 
     plt.figure(figsize=(6, 3))
     ax1 = plt.subplot(1, 1, 1)
-    time = (file["Force LF"]["Force 1x"].timestamps - file["Force LF"]["Force 1x"].timestamps[0])/1e9
+    time = file["Force LF"]["Force 1x"].seconds
     force = file["Force LF"]["Force 1x"].data
     plt.plot(time, force)
     plt.xlabel('Time [s]')
     plt.ylabel('Force [pN]')
 
     ax2 = ax1.twinx()
-    line_start_times = np.array([dt * line.time_idx[0] for line in kymowidget.lines])
-    line_stop_times = np.array([dt * line.time_idx[-1] for line in kymowidget.lines])
+    line_start_times = np.array([line.seconds[0] for line in kymowidget.lines])
+    line_stop_times = np.array([line.seconds[-1] for line in kymowidget.lines])
     line_durations = line_stop_times - line_start_times
     [plt.plot(line_start_times, line_durations, 'k.') for line in kymowidget.lines]
     plt.ylabel('Trace Duration [s]')

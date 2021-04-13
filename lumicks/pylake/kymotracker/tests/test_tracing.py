@@ -1,11 +1,10 @@
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.detail.scoring_functions import build_score_matrix, kymo_score
 from lumicks.pylake.kymotracker.detail.trace_line_2d import append_next_point, extend_line, \
     points_to_line_segments, KymoLineData
 from lumicks.pylake.kymotracker.kymoline import KymoLine
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
-from lumicks.pylake.kymotracker.kymotracker import _get_rect
 import numpy as np
-import pytest
 
 
 def test_score_matrix():
@@ -128,18 +127,30 @@ def test_extend_line():
 
 
 def test_kymotracker_two_integration():
+    channel = CalibratedKymographChannel("test", np.array([[]]), 4e9, 5)
+
     peaks = KymoPeaks(
         np.array([1.0, 2.0, 3.0, 4.0, 6.0, 5.0, 7.0]),
         np.array([1.0, 2.0, 3.0, 1.0, 3.0, 2.0, 5.0]),
         np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
     )
 
-    lines = points_to_line_segments(peaks, kymo_score(vel=0, sigma=1, diffusion=0), window=8, sigma_cutoff=2)
+    lines = points_to_line_segments(
+        peaks,
+        kymo_score(vel=0, sigma=1, diffusion=0),
+        window=8,
+        sigma_cutoff=2
+    )
     assert np.allclose(lines[0].coordinate_idx, [1.0, 2.0, 3.0])
     assert np.allclose(lines[1].time_idx, [1.0, 2.0, 3.0, 5.0])
     assert np.allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0, 7.0])
 
-    lines = points_to_line_segments(peaks, kymo_score(vel=0, sigma=1, diffusion=0), window=1, sigma_cutoff=2)
+    lines = points_to_line_segments(
+        peaks,
+        kymo_score(vel=0, sigma=1, diffusion=0),
+        window=1,
+        sigma_cutoff=2
+    )
     assert np.allclose(lines[0].coordinate_idx, [1.0, 2.0, 3.0])
     assert np.allclose(lines[1].time_idx, [1.0, 2.0, 3.0])
     assert np.allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0])
@@ -148,7 +159,7 @@ def test_kymotracker_two_integration():
 
 
 def test_sampling():
-    test_img = np.array([
+    test_data = np.array([
         [0, 0, 0, 0, 0],
         [0, 1, 0, 0, 0],
         [0, 1, 1, 0, 0],
@@ -156,6 +167,7 @@ def test_sampling():
         [0, 0, 1, 1, 0],
         [0, 0, 0, 0, 0],
     ])
+    test_img = CalibratedKymographChannel("test", test_data, 10e9, 5)
 
     # Tests the bound handling
     kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img)
@@ -172,21 +184,3 @@ def test_sampling():
     assert np.allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
     assert np.allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img).sample_from_image(0),
                        [0, 0, 1, 1, 0])
-
-
-def test_rect():
-    data = np.random.rand(15, 25)
-
-    assert(np.allclose(_get_rect(data, ((5, 8), (22, 20))), data[8:20, 5:22]))
-
-    with pytest.raises(IndexError):
-        _get_rect(data, ((10, 10), (5, 20)))
-
-    with pytest.raises(IndexError):
-        _get_rect(data, ((5, 20), (10, 10)))
-
-    with pytest.raises(IndexError):
-        _get_rect(data, ((5, 16), (10, 18)))
-
-    with pytest.raises(IndexError):
-        _get_rect(data, ((26, 5), (28, 7)))

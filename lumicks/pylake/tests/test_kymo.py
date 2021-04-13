@@ -292,5 +292,5 @@ def test_calibrated_channels():
 
     calibrated_channel = CalibratedKymographChannel.from_kymo(kymo, "red")
     assert np.allclose(calibrated_channel.data, image)
-    assert np.allclose(calibrated_channel.time_step, kymo.line_time_seconds * int(1e9))
+    assert np.allclose(calibrated_channel.time_step_ns, kymo.line_time_seconds * int(1e9))
     assert np.allclose(calibrated_channel._pixel_size, kymo.pixelsize_um[0])
