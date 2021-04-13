@@ -85,15 +85,10 @@ class KymoLine:
 
     __slots__ = ["time_idx", "coordinate_idx", "image_data"]
 
-    def __init__(self, time_idx, coordinate_idx, image_data=None):
+    def __init__(self, time_idx, coordinate_idx, image_data):
         self.time_idx = list(time_idx)
         self.coordinate_idx = list(coordinate_idx)
         self.image_data = image_data
-
-    def append(self, time_idx, coordinate_idx):
-        """Append time, coordinate pair to the KymoLine"""
-        self.time_idx.append(time_idx)
-        self.coordinate_idx.append(coordinate_idx)
 
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""

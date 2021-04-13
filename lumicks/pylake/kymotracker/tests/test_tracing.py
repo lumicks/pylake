@@ -1,5 +1,6 @@
 from lumicks.pylake.kymotracker.detail.scoring_functions import build_score_matrix, kymo_score
-from lumicks.pylake.kymotracker.detail.trace_line_2d import append_next_point, extend_line, points_to_line_segments
+from lumicks.pylake.kymotracker.detail.trace_line_2d import append_next_point, extend_line, \
+    points_to_line_segments, KymoLineData
 from lumicks.pylake.kymotracker.kymoline import KymoLine
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
 from lumicks.pylake.kymotracker.kymotracker import _get_rect
@@ -62,7 +63,7 @@ def test_score_matrix():
 
 
 def test_line_append():
-    kymoline = KymoLine([0.0], [2.0], None)
+    kymoline = KymoLineData([0.0], [2.0])
     frame = KymoPeaks.Frame(np.array([1.0, 2.0, 2.5]), np.array([1.0, 1.0, 1.0]), np.array([1.0, 2.0, 3.0]))
     frame.reset_assignment()
 
@@ -103,25 +104,25 @@ def test_extend_line():
 
     # Starting from 4 we should get the extension 4, 5, 6 first. 7 will not be included, since it is at time point 5
     # and our window only goes up one frame
-    kymoline = KymoLine([0.0], [4.0], None)
+    kymoline = KymoLineData([0.0], [4.0])
     extend_line(kymoline, peaks, 1, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0]))
 
     # 4, 5, 6 no longer being available, we should get 1, 2, 3
-    kymoline = KymoLine([0.0], [4.0], None)
+    kymoline = KymoLineData([0.0], [4.0])
     extend_line(kymoline, peaks, 1, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 1.0, 2.0, 3.0]))
 
     # With a bigger window, we should get 7.0 too
     peaks.reset_assignment()
-    kymoline = KymoLine([0.0], [4.0], None)
+    kymoline = KymoLineData([0.0], [4.0])
     extend_line(kymoline, peaks, 2, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0, 7.0]))
 
     # Starting from t=2, we should only get 6
     # and our window only goes up one frame
     peaks.reset_assignment()
-    kymoline = KymoLine([2.0], [5.0], None)
+    kymoline = KymoLineData([2.0], [5.0])
     extend_line(kymoline, peaks, 1, score_fun)
     assert np.allclose(kymoline.coordinate_idx, np.array([5.0, 6.0]))
 

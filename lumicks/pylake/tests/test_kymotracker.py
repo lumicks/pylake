@@ -407,9 +407,9 @@ def test_kymolinegroup():
 
 
 def test_filter_lines():
-    k1 = KymoLine([1, 2, 3], [1, 2, 3])
-    k2 = KymoLine([2, 3], [1, 2])
-    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5])
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], [])
+    k2 = KymoLine([2, 3], [1, 2], [])
+    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], [])
     lines = KymoLineGroup([k1, k2, k3])
     assert len(filter_lines(lines, 5)) == 0
     assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])
