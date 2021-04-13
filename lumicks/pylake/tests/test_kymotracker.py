@@ -253,9 +253,6 @@ def test_kymo_line():
 
     assert np.allclose(k2.coordinate_idx, [3, 4, 5])
 
-    with pytest.raises(RuntimeError):
-        assert k1.sample_from_image(2)
-
 
 def test_kymoline_selection():
     assert not KymoLine([4, 5, 6], [7, 7, 7], None).in_rect(((4, 6), (6, 7)))

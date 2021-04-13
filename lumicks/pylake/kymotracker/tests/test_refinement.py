@@ -23,7 +23,7 @@ def test_refinement_2d():
     image[coordinate_idx - 1 + offset, time_idx] = 1
     image[coordinate_idx + 1 + offset, time_idx] = 1
 
-    line = refine_lines_centroid([KymoLine(time_idx[::2], coordinate_idx[::2], image_data=image)], 5)[0]
+    line = refine_lines_centroid([KymoLine(time_idx[::2], coordinate_idx[::2], image=image)], 5)[0]
     assert np.allclose(line.time_idx, time_idx)
     assert np.allclose(line.coordinate_idx, coordinate_idx + offset)
 
@@ -32,5 +32,5 @@ def test_refinement_2d():
 def test_refinement_line(loc, inv_sigma=0.3):
     xx = np.arange(0, 50) - loc
     image = np.exp(-inv_sigma * xx * xx)
-    line = refine_lines_centroid([KymoLine([0], [25], image_data=np.expand_dims(image, 1))], 5)[0]
+    line = refine_lines_centroid([KymoLine([0], [25], image=np.expand_dims(image, 1))], 5)[0]
     assert np.allclose(line.coordinate_idx, loc, rtol=1e-2)

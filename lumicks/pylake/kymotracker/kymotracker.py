@@ -231,7 +231,7 @@ def refine_lines_centroid(lines, line_width):
     ).astype(int)
 
     coordinate_idx, time_idx, _ = refine_peak_based_on_moment(
-        interpolated_lines[0].image_data, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
+        interpolated_lines[0]._image, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
     )
 
     current = 0
