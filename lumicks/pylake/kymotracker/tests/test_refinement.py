@@ -28,6 +28,8 @@ def test_refinement_2d():
     line = refine_lines_centroid([KymoLine(time_idx[::2], coordinate_idx[::2], image=image)], 5)[0]
     assert np.allclose(line.time_idx, time_idx)
     assert np.allclose(line.coordinate_idx, coordinate_idx + offset)
+    assert isinstance(line.time_idx, list)
+    assert isinstance(line.coordinate_idx, list)
 
 
 @pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])

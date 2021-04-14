@@ -8,6 +8,7 @@ from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
 from lumicks.pylake.kymotracker.kymotracker import track_greedy, track_lines, filter_lines
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
+from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from copy import deepcopy
 from scipy.stats import norm
@@ -281,6 +282,14 @@ def test_kymoline_selection_non_unit_calibration():
 
     assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6*5), (6, 7*5)))
     assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6*5), (6, 8*5)))
+
+
+def test_kymoline_from_kymolinedata():
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
+    kl = KymoLine._from_kymolinedata(KymoLineData([4, 5, 6], [7, 7, 7]), channel)
+    assert np.allclose(kl.time_idx, [4, 5, 6])
+    assert np.allclose(kl.coordinate_idx, [7, 7, 7])
+    assert id(kl._image) == id(channel)
 
 
 def test_distance_line_to_point():

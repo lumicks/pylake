@@ -1,5 +1,7 @@
 import enum
 import numpy as np
+from dataclasses import dataclass
+from typing import List
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
 from .scoring_functions import build_score_matrix
 
@@ -180,14 +182,26 @@ def _traverse_line_direction(
     return nodes
 
 
+@dataclass(frozen=True)
 class KymoLineData:
-    __slots__ = ["time_idx", "coordinate_idx"]
+    """Uncalibrated kymograph lines coming from low-level kymotracker functions.
 
-    def __init__(self, time_idx, coordinate_idx):
-        """Some of the kymotracker classes return numpy arrays. Appending to many small numpy
-        arrays was a bottleneck and therefore we explicitly use lists."""
-        self.time_idx = list(time_idx)
-        self.coordinate_idx = list(coordinate_idx)
+    Backend kymograph functions typically work on raw pixel data. These return lines in the
+    `KymoLineData` format. Typically, these will be wrapped with some additional metadata (in
+    the form of a `KymoLine`) before being passed to the user.
+
+    Parameters
+    ----------
+    time_idx : List[float]
+        List of time indices on the tracked image [pixels]
+    coordinate_idx : List[float]
+        List of coordinate indices on the tracked image [pixels]
+
+    Note: Some of the kymotracker functions return numpy arrays. Appending too many small numpy
+    arrays was a bottleneck and therefore we explicitly use lists."""
+
+    time_idx: List[float]
+    coordinate_idx: List[float]
 
     def append(self, time_idx, coordinate_idx):
         """Append time [pixels], coordinate pair [pixels] to the KymoLine"""
@@ -236,7 +250,7 @@ def traverse_line(
     line = np.array(indices_bwd + indices_fwd[1:])
 
     if len(line) > 0:
-        return KymoLineData(time_idx=line[:, 1], coordinate_idx=line[:, 0])
+        return KymoLineData(time_idx=line[:, 1].tolist(), coordinate_idx=line[:, 0].tolist())
 
 
 def detect_lines_from_geometry(
