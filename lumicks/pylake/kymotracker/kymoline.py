@@ -86,6 +86,10 @@ class KymoLine:
         self.coordinate_idx = list(coordinate_idx)
         self._image = image
 
+    @classmethod
+    def _from_kymolinedata(cls, kymolinedata, image):
+        return cls(kymolinedata.time_idx, kymolinedata.coordinate_idx, image)
+
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""
         # Convert from image units to pixels
