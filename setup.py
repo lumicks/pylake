@@ -3,8 +3,8 @@ import sys
 from setuptools import setup, PEP420PackageFinder
 from setuptools.command.egg_info import manifest_maker
 
-if sys.version_info[:2] < (3, 6):
-    print("Python >= 3.6 is required.")
+if sys.version_info[:2] < (3, 7):
+    print("Python >= 3.7 is required.")
     sys.exit(-1)
 
 
@@ -43,12 +43,12 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
     ],
     packages=PEP420PackageFinder.find(include=["lumicks.*"]),
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "pytest>=3.5",
         "h5py>=3.0, <4",
