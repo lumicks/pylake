@@ -9,7 +9,7 @@ Installation instructions
 
 Pylake can be installed on Windows, Linux or Mac, with the following prerequisites:
 
-* `Python`_ 3.6 or newer (Python 2.x is not supported)
+* `Python`_ 3.7 or newer (Python 2.x is not supported)
 * The `SciPy`_ stack of scientific packages
 
 If you're already familiar with Python and have the above prerequisites, installing Pylake is just a simple case of using `pip`, Python's usual package manager::
