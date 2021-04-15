@@ -583,3 +583,16 @@ def test_channel_plot():
 def test_regression_lazy_loading(h5_file):
     ch = channel.Continuous.from_dataset(h5_file["Force HF"]["Force 1x"])
     assert type(ch._src._src_data) == h5py.Dataset
+
+
+@pytest.mark.parametrize(
+    "data, new_data",
+    [
+        (channel.Continuous([1, 2, 3, 4, 5], start=1, dt=1), np.array([5, 6, 7, 8, 9])),
+        (channel.TimeSeries([1, 2, 3, 4, 5], [2, 3, 4, 5, 6]), np.array([5, 6, 7, 8, 9])),
+    ],
+)
+def test_with_data(data, new_data):
+    assert np.allclose(data._with_data(new_data).data, new_data)
+    old_timestamps = data.timestamps
+    assert np.allclose(data._with_data(new_data).timestamps, old_timestamps)
