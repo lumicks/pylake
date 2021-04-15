@@ -54,6 +54,49 @@ class Slice:
         """Return a copy of this slice with a different data source, but keep other properties"""
         return self.__class__(data_source, self.labels, self._calibration)
 
+    def _unpack_other(self, other):
+        if np.isscalar(other):
+            return other
+
+        if not isinstance(other, Slice):
+            raise TypeError("Trying to perform operation with incompatible types.")
+
+        if isinstance(other._src, TimeTags):
+            raise NotImplementedError("This operation is not supported for TimeTag data")
+
+        if not np.array_equal(other.timestamps, self.timestamps):
+            raise RuntimeError("Cannot perform arithmetic on slices with different timestamps.")
+
+        return other.data
+
+    def __add__(self, other):
+        return Slice(self._src._with_data(self.data + self._unpack_other(other)))
+
+    def __sub__(self, other):
+        return Slice(self._src._with_data(self.data - self._unpack_other(other)))
+
+    def __truediv__(self, other):
+        return Slice(self._src._with_data(self.data / self._unpack_other(other)))
+
+    def __mul__(self, other):
+        return Slice(self._src._with_data(self.data * self._unpack_other(other)))
+
+    def __pow__(self, other):
+        return Slice(self._src._with_data(self.data ** self._unpack_other(other)))
+
+    def __rtruediv__(self, other):
+        return Slice(self._src._with_data(self._unpack_other(other) / self.data))
+
+    def __rsub__(self, other):
+        return Slice(self._src._with_data(self._unpack_other(other) - self.data))
+
+    def __rpow__(self, other):
+        return Slice(self._src._with_data(self._unpack_other(other) ** self.data))
+
+    # These commute
+    __rmul__ = __mul__
+    __radd__ = __add__
+
     @property
     def start(self):
         """Starting timestamp of this time series in nanoseconds"""
@@ -349,6 +392,9 @@ class Continuous:
         self.stop = start + len(data) * dt
         self.dt = dt
 
+    def _with_data(self, data):
+        return self.__class__(data, self.start, self.dt)
+
     def __len__(self):
         return len(self._src_data)
 
@@ -420,6 +466,9 @@ class TimeSeries:
     def __len__(self):
         return len(self.data)
 
+    def _with_data(self, data):
+        return self.__class__(data, self.timestamps)
+
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
         return Slice(
@@ -474,6 +523,9 @@ class TimeTags:
 
     def __len__(self):
         return self.data.size
+
+    def _with_data(self, data):
+        raise NotImplementedError("Time tags do not currently support this operation")
 
     @staticmethod
     def from_dataset(dset, y_label="y"):

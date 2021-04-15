@@ -158,6 +158,17 @@ Plotting is typically performed with the origin of the plot set to the timestamp
     first_slice.plot()
     second_slice.plot(start=first_slice.start)  # we want to use the start of first_slice as time point "zero"
 
+Arithmetic
+^^^^^^^^^^
+
+Simple arithmetic operations can be performed directly on slices::
+
+    >>> diff_force = (file.force1x - file.force2x) / 2
+    <lumicks.pylake.channel.Slice at 0x2954d3016d0>
+
+    >>> force_magnitude = (file.force1x ** 2 + file.force1y ** 2) ** 0.5
+    <lumicks.pylake.channel.Slice at 0x2954d3016d0>
+
 Downsampling
 ^^^^^^^^^^^^
 
