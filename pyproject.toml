@@ -14,7 +14,6 @@ exclude = '''
     | build
     | dist
     | tests  # ignore test directories until we have a better solution for test datasets
-    | force_calibration  # ignore it for now since a big refactoring effort is ongoing
   )/
 )
 '''

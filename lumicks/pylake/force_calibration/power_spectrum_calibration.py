@@ -187,8 +187,10 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
         Parameters obtained from the calibration procedure.
     """
     if len(power_spectrum.frequency) < 4:
-        raise RuntimeError("Insufficient number of points to fit power spectrum. Check whether"
-                           "you are using the correct frequency range and sampling rate.")
+        raise RuntimeError(
+            "Insufficient number of points to fit power spectrum. Check whether"
+            "you are using the correct frequency range and sampling rate."
+        )
     if not isinstance(power_spectrum, PowerSpectrum):
         raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
     if not isinstance(settings, CalibrationSettings):
@@ -197,9 +199,11 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
     # Fit analytical Lorentzian to get initial guesses for the full power spectrum model.
     analytical_power_spectrum = power_spectrum.in_range(*settings.analytical_fit_range)
     if len(analytical_power_spectrum.frequency) < 1:
-        raise RuntimeError("An empty power spectrum was passed to fit_analytical_lorentzian. Check"
-                           "whether you are using the correct sample rate and frequency range"
-                           "for the analytical fit.")
+        raise RuntimeError(
+            "An empty power spectrum was passed to fit_analytical_lorentzian. Check"
+            "whether you are using the correct sample rate and frequency range"
+            "for the analytical fit."
+        )
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
     initial_params = (

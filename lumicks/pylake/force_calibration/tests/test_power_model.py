@@ -8,8 +8,10 @@ def test_friction_coefficient():
 
 
 def test_spectrum(reference_models):
-    assert np.allclose(passive_power_spectrum_model(np.arange(10000), 1000, 1e9, 10000, 0.5),
-                       reference_models.lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000))
+    assert np.allclose(
+        passive_power_spectrum_model(np.arange(10000), 1000, 1e9, 10000, 0.5),
+        reference_models.lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000),
+    )
 
 
 def test_spectrum_parameter_scaling(reference_models):
@@ -50,8 +52,12 @@ def test_spectrum_parameter_scaling(reference_models):
         [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
     ],
 )
-def test_fit_analytic(reference_models, corner_frequency, diffusion_constant, num_samples, sigma_fc, sigma_diffusion):
-    power_spectrum = reference_models.lorentzian(np.arange(0, num_samples), corner_frequency, diffusion_constant)
+def test_fit_analytic(
+    reference_models, corner_frequency, diffusion_constant, num_samples, sigma_fc, sigma_diffusion
+):
+    power_spectrum = reference_models.lorentzian(
+        np.arange(0, num_samples), corner_frequency, diffusion_constant
+    )
     data = np.fft.irfft(np.sqrt(np.abs(power_spectrum))) * (num_samples - 1) * 2
 
     num_points_per_block = 20
