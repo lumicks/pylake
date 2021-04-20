@@ -27,8 +27,9 @@ def fit_analytical_lorentzian(ps):
 
         Note: returns None if the fit fails.
     """
-    FitResults = namedtuple("AnalyticalLorentzianFitResults",
-                            ["fc", "D", "sigma_fc", "sigma_D", "ps_fit"])
+    FitResults = namedtuple(
+        "AnalyticalLorentzianFitResults", ["fc", "D", "sigma_fc", "sigma_D", "ps_fit"]
+    )
 
     # Calculate S[p,q] elements (Ref. 1, Eq. 13-14).
     Spq = np.zeros((3, 3))
@@ -36,8 +37,12 @@ def fit_analytical_lorentzian(ps):
         Spq[p, q] = np.sum(np.power(ps.frequency, 2 * p) * np.power(ps.power, q))
 
     # Calculate a and b parameters (Ref. 1, Eq. 13-14).
-    a = (Spq[0, 1] * Spq[2, 2] - Spq[1, 1] * Spq[1, 2]) / (Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2])
-    b = (Spq[1, 1] * Spq[0, 2] - Spq[0, 1] * Spq[1, 2]) / (Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2])
+    a = (Spq[0, 1] * Spq[2, 2] - Spq[1, 1] * Spq[1, 2]) / (
+        Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2]
+    )
+    b = (Spq[1, 1] * Spq[0, 2] - Spq[0, 1] * Spq[1, 2]) / (
+        Spq[0, 2] * Spq[2, 2] - Spq[1, 2] * Spq[1, 2]
+    )
 
     # Having a and b, calculating fc and D is trivial.
     fc = math.sqrt(a / b)  # corner frequency [Hz]
@@ -75,6 +80,7 @@ def _convert_to_a(alpha):
 
 class ScaledModel:
     """Callable wrapper around a model function to handle scaling"""
+
     def __init__(self, model, initial_guess):
         scale_factors = (
             *initial_guess[0:3],
@@ -101,10 +107,13 @@ class ScaledModel:
         # interval into an 'alpha' confidence interval. Note that this also seems
         # to give us different results for the alpha confidence interval than the
         # original tweezercalib-2.1 code from ref. 3.
-        perr[3] = abs(
+        perr[3] = (
+            abs(
                 _convert_to_alpha(rescaled_params[3] * self._scale_factors[3] + perr[3])
                 - _convert_to_alpha(rescaled_params[3] * self._scale_factors[3] - perr[3])
-            ) / 2
+            )
+            / 2
+        )
         return perr
 
     def __call__(self, f, p1, p2, p3, p4):
