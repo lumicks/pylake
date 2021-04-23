@@ -478,3 +478,40 @@ def test_kymolines_removal():
     verify([[6, 5], [5, 3]], [k1, k2])
     verify([[0, 0], [5, 5]], [])
     verify([[15, 3], [16, 4]], [k1, k2, k3])
+
+
+def test_kymoline_concat():
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), channel)
+    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), channel)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), channel)
+    k4 = KymoLine(np.array([8, 9, 10]), np.array([3, 3, 3]), channel)
+    group = KymoLineGroup([k1, k2, k3])
+
+    # Test whether overlapping time raises.
+    with pytest.raises(RuntimeError):
+        group._concatenate_lines(k1, k3)
+
+    # Kymolines have to be added sequentially. Check whether the wrong order raises.
+    with pytest.raises(RuntimeError):
+        group._concatenate_lines(k2, k1)
+
+    # Check whether a kymoline that's not in the group raises (should only be able to merge
+    # within group)
+    with pytest.raises(RuntimeError):
+        group._concatenate_lines(k1, k4)
+
+    # Check whether a kymoline that's not in the group raises (should only be able to merge
+    # within group)
+    with pytest.raises(RuntimeError):
+        group._concatenate_lines(k4, k1)
+
+    # Check whether an invalid type raises correctly
+    with pytest.raises(RuntimeError):
+        group._concatenate_lines(k1, 5)
+
+    # Finally do a correct merge
+    group._concatenate_lines(k1, k2)
+    assert np.allclose(group[0].seconds, [1, 2, 3, 6, 7, 8])
+    assert np.allclose(group[1].seconds, [3, 4, 5])
