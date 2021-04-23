@@ -72,7 +72,8 @@ class KymoWidget:
 
         self._dx = 0
         self._last_update = 0
-        self.area_selector = None
+        self._area_selector = None
+        self._line_connector = None
 
         self._algorithm = algorithm
         self.algorithm_parameters = algorithm_parameters
@@ -110,9 +111,10 @@ class KymoWidget:
         )
 
     def _connect_drag_callback(self):
-        def set_xlim(_x, _y, dx, _dy):
+        def set_xlim(drag_event):
+            # Callback for dragging the field of view
             old_xlims = np.array(self._axes.get_xlim())
-            self._dx = self._dx + dx
+            self._dx = self._dx + drag_event.dx
 
             # We don't need to update more than 30 times per second (1/30 = 0.033).
             if abs(time.time() - self._last_update) > 0.033:
@@ -121,6 +123,60 @@ class KymoWidget:
                 self._last_update = time.time()
 
         MouseDragCallback(self._axes, 1, set_xlim)
+
+    def _to_pixel(self, x, y):
+        return self._axes.transData.transform((x, y))
+
+    def _connect_line_callback(self):
+        cutoff_radius = 20
+        line_to_extend = None
+        plotted_line = None
+
+        def initiate_line(event):
+            nonlocal line_to_extend
+            if len(self.lines) == 0:
+                return
+
+            positions = np.array(
+                [self._to_pixel(l.seconds[-1], l.position[-1]) for l in self.lines]
+            )
+            squared_dist = np.sum((self._to_pixel(event.x, event.y) - positions) ** 2, 1)
+            idx = np.argmin(squared_dist)
+
+            if squared_dist[idx] < cutoff_radius:
+                line_to_extend = idx
+                return True
+
+        def drag_line(event):
+            nonlocal line_to_extend, plotted_line
+            if plotted_line:
+                plotted_line.remove()
+                plotted_line = None
+
+            plotted_line = self._axes.plot(
+                [self.lines[line_to_extend].seconds[-1], event.x],
+                [self.lines[line_to_extend].position[-1], event.y],
+                "r",
+            )[0]
+
+        def finalize_line(event):
+            nonlocal line_to_extend, plotted_line
+            if plotted_line:
+                plotted_line.remove()
+                plotted_line = None
+
+            positions = np.array([self._to_pixel(l.seconds[0], l.position[0]) for l in self.lines])
+            squared_dist = np.sum((self._to_pixel(event.x, event.y) - positions) ** 2, 1)
+            idx = np.argmin(squared_dist)
+
+            if squared_dist[idx] < cutoff_radius:
+                self.lines._concatenate_lines(self.lines[line_to_extend], self.lines[idx])
+                self.update_lines()
+
+        self._line_connector = MouseDragCallback(
+            self._axes, 3, drag_line, press_callback=initiate_line, release_callback=finalize_line
+        )
+        self._line_connector.set_active(False)
 
     def update_lines(self):
         for line in self.plotted_lines:
@@ -289,6 +345,13 @@ class KymoWidget:
         fn_widget = ipywidgets.Text(value=self.output_filename, description="File")
         fn_widget.observe(set_fn, "value")
 
+        self._mode = ipywidgets.RadioButtons(
+            options=["Track lines", "Connect lines"],
+            disabled=False,
+            tooltip="Choose between adding/removing tracked lines and connecting existing ones",
+            layout=ipywidgets.Layout(flex_flow="row"),
+        )
+        self._mode.observe(self._select_state, "value")
         self._label = ipywidgets.Label(value="")
 
         output = ipywidgets.Output()
@@ -303,6 +366,7 @@ class KymoWidget:
                         ipywidgets.HBox([refine_button, show_lines_toggle]),
                         fn_widget,
                         ipywidgets.HBox([load_button, save_button]),
+                        self._mode,
                         self._label,
                     ],
                     layout=ipywidgets.Layout(width="32%"),
@@ -315,6 +379,19 @@ class KymoWidget:
         with output:
             self._fig = plt.figure()
             self._axes = self._fig.add_subplot(111)
+
+    def _select_state(self, value):
+        """Select a different state to operate the widget in. Note that the input argument is value
+        because it is hooked up to a ToggleButton directly"""
+        self._area_selector.set_active(False)
+        self._line_connector.set_active(False)
+
+        if value["new"] == "Track lines":
+            self._set_label(f"Right mouse button to track lines")
+            self._area_selector.set_active(True)
+        elif value["new"] == "Connect lines":
+            self._set_label(f"Right mouse button to connect lines")
+            self._line_connector.set_active(True)
 
     def show(self, use_widgets, **kwargs):
         if self._fig:
@@ -345,7 +422,7 @@ class KymoWidget:
         self._axes.autoscale(enable=False)
         plt.tight_layout()
 
-        self.area_selector = RectangleSelector(
+        self._area_selector = RectangleSelector(
             self._axes,
             self.track_kymo,
             drawtype="box",
@@ -356,9 +433,10 @@ class KymoWidget:
             spancoords="pixels",
             interactive=False,
         )
-
         self.update_lines()
         self._connect_drag_callback()
+        self._connect_line_callback()
+        self._select_state({"value": "mode", "old": "", "new": "Track lines"})
 
 
 class KymoWidgetGreedy(KymoWidget):
