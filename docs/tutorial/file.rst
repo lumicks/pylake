@@ -171,23 +171,23 @@ To downsample to a specific frequency use `downsampled_to` with the desired freq
     ds_channel = channel.downsampled_to(3125)
     ds_timestep = np.diff(ds_channel.timestamps[:2]) * 1e-9  # timestep 320 us
 
-By default, this method will take the mean of every N samples where N is defined as the ratio between the two sampling times. 
-This can cause issues when N isn't an integer, leading to an unequal number of points contributing to each point in the 
+By default, this method will take the mean of every N samples where N is defined as the ratio between the two sampling times.
+This can cause issues when N isn't an integer, leading to an unequal number of points contributing to each point in the
 downsampled channel. To automatically find the nearest higher frequency that will fulfill this requirement, use the `method="ceil"`::
 
     ds_channel2 = channel.downsampled_to(3126, method="ceil")
     ds_timestep2 = np.diff(ds_channel2.timestamps[:2]) * 1e-9  # timestep 307.2 us
 
-For data that is recorded with variable sampling frequencies, it is usually not possible to downsample to a 
-single sample rate, while maintaining an equal number of samples per downsampled sample. To force downsampling 
+For data that is recorded with variable sampling frequencies, it is usually not possible to downsample to a
+single sample rate, while maintaining an equal number of samples per downsampled sample. To force downsampling
 to a single frequency in the case of variable sample rates, use `method="force"`::
 
-    variable_channel = file.downsampled_force1x 
+    variable_channel = file.downsampled_force1x
     variable_ds_channel = variable_channel.downsampled_to(3125, method="force")
 
 Note that this same flag can also be used to force a specific downsampling rate for non-integer downsampling rates.
 
-A slice can also be downsampled over arbitrary time segments by using `downsampled_over` and supplying a 
+A slice can also be downsampled over arbitrary time segments by using `downsampled_over` and supplying a
 list of `(start, stop)` tuples indicating over which ranges to apply the function.
 
 A slice that contains equally spaced timestamps can be downsampled by a specific factor using `downsampled_by`
@@ -203,10 +203,14 @@ Sometimes, one may want to downsample a high frequency channel in exactly the sa
 channel is sampled. For this purpose you can use `downsampled_like`::
 
     lf_data = file["Force LF"]["Force 1x"]
-    downsampled = file["Force HF"]["Force 1x"].downsampled_like(lf_data)
+    downsampled, lf_cropped = file["Force HF"]["Force 1x"].downsampled_like(lf_data)
 
-    lf_data.plot()
-    downsampled.plot(start=lf_data.start)
+    lf_cropped.plot()
+    downsampled.plot()
+
+Generally, it is not possible to reconstruct the first 1-2 timepoints of the reference low frequency channel from the high frequency
+channel input. Therefore, this method returns the downsampled channel and a copy of the reference channel that is cropped such that
+both channels have exactly the same timestamps.
 
 Calibrations
 ------------

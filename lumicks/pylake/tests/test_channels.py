@@ -546,7 +546,8 @@ def test_downsampling_like():
     y_downsampled = np.array([0, 1, 2, 3, 4, 6, 7, 8, 9, 10])
     reference = channel.Slice(channel.TimeSeries(y_downsampled, t_downsampled))
 
-    ds = s.downsampled_like(reference)
+    ds, ref_out = s.downsampled_like(reference)
+    assert np.all(np.equal(ds.timestamps, ref_out.timestamps))
     assert np.allclose(t_downsampled[1:-1], ds.timestamps)
     assert np.allclose(y_downsampled[1:-1], ds.data)
 
