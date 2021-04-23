@@ -108,6 +108,9 @@ in the kymograph, and then remove spurious detections by hand. This can be good 
 well. If we then disable the toggle `Add lines` we will start removing lines without grabbing new ones. This
 functionality can be used to remove spurious detections.
 
+If you wish to connect two lines in the kymograph manually, you can switch the mode from `Track lines` to `Connect Lines`.  
+In this mode you can click the end of one kymoline with the right mouse button and connect it to another by dragging to the start of the line you wish to connect it to.
+
 Note that in this data for example, there are some regions where fluorescence starts building up on the surface of the
 bead. This binding should be omitted from the analysis::
 

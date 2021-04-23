@@ -5,6 +5,7 @@
 #### New features
 
 * Added `Kymo.downsampled_by()` for downsampling Kymographs. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
+* Added option to stitch Kymograph lines via the Jupyter notebook widget.
 
 #### Breaking changes
 
