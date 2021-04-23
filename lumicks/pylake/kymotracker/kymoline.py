@@ -219,6 +219,24 @@ class KymoLineGroup:
     def __setitem__(self, item, value):
         raise NotImplementedError("Cannot overwrite KymoLines.")
 
+    def _concatenate_lines(self, starting_line, ending_line):
+        """Concatenate two lines together.
+
+        Parameters
+        ----------
+        starting_line : KymoLine
+            Note that this line has to start before the second one.
+        ending_line : KymoLine
+        """
+        if starting_line not in self._src or ending_line not in self._src:
+            raise RuntimeError("Both lines need to be part of this group to be concatenated")
+
+        if starting_line.seconds[-1] >= ending_line.seconds[0]:
+            raise RuntimeError("First line needs to end before the second starts for concatenation")
+
+        self._src[self._src.index(starting_line)] = starting_line + ending_line
+        self._src.remove(ending_line)
+
     def __len__(self):
         return len(self._src)
 
