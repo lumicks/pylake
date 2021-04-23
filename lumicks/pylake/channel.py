@@ -304,7 +304,8 @@ class Slice:
             ]
         )
 
-        return self._with_data_source(TimeSeries(downsampled, timestamps))
+        new_slice = self._with_data_source(TimeSeries(downsampled, timestamps))
+        return new_slice, other_slice[new_slice._src.start : new_slice._src.stop]
 
     def plot(self, start=None, **kwargs):
         """A simple line plot to visualize the data over time
