@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from lumicks.pylake import File
 from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import Slice, TimeSeries
 
@@ -68,9 +69,9 @@ def test_sliced_by_distance():
     max_gap = 2
 
     # "ideal" data
-    d0 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 
+    d0 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
                    3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
-    f0 = np.ones(d0.shape)                   
+    f0 = np.ones(d0.shape)
     fd0 = make_mock_fd(force=f0, distance=d0)
 
     # find timestamps of proper slice
@@ -78,40 +79,42 @@ def test_sliced_by_distance():
     ts_in_range = fd0.d.timestamps[is_in_range]
 
     # "blip" before changepoint - within gap limit
-    d1 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 
+    d1 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0,
                    3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
     # "blip" before changepoint - outside gap limit
-    d2 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 2.0, 2.0, 2.0, 
+    d2 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 2.0, 2.0, 2.0,
                    3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
     # "blip" after changepoint - within gap limit
-    d3 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 
+    d3 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
                    3.0, 1.9, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
     # "blip" after changepoint - outside gap limit
-    d4 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 
+    d4 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
                    3.0, 3.0, 3.0, 1.9, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
     # "blip" before and after chanepoint - within gap limit
-    d5 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 
+    d5 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0,
                    3.0, 1.9, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
     # "blip" before and after changepoint - outside gap limit
-    d6 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 2.0, 2.0, 2.0, 
-                   3.0, 3.0, 3.0, 1.9, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])                   
+    d6 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 2.0, 2.0, 2.0,
+                   3.0, 3.0, 3.0, 1.9, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
 
-    # these types of noise can be handled  
+    # these types of noise can be handled
     # result should be identical to logical mask of ideal data
-    for d in (d0, d1, d2, d4, d6):                  
+    for d in (d0, d1, d2, d4, d6):
         fd = make_mock_fd(force=f0, distance=d)
         sub = fd._sliced_by_distance(min_dist=min_dist, max_dist=max_dist, max_gap=max_gap)
         assert np.all(np.equal(ts_in_range, sub.d.timestamps))
-    
-    # these types of noise cannot be handled  
+
+    # these types of noise cannot be handled
     # result should be longer or shorter than expected
-    for d in (d3, d5):                  
+    for d in (d3, d5):
         fd = make_mock_fd(force=f0, distance=d)
         sub = fd._sliced_by_distance(min_dist=min_dist, max_dist=max_dist, max_gap=max_gap)
         with pytest.raises(ValueError) as exc:
             assert np.all(np.equal(ts_in_range, sub.d.timestamps))
-        assert str(exc.value).strip() == ("operands could not be broadcast together with shapes " 
+        assert str(exc.value).strip() == ("operands could not be broadcast together with shapes "
                                           f"({ts_in_range.size},) ({sub.d.timestamps.size},)")
+
+
 @pytest.mark.parametrize("field,changed_var,other_var", [
     ("force_offset", "f", "d"),
     ("distance_offset", "d", "f")
@@ -175,3 +178,27 @@ def test_copy_behaviour_with_offset(h5_file):
     is because with_offset may not deepcopy the handle it holds to the parent file."""
     fd1 = make_mock_fd(force=[1, 2, 3], distance=[2.0, 0.0, 4.0], start=0, file=h5_file)
     fd1.with_offset(distance_offset=-1.0)
+
+
+def test_with_channels(fd_h5_file):
+    fd_h5, _ = fd_h5_file
+    f = File.from_h5py(fd_h5)
+    fd = f.fdcurves["fd1"]
+    assert fd._primary_force_channel == "2"
+    assert fd._primary_distance_channel == "1"
+
+    fd2 = fd.with_channels(force="1", distance="2")
+    assert fd2._primary_force_channel == "1"
+    assert fd2._primary_distance_channel == "2"
+
+
+def test_with_baseline_correction(fd_h5_file):
+    fd_h5, (timestamps_lf, true_force_lf) = fd_h5_file
+    f = File.from_h5py(fd_h5)
+    fd = f.fdcurves["fd1"]
+
+    fd2 = fd.with_baseline_corrected_x()
+    assert np.all(np.equal(fd.d.data, fd2.d.data))
+    # compare to manually downsampled "true" force data
+    assert np.all(np.equal(timestamps_lf, fd2.f.timestamps))
+    assert np.all(np.equal(true_force_lf, fd2.f.data))

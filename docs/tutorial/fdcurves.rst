@@ -71,3 +71,21 @@ and distance from such an ensemble using::
 
     f = fd_ensemble.f
     d = fd_ensemble.d
+
+Baseline Correction
+-------------------
+
+.. note::
+    By default, FD curves are constructed using the force magnitude :math:`F = \sqrt{F_x^2 + F_y^2}`. However, baseline
+    correction in Bluelake is only calculated for the x-component :math:`F_x`. Therefore, FD curves with baseline
+    correction applied are constructed with only the x-component rather than the full magnitude and may not be directly
+    comparable to the corresponding uncorrected FD curve.
+
+    Additionally, baseline-corrected FD curves are read directly from the source HDF5 file. Therefore, any data processing previously
+    applied to the FD curve used to obtain the baseline corrected curve is lost.
+
+FD curves can also be constructed from baseline corrected force data if the channel was exported from Bluelake with a baseline correction applied::
+
+    file = lk.File("example.h5")
+    fd = file.fdcurves["baseline"]          # low frequency, uncorrected force magnitude
+    fd_bl = fd.with_baseline_corrected_x() # low frequency, baseline corrected force x-component

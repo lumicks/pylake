@@ -5,6 +5,7 @@ import json
 import warnings
 import matplotlib.pyplot as plt
 from .data.mock_confocal import generate_scan_json
+from .data.mock_fdcurve import generate_fdcurve_with_baseline_offset
 
 
 def pytest_addoption(parser):
@@ -93,9 +94,14 @@ class MockDataFile_v2(MockDataFile_v1):
         for i, v in attributes.items():
             field.attrs[i] = v
 
-    def make_fd(self):
+    def make_fd(self, fd_name=None, metadata={}, attributes={}):
         if "FD Curve" not in self.file:
             self.file.create_group("FD Curve")
+
+        if fd_name:
+            dset = self.file["FD Curve"].create_dataset(fd_name, data=metadata)
+            for i, v in attributes.items():
+                dset.attrs[i] = v
 
     def make_marker(self, marker_name, attributes):
         if "Marker" not in self.file:
@@ -183,7 +189,7 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_continuous_channel("Photon count", "Green", np.int64(20e9), freq, counts)
         mock_file.make_continuous_channel("Photon count", "Blue", np.int64(20e9), freq, counts)
         mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
-        
+
         ds = mock_file.make_json_data("Kymograph", "Kymo1", json_kymo)
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
@@ -250,6 +256,34 @@ def h5_file(tmpdir_factory, request):
     return mock_file.file
 
 
+@pytest.fixture(scope="session")
+def fd_h5_file(tmpdir_factory, request):
+    mock_class = MockDataFile_v2
+    tmpdir = tmpdir_factory.mktemp("fdcurves")
+    mock_file = mock_class(tmpdir.join(f"{mock_class.__name__}.h5"))
+    mock_file.write_metadata()
+
+    p, data = generate_fdcurve_with_baseline_offset()
+
+    # write data
+    fd_metadata = {"Polynomial Coefficients": {f"Corrected Force {n+1}x": p for n in range(2)}}
+    fd_attrs = {"Start time (ns)": data["LF"]["time"][0],
+                "Stop time (ns)": data["LF"]["time"][-1]+1}
+    mock_file.make_fd("fd1", metadata=json.dumps(fd_metadata), attributes=fd_attrs)
+
+    obs_force_lf_data = [datum for datum in zip(data["LF"]["time"], data["LF"]["obs_force"])]
+    distance_lf_data = [datum for datum in zip(data["LF"]["time"], data["LF"]["distance"])]
+    hf_start_time = data["HF"]["time"][0]
+    for n in (1, 2):
+        for component in ("x", "y"):
+            mock_file.make_timeseries_channel("Force LF", f"Force {n}{component}", obs_force_lf_data)
+            mock_file.make_continuous_channel("Force HF", f"Force {n}{component}", hf_start_time, 3, data["HF"]["obs_force"])
+        mock_file.make_continuous_channel("Force HF", f"Corrected Force {n}x", hf_start_time, 3, data["HF"]["true_force"])
+        mock_file.make_timeseries_channel("Distance", f"Distance {n}", distance_lf_data)
+
+    return mock_file.file, (data["LF"]["time"], data["LF"]["true_force"])
+
+
 @pytest.fixture(scope="session", params=[MockDataFile_v1, MockDataFile_v2])
 def h5_file_missing_meta(tmpdir_factory, request):
     mock_class = request.param
@@ -288,7 +322,7 @@ def h5_file_missing_meta(tmpdir_factory, request):
         ds.attrs["Start time (ns)"] = np.int64(20e9)
         ds.attrs["Stop time (ns)"] = np.int64(20e9 + len(infowave) * freq)
 
-    return mock_file.file    
+    return mock_file.file
 
 
 @pytest.fixture(scope="session")
