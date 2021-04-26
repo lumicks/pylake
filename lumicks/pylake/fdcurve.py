@@ -159,6 +159,24 @@ class FdCurve(DownsampledFD):
 
         return new_curve
 
+    def with_baseline_corrected_x(self):
+        """Return a copy of this F,d curve with baseline correction applied to force channel.
+        Note: only the x component is available with baseline correction.
+        Note: All previous data manipulations (eg. subtraction of another curve) will be lost."""
+        new_curve = self.__copy__()
+
+        # get high-frequency, baseline-corrected data
+        corrected_force_hf = getattr(self.file, f"corrected_force{self._primary_force_channel}x")
+        if len(corrected_force_hf) == 0:
+            raise ValueError("baseline correction not found.")
+
+        # downsample to match distance data
+        force, distance = corrected_force_hf.downsampled_like(self.d)
+        new_curve._force_cache = force
+        new_curve._distance_cache = distance
+
+        return new_curve
+
     @property
     def f(self):
         """The primary force channel associated with this FD curve"""
