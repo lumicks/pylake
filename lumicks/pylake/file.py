@@ -6,7 +6,7 @@ from typing import Dict
 from collections import OrderedDict
 from .calibration import ForceCalibration
 from .channel import Slice, Continuous, TimeSeries, TimeTags
-from .detail.mixin import Force, DownsampledFD, PhotonCounts, PhotonTimeTags
+from .detail.mixin import Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, PhotonTimeTags
 from .detail.h5_helper import write_h5
 from .fdcurve import FdCurve
 from .group import Group
@@ -18,7 +18,7 @@ from .marker import Marker
 __all__ = ["File"]
 
 
-class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
+class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, PhotonTimeTags):
     """A convenient HDF5 file wrapper for reading data exported from Bluelake
 
     Parameters
@@ -223,6 +223,15 @@ class File(Group, Force, DownsampledFD, PhotonCounts, PhotonTimeTags):
             TimeSeries(np.sqrt(fx.data ** 2 + fy.data ** 2), fx.timestamps),
             labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"},
         )
+
+    def _get_corrected_force(self, n, xy):
+        """Return a Slice of force measurements, including calibration, with baseline
+        correction applied. Only the x-component has correction available.
+        Note: direct access to HDF dataset does not include calibration data"""
+        force_group = self.h5["Force HF"][f"Corrected Force {n}{xy}"]
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+
+        return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
     def _get_distance(self, n):
         return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"], r"Distance ($\mu$m)")

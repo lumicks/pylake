@@ -115,6 +115,21 @@ class DownsampledFD:
         return _try_get_or_empty(self._get_distance, 2)
 
 
+class BaselineCorrectedForce:
+    """Full frequency, baseline-corrected force channels"""
+
+    def _get_corrected_force(self, n, xy):
+        raise NotImplementedError
+
+    @property
+    def corrected_force1x(self) -> Slice:
+        return _try_get_or_empty(self._get_corrected_force, 1, "x")
+
+    @property
+    def corrected_force2x(self) -> Slice:
+        return _try_get_or_empty(self._get_corrected_force, 2, "x")
+
+
 class PhotonCounts:
     """Red, green and blue photon channels"""
 
