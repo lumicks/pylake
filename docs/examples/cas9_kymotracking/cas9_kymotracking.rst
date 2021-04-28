@@ -100,15 +100,15 @@ kymograph. Clicking it again brings us back out of zoom mode. You can zoom out a
 often, it is beneficial to find some adequate settings for track all, and then fine-tune the results using the manual
 rectangle selection. It’s not mandatory to use the same settings throughout the kymograph. For example, if you see a
 particular event where two lines are disconnected that should be connected, temporarily increase the window size and
-just drag a rectangle over that particular line with `Add lines` enabled.
+just drag a rectangle over that particular line while having the option `Track lines` enabled.
 
 Now, let’s track some traces. There are two ways to approach this analysis. The first is to just use the rectangle
 selection, which can be quite time intensive. Alternatively, you can use `Track all` to simply track all lines found
 in the kymograph, and then remove spurious detections by hand. This can be good to get a feel for the parameters as
-well. If we then disable the toggle `Add lines` we will start removing lines without grabbing new ones. This
+well. If we select the `Remove lines` mode we will start removing lines without grabbing new ones. This
 functionality can be used to remove spurious detections.
 
-If you wish to connect two lines in the kymograph manually, you can switch the mode from `Track lines` to `Connect Lines`.  
+Finally, if you wish to connect two lines in the kymograph manually, you can switch to the `Connect Lines` mode.
 In this mode you can click the end of one kymoline with the right mouse button and connect it to another by dragging to the start of the line you wish to connect it to.
 
 Note that in this data for example, there are some regions where fluorescence starts building up on the surface of the

@@ -286,17 +286,6 @@ class KymoWidget:
 
         algorithm_sliders = self.create_algorithm_sliders()
 
-        add_toggle = ipywidgets.interactive(
-            lambda adding: setattr(self, "adding", adding),
-            adding=ipywidgets.ToggleButton(
-                description="Add lines",
-                value=self.adding,
-                disabled=False,
-                button_style="",
-                tooltip="Draw lines\n\nDisabling this will remove lines instead",
-            ),
-        )
-
         refine_button = ipywidgets.Button(description="Refine lines")
         refine_button.on_click(lambda button: self.refine())
 
@@ -346,7 +335,7 @@ class KymoWidget:
         fn_widget.observe(set_fn, "value")
 
         self._mode = ipywidgets.RadioButtons(
-            options=["Track lines", "Connect lines"],
+            options=["Track lines", "Remove lines", "Connect lines"],
             disabled=False,
             tooltip="Choose between adding/removing tracked lines and connecting existing ones",
             layout=ipywidgets.Layout(flex_flow="row"),
@@ -360,7 +349,7 @@ class KymoWidget:
                 ipywidgets.VBox([output]),
                 ipywidgets.VBox(
                     [
-                        ipywidgets.HBox([add_toggle, all_button]),
+                        all_button,
                         algorithm_sliders,
                         minimum_length,
                         ipywidgets.HBox([refine_button, show_lines_toggle]),
@@ -387,10 +376,15 @@ class KymoWidget:
         self._line_connector.set_active(False)
 
         if value["new"] == "Track lines":
-            self._set_label(f"Right mouse button to track lines")
+            self._set_label(f"Drag right mouse button to track lines")
             self._area_selector.set_active(True)
+            self.adding = True
+        elif value["new"] == "Remove lines":
+            self._set_label(f"Drag right mouse button to remove lines")
+            self._area_selector.set_active(True)
+            self.adding = False
         elif value["new"] == "Connect lines":
-            self._set_label(f"Right mouse button to connect lines")
+            self._set_label(f"Drag right mouse button to connect lines")
             self._line_connector.set_active(True)
 
     def show(self, use_widgets, **kwargs):
