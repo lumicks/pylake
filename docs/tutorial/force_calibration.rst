@@ -1,3 +1,9 @@
+.. warning::
+    This is alpha functionality.
+    While usable, this has not yet been tested in a large number of different scenarios.
+    The API is still be subject to change *without any prior deprecation notice*! If you use this
+    functionality keep a close eye on the changelog for any changes that may affect your analysis.
+
 Force calibration
 =================
 
