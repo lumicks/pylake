@@ -61,15 +61,13 @@ class FlippingCost:
         return self.flip
 
 
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")  # Ignore the warning we get when hitting minimum step size
 @pytest.mark.parametrize("chi2_function,start_pos,step_sign,target_step_size,target_p_trial", [
-    (lambda x: 25, np.array([2, 2]), 1, cfg.min_abs_step, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step])),
     (lambda x: 5, np.array([2, 2]), 1, cfg.max_abs_step, np.array([2.0 + cfg.max_abs_step, 2.0 + cfg.max_abs_step])),
     (lambda x: 8, np.array([2, 2]), 1, 1, np.array([3.0, 3.0])),
     (lambda x: 8, np.array([4, 4]), 1, 1, np.array([4.0, 4.0])),
     (lambda x: 8, np.array([2, 2]), -1, 1, np.array([1.0, 1.0])),
     (lambda x: 8, np.array([-1.0, -2.0]), -1, 1, np.array([-1.0, -2.0])),
-    # When the cost alternates, it should only decrease the step size ones
+    # When the cost alternates, it should only decrease the step size once
     (FlippingCost(), np.array([2, 2]), 1, .5, np.array([2.5, 2.5])),
 ])
 def test_stepper(chi2_function, start_pos, step_sign, target_step_size, target_p_trial):
@@ -83,3 +81,21 @@ def test_stepper(chi2_function, start_pos, step_sign, target_step_size, target_p
 
     assert step_size == target_step_size
     assert np.allclose(p_trial, target_p_trial)
+
+
+def test_minimum_step():
+    # Here we provide the step size determination algorithm with a fixed increase of the cost by
+    # chi2_function - chi2_last = 20 no matter what parameter it tries. Given that our maximum
+    # step size to take is 10 (see max_chi2_step_size in the cfg), this will result in the step size
+    # shrinking to the minimum step size. In a non-pathological case, a smaller step size would
+    # result in a smaller chi2 increase.
+    with pytest.warns(RuntimeWarning, match="Warning: Step size set to minimum step size."):
+        step_size, p_trial = do_step(chi2_function=lambda x: 25,
+                                     step_direction_function=lambda: np.array([1, 1]),
+                                     chi2_last=5,
+                                     parameter_vector=np.array([2, 2]),
+                                     current_step_size=1,
+                                     step_sign=1,
+                                     step_config=cfg)
+        assert step_size == cfg.min_abs_step
+        assert np.allclose(p_trial, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step]))
