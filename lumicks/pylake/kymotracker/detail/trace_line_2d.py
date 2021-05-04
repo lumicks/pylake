@@ -182,7 +182,7 @@ def _traverse_line_direction(
     return nodes
 
 
-@dataclass(frozen=True)
+@dataclass()
 class KymoLineData:
     """Uncalibrated kymograph lines coming from low-level kymotracker functions.
 
@@ -192,21 +192,19 @@ class KymoLineData:
 
     Parameters
     ----------
-    time_idx : List[float]
+    time_idx : np.ndarray
         List of time indices on the tracked image [pixels]
-    coordinate_idx : List[float]
+    coordinate_idx : np.ndarray
         List of coordinate indices on the tracked image [pixels]
+    """
 
-    Note: Some of the kymotracker functions return numpy arrays. Appending too many small numpy
-    arrays was a bottleneck and therefore we explicitly use lists."""
-
-    time_idx: List[float]
-    coordinate_idx: List[float]
+    time_idx: np.ndarray
+    coordinate_idx: np.ndarray
 
     def append(self, time_idx, coordinate_idx):
         """Append time [pixels], coordinate pair [pixels] to the KymoLine"""
-        self.time_idx.append(time_idx)
-        self.coordinate_idx.append(coordinate_idx)
+        self.time_idx = np.append(self.time_idx, time_idx)
+        self.coordinate_idx = np.append(self.coordinate_idx, coordinate_idx)
 
     def __len__(self):
         return len(self.coordinate_idx)
@@ -250,7 +248,7 @@ def traverse_line(
     line = np.array(indices_bwd + indices_fwd[1:])
 
     if len(line) > 0:
-        return KymoLineData(time_idx=line[:, 1].tolist(), coordinate_idx=line[:, 0].tolist())
+        return KymoLineData(time_idx=line[:, 1], coordinate_idx=line[:, 0])
 
 
 def detect_lines_from_geometry(
@@ -484,7 +482,8 @@ def points_to_line_segments(peaks, prediction_model, window=10, sigma_cutoff=2):
         for starting_point in np.argsort(-frame.peak_amplitudes * frame.unassigned):
             if frame.unassigned[starting_point]:
                 line = KymoLineData(
-                    [frame.time_points[starting_point]], [frame.coordinates[starting_point]]
+                    np.array([frame.time_points[starting_point]]),
+                    np.array([frame.coordinates[starting_point]]),
                 )
                 frame.unassigned[starting_point] = False
 

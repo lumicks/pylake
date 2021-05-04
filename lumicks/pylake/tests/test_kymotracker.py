@@ -264,10 +264,12 @@ def test_kymo_line():
 def test_kymoline_selection():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
 
-    assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6), (6, 7)))
-    assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6), (6, 8)))
-    assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((3, 6), (4, 8)))
-    assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((3, 6), (5, 8)))
+    t = np.array([4, 5, 6])
+    y = np.array([7, 7, 7])
+    assert not KymoLine(t, y, channel).in_rect(((4, 6), (6, 7)))
+    assert KymoLine(t, y, channel).in_rect(((4, 6), (6, 8)))
+    assert not KymoLine(t, y, channel).in_rect(((3, 6), (4, 8)))
+    assert KymoLine(t, y, channel).in_rect(((3, 6), (5, 8)))
 
     assert KymoLine([2], [6], channel).in_rect(((2, 5), (3, 8)))
     assert KymoLine([2], [5], channel).in_rect(((2, 5), (3, 8)))
@@ -280,15 +282,17 @@ def test_kymoline_selection():
 def test_kymoline_selection_non_unit_calibration():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
 
-    assert not KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6*5), (6, 7*5)))
-    assert KymoLine([4, 5, 6], [7, 7, 7], channel).in_rect(((4, 6*5), (6, 8*5)))
+    time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
+    assert not KymoLine(time, pos, channel).in_rect(((4, 6*5), (6, 7*5)))
+    assert KymoLine(time, pos, channel).in_rect(((4, 6*5), (6, 8*5)))
 
 
 def test_kymoline_from_kymolinedata():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
-    kl = KymoLine._from_kymolinedata(KymoLineData([4, 5, 6], [7, 7, 7]), channel)
-    assert np.allclose(kl.time_idx, [4, 5, 6])
-    assert np.allclose(kl.coordinate_idx, [7, 7, 7])
+    time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
+    kl = KymoLine._from_kymolinedata(KymoLineData(time, pos), channel)
+    assert np.allclose(kl.time_idx, time)
+    assert np.allclose(kl.coordinate_idx, pos)
     assert id(kl._image) == id(channel)
 
 
