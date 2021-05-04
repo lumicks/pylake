@@ -234,8 +234,8 @@ def refine_lines_centroid(lines, line_width):
     current = 0
     for line in interpolated_lines:
         line_length = len(line.time_idx)
-        line.time_idx = list(time_idx[current : current + line_length])
-        line.coordinate_idx = list(coordinate_idx[current : current + line_length])
+        line.time_idx = time_idx[current : current + line_length]
+        line.coordinate_idx = coordinate_idx[current : current + line_length]
         current += line_length
 
     return KymoLineGroup(interpolated_lines)

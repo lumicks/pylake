@@ -82,8 +82,8 @@ class KymoLine:
     __slots__ = ["time_idx", "coordinate_idx", "_image"]
 
     def __init__(self, time_idx, coordinate_idx, image):
-        self.time_idx = list(time_idx)
-        self.coordinate_idx = list(coordinate_idx)
+        self.time_idx = np.asarray(time_idx)
+        self.coordinate_idx = np.asarray(coordinate_idx)
         self._image = image
 
     @classmethod
@@ -97,16 +97,16 @@ class KymoLine:
         coordinate_pixel_offset = self._image.from_position(coordinate_offset)
 
         return KymoLine(
-            [time_idx + time_pixel_offset for time_idx in self.time_idx],
-            [coordinate_idx + coordinate_pixel_offset for coordinate_idx in self.coordinate_idx],
+            self.time_idx + time_pixel_offset,
+            self.coordinate_idx + coordinate_pixel_offset,
             self._image,
         )
 
     def __add__(self, other):
         """Concatenate two KymoLines"""
         return KymoLine(
-            self.time_idx + other.time_idx,
-            self.coordinate_idx + other.coordinate_idx,
+            np.hstack((self.time_idx, other.time_idx)),
+            np.hstack((self.coordinate_idx, other.coordinate_idx)),
             self._image,
         )
 
@@ -117,11 +117,11 @@ class KymoLine:
 
     @property
     def seconds(self):
-        return np.array([self._image.to_seconds(t) for t in self.time_idx])
+        return self._image.to_seconds(self.time_idx)
 
     @property
     def position(self):
-        return np.array([self._image.to_position(x) for x in self.coordinate_idx])
+        return self._image.to_position(self.coordinate_idx)
 
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.

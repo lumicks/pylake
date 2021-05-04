@@ -9,10 +9,10 @@ def kymolinegroup_io_data():
     test_data = np.zeros((8, 8))
 
     test_img = CalibratedKymographChannel("test", data=test_data, time_step_ns=100e9, pixel_size=2)
-    k1 = KymoLine([1, 2, 3], [2, 3, 4], test_img)
-    k2 = KymoLine([2, 3, 4], [3, 4, 5], test_img)
-    k3 = KymoLine([3, 4, 5], [4, 5, 6], test_img)
-    k4 = KymoLine([4, 5, 6], [5, 6, 7], test_img)
+    k1 = KymoLine([1, 2, 3], np.array([2, 3, 4]), test_img)
+    k2 = KymoLine([2, 3, 4], np.array([3, 4, 5]), test_img)
+    k3 = KymoLine([3, 4, 5], np.array([4, 5, 6]), test_img)
+    k4 = KymoLine([4, 5, 6], np.array([5, 6, 7]), test_img)
     lines = KymoLineGroup([k1, k2, k3, k4])
 
     for k in lines:
