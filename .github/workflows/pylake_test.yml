@@ -22,10 +22,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .
-        pip install black==20.8b1
     - name: Pytest
       run: |
         cd .github/workflows
         python pylake_test.py
     - name: Black
-      run: black --check --diff --color .
+      run: |
+        pip install black==20.8b1
+        black --check --diff --color .
