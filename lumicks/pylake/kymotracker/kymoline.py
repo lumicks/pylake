@@ -154,15 +154,9 @@ class KymoLine:
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
         """
-        y_size = self._image.data.shape[1]
-
         # Time and coordinates are being cast to an integer since we use them to index into a data array.
         return [
-            reduce(
-                self._image.data[
-                    max(int(c) - num_pixels, 0) : min(int(c) + num_pixels + 1, y_size), int(t)
-                ]
-            )
+            reduce(self._image.data[max(int(c) - num_pixels, 0) : int(c) + num_pixels + 1, int(t)])
             for t, c in zip(self.time_idx, self.coordinate_idx)
         ]
 
