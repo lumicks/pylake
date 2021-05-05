@@ -10,6 +10,15 @@
 * Added `FdCurve.with_baseline_corrected_x()` to return a baseline corrected version of the FD curve if the corrected data is available. **Note: currently the baseline is only calculated for the x-component of the force channel in Bluelake. Therefore baseline corrected `FdCurve` instances use only the x-component of the force channel, unlike default `FdCurve`s which use the full magnitude of the force channel by default.**
 * Added ability to perform arithmetic on `Slice` (e.g. `(f.force1x - f.force2x) / 2`). For more information see [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#exporting-h5-files) for more information.
 
+#### Bug fixes
+
+* Fixed bug in kymotracker which could result in `sample_from_image` returning erroneous values in some cases.
+  When sampling the image, we sample pixels in a region around the traced line.
+  This sampling procedure is constrained to stay within the image bounds.
+  Previously, we used the incorrect axis to clamp the pixel index along the positional axis.
+  As a consequence, kymographs that are wider (in terms of number of pixels on the positional axis) than they are long (in terms of number of pixels along the time axis) would only have an accurate sampling in the top half of the kymograph.
+  The lower portion of the kymograph would result in zero counts.
+
 #### Breaking changes
 
 * Dropped support for Python 3.6.
