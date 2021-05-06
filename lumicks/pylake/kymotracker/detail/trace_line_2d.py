@@ -342,6 +342,7 @@ def detect_lines(
     max_lines=200,
     angle_weight=10.0,
     force_dir=False,
+    roi=None,
 ):
     """Detect lines in an image, based on Steger at al, "An unbiased detector of curvilinear structures".
 
@@ -360,6 +361,9 @@ def detect_lines(
         High values push for straighter lines. Weighting occurs according to distance + angle_weight * angle difference.
     force_dir: bool
         Do not allow lines to backtrack in time.
+    rect: List[List[int, int], List[int, int]]
+        Only track a specific region of the image. ROI is specified as:
+        [[start time (pixels), start position (pixels)], [stop time (pixels), stop time (pixels)]]
     """
     # See Steger et al, "An unbiased detector of curvilinear structures. IEEE Transactions on Pattern Analysis and
     # Machine Intelligence, 20(2), pp.113–125. for a motivation of this scale.
@@ -371,6 +375,14 @@ def detect_lines(
     # Mask the maximal line derivative with the point candidates
     masked_derivative = inside * max_derivative
     masked_derivative[masked_derivative > 0] = 1
+
+    # Mask the maximal line derivative with the ROI. This prevents anything outside of the ROI
+    # to be a candidate for tracking.
+    if roi:
+        (t0, p0), (t1, p1) = roi
+        roi_mask = np.zeros(masked_derivative.shape)
+        roi_mask[p0:p1, t0:t1] = 1
+        masked_derivative *= roi_mask
 
     return detect_lines_from_geometry(
         masked_derivative,

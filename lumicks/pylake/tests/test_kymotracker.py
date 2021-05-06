@@ -376,7 +376,9 @@ def test_kymotracker_integration_tests_subset():
 
 def test_kymotracker_test_bias_rect():
     """Computing the kymograph of a subset of the image should not affect the results of the
-    tracking."""
+    tracking. If this test fires, it means that kymotracking on a subset of the image does not
+    produce the same result as on the full thing for `track_greedy()`.
+    """
 
     # Generate a checkerboard pattern with a single line that we wish to track. The line is on the
     # 12th pixel.
@@ -389,6 +391,26 @@ def test_kymotracker_test_bias_rect():
     tracking_settings = {"line_width": 3, "pixel_threshold": 4, "sigma": 5, "window": 9}
     traces_rect = track_greedy(kymo, "red", **tracking_settings, rect=[[0, 2], [1000, 12]])
     traces_full = track_greedy(kymo, "red", **tracking_settings)
+
+    for t1, t2 in zip(traces_rect, traces_full):
+        assert np.allclose(t1.position, t2.position)
+
+
+def test_kymotracker_test_bias_rect_lines():
+    """Computing the kymograph of a subset of the image should not affect the results of the
+    tracking. If this test fires, it means that kymotracking on a subset of the image does not
+    produce the same result as on the full thing for `track_lines()`.
+    """
+
+    img_data = np.array([np.array([1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 6, 0, 1, 0]),
+                         np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 6, 1, 0, 1])])
+    img_data = np.tile(img_data.T, (1, 7))
+
+    kymo = generate_kymo("chan", img_data, dt=int(0.01e9), pixel_size_nm=1e3)
+
+    tracking_settings = {"line_width": 1.5, "max_lines": 0}
+    traces_rect = track_lines(kymo, "red", **tracking_settings, rect=[[0, 2], [22, 12]])
+    traces_full = track_lines(kymo, "red", **tracking_settings)
 
     for t1, t2 in zip(traces_rect, traces_full):
         assert np.allclose(t1.position, t2.position)

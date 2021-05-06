@@ -170,8 +170,8 @@ def track_lines(
         Factor which determines how the angle between normals needs to be weighted relative to
         distance. High values push for straighter lines. Weighting occurs according to
         distance + angle_weight * angle difference
-    rect : tuple of two pixel coordinates
-        Only perform tracking over a subset of the image. Pixel coordinates should be given as:
+    rect : tuple of two coordinates
+        Only perform tracking over a subset of the image. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
 
     References
@@ -181,19 +181,18 @@ def track_lines(
     """
     kymograph_channel = CalibratedKymographChannel.from_kymo(kymograph, channel)
     lines = detect_lines(
-        kymograph_channel.get_rect(rect) if rect else kymograph_channel.data,
+        kymograph_channel.data,
         line_width,
         max_lines=max_lines,
         start_threshold=start_threshold,
         continuation_threshold=continuation_threshold,
         angle_weight=angle_weight,
         force_dir=1,
+        roi=kymograph_channel._to_pixel_rect(rect) if rect else None,
     )
 
-    lines = [KymoLine(line.time_idx, line.coordinate_idx, kymograph_channel) for line in lines]
-
     return KymoLineGroup(
-        [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
+        [KymoLine(line.time_idx, line.coordinate_idx, kymograph_channel) for line in lines]
     )
 
 
