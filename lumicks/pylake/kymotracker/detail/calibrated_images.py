@@ -47,6 +47,13 @@ class CalibratedKymographChannel:
             kymo.pixelsize_um[0],
         )
 
+    def _to_pixel_rect(self, rect):
+        (t0, p0), (t1, p1) = rect
+        return [
+            [self.from_seconds(t0), self.from_position(p0)],
+            [self.from_seconds(t1), self.from_position(p1)],
+        ]
+
     def get_rect(self, rect):
         """Grab a subset of the image in the coordinates of the image
 
@@ -56,9 +63,7 @@ class CalibratedKymographChannel:
             Rectangle specified in time and positional units according to
             ((min_time, min_position), (max_time, max_position))
         """
-        ((t0, p0), (t1, p1)) = rect
-        t0_pixels, t1_pixels = self.from_seconds(t0), self.from_seconds(t1)
-        p0_pixels, p1_pixels = self.from_position(p0), self.from_position(p1)
+        (t0_pixels, p0_pixels), (t1_pixels, p1_pixels) = self._to_pixel_rect(rect)
 
         if np.any(np.array([t0_pixels, t1_pixels, p0_pixels, p1_pixels]) < 0):
             raise IndexError(
@@ -68,18 +73,18 @@ class CalibratedKymographChannel:
 
         if p0_pixels > self.data.shape[0]:
             raise IndexError(
-                f"Specified minimum position {p0} beyond the valid position range {self.to_position(self.data.shape[0])}"
+                f"Specified minimum position beyond the valid position range {self.to_position(self.data.shape[0])}"
             )
 
         if t0_pixels > self.data.shape[1]:
             raise IndexError(
-                f"Specified minimum time {t0} beyond the time range {self.to_seconds(self.data.shape[1])}"
+                f"Specified minimum time beyond the time range {self.to_seconds(self.data.shape[1])}"
             )
 
-        if t0 >= t1:
+        if t0_pixels >= t1_pixels:
             raise IndexError("Please specify rectangle from minimum time to maximum time")
 
-        if p0 >= p1:
+        if p0_pixels >= p1_pixels:
             raise IndexError("Please specify rectangle from minimum position to maximum position")
 
         return self.data[p0_pixels:p1_pixels, t0_pixels:t1_pixels]
