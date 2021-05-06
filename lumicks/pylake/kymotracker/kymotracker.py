@@ -74,8 +74,10 @@ def track_greedy(
         Sets at how many standard deviations from the expected trajectory a particle no longer
         belongs to this trace. Lower values result in traces being more stringent in terms of
         continuing (default: 2.0).
-    rect : tuple of two pixel coordinates
-        Only perform tracking over a subset of the image. Pixel coordinates should be given as:
+    rect : tuple of two coordinates
+        Only perform tracking over a subset of the image. When this argument is supplied, the peak
+        detection and refinement is performed over the full image, but the results are then filtered
+        to omit the peaks that fall outside of the rect. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
 
     References
@@ -87,21 +89,26 @@ def track_greedy(
     kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
     kymograph_channel = CalibratedKymographChannel.from_kymo(kymograph, channel)
-    data_selection = kymograph_channel.get_rect(rect) if rect else kymograph_channel.data
 
     sigma = sigma if sigma else 0.5 * line_width
     coordinates, time_points = peak_estimate(
-        data_selection, np.ceil(0.5 * line_width), pixel_threshold
+        kymograph_channel.data, np.ceil(0.5 * line_width), pixel_threshold
     )
     if len(coordinates) == 0:
         return []
 
-    peaks = KymoPeaks(
-        *refine_peak_based_on_moment(
-            data_selection, coordinates, time_points, np.ceil(0.5 * line_width)
-        )
+    position, time, m0 = refine_peak_based_on_moment(
+        kymograph_channel.data, coordinates, time_points, np.ceil(0.5 * line_width)
     )
+
+    if rect:
+        (t0, p0), (t1, p1) = kymograph_channel._to_pixel_rect(rect)
+        mask = (position >= p0) & (position < p1) & (time >= t0) & (time < t1)
+        position, time, m0 = position[mask], time[mask], m0[mask]
+
+    peaks = KymoPeaks(position, time, m0)
     peaks = merge_close_peaks(peaks, np.ceil(0.5 * line_width))
+
     lines = points_to_line_segments(
         peaks,
         kymo_score(vel=vel, sigma=sigma, diffusion=diffusion),
@@ -111,9 +118,7 @@ def track_greedy(
 
     lines = [KymoLine(line.time_idx, line.coordinate_idx, kymograph_channel) for line in lines]
 
-    return KymoLineGroup(
-        [line.with_offset(rect[0][0], rect[0][1]) for line in lines] if rect else lines
-    )
+    return KymoLineGroup(lines)
 
 
 def track_lines(

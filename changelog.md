@@ -18,6 +18,11 @@
   Previously, we used the incorrect axis to clamp the pixel index along the positional axis.
   As a consequence, kymographs that are wider (in terms of number of pixels on the positional axis) than they are long (in terms of number of pixels along the time axis) would only have an accurate sampling in the top half of the kymograph.
   The lower portion of the kymograph would result in zero counts.
+* Fixed bug which could lead to bias when tracking lines using `track_greedy()` with the rectangle tool.
+  Selecting which region to track used to pass that region specifically to the tracking algorithm.
+  This means that the algorithm is unable to sample the image outside of the passed region.
+  Therefore, this can lead to a bias when the line to be tracked is near the edge of the selected region.
+  In the updated version, all image processing steps that depend on the image use the full image.
 
 #### Breaking changes
 

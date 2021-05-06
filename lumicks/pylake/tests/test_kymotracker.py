@@ -374,6 +374,26 @@ def test_kymotracker_integration_tests_subset():
     assert np.allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
 
 
+def test_kymotracker_test_bias_rect():
+    """Computing the kymograph of a subset of the image should not affect the results of the
+    tracking."""
+
+    # Generate a checkerboard pattern with a single line that we wish to track. The line is on the
+    # 12th pixel.
+    img_data = np.array([np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 6, 0, 1])])
+    img_data = np.tile(img_data.T, (1, 2))
+    kymo = generate_kymo("chan", img_data, dt=int(0.01e9), pixel_size_nm=1e3)
+
+    # We grab a subset of the image right beyond the bright pixel. If there's a bias induced
+    # by the rectangle crop, we'll see it!
+    tracking_settings = {"line_width": 3, "pixel_threshold": 4, "sigma": 5, "window": 9}
+    traces_rect = track_greedy(kymo, "red", **tracking_settings, rect=[[0, 2], [1000, 12]])
+    traces_full = track_greedy(kymo, "red", **tracking_settings)
+
+    for t1, t2 in zip(traces_rect, traces_full):
+        assert np.allclose(t1.position, t2.position)
+
+
 def test_filter_lines():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
 
