@@ -23,6 +23,10 @@
   This means that the algorithm is unable to sample the image outside of the passed region.
   Therefore, this can lead to a bias when the line to be tracked is near the edge of the selected region.
   In the updated version, all image processing steps that depend on the image use the full image.
+* Fixed bug which could lead to bias when tracking lines using `track_lines()` with the rectangle tool.
+  Selecting which region to track used to pass that region specifically to the tracking algorithm.
+  This means that the blurring steps involved in this algorithm become biased (since they do not get contributions from outside the selected areas, while they should).
+  In the updated version, all image processing steps that depend on the image use the full image.
 
 #### Breaking changes
 
