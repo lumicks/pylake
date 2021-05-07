@@ -192,6 +192,13 @@ class ConfocalImage(BaseScan):
         """Returns axis indices in spatial order"""
         return sorted(self._json["scan volume"]["scan axes"], key=lambda x: x["axis"])
 
+    @property
+    def _scan_order(self):
+        """Order in which the axes are scanned. Assume we have an Y, X scan, then the physical
+        axis order is X, Y. In that case, this function would return [1, 0]. For an X, Z scan
+        physical axes order would be X, Z, so in that case this function would return [0, 1]."""
+        return np.argsort([x["axis"] for x in self._json["scan volume"]["scan axes"]])
+
     def _to_spatial(self, data):
         """Implements any necessary post-processing actions after image reconstruction from infowave """
         raise NotImplementedError
@@ -262,11 +269,15 @@ class ConfocalImage(BaseScan):
 
     @property
     def pixels_per_line(self):
-        return self._fast_axis_metadata["num of pixels"]
+        return self._num_pixels[self._scan_order[0]]
 
     @property
     def _fast_axis_metadata(self):
         return self._json["scan volume"]["scan axes"][0]
+
+    @property
+    def _num_pixels(self):
+        return [axes["num of pixels"] for axes in self._ordered_axes()]
 
     @property
     def fast_axis(self):

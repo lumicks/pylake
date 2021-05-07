@@ -48,7 +48,7 @@ class Scan(ConfocalImage):
 
     @property
     def lines_per_frame(self):
-        return self._json["scan volume"]["scan axes"][1]["num of pixels"]
+        return self._num_pixels[self._scan_order[1]]
 
     @property
     def _shape(self):
