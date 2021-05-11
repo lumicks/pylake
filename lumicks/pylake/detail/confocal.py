@@ -26,6 +26,14 @@ def _default_timestamp_factory(self: "ConfocalImage"):
     return self._to_spatial(raw_image)
 
 
+def _default_pixelsize_factory(self: "ConfocalImage"):
+    return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
+
+
+def _default_pixelcount_factory(self: "ConfocalImage"):
+    return [axes["num of pixels"] for axes in self._ordered_axes()]
+
+
 class BaseScan(PhotonCounts, ExcitationLaserPower):
     """Base class for confocal scans
 
@@ -51,6 +59,8 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         self.file = file
         self._image_factory = _default_image_factory
         self._timestamp_factory = _default_timestamp_factory
+        self._pixelsize_factory = _default_pixelsize_factory
+        self._pixelcount_factory = _default_pixelcount_factory
         self._cache = {}
 
     def _has_default_factories(self):
@@ -273,7 +283,7 @@ class ConfocalImage(BaseScan):
 
     @property
     def _num_pixels(self):
-        return [axes["num of pixels"] for axes in self._ordered_axes()]
+        return self._pixelcount_factory(self)
 
     @property
     def fast_axis(self):
@@ -291,15 +301,19 @@ class ConfocalImage(BaseScan):
     def pixelsize_um(self):
         """Returns a `List` of axes dimensions in um. The length of the list corresponds to the
         number of scan axes."""
-        return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
+        return self._pixelsize_factory(self)
 
     @property
     def size_um(self):
         """Returns a `List` of scan sizes in um along axes. The length of the list corresponds to
         the number of scan axes."""
-        return [
-            axes["pixel size (nm)"] * axes["num of pixels"] / 1000 for axes in self._ordered_axes()
-        ]
+        return list(
+            map(
+                lambda pixel_size, num_pixels: pixel_size * num_pixels,
+                self.pixelsize_um,
+                self._num_pixels,
+            )
+        )
 
     @property
     @deprecated(

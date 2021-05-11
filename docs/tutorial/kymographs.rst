@@ -52,15 +52,23 @@ There are also several properties available for convenient access to the kymogra
 Downsampling kymograph
 ----------------------
 
-We can downsample a kymograph by invoking::
+We can downsample a kymograph in time by invoking::
 
     kymo_ds = kymo.downsampled_by(time_factor=2)
 
+Or in space by invoking::
+
+    kymo_ds = kymo.downsampled_by(position_factor=2)
+
+Or both::
+
+    kymo_ds = kymo.downsampled_by(time_factor=2, position_factor=2)
+
 Note however, that not all functionalities are present anymore when downsampling a kymograph. For
-example, we can no longer access the per pixel timestamps::
+example, if we downsample a kymograph by time, we can no longer access the per pixel timestamps::
 
     >>> kymo_ds.timestamps
-    AttributeError: Per pixel timestamps are no longer available after downsampling a kymograph since they are not well defined (the downsampling occurs over a non contiguous time window).
+    AttributeError: Per pixel timestamps are no longer available after downsampling a kymograph in time since they are not well defined (the downsampling occurs over a non contiguous time window).
     Line timestamps are still available however. See: `Kymo.line_time_seconds`.
 
 Plotting and exporting

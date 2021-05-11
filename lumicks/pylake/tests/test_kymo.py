@@ -242,7 +242,7 @@ def test_downsampled_kymo():
         "Mock", image, pixel_size_nm=1, start=100, dt=7, samples_per_pixel=5, line_padding=2
     )
 
-    kymo_ds = kymo.downsampled_by(2)
+    kymo_ds = kymo.downsampled_by(time_factor=2)
     ds = np.array(
         [
             [12, 12, 6],
@@ -266,7 +266,108 @@ def test_downsampled_kymo():
         kymo_ds.timestamps
 
     # Verify that we can pass a different reduce function
-    assert np.allclose(kymo.downsampled_by(2, reduce=np.mean).red_image, ds / 2)
+    assert np.allclose(kymo.downsampled_by(time_factor=2, reduce=np.mean).red_image, ds / 2)
+
+
+def test_downsampled_kymo_position():
+    """Test downsampling over the spatial axis"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    kymo = generate_kymo(
+        "Mock", image, pixel_size_nm=1, start=100, dt=5, samples_per_pixel=5, line_padding=2
+    )
+
+    kymo_ds = kymo.downsampled_by(position_factor=2)
+    ds = np.array([[0, 12, 0, 12, 0, 12, 0], [12, 12, 12, 12, 12, 12, 0]], dtype=np.uint8)
+    ds_ts = np.array([[132.5,  277.5,  422.5,  567.5,  712.5,  857.5, 1002.5],
+                      [182.5,  327.5,  472.5,  617.5,  762.5,  907.5, 1052.5]])
+
+    assert kymo_ds.name == "Mock"
+    assert np.allclose(kymo_ds.red_image, ds)
+    assert np.allclose(kymo_ds.timestamps, ds_ts)
+    assert np.allclose(kymo_ds.start, 100)
+    assert np.allclose(kymo_ds.pixelsize_um, 2 / 1000)
+    assert np.allclose(kymo_ds.line_time_seconds, kymo.line_time_seconds)
+
+    # We lost one line while downsampling
+    assert np.allclose(kymo_ds.size_um[0], kymo.size_um[0] - kymo.pixelsize_um[0])
+
+    # Verify that we can pass a different reduce function
+    alt_ds = kymo.downsampled_by(position_factor=2, reduce=np.mean, reduce_timestamps=np.sum)
+    assert np.allclose(alt_ds.red_image, ds / 2)
+    assert np.allclose(alt_ds.timestamps, ds_ts * 2)
+
+
+def test_downsampled_kymo_both_axes():
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    kymo = generate_kymo(
+        "Mock", image, pixel_size_nm=1, start=100, dt=5, samples_per_pixel=5, line_padding=2
+    )
+    ds = np.array([[12, 12, 12], [24, 24, 24]], dtype=np.uint8)
+
+    downsampled_kymos = [
+        kymo.downsampled_by(time_factor=2, position_factor=2),
+        # Test whether sequential downsampling works out correctly as well
+        kymo.downsampled_by(position_factor=2).downsampled_by(time_factor=2),
+        kymo.downsampled_by(time_factor=2).downsampled_by(position_factor=2)
+    ]
+
+    for kymo_ds in downsampled_kymos:
+        assert kymo_ds.name == "Mock"
+        assert np.allclose(kymo_ds.red_image, ds)
+        assert np.allclose(kymo_ds.start, 100)
+        assert np.allclose(kymo_ds.pixelsize_um, 2 / 1000)
+        assert np.allclose(kymo_ds.line_time_seconds, 2 * 5 * (5 * 5 + 2 + 2) / 1e9)
+        with pytest.raises(
+                AttributeError,
+                match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
+        ):
+            kymo_ds.timestamps
+
+
+def test_side_no_side_effects_downsampling():
+    """Test whether downsampling doesn't have side effects on the original kymo"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    kymo = generate_kymo(
+        "Mock", image, pixel_size_nm=1, start=100, dt=5, samples_per_pixel=5, line_padding=2
+    )
+    timestamps = kymo.timestamps.copy()
+    downsampled_kymos = kymo.downsampled_by(time_factor=2, position_factor=2)
+
+    assert np.allclose(kymo.red_image, image)
+    assert np.allclose(kymo.start, 100)
+    assert np.allclose(kymo.pixelsize_um, 1 / 1000)
+    assert np.allclose(kymo.line_time_seconds, 5 * (5 * 5 + 2 + 2) / 1e9)
+    assert np.allclose(kymo.timestamps, timestamps)
 
 
 def test_calibrated_channels():
