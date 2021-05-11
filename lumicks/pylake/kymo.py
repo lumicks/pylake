@@ -45,6 +45,12 @@ class Kymo(ConfocalImage):
         super().__init__(name, file, start, stop, json)
         self._line_time_factory = _default_line_time_factory
 
+    def _has_default_factories(self):
+        return (
+            super()._has_default_factories()
+            and self._line_time_factory == _default_line_time_factory
+        )
+
     def __repr__(self):
         name = self.__class__.__name__
         return f"{name}(pixels={self.pixels_per_line})"
@@ -55,6 +61,11 @@ class Kymo(ConfocalImage):
             raise IndexError("Scalar indexing is not supported, only slicing")
         if item.step is not None:
             raise IndexError("Slice steps are not supported")
+        if not self._has_default_factories():
+            raise NotImplementedError(
+                "Slicing is not implemented for processed kymographs. Please slice prior to "
+                "processing the data."
+            )
 
         start = self.start if item.start is None else item.start
         stop = self.stop if item.stop is None else item.stop

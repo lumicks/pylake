@@ -294,3 +294,20 @@ def test_calibrated_channels():
     assert np.allclose(calibrated_channel.data, image)
     assert np.allclose(calibrated_channel.time_step_ns, kymo.line_time_seconds * int(1e9))
     assert np.allclose(calibrated_channel._pixel_size, kymo.pixelsize_um[0])
+
+
+def test_downsampled_slice():
+    """There was a regression bug that if a Kymo was downsampled and then sliced, it would undo the
+    downsampling. For now, we just flag it as not implemented behaviour."""
+    kymo = generate_kymo(
+        "Mock",
+        image=np.array([[2, 2], [2, 2]], dtype=np.uint8),
+        pixel_size_nm=1,
+        start=100,
+        dt=7,
+        samples_per_pixel=5,
+        line_padding=2,
+    )
+
+    with pytest.raises(NotImplementedError):
+        kymo.downsampled_by(time_factor=2)["1s":"2s"]
