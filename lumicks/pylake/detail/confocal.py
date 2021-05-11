@@ -53,6 +53,12 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         self._timestamp_factory = _default_timestamp_factory
         self._cache = {}
 
+    def _has_default_factories(self):
+        return (
+            self._image_factory == _default_image_factory
+            and self._timestamp_factory == _default_timestamp_factory
+        )
+
     @classmethod
     def from_dataset(cls, h5py_dset, file):
         """
