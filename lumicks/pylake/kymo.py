@@ -261,39 +261,66 @@ class Kymo(ConfocalImage):
         ax_hist.set_ylabel("counts")
         ax_hist.set_title(self.name)
 
-    def downsampled_by(self, time_factor, reduce=np.sum):
-        """Return a copy of this Kymograph which is downsampled by `time_factor`
+    def downsampled_by(
+        self, time_factor=1, position_factor=1, reduce=np.sum, reduce_timestamps=np.mean
+    ):
+        """Return a copy of this Kymograph which is downsampled by `time_factor` in time and
+        `position_factor` in space.
 
         Parameters
         ----------
         time_factor : int
-            The number of pixels that will be averaged in time.
+            The number of pixels that will be averaged in time (default: 1).
+        position_factor : int
+            The number of pixels that will be averaged in space (default: 1).
         reduce : callable
             The `numpy` function which is going to reduce multiple pixels into one.
             The default is `np.sum`.
+        reduce_timestamps : callable
+            The `numpy` function that is going to reduce timestamps into one.
+            The default is `np.mean`.
         """
         result = Kymo(self.name, self.file, self.start, self.stop, self._json)
 
         def image_factory(_, channel):
             data = self._image(channel)
-            return block_reduce(data, (1, time_factor), func=reduce)[
-                :, : data.shape[1] // time_factor
+            return block_reduce(data, (position_factor, time_factor), func=reduce)[
+                : data.shape[0] // position_factor, : data.shape[1] // time_factor
             ]
 
-        def timestamp_factory(_):
+        def timestamp_factory_ill_defined(_):
             raise AttributeError(
-                "Per-pixel timestamps are no longer available after downsampling a kymograph since "
-                "they are not well defined (the downsampling occurs over a non contiguous time "
-                "window). Line timestamps are still available however. See: "
+                "Per-pixel timestamps are no longer available after downsampling a kymograph in "
+                "time since they are not well defined (the downsampling occurs over a "
+                "non-contiguous time window). Line timestamps are still available, however. See: "
                 "`Kymo.line_time_seconds`."
             )
+
+        def timestamp_factory(_):
+            return block_reduce(self.timestamps, (position_factor, 1), func=reduce_timestamps)[
+                : self.timestamps.shape[0] // position_factor, :
+            ]
 
         def line_time_factory(_):
             return self.line_time_seconds * time_factor
 
+        def pixelsize_factory(_):
+            pixelsizes = self.pixelsize_um
+            pixelsizes[0] = pixelsizes[0] * position_factor
+            return pixelsizes
+
+        def pixelcount_factory(_):
+            num_pixels = self._num_pixels
+            num_pixels[0] = num_pixels[0] // position_factor
+            return num_pixels
+
         result._image_factory = image_factory
-        result._timestamp_factory = timestamp_factory
+        result._timestamp_factory = (
+            timestamp_factory if time_factor == 1 else timestamp_factory_ill_defined
+        )
         result._line_time_factory = line_time_factory
+        result._pixelsize_factory = pixelsize_factory
+        result._pixelcount_factory = pixelcount_factory
         return result
 
 
