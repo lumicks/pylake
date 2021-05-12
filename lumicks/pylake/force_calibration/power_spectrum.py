@@ -74,9 +74,15 @@ class PowerSpectrum:
 
         return ps
 
-    def plot(self):
-        """Plot power spectrum"""
-        plt.plot(self.frequency, self.power)
+    def plot(self, **kwargs):
+        """Plot power spectrum
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
+        plt.plot(self.frequency, self.power, **kwargs)
         plt.xlabel("Frequency [Hz]")
         plt.ylabel(f"Power [${self.unit}^2/Hz$]")
         plt.xscale("log")

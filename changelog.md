@@ -27,6 +27,7 @@
   Selecting which region to track used to pass that region specifically to the tracking algorithm.
   This means that the blurring steps involved in this algorithm become biased (since they do not get contributions from outside the selected areas, while they should).
   In the updated version, all image processing steps that depend on the image use the full image.
+* Fixed a bug in the plotting order of `CalibrationResults.plot()`. Previously, when plotting after performing a force calibration, the model fit was erroneously plotted first (while the legend indicated that the model fit was plotted last). The results of the calibration itself are unchanged.
 
 #### Breaking changes
 

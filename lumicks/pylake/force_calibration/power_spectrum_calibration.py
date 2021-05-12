@@ -87,9 +87,9 @@ class CalibrationResults:
 
     def plot(self):
         """Plot the fitted spectrum"""
-        self.ps_model_fit.plot()
-        self.ps_fitted.plot()
-        plt.legend(["Data", "Model"])
+        self.ps_fitted.plot(label="Data")
+        self.ps_model_fit.plot(label="Model")
+        plt.legend()
 
     def _print_data(self, tablefmt="text"):
         table = [
