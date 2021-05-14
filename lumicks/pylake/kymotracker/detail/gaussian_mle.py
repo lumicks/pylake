@@ -115,3 +115,46 @@ def poisson_log_likelihood_jacobian(params, x, photon_count, shared_variance=Fal
     derivatives = np.hstack(peak_expectation_derivatives(x, amplitude, center, scale, offset))
     dL_dparam = derivatives * ((photon_count / expectation) - 1)
     return -np.sum(dL_dparam, axis=0)
+
+
+def run_gaussian_mle(x, photon_count, pixel_size, shared_variance=False, shared_offset=False):
+    """Calculates maximum likelihood estimate of gaussian parameters.
+
+    Parameters
+    __________
+    x : array-like
+        Data at which the function is to be evaluated.
+    photon_count : array-like
+        Signal data to be fitted with shape [len(x), # of frames]
+    pixel_size : float
+        Pixel size in um
+    shared_variance : bool
+        If the variance is a single value shared across all frames
+    shared_offset : bool
+        If the offset is a single value shared across all frames
+    """
+    n_frames = photon_count.shape[1]
+
+    # initial guesses for parameters
+    init_amplitude = photon_count.max(axis=0)
+    init_center = x[np.argmax(photon_count, axis=0)]
+    init_scale = np.full(1 if shared_variance else n_frames, 3 * pixel_size)
+    init_offset = np.full(1 if shared_offset else n_frames, 1)
+    initial_guess = np.hstack((init_amplitude, init_center, init_scale, init_offset))
+
+    # bounds
+    bounds_amplitude = [(y * 0.1, None) for y in photon_count.max(axis=0)]
+    bounds_center = [(x.min(), x.max())] * n_frames
+    bounds_scale = [(pixel_size, 6 * pixel_size)] * (1 if shared_variance else n_frames)
+    bounds_offset = [(np.finfo(float).eps, None)] * (1 if shared_offset else n_frames)
+    bounds = (*bounds_amplitude, *bounds_center, *bounds_scale, *bounds_offset)
+
+    result = minimize(
+        poisson_log_likelihood,
+        initial_guess,
+        args=(x, photon_count, shared_variance),
+        method="L-BFGS-B",
+        jac=poisson_log_likelihood_jacobian,
+        bounds=bounds,
+    )
+    return result.x
