@@ -272,16 +272,12 @@ class ConfocalImage(BaseScan):
         return self._num_pixels[self._scan_order[0]]
 
     @property
-    def _fast_axis_metadata(self):
-        return self._json["scan volume"]["scan axes"][0]
-
-    @property
     def _num_pixels(self):
         return [axes["num of pixels"] for axes in self._ordered_axes()]
 
     @property
     def fast_axis(self):
-        return "X" if self._fast_axis_metadata["axis"] == 0 else "Y"
+        return "X" if self._json["scan volume"]["scan axes"][0]["axis"] == 0 else "Y"
 
     @property
     def timestamps(self) -> np.ndarray:
