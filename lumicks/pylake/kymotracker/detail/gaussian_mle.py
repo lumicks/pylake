@@ -49,16 +49,20 @@ def peak_expectation_derivatives(x, amplitude, center, scale, offset):
     d_damplitude = g / amplitude
     d_dcenter = g * x_center_diff / row(scale) ** 2
 
-    fn = (lambda x: col(x.sum(axis=1))) if len(scale) == 1 else (lambda x: (x))
-    d_dscale = fn(g * x_center_diff ** 2) / scale ** 3
+    d_dscale_numerator = (lambda x: col(x.sum(axis=1))) if len(scale) == 1 else (lambda x: (x))
+    d_dscale = d_dscale_numerator(g * x_center_diff ** 2) / scale ** 3
 
     d_doffset = col(np.ones(g.shape).sum(axis=1)) if len(offset) == 1 else np.ones(g.shape)
 
     return d_damplitude, d_dcenter, d_dscale, d_doffset
 
 
-def _extract_params(params, n_frames, shared_variance):
+def _extract_params(params, n_frames, shared_variance, shared_offset):
     """Separates single array of parameters into individual components."""
+    n_var = 1 if shared_variance else n_frames
+    n_off = 1 if shared_offset else n_frames
+    assert len(params) == 2 * n_frames + n_var + n_off
+
     amplitude = params[:n_frames]
     center = params[n_frames : 2 * n_frames]
 
@@ -71,7 +75,7 @@ def _extract_params(params, n_frames, shared_variance):
     return amplitude, center, scale, offset
 
 
-def poisson_log_likelihood(params, x, photon_count, shared_variance=False):
+def poisson_log_likelihood(params, x, photon_count, shared_variance=False, shared_offset=False):
     """Calculates the log likelihood of Poisson distributed values.
 
     Parameters
@@ -88,17 +92,23 @@ def poisson_log_likelihood(params, x, photon_count, shared_variance=False):
         If the offset is a single value shared across all frames
     """
     n_frames = photon_count.shape[1]
-    amplitude, center, scale, offset = _extract_params(params, n_frames, shared_variance)
+    amplitude, center, scale, offset = _extract_params(
+        params, n_frames, shared_variance, shared_offset
+    )
 
     expectation = peak_expectation(x, amplitude, center, scale, offset)
     log_likelihood = photon_count * np.log(expectation) - expectation
     return np.sum(-log_likelihood)
 
 
-def poisson_log_likelihood_jacobian(params, x, photon_count, shared_variance=False):
+def poisson_log_likelihood_jacobian(
+    params, x, photon_count, shared_variance=False, shared_offset=False
+):
     """Calculates the derivatives of the log likelihood w.r.t. each parameter."""
     n_frames = photon_count.shape[1]
-    amplitude, center, scale, offset = _extract_params(params, n_frames, shared_variance)
+    amplitude, center, scale, offset = _extract_params(
+        params, n_frames, shared_variance, shared_offset
+    )
 
     tile = lambda x: np.hstack(
         (
@@ -133,7 +143,11 @@ def run_gaussian_mle(x, photon_count, pixel_size, shared_variance=False, shared_
     shared_offset : bool
         If the offset is a single value shared across all frames
     """
-    n_frames = photon_count.shape[1]
+    try:
+        n_frames = photon_count.shape[1]
+    except IndexError:
+        photon_count = col(photon_count)
+        n_frames = photon_count.shape[1]
 
     # initial guesses for parameters
     init_amplitude = photon_count.max(axis=0)
@@ -152,7 +166,7 @@ def run_gaussian_mle(x, photon_count, pixel_size, shared_variance=False, shared_
     result = minimize(
         poisson_log_likelihood,
         initial_guess,
-        args=(x, photon_count, shared_variance),
+        args=(x, photon_count, shared_variance, shared_offset),
         method="L-BFGS-B",
         jac=poisson_log_likelihood_jacobian,
         bounds=bounds,
