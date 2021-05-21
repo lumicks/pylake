@@ -8,10 +8,18 @@ from .detail.peakfinding import (
     merge_close_peaks,
     KymoPeaks,
 )
+from .detail.gaussian_mle import run_gaussian_mle
 from .kymoline import KymoLineGroup
 import numpy as np
+import warnings
 
-__all__ = ["track_greedy", "track_lines", "filter_lines", "refine_lines_centroid"]
+__all__ = [
+    "track_greedy",
+    "track_lines",
+    "filter_lines",
+    "refine_lines_centroid",
+    "refine_lines_gaussian",
+]
 
 
 def track_greedy(
@@ -243,3 +251,48 @@ def refine_lines_centroid(lines, line_width):
         current += line_length
 
     return KymoLineGroup(interpolated_lines)
+
+
+def refine_lines_gaussian(lines, window=5):
+    """Refine the lines by gaussian peak MLE.
+
+    Parameters
+    ----------
+    lines: List[pylake.KymoLine] or pylake.KymolineGroup
+        Detected traces on a kymograph.
+    window: int
+        Number of pixels on either side of the estimated line to include in the optimization data.
+    """
+    img = lines[0]._image
+    get_window_limits = lambda c: (max(int(c) - window, 0), int(c) + window + 1)
+    pixel_indices = lambda line: zip(line.time_idx.astype(int), np.rint(line.coordinate_idx))
+
+    # check if there are overlapping fit windows
+    window_ranges = np.vstack(
+        [[(t, *get_window_limits(c)) for t, c in pixel_indices(line)] for line in lines]
+    )
+    unique_frames = np.unique(window_ranges[:, 0], return_counts=True)
+    overlap_count = 0
+    for frame, count in zip(*unique_frames):
+        if count > 1:
+            idx = np.argwhere(window_ranges[:, 0] == frame)
+            ranges = window_ranges[idx.squeeze(), 1:]
+            ranges = ranges[np.argsort(ranges[:, 0])]
+            overlap_count += np.sum(ranges[1:, 0] < ranges[:-1, 1])
+    if overlap_count > 0:
+        warnings.warn("there are overlaps")
+
+    # optimize trace by trace, frame by frame
+    full_position = img.to_position(np.arange(img.data.shape[0]))
+    gau_lines = KymoLineGroup([])
+    for j, line in enumerate(lines):
+        # print(f"working on {j} of {len(lines)}")
+        tmp_coordinate = []
+        for t, c in pixel_indices(line):
+            limits = slice(*get_window_limits(c))
+            position = full_position[limits]
+            y = img.data[limits, int(t)]
+            r = run_gaussian_mle(position, y, img._pixel_size, False, False, init_center=img.to_position(c))
+            tmp_coordinate.append(r[1] / img._pixel_size)
+        gau_lines.extend(KymoLine(line.time_idx, tmp_coordinate, img))
+    return gau_lines
