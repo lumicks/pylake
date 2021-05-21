@@ -1,5 +1,5 @@
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
-from lumicks.pylake.kymotracker.kymotracker import refine_lines_centroid
+from lumicks.pylake.kymotracker.kymotracker import refine_lines_centroid, refine_lines_gaussian
 from lumicks.pylake.kymotracker.kymoline import KymoLine
 import numpy as np
 import pytest
@@ -54,3 +54,24 @@ def test_refinement_line(loc, inv_sigma=0.3):
     calibrated_image = CalibratedKymographChannel.from_array(np.expand_dims(image, 1))
     line = refine_lines_centroid([KymoLine([0], [25], image=calibrated_image)], 5)[0]
     assert np.allclose(line.coordinate_idx, loc, rtol=1e-2)
+
+
+def test_refine_gaussian(high_intensity):
+    position, pixel_size, line, photon_count, true_params, image_params = high_intensity
+    n_frames = photon_count.shape[1]
+    channel = CalibratedKymographChannel.from_array(photon_count, pixel_size=0.1)
+
+    multipliers = (0.99, 0.9, 0.8)
+    init_tracks = []
+    for m in multipliers:
+        init_center = true_params[1] * m
+        init_center_idx = init_center / channel._pixel_size
+        init_tracks.append(KymoLine(np.arange(n_frames), np.full(n_frames, init_center_idx), channel))
+
+    results = ([2.604524,   2.59820109, 2.5995581 ],
+               [2.61053829, 2.58411975, 2.59177182],
+               [2.59546472, 2.59955604, 2.59679171])
+    with pytest.warns(UserWarning):
+        fitted = refine_lines_gaussian(init_tracks)
+    for line, result in zip(fitted, results):
+        assert np.allclose(result, line.position)

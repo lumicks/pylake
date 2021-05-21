@@ -292,7 +292,9 @@ def refine_lines_gaussian(lines, window=5):
             limits = slice(*get_window_limits(c))
             position = full_position[limits]
             y = img.data[limits, int(t)]
-            r = run_gaussian_mle(position, y, img._pixel_size, False, False, init_center=img.to_position(c))
+            r = run_gaussian_mle(
+                position, y, img._pixel_size, False, False, init_center=img.to_position(c)
+            )
             tmp_coordinate.append(r[1] / img._pixel_size)
         gau_lines.extend(KymoLine(line.time_idx, tmp_coordinate, img))
     return gau_lines
