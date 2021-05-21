@@ -127,7 +127,9 @@ def poisson_log_likelihood_jacobian(
     return -np.sum(dL_dparam, axis=0)
 
 
-def run_gaussian_mle(x, photon_count, pixel_size, shared_variance=False, shared_offset=False):
+def run_gaussian_mle(
+    x, photon_count, pixel_size, shared_variance=False, shared_offset=False, init_center=None
+):
     """Calculates maximum likelihood estimate of gaussian parameters.
 
     Parameters
@@ -151,7 +153,7 @@ def run_gaussian_mle(x, photon_count, pixel_size, shared_variance=False, shared_
 
     # initial guesses for parameters
     init_amplitude = photon_count.max(axis=0)
-    init_center = x[np.argmax(photon_count, axis=0)]
+    init_center = x[np.argmax(photon_count, axis=0)] if init_center is None else init_center
     init_scale = np.full(1 if shared_variance else n_frames, 3 * pixel_size)
     init_offset = np.full(1 if shared_offset else n_frames, 1)
     initial_guess = np.hstack((init_amplitude, init_center, init_scale, init_offset))
