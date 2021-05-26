@@ -18,7 +18,7 @@ def gaussian(x, amplitude, center, scale):
     Result is returned as a 2D array with shape [len(x), len(center)].
 
     Parameters
-    __________
+    ----------
     x : array-like
         Data at which the function is to be evaluated.
     amplitude : float or array-like
@@ -48,11 +48,8 @@ def peak_expectation_derivatives(x, amplitude, center, scale, offset):
 
     d_damplitude = g / amplitude
     d_dcenter = g * x_center_diff / row(scale) ** 2
-
-    d_dscale_numerator = (lambda x: col(x.sum(axis=1))) if len(scale) == 1 else (lambda x: (x))
-    d_dscale = d_dscale_numerator(g * x_center_diff ** 2) / scale ** 3
-
-    d_doffset = col(np.ones(g.shape).sum(axis=1)) if len(offset) == 1 else np.ones(g.shape)
+    d_dscale = g * x_center_diff ** 2 / scale ** 3
+    d_doffset = np.ones(g.shape)
 
     return d_damplitude, d_dcenter, d_dscale, d_doffset
 
@@ -79,7 +76,7 @@ def poisson_log_likelihood(params, x, photon_count, shared_variance=False, share
     """Calculates the log likelihood of Poisson distributed values.
 
     Parameters
-    __________
+    ----------
     params : array-like
         Model parameters to be estimated; order is [amplitude, center, scale, offset]
     x : array-like
@@ -110,21 +107,21 @@ def poisson_log_likelihood_jacobian(
         params, n_frames, shared_variance, shared_offset
     )
 
-    tile = lambda x: np.hstack(
-        (
-            x,
-            x,
-            col(x.sum(axis=1)) if len(scale) == 1 else x,
-            col(x.sum(axis=1)) if len(offset) == 1 else x,
-        )
-    )
+    # calculate derivatives of the expectation w.r.t. each parameter
+    # results returned as 4 arrays corresponding to parameters: amplitude, center, scale, offset
+    derivatives = peak_expectation_derivatives(x, amplitude, center, scale, offset)
+    count_over_expectation = photon_count / peak_expectation(x, amplitude, center, scale, offset)
 
-    expectation = tile(peak_expectation(x, amplitude, center, scale, offset))
-    photon_count = tile(photon_count)
+    # calculate the derivatives of the log likelihood w.r.t. each parameter via chain rule
+    dlogl_dparam = [d * ((count_over_expectation) - 1) for d in derivatives]
 
-    derivatives = np.hstack(peak_expectation_derivatives(x, amplitude, center, scale, offset))
-    dL_dparam = derivatives * ((photon_count / expectation) - 1)
-    return -np.sum(dL_dparam, axis=0)
+    # if parameter is computed globally for the entire track, sum across image frames
+    if shared_variance:
+        dlogl_dparam[2] = col(dlogl_dparam[2].sum(axis=1))
+    if shared_offset:
+        dlogl_dparam[3] = col(dlogl_dparam[3].sum(axis=1))
+
+    return -np.sum(np.hstack(dlogl_dparam), axis=0)
 
 
 def run_gaussian_mle(
@@ -133,7 +130,7 @@ def run_gaussian_mle(
     """Calculates maximum likelihood estimate of gaussian parameters.
 
     Parameters
-    __________
+    ----------
     x : array-like
         Data at which the function is to be evaluated.
     photon_count : array-like

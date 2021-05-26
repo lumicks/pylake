@@ -6,6 +6,7 @@ from pathlib import Path
 from lumicks.pylake.kymotracker.detail.gaussian_mle import _extract_params, poisson_log_likelihood, poisson_log_likelihood_jacobian
 from lumicks.pylake.kymotracker.detail.gaussian_mle import run_gaussian_mle
 from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
+from .data.generate_gaussian_track_data import generate_peak
 
 
 def read_dataset(name):
@@ -77,7 +78,6 @@ def test_parameter_extraction():
 
 def test_likelihood(high_intensity):
     position, pixel_size, line, photon_count, true_params, image_params = high_intensity
-    n_frames = photon_count.shape[1]
     multipliers = [1, 0.9, 1.1]
 
     # single line
@@ -107,7 +107,6 @@ def test_likelihood(high_intensity):
 
 def test_likelihood_derivative(high_intensity):
     position, pixel_size, line, photon_count, true_params, image_params = high_intensity
-    n_frames = photon_count.shape[1]
     multipliers = [1, 0.99, 1.01]
 
     # single line
@@ -184,29 +183,70 @@ def test_likelihood_derivative(high_intensity):
 
 
 def test_jacobian(high_intensity):
-    position, pixel_size, line, photon_count, true_params, image_params = high_intensity
-    n_frames = photon_count.shape[1]
-    multiplier = 0.999
+    # since we just compare the returned results from two functions, we can generate random
+    # test data without worrying about changes to numpy implementation
+    # make frames, slightly different parameters
+    true_amplitude = np.array([50, 60, 55])
+    true_center = np.array([2.5, 2.6, 2.4])
+    true_scale = np.array([0.18, 0.20, 0.22])
+    true_offset = np.array([0.5, 1.0, 1.5])
+    true_params = (true_amplitude, true_center, true_scale, true_offset)
 
-    # single line
-    f = lambda p: np.array([poisson_log_likelihood(p, position, line, False, False)])
-    num_result = numerical_jacobian(f, true_params * multiplier, dx=1e-6).squeeze()
-    test_result = poisson_log_likelihood_jacobian(true_params * multiplier, position, line, False, False).squeeze()
-    assert np.allclose(num_result, test_result, rtol=1e-4)
+    x = np.arange(0, 5, 0.1)
+    pks = np.vstack([generate_peak(x, *p) for p in zip(*true_params)]).T
+    img = np.random.poisson(pks)
 
-    # full track
-    def check_result(shared_var, shared_off):
-        f = lambda p: np.array([poisson_log_likelihood(p, position, photon_count, shared_var, shared_off)])
-        idx = (shared_var, shared_off)
-        num_result = numerical_jacobian(f, image_params[idx] * multiplier, dx=1e-6).squeeze()
-        test_result = poisson_log_likelihood_jacobian(image_params[idx] * multiplier, position, photon_count, shared_var, shared_off).squeeze()
-        assert np.allclose(num_result, test_result, rtol=2e-4)
-        print(idx)
+    # single-line fit
+    line = img[:, 1][:, np.newaxis]
+    f = lambda p: np.array([poisson_log_likelihood(p, x, line, False, False)])
+    try_params = np.array([true_amplitude[1] * 0.8,
+                           true_center[1] * 1.1,
+                           true_scale[1] * 1.25,
+                           true_offset[1] * 0.85])
 
-    check_result(False, False)  # local variance, local offset
-    check_result(True, False)   # global variance, local offset
-    check_result(False, True)   # local variance, global offset
-    check_result(True, True)    # global variance, global offset
+    num_result = numerical_jacobian(f, try_params, dx=1e-6).squeeze()
+    test_result = poisson_log_likelihood_jacobian(try_params, x, line, False, False).squeeze()
+    assert np.allclose(num_result, test_result)
+
+    # simultaneous image fit, all local parameters
+    f = lambda p: np.array([poisson_log_likelihood(p, x, img, False, False)])
+    try_params = np.hstack([true_amplitude * [0.8, 1.1, 0.7],
+                            true_center * [0.9, 0.7, 1.1],
+                            true_scale * [0.7, 1.2, 0.8],
+                            true_offset * [0.7, 0.8, 1.3]])
+    num_result = numerical_jacobian(f, try_params, dx=1e-6).squeeze()
+    test_result = poisson_log_likelihood_jacobian(try_params, x, img, False, False).squeeze()
+    assert np.allclose(num_result, test_result)
+
+    # shared variance
+    f = lambda p: np.array([poisson_log_likelihood(p, x, img, True, False)])
+    try_params = np.hstack([true_amplitude * [0.8, 1.1, 0.7],
+                            true_center * [0.9, 0.7, 1.1],
+                            true_scale[0] * 1.2,
+                            true_offset * [0.7, 0.8, 1.3]])
+    num_result = numerical_jacobian(f, try_params, dx=1e-6).squeeze()
+    test_result = poisson_log_likelihood_jacobian(try_params, x, img, True, False).squeeze()
+    assert np.allclose(num_result, test_result)
+
+    # shared offset
+    f = lambda p: np.array([poisson_log_likelihood(p, x, img, False, True)])
+    try_params = np.hstack([true_amplitude * [0.8, 1.1, 0.7],
+                            true_center * [0.9, 0.7, 1.1],
+                            true_scale * [0.7, 1.2, 0.8],
+                            true_offset[2] * 0.7])
+    num_result = numerical_jacobian(f, try_params, dx=1e-6).squeeze()
+    test_result = poisson_log_likelihood_jacobian(try_params, x, img, False, True).squeeze()
+    assert np.allclose(num_result, test_result)
+
+    # simultaneous image fit, all local parameters
+    f = lambda p: np.array([poisson_log_likelihood(p, x, img, True, True)])
+    try_params = np.hstack([true_amplitude * [0.8, 1.1, 0.7],
+                            true_center * [0.9, 0.7, 1.1],
+                            true_scale[2] * 0.8,
+                            true_offset[0] * 1.3])
+    num_result = numerical_jacobian(f, try_params, dx=1e-6).squeeze()
+    test_result = poisson_log_likelihood_jacobian(try_params, x, img, True, True).squeeze()
+    assert np.allclose(num_result, test_result)
 
 
 def test_mle_fit(high_intensity):
@@ -223,18 +263,18 @@ def test_mle_fit(high_intensity):
                                 1.90962878e+00, 1.80283161e+00, 1.82445477e+00])
 
     result = run_gaussian_mle(position, photon_count, pixel_size, shared_variance=True, shared_offset=False)
-    assert np.allclose(result, [1.49401689e+03, 1.54401474e+03, 1.51001865e+03,
-                                2.60555100e+00, 2.60111617e+00, 2.59795441e+00,
-                                3.48479939e-01,
-                                1.91080564e+00, 1.80183763e+00, 1.82375124e+00])
+    assert np.allclose(result, [1.49401683e+03, 1.54401469e+03, 1.51001858e+03,
+                                2.60556814e+00, 2.60110016e+00, 2.59797177e+00,
+                                3.48463940e-01,
+                                1.94250547e+00, 1.79896740e+00, 1.82080899e+00,])
 
     result = run_gaussian_mle(position, photon_count, pixel_size, shared_variance=False, shared_offset=True)
-    assert np.allclose(result, [1.49400630e+03, 1.54400549e+03, 1.51000696e+03,
-                                2.60553447e+00, 2.60111017e+00, 2.59794655e+00,
-                                3.49317957e-01, 3.45348040e-01, 3.50791137e-01,
-                                1.84919457e+00])
+    assert np.allclose(result, [1.49400451e+03, 1.54400393e+03, 1.51000499e+03,
+                                2.60554395e+00, 2.60111698e+00, 2.59795053e+00,
+                                3.49304763e-01, 3.45339881e-01, 3.50787430e-01,
+                                1.85155803e+00])
 
     result = run_gaussian_mle(position, photon_count, pixel_size, shared_variance=True, shared_offset=True)
-    assert np.allclose(result, [1.49400304e+03, 1.54400264e+03, 1.51000337e+03,
-                                2.60554802e+00, 2.60111993e+00, 2.59795325e+00,
-                                3.48478417e-01, 1.84889360e+00])
+    assert np.allclose(result, [1.49400210e+03, 1.54400182e+03, 1.51000233e+03,
+                                2.60554529e+00, 2.60111082e+00, 2.59794286e+00,
+                                3.48476245e-01, 1.84943345e+00])
