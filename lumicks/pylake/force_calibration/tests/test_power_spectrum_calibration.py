@@ -55,14 +55,14 @@ def test_calibration_result():
     "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,temperature,err_fc,err_d,"
     "err_f_diode,err_alpha,",
     [
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 0.00000, 1239.06183, 0.05650019],
-        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.21810, 0.00000, 1399.04982, 0.05896166],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 20.0, 84.85429, 0.00000, 827.43118, 0.03077534],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.2e-3, 4.0, 20.0, 84.85429, 0.00000, 827.43118, 0.03077534],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 8.0, 20.0, 84.85429, 0.00000, 827.43118, 0.03077534],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 34.0, 84.85429, 0.00000, 827.43118, 0.03077534],
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 0.00000, 1239.06183, 0.05650019],
-        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 0.00000, 1239.06183, 0.05650019],
+        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.9846e-11, 1239.06183, 0.05650019],
+        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.21810, 4.5890e-11, 1399.04982, 0.05896166],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 20.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.2e-3, 4.0, 20.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 8.0, 20.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 34.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
+        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.9846e-11, 1239.06183, 0.05650019],
+        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.9846e-11, 1239.06183, 0.05650019],
     ],
 )
 def test_good_fit_integration_test(
@@ -86,7 +86,7 @@ def test_good_fit_integration_test(
     ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model)
 
     assert np.allclose(ps_calibration["fc (Hz)"], corner_frequency, rtol=1e-4)
-    assert np.allclose(ps_calibration["D (V^2/s)"], diffusion_constant, rtol=1e-5)
+    assert np.allclose(ps_calibration["D (V^2/s)"], diffusion_constant, rtol=1e-4, atol=0)
     assert np.allclose(ps_calibration["alpha"], alpha, rtol=1e-4)
     assert np.allclose(ps_calibration["f_diode (Hz)"], f_diode, rtol=1e-4)
 
@@ -102,7 +102,7 @@ def test_good_fit_integration_test(
     assert np.allclose(ps_calibration["chi_squared_per_deg"], 0)  # Noise free
 
     assert np.allclose(ps_calibration["err_fc"], err_fc)
-    assert np.allclose(ps_calibration["err_D"], err_d)
+    assert np.allclose(ps_calibration["err_D"], err_d, rtol=1e-4, atol=0)
     assert np.allclose(ps_calibration["err_f_diode"], err_f_diode)
     assert np.allclose(ps_calibration["err_alpha"], err_alpha)
 
@@ -155,7 +155,7 @@ def reference_calibration_result():
 def test_actual_spectrum(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
 
-    assert np.allclose(ps_calibration["D (V^2/s)"], 0.0018512665210876748, rtol=1e-4)
+    assert np.allclose(ps_calibration["D (V^2/s)"], 0.0018512665210876748, rtol=1e-4, atol=0)
     assert np.allclose(ps_calibration["Rd (um/V)"], 7.253645956145265, rtol=1e-4)
     assert np.allclose(ps_calibration["Rf (pN/V)"], 1243.9711315478219, rtol=1e-4)
     assert np.allclose(ps_calibration["kappa (pN/nm)"], 0.17149598134079505, rtol=1e-4)
@@ -163,7 +163,7 @@ def test_actual_spectrum(reference_calibration_result):
     assert np.allclose(ps_calibration["backing (%)"], 66.4331056392512, rtol=1e-4)
     assert np.allclose(ps_calibration["chi_squared_per_deg"], 1.063783302378645, rtol=1e-4)
     assert np.allclose(ps_calibration["err_fc"], 32.23007993226726, rtol=1e-4)
-    assert np.allclose(ps_calibration["err_D"], 6.43082000774291e-05, rtol=1e-4)
+    assert np.allclose(ps_calibration["err_D"], 6.43082000774291e-05, rtol=1e-4, atol=0)
     assert np.allclose(ps_calibration["err_alpha"], 0.013141463933316694, rtol=1e-4)
     assert np.allclose(ps_calibration["err_f_diode"], 561.6377089699399, rtol=1e-4)
 
@@ -185,7 +185,6 @@ def test_attributes_ps_calibration(reference_calibration_result):
 
 def test_repr(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
-    print(str(ps_calibration))
     assert str(ps_calibration) == dedent("""\
         Name                 Description                                               Value
         -------------------  --------------------------------------------------------  -----------------------
