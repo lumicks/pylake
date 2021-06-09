@@ -716,7 +716,7 @@ def test_uncertainty_analysis():
     np.testing.assert_allclose(linear_fit.cov, np.array([[0.08524185, -0.38358832], [-0.38358832, 2.42939269]]))
     np.testing.assert_allclose(quad_fit.cov, np.array([[0.01390294, -0.12512650,  0.16683533],
                                                [-0.1251265,  1.21511735, -1.90192281],
-                                               [0.16683533, -1.90192281,  4.53792109]]))
+                                               [0.16683533, -1.90192281,  4.53792109]]), rtol=1e-6)
 
     np.testing.assert_allclose(linear_fit.sigma[0], 2.65187717)
     np.testing.assert_allclose(linear_fit.aic, 49.88412577726061)

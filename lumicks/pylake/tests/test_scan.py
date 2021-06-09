@@ -40,7 +40,7 @@ def test_scans(h5_file):
         np.testing.assert_allclose(scan.center_point_um["z"], 0)
         np.testing.assert_allclose(scan.size_um, [0.197*5, 0.191*4])
         with pytest.warns(DeprecationWarning):
-            np.testing.assert_allclose(scan.scan_width_um, [[0.197*5 + .5, 0.191*4 + .5]])
+            np.testing.assert_allclose(scan.scan_width_um, [0.197*5 + .5, 0.191*4 + .5])
 
         with pytest.raises(NotImplementedError):
             scan["1s":"2s"]

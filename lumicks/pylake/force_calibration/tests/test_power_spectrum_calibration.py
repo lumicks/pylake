@@ -99,7 +99,7 @@ def test_good_fit_integration_test(
     np.testing.assert_allclose(ps_calibration["kappa (pN/nm)"], kappa_true, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["Rd (um/V)"], rd_true, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["Rf (pN/V)"], rd_true * kappa_true * 1e3, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"], 0)  # Noise free
+    np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"], 0, atol=1e-9)  # Noise free
 
     np.testing.assert_allclose(ps_calibration["err_fc"], err_fc)
     np.testing.assert_allclose(ps_calibration["err_D"], err_d, rtol=1e-4, atol=0)

@@ -135,4 +135,4 @@ def test_mouse_drag_lim_change(mockevent):
     np.testing.assert_allclose(current_x, 2)
     np.testing.assert_allclose(current_y, 2)
     np.testing.assert_allclose(current_dx, -1)
-    np.testing.assert_allclose(current_dy, 0)
+    np.testing.assert_allclose(current_dy, 0, atol=1e-15)

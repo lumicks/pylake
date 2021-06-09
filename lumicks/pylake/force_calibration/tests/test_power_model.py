@@ -68,7 +68,7 @@ def test_fit_analytic(
 
     fit = fit_analytical_lorentzian(ps.in_range(1e1, 1e4))
 
-    np.testing.assert_allclose(fit.fc, corner_frequency)
+    np.testing.assert_allclose(fit.fc, corner_frequency, rtol=1e-5)
     np.testing.assert_allclose(fit.D, diffusion_constant, rtol=1e-5, atol=0)
     np.testing.assert_allclose(fit.sigma_fc, sigma_fc)
     np.testing.assert_allclose(fit.sigma_D, sigma_diffusion)
@@ -79,4 +79,4 @@ def test_fit_analytic_curve():
     ref = [0.0396382, 0.0389208, 0.03691641, 0.03399826, 0.03061068, 0.02713453]
     fit = fit_analytical_lorentzian(ps)
     np.testing.assert_allclose(fit.ps_fit.frequency, np.arange(0, 60, 10))
-    np.testing.assert_allclose(fit.ps_fit.power, ref)
+    np.testing.assert_allclose(fit.ps_fit.power, ref, rtol=1e-5)
