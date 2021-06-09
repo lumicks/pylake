@@ -24,14 +24,17 @@ def test_eigen_2d():
 
         # Test whether eigen values are correct
         i = np.argsort(np_eigen_values)
-        np.testing.assert_allclose(np_eigen_values[i], pl_eigen_values), print(
-            f"Eigen values invalid. Calculated {pl_eigen_values}, expected: {np_eigen_vectors} ")
+        np.testing.assert_allclose(np_eigen_values[i], pl_eigen_values, rtol=1e-6,
+                                   err_msg=f"Eigen values invalid. Calculated {pl_eigen_values}, "
+                                           f"expected: {np_eigen_vectors} ")
 
         # Test whether eigen vectors are correct
         vs = [np.array(eigenvector_2d_symmetric(a, b, d, x)) for x in pl_eigen_values]
 
-        np.testing.assert_allclose(abs(np.dot(vs[0], np_eigen_vectors[:, i[0]])), 1.0), print("First eigen vector invalid")
-        np.testing.assert_allclose(abs(np.dot(vs[1], np_eigen_vectors[:, i[1]])), 1.0), print("Second eigen vector invalid")
+        np.testing.assert_allclose(abs(np.dot(vs[0], np_eigen_vectors[:, i[0]])), 1.0, rtol=1e-6,
+                                   err_msg="First eigen vector invalid")
+        np.testing.assert_allclose(abs(np.dot(vs[1], np_eigen_vectors[:, i[1]])), 1.0, rtol=1e-6,
+                                   err_msg="Second eigen vector invalid")
 
     def np_eigenvalues(a, b, d):
         eig1 = np.empty(a.shape)
@@ -71,7 +74,8 @@ def test_eigen_2d():
     eigenvalues.sort(axis=-1)
     eigenvector_x, eigenvector_y = eigenvector_2d_symmetric(a, b, d, eigenvalues[:, :, 0])
 
-    np.testing.assert_allclose(eigenvalues, np_eigenvalues)
+    # Given that there are some zeroes, we should include an absolute tolerance.
+    np.testing.assert_allclose(eigenvalues, np_eigenvalues, rtol=1e-6, atol=1e-14)
 
     # Eigen vectors have to point in the same direction, but are not necessarily the same sign
     np.testing.assert_allclose(np.abs(np_eigenvector_x*eigenvector_x + np_eigenvector_y*eigenvector_y), np.ones(a.shape))

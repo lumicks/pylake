@@ -39,13 +39,13 @@ def test_exit_flag(trace_simple):
     ef = m.exit_flag
     assert ef["converged"] == True
     assert ef["n_iter"] == 2
-    np.testing.assert_allclose(ef["lower_bound"], 0.215335)
+    np.testing.assert_allclose(ef["lower_bound"], 0.215335, rtol=1e-5)
 
 
 def test_pdf(trace_simple):
     data, statepath, params = trace_simple
     m = GaussianMixtureModel(data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100)
-    np.testing.assert_allclose(m.pdf(np.array([10, 11])), [[1.857758, 5e-26], [5e-21, 2.222931]])
+    np.testing.assert_allclose(m.pdf(np.array([10, 11])), [[1.857758, 5e-26], [5e-21, 2.222931]], rtol=1e-5, atol=1e-13)
 
 
 @cleanup
