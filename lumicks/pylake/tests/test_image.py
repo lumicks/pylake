@@ -124,19 +124,19 @@ def test_int_tiff(tmpdir):
 
     tags = grab_tags(str(tmpdir.join("1")))
     assert str(tags['ResolutionUnit']) == "RESUNIT.CENTIMETER"
-    assert np.allclose(tags['ImageDescription']['PixelTime'], 0.001)
+    np.testing.assert_allclose(tags['ImageDescription']['PixelTime'], 0.001)
     assert tags['ImageDescription']['PixelTimeUnit'] == "s"
-    assert np.allclose(tags['ImageDescription']['shape'], [10, 10, 3])
-    assert np.allclose(tags['XResolution'][0], 10000000)
-    assert np.allclose(tags['YResolution'][0], 10000000)
+    np.testing.assert_allclose(tags['ImageDescription']['shape'], [10, 10, 3])
+    np.testing.assert_allclose(tags['XResolution'][0], 10000000)
+    np.testing.assert_allclose(tags['YResolution'][0], 10000000)
 
     tags = grab_tags(str(tmpdir.join("2")))
     assert str(tags['ResolutionUnit']) == "RESUNIT.CENTIMETER"
-    assert np.allclose(tags['ImageDescription']['PixelTime'], 0.005)
+    np.testing.assert_allclose(tags['ImageDescription']['PixelTime'], 0.005)
     assert tags['ImageDescription']['PixelTimeUnit'] == "s"
-    assert np.allclose(tags['ImageDescription']['shape'], [10, 10, 3])
-    assert np.allclose(tags['XResolution'][0], 2000000)
-    assert np.allclose(tags['YResolution'][0], 2000000)
+    np.testing.assert_allclose(tags['ImageDescription']['shape'], [10, 10, 3])
+    np.testing.assert_allclose(tags['XResolution'][0], 2000000)
+    np.testing.assert_allclose(tags['YResolution'][0], 2000000)
 
 
 def test_float_tiff(tmpdir):
@@ -157,17 +157,17 @@ def test_histogram_rows():
     data = np.arange(36).reshape((6,6))
 
     e, h, w = histogram_rows(data, 1, 0.1)
-    assert np.allclose(e, [0.0, 0.1, 0.2, 0.3, 0.4, 0.5])
+    np.testing.assert_allclose(e, [0.0, 0.1, 0.2, 0.3, 0.4, 0.5])
     assert np.all(np.equal(h, [15, 51, 87, 123, 159, 195]))
-    assert np.allclose(w, 0.1)
+    np.testing.assert_allclose(w, 0.1)
 
     e, h, w = histogram_rows(data, 3, 0.1)
-    assert np.allclose(e, [0.0, 0.3])
+    np.testing.assert_allclose(e, [0.0, 0.3])
     assert np.all(np.equal(h, [153, 477]))
-    assert np.allclose(w, 0.3)
+    np.testing.assert_allclose(w, 0.3)
 
     with pytest.warns(UserWarning):
         e, h, w = histogram_rows(data, 5, 0.1)
-        assert np.allclose(e, [0.0, 0.5])
+        np.testing.assert_allclose(e, [0.0, 0.5])
         assert np.all(np.equal(h, [435, 195]))
-        assert np.allclose(w, [0.5, 0.1])
+        np.testing.assert_allclose(w, [0.5, 0.1])

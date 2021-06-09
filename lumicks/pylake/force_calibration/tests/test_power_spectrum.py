@@ -20,16 +20,16 @@ def test_power_spectrum_attrs(frequency, num_data, sample_rate):
 
     df = sample_rate / num_data
     frequency_axis = np.arange(0, 0.5 * sample_rate + 1, df)
-    assert np.allclose(power_spectrum.frequency, frequency_axis)
-    assert np.allclose(power_spectrum.num_samples(), len(frequency_axis))
+    np.testing.assert_allclose(power_spectrum.frequency, frequency_axis)
+    np.testing.assert_allclose(power_spectrum.num_samples(), len(frequency_axis))
 
     # Functional test
     determined_frequency = power_spectrum.frequency[np.argmax(power_spectrum.power)]
-    assert np.allclose(determined_frequency, frequency)  # Is the frequency at the right position?
+    np.testing.assert_allclose(determined_frequency, frequency)  # Is the frequency at the right position?
 
     # Is all the power at this frequency? (Valid when dealing with multiples of the sample rate)
-    assert np.allclose(power_spectrum.power[np.argmax(power_spectrum.power)], np.sum(power_spectrum.power), atol=1e-16)
-    assert np.allclose(power_spectrum.total_duration, num_data / sample_rate)
+    np.testing.assert_allclose(power_spectrum.power[np.argmax(power_spectrum.power)], np.sum(power_spectrum.power), atol=1e-16)
+    np.testing.assert_allclose(power_spectrum.total_duration, num_data / sample_rate)
 
 
 @pytest.mark.parametrize(
@@ -49,15 +49,15 @@ def test_power_spectrum_blocking(frequency, num_data, sample_rate, num_blocks, f
 
     downsampling_factor = len(power_spectrum.frequency) // num_blocks
     blocked = power_spectrum.downsampled_by(downsampling_factor)
-    assert np.allclose(blocked.frequency, f_blocked)
-    assert np.allclose(blocked.power, p_blocked, atol=1e-16)
-    assert np.allclose(blocked.num_samples(), len(f_blocked))
-    assert np.allclose(len(power_spectrum.power), num_data // 2 + 1)
-    assert np.allclose(blocked.num_points_per_block, np.floor(len(power_spectrum.power) / num_blocks))
+    np.testing.assert_allclose(blocked.frequency, f_blocked)
+    np.testing.assert_allclose(blocked.power, p_blocked, atol=1e-16)
+    np.testing.assert_allclose(blocked.num_samples(), len(f_blocked))
+    np.testing.assert_allclose(len(power_spectrum.power), num_data // 2 + 1)
+    np.testing.assert_allclose(blocked.num_points_per_block, np.floor(len(power_spectrum.power) / num_blocks))
 
     # Downsample again and make sure the num_points_per_block is correct
     dual_blocked = blocked.downsampled_by(2)
-    assert np.allclose(dual_blocked.num_points_per_block, blocked.num_points_per_block * 2)
+    np.testing.assert_allclose(dual_blocked.num_points_per_block, blocked.num_points_per_block * 2)
 
 
 @pytest.mark.parametrize(
@@ -82,10 +82,10 @@ def test_in_range(frequency, num_data, sample_rate, num_blocks, f_min, f_max):
 
     # Note that this different from the slice behaviour you'd normally expect
     mask = (power_spectrum.frequency > f_min) & (power_spectrum.frequency <= f_max)
-    assert np.allclose(power_subset.frequency, power_spectrum.frequency[mask])
-    assert np.allclose(power_subset.power, power_spectrum.power[mask], atol=1e-16)
-    assert np.allclose(power_spectrum.total_duration, power_subset.total_duration)
-    assert np.allclose(power_spectrum.sample_rate, power_subset.sample_rate)
+    np.testing.assert_allclose(power_subset.frequency, power_spectrum.frequency[mask])
+    np.testing.assert_allclose(power_subset.power, power_spectrum.power[mask], atol=1e-16)
+    np.testing.assert_allclose(power_spectrum.total_duration, power_subset.total_duration)
+    np.testing.assert_allclose(power_spectrum.sample_rate, power_subset.sample_rate)
 
 
 @cleanup
@@ -99,8 +99,8 @@ def test_replace_spectrum():
     power_spectrum = PowerSpectrum(np.arange(10), 5)
     replaced = power_spectrum.with_spectrum(np.arange(6))
 
-    assert np.allclose(power_spectrum.frequency, replaced.frequency)
-    assert np.allclose(replaced.power, np.arange(6), atol=1e-16)
-    assert np.allclose(replaced.num_points_per_block, 1)
-    assert np.allclose(replaced.sample_rate, power_spectrum.sample_rate)
-    assert np.allclose(replaced.total_duration, power_spectrum.total_duration)
+    np.testing.assert_allclose(power_spectrum.frequency, replaced.frequency)
+    np.testing.assert_allclose(replaced.power, np.arange(6), atol=1e-16)
+    np.testing.assert_allclose(replaced.num_points_per_block, 1)
+    np.testing.assert_allclose(replaced.sample_rate, power_spectrum.sample_rate)
+    np.testing.assert_allclose(replaced.total_duration, power_spectrum.total_duration)

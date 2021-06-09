@@ -21,7 +21,7 @@ def test_unique():
 
 def test_colors():
     [mpl.colors.to_rgb(get_color(k)) for k in range(30)]
-    assert np.allclose(lighten_color([0.5, 0, 0], .2), [.7, 0, 0])
+    np.testing.assert_allclose(lighten_color([0.5, 0, 0], .2), [.7, 0, 0])
 
 
 def test_find_contiguous():
@@ -81,5 +81,5 @@ def test_find_contiguous():
     ],
 )
 def test_downsample(data, factor, avg, std):
-    assert np.allclose(avg, downsample(data, factor, reduce=np.mean))
-    assert np.allclose(std, downsample(data, factor, reduce=np.std))
+    np.testing.assert_allclose(avg, downsample(data, factor, reduce=np.mean))
+    np.testing.assert_allclose(std, downsample(data, factor, reduce=np.std))

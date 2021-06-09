@@ -24,14 +24,14 @@ def test_eigen_2d():
 
         # Test whether eigen values are correct
         i = np.argsort(np_eigen_values)
-        assert np.allclose(np_eigen_values[i], pl_eigen_values), print(
+        np.testing.assert_allclose(np_eigen_values[i], pl_eigen_values), print(
             f"Eigen values invalid. Calculated {pl_eigen_values}, expected: {np_eigen_vectors} ")
 
         # Test whether eigen vectors are correct
         vs = [np.array(eigenvector_2d_symmetric(a, b, d, x)) for x in pl_eigen_values]
 
-        assert np.allclose(abs(np.dot(vs[0], np_eigen_vectors[:, i[0]])), 1.0), print("First eigen vector invalid")
-        assert np.allclose(abs(np.dot(vs[1], np_eigen_vectors[:, i[1]])), 1.0), print("Second eigen vector invalid")
+        np.testing.assert_allclose(abs(np.dot(vs[0], np_eigen_vectors[:, i[0]])), 1.0), print("First eigen vector invalid")
+        np.testing.assert_allclose(abs(np.dot(vs[1], np_eigen_vectors[:, i[1]])), 1.0), print("Second eigen vector invalid")
 
     def np_eigenvalues(a, b, d):
         eig1 = np.empty(a.shape)
@@ -71,10 +71,10 @@ def test_eigen_2d():
     eigenvalues.sort(axis=-1)
     eigenvector_x, eigenvector_y = eigenvector_2d_symmetric(a, b, d, eigenvalues[:, :, 0])
 
-    assert np.allclose(eigenvalues, np_eigenvalues)
+    np.testing.assert_allclose(eigenvalues, np_eigenvalues)
 
     # Eigen vectors have to point in the same direction, but are not necessarily the same sign
-    assert np.allclose(np.abs(np_eigenvector_x*eigenvector_x + np_eigenvector_y*eigenvector_y), np.ones(a.shape))
+    np.testing.assert_allclose(np.abs(np_eigenvector_x*eigenvector_x + np_eigenvector_y*eigenvector_y), np.ones(a.shape))
 
 
 @pytest.mark.parametrize("loc,scale,sig_x,sig_y,transpose", [
@@ -130,7 +130,7 @@ def test_geometry():
     data[2, 2] = 10
     data[3, 3] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
-    assert np.allclose(normals[2, 2][1], -normals[2, 2][0])
+    np.testing.assert_allclose(normals[2, 2][1], -normals[2, 2][0])
 
     # Diagonal line y=x, expect normal's coordinates to have same sign
     data = np.zeros((5, 5))
@@ -138,21 +138,21 @@ def test_geometry():
     data[2, 2] = 10
     data[1, 3] = 10
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)
-    assert np.allclose(normals[2, 2][1], normals[2, 2][0])
+    np.testing.assert_allclose(normals[2, 2][1], normals[2, 2][0])
 
 
 def test_candidates():
     candidates = get_candidate_generator()
 
     normal_angle = (-22.4 - 90) * np.pi / 180
-    assert np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
-    assert np.allclose(candidates(normal_angle)[1], np.array([1, 0]))
-    assert np.allclose(candidates(normal_angle)[2], np.array([1, 1]))
+    np.testing.assert_allclose(candidates(normal_angle)[0], np.array([1, -1]))
+    np.testing.assert_allclose(candidates(normal_angle)[1], np.array([1, 0]))
+    np.testing.assert_allclose(candidates(normal_angle)[2], np.array([1, 1]))
 
     normal_angle = (22.4 - 90) * np.pi / 180
-    assert np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
-    assert np.allclose(candidates(normal_angle)[1], np.array([1, 0]))
-    assert np.allclose(candidates(normal_angle)[2], np.array([1, 1]))
+    np.testing.assert_allclose(candidates(normal_angle)[0], np.array([1, -1]))
+    np.testing.assert_allclose(candidates(normal_angle)[1], np.array([1, 0]))
+    np.testing.assert_allclose(candidates(normal_angle)[2], np.array([1, 1]))
 
     normal_angle = (-22.6 - 90) * np.pi / 180
     assert not np.allclose(candidates(normal_angle)[0], np.array([1, -1]))
@@ -176,7 +176,7 @@ def test_candidates():
         direction = np.array([-np.sin(normal_angle), np.cos(normal_angle)])
         direction = np.sign(np.round(direction))
 
-        assert np.allclose(np.sort([np.max(np.abs(direction - option)) for option in options]),
+        np.testing.assert_allclose(np.sort([np.max(np.abs(direction - option)) for option in options]),
                            [0, 1, 1]), f"Failed for normal angle {normal_angle} / direction {direction} => {options}"
 
 
@@ -203,16 +203,16 @@ def test_tracing():
     normals[hx, hx, 1] = 1.0 / np.sqrt(2)
 
     candidates = get_candidate_generator()
-    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1, True),
+    np.testing.assert_allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1, True),
                        np.array([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]]))
-    assert np.allclose(
+    np.testing.assert_allclose(
         _traverse_line_direction([n - 1, n - 1], deepcopy(a), positions, normals, -0.5, 1, candidates, -1, True),
         np.array([[6, 6], [5, 5], [4, 4], [3, 3], [2, 2], [1, 1], [0, 0]]))
-    assert np.allclose(_traverse_line_direction([hx, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1, True),
+    np.testing.assert_allclose(_traverse_line_direction([hx, 0], deepcopy(a), positions, normals, -0.5, 1, candidates, 1, True),
                        np.array([[hx, 0], [hx, 1], [hx, 2], [hx, 3], [4, 4], [5, 5], [6, 6]]))
 
     # Test whether the threshold is enforced
-    assert np.allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -1.5, 1, candidates, 1, True),
+    np.testing.assert_allclose(_traverse_line_direction([0, 0], deepcopy(a), positions, normals, -1.5, 1, candidates, 1, True),
                        np.array([[0, 0], [1, 1], [2, 2]]))
 
 
@@ -260,18 +260,18 @@ def test_stitching():
 
     stitched = stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 2, 2)
     assert len(stitched) == 2
-    assert np.allclose(stitched[0].coordinate_idx, [0, 1, 2, 3])
-    assert np.allclose(stitched[1].coordinate_idx, [0, 0])
+    np.testing.assert_allclose(stitched[0].coordinate_idx, [0, 1, 2, 3])
+    np.testing.assert_allclose(stitched[1].coordinate_idx, [0, 0])
 
     stitched = stitch_kymo_lines([segment_1b, segment_3, segment_2], radius, 2, 2)
-    assert np.allclose(stitched[0].coordinate_idx, [0, 0, 0, 0])
-    assert np.allclose(stitched[0].time_idx, [0, 1, 2, 3])
-    assert np.allclose(stitched[1].coordinate_idx, [2, 3])
+    np.testing.assert_allclose(stitched[0].coordinate_idx, [0, 0, 0, 0])
+    np.testing.assert_allclose(stitched[0].time_idx, [0, 1, 2, 3])
+    np.testing.assert_allclose(stitched[1].coordinate_idx, [2, 3])
 
     # Check whether only the last two points are used (meaning we extrapolate [0, 0], [1, 1])
     stitched = stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 2)
-    assert np.allclose(stitched[0].coordinate_idx, [0, 0, 1, 2, 3])
-    assert np.allclose(stitched[0].time_idx, [-1, 0, 1, 2, 3])
+    np.testing.assert_allclose(stitched[0].coordinate_idx, [0, 0, 1, 2, 3])
+    np.testing.assert_allclose(stitched[0].time_idx, [-1, 0, 1, 2, 3])
 
     # When using all three points, we shouldn't stitch
     assert len(stitch_kymo_lines([segment_1c, segment_3, segment_2], radius, 2, 3)) == 3
@@ -314,36 +314,36 @@ def test_kymotracker_integration_tests():
     pixel_size = test_data.pixelsize_um[0]
 
     lines = track_greedy(test_data, "red", 3, 4)
-    assert np.allclose(lines[0].coordinate_idx, [11] * np.ones(10))
-    assert np.allclose(lines[1].coordinate_idx, [21] * np.ones(10))
-    assert np.allclose(lines[0].position, [11 * pixel_size] * np.ones(10))
-    assert np.allclose(lines[1].position, [21 * pixel_size] * np.ones(10))
-    assert np.allclose(lines[0].time_idx, np.arange(10, 20))
-    assert np.allclose(lines[1].time_idx, np.arange(15, 25))
-    assert np.allclose(lines[0].seconds, np.arange(10, 20) * line_time)
-    assert np.allclose(lines[1].seconds, np.arange(15, 25) * line_time)
-    assert np.allclose(lines[0].sample_from_image(1), [50] * np.ones(10))
-    assert np.allclose(lines[1].sample_from_image(1), [40] * np.ones(10))
+    np.testing.assert_allclose(lines[0].coordinate_idx, [11] * np.ones(10))
+    np.testing.assert_allclose(lines[1].coordinate_idx, [21] * np.ones(10))
+    np.testing.assert_allclose(lines[0].position, [11 * pixel_size] * np.ones(10))
+    np.testing.assert_allclose(lines[1].position, [21 * pixel_size] * np.ones(10))
+    np.testing.assert_allclose(lines[0].time_idx, np.arange(10, 20))
+    np.testing.assert_allclose(lines[1].time_idx, np.arange(15, 25))
+    np.testing.assert_allclose(lines[0].seconds, np.arange(10, 20) * line_time)
+    np.testing.assert_allclose(lines[1].seconds, np.arange(15, 25) * line_time)
+    np.testing.assert_allclose(lines[0].sample_from_image(1), [50] * np.ones(10))
+    np.testing.assert_allclose(lines[1].sample_from_image(1), [40] * np.ones(10))
 
     lines = track_lines(test_data, "red", 3, 4)
-    assert np.allclose(lines[0].coordinate_idx, [11] * len(lines[0].coordinate_idx))
-    assert np.allclose(lines[1].coordinate_idx, [21] * len(lines[1].coordinate_idx))
-    assert np.allclose(lines[0].time_idx, np.arange(9, 21))
-    assert np.allclose(lines[1].time_idx, np.arange(14, 26))
-    assert np.allclose(np.sum(lines[0].sample_from_image(1)), 50 * 10 + 6)
-    assert np.allclose(np.sum(lines[1].sample_from_image(1)), 40 * 10 + 6)
+    np.testing.assert_allclose(lines[0].coordinate_idx, [11] * len(lines[0].coordinate_idx))
+    np.testing.assert_allclose(lines[1].coordinate_idx, [21] * len(lines[1].coordinate_idx))
+    np.testing.assert_allclose(lines[0].time_idx, np.arange(9, 21))
+    np.testing.assert_allclose(lines[1].time_idx, np.arange(14, 26))
+    np.testing.assert_allclose(np.sum(lines[0].sample_from_image(1)), 50 * 10 + 6)
+    np.testing.assert_allclose(np.sum(lines[1].sample_from_image(1)), 40 * 10 + 6)
 
     line_time = test_data.line_time_seconds
     pixel_size = test_data.pixelsize_um[0]
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
     lines = track_greedy(test_data, "red", 3, 4, rect=rect)
-    assert np.allclose(lines[0].coordinate_idx, [21] * np.ones(10))
-    assert np.allclose(lines[0].time_idx, np.arange(15, 25))
+    np.testing.assert_allclose(lines[0].coordinate_idx, [21] * np.ones(10))
+    np.testing.assert_allclose(lines[0].time_idx, np.arange(15, 25))
 
     lines = track_lines(test_data, "red", 3, 4, rect=rect)
-    assert np.allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
-    assert np.allclose(lines[0].time_idx, np.arange(14, 26))
+    np.testing.assert_allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
+    np.testing.assert_allclose(lines[0].time_idx, np.arange(14, 26))
 
 
 def test_regression_sample_from_image_clamp():
@@ -368,10 +368,10 @@ def test_kymotracker_integration_tests_subset():
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
     lines = track_greedy(test_data, "red", 3, 4, rect=rect)
-    assert np.allclose(lines[0].sample_from_image(1), [40] * np.ones(10))
+    np.testing.assert_allclose(lines[0].sample_from_image(1), [40] * np.ones(10))
 
     lines = track_lines(test_data, "red", 3, 4, rect=rect)
-    assert np.allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
+    np.testing.assert_allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
 
 
 def test_kymotracker_test_bias_rect():
@@ -393,7 +393,7 @@ def test_kymotracker_test_bias_rect():
     traces_full = track_greedy(kymo, "red", **tracking_settings)
 
     for t1, t2 in zip(traces_rect, traces_full):
-        assert np.allclose(t1.position, t2.position)
+        np.testing.assert_allclose(t1.position, t2.position)
 
 
 def test_kymotracker_test_bias_rect_lines():
@@ -413,7 +413,7 @@ def test_kymotracker_test_bias_rect_lines():
     traces_full = track_lines(kymo, "red", **tracking_settings)
 
     for t1, t2 in zip(traces_rect, traces_full):
-        assert np.allclose(t1.position, t2.position)
+        np.testing.assert_allclose(t1.position, t2.position)
 
 
 def test_filter_lines():

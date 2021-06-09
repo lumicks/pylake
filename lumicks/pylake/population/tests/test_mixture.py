@@ -13,23 +13,23 @@ def test_gmm(trace_lownoise):
     weights = weights / weights.sum()
 
     # assert np.all(np.equal(m.label(trace), statepath))
-    assert np.allclose(m.means, params["means"], atol=0.05)
-    assert np.allclose(m.std, params["st_devs"], atol=0.02)
-    assert np.allclose(m.weights, weights)
+    np.testing.assert_allclose(m.means, params["means"], atol=0.05)
+    np.testing.assert_allclose(m.std, params["st_devs"], atol=0.02)
+    np.testing.assert_allclose(m.weights, weights)
 
 def test_gmm_from_slice(trace_simple):
     data, statepath, params = trace_simple
     trace = Slice(Continuous(data, 20000, 12800))
     m = GaussianMixtureModel.from_channel(trace, params["n_states"])
-    assert np.allclose(m.means, params["means"], atol=0.05)
+    np.testing.assert_allclose(m.means, params["means"], atol=0.05)
 
 
 def test_information_criteria(trace_simple):
     data, statepath, params = trace_simple
     m = GaussianMixtureModel(data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100)
 
-    assert np.allclose(m.bic, -20.04115465)
-    assert np.allclose(m.aic, -33.06700559)
+    np.testing.assert_allclose(m.bic, -20.04115465)
+    np.testing.assert_allclose(m.aic, -33.06700559)
 
 
 def test_exit_flag(trace_simple):
@@ -39,13 +39,13 @@ def test_exit_flag(trace_simple):
     ef = m.exit_flag
     assert ef["converged"] == True
     assert ef["n_iter"] == 2
-    assert np.allclose(ef["lower_bound"], 0.215335)
+    np.testing.assert_allclose(ef["lower_bound"], 0.215335)
 
 
 def test_pdf(trace_simple):
     data, statepath, params = trace_simple
     m = GaussianMixtureModel(data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100)
-    assert np.allclose(m.pdf(np.array([10, 11])), [[1.857758, 5e-26], [5e-21, 2.222931]])
+    np.testing.assert_allclose(m.pdf(np.array([10, 11])), [[1.857758, 5e-26], [5e-21, 2.222931]])
 
 
 @cleanup

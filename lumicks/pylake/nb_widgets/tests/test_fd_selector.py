@@ -32,11 +32,11 @@ def test_selector_widget(mockevent):
     assert selector.current_range == [750]
     selector._add_point(450)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[450, 750]])
+    np.testing.assert_allclose(selector.ranges, [[450, 750]])
     selector._add_point(850)
     selector._add_point(950)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[450, 750], [850, 950]])
+    np.testing.assert_allclose(selector.ranges, [[450, 750], [850, 950]])
 
     assert selector.to_seconds(2500e9) == 0
     selector.update_plot()
@@ -69,9 +69,9 @@ def test_selector_widget(mockevent):
     event = mockevent(selector._axes, 950, 1, lmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [start_point + dt, start_point + 2*dt])
+    np.testing.assert_allclose(selector.ranges, [start_point + dt, start_point + 2*dt])
 
-    assert np.allclose(selector.fdcurves[0].f.data, fd_curve[start_point + dt:start_point + 2*dt].f.data)
+    np.testing.assert_allclose(selector.fdcurves[0].f.data, fd_curve[start_point + dt:start_point + 2*dt].f.data)
 
     # Add another segment
     selector.handle_button_event(mockevent(selector._axes, 150, 1, lmb, False))
@@ -81,19 +81,19 @@ def test_selector_widget(mockevent):
     event = mockevent(selector._axes, 1300, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[start_point + dt, start_point + 2*dt], [start_point, start_point + 2*dt]])
+    np.testing.assert_allclose(selector.ranges, [[start_point + dt, start_point + 2*dt], [start_point, start_point + 2*dt]])
 
     # Remove a segment (inner segment, smallest segment gets removed first)
     event = mockevent(selector._axes, 900, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[start_point, start_point + 2*dt]])
+    np.testing.assert_allclose(selector.ranges, [[start_point, start_point + 2*dt]])
 
     # Remove a segment (inner segment, smallest segment gets removed first)
     event = mockevent(selector._axes, 900, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[]])
+    np.testing.assert_allclose(selector.ranges, [[]])
 
     assert selector.fdcurves == []
 
@@ -111,11 +111,11 @@ def test_distance_selector_widget(mockevent):
     assert selector.current_range == [2]
     selector._add_point(4)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[2, 4]])
+    np.testing.assert_allclose(selector.ranges, [[2, 4]])
     selector._add_point(6)
     selector._add_point(9)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[2, 4], [6, 9]])
+    np.testing.assert_allclose(selector.ranges, [[2, 4], [6, 9]])
 
     selector.update_plot()
 
@@ -147,9 +147,9 @@ def test_distance_selector_widget(mockevent):
     event = mockevent(selector._axes, 4, 1, lmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [2, 4])
+    np.testing.assert_allclose(selector.ranges, [2, 4])
 
-    assert np.allclose(selector.fdcurves[0].f.data, fd_curve[start_point + 2*dt:start_point + 5*dt].f.data)
+    np.testing.assert_allclose(selector.fdcurves[0].f.data, fd_curve[start_point + 2*dt:start_point + 5*dt].f.data)
 
     # Add another segment
     selector.handle_button_event(mockevent(selector._axes, 6, 1, lmb, False))
@@ -159,19 +159,19 @@ def test_distance_selector_widget(mockevent):
     event = mockevent(selector._axes, 10, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[2, 4], [6, 9]])
+    np.testing.assert_allclose(selector.ranges, [[2, 4], [6, 9]])
 
     # Remove a segment (inner segment, smallest segment gets removed first)
     event = mockevent(selector._axes, 3, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[6, 9]])
+    np.testing.assert_allclose(selector.ranges, [[6, 9]])
 
     # Remove a segment (inner segment, smallest segment gets removed first)
     event = mockevent(selector._axes, 7, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    assert np.allclose(selector.ranges, [[]])
+    np.testing.assert_allclose(selector.ranges, [[]])
 
     assert selector.fdcurves == []
 

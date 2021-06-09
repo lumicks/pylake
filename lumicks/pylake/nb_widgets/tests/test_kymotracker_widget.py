@@ -45,14 +45,14 @@ def test_track_kymo(kymograph, region_select):
     # Track a line in a particular region. Only a single line exists in this region.
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
     kymo_widget.track_kymo(*region_select(8, 10, 9, 20))
-    assert np.allclose(kymo_widget.lines[0].time_idx, np.arange(10, 20))
-    assert np.allclose(kymo_widget.lines[0].coordinate_idx, [8] * 10)
+    np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(10, 20))
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 10)
     assert len(kymo_widget.lines) == 1
 
     # Verify that if we track the same region, the old one gets deleted and we track the same line again.
     kymo_widget.track_kymo(*region_select(8, 15, 9, 20))
-    assert np.allclose(kymo_widget.lines[0].time_idx, np.arange(15, 20))
-    assert np.allclose(kymo_widget.lines[0].coordinate_idx, [8] * 5)
+    np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(15, 20))
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 5)
     assert len(kymo_widget.lines) == 1
 
     # Tracking all lines will result in all lines being found.
@@ -84,8 +84,8 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
     kymo_widget._load_from_ui()
 
     for l1, l2 in zip(lines, kymo_widget.lines):
-        assert np.allclose(l1.time_idx, l2.time_idx)
-        assert np.allclose(l1.coordinate_idx, l2.coordinate_idx)
+        np.testing.assert_allclose(l1.time_idx, l2.time_idx)
+        np.testing.assert_allclose(l1.coordinate_idx, l2.coordinate_idx)
 
 
 def test_refine_from_widget(kymograph, region_select):
@@ -93,13 +93,13 @@ def test_refine_from_widget(kymograph, region_select):
 
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
     kymo_widget.track_kymo(*region_select(12, 5, 13, 20))
-    assert np.allclose(kymo_widget.lines[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))
-    assert np.allclose(kymo_widget.lines[0].coordinate_idx, [12] * 13)
+    np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 13)
     assert len(kymo_widget.lines) == 1
 
     kymo_widget.refine()
-    assert np.allclose(kymo_widget.lines[0].time_idx, np.arange(5, 20))
-    assert np.allclose(kymo_widget.lines[0].coordinate_idx, [12] * 15)
+    np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(5, 20))
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 15)
     assert len(kymo_widget.lines) == 1
 
 
@@ -133,6 +133,6 @@ def test_stitch(kymograph, mockevent):
     kymo_widget._line_connector.button_release(mockevent(kymo_widget._axes, 6, 3, 3, 0))
 
     # Verify the stitched line
-    assert np.allclose(kymo_widget.lines[0].seconds, [1, 2, 3, 6, 7, 8])
-    assert np.allclose(kymo_widget.lines[0].position, [1, 1, 1, 3, 3, 3])
+    np.testing.assert_allclose(kymo_widget.lines[0].seconds, [1, 2, 3, 6, 7, 8])
+    np.testing.assert_allclose(kymo_widget.lines[0].position, [1, 1, 1, 3, 3, 3])
     assert len(kymo_widget.lines) == 1

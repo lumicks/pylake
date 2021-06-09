@@ -38,12 +38,12 @@ def test_kymopeaks():
     time_points = np.array([0.0, 1.0, 0.5, 1.0])
     peak_amplitudes = np.array([2.0, 3.0, 3.0, 2.0])
     peaks = KymoPeaks(coordinates, time_points, peak_amplitudes)
-    assert np.allclose(peaks.frames[0].coordinates, [3.2, 6.4])
-    assert np.allclose(peaks.frames[1].coordinates, [4.1, 8.2])
-    assert np.allclose(peaks.frames[0].time_points, [0.0, 0.5])
-    assert np.allclose(peaks.frames[1].time_points, [1.0, 1.0])
-    assert np.allclose(peaks.frames[0].peak_amplitudes, [2.0, 3.0])
-    assert np.allclose(peaks.frames[1].peak_amplitudes, [3.0, 2.0])
+    np.testing.assert_allclose(peaks.frames[0].coordinates, [3.2, 6.4])
+    np.testing.assert_allclose(peaks.frames[1].coordinates, [4.1, 8.2])
+    np.testing.assert_allclose(peaks.frames[0].time_points, [0.0, 0.5])
+    np.testing.assert_allclose(peaks.frames[1].time_points, [1.0, 1.0])
+    np.testing.assert_allclose(peaks.frames[0].peak_amplitudes, [2.0, 3.0])
+    np.testing.assert_allclose(peaks.frames[1].peak_amplitudes, [3.0, 2.0])
 
 
 def test_peak_proximity_removal():
@@ -54,8 +54,8 @@ def test_peak_proximity_removal():
     peaks = KymoPeaks(coordinates, time_points, peak_amplitudes)
 
     new_peaks = merge_close_peaks(peaks, 1.0)
-    assert np.allclose(new_peaks.frames[0].coordinates, [4.1, 6.4, 8.2, 12.1])
-    assert np.allclose(new_peaks.frames[1].coordinates, [3.2, 6.4, 8.2, 12.2])
+    np.testing.assert_allclose(new_peaks.frames[0].coordinates, [4.1, 6.4, 8.2, 12.1])
+    np.testing.assert_allclose(new_peaks.frames[1].coordinates, [3.2, 6.4, 8.2, 12.2])
 
     permute = [1, 2, 9, 5, 3, 11, 4, 8, 7, 0, 6, 10]
     coordinates = coordinates[permute]

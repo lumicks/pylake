@@ -165,12 +165,12 @@ def test_plot_correlated():
     CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc)
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
     assert len(imgs) == 1
-    assert np.allclose(imgs[0].get_array(), np.ones((3, 3)) * 3)
+    np.testing.assert_allclose(imgs[0].get_array(), np.ones((3, 3)) * 3)
 
     CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc, frame=1)
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
     assert len(imgs) == 1
-    assert np.allclose(imgs[0].get_array(), np.ones((3, 3)) * 4)
+    np.testing.assert_allclose(imgs[0].get_array(), np.ones((3, 3)) * 4)
 
 
 def test_plot_correlated_smaller_channel():
@@ -197,8 +197,8 @@ def test_plot_correlated_smaller_channel():
         assert len(images) == 1
         return images[0].get_array()
 
-    assert np.allclose(mock_click(mpl.pyplot.gcf(), np.array([0, 40])), np.ones((3, 3)) * 2)
-    assert np.allclose(mock_click(mpl.pyplot.gcf(), np.array([10.1e-9, 40])), np.ones((3, 3)) * 3)
+    np.testing.assert_allclose(mock_click(mpl.pyplot.gcf(), np.array([0, 40])), np.ones((3, 3)) * 2)
+    np.testing.assert_allclose(mock_click(mpl.pyplot.gcf(), np.array([10.1e-9, 40])), np.ones((3, 3)) * 3)
 
 
 def make_alignment_image_data(spots, Tx_red, Ty_red, theta_red, Tx_blue, Ty_blue, theta_blue, bit_depth,
@@ -389,7 +389,7 @@ def test_image_reconstruction_grayscale(gray_alignment_image_data):
 
     assert not fr.is_rgb
     assert np.all(fr.data == fr.raw_data)
-    assert np.allclose(fr.raw_data, fr._get_plot_data())
+    np.testing.assert_allclose(fr.raw_data, fr._get_plot_data())
 
 
 def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_data_offset,
@@ -410,8 +410,8 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     assert np.all(diff/max_signal < 0.05)
 
     original_data = (img0 / (2**bit_depth - 1)).astype(float)
-    assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
-    assert np.allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
+    np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
+    np.testing.assert_allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
     max_signal = np.max(np.hstack([img0[:, :, 0], fr._get_plot_data("red")]))
     diff = np.abs(img0[:, :, 0].astype(float)-fr._get_plot_data("red").astype(float))
     assert np.all(diff/max_signal < 0.05)
@@ -438,7 +438,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     fr = stack._get_frame(0)
 
     original_data = (img0 / (2**bit_depth - 1)).astype(float)
-    assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
+    np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
 def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
@@ -452,7 +452,7 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
 
     assert fr.is_rgb
     original_data = (img0 / (2**bit_depth - 1)).astype(float)
-    assert np.allclose(original_data, fr._get_plot_data(), atol=0.05)
+    np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
 def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):

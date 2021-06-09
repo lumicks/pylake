@@ -57,18 +57,18 @@ def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimit
     assert len(read_file) == len(lines)
 
     for line1, line2 in zip(lines, read_file):
-        assert np.allclose(np.array(line1.coordinate_idx), np.array(line2.coordinate_idx))
-        assert np.allclose(np.array(line1.time_idx), np.array(line2.time_idx))
+        np.testing.assert_allclose(np.array(line1.coordinate_idx), np.array(line2.coordinate_idx))
+        np.testing.assert_allclose(np.array(line1.time_idx), np.array(line2.time_idx))
 
     for line1, time in zip(lines, data["time"]):
-        assert np.allclose(line1.seconds, time)
+        np.testing.assert_allclose(line1.seconds, time)
 
     for line1, coord in zip(lines, data["position"]):
-        assert np.allclose(line1.position, coord)
+        np.testing.assert_allclose(line1.position, coord)
 
     if sampling_width is None:
         assert len([key for key in data.keys() if "counts" in key]) == 0
     else:
         count_field = [key for key in data.keys() if "counts" in key][0]
         for line1, cnt in zip(lines, data[count_field]):
-            assert np.allclose([sampling_outcome] * len(line1.coordinate_idx), cnt)
+            np.testing.assert_allclose([sampling_outcome] * len(line1.coordinate_idx), cnt)

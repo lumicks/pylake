@@ -49,8 +49,8 @@ def simulate_diffusion_1d(diffusion, steps, dt, observation_noise):
 )
 def test_msd_estimation(time, position, max_lag, lag, msd):
     lag_est, msd_est = calculate_msd(time, position, max_lag)
-    assert np.allclose(lag_est, lag)
-    assert np.allclose(msd_est, msd)
+    np.testing.assert_allclose(lag_est, lag)
+    np.testing.assert_allclose(msd_est, msd)
 
 
 @pytest.mark.parametrize(
@@ -63,7 +63,7 @@ def test_msd_estimation(time, position, max_lag, lag, msd):
 )
 def test_estimate(frame_idx, coordinate, time_step, max_lag, diffusion_const):
     diffusion_est = estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag)
-    assert np.allclose(diffusion_est, diffusion_const)
+    np.testing.assert_allclose(diffusion_est, diffusion_const)
 
 
 def test_maxlag_asserts():
@@ -110,8 +110,8 @@ def test_localization_eq():
 )
 def test_optimal_points(N, ref_slopes, ref_intercepts):
     test_values = np.hstack((np.arange(-2, 7, 0.5), np.inf))
-    assert np.allclose(ref_slopes, [optimal_points(10 ** x, N)[0] for x in test_values])
-    assert np.allclose(ref_intercepts, [optimal_points(10 ** x, N)[1] for x in test_values])
+    np.testing.assert_allclose(ref_slopes, [optimal_points(10 ** x, N)[0] for x in test_values])
+    np.testing.assert_allclose(ref_intercepts, [optimal_points(10 ** x, N)[1] for x in test_values])
 
 
 @pytest.mark.parametrize(
@@ -128,7 +128,7 @@ def test_optimal_points(N, ref_slopes, ref_intercepts):
 def test_determine_points_from_data(diffusion, num_steps, step, noise, n_optimal):
     with temp_seed(0):
         coordinate = simulate_diffusion_1d(diffusion, num_steps, step, noise)
-        assert np.allclose(
+        np.testing.assert_allclose(
             determine_optimal_points(np.arange(num_steps), coordinate, max_iterations=100),
             n_optimal,
         )

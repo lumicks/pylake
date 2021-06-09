@@ -26,8 +26,8 @@ def test_align_force_simple():
     aligned = align_force_simple({"fd1": fd1, "fd2": fd2, "fd3": fd3}, distance_range=50)
 
     for fd in aligned.values():
-        assert np.allclose(fd.d.data, distance)
-        assert np.allclose(fd.f.data, force)
+        np.testing.assert_allclose(fd.d.data, distance)
+        np.testing.assert_allclose(fd.f.data, force)
 
 
 def test_align_distance_simple():
@@ -41,8 +41,8 @@ def test_align_distance_simple():
     aligned = align_distance_simple({"fd1": fd1, "fd2": fd2, "fd3": fd3}, distance_range=50)
 
     for fd in aligned.values():
-        assert np.allclose(fd.d.data, distance)
-        assert np.allclose(fd.f.data, force)
+        np.testing.assert_allclose(fd.d.data, distance)
+        np.testing.assert_allclose(fd.f.data, force)
 
 
 def test_align_fd_simple():
@@ -56,8 +56,8 @@ def test_align_fd_simple():
     aligned = align_fd_simple({"fd1": fd1, "fd2": fd2, "fd3": fd3}, 50, 50)
 
     for fd in aligned.values():
-        assert np.allclose(fd.f.data, force)
-        assert np.allclose(fd.d.data, distance)
+        np.testing.assert_allclose(fd.f.data, force)
+        np.testing.assert_allclose(fd.d.data, distance)
 
 
 def test_non_constant_rate_fd_alignment_simple():
@@ -78,8 +78,8 @@ def test_non_constant_rate_fd_alignment_simple():
     aligned = align_fd_simple(fds, 1.5, 1.2)
 
     for fd, num_shortened in zip(aligned.values(), shortening):
-        assert np.allclose(fd.f.data, force[:-num_shortened])
-        assert np.allclose(fd.d.data, distance[:-num_shortened])
+        np.testing.assert_allclose(fd.f.data, force[:-num_shortened])
+        np.testing.assert_allclose(fd.d.data, distance[:-num_shortened])
 
 
 def test_back_and_forth_rate_fd_alignment_simple():
@@ -99,8 +99,8 @@ def test_back_and_forth_rate_fd_alignment_simple():
     aligned = align_fd_simple(fds, 1, 1)
 
     for fd, num_shortened in zip(aligned.values(), shortening):
-        assert np.allclose(fd.f.data, force[:-num_shortened])
-        assert np.allclose(fd.d.data, distance[:-num_shortened])
+        np.testing.assert_allclose(fd.f.data, force[:-num_shortened])
+        np.testing.assert_allclose(fd.d.data, distance[:-num_shortened])
 
 
 def test_iteration_fd_ensemble():
@@ -141,8 +141,8 @@ def test_fd_ensemble_accessors():
     }
     fd_ensemble = FdEnsemble(fds)
 
-    assert np.allclose(fd_ensemble.f, np.array([0, 1, 2, 5, 6, 7, 15, 16, 17]))
-    assert np.allclose(fd_ensemble.d, np.array([0, 1, 2, 0, 1, 2, 0, 1, 2]))
+    np.testing.assert_allclose(fd_ensemble.f, np.array([0, 1, 2, 5, 6, 7, 15, 16, 17]))
+    np.testing.assert_allclose(fd_ensemble.d, np.array([0, 1, 2, 0, 1, 2, 0, 1, 2]))
 
     fd_ensemble.align_linear(20, 20)
-    assert np.allclose(fd_ensemble.f, np.array([0, 1, 2, 0, 1, 2, 0, 1, 2]))
+    np.testing.assert_allclose(fd_ensemble.f, np.array([0, 1, 2, 0, 1, 2, 0, 1, 2]))
