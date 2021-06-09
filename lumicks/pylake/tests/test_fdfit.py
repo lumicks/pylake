@@ -75,30 +75,30 @@ def test_params():
     assert (params['beta'].value == 0.0)
 
     params['beta'].value = 5.0
-    assert (np.allclose(params.values, [0.0, 5.0, 0.0]))
+    np.testing.assert_allclose(params.values, [0.0, 5.0, 0.0])
 
     params._set_params(['alpha', 'beta', 'gamma', 'delta'], [None]*4)
     assert (params['beta'].value == 5.0)
-    assert (np.allclose(params.values, [0.0, 5.0, 0.0, 0.0]))
+    np.testing.assert_allclose(params.values, [0.0, 5.0, 0.0, 0.0])
 
     params['gamma'].value = 6.0
     params['delta'] = 7.0
     params['gamma'].lower_bound = -4.0
     params['gamma'].upper_bound = 5.0
-    assert (np.allclose(params.values, [0.0, 5.0, 6.0, 7.0]))
-    assert (np.allclose(params.lower_bounds, [-np.inf, -np.inf, -4.0, -np.inf]))
-    assert (np.allclose(params.upper_bounds, [np.inf, np.inf, 5.0, np.inf]))
+    np.testing.assert_allclose(params.values, [0.0, 5.0, 6.0, 7.0])
+    np.testing.assert_allclose(params.lower_bounds, [-np.inf, -np.inf, -4.0, -np.inf])
+    np.testing.assert_allclose(params.upper_bounds, [np.inf, np.inf, 5.0, np.inf])
 
     assert(len(params) == 4.0)
     params._set_params(['alpha', 'beta', 'delta'], [None]*3)
-    assert (np.allclose(params.values, [0.0, 5.0, 7.0]))
+    np.testing.assert_allclose(params.values, [0.0, 5.0, 7.0])
     assert ([p for p in params] == ['alpha', 'beta', 'delta'])
     assert(len(params) == 3.0)
 
     for i, p in params.items():
         p.value = 1.0
 
-    assert (np.allclose(params.values, [1.0, 1.0, 1.0]))
+    np.testing.assert_allclose(params.values, [1.0, 1.0, 1.0])
 
     params = Params()
     params._set_params(['alpha', 'beta', 'gamma'], [Parameter(2), Parameter(3), Parameter(4)])
@@ -157,10 +157,10 @@ def test_condition_struct():
 
     c = Condition(param_trafos, parameter_lookup)
     assert (np.all(c.p_local == [None, None, None, 5, None]))
-    assert (np.allclose(param_vector[c.p_indices], [10, 4, 12, 14]))
+    np.testing.assert_allclose(param_vector[c.p_indices], [10, 4, 12, 14])
     assert (np.all(c.p_external == np.array([0, 1, 2, 4])))
     assert (list(c.transformed) == ['gamma_specific', 'alpha', 'beta_specific', 5, 'zeta'])
-    assert (np.allclose(c.get_local_params(param_vector), [10, 4, 12, 5, 14]))
+    np.testing.assert_allclose(c.get_local_params(param_vector), [10, 4, 12, 5, 14])
 
 
 def test_model_calls():
@@ -527,11 +527,11 @@ def test_models():
 
     d = np.array([3.0, 4.0])
     params = [5.0, 5.0, 5.0]
-    assert (np.allclose(WLC(invWLC(d, *params), *params), d))
+    np.testing.assert_allclose(WLC(invWLC(d, *params), *params), d)
     params = [5.0, 15.0, 1.0, 4.11]
-    assert (np.allclose(FJC(invFJC(independent, *params), *params), independent))
+    np.testing.assert_allclose(FJC(invFJC(independent, *params), *params), independent)
     params = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
-    assert(np.allclose(tWLC(invtWLC(independent, *params), *params), independent))
+    np.testing.assert_allclose(tWLC(invtWLC(independent, *params), *params), independent)
 
     d = np.arange(0.15, 2, .5)
     (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)

@@ -149,7 +149,7 @@ def test_subtract_too_much_distance():
     """Tests whether we get an exception when we subtract more than the lowest valid distance value"""
     fd1 = make_mock_fd(force=[1, 2, 3], distance=[2.0, 0.0, 4.0], start=0)
 
-    np.allclose(fd1.with_offset(distance_offset=-1.0).d.data, [1.0, 0.0, 3.0])
+    np.testing.assert_allclose(fd1.with_offset(distance_offset=-1.0).d.data, [1.0, 0.0, 3.0])
 
     with pytest.raises(ValueError):
         fd1.with_offset(distance_offset=-2.0)

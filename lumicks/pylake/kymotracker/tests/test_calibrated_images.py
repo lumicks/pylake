@@ -39,7 +39,7 @@ def test_in_rect(test_img, rect, valid_result):
     calibrated_channel = CalibratedKymographChannel(
         "test", test_img, time_step_ns=3e9, pixel_size=7
     )
-    np.allclose(calibrated_channel.get_rect(rect), valid_result)
+    np.testing.assert_allclose(calibrated_channel.get_rect(rect), valid_result)
 
 
 @pytest.mark.parametrize(
