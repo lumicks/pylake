@@ -534,7 +534,8 @@ def test_downsampling_over_subset():
     s = channel.Slice(channel.Continuous(d, 0, 10))
 
     sd = s.downsampled_over([(20, 40), (40, 60), (60, 80)])
-    np.testing.assert_allclose(sd.data, [(3+4)/2, (4+5)/2, (5+6)/2])
+    # Data starts at 1, timestamps start at 0. 20-40 corresponds to data [3, 4], 40-60 to [5,6] etc.
+    np.testing.assert_allclose(sd.data, [(3+4)/2, (5+6)/2, (7+8)/2])
     np.testing.assert_allclose(sd.timestamps, [(20+30)/2, (40+50)/2, (60+70)/2])
 
 
