@@ -93,7 +93,7 @@ def test_selector_widget(mockevent):
     event = mockevent(selector._axes, 900, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    np.testing.assert_allclose(selector.ranges, [[]])
+    np.testing.assert_allclose(selector.ranges, [])
 
     assert selector.fdcurves == []
 
@@ -171,7 +171,7 @@ def test_distance_selector_widget(mockevent):
     event = mockevent(selector._axes, 7, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    np.testing.assert_allclose(selector.ranges, [[]])
+    np.testing.assert_allclose(selector.ranges, [])
 
     assert selector.fdcurves == []
 
