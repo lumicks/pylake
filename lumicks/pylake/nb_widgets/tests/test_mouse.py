@@ -37,26 +37,26 @@ def test_mouse_drag(mockevent):
     assert mouse_drag.dragging
 
     mouse_drag.button_down(mockevent(ax, 1, 1, button, 0))
-    assert np.allclose(current_x, 0)
+    np.testing.assert_allclose(current_x, 0)
 
     mouse_drag.handle_motion(mockevent(ax, 2, 2, button, 0))
-    assert np.allclose(current_x, 2)
-    assert np.allclose(current_y, 2)
-    assert np.allclose(current_dx, 1)
-    assert np.allclose(current_dy, 1)
+    np.testing.assert_allclose(current_x, 2)
+    np.testing.assert_allclose(current_y, 2)
+    np.testing.assert_allclose(current_dx, 1)
+    np.testing.assert_allclose(current_dy, 1)
 
     mouse_drag.handle_motion(mockevent(ax, 5, 5, button, 0))
-    assert np.allclose(current_x, 5)
-    assert np.allclose(current_y, 5)
-    assert np.allclose(current_dx, 3)
-    assert np.allclose(current_dy, 3)
+    np.testing.assert_allclose(current_x, 5)
+    np.testing.assert_allclose(current_y, 5)
+    np.testing.assert_allclose(current_dx, 3)
+    np.testing.assert_allclose(current_dy, 3)
 
     mouse_drag.button_release(mockevent(ax, 1, 1, button, 0))
     mouse_drag.handle_motion(mockevent(ax, 15, 15, button, 0))
-    assert np.allclose(current_x, 5)
-    assert np.allclose(current_y, 5)
-    assert np.allclose(current_dx, 3)
-    assert np.allclose(current_dy, 3)
+    np.testing.assert_allclose(current_x, 5)
+    np.testing.assert_allclose(current_y, 5)
+    np.testing.assert_allclose(current_dx, 3)
+    np.testing.assert_allclose(current_dy, 3)
 
 
 def test_set_active():
@@ -126,13 +126,13 @@ def test_mouse_drag_lim_change(mockevent):
     mouse_drag.handle_motion(mockevent(ax, 1, 1, 1, 0))
 
     mouse_drag.handle_motion(mockevent(ax, 2, 2, 1, 0))
-    assert np.allclose(current_x, 2)
-    assert np.allclose(current_y, 2)
-    assert np.allclose(current_dx, 1)
-    assert np.allclose(current_dy, 1)
+    np.testing.assert_allclose(current_x, 2)
+    np.testing.assert_allclose(current_y, 2)
+    np.testing.assert_allclose(current_dx, 1)
+    np.testing.assert_allclose(current_dy, 1)
 
     mouse_drag.handle_motion(mockevent(ax, 2, 2, 1, 0))
-    assert np.allclose(current_x, 2)
-    assert np.allclose(current_y, 2)
-    assert np.allclose(current_dx, -1)
-    assert np.allclose(current_dy, 0)
+    np.testing.assert_allclose(current_x, 2)
+    np.testing.assert_allclose(current_y, 2)
+    np.testing.assert_allclose(current_dx, -1)
+    np.testing.assert_allclose(current_dy, 0)

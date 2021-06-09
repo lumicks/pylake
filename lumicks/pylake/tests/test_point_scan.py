@@ -17,8 +17,8 @@ def test_point_scans(h5_file):
                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0,
                                    0, 0, 0, 0, 0, 0, 1, 0, 8, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0,
                                    0, 1, 0, 0, 0, 8, 0])
-        assert np.allclose(ps_red.timestamps, reference_timestamps)
-        assert np.allclose(ps_red.data, reference_data)
+        np.testing.assert_allclose(ps_red.timestamps, reference_timestamps)
+        np.testing.assert_allclose(ps_red.data, reference_data)
 
         with pytest.deprecated_call():
             ps.json
@@ -36,9 +36,9 @@ def test_plotting(h5_file):
         ps = f.point_scans["PointScan1"]
         for plot_func in (ps.plot_red, ps.plot_green, ps.plot_blue):
             plot_func()
-            assert np.allclose(np.sort(plt.xlim()), [0, 0.0625 * 64])
-            assert np.allclose(np.sort(plt.ylim()), [0, 8])
+            np.testing.assert_allclose(np.sort(plt.xlim()), [0, 0.0625 * 64])
+            np.testing.assert_allclose(np.sort(plt.ylim()), [0, 8])
 
         ps.plot_rgb(lw=5)
-        assert np.allclose(np.sort(plt.xlim()), [0, 0.0625 * 64])
-        assert np.allclose(np.sort(plt.ylim()), [0, 8])
+        np.testing.assert_allclose(np.sort(plt.xlim()), [0, 0.0625 * 64])
+        np.testing.assert_allclose(np.sort(plt.ylim()), [0, 8])

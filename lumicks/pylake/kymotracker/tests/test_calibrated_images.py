@@ -22,10 +22,10 @@ def test_fields_calibrated_kymograph_channel(test_img):
     )
     assert calibrated_channel.name == "test"
     assert np.all(calibrated_channel.data == test_img)
-    assert np.allclose(calibrated_channel.time_step_ns, 3e9)
-    assert np.allclose(calibrated_channel._pixel_size, 7)
-    assert np.allclose(calibrated_channel.to_position(np.array([1, 2, 3])), [7, 14, 21])
-    assert np.allclose(calibrated_channel.to_seconds(np.array([1, 2, 3])), [3, 6, 9])
+    np.testing.assert_allclose(calibrated_channel.time_step_ns, 3e9)
+    np.testing.assert_allclose(calibrated_channel._pixel_size, 7)
+    np.testing.assert_allclose(calibrated_channel.to_position(np.array([1, 2, 3])), [7, 14, 21])
+    np.testing.assert_allclose(calibrated_channel.to_seconds(np.array([1, 2, 3])), [3, 6, 9])
 
 
 @pytest.mark.parametrize(
@@ -58,7 +58,7 @@ def test_in_rect(test_img, rect, valid_result):
 def test_rect_errors(rect):
     data = np.random.rand(15, 25)
     calibrated_channel = CalibratedKymographChannel("test", data, time_step_ns=1e9, pixel_size=1)
-    assert np.allclose(calibrated_channel.get_rect(((5, 8), (22, 20))), data[8:20, 5:22])
+    np.testing.assert_allclose(calibrated_channel.get_rect(((5, 8), (22, 20))), data[8:20, 5:22])
 
     with pytest.raises(IndexError):
         calibrated_channel.get_rect(rect)

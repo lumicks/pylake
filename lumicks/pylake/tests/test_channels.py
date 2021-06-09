@@ -153,20 +153,20 @@ def test_empty_slice():
 
 def test_start_stop():
     s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [4, 6, 8, 10]))
-    assert np.allclose(s.start, 4)
-    assert np.allclose(s.stop, 10 + 1)
+    np.testing.assert_allclose(s.start, 4)
+    np.testing.assert_allclose(s.stop, 10 + 1)
 
     s = channel.Slice(channel.Continuous([14, 15, 16, 17], 4, 2))
-    assert np.allclose(s.start, 4)
-    assert np.allclose(s.stop, 12)
+    np.testing.assert_allclose(s.start, 4)
+    np.testing.assert_allclose(s.stop, 12)
 
     s = channel.Slice(channel.TimeTags([14, 15, 16, 17]))
-    assert np.allclose(s.start, 14)
-    assert np.allclose(s.stop, 17 + 1)
+    np.testing.assert_allclose(s.start, 14)
+    np.testing.assert_allclose(s.stop, 17 + 1)
 
     s = channel.Slice(channel.TimeTags([14, 15, 16, 17], 4, 30))
-    assert np.allclose(s.start, 4)
-    assert np.allclose(s.stop, 30)
+    np.testing.assert_allclose(s.start, 4)
+    np.testing.assert_allclose(s.stop, 30)
 
 
 def test_timeseries_indexing():
@@ -314,12 +314,12 @@ def test_inspections(h5_file):
 
 def test_channel(h5_file):
     force = channel.Continuous.from_dataset(h5_file["Force HF"]["Force 1x"])
-    assert np.allclose(force.data, [0, 1, 2, 3, 4])
-    assert np.allclose(force.timestamps, [1, 11, 21, 31, 41])
+    np.testing.assert_allclose(force.data, [0, 1, 2, 3, 4])
+    np.testing.assert_allclose(force.timestamps, [1, 11, 21, 31, 41])
 
     downsampled = channel.TimeSeries.from_dataset(h5_file["Force LF"]["Force 1x"])
-    assert np.allclose(downsampled.data, [1.1, 2.1])
-    assert np.allclose(downsampled.timestamps, [1, 2])
+    np.testing.assert_allclose(downsampled.data, [1.1, 2.1])
+    np.testing.assert_allclose(downsampled.timestamps, [1, 2])
 
     if "Photon Time Tags" in h5_file:
         timetags = channel.TimeTags.from_dataset(h5_file["Photon Time Tags"]["Red"])
@@ -373,11 +373,11 @@ def test_continuous_downsampling_to():
     # to 1000 ns step
     s2a = s.downsampled_to(1e6, where='left')
     assert np.all(np.equal(s2a.timestamps, [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]))
-    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+    np.testing.assert_allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
 
     s2b = s.downsampled_to(1e6, where='center')
     assert np.all(np.equal(s2b.timestamps, (np.arange(0, 10500, 1000) + np.arange(500, 10501, 1000)) / 2))
-    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+    np.testing.assert_allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
 
     # upsampling
     with pytest.raises(ValueError):
@@ -390,11 +390,11 @@ def test_continuous_downsampling_to():
     # non-integer ratio
     s3a = s.downsampled_to(3e5, where='left', method="ceil")
     assert np.all(np.equal(s3a.timestamps, [0, 3000, 6000]))
-    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+    np.testing.assert_allclose(s3a.data, [3.5, 9.5, 15.5])
 
     s3b = s.downsampled_to(3e5, where='center', method="ceil")
     assert np.all(np.equal(s3b.timestamps, [(0+2500)/2, (3000+5500)/2, (6000+8500)/2]))
-    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+    np.testing.assert_allclose(s3a.data, [3.5, 9.5, 15.5])
 
 
 def test_continuous_like_downsampling_to():
@@ -407,11 +407,11 @@ def test_continuous_like_downsampling_to():
     # to 1000 ns step
     s2a = s.downsampled_to(1e6, where='left')
     assert np.all(np.equal(s2a.timestamps, [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]))
-    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+    np.testing.assert_allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
 
     s2b = s.downsampled_to(1e6, where='center')
     assert np.all(np.equal(s2b.timestamps, (np.arange(0, 10500, 1000) + np.arange(500, 10501, 1000)) / 2))
-    assert np.allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
+    np.testing.assert_allclose(s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5])
 
     # upsampling
     with pytest.raises(ValueError):
@@ -424,10 +424,10 @@ def test_continuous_like_downsampling_to():
     # force non-integer ratio
     s3a = s.downsampled_to(3e5, where='left', method="ceil")
     assert np.all(np.equal(s3a.timestamps, [0, 3000, 6000]))
-    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+    np.testing.assert_allclose(s3a.data, [3.5, 9.5, 15.5])
     s3b = s.downsampled_to(3e5, where='center', method="ceil")
     assert np.all(np.equal(s3b.timestamps, [(0+2500)/2, (3000+5500)/2, (6000+8500)/2]))
-    assert np.allclose(s3a.data, [3.5, 9.5, 15.5])
+    np.testing.assert_allclose(s3a.data, [3.5, 9.5, 15.5])
 
 
 def test_variable_downsampling_to():
@@ -447,7 +447,7 @@ def test_variable_downsampling_to():
     # to 2000 ns step
     s2a = s.downsampled_to(5e5, where="left", method="force")
     assert np.all(np.equal(s2a.timestamps, [0, 2000, 4000, 6000, 8000, 10000, 12000]))
-    assert np.allclose(s2a.data, [2.5, 6.5, 10.0, 12.5, 14.5, 16.5, 18.5])
+    np.testing.assert_allclose(s2a.data, [2.5, 6.5, 10.0, 12.5, 14.5, 16.5, 18.5])
     s2b = s.downsampled_to(5e5, where="center", method="force")
 
     # Original samples are 0 500 1000 1500 2000 2500 3000 3500 4000 4500 5000   6000 7000 8000 ...
@@ -462,16 +462,16 @@ def test_variable_downsampling_to():
                         (12000 + 14000 - 1000) / 2,
                     ]
                 ).astype(np.int64)))
-    assert np.allclose(s2b.data, [2.5, 6.5, 10.0, 12.5, 14.5, 16.5, 18.5])
+    np.testing.assert_allclose(s2b.data, [2.5, 6.5, 10.0, 12.5, 14.5, 16.5, 18.5])
 
     # to 3333 ns step
     s3a = s.downsampled_to(3e5, where="left", method="force")
     assert np.all(np.equal(s3a.timestamps, [0, 3333, 6666, 9999]))
-    assert np.allclose(s3a.data, [4.0, 10.0, 14.0, 17.5])
+    np.testing.assert_allclose(s3a.data, [4.0, 10.0, 14.0, 17.5])
     s3b = s.downsampled_to(3e5, where="center", method="force")
 
     assert np.all(np.equal(s3b.timestamps, [3000/2, (3000 + 6500)/2, (7000 + 9000)/2, (10000 + 13000)/2]))
-    assert np.allclose(s3b.data, [4.0, 10.0, 14.0, 17.5])
+    np.testing.assert_allclose(s3b.data, [4.0, 10.0, 14.0, 17.5])
 
     with pytest.raises(ValueError):
         s.downsampled_to(3e8)
@@ -485,8 +485,8 @@ def test_downsampling_consistency():
     # Source frequency was 1e9 / 10 Hz. So we go to .2e8 Hz.
     s1 = s.downsampled_to(.2e8)
     s2 = s.downsampled_by(5)
-    assert np.allclose(s1.data, s2.data)
-    assert np.allclose(s1.timestamps, s2.timestamps)
+    np.testing.assert_allclose(s1.data, s2.data)
+    np.testing.assert_allclose(s1.timestamps, s2.timestamps)
 
     d = np.arange(1, 24)
     s = channel.Slice(channel.Continuous(d, 5, 10))
@@ -495,8 +495,8 @@ def test_downsampling_consistency():
     # Source frequency was 1e9 / 10 Hz. So we go to .2e8 Hz.
     s1 = s.downsampled_to(.2e8)
     s2 = s.downsampled_by(5)
-    assert np.allclose(s1.data, s2.data)
-    assert np.allclose(s1.timestamps, s2.timestamps)
+    np.testing.assert_allclose(s1.data, s2.data)
+    np.testing.assert_allclose(s1.timestamps, s2.timestamps)
 
     # Multiple of 5 should downsample to the same irrespective of the method
     # Source frequency was 1e9 / 7 Hz.
@@ -504,8 +504,8 @@ def test_downsampling_consistency():
     s = channel.Slice(channel.Continuous(d, 0, 7))
     s1 = s.downsampled_to(int(1e9 / 7 / 5))
     s2 = s.downsampled_by(5)
-    assert np.allclose(s1.data, s2.data)
-    assert np.allclose(s1.timestamps, s2.timestamps)
+    np.testing.assert_allclose(s1.data, s2.data)
+    np.testing.assert_allclose(s1.timestamps, s2.timestamps)
 
 
 def test_consistency_downsampled_to():
@@ -515,8 +515,8 @@ def test_consistency_downsampled_to():
     one_step = s.downsampled_to(.1e8)
     two_step = s.downsampled_to(.2e8).downsampled_to(.1e8)
 
-    assert np.allclose(one_step.data, two_step.data)
-    assert np.allclose(one_step.timestamps, two_step.timestamps)
+    np.testing.assert_allclose(one_step.data, two_step.data)
+    np.testing.assert_allclose(one_step.timestamps, two_step.timestamps)
 
 
 def test_downsampled_over_no_data_gap():
@@ -525,8 +525,8 @@ def test_downsampled_over_no_data_gap():
     s = channel.Slice(channel.TimeSeries(d, t))
     ranges = [(t1, t2) for t1, t2 in zip(np.arange(0, 16, 2), np.arange(2, 18, 2))]
     ts = s.downsampled_over(ranges)
-    assert np.allclose(ts.timestamps, [0, 2, 10, 12, 14])
-    assert np.allclose(ts.data, [0.5, 2.5, 4.5, 6.5, 8.5])
+    np.testing.assert_allclose(ts.timestamps, [0, 2, 10, 12, 14])
+    np.testing.assert_allclose(ts.data, [0.5, 2.5, 4.5, 6.5, 8.5])
 
 
 def test_downsampling_over_subset():
@@ -548,8 +548,8 @@ def test_downsampling_like():
 
     ds, ref_out = s.downsampled_like(reference)
     assert np.all(np.equal(ds.timestamps, ref_out.timestamps))
-    assert np.allclose(t_downsampled[1:-1], ds.timestamps)
-    assert np.allclose(y_downsampled[1:-1], ds.data)
+    np.testing.assert_allclose(t_downsampled[1:-1], ds.timestamps)
+    np.testing.assert_allclose(y_downsampled[1:-1], ds.data)
 
     with pytest.raises(NotImplementedError):
         reference.downsampled_like(reference)
@@ -563,8 +563,8 @@ def test_channel_plot():
         data = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.lines.Line2D)]
         assert len(data) == 1
         line = data[0].get_data()
-        assert np.allclose(line[0], x)
-        assert np.allclose(line[1], y)
+        np.testing.assert_allclose(line[0], x)
+        np.testing.assert_allclose(line[1], y)
 
     d = np.arange(1, 24)
     s = channel.Slice(channel.Continuous(d, int(5e9), int(10e9)))
@@ -593,6 +593,6 @@ def test_regression_lazy_loading(h5_file):
     ],
 )
 def test_with_data(data, new_data):
-    assert np.allclose(data._with_data(new_data).data, new_data)
+    np.testing.assert_allclose(data._with_data(new_data).data, new_data)
     old_timestamps = data.timestamps
-    assert np.allclose(data._with_data(new_data).timestamps, old_timestamps)
+    np.testing.assert_allclose(data._with_data(new_data).timestamps, old_timestamps)

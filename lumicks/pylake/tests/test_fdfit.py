@@ -105,7 +105,7 @@ def test_params():
     params2 = Params()
     params2._set_params(['gamma', 'potato', 'beta'], [Parameter(10), Parameter(11), Parameter(12)])
     params.update_params(params2)
-    assert np.allclose(params.values, [2, 12, 10])
+    np.testing.assert_allclose(params.values, [2, 12, 10])
 
     params2 = Params()
     params2._set_params(['spaghetti'], [Parameter(10), Parameter(12)])
@@ -171,13 +171,13 @@ def test_model_calls():
     model = Model("m", model_function)
     y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
 
-    assert np.allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/c": Parameter(3),
+    np.testing.assert_allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/c": Parameter(3),
                                           "m/d": Parameter(4)})), y_ref)
 
-    assert np.allclose(model(t, Params(**{"m/d": Parameter(4), "m/c": Parameter(3), "m/b": Parameter(2)})), y_ref)
+    np.testing.assert_allclose(model(t, Params(**{"m/d": Parameter(4), "m/c": Parameter(3), "m/b": Parameter(2)})), y_ref)
 
     with pytest.raises(IndexError):
-        assert np.allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/d": Parameter(4)})), y_ref)
+        np.testing.assert_allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/d": Parameter(4)})), y_ref)
 
 
 def test_unique_idx():
@@ -264,7 +264,7 @@ def test_model_fit_object_linking():
     assert set(f.params.keys) == set(all_params)
 
     # Check the parameters included in the model
-    assert np.allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    np.testing.assert_allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(f.datasets[id(m)]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
     assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == \
            ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
@@ -275,12 +275,12 @@ def test_model_fit_object_linking():
 
     # Check the parameters included in the model
     f._rebuild()
-    assert np.allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    np.testing.assert_allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(f.datasets[id(m)]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
     assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == \
            ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
 
-    assert np.allclose(f.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    np.testing.assert_allclose(f.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(f.datasets[id(m)]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
     assert fetch_params(f.params, f.datasets[id(m)]._conditions[1]._p_global_indices) == \
            ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
@@ -296,17 +296,17 @@ def test_model_fit_object_linking():
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/e_new", "M/f", "M/q", "M/r"]
     f[m2]._add_data("test2", [1, 2, 3], [2, 3, 4], {'M/c': 4, 'M/e': 5})
     assert set(f.params.keys) == set(all_params)
-    assert np.allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    np.testing.assert_allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(f.datasets[id(m)]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
     assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == \
            ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
 
-    assert np.allclose(f.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
+    np.testing.assert_allclose(f.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(f.datasets[id(m)]._conditions[1].p_local == [None, None, None, None, 4, None, None, None, None])
     assert fetch_params(f.params, f.datasets[id(m)]._conditions[1]._p_global_indices) == \
            ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
 
-    assert np.allclose(f.datasets[id(m2)]._conditions[0].p_external, [0, 1, 2])
+    np.testing.assert_allclose(f.datasets[id(m2)]._conditions[0].p_external, [0, 1, 2])
     assert np.all(f.datasets[id(m2)]._conditions[0].p_local == [None, None, None, 4, 6])
     assert fetch_params(f.params, f.datasets[id(m2)]._conditions[0]._p_global_indices) == \
            ["M/mu", "M/e", "M/q", None, None]
@@ -515,11 +515,11 @@ def test_models():
     assert(inverted_twistable_wlc("itWLC").verify_jacobian(independent, params))
 
     # Check whether the twistable wlc model manipulates the data order
-    assert np.allclose(twistable_wlc("tWLC")._raw_call(independent, params),
+    np.testing.assert_allclose(twistable_wlc("tWLC")._raw_call(independent, params),
                        np.flip(twistable_wlc("tWLC")._raw_call(np.flip(independent), params)))
 
     # Check whether the inverse twistable wlc model manipulates the data order
-    assert np.allclose(inverted_twistable_wlc("itWLC")._raw_call(independent, params),
+    np.testing.assert_allclose(inverted_twistable_wlc("itWLC")._raw_call(independent, params),
                        np.flip(inverted_twistable_wlc("itWLC")._raw_call(np.flip(independent), params)))
 
     # Check whether the inverted models invert correctly
@@ -539,12 +539,12 @@ def test_models():
     m_fwd = marko_siggia_ewlc_force("fwd")
     m_bwd = marko_siggia_ewlc_distance("bwd")
     force = m_fwd._raw_call(d, params)
-    assert np.allclose(m_bwd._raw_call(force, params), d)
+    np.testing.assert_allclose(m_bwd._raw_call(force, params), d)
 
     # Determine whether they actually fulfill the model
     lhs = (force*Lp/kT)
     rhs = 0.25 * (1.0 - (d/Lc) + (force/St))**(-2) - 0.25 + (d/Lc) - (force/St)
-    assert np.allclose(lhs, rhs)
+    np.testing.assert_allclose(lhs, rhs)
 
     # Test inverted simplified model
     d = np.arange(0.15, .377, .05)
@@ -553,7 +553,7 @@ def test_models():
     m_fwd = marko_siggia_simplified("fwd")
     m_bwd = inverted_marko_siggia_simplified("bwd")
     force = m_fwd._raw_call(d, params)
-    assert np.allclose(m_bwd._raw_call(force, params), d)
+    np.testing.assert_allclose(m_bwd._raw_call(force, params), d)
 
     # This model is nonsense about the contour length, so warn the user about this.
     with pytest.warns(RuntimeWarning):
@@ -591,7 +591,7 @@ def test_model_composition():
 
     # Check actual composition
     # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
-    assert np.allclose((m1 + m2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
+    np.testing.assert_allclose((m1 + m2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
         "Model composition returns invalid function evaluation (parameter order issue?)"
 
     # Check correctness of the Jacobians and derivatives
@@ -627,7 +627,7 @@ def test_model_composition():
     t = np.array([.19, .2, .3])
     p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
-    assert np.allclose(m1._raw_call(t, p1), m2._raw_call(t, p2))
+    np.testing.assert_allclose(m1._raw_call(t, p1), m2._raw_call(t, p2))
 
     # Check whether incompatible variables are found
     with pytest.raises(AssertionError):
@@ -670,7 +670,7 @@ def test_parameter_inversion():
     fit._add_data("test", x, f_data)
     fit.params["f/a"].value = a_true
     fit.params["f/b"].value = 1.0
-    assert np.allclose(parameter_trace(model, fit.params, 'f/b', x, f_data), b_true)
+    np.testing.assert_allclose(parameter_trace(model, fit.params, 'f/b', x, f_data), b_true)
 
     a_true = 5.0
     b_true = 3.0
@@ -682,7 +682,7 @@ def test_parameter_inversion():
     fit.params["f/a"].value = a_true
     fit.params["f/b"].value = b_true
     fit.params["f/d"].value = 1.0
-    assert np.allclose(parameter_trace(model, fit.params, 'f/d', x, f_plus_g_data), d_true)
+    np.testing.assert_allclose(parameter_trace(model, fit.params, 'f/d', x, f_plus_g_data), d_true)
 
 
 def test_uncertainty_analysis():
@@ -713,20 +713,20 @@ def test_uncertainty_analysis():
     quad_fit._add_data("test", x, y)
     quad_fit.fit()
 
-    assert np.allclose(linear_fit.cov, np.array([[0.08524185, -0.38358832], [-0.38358832, 2.42939269]]))
-    assert np.allclose(quad_fit.cov, np.array([[0.01390294, -0.12512650,  0.16683533],
+    np.testing.assert_allclose(linear_fit.cov, np.array([[0.08524185, -0.38358832], [-0.38358832, 2.42939269]]))
+    np.testing.assert_allclose(quad_fit.cov, np.array([[0.01390294, -0.12512650,  0.16683533],
                                                [-0.1251265,  1.21511735, -1.90192281],
                                                [0.16683533, -1.90192281,  4.53792109]]))
 
-    assert np.allclose(linear_fit.sigma[0], 2.65187717)
-    assert np.allclose(linear_fit.aic, 49.88412577726061)
-    assert np.allclose(linear_fit.aicc, 51.59841149154632)
-    assert np.allclose(linear_fit.bic, 50.4892959632487)
+    np.testing.assert_allclose(linear_fit.sigma[0], 2.65187717)
+    np.testing.assert_allclose(linear_fit.aic, 49.88412577726061)
+    np.testing.assert_allclose(linear_fit.aicc, 51.59841149154632)
+    np.testing.assert_allclose(linear_fit.bic, 50.4892959632487)
 
-    assert np.allclose(quad_fit.sigma[0], 2.70938272)
-    assert np.allclose(quad_fit.aic, 51.31318724618379)
-    assert np.allclose(quad_fit.aicc, 55.31318724618379)
-    assert np.allclose(quad_fit.bic, 52.220942525165924)
+    np.testing.assert_allclose(quad_fit.sigma[0], 2.70938272)
+    np.testing.assert_allclose(quad_fit.aic, 51.31318724618379)
+    np.testing.assert_allclose(quad_fit.aicc, 55.31318724618379)
+    np.testing.assert_allclose(quad_fit.bic, 52.220942525165924)
 
 
 def test_parameter_availability():
@@ -763,10 +763,10 @@ def test_data_loading():
     m = Model("M", lambda x, a: a*x)
     fit = Fit(m)
     fit._add_data("test", [1, np.nan, 3], [2, np.nan, 4])
-    assert np.allclose(fit[m].data["test"].x, [1, 3])
-    assert np.allclose(fit[m].data["test"].y, [2, 4])
-    assert np.allclose(fit[m].data["test"].independent, [1, 3])
-    assert np.allclose(fit[m].data["test"].dependent, [2, 4])
+    np.testing.assert_allclose(fit[m].data["test"].x, [1, 3])
+    np.testing.assert_allclose(fit[m].data["test"].y, [2, 4])
+    np.testing.assert_allclose(fit[m].data["test"].independent, [1, 3])
+    np.testing.assert_allclose(fit[m].data["test"].dependent, [2, 4])
 
     # Name must be unique
     with pytest.raises(KeyError):
@@ -880,7 +880,7 @@ def test_analytic_roots():
     b = np.array([-3.0])
     c = np.array([1.0])
 
-    assert np.allclose(
+    np.testing.assert_allclose(
         np.sort(np.roots(np.hstack((np.array([1.0]), a, b, c)))),
         np.sort(
             np.array(
@@ -903,7 +903,7 @@ def test_analytic_roots():
         db = (solve_cubic_wlc(a, b + dx, c, root) - ref_root) / dx
         dc = (solve_cubic_wlc(a, b, c + dx, root) - ref_root) / dx
 
-        assert np.allclose(np.array(invwlc_root_derivatives(a, b, c, root)), np.array([da, db, dc]), atol=1e-5,
+        np.testing.assert_allclose(np.array(invwlc_root_derivatives(a, b, c, root)), np.array([da, db, dc]), atol=1e-5,
                            rtol=1e-5)
 
     test_root_derivatives(0)
@@ -986,22 +986,22 @@ def test_fd_variable_order():
     m = odijk("M")
     fit = Fit(m)
     fit._add_data("test", [1, 2, 3], [2, 3, 4])
-    assert np.allclose(fit[m].data["test"].x, [1, 2, 3])
-    assert np.allclose(fit[m].data["test"].y, [2, 3, 4])
+    np.testing.assert_allclose(fit[m].data["test"].x, [1, 2, 3])
+    np.testing.assert_allclose(fit[m].data["test"].y, [2, 3, 4])
 
     fit[m]._add_data("test2", [1, 2, 3], [2, 3, 4])
-    assert np.allclose(fit[m].data["test2"].x, [1, 2, 3])
-    assert np.allclose(fit[m].data["test2"].y, [2, 3, 4])
+    np.testing.assert_allclose(fit[m].data["test2"].x, [1, 2, 3])
+    np.testing.assert_allclose(fit[m].data["test2"].y, [2, 3, 4])
 
     m = inverted_odijk("M")
     fit = Fit(m)
     fit._add_data("test", [1, 2, 3], [2, 3, 4])
-    assert np.allclose(fit[m].data["test"].x, [1, 2, 3])
-    assert np.allclose(fit[m].data["test"].y, [2, 3, 4])
+    np.testing.assert_allclose(fit[m].data["test"].x, [1, 2, 3])
+    np.testing.assert_allclose(fit[m].data["test"].y, [2, 3, 4])
 
     fit[m]._add_data("test2", [1, 2, 3], [2, 3, 4])
-    assert np.allclose(fit[m].data["test2"].x, [1, 2, 3])
-    assert np.allclose(fit[m].data["test2"].y, [2, 3, 4])
+    np.testing.assert_allclose(fit[m].data["test2"].x, [1, 2, 3])
+    np.testing.assert_allclose(fit[m].data["test2"].y, [2, 3, 4])
 
     # FdFit always takes f, d and maps it to the correct values
     m = odijk("M")
@@ -1009,24 +1009,24 @@ def test_fd_variable_order():
 
     # Test the FdFit interface
     fit.add_data("test", [1, 2, 3], [2, 3, 4])
-    assert np.allclose(fit[m].data["test"].x, [1, 2, 3])
-    assert np.allclose(fit[m].data["test"].y, [2, 3, 4])
+    np.testing.assert_allclose(fit[m].data["test"].x, [1, 2, 3])
+    np.testing.assert_allclose(fit[m].data["test"].y, [2, 3, 4])
 
     # Test the FdDatasets interface
     fit[m].add_data("test2", [3, 4, 5], [4, 5, 6])
-    assert np.allclose(fit[m].data["test2"].x, [3, 4, 5])
-    assert np.allclose(fit[m].data["test2"].y, [4, 5, 6])
+    np.testing.assert_allclose(fit[m].data["test2"].x, [3, 4, 5])
+    np.testing.assert_allclose(fit[m].data["test2"].y, [4, 5, 6])
 
     m = inverted_odijk("M")
     fit = FdFit(m)
     fit.add_data("test", [1, 2, 3], [2, 3, 4])
-    assert np.allclose(fit[m].data["test"].x, [2, 3, 4])
-    assert np.allclose(fit[m].data["test"].y, [1, 2, 3])
+    np.testing.assert_allclose(fit[m].data["test"].x, [2, 3, 4])
+    np.testing.assert_allclose(fit[m].data["test"].y, [1, 2, 3])
 
     # Test the FdDatasets interface
     fit[m].add_data("test2", [3, 4, 5], [4, 5, 6])
-    assert np.allclose(fit[m].data["test2"].x, [4, 5, 6])
-    assert np.allclose(fit[m].data["test2"].y, [3, 4, 5])
+    np.testing.assert_allclose(fit[m].data["test2"].x, [4, 5, 6])
+    np.testing.assert_allclose(fit[m].data["test2"].y, [3, 4, 5])
 
 
 def test_tex_replacement():
@@ -1109,7 +1109,7 @@ def test_interpolation_inversion():
     m = odijk("Nucleosome").invert(independent_max=120.0, interpolate=True)
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
-    assert np.allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
+    np.testing.assert_allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
 
 
 def test_no_jac():

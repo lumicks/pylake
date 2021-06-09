@@ -45,7 +45,7 @@ def test_score_matrix():
             -3.0254695407844476,
         ],
     ]
-    assert np.allclose(matrix, reference)
+    np.testing.assert_allclose(matrix, reference)
 
     # With velocity
     matrix = np.reshape(build_score_matrix(lines, times, positions, kymo_score(vel=1, sigma=.5, diffusion=.125),
@@ -58,7 +58,7 @@ def test_score_matrix():
         [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -3.4376941012509463, -1.5278640450004204],
         [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -3.0254695407844476],
     ]
-    assert np.allclose(matrix, reference)
+    np.testing.assert_allclose(matrix, reference)
 
 
 def test_line_append():
@@ -72,20 +72,20 @@ def test_line_append():
         return score
 
     assert append_next_point(kymoline, frame, score_fun)
-    assert np.allclose(kymoline.time_idx, [0.0, 1.0])
-    assert np.allclose(kymoline.coordinate_idx, [2.0, 2.0])
+    np.testing.assert_allclose(kymoline.time_idx, [0.0, 1.0])
+    np.testing.assert_allclose(kymoline.coordinate_idx, [2.0, 2.0])
     assert np.array_equal(frame.unassigned, [True, False, True])
 
     # Coordinate 3 is closer, but last score returns -np.inf for score
     assert append_next_point(kymoline, frame, score_fun)
-    assert np.allclose(kymoline.time_idx, [0.0, 1.0, 1.0])
-    assert np.allclose(kymoline.coordinate_idx, [2.0, 2.0, 1.0])
+    np.testing.assert_allclose(kymoline.time_idx, [0.0, 1.0, 1.0])
+    np.testing.assert_allclose(kymoline.coordinate_idx, [2.0, 2.0, 1.0])
     assert np.array_equal(frame.unassigned, [False, False, True])
 
     # Only coordinate 3 is left, but returns -np.inf and should not be considered a candidate ever. Terminate line!
     assert not append_next_point(kymoline, frame, score_fun)  # No more assignable coordinates
-    assert np.allclose(kymoline.time_idx, [0.0, 1.0, 1.0])
-    assert np.allclose(kymoline.coordinate_idx, [2.0, 2.0, 1.0])
+    np.testing.assert_allclose(kymoline.time_idx, [0.0, 1.0, 1.0])
+    np.testing.assert_allclose(kymoline.coordinate_idx, [2.0, 2.0, 1.0])
     assert np.array_equal(frame.unassigned, [False, False, True])
 
 
@@ -105,25 +105,25 @@ def test_extend_line():
     # and our window only goes up one frame
     kymoline = KymoLineData([0.0], [4.0])
     extend_line(kymoline, peaks, 1, score_fun)
-    assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0]))
+    np.testing.assert_allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0]))
 
     # 4, 5, 6 no longer being available, we should get 1, 2, 3
     kymoline = KymoLineData([0.0], [4.0])
     extend_line(kymoline, peaks, 1, score_fun)
-    assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 1.0, 2.0, 3.0]))
+    np.testing.assert_allclose(kymoline.coordinate_idx, np.array([4.0, 1.0, 2.0, 3.0]))
 
     # With a bigger window, we should get 7.0 too
     peaks.reset_assignment()
     kymoline = KymoLineData([0.0], [4.0])
     extend_line(kymoline, peaks, 2, score_fun)
-    assert np.allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0, 7.0]))
+    np.testing.assert_allclose(kymoline.coordinate_idx, np.array([4.0, 4.0, 5.0, 6.0, 7.0]))
 
     # Starting from t=2, we should only get 6
     # and our window only goes up one frame
     peaks.reset_assignment()
     kymoline = KymoLineData([2.0], [5.0])
     extend_line(kymoline, peaks, 1, score_fun)
-    assert np.allclose(kymoline.coordinate_idx, np.array([5.0, 6.0]))
+    np.testing.assert_allclose(kymoline.coordinate_idx, np.array([5.0, 6.0]))
 
 
 def test_kymotracker_two_integration():
@@ -141,9 +141,9 @@ def test_kymotracker_two_integration():
         window=8,
         sigma_cutoff=2
     )
-    assert np.allclose(lines[0].coordinate_idx, [1.0, 2.0, 3.0])
-    assert np.allclose(lines[1].time_idx, [1.0, 2.0, 3.0, 5.0])
-    assert np.allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0, 7.0])
+    np.testing.assert_allclose(lines[0].coordinate_idx, [1.0, 2.0, 3.0])
+    np.testing.assert_allclose(lines[1].time_idx, [1.0, 2.0, 3.0, 5.0])
+    np.testing.assert_allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0, 7.0])
 
     lines = points_to_line_segments(
         peaks,
@@ -151,11 +151,11 @@ def test_kymotracker_two_integration():
         window=1,
         sigma_cutoff=2
     )
-    assert np.allclose(lines[0].coordinate_idx, [1.0, 2.0, 3.0])
-    assert np.allclose(lines[1].time_idx, [1.0, 2.0, 3.0])
-    assert np.allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0])
-    assert np.allclose(lines[2].time_idx, [5.0])
-    assert np.allclose(lines[2].coordinate_idx, [7.0])
+    np.testing.assert_allclose(lines[0].coordinate_idx, [1.0, 2.0, 3.0])
+    np.testing.assert_allclose(lines[1].time_idx, [1.0, 2.0, 3.0])
+    np.testing.assert_allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0])
+    np.testing.assert_allclose(lines[2].time_idx, [5.0])
+    np.testing.assert_allclose(lines[2].coordinate_idx, [7.0])
 
 
 def test_sampling():
@@ -171,16 +171,16 @@ def test_sampling():
 
     # Tests the bound handling
     kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img)
-    assert np.allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    assert np.allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img).sample_from_image(0), [0, 0, 1, 1, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
+    np.testing.assert_allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img).sample_from_image(0), [0, 0, 1, 1, 0])
 
     kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img)
-    assert np.allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
-    assert np.allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    assert np.allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img).sample_from_image(0),
+    np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
+    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
+    np.testing.assert_allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img).sample_from_image(0),
                        [0, 0, 1, 1, 0])

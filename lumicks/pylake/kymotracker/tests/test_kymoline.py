@@ -10,14 +10,14 @@ def test_kymo_line():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
 
     k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
-    assert np.allclose(k1[1], [2, 3])
-    assert np.allclose(k1[-1], [3, 4])
-    assert np.allclose(k1[0:2], [[1, 2], [2, 3]])
-    assert np.allclose(k1[0:2][:, 1], [2, 3])
+    np.testing.assert_allclose(k1[1], [2, 3])
+    np.testing.assert_allclose(k1[-1], [3, 4])
+    np.testing.assert_allclose(k1[0:2], [[1, 2], [2, 3]])
+    np.testing.assert_allclose(k1[0:2][:, 1], [2, 3])
 
     k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
-    assert np.allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
-    assert np.allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
+    np.testing.assert_allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
+    np.testing.assert_allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
     # Need at least 2 points for linear extrapolation
     with pytest.raises(AssertionError):
@@ -30,7 +30,7 @@ def test_kymo_line():
     k2 = k1.with_offset(2, 2)
     assert id(k2) != id(k1)
 
-    assert np.allclose(k2.coordinate_idx, [3, 4, 5])
+    np.testing.assert_allclose(k2.coordinate_idx, [3, 4, 5])
     assert k1._image == channel
     assert k2._image == channel
 
@@ -65,8 +65,8 @@ def test_kymoline_from_kymolinedata():
     channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
     time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
     kl = KymoLine._from_kymolinedata(KymoLineData(time, pos), channel)
-    assert np.allclose(kl.time_idx, time)
-    assert np.allclose(kl.coordinate_idx, pos)
+    np.testing.assert_allclose(kl.time_idx, time)
+    np.testing.assert_allclose(kl.coordinate_idx, pos)
     assert id(kl._image) == id(channel)
 
 
@@ -157,8 +157,8 @@ def test_kymoline_concat():
 
     # Finally do a correct merge
     group._concatenate_lines(k1, k2)
-    assert np.allclose(group[0].seconds, [1, 2, 3, 6, 7, 8])
-    assert np.allclose(group[1].seconds, [3, 4, 5])
+    np.testing.assert_allclose(group[0].seconds, [1, 2, 3, 6, 7, 8])
+    np.testing.assert_allclose(group[1].seconds, [3, 4, 5])
 
 
 @pytest.mark.parametrize(
@@ -183,12 +183,12 @@ def test_msd_api(time_scale, position_scale):
     k = KymoLine(time_scale * time_idx, position_scale * position_idx, image=image)
 
     lags, msd = k.msd()
-    assert np.allclose(lags, time_idx[1:])
-    assert np.allclose(msd, position_idx[1:] ** 2)
+    np.testing.assert_allclose(lags, time_idx[1:])
+    np.testing.assert_allclose(msd, position_idx[1:] ** 2)
 
     lags, msd = k.msd(max_lag=4)
-    assert np.allclose(lags, time_idx[1:5])
-    assert np.allclose(msd, position_idx[1:5] ** 2)
+    np.testing.assert_allclose(lags, time_idx[1:5])
+    np.testing.assert_allclose(msd, position_idx[1:5] ** 2)
 
 
 @pytest.mark.parametrize(
@@ -208,7 +208,7 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
     image = CalibratedKymographChannel("test", np.array([[]]), time_step, pixel_size)
     k = KymoLine(time_idx, coordinate / pixel_size, image=image)
 
-    assert np.allclose(k.estimate_diffusion_ols(max_lag=max_lag), diffusion_const)
+    np.testing.assert_allclose(k.estimate_diffusion_ols(max_lag=max_lag), diffusion_const)
 
 
 @pytest.mark.parametrize(
@@ -227,5 +227,5 @@ def test_kymoline_msd_plot(max_lag, x_data, y_data):
     plt.figure()
     k = KymoLine(np.arange(1, 6), np.arange(1, 6), image=image)
     k.plot_msd(max_lag=max_lag)
-    assert np.allclose(plt.gca().lines[0].get_xdata(), x_data)
-    assert np.allclose(plt.gca().lines[0].get_ydata(), y_data)
+    np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), x_data)
+    np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), y_data)

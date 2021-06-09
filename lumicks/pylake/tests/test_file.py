@@ -10,19 +10,19 @@ def test_scans(h5_file):
     if f.format_version == 2:
         scan = f.scans["fast Y slow X"]
         assert scan.pixels_per_line == 4  # Fast axis
-        assert np.allclose(scan.red_image, np.transpose([[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0], [1, 1, 1, 0]]))
+        np.testing.assert_allclose(scan.red_image, np.transpose([[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0], [1, 1, 1, 0]]))
 
         scan2 = f.scans["fast Y slow X multiframe"]
         reference = np.array([[[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0]], [[0, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]])
         reference = np.transpose(reference, [0, 2, 1])
-        assert np.allclose(scan2.red_image, reference)
+        np.testing.assert_allclose(scan2.red_image, reference)
 
         scan2 = f.scans["fast Y slow X multiframe"]
         rgb = np.zeros((2, 4, 3, 3))
         rgb[:, :, :, 0] = reference
         rgb[:, :, :, 1] = reference
         rgb[:, :, :, 2] = reference
-        assert np.allclose(scan2.rgb_image, rgb)
+        np.testing.assert_allclose(scan2.rgb_image, rgb)
 
 
 def test_kymos(h5_file):
@@ -30,7 +30,7 @@ def test_kymos(h5_file):
     if f.format_version == 2:
         kymo = f.kymos["Kymo1"]
         assert kymo.pixels_per_line == 5
-        assert np.allclose(kymo.red_image, np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]))
+        np.testing.assert_allclose(kymo.red_image, np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]))
 
 
 def test_attributes(h5_file):
@@ -47,21 +47,21 @@ def test_attributes(h5_file):
 def test_channels(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
-    assert np.allclose(f.force1x.data, [0, 1, 2, 3, 4])
-    assert np.allclose(f.force1x.timestamps, [1, 11, 21, 31, 41])
+    np.testing.assert_allclose(f.force1x.data, [0, 1, 2, 3, 4])
+    np.testing.assert_allclose(f.force1x.timestamps, [1, 11, 21, 31, 41])
     assert "x" not in f.force1x.labels
     assert f.force1x.labels["y"] == "Force (pN)"
     assert f.force1x.labels["title"] == "Force HF/Force 1x"
 
-    assert np.allclose(f.downsampled_force1x.data, [1.1, 2.1])
-    assert np.allclose(f.downsampled_force1x.timestamps, [1, 2])
+    np.testing.assert_allclose(f.downsampled_force1x.data, [1.1, 2.1])
+    np.testing.assert_allclose(f.downsampled_force1x.timestamps, [1, 2])
     assert "x" not in f.downsampled_force1x.labels
     assert f.downsampled_force1x.labels["y"] == "Force (pN)"
     assert f.downsampled_force1x.labels["title"] == "Force LF/Force 1x"
 
     vsum_force = np.sqrt(f.downsampled_force1x.data**2 + f.downsampled_force1y.data**2)
-    assert np.allclose(f.downsampled_force1.data, vsum_force)
-    assert np.allclose(f.downsampled_force1.timestamps, [1, 2])
+    np.testing.assert_allclose(f.downsampled_force1.data, vsum_force)
+    np.testing.assert_allclose(f.downsampled_force1.timestamps, [1, 2])
     assert "x" not in f.downsampled_force1.labels
     assert f.downsampled_force1.labels["y"] == "Force (pN)"
     assert f.downsampled_force1.labels["title"] == "Force LF/Force 1"
@@ -319,9 +319,9 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     save_h5(f, new_file, 5, omit_data={"Force LF/Force 1y"})
     omit_lf1y = pylake.File(new_file)
 
-    assert np.allclose(omit_lf1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
-    assert np.allclose(omit_lf1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
-    assert np.allclose(omit_lf1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+    np.testing.assert_allclose(omit_lf1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    np.testing.assert_allclose(omit_lf1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+    np.testing.assert_allclose(omit_lf1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
     with pytest.raises(KeyError):
         assert np.any(omit_lf1y["Force LF"]["Force 1y"].data)
 
@@ -329,10 +329,10 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     save_h5(f, new_file, 5, omit_data={"*/Force 1y"})
     omit_1y = pylake.File(new_file)
 
-    assert np.allclose(omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
-    assert np.allclose(omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+    np.testing.assert_allclose(omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    np.testing.assert_allclose(omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
     with pytest.raises(KeyError):
-        assert np.allclose(omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+        np.testing.assert_allclose(omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
     with pytest.raises(KeyError):
         assert np.any(omit_1y["Force LF"]["Force 1y"].data)
 
@@ -340,21 +340,21 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     save_h5(f, new_file, 5, omit_data={"Force HF/*"})
     omit_hf = pylake.File(new_file)
 
-    assert np.allclose(omit_hf["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
-    assert np.allclose(omit_hf["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
+    np.testing.assert_allclose(omit_hf["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    np.testing.assert_allclose(omit_hf["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
     with pytest.raises(KeyError):
-        assert np.allclose(omit_hf["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+        np.testing.assert_allclose(omit_hf["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
     with pytest.raises(KeyError):
-        assert np.allclose(omit_hf["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+        np.testing.assert_allclose(omit_hf["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
 
     new_file = f"{tmpdir}/omit_two.h5"
     save_h5(f, new_file, 5, omit_data={"Force HF/*", "*/Force 1y"})
     omit_two = pylake.File(new_file)
 
-    assert np.allclose(omit_two["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    np.testing.assert_allclose(omit_two["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
     with pytest.raises(KeyError):
-        assert np.allclose(omit_two["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
+        np.testing.assert_allclose(omit_two["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
     with pytest.raises(KeyError):
-        assert np.allclose(omit_two["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+        np.testing.assert_allclose(omit_two["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
     with pytest.raises(KeyError):
-        assert np.allclose(omit_two["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+        np.testing.assert_allclose(omit_two["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)

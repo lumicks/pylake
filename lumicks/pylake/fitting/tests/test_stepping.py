@@ -40,7 +40,7 @@ import numpy as np
     (np.array([-1, -1]), np.array([2, -4]), np.array([-2, -2]), np.array([2, 2]), np.array([-0.5, -2.0])),
 ])
 def test_clamp_vector(origin, step, lb, ub, result):
-    assert np.allclose(clamp_step(origin, step, lb, ub)[0], result)
+    np.testing.assert_allclose(clamp_step(origin, step, lb, ub)[0], result)
 
 
 cfg = StepConfig(min_abs_step=1e-4,
@@ -80,7 +80,7 @@ def test_stepper(chi2_function, start_pos, step_sign, target_step_size, target_p
                                  step_config=cfg)
 
     assert step_size == target_step_size
-    assert np.allclose(p_trial, target_p_trial)
+    np.testing.assert_allclose(p_trial, target_p_trial)
 
 
 def test_minimum_step():
@@ -98,4 +98,4 @@ def test_minimum_step():
                                      step_sign=1,
                                      step_config=cfg)
         assert step_size == cfg.min_abs_step
-        assert np.allclose(p_trial, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step]))
+        np.testing.assert_allclose(p_trial, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step]))
