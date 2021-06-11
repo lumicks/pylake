@@ -44,7 +44,7 @@ def test_power_spectrum_attrs(frequency, num_data, sample_rate):
 )
 def test_power_spectrum_blocking(frequency, num_data, sample_rate, num_blocks, f_blocked, p_blocked):
     """Functional test whether the results of blocking the power spectrum are correct"""
-    data = np.sin(2.0 * np.pi * frequency / sample_rate * np.arange(num_data))
+    data = np.sin(2.0 * np.pi * frequency / sample_rate * np.arange(num_data)) / np.sqrt(2)
     power_spectrum = PowerSpectrum(data, sample_rate)
 
     downsampling_factor = len(power_spectrum.frequency) // num_blocks

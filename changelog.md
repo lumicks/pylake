@@ -31,6 +31,7 @@
 
 #### Breaking changes
 
+* **Changed `PowerSpectrum.power` to actually reflect power in `V^2/Hz`. Before it was expressed in `0.5 V^2/Hz`.**
 * Dropped support for Python 3.6.
 * Pylake now depends on `numpy>=1.20`. This change is required to use a different fft normalization in the force calibration tests.
 * The attribute `image_data` in `KymoLine` is now private.

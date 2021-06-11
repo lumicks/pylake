@@ -59,7 +59,7 @@ def test_fit_analytic(
     power_spectrum = reference_models.lorentzian(
         np.arange(0, num_samples), corner_frequency, diffusion_constant
     )
-    data = np.fft.irfft(np.sqrt(np.abs(power_spectrum))) * (num_samples - 1) * 2
+    data = np.fft.irfft(np.sqrt(np.abs(power_spectrum) * 0.5), norm="forward")
 
     num_points_per_block = 20
     fit_range = (0, 15000)
@@ -96,7 +96,7 @@ def test_guess_f_diode_guess(
 
 def test_fit_analytic_curve():
     ps = PowerSpectrum([3, 3, 4, 5, 1, 3, 2, 4, 5, 2], 100)
-    ref = [0.0396382, 0.0389208, 0.03691641, 0.03399826, 0.03061068, 0.02713453]
+    ref = [0.079276, 0.077842, 0.073833, 0.067997, 0.061221, 0.054269]
     fit = fit_analytical_lorentzian(ps)
     np.testing.assert_allclose(fit.ps_fit.frequency, np.arange(0, 60, 10))
     np.testing.assert_allclose(fit.ps_fit.power, ref, rtol=1e-5)
