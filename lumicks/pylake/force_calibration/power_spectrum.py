@@ -12,7 +12,7 @@ class PowerSpectrum:
     frequency : numpy.ndarray
         Frequency values for the power spectrum. [Hz]
     power : numpy.ndarray
-        Power values for the power spectrum (typically in V^2/s).
+        Power values for the power spectrum (typically in V^2/Hz).
     sample_rate : float
         The sampling rate for the original data. [Hz]
     total_duration : float
@@ -37,7 +37,7 @@ class PowerSpectrum:
         # Calculate power spectrum.
         fft = np.fft.rfft(data)
         self.frequency = np.fft.rfftfreq(data.size, 1.0 / sample_rate)
-        self.power = (1.0 / sample_rate) * np.square(np.abs(fft)) / data.size
+        self.power = (2.0 / sample_rate) * np.square(np.abs(fft)) / data.size
 
         # Store metadata
         self.sample_rate = sample_rate

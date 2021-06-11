@@ -130,7 +130,7 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
         power spectrum.
     """
     f_nyquist = ps.sample_rate / 2
-    P_aliased_nyq = (guess_D / (2 * math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
+    P_aliased_nyq = (guess_D / (math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
     if ps.power[-1] < P_aliased_nyq:
         dif = ps.power[-1] / P_aliased_nyq
         return math.sqrt(dif * f_nyquist ** 2 / (1.0 - dif))

@@ -8,7 +8,8 @@ from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 def fit_analytical_lorentzian(ps):
     """Performs an analytical least-squares fit of a Lorentzian Power Spectrum.
 
-    Based on Section IV from ref. 1.
+    Based on Section IV from ref. 1. Note that the equations for the statistics Spq are divided
+    by a factor of two since we defined the power spectrum in V^2/Hz instead of 0.5 V^2/Hz.
 
     Parameters
     ----------
@@ -46,7 +47,7 @@ def fit_analytical_lorentzian(ps):
 
     # Having a and b, calculating fc and D is trivial.
     fc = math.sqrt(a / b)  # corner frequency [Hz]
-    D = (1 / b) * 2 * (math.pi ** 2)  # diffusion constant [V^2/s]
+    D = (1 / b) * (math.pi ** 2)  # diffusion constant [V^2/s]
 
     # Fitted power spectrum values.
     ps_fit = ps.with_spectrum(1 / (a + b * np.power(ps.frequency, 2)))
@@ -132,6 +133,8 @@ def passive_power_spectrum_model(f, fc, D, f_diode, alpha):
     """Theoretical model for the full power spectrum.
 
     See ref. 1, Eq. (10), and ref. 2, Eq. (11).
+    Note that this implementation deviates from Eq. (10) and Eq. (11) by a factor of 2 since we
+    express the power spectrum in V^2 / Hz rather than 0.5 V^2 / Hz.
 
     Parameters
     ----------
@@ -146,7 +149,7 @@ def passive_power_spectrum_model(f, fc, D, f_diode, alpha):
     alpha : float
         Diode parameter, between 0 and 1.
     """
-    return (D / (2 * math.pi ** 2)) / (f ** 2 + fc ** 2) * g_diode(f, f_diode, alpha)
+    return (D / (math.pi ** 2)) / (f ** 2 + fc ** 2) * g_diode(f, f_diode, alpha)
 
 
 def sphere_friction_coefficient(eta, d):
