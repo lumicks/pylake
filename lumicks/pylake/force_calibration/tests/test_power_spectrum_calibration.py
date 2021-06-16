@@ -104,7 +104,7 @@ def test_good_fit_integration_test(
     np.testing.assert_allclose(ps_calibration["err_fc"], err_fc)
     np.testing.assert_allclose(ps_calibration["err_D"], err_d, rtol=1e-4, atol=0)
     np.testing.assert_allclose(ps_calibration["err_f_diode"], err_f_diode)
-    np.testing.assert_allclose(ps_calibration["err_alpha"], err_alpha)
+    np.testing.assert_allclose(ps_calibration["err_alpha"], err_alpha, rtol=1e-6)
 
 
 def test_bad_calibration_result_arg():
