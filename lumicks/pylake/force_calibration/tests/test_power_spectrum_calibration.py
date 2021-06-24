@@ -167,6 +167,10 @@ def test_actual_spectrum(reference_calibration_result):
     np.testing.assert_allclose(ps_calibration["err_alpha"], 0.013141463933316694, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["err_f_diode"], 561.6377089699399, rtol=1e-4)
 
+    # Test whether the model contains the number of points per block that were used to fit it
+    np.testing.assert_allclose(ps_calibration.ps_model_fit.num_points_per_block, 100)
+    np.testing.assert_allclose(ps_calibration.ps_fitted.num_points_per_block, 100)
+
 
 @cleanup
 def test_result_plot(reference_calibration_result):
