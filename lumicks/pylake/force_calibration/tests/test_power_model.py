@@ -1,6 +1,7 @@
 import pytest
 from lumicks.pylake.force_calibration.detail.power_models import *
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
+from lumicks.pylake.force_calibration.power_spectrum_calibration import guess_f_diode_initial_value
 
 
 def test_friction_coefficient():
@@ -72,6 +73,25 @@ def test_fit_analytic(
     np.testing.assert_allclose(fit.D, diffusion_constant, rtol=1e-5, atol=0)
     np.testing.assert_allclose(fit.sigma_fc, sigma_fc)
     np.testing.assert_allclose(fit.sigma_D, sigma_diffusion)
+
+
+@pytest.mark.parametrize(
+    "corner_frequency,diffusion_constant,num_samples,alpha,f_diode,f_diode_est",
+    [
+        [4000, 1e-9, 78125, 0.0, 16000.0, 16000.0],
+        [5000, 1.2e-9, 78125, 0.0, 15000.0, 15000.0],
+    ],
+)
+def test_guess_f_diode_guess(
+    reference_models, corner_frequency, diffusion_constant, num_samples, alpha, f_diode, f_diode_est
+):
+    data, f_sample = reference_models.lorentzian_td(
+        corner_frequency, diffusion_constant, alpha, f_diode, num_samples // 2
+    )
+    ps = PowerSpectrum(data, sample_rate=f_sample)
+    np.testing.assert_allclose(
+        guess_f_diode_initial_value(ps, corner_frequency, diffusion_constant), f_diode_est
+    )
 
 
 def test_fit_analytic_curve():
