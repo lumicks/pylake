@@ -32,6 +32,7 @@
 #### Breaking changes
 
 * Dropped support for Python 3.6.
+* Pylake now depends on `numpy>=1.20`. This change is required to use a different fft normalization in the force calibration tests.
 * The attribute `image_data` in `KymoLine` is now private.
 * Make kymotracker functions `track_greedy()`, `track_lines()`, and class `KymoWidgetGreedy` take `Kymo` and a channel (e.g. "red") as their input.
   The advantage of this is that now units of time (seconds) and space (microns) are propagated automatically to the tracked `KymoLine`s.
