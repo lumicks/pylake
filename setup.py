@@ -52,7 +52,7 @@ setup(
     install_requires=[
         "pytest>=3.5",
         "h5py>=3.0, <4",
-        "numpy>=1.14, <2",
+        "numpy>=1.20, <2",
         "scipy>=1.1, <2",
         "matplotlib>=2.2",
         "tifffile>=2019.7.26",
