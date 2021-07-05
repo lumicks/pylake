@@ -249,7 +249,11 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
         )
 
     tifffile.imsave(
-        filename, image.astype(dtype), resolution=metadata.resolution, metadata=metadata.metadata
+        filename,
+        image.astype(dtype),
+        resolution=metadata.resolution,
+        metadata=metadata.metadata,
+        photometric="rgb",
     )
 
 

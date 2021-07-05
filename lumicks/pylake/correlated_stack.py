@@ -274,6 +274,7 @@ class CorrelatedStack:
                     metadata=None,  # suppress tifffile default ImageDescription tag
                     contiguous=False,  # needed to write tags on each page
                     extratags=parse_tags(frame),
+                    photometric="rgb" if frame.is_rgb else "minisblack",
                 )
 
     @property
