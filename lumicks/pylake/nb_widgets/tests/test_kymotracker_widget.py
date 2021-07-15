@@ -6,6 +6,13 @@ import numpy as np
 import pytest
 
 
+def calibrate_to_kymo(kymo):
+    return (
+        lambda coord_idx: kymo.pixelsize_um[0] * coord_idx,
+        lambda time_idx: kymo.line_time_seconds * time_idx,
+    )
+
+
 @cleanup
 def test_widget_open(kymograph):
     KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
@@ -42,15 +49,18 @@ def test_track_kymo(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     assert len(kymo_widget.lines) == 0
 
+    in_um, in_s = calibrate_to_kymo(kymograph)
+
     # Track a line in a particular region. Only a single line exists in this region.
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
-    kymo_widget.track_kymo(*region_select(8, 10, 9, 20))
+    kymo_widget.track_kymo(*region_select(in_um(8), in_s(10), in_um(9), in_s(20)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(10, 20))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 10)
     assert len(kymo_widget.lines) == 1
 
-    # Verify that if we track the same region, the old one gets deleted and we track the same line again.
-    kymo_widget.track_kymo(*region_select(8, 15, 9, 20))
+    # Verify that if we track the same region, the old one gets deleted and we track the same line
+    # again.
+    kymo_widget.track_kymo(*region_select(in_um(8), in_s(15), in_um(9), in_s(20)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(15, 20))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 5)
     assert len(kymo_widget.lines) == 1
@@ -61,7 +71,7 @@ def test_track_kymo(kymograph, region_select):
 
     # Remove a single line
     kymo_widget.adding = False
-    kymo_widget.track_kymo(*region_select(8, 15, 9, 20))
+    kymo_widget.track_kymo(*region_select(in_um(8), in_s(15), in_um(9), in_s(20)))
     assert len(kymo_widget.lines) == 2
 
 
@@ -90,9 +100,10 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
 
 def test_refine_from_widget(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
+    in_um, in_s = calibrate_to_kymo(kymograph)
 
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
-    kymo_widget.track_kymo(*region_select(12, 5, 13, 20))
+    kymo_widget.track_kymo(*region_select(in_um(12), in_s(5), in_um(13), in_s(20)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 13)
     assert len(kymo_widget.lines) == 1
@@ -123,16 +134,37 @@ def test_stitch(kymograph, mockevent):
 
     assert len(kymo_widget.lines) == 2
 
+    in_um, in_s = calibrate_to_kymo(kymograph)
+
     # Drag but stop too early (not leading to a connected line)
-    kymo_widget._line_connector.button_down(mockevent(kymo_widget._axes, 3, 1, 3, 0))
-    kymo_widget._line_connector.button_release(mockevent(kymo_widget._axes, 4, 3, 3, 0))
+    kymo_widget._line_connector.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
+    kymo_widget._line_connector.button_release(
+        mockevent(kymo_widget._axes, in_s(4), in_um(3), 3, 0)
+    )
     assert len(kymo_widget.lines) == 2
 
     # Drag all the way (stitch the two)
-    kymo_widget._line_connector.button_down(mockevent(kymo_widget._axes, 3, 1, 3, 0))
-    kymo_widget._line_connector.button_release(mockevent(kymo_widget._axes, 6, 3, 3, 0))
+    kymo_widget._line_connector.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
+    kymo_widget._line_connector.button_release(
+        mockevent(kymo_widget._axes, in_s(6), in_um(3), 3, 0)
+    )
 
     # Verify the stitched line
-    np.testing.assert_allclose(kymo_widget.lines[0].seconds, [1, 2, 3, 6, 7, 8])
-    np.testing.assert_allclose(kymo_widget.lines[0].position, [1, 1, 1, 3, 3, 3])
+    np.testing.assert_allclose(kymo_widget.lines[0].time_idx, [1, 2, 3, 6, 7, 8])
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [1, 1, 1, 3, 3, 3])
     assert len(kymo_widget.lines) == 1
+
+
+def test_refine_line_width_units(kymograph, region_select):
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, line_width=2, use_widgets=False)
+    in_um, in_s = calibrate_to_kymo(kymograph)
+
+    kymo_widget.algorithm_parameters["pixel_threshold"] = 4
+    kymo_widget.track_kymo(*region_select(in_um(12), in_s(5), in_um(13), in_s(20)))
+    kymo_widget.refine()
+
+    # With this line_width we'll include the two dim pixels in the test data
+    true_coordinate = [12.176471] * 15
+    true_coordinate[2] = 12
+    true_coordinate[3] = 12
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, true_coordinate)
