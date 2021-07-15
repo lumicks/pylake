@@ -114,7 +114,7 @@ In this mode you can click the end of one kymoline with the right mouse button a
 Note that in this data for example, there are some regions where fluorescence starts building up on the surface of the
 bead. This binding should be omitted from the analysis::
 
-    kymowidget = lk.KymoWidgetGreedy(kymo_ds, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=1.4, vmax=8)
+    kymowidget = lk.KymoWidgetGreedy(kymo_ds, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14, vmax=8)
 
 .. image:: kymowidget.png
 

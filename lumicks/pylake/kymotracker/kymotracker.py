@@ -51,7 +51,7 @@ def track_greedy(
     channel : str
         Kymograph channel.
     line_width : float
-        Expected line width in pixels.
+        Expected line width in physical units.
     pixel_threshold : float
         Intensity threshold for the pixels. Local maxima above this intensity level will be
         designated as a line origin.
@@ -64,12 +64,14 @@ def track_greedy(
         to allow more positional variation in the lines. If none, the algorithm will use half the
         line width.
     vel : float
-        Expected velocity of the traces in the image. This can be used for non-static particles that
-        are expected to move at an expected rate (default: 0.0).
+        Expected velocity of the traces in the image in physical units. This can be used for
+        non-static particles that are expected to move at an expected rate (default: 0.0).
     diffusion : float
-        Expected diffusion constant (default: 0.0). This parameter will influence whether a peak in
-        the next frame will be connected to this one. Increasing this value will make the algorithm
-        allow more positional variation in.
+        Expected diffusion constant in physical units (default: 0.0). This parameter will influence
+        whether a peak in the next frame will be connected to this one. Increasing this value will
+        make the algorithm allow more positional variation over time. If a particle disappears for
+        a few frames and then reappears, points before and after the interval where the particle
+        was not visible are more likely to be connected with a higher diffusion setting.
     sigma_cutoff : float
         Sets at how many standard deviations from the expected trajectory a particle no longer
         belongs to this trace. Lower values result in traces being more stringent in terms of
@@ -90,15 +92,17 @@ def track_greedy(
     """
     kymograph_channel = CalibratedKymographChannel.from_kymo(kymograph, channel)
 
-    sigma = sigma if sigma else 0.5 * line_width
+    position_scale = kymograph_channel._pixel_size
+    line_width_pixels = line_width / position_scale
+
     coordinates, time_points = peak_estimate(
-        kymograph_channel.data, np.ceil(0.5 * line_width), pixel_threshold
+        kymograph_channel.data, np.ceil(0.5 * line_width_pixels), pixel_threshold
     )
     if len(coordinates) == 0:
         return []
 
     position, time, m0 = refine_peak_based_on_moment(
-        kymograph_channel.data, coordinates, time_points, np.ceil(0.5 * line_width)
+        kymograph_channel.data, coordinates, time_points, np.ceil(0.5 * line_width_pixels)
     )
 
     if rect:
@@ -107,11 +111,20 @@ def track_greedy(
         position, time, m0 = position[mask], time[mask], m0[mask]
 
     peaks = KymoPeaks(position, time, m0)
-    peaks = merge_close_peaks(peaks, np.ceil(0.5 * line_width))
+    peaks = merge_close_peaks(peaks, np.ceil(0.5 * line_width_pixels))
+
+    # Convert algorithm parameters to pixel units
+    velocity_pixels = vel * kymograph_channel.line_time_seconds / position_scale
+    diffusion_pixels = diffusion / (position_scale ** 2 / kymograph_channel.line_time_seconds)
+    sigma_pixels = sigma / position_scale if sigma else 0.5 * line_width_pixels
 
     lines = points_to_line_segments(
         peaks,
-        kymo_score(vel=vel, sigma=sigma, diffusion=diffusion),
+        kymo_score(
+            vel=velocity_pixels,
+            sigma=sigma_pixels,
+            diffusion=diffusion_pixels,
+        ),
         window=window,
         sigma_cutoff=sigma_cutoff,
     )
@@ -159,7 +172,7 @@ def track_lines(
     channel : str
         Kymograph channel.
     line_width : float
-        Expected line width in pixels.
+        Expected line width in physical units.
     max_lines : int
         Maximum number of lines to trace.
     start_threshold : float
@@ -180,9 +193,10 @@ def track_lines(
     pattern analysis and machine intelligence, 20(2), 113-125.
     """
     kymograph_channel = CalibratedKymographChannel.from_kymo(kymograph, channel)
+
     lines = detect_lines(
         kymograph_channel.data,
-        line_width,
+        line_width / kymograph_channel._pixel_size,
         max_lines=max_lines,
         start_threshold=start_threshold,
         continuation_threshold=continuation_threshold,
@@ -197,7 +211,10 @@ def track_lines(
 
 
 def filter_lines(lines, minimum_length):
-    """Remove lines below a specific minimum number of points from the list
+    """Remove lines below a specific minimum number of points from the list.
+
+    This can be used to enforce a minimum number of frames a spot has to be detected in to be
+    considered a valid trace.
 
     Parameters
     ----------
@@ -222,6 +239,8 @@ def refine_lines_centroid(lines, line_width):
         Detected traces on a kymograph.
     line_width : int
         Line width
+    max_iter : int
+        Maximum number of iterations
     """
     interpolated_lines = [line.interpolate() for line in lines]
     time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(

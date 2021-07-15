@@ -46,7 +46,7 @@ use the region from 7 to 22 micrometer. Let's have a look at what that looks lik
     >>> kymo.plot_green(aspect="auto", vmax=5)
     >>> plt.ylim([22, 7])
 
-If we zoom in a bit, we can see that our traces in this image are about 3 pixels wide, so let's set this as our
+If we zoom in a bit, we can see that our traces in this image are about 0.3 microns wide, so let's set this as our
 `line_width`. Note that we invoked `plt.colorbar()` to add a little color legend here.
 
 .. image:: kymo_zoom.png
@@ -58,12 +58,12 @@ Considering that we only want to run the kymotracker on part of the image, we al
 In this case, we track particles between 0 and 350 seconds, and 7 and 22 micron.
 Running the algorithm is easy using the function :func:`~lumicks.pylake.track_greedy`::
 
-    traces = lk.track_greedy(kymo, "green", line_width=3, pixel_threshold=3, window=6, rect=[[0, 7], [350, 22]])
+    traces = lk.track_greedy(kymo, "green", line_width=0.3, pixel_threshold=3, window=6, rect=[[0, 7], [350, 22]])
 
 The result of tracking is a list of kymograph traces::
 
     >>> print(len(traces))  # the number of traces found in the kymo
-    7411
+    7417
 
 Sometimes, we can have very short spurious traces. To remove these from the list of detected traces we can use
 :func:`~lumicks.pylake.filter_lines`. To omit all traces with fewer than 4 detected points, we
@@ -122,7 +122,7 @@ by invoking the following command::
 
 You can optionally also pass algorithm parameters when opening the widget::
 
-    KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=1.4)
+    KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14)
 
 Traced lines are accessible through the `.lines` property::
 
@@ -138,7 +138,7 @@ The second algorithm present is an algorithm that works purely on signal derivat
 the image, and then performing sub-pixel accurate line detection. It can be a bit more robust to low signal levels,
 but is generally less temporally and spatially accurate due to the blurring involved::
 
-    traces = lk.track_lines(kymo, "green", line_width=3, max_lines=50)
+    traces = lk.track_lines(kymo, "green", line_width=0.3, max_lines=50)
 
 The interface is mostly the same, aside from an extra required parameter named `max_lines` which indicates the maximum
 number of lines we want to detect.
