@@ -47,6 +47,7 @@ def test_params():
     assert not Parameter(5.0, 0.0, 1.0, fixed=True) == Parameter(5.0, 0.0, 1.0, fixed=False)
     assert Parameter(5.0, 0.0, 1.0, unit="pN") == Parameter(5.0, 0.0, 1.0, unit="pN")
     assert not Parameter(5.0, 0.0, 1.0, unit="pN") == Parameter(5.0, 0.0, 1.0, unit="potatoes")
+    assert float(Parameter(5.0, 0.0, 1.0, unit="pN")) == 5.0
 
     assert Params(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)}) == \
         Params(**{"M/a": Parameter(5.0), "M/b": Parameter(5.0)})
@@ -176,7 +177,7 @@ def test_model_calls():
 
     np.testing.assert_allclose(model(t, Params(**{"m/d": Parameter(4), "m/c": Parameter(3), "m/b": Parameter(2)})), y_ref)
 
-    with pytest.raises(IndexError):
+    with pytest.raises(KeyError):
         np.testing.assert_allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/d": Parameter(4)})), y_ref)
 
 
