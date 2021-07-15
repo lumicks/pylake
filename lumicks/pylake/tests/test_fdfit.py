@@ -240,7 +240,7 @@ def test_datasets_build_status():
 
 def test_model_fit_object_linking():
     def fetch_params(keys, indices):
-        p_list = list(f.params.keys)
+        p_list = list(f.params.keys())
         return [p_list[x] if x is not None else None for x in indices]
 
     def g(data, mu, sig, a, b, c, d, e, f, q):
@@ -261,7 +261,7 @@ def test_model_fit_object_linking():
     # Asking for the parameters should have triggered a build
     f.params
     assert not f.dirty
-    assert set(f.params.keys) == set(all_params)
+    assert set(f.params.keys()) == set(all_params)
 
     # Check the parameters included in the model
     np.testing.assert_allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
@@ -291,11 +291,11 @@ def test_model_fit_object_linking():
 
     # Since M/r is set fixed in that model, it should not appear as a parameter
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/e_new", "M/f", "M/q"]
-    assert set(f.params.keys) == set(all_params)
+    assert set(f.params.keys()) == set(all_params)
 
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/e_new", "M/f", "M/q", "M/r"]
     f[m2]._add_data("test2", [1, 2, 3], [2, 3, 4], {'M/c': 4, 'M/e': 5})
-    assert set(f.params.keys) == set(all_params)
+    assert set(f.params.keys()) == set(all_params)
     np.testing.assert_allclose(f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8])
     assert np.all(f.datasets[id(m)]._conditions[0].p_local == [None, None, None, None, 4, None, None, None, None])
     assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == \

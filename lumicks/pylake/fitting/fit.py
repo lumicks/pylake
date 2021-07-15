@@ -195,7 +195,7 @@ class Fit:
             parameter_vector[fitted] = params
 
             if show_fit:
-                parameter_names = self.params.keys
+                parameter_names = self.params.keys()
                 for name, value in zip(parameter_names, parameter_vector):
                     self.params[name] = value
                 plt.figure(fig.number)
@@ -242,14 +242,14 @@ class Fit:
         )
         if np.any(out_of_bounds):
             raise ValueError(
-                f"Initial parameters {self.params.keys[fitted][out_of_bounds]} are outside the "
+                f"Initial parameters {self.params.keys()[fitted][out_of_bounds]} are outside the "
                 f"parameter bounds. Please set value, lower_bound and upper_bound for these parameters"
                 f"to consistent values."
             )
 
         parameter_vector = self._fit(parameter_vector, lb, ub, fitted, show_fit=show_fit, **kwargs)
 
-        parameter_names = self.params.keys
+        parameter_names = self.params.keys()
         for name, value in zip(parameter_names, parameter_vector):
             self.params[name] = value
 
@@ -387,7 +387,7 @@ class Fit:
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
         if not is_close:
-            parameter_names = list(self.params.keys)
+            parameter_names = list(self.params.keys())
             if verbose:
                 maxima = np.max(jacobian - jacobian_fd, axis=1)
                 for i, v in enumerate(maxima):
