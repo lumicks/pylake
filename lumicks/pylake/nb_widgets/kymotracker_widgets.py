@@ -80,6 +80,11 @@ class KymoWidget:
 
         self.show(use_widgets=use_widgets, **kwargs)
 
+    @property
+    def _line_width_pixels(self):
+        calibrated_image = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
+        return np.ceil(self.algorithm_parameters["line_width"] / calibrated_image._pixel_size)
+
     def track_kymo(self, click, release):
         """Handle mouse release event.
 
@@ -201,7 +206,7 @@ class KymoWidget:
         try:
             self.save_lines(
                 self.output_filename,
-                sampling_width=int(np.ceil(0.5 * self.algorithm_parameters["line_width"])),
+                sampling_width=int(np.ceil(0.5 * self._line_width_pixels)),
             )
             self._set_label(f"Saved {self.output_filename}")
         except (RuntimeError, IOError) as exception:
@@ -255,7 +260,7 @@ class KymoWidget:
         )
 
     def refine(self):
-        self.lines = refine_lines_centroid(self.lines, self.algorithm_parameters["line_width"])
+        self.lines = refine_lines_centroid(self.lines, self._line_width_pixels)
         self.update_lines()
 
     def create_algorithm_sliders(self):
@@ -318,7 +323,7 @@ class KymoWidget:
                 disabled=False,
                 min=1,
                 max=10,
-                tooltip="Lines below this length are filtered out",
+                tooltip="Minimum number of frames a spot has to be detected in to be considered",
             ),
         )
 
@@ -439,7 +444,7 @@ class KymoWidgetGreedy(KymoWidget):
         kymo,
         channel,
         axis_aspect_ratio=None,
-        line_width=4,
+        line_width=None,
         pixel_threshold=None,
         window=4,
         sigma=None,
@@ -459,45 +464,47 @@ class KymoWidgetGreedy(KymoWidget):
             Kymograph.
         channel : str
             Kymograph channel to use.
-        axis_aspect_ratio : float
+        axis_aspect_ratio : float, optional
             Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin. This helps you
             visualize them anyway.
-        line_width : float
-            Expected width of the particles in pixels.
-        pixel_threshold : float
+        line_width : float, optional
+            Expected width of the particles in physical units. Defaults to 4 * pixel size.
+        pixel_threshold : float, optional
             Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a line
-            origin.
-        window : int
-            Number of kymograph lines in which the particle is allowed to disappear (and still be part of the same
-            line).
-        sigma : float or None
+            origin. Defaults to 98th percentile of the pixel intensities.
+        window : int, optional
+            Number of kymograph frames in which the particle is allowed to disappear (and still be part of the same
+            line). Defaults to 4.
+        sigma : float or None, optional
             Uncertainty in the particle position. This parameter will determine whether a peak in the next frame will be
             linked to this one. Increasing this value will make the algorithm tend to allow more positional variation in
             the lines. If none, the algorithm will use half the line width.
-        vel : float
+        vel : float, optional
             Expected velocity of the traces in the image. This can be used for non-static particles that are expected to
             move at an expected rate (default: 0.0).
-        diffusion : float
+        diffusion : float, optional
             Expected diffusion constant (default: 0.0). This parameter will influence whether a peak in the next frame
             will be connected to this one. Increasing this value will make the algorithm allow more positional variation
             in.
-        sigma_cutoff : float
+        sigma_cutoff : float, optional
             Sets at how many standard deviations from the expected trajectory a particle no longer belongs to this
             trace.
             Lower values result in traces being more stringent in terms of continuing (default: 2.0).
-        min_length : int
-            Minimum length of a trace. Traces shorter than this are discarded.
-        use_widgets : bool
+        min_length : int, optional
+            Minimum length of a trace. Minimum number of frames a spot has to be detected in to be
+            considered. Defaults to 3.
+        use_widgets : bool, optional
             Add interactive widgets for interacting with algorithm parameters.
-        output_filename : str
+        output_filename : str, optional
             Filename to save to and load from.
         """
         algorithm = track_greedy
+        calibrated_kymo_channel = CalibratedKymographChannel.from_kymo(kymo, channel)
+        position_scale = calibrated_kymo_channel._pixel_size
+        line_width = 4 * position_scale if line_width is None else line_width
         algorithm_parameters = {
             "line_width": line_width,
-            "pixel_threshold": np.percentile(
-                CalibratedKymographChannel.from_kymo(kymo, channel).data.flatten(), 98
-            )
+            "pixel_threshold": np.percentile(calibrated_kymo_channel.data.flatten(), 98)
             if pixel_threshold is None
             else pixel_threshold,
             "window": window,
@@ -530,12 +537,14 @@ class KymoWidgetGreedy(KymoWidget):
             maximum=15,
             slider_type=ipywidgets.IntSlider,
         )
+        calibrated_kymo_channel = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
+        position_scale = calibrated_kymo_channel._pixel_size
         thresh_slider = self._add_slider(
             "Threshold",
             "pixel_threshold",
             "Set the pixel threshold.",
             minimum=1,
-            maximum=np.max(CalibratedKymographChannel.from_kymo(self._kymo, self._channel).data),
+            maximum=np.max(calibrated_kymo_channel.data),
             step_size=1,
             slider_type=ipywidgets.IntSlider,
         )
@@ -544,17 +553,19 @@ class KymoWidgetGreedy(KymoWidget):
             "line_width",
             "Estimated spot width.",
             minimum=0.0,
-            maximum=15.0,
-            step_size=0.001,
+            maximum=15.0 * position_scale,
+            step_size=0.001 * position_scale,
             slider_type=ipywidgets.FloatSlider,
         )
         sigma_slider = self._add_slider(
             "Sigma",
             "sigma",
             "How much does the line fluctuate?",
-            minimum=1.0,
-            maximum=5.0,
-            step_size=0.001,
+            minimum=1.0 * position_scale,
+            maximum=5.0 * position_scale,
+            step_size=0.001 * position_scale,
             slider_type=ipywidgets.FloatSlider,
         )
-        return ipywidgets.VBox([thresh_slider, line_width_slider, window_slider, sigma_slider])
+        return ipywidgets.VBox(
+            [thresh_slider, line_width_slider, window_slider, sigma_slider]
+        )
