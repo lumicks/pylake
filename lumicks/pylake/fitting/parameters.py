@@ -220,7 +220,6 @@ class Params:
 
         self._src = new_params
 
-    @property
     def keys(self):
         return np.asarray([key for key in self._src.keys()])
 

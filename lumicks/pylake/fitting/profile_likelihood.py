@@ -288,10 +288,10 @@ class ProfileLikelihood1D:
 
         self.profile_info = ProfileInfo(
             minimum_chi2=chi2_function(parameters.values),
-            profiled_parameter_index=list(parameters.keys).index(parameter_name),
+            profiled_parameter_index=list(parameters.keys()).index(parameter_name),
             delta_chi2=chi2.ppf(options["confidence_level"], options["num_dof"]),
             confidence_level=options["confidence_level"],
-            parameter_names=list(parameters.keys),
+            parameter_names=list(parameters.keys()),
         )
 
         fitted = parameters.fitted
