@@ -53,6 +53,16 @@ We can also obtain the parameters as a list::
 
 As we can see from the model equation, the model is given as distance as a function of force.
 
+Simulating the model
+--------------------
+
+We can simulate the model by passing a dictionary with parameters values::
+
+    dna = lk.odijk("DNA")
+    force = np.arange(0.1, 14, 0.1)
+    dna(force, {"DNA/Lp": 50.0, "DNA/Lc": 16.0, "DNA/St": 1500.0, "kT": 4.11})
+
+Note how the model name is prefixed to the model specific parameters, forming a key-value pair like so: `"name/parameter": value`.
 
 Model composition and inversion
 -------------------------------

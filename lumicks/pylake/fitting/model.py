@@ -135,9 +135,16 @@ class Model:
         params : ``pylake.fitting.Params``
         """
         independent = np.asarray(independent, dtype=np.float64)
+        missing_parameters = set(self.parameter_names) - set(params.keys())
+        if missing_parameters:
+            raise KeyError(
+                f"The following missing parameters must be specified to simulate the "
+                f"model: {missing_parameters}."
+            )
+
         return self._raw_call(
             independent,
-            np.asarray([params[name].value for name in self.parameter_names], dtype=np.float64),
+            np.asarray([float(params[name]) for name in self.parameter_names], dtype=np.float64),
         )
 
     def _raw_call(self, independent, param_vector):

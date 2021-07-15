@@ -50,6 +50,9 @@ class Parameter:
         self.profile = None
         self.stderr = None
 
+    def __float__(self):
+        return float(self.value)
+
     def __eq__(self, other):
         return (
             all((getattr(self, x) == getattr(other, x) for x in self.__slots__))
