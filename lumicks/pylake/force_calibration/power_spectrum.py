@@ -53,6 +53,27 @@ class PowerSpectrum:
 
         return ba
 
+    def _exclude_range(self, excluded_ranges):
+        """Exclude given frequency ranges from the power spectrum.
+
+        This function can be used to exclude noise peaks.
+
+        Parameters
+        ----------
+        excluded_ranges : list of tuple of float
+            List of ranges to exclude specified as a list of (frequency_min, frequency_max)."""
+        if not excluded_ranges:
+            return copy(self)
+
+        ps = copy(self)
+        indices = np.logical_and.reduce(
+            [(ps.frequency < f_min) | (ps.frequency >= f_max) for f_min, f_max in excluded_ranges]
+        )
+
+        ps.frequency = ps.frequency[indices]
+        ps.power = ps.power[indices]
+        return ps
+
     def in_range(self, frequency_min, frequency_max):
         """Returns part of the power spectrum within a given frequency range."""
         ir = copy(self)

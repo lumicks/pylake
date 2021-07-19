@@ -130,7 +130,9 @@ def guess_f_diode_initial_value(ps, guess_fc, guess_D):
         return 2 * f_nyquist
 
 
-def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000):
+def calculate_power_spectrum(
+    data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=None
+):
     """Compute power spectrum and returns it as a :class:`~.PowerSpectrum`.
 
     Parameters
@@ -139,11 +141,14 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
         Data used for calibration.
     sample_rate : float
         Sampling rate [Hz]
-    fit_range : tuple (f_min, f_max), optional
-        Tuple of two floats, indicating the frequency range to use for the
-        full model fit [Hz]
+    fit_range : tuple of float, optional
+        Tuple of two floats (f_min, f_max), indicating the frequency range to use for the
+        full model fit. [Hz]
     num_points_per_block : int, optional
         The spectrum is first block averaged by this number of points per block.
+        Default: 2000.
+    excluded_ranges : list of tuple of float, optional
+        List of ranges to exclude specified as a list of (frequency_min, frequency_max).
 
     Returns
     -------
@@ -154,7 +159,7 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
         raise TypeError('Argument "data" must be a numpy vector')
 
     power_spectrum = PowerSpectrum(data, sample_rate)
-    power_spectrum = power_spectrum.in_range(*fit_range)
+    power_spectrum = power_spectrum.in_range(*fit_range)._exclude_range(excluded_ranges)
     power_spectrum = power_spectrum.downsampled_by(num_points_per_block)
 
     return power_spectrum

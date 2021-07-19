@@ -104,3 +104,24 @@ def test_replace_spectrum():
     np.testing.assert_allclose(replaced.num_points_per_block, 1)
     np.testing.assert_allclose(replaced.sample_rate, power_spectrum.sample_rate)
     np.testing.assert_allclose(replaced.total_duration, power_spectrum.total_duration)
+
+
+@pytest.mark.parametrize(
+    "exclusion_ranges, result_frequency, result_power",
+    [
+        [[], [1, 3, 5, 7, 9, 11], [10, 30, 50, 70, 90, 110]],  # Empty exclusion range
+        [[(3, 5)], [1, 5, 7, 9, 11], [10, 50, 70, 90, 110]],
+        [[(3, 6)], [1, 7, 9, 11], [10, 70, 90, 110]],
+        [[(3, 6), (3, 6)], [1, 7, 9, 11], [10, 70, 90, 110]],  # Same exclusion range twice
+        [[(5, 6), (3, 8)], [1, 9, 11], [10, 90, 110]],  # Overlapping range
+        [[(3, 8), (5, 6)], [1, 9, 11], [10, 90, 110]],  # Overlapping range (different order)
+        [[(3, 6), (9, 10)], [1, 7, 11], [10, 70, 110]],  # Disjoint range
+    ],
+)
+def test_exclusions(exclusion_ranges, result_frequency, result_power):
+    ps = PowerSpectrum([1], 78125, unit="V")
+    ps.frequency = np.arange(1, 12, 2)
+    ps.power = np.arange(10, 120, 20)
+    excluded_range = ps._exclude_range(exclusion_ranges)
+    np.testing.assert_allclose(excluded_range.frequency, result_frequency)
+    np.testing.assert_allclose(excluded_range.power, result_power)
