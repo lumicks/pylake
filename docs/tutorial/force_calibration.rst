@@ -41,9 +41,10 @@ This function returns a power_spectrum which we can plot::
 .. image:: force_calibration_blocked_spectrum.png
 
 Note that the computation of the power spectrum involves some downsampling.
-If you wish to change the amount of downsampling applied or which range to compute the spectrum for, you can specify these as additional arguments::
 
-    lk.calculate_power_spectrum(volts, sample_rate=force_slice.sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000)
+Additional parameters can be specified to change the amount of downsampling applied (`num_points_per_block`), the range over which to compute the spectrum (`fit_range`) or to exclude specific frequency ranges from the spectrum (`excluded_ranges`)::
+
+    power_spectrum = lk.calculate_power_spectrum(volts, sample_rate=force_slice.sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=[(700, 800), (14500, 14600)])
 
 To fit the passive calibration data, we will use a model based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2006power`.
 This model can be found in :class:`~.PassiveCalibrationModel`. It is calibrated by fitting the following equation to the power spectrum:
