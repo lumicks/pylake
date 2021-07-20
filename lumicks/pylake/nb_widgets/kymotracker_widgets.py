@@ -566,6 +566,16 @@ class KymoWidgetGreedy(KymoWidget):
             step_size=0.001 * position_scale,
             slider_type=ipywidgets.FloatSlider,
         )
+        vel_calibration = position_scale / calibrated_kymo_channel.line_time_seconds
+        vel_slider = self._add_slider(
+            "Velocity",
+            "vel",
+            "How fast does the particle move?",
+            minimum=-5.0 * vel_calibration,
+            maximum=5.0 * vel_calibration,
+            step_size=0.001 * vel_calibration,
+            slider_type=ipywidgets.FloatSlider,
+        )
         return ipywidgets.VBox(
-            [thresh_slider, line_width_slider, window_slider, sigma_slider]
+            [thresh_slider, line_width_slider, window_slider, sigma_slider, vel_slider]
         )
