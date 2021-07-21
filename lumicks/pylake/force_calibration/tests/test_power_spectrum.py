@@ -61,6 +61,66 @@ def test_power_spectrum_blocking(frequency, num_data, sample_rate, num_blocks, f
 
 
 @pytest.mark.parametrize(
+    "amp, frequency, data_duration, sample_rate, multiple",
+    [
+        [1.0, 36.33, 5, 78125, 5],
+        [1.0, 36.33, 5, 78125, 5],
+        [1.0, 37.33, 5, 78125, 5],
+        [1.0, 37.33, 10, 78125, 5],
+        [2.0, 37.33, 5, 78125, 5],
+        [3.0, 37.33, 5, 78125, 5],
+        [3.0, 1000.5, 5, 78125, 5],
+    ],
+)
+def test_windowing_sine_wave(amp, frequency, data_duration, sample_rate, multiple):
+    """Functional test whether the results of windowing the power spectrum are correct"""
+    data = amp * np.sin(
+        2.0 * np.pi * frequency / sample_rate * np.arange(data_duration * sample_rate)
+    )
+
+    window_duration = multiple / frequency
+    power_spectrum_windowed = PowerSpectrum(data, sample_rate, window_seconds=window_duration)
+
+    # Windowing with the correct window size makes the full power end up in a single bin (this is
+    # the property we're after).
+    delta_freq = power_spectrum_windowed.frequency[1] - power_spectrum_windowed.frequency[0]
+    max_idx = np.argmax(power_spectrum_windowed.power)
+    power, freq = power_spectrum_windowed.power[max_idx], power_spectrum_windowed.frequency[max_idx]
+    np.testing.assert_allclose(freq, frequency, atol=delta_freq)
+    np.testing.assert_allclose(power * delta_freq, amp ** 2 / 2, rtol=1e-4)
+
+    # Check whether we report the correct amount of averaging
+    num_points_per_window = int(np.round((window_duration * sample_rate)))
+    assert power_spectrum_windowed.num_points_per_block == len(data) // num_points_per_window
+
+    # When we don't use windowing, we leak when the driving frequency is not an exact multiple of
+    # the sampling rate.
+    power_spectrum = PowerSpectrum(data, sample_rate)
+    low_power = np.max(power_spectrum.power) * (
+        power_spectrum.frequency[1] - power_spectrum.frequency[0]
+    )
+    assert low_power < (power * delta_freq)
+
+
+def test_windowing_too_long_duration():
+    sample_rate = 78125
+    data = np.sin(2.0 * np.pi * 36.33 / sample_rate * np.arange(2 * sample_rate))
+    ref_power_spectrum = PowerSpectrum(data, sample_rate)
+
+    with pytest.warns(RuntimeWarning):
+        power_spectrum_windowed = PowerSpectrum(data, sample_rate, window_seconds=50000000)
+
+    assert power_spectrum_windowed.num_points_per_block == 1
+    np.testing.assert_allclose(ref_power_spectrum.frequency, power_spectrum_windowed.frequency)
+    np.testing.assert_allclose(ref_power_spectrum.power, power_spectrum_windowed.power)
+
+
+def test_windowing_negative_duration():
+    with pytest.raises(ValueError):
+        PowerSpectrum([], 78125, window_seconds=-1)
+
+
+@pytest.mark.parametrize(
     "frequency, num_data, sample_rate, num_blocks, f_min, f_max",
     [
         [200, 50, 2000, 4, 0, 10000],
