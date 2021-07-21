@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
@@ -19,7 +20,7 @@ class PowerSpectrum:
         The total duration of the original data. [seconds]
     """
 
-    def __init__(self, data, sample_rate, unit="V"):
+    def __init__(self, data, sample_rate, unit="V", window_seconds=None):
         """Power spectrum
 
         Parameters
@@ -27,22 +28,46 @@ class PowerSpectrum:
         data : numpy.ndarray
             Data from which to calculate a power spectrum.
         sample_rate : float
-            Sampling rate at which this data was acquired.
+            Sampling rate at which this data was acquired [Hz].
         unit : str
             Units the data is in (default: V).
+        window_seconds : float
+            Window duration [seconds]. When specified the data is divided into blocks of length
+            window_seconds. Power spectra are computed for each block after which they are
+            averaged. If omitted, no windowing is used.
         """
+        if window_seconds is not None and window_seconds <= 0:
+            raise ValueError("window_seconds must be positive")
+
+        def squared_fft(d):
+            return np.square(np.abs(np.fft.rfft(d)))
+
         self.unit = unit
         data = data - np.mean(data)
 
-        # Calculate power spectrum.
-        fft = np.fft.rfft(data)
-        self.frequency = np.fft.rfftfreq(data.size, 1.0 / sample_rate)
-        self.power = (2.0 / sample_rate) * np.square(np.abs(fft)) / data.size
+        # Calculate power spectrum for slices of data.
+        num_points_per_window = (
+            int(np.round(window_seconds * sample_rate)) if window_seconds else len(data)
+        )
+        if num_points_per_window > len(data):
+            warnings.warn(RuntimeWarning("Longer window than data duration: not using windowing."))
+            num_points_per_window = len(data)
+
+        squared_fft_chunks = [
+            squared_fft(
+                data[chunk_idx * num_points_per_window : (chunk_idx + 1) * num_points_per_window]
+            )
+            for chunk_idx in np.arange(len(data) // num_points_per_window)
+        ]
+        squared_fft = np.mean(squared_fft_chunks, axis=0)
+
+        self.frequency = np.fft.rfftfreq(num_points_per_window, 1.0 / sample_rate)
+        self.power = (2.0 / sample_rate) * squared_fft / num_points_per_window
 
         # Store metadata
         self.sample_rate = sample_rate
         self.total_duration = data.size / sample_rate
-        self.num_points_per_block = 1
+        self.num_points_per_block = len(squared_fft_chunks)
 
     def downsampled_by(self, factor, reduce=np.mean):
         """Returns a spectrum downsampled by a given factor."""
