@@ -149,6 +149,11 @@ class Kymo(ConfocalImage):
         # downsample exactly over the scanline time range
         min_times = self.timestamps[0, :].astype(np.int64)
         max_times = self.timestamps[-1, :].astype(np.int64)
+
+        # If the last line is incomplete, drop it!
+        if max_times[-1] == 0:
+            min_times, max_times = min_times[:-1], max_times[:-1]
+
         time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]
         return force.downsampled_over(time_ranges, reduce=reduce, where="center")
 
@@ -157,10 +162,12 @@ class Kymo(ConfocalImage):
     ):
         """Plot kymo with force channel downsampled over scan lines
 
+        Note that high frequency channel data must be available for this function to work.
+
         Parameters
         ----------
         force_channel: str
-            name of force channel to downsample and plot
+            name of force channel to downsample and plot (e.g. '1x')
         color_channel: str
             color channel of kymo to plot ('red', 'green', 'blue', 'rgb')
         aspect_ratio: float
