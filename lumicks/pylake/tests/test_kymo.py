@@ -172,6 +172,22 @@ def test_plotting_with_force(h5_file):
 
 
 @cleanup
+def test_regression_plot_with_force(h5_file):
+    # Plot_with_force used to fail when the last line of a kymograph was incomplete. The reason for
+    # this was that the last few timestamps on the last line had zero as their timestamp. This meant
+    # it was trying to downsample a range from X to 0, which made the downsampler think that there
+    # was no overlap between the kymograph and the force channel (as it checks the last timestamp
+    # of the ranges to downsample to against the first one of the channel to downsample).
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+        incomplete_last_line_timestamps = kymo.timestamps
+        incomplete_last_line_timestamps[-1, -1] = 0
+        kymo._timestamp_factory = lambda self: incomplete_last_line_timestamps
+        kymo.plot_with_force(force_channel="2x", color_channel="red")
+
+
+@cleanup
 def test_plotting_with_histograms(h5_file):
     def get_rectangle_data():
         widths = [p.get_width() for p in plt.gca().patches]
