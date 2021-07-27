@@ -286,7 +286,6 @@ def fit_power_spectrum(
         },
         params={
             **model.calibration_parameters(),
-            "Model": CalibrationParameter("Calibration model", model.__name__(), ""),
             "Max iterations": CalibrationParameter(
                 "Maximum number of function evaluations", max_function_evals, ""
             ),
