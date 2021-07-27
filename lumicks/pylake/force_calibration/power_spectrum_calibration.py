@@ -36,33 +36,6 @@ from lumicks.pylake.force_calibration.detail.power_models import (
 )
 
 
-class CalibrationSettings:
-    """Power spectrum calibration algorithm settings
-
-    Attributes
-    ----------
-    analytical_fit_range : tuple (f_min, f_max), optional
-        Tuple of two floats, indicating the frequency range to use for the
-        analytical simple Lorentzian fit, used to obtain initial parameter
-        guesses. Default: (1e1, 1e4) [Hz]
-    ftol : float
-        Termination tolerance for the model fit. Default: 1e-7
-    maxfev : int
-        Maximum number of function evaluations during the fit. Default: 10000
-    """
-
-    def __init__(self, **kwargs):
-        self.analytical_fit_range = (1e1, 1e4)
-        self.ftol = 1e-7
-        self.maxfev = 10000
-
-        for k, v in kwargs.items():
-            if k in self.__dict__:
-                setattr(self, k, v)
-            else:
-                raise TypeError("Unknown argument %s" % k)
-
-
 CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value", "unit"])
 
 
@@ -175,7 +148,9 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
     return power_spectrum
 
 
-def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
+def fit_power_spectrum(
+    power_spectrum, model, analytical_fit_range=(1e1, 1e4), ftol=1e-7, max_function_evals=10000
+):
     """Power Spectrum Calibration
 
     Parameters
@@ -184,8 +159,14 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
         A power spectrum used for calibration
     model : CalibrationModel
         The model to be used for power spectrum calibration.
-    settings : CalibrationSettings
-        Calibration algorithm settings.
+    analytical_fit_range : tuple (f_min, f_max), optional
+        Tuple of two floats, indicating the frequency range to use for the
+        analytical simple Lorentzian fit, used to obtain initial parameter
+        guesses. Default: (1e1, 1e4) [Hz]
+    ftol : float
+        Termination tolerance for the model fit. Default: 1e-7
+    max_function_evals : int
+        Maximum number of function evaluations during the fit. Default: 10000
 
     Returns
     -------
@@ -199,11 +180,9 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
         )
     if not isinstance(power_spectrum, PowerSpectrum):
         raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
-    if not isinstance(settings, CalibrationSettings):
-        raise TypeError('Argument "settings" must be of type CalibrationSettings')
 
     # Fit analytical Lorentzian to get initial guesses for the full power spectrum model.
-    analytical_power_spectrum = power_spectrum.in_range(*settings.analytical_fit_range)
+    analytical_power_spectrum = power_spectrum.in_range(*analytical_fit_range)
     if len(analytical_power_spectrum.frequency) < 1:
         raise RuntimeError(
             "An empty power spectrum was passed to fit_analytical_lorentzian. Check"
@@ -243,8 +222,8 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
         sigma=sigma,
         absolute_sigma=True,
         method="lm",
-        ftol=settings.ftol,
-        maxfev=settings.maxfev,
+        ftol=ftol,
+        maxfev=max_function_evals,
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
     perr = np.sqrt(np.diag(pcov))
@@ -296,9 +275,9 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
             **model.calibration_parameters(),
             "Model": CalibrationParameter("Calibration model", model.__name__(), "-"),
             "Max iterations": CalibrationParameter(
-                "Maximum number of function evaluations", settings.maxfev, "-"
+                "Maximum number of function evaluations", max_function_evals, "-"
             ),
-            "Fit tolerance": CalibrationParameter("Fitting tolerance", settings.ftol, "-"),
+            "Fit tolerance": CalibrationParameter("Fitting tolerance", ftol, "-"),
             "Points per block": CalibrationParameter(
                 "Number of points per block", power_spectrum.num_points_per_block, "-"
             ),

@@ -24,7 +24,6 @@ from .force_calibration.calibration_models import PassiveCalibrationModel
 from .force_calibration.power_spectrum_calibration import (
     calculate_power_spectrum,
     fit_power_spectrum,
-    CalibrationSettings,
 )
 
 

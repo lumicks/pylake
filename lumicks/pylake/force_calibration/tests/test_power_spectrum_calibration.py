@@ -2,6 +2,7 @@ from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
 from lumicks.pylake.force_calibration.calibration_models import PassiveCalibrationModel, sphere_friction_coefficient
 from matplotlib.testing.decorators import cleanup
 from textwrap import dedent
+from copy import deepcopy
 import numpy as np
 import scipy as sp
 import os
@@ -16,16 +17,6 @@ def test_model_parameters():
 
     with pytest.raises(TypeError):
         PassiveCalibrationModel(10, invalid_parameter=5)
-
-
-def test_calibration_settings():
-    settings = psc.CalibrationSettings(ftol=1e-6)
-    assert settings.analytical_fit_range == (1e1, 1e4)
-    assert settings.ftol == 1e-6
-    assert settings.maxfev == 10000
-
-    with pytest.raises(TypeError):
-        psc.CalibrationSettings(invalid_parameter=5)
 
 
 def test_input_validation_power_spectrum_calibration():
@@ -105,6 +96,64 @@ def test_good_fit_integration_test(
     np.testing.assert_allclose(ps_calibration["err_D"], err_d, rtol=1e-4, atol=0)
     np.testing.assert_allclose(ps_calibration["err_f_diode"], err_f_diode)
     np.testing.assert_allclose(ps_calibration["err_alpha"], err_alpha, rtol=1e-6)
+
+
+def test_fit_settings(reference_models):
+    """This test tests whether the algorithm parameters ftol, max_function_evals and
+    analytical_fit_range for lk.fit_power_spectrum() are applied as intended."""
+    sample_rate = 78125
+    corner_frequency, diffusion_volt = 4000, 1.14632
+    bead_diameter, temperature, viscosity = 1.03, 20, 1.002e-3
+
+    # alpha = 1.0 means no diode effect
+    data, f_sample = reference_models.lorentzian_td(
+        corner_frequency, diffusion_volt, alpha=1.0, f_diode=14000, num_samples=sample_rate
+    )
+    model = PassiveCalibrationModel(bead_diameter, temperature=temperature, viscosity=viscosity)
+    power_spectrum = psc.calculate_power_spectrum(
+        data, f_sample, fit_range=(0, 23000), num_points_per_block=200
+    )
+
+    # Won't converge with so few maximum function evaluations
+    with pytest.raises(RuntimeError, match="Number of calls to function has reached maxfev"):
+        psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, max_function_evals=1)
+
+    # If we set the termination tolerance very high, even a totally unconverged fit is accepted.
+    psc.fit_power_spectrum(
+        power_spectrum=power_spectrum, model=model, ftol=10, max_function_evals=1
+    )
+
+    # Our simulation has no diode effect, so we should get a reasonable fit from just the analytic
+    # fit even if we don't actually fit (ftol = 1).
+    calib = psc.fit_power_spectrum(
+        power_spectrum=power_spectrum, model=model, ftol=10, max_function_evals=1
+    )
+    np.testing.assert_allclose(calib["fc (Hz)"], corner_frequency, rtol=1e-3)
+    np.testing.assert_allclose(calib["D (V^2/s)"], diffusion_volt, rtol=1e-3)
+
+    # If we corrupt the power spectrum, then the parameters should be quite different
+    bad_power_spectrum = deepcopy(power_spectrum)
+    bad_power_spectrum.power[1] = 1e-8
+    bad_calibration = psc.fit_power_spectrum(
+        power_spectrum=bad_power_spectrum, model=model, ftol=10, max_function_evals=1
+    )
+    assert (
+        np.abs(bad_calibration["fc (Hz)"] - calib["fc (Hz)"]) > 1e-4
+    ), "Fit did not get worse from including bad data."
+    assert (
+        np.abs(bad_calibration["D (V^2/s)"] - calib["D (V^2/s)"]) > 1e-4
+    ), "Fit did not get worse from including bad data."
+
+    # If we exclude that region now, the fit should be OK again.
+    ranged_calibration = psc.fit_power_spectrum(
+        power_spectrum=bad_power_spectrum,
+        model=model,
+        analytical_fit_range=(500, 23000),
+        ftol=10,
+        max_function_evals=1,
+    )
+    np.testing.assert_allclose(ranged_calibration["fc (Hz)"], corner_frequency, rtol=1e-3)
+    np.testing.assert_allclose(ranged_calibration["D (V^2/s)"], diffusion_volt, rtol=1e-3)
 
 
 def test_bad_calibration_result_arg():
