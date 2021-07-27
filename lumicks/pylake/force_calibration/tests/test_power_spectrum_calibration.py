@@ -155,17 +155,36 @@ def reference_calibration_result():
 def test_actual_spectrum(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
 
-    np.testing.assert_allclose(ps_calibration["D (V^2/s)"], 0.0018512665210876748, rtol=1e-4, atol=0)
-    np.testing.assert_allclose(ps_calibration["Rd (um/V)"], 7.253645956145265, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["Rf (pN/V)"], 1243.9711315478219, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["kappa (pN/nm)"], 0.17149598134079505, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["alpha"], 0.5006103727942776, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["backing (%)"], 66.4331056392512, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"], 1.063783302378645, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["err_fc"], 32.23007993226726, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["err_D"], 6.43082000774291e-05, rtol=1e-4, atol=0)
-    np.testing.assert_allclose(ps_calibration["err_alpha"], 0.013141463933316694, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["err_f_diode"], 561.6377089699399, rtol=1e-4)
+    results = {
+        "D (V^2/s)": {"desired": 0.0018512665210876748, "rtol": 1e-4, "atol": 0},
+        "Rd (um/V)": {"desired": 7.253645956145265, "rtol": 1e-4},
+        "Rf (pN/V)": {"desired": 1243.9711315478219, "rtol": 1e-4},
+        "kappa (pN/nm)": {"desired": 0.17149598134079505, "rtol": 1e-4},
+        "alpha": {"desired": 0.5006103727942776, "rtol": 1e-4},
+        "backing (%)": {"desired": 66.4331056392512, "rtol": 1e-4},
+        "chi_squared_per_deg": {"desired": 1.063783302378645, "rtol": 1e-4},
+        "err_fc": {"desired": 32.23007993226726, "rtol": 1e-4},
+        "err_D": {"desired": 6.43082000774291e-05, "rtol": 1e-4, "atol": 0},
+        "err_alpha": {"desired": 0.013141463933316694, "rtol": 1e-4},
+        "err_f_diode": {"desired": 561.6377089699399, "rtol": 1e-4},
+    }
+
+    for name, expected_result in results.items():
+        np.testing.assert_allclose(ps_calibration[name], **expected_result)
+        np.testing.assert_allclose(ps_calibration.results[name].value, **expected_result)
+
+    params = {
+        "Viscosity (Pa*s)": {"desired": 0.001002},
+        "Temperature (C)": {"desired": 20},
+        "Max iterations": {"desired": 10000},
+        "Fit tolerance": {"desired": 1e-07},
+        "Points per block": {"desired": 100},
+        "Sample rate (Hz)": {"desired": 78125}
+    }
+
+    for name, expected_result in params.items():
+        np.testing.assert_allclose(ps_calibration[name], **expected_result)
+        np.testing.assert_allclose(ps_calibration.params[name].value, **expected_result)
 
     # Test whether the model contains the number of points per block that were used to fit it
     np.testing.assert_allclose(ps_calibration.ps_model_fit.num_points_per_block, 100)
@@ -184,7 +203,11 @@ def test_attributes_ps_calibration(reference_calibration_result):
     assert id(ps_calibration.ps_fitted) == id(reference_spectrum)
 
     with pytest.raises(RuntimeError):
-        psc.CalibrationResults(model=None, ps_model_fit=None, ps_fitted=None, params={"test": 5})
+        psc.CalibrationResults(model=None,
+                               ps_model_fit=None,
+                               ps_fitted=None,
+                               params={"test": 5},
+                               results={"test2": 5})
 
 
 def test_repr(reference_calibration_result):
@@ -195,6 +218,11 @@ def test_repr(reference_calibration_result):
         Bead diameter (um)   Bead diameter (um)                                        4.4
         Viscosity (Pa*s)     Liquid viscosity (Pa*s)                                   0.001002
         Temperature (C)      Liquid temperature (C)                                    20
+        Model                Calibration model (-)                                     PassiveCalibrationModel
+        Max iterations       Maximum number of function evaluations (-)                10000
+        Fit tolerance        Fitting tolerance (-)                                     1e-07
+        Points per block     Number of points per block (-)                            100
+        Sample rate (Hz)     Sample rate (Hz)                                          78125
         Rd (um/V)            Distance response (um/V)                                  7.25365
         kappa (pN/nm)        Trap stiffness (pN/nm)                                    0.171496
         Rf (pN/V)            Force response (pN/V)                                     1243.97
@@ -207,9 +235,4 @@ def test_repr(reference_calibration_result):
         err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.638
         err_alpha            Diode 'relaxation factor' Std Err (-)                     0.0131415
         chi_squared_per_deg  Chi squared per degree of freedom (-)                     1.06378
-        backing (%)          Statistical backing (%)                                   66.4331
-        Max iterations       Maximum number of function evaluations (-)                10000
-        Model                Calibration model (-)                                     PassiveCalibrationModel
-        Fit tolerance        Fitting tolerance (-)                                     1e-07
-        Points per block     Number of points per block (-)                            100
-        Sample rate (Hz)     Sample rate (Hz)                                          78125""")
+        backing (%)          Statistical backing (%)                                   66.4331""")

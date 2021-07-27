@@ -17,7 +17,10 @@ class CalibrationModel:
     def __repr__(self):
         return f"{self.__name__()}({''.join([f'{k}={v}, ' for k, v in vars(self).items()])[:-2]})"
 
-    def calibration_parameters(self, fc, diffusion_constant):
+    def calibration_parameters(self):
+        raise NotImplementedError
+
+    def calibration_results(self, fc, diffusion_constant):
         raise NotImplementedError
 
 
@@ -61,7 +64,14 @@ class PassiveCalibrationModel(CalibrationModel):
     def __call__(self, f, fc, diffusion_constant, f_diode, alpha):
         return passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha)
 
-    def calibration_parameters(self, fc, diffusion_constant):
+    def calibration_parameters(self):
+        return {
+            "Bead diameter (um)": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
+            "Viscosity (Pa*s)": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
+            "Temperature (C)": CalibrationParameter("Liquid temperature", self.temperature, "C"),
+        }
+
+    def calibration_results(self, fc, diffusion_constant):
         """Compute calibration parameters from cutoff frequency and diffusion constant.
 
         Parameters
@@ -85,9 +95,6 @@ class PassiveCalibrationModel(CalibrationModel):
         Rf = Rd * kappa * 1e3
 
         return {
-            "Bead diameter (um)": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
-            "Viscosity (Pa*s)": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
-            "Temperature (C)": CalibrationParameter("Liquid temperature", self.temperature, "C"),
             "Rd (um/V)": CalibrationParameter("Distance response", Rd, "um/V"),
             "kappa (pN/nm)": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
             "Rf (pN/V)": CalibrationParameter("Force response", Rf, "pN/V"),
