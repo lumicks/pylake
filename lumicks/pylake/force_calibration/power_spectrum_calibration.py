@@ -77,7 +77,7 @@ class CalibrationResults:
         self.results = results
 
         # A few parameters have to be present for this calibration to be used.
-        mandatory_params = ["kappa (pN/nm)", "Rd (um/V)", "Rf (pN/V)"]
+        mandatory_params = ["kappa (pN/nm)", "Rf (pN/V)"]
         for key in mandatory_params:
             if key not in results:
                 raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
