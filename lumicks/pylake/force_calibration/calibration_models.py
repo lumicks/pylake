@@ -48,7 +48,7 @@ class PassiveCalibrationModel(CalibrationModel):
     bead_diameter : float
         Bead diameter [um].
     viscosity : float, optional
-        Liquid viscosity [Pa*s]. Default: 1.002e-3 Pa*s.
+        Liquid viscosity [Pa*s].
     temperature : float, optional
         Liquid temperature [Celsius].
     """
