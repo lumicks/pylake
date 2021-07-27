@@ -69,21 +69,22 @@ CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value
 class CalibrationResults:
     """Power spectrum calibration results."""
 
-    def __init__(self, model, ps_model_fit, ps_fitted, params):
+    def __init__(self, model, ps_model_fit, ps_fitted, params, results):
         self.model = model
         self.ps_model_fit = ps_model_fit
         self.ps_fitted = ps_fitted
         self.params = params
+        self.results = results
 
         # A few parameters have to be present for this calibration to be used.
         mandatory_params = ["kappa (pN/nm)", "Rd (um/V)", "Rf (pN/V)"]
         for key in mandatory_params:
-            if key not in params:
+            if key not in results:
                 raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
 
     def __getitem__(self, item):
         # Provides the same access pattern as ForceCalibration
-        return self.params[item].value
+        return self.params[item].value if item in self.params else self.results[item].value
 
     def plot(self):
         """Plot the fitted spectrum"""
@@ -92,16 +93,21 @@ class CalibrationResults:
         plt.legend()
 
     def _print_data(self, tablefmt="text"):
-        table = [
-            [
-                key,
-                f"{param.description} ({param.unit})",
-                param.value if isinstance(param.value, str) else f"{param.value:.6g}",
+        def generate_table(entries):
+            return [
+                [
+                    key,
+                    f"{param.description} ({param.unit})",
+                    param.value if isinstance(param.value, str) else f"{param.value:.6g}",
+                ]
+                for key, param in entries.items()
             ]
-            for key, param in self.params.items()
-        ]
 
-        return tabulate(table, ["Name", "Description", "Value"], tablefmt=tablefmt)
+        return tabulate(
+            generate_table(self.params) + generate_table(self.results),
+            ["Name", "Description", "Value"],
+            tablefmt=tablefmt,
+        )
 
     def _repr_html_(self):
         return self._print_data(tablefmt="html")
@@ -265,8 +271,8 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
         model=model,
         ps_fitted=power_spectrum,
         ps_model_fit=ps_model_fit,
-        params={
-            **model.calibration_parameters(
+        results={
+            **model.calibration_results(
                 fc=solution_params[0], diffusion_constant=solution_params[1]
             ),
             "fc (Hz)": CalibrationParameter("Corner frequency", solution_params[0], "Hz"),
@@ -285,10 +291,13 @@ def fit_power_spectrum(power_spectrum, model, settings=CalibrationSettings()):
                 "Chi squared per degree of freedom", chi_squared_per_deg, "-"
             ),
             "backing (%)": CalibrationParameter("Statistical backing", backing, "%"),
+        },
+        params={
+            **model.calibration_parameters(),
+            "Model": CalibrationParameter("Calibration model", model.__name__(), "-"),
             "Max iterations": CalibrationParameter(
                 "Maximum number of function evaluations", settings.maxfev, "-"
             ),
-            "Model": CalibrationParameter("Calibration model", model.__name__(), "-"),
             "Fit tolerance": CalibrationParameter("Fitting tolerance", settings.ftol, "-"),
             "Points per block": CalibrationParameter(
                 "Number of points per block", power_spectrum.num_points_per_block, "-"
