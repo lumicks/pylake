@@ -66,9 +66,9 @@ class PassiveCalibrationModel(CalibrationModel):
 
     def calibration_parameters(self):
         return {
-            "Bead diameter (um)": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
-            "Viscosity (Pa*s)": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
-            "Temperature (C)": CalibrationParameter("Liquid temperature", self.temperature, "C"),
+            "Bead diameter": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
+            "Viscosity": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
+            "Temperature": CalibrationParameter("Liquid temperature", self.temperature, "C"),
         }
 
     def calibration_results(self, fc, diffusion_constant):
@@ -95,7 +95,7 @@ class PassiveCalibrationModel(CalibrationModel):
         Rf = Rd * kappa * 1e3
 
         return {
-            "Rd (um/V)": CalibrationParameter("Distance response", Rd, "um/V"),
-            "kappa (pN/nm)": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
-            "Rf (pN/V)": CalibrationParameter("Force response", Rf, "pN/V"),
+            "Rd": CalibrationParameter("Distance response", Rd, "um/V"),
+            "kappa": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
+            "Rf": CalibrationParameter("Force response", Rf, "pN/V"),
         }
