@@ -40,12 +40,26 @@ CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value
 
 
 class CalibrationResults:
-    """Power spectrum calibration results."""
+    """Power spectrum calibration results.
 
-    def __init__(self, model, ps_model_fit, ps_fitted, params, results):
+    Attributes
+    ----------
+    model : `lumicks.pylake.force_calibration.CalibrationModel`
+        Model used for calibration.
+    ps_model : `lumicks.pylake.PowerSpectrum`
+        Power spectrum of the fitted model.
+    ps_data : `lumicks.pylake.PowerSpectrum`
+        Power spectrum of the data that the model was fitted to.
+    params : dict
+        Dictionary of input parameters.
+    results : dict
+        Dictionary of calibration results.
+    """
+
+    def __init__(self, model, ps_model, ps_data, params, results):
         self.model = model
-        self.ps_model_fit = ps_model_fit
-        self.ps_fitted = ps_fitted
+        self.ps_model = ps_model
+        self.ps_data = ps_data
         self.params = params
         self.results = results
 
@@ -61,8 +75,8 @@ class CalibrationResults:
 
     def plot(self):
         """Plot the fitted spectrum"""
-        self.ps_fitted.plot(label="Data")
-        self.ps_model_fit.plot(label="Model")
+        self.ps_data.plot(label="Data")
+        self.ps_model.plot(label="Model")
         plt.legend()
 
     def _print_data(self, tablefmt="text"):
@@ -242,14 +256,14 @@ def fit_power_spectrum(
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
 
     # Fitted power spectrum values.
-    ps_model_fit = power_spectrum.with_spectrum(
+    ps_model = power_spectrum.with_spectrum(
         model(power_spectrum.frequency, *solution_params), power_spectrum.num_points_per_block
     )
 
     return CalibrationResults(
         model=model,
-        ps_fitted=power_spectrum,
-        ps_model_fit=ps_model_fit,
+        ps_data=power_spectrum,
+        ps_model=ps_model,
         results={
             **model.calibration_results(
                 fc=solution_params[0], diffusion_constant=solution_params[1]
