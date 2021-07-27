@@ -91,7 +91,7 @@ This will produce a table with your fitted calibration parameters.
 
 These parameters can be accessed analogously to the calibrations in Bluelake files::
 
-    >>> print(calibration["kappa (pN/nm)"])
+    >>> print(calibration["kappa"])
     >>> print(f.force1x.calibration[1]["kappa (pN/nm)"])
     0.17432391259341345
     0.17431947810792106

@@ -64,7 +64,7 @@ class CalibrationResults:
         self.results = results
 
         # A few parameters have to be present for this calibration to be used.
-        mandatory_params = ["kappa (pN/nm)", "Rf (pN/V)"]
+        mandatory_params = ["kappa", "Rf"]
         for key in mandatory_params:
             if key not in results:
                 raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
@@ -84,7 +84,7 @@ class CalibrationResults:
             return [
                 [
                     key,
-                    f"{param.description} ({param.unit})",
+                    f"{param.description}{f' ({param.unit})' if param.unit else ''}",
                     param.value if isinstance(param.value, str) else f"{param.value:.6g}",
                 ]
                 for key, param in entries.items()
@@ -268,35 +268,33 @@ def fit_power_spectrum(
             **model.calibration_results(
                 fc=solution_params[0], diffusion_constant=solution_params[1]
             ),
-            "fc (Hz)": CalibrationParameter("Corner frequency", solution_params[0], "Hz"),
-            "D (V^2/s)": CalibrationParameter("Diffusion constant", solution_params[1], "V^2/s"),
-            "f_diode (Hz)": CalibrationParameter(
+            "fc": CalibrationParameter("Corner frequency", solution_params[0], "Hz"),
+            "D": CalibrationParameter("Diffusion constant", solution_params[1], "V^2/s"),
+            "f_diode": CalibrationParameter(
                 "Diode low-pass filtering roll-off frequency", solution_params[2], "Hz"
             ),
-            "alpha": CalibrationParameter("Diode 'relaxation factor'", solution_params[3], "-"),
+            "alpha": CalibrationParameter("Diode 'relaxation factor'", solution_params[3], ""),
             "err_fc": CalibrationParameter("Corner frequency Std Err", perr[0], "Hz"),
             "err_D": CalibrationParameter("Diffusion constant Std Err", perr[1], "V^2/s"),
             "err_f_diode": CalibrationParameter(
                 "Diode low-pass filtering roll-off frequency Std Err", perr[2], "Hz"
             ),
-            "err_alpha": CalibrationParameter("Diode 'relaxation factor' Std Err", perr[3], "-"),
+            "err_alpha": CalibrationParameter("Diode 'relaxation factor' Std Err", perr[3], ""),
             "chi_squared_per_deg": CalibrationParameter(
-                "Chi squared per degree of freedom", chi_squared_per_deg, "-"
+                "Chi squared per degree of freedom", chi_squared_per_deg, ""
             ),
-            "backing (%)": CalibrationParameter("Statistical backing", backing, "%"),
+            "backing": CalibrationParameter("Statistical backing", backing, "%"),
         },
         params={
             **model.calibration_parameters(),
-            "Model": CalibrationParameter("Calibration model", model.__name__(), "-"),
+            "Model": CalibrationParameter("Calibration model", model.__name__(), ""),
             "Max iterations": CalibrationParameter(
-                "Maximum number of function evaluations", max_function_evals, "-"
+                "Maximum number of function evaluations", max_function_evals, ""
             ),
-            "Fit tolerance": CalibrationParameter("Fitting tolerance", ftol, "-"),
+            "Fit tolerance": CalibrationParameter("Fitting tolerance", ftol, ""),
             "Points per block": CalibrationParameter(
-                "Number of points per block", power_spectrum.num_points_per_block, "-"
+                "Number of points per block", power_spectrum.num_points_per_block, ""
             ),
-            "Sample rate (Hz)": CalibrationParameter(
-                "Sample rate", power_spectrum.sample_rate, "Hz"
-            ),
+            "Sample rate": CalibrationParameter("Sample rate", power_spectrum.sample_rate, "Hz"),
         },
     )

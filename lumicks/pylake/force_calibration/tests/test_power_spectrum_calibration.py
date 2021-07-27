@@ -76,10 +76,10 @@ def test_good_fit_integration_test(
     power_spectrum = psc.calculate_power_spectrum(data, f_sample, fit_range=(0, 15000), num_points_per_block=20)
     ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model)
 
-    np.testing.assert_allclose(ps_calibration["fc (Hz)"], corner_frequency, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["D (V^2/s)"], diffusion_constant, rtol=1e-4, atol=0)
+    np.testing.assert_allclose(ps_calibration["fc"], corner_frequency, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["D"], diffusion_constant, rtol=1e-4, atol=0)
     np.testing.assert_allclose(ps_calibration["alpha"], alpha, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["f_diode (Hz)"], f_diode, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["f_diode"], f_diode, rtol=1e-4)
 
     gamma = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
@@ -87,9 +87,9 @@ def test_good_fit_integration_test(
         np.sqrt(sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K") / gamma / diffusion_constant)
         * 1e6
     )
-    np.testing.assert_allclose(ps_calibration["kappa (pN/nm)"], kappa_true, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["Rd (um/V)"], rd_true, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["Rf (pN/V)"], rd_true * kappa_true * 1e3, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["kappa"], kappa_true, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["Rd"], rd_true, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["Rf"], rd_true * kappa_true * 1e3, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"], 0, atol=1e-9)  # Noise free
 
     np.testing.assert_allclose(ps_calibration["err_fc"], err_fc)
@@ -128,8 +128,8 @@ def test_fit_settings(reference_models):
     calib = psc.fit_power_spectrum(
         power_spectrum=power_spectrum, model=model, ftol=10, max_function_evals=1
     )
-    np.testing.assert_allclose(calib["fc (Hz)"], corner_frequency, rtol=1e-3)
-    np.testing.assert_allclose(calib["D (V^2/s)"], diffusion_volt, rtol=1e-3)
+    np.testing.assert_allclose(calib["fc"], corner_frequency, rtol=1e-3)
+    np.testing.assert_allclose(calib["D"], diffusion_volt, rtol=1e-3)
 
     # If we corrupt the power spectrum, then the parameters should be quite different
     bad_power_spectrum = deepcopy(power_spectrum)
@@ -138,10 +138,10 @@ def test_fit_settings(reference_models):
         power_spectrum=bad_power_spectrum, model=model, ftol=10, max_function_evals=1
     )
     assert (
-        np.abs(bad_calibration["fc (Hz)"] - calib["fc (Hz)"]) > 1e-4
+        np.abs(bad_calibration["fc"] - calib["fc"]) > 1e-4
     ), "Fit did not get worse from including bad data."
     assert (
-        np.abs(bad_calibration["D (V^2/s)"] - calib["D (V^2/s)"]) > 1e-4
+        np.abs(bad_calibration["D"] - calib["D"]) > 1e-4
     ), "Fit did not get worse from including bad data."
 
     # If we exclude that region now, the fit should be OK again.
@@ -152,8 +152,8 @@ def test_fit_settings(reference_models):
         ftol=10,
         max_function_evals=1,
     )
-    np.testing.assert_allclose(ranged_calibration["fc (Hz)"], corner_frequency, rtol=1e-3)
-    np.testing.assert_allclose(ranged_calibration["D (V^2/s)"], diffusion_volt, rtol=1e-3)
+    np.testing.assert_allclose(ranged_calibration["fc"], corner_frequency, rtol=1e-3)
+    np.testing.assert_allclose(ranged_calibration["D"], diffusion_volt, rtol=1e-3)
 
 
 def test_bad_calibration_result_arg():
@@ -205,12 +205,12 @@ def test_actual_spectrum(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
 
     results = {
-        "D (V^2/s)": {"desired": 0.0018512665210876748, "rtol": 1e-4, "atol": 0},
-        "Rd (um/V)": {"desired": 7.253645956145265, "rtol": 1e-4},
-        "Rf (pN/V)": {"desired": 1243.9711315478219, "rtol": 1e-4},
-        "kappa (pN/nm)": {"desired": 0.17149598134079505, "rtol": 1e-4},
+        "D": {"desired": 0.0018512665210876748, "rtol": 1e-4, "atol": 0},
+        "Rd": {"desired": 7.253645956145265, "rtol": 1e-4},
+        "Rf": {"desired": 1243.9711315478219, "rtol": 1e-4},
+        "kappa": {"desired": 0.17149598134079505, "rtol": 1e-4},
         "alpha": {"desired": 0.5006103727942776, "rtol": 1e-4},
-        "backing (%)": {"desired": 66.4331056392512, "rtol": 1e-4},
+        "backing": {"desired": 66.4331056392512, "rtol": 1e-4},
         "chi_squared_per_deg": {"desired": 1.063783302378645, "rtol": 1e-4},
         "err_fc": {"desired": 32.23007993226726, "rtol": 1e-4},
         "err_D": {"desired": 6.43082000774291e-05, "rtol": 1e-4, "atol": 0},
@@ -223,12 +223,12 @@ def test_actual_spectrum(reference_calibration_result):
         np.testing.assert_allclose(ps_calibration.results[name].value, **expected_result)
 
     params = {
-        "Viscosity (Pa*s)": {"desired": 0.001002},
-        "Temperature (C)": {"desired": 20},
+        "Viscosity": {"desired": 0.001002},
+        "Temperature": {"desired": 20},
         "Max iterations": {"desired": 10000},
         "Fit tolerance": {"desired": 1e-07},
         "Points per block": {"desired": 100},
-        "Sample rate (Hz)": {"desired": 78125}
+        "Sample rate": {"desired": 78125}
     }
 
     for name, expected_result in params.items():
@@ -264,24 +264,24 @@ def test_repr(reference_calibration_result):
     assert str(ps_calibration) == dedent("""\
         Name                 Description                                               Value
         -------------------  --------------------------------------------------------  -----------------------
-        Bead diameter (um)   Bead diameter (um)                                        4.4
-        Viscosity (Pa*s)     Liquid viscosity (Pa*s)                                   0.001002
-        Temperature (C)      Liquid temperature (C)                                    20
-        Model                Calibration model (-)                                     PassiveCalibrationModel
-        Max iterations       Maximum number of function evaluations (-)                10000
-        Fit tolerance        Fitting tolerance (-)                                     1e-07
-        Points per block     Number of points per block (-)                            100
-        Sample rate (Hz)     Sample rate (Hz)                                          78125
-        Rd (um/V)            Distance response (um/V)                                  7.25365
-        kappa (pN/nm)        Trap stiffness (pN/nm)                                    0.171496
-        Rf (pN/V)            Force response (pN/V)                                     1243.97
-        fc (Hz)              Corner frequency (Hz)                                     656.875
-        D (V^2/s)            Diffusion constant (V^2/s)                                0.00185127
-        f_diode (Hz)         Diode low-pass filtering roll-off frequency (Hz)          7936.4
-        alpha                Diode 'relaxation factor' (-)                             0.50061
+        Bead diameter        Bead diameter (um)                                        4.4
+        Viscosity            Liquid viscosity (Pa*s)                                   0.001002
+        Temperature          Liquid temperature (C)                                    20
+        Model                Calibration model                                         PassiveCalibrationModel
+        Max iterations       Maximum number of function evaluations                    10000
+        Fit tolerance        Fitting tolerance                                         1e-07
+        Points per block     Number of points per block                                100
+        Sample rate          Sample rate (Hz)                                          78125
+        Rd                   Distance response (um/V)                                  7.25365
+        kappa                Trap stiffness (pN/nm)                                    0.171496
+        Rf                   Force response (pN/V)                                     1243.97
+        fc                   Corner frequency (Hz)                                     656.875
+        D                    Diffusion constant (V^2/s)                                0.00185127
+        f_diode              Diode low-pass filtering roll-off frequency (Hz)          7936.4
+        alpha                Diode 'relaxation factor'                                 0.50061
         err_fc               Corner frequency Std Err (Hz)                             32.2301
         err_D                Diffusion constant Std Err (V^2/s)                        6.43082e-05
         err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.638
-        err_alpha            Diode 'relaxation factor' Std Err (-)                     0.0131415
-        chi_squared_per_deg  Chi squared per degree of freedom (-)                     1.06378
-        backing (%)          Statistical backing (%)                                   66.4331""")
+        err_alpha            Diode 'relaxation factor' Std Err                         0.0131415
+        chi_squared_per_deg  Chi squared per degree of freedom                         1.06378
+        backing              Statistical backing (%)                                   66.4331""")
