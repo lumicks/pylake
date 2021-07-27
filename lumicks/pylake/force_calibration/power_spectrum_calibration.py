@@ -141,10 +141,9 @@ def calculate_power_spectrum(data, sample_rate, fit_range=(1e2, 23e3), num_point
         Sampling rate [Hz]
     fit_range : tuple (f_min, f_max), optional
         Tuple of two floats, indicating the frequency range to use for the
-        full model fit. Default: (1e2, 23e3) [Hz]
+        full model fit [Hz]
     num_points_per_block : int, optional
         The spectrum is first block averaged by this number of points per block.
-        Default: 2000.
 
     Returns
     -------
@@ -175,11 +174,11 @@ def fit_power_spectrum(
     analytical_fit_range : tuple (f_min, f_max), optional
         Tuple of two floats, indicating the frequency range to use for the
         analytical simple Lorentzian fit, used to obtain initial parameter
-        guesses. Default: (1e1, 1e4) [Hz]
+        guesses [Hz]
     ftol : float
-        Termination tolerance for the model fit. Default: 1e-7
+        Termination tolerance for the model fit.
     max_function_evals : int
-        Maximum number of function evaluations during the fit. Default: 10000
+        Maximum number of function evaluations during the fit.
 
     Returns
     -------
