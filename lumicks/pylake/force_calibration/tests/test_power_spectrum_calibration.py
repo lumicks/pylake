@@ -236,8 +236,8 @@ def test_actual_spectrum(reference_calibration_result):
         np.testing.assert_allclose(ps_calibration.params[name].value, **expected_result)
 
     # Test whether the model contains the number of points per block that were used to fit it
-    np.testing.assert_allclose(ps_calibration.ps_model_fit.num_points_per_block, 100)
-    np.testing.assert_allclose(ps_calibration.ps_fitted.num_points_per_block, 100)
+    np.testing.assert_allclose(ps_calibration.ps_model.num_points_per_block, 100)
+    np.testing.assert_allclose(ps_calibration.ps_data.num_points_per_block, 100)
 
 
 @cleanup
@@ -249,12 +249,12 @@ def test_result_plot(reference_calibration_result):
 def test_attributes_ps_calibration(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     assert id(ps_calibration.model) == id(model)
-    assert id(ps_calibration.ps_fitted) == id(reference_spectrum)
+    assert id(ps_calibration.ps_data) == id(reference_spectrum)
 
     with pytest.raises(RuntimeError):
         psc.CalibrationResults(model=None,
-                               ps_model_fit=None,
-                               ps_fitted=None,
+                               ps_model=None,
+                               ps_data=None,
                                params={"test": 5},
                                results={"test2": 5})
 
