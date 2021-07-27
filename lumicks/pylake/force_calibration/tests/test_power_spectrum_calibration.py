@@ -262,26 +262,25 @@ def test_attributes_ps_calibration(reference_calibration_result):
 def test_repr(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     assert str(ps_calibration) == dedent("""\
-        Name                 Description                                               Value
-        -------------------  --------------------------------------------------------  -----------------------
-        Bead diameter        Bead diameter (um)                                        4.4
-        Viscosity            Liquid viscosity (Pa*s)                                   0.001002
-        Temperature          Liquid temperature (C)                                    20
-        Model                Calibration model                                         PassiveCalibrationModel
+        Name                 Description                                                         Value
+        -------------------  --------------------------------------------------------  ---------------
+        Bead diameter        Bead diameter (um)                                            4.4
+        Viscosity            Liquid viscosity (Pa*s)                                       0.001002
+        Temperature          Liquid temperature (C)                                       20
         Max iterations       Maximum number of function evaluations                    10000
-        Fit tolerance        Fitting tolerance                                         1e-07
-        Points per block     Number of points per block                                100
+        Fit tolerance        Fitting tolerance                                             1e-07
+        Points per block     Number of points per block                                  100
         Sample rate          Sample rate (Hz)                                          78125
-        Rd                   Distance response (um/V)                                  7.25365
-        kappa                Trap stiffness (pN/nm)                                    0.171496
-        Rf                   Force response (pN/V)                                     1243.97
-        fc                   Corner frequency (Hz)                                     656.875
-        D                    Diffusion constant (V^2/s)                                0.00185127
-        f_diode              Diode low-pass filtering roll-off frequency (Hz)          7936.4
-        alpha                Diode 'relaxation factor'                                 0.50061
-        err_fc               Corner frequency Std Err (Hz)                             32.2301
-        err_D                Diffusion constant Std Err (V^2/s)                        6.43082e-05
-        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.638
-        err_alpha            Diode 'relaxation factor' Std Err                         0.0131415
-        chi_squared_per_deg  Chi squared per degree of freedom                         1.06378
-        backing              Statistical backing (%)                                   66.4331""")
+        Rd                   Distance response (um/V)                                      7.25365
+        kappa                Trap stiffness (pN/nm)                                        0.171496
+        Rf                   Force response (pN/V)                                      1243.97
+        fc                   Corner frequency (Hz)                                       656.875
+        D                    Diffusion constant (V^2/s)                                    0.00185127
+        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.4
+        alpha                Diode 'relaxation factor'                                     0.50061
+        err_fc               Corner frequency Std Err (Hz)                                32.2301
+        err_D                Diffusion constant Std Err (V^2/s)                            6.43082e-05
+        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.638
+        err_alpha            Diode 'relaxation factor' Std Err                             0.0131415
+        chi_squared_per_deg  Chi squared per degree of freedom                             1.06378
+        backing              Statistical backing (%)                                      66.4331""")
