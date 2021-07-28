@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import tifffile
+from copy import deepcopy
 import pytest
 from lumicks.pylake.correlated_stack import CorrelatedStack
 from lumicks.pylake.detail.widefield import TiffStack
@@ -177,50 +178,27 @@ def spot_coordinates():
 
 @pytest.fixture(scope="session")
 def warp_parameters():
-    return {"Tx_red": 20, "Ty_red": 10, "theta_red": 3,
-            "Tx_blue": 10, "Ty_blue": 20, "theta_blue": -3}
+    return {"red_warp_parameters": {"Tx": 20, "Ty": 10, "theta": 3},
+            "blue_warp_parameters": {"Tx": 10, "Ty": 20, "theta": -3}
+    }
 
 
 @pytest.fixture(scope="session")
 def gray_alignment_image_data(spot_coordinates, warp_parameters):
-    img_args = {"spots": spot_coordinates,
-                **warp_parameters,
-                "bit_depth": 8}
-    img0, img, description = make_alignment_image_data(**img_args)
-    return img0, img, description, img_args["bit_depth"]
+    return make_alignment_image_data(spot_coordinates, version=1,
+                                     bit_depth=8, **warp_parameters)
 
 
 @pytest.fixture(scope="session", params=[1, 2])
 def rgb_alignment_image_data(spot_coordinates, warp_parameters, request):
-    img_args = {"spots": spot_coordinates,
-                **warp_parameters,
-                "bit_depth": 16,
-                "version": request.param}
-    img0, img, description = make_alignment_image_data(**img_args)
-    return img0, img, description, img_args["bit_depth"]
-
-
-@pytest.fixture(scope="session", params=[1, 2])
-def rgb_alignment_image_bad_description(spot_coordinates, warp_parameters, request):
-    img_args = {"spots": spot_coordinates,
-                **warp_parameters,
-                "bit_depth": 16,
-                "version": request.param}
-    img0, img, description = make_alignment_image_data(**img_args)
-    label = "Alignment red channel" if request.param == 1 else "Channel 0 alignment"
-    description[label][2] = 25
-    return img0, img, description, img_args["bit_depth"]
+    return make_alignment_image_data(spot_coordinates, version=request.param,
+                                     bit_depth=16, **warp_parameters)
 
 
 @pytest.fixture(scope="session", params=[1,2])
 def rgb_alignment_image_data_offset(spot_coordinates, warp_parameters, request):
-    img_args = {"spots": spot_coordinates,
-                **warp_parameters,
-                "bit_depth": 16,
-                "offsets": (50, 50),
-                "version": request.param}
-    img0, img, description = make_alignment_image_data(**img_args)
-    return img0, img, description, img_args["bit_depth"]
+    return make_alignment_image_data(spot_coordinates, version=request.param,
+                                     bit_depth=16, offsets=(50, 50), **warp_parameters)
 
 
 @pytest.fixture(scope="session")
@@ -252,8 +230,8 @@ def gray_tiff_file_multi(tiff_dir, gray_alignment_image_data):
 
 
 def test_image_reconstruction_grayscale(gray_alignment_image_data):
-    img0, img, description, bit_depth = gray_alignment_image_data
-    fake_tiff = TiffStack(MockTiffFile(data=[img[:, :, 0]], times=[["10", "18"]],
+    reference_image, warped_image, description, bit_depth = gray_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image[:, :, 0]], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=8),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
@@ -264,10 +242,9 @@ def test_image_reconstruction_grayscale(gray_alignment_image_data):
     np.testing.assert_allclose(fr.raw_data, fr._get_plot_data())
 
 
-def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_data_offset,
-                                  rgb_alignment_image_bad_description):
-    img0, img, description, bit_depth = rgb_alignment_image_data
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
+def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_data_offset):
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
@@ -281,20 +258,22 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     diff = np.abs(fr._get_plot_data('green').astype(float)-fr._get_plot_data("blue").astype(float))
     assert np.all(diff/max_signal < 0.05)
 
-    original_data = (img0 / (2**bit_depth - 1)).astype(float)
+    original_data = (reference_image / (2**bit_depth - 1)).astype(float)
     np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
     np.testing.assert_allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
-    max_signal = np.max(np.hstack([img0[:, :, 0], fr._get_plot_data("red")]))
-    diff = np.abs(img0[:, :, 0].astype(float)-fr._get_plot_data("red").astype(float))
+    max_signal = np.max(np.hstack([reference_image[:, :, 0], fr._get_plot_data("red")]))
+    diff = np.abs(reference_image[:, :, 0].astype(float)-fr._get_plot_data("red").astype(float))
     assert np.all(diff/max_signal < 0.05)
 
     with pytest.raises(ValueError):
         fr._get_plot_data(channel="purple")
 
     # test that bad alignment matrix gives high error compared to correct matrix
-    img0, img, description, bit_depth = rgb_alignment_image_bad_description
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
-                                       description=json.dumps(description), bit_depth=16),
+    bad_description = deepcopy(description)
+    label = "Alignment red channel" if "Alignment red channel" in description.keys() else "Channel 0 alignment"
+    bad_description[label][2] = 25
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
+                                       description=json.dumps(bad_description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
@@ -302,20 +281,20 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     assert fr.is_rgb
     assert not np.allclose(original_data, fr._get_plot_data(), atol=0.05)
 
-    img0, img, description, bit_depth = rgb_alignment_image_data_offset
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data_offset
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
-    original_data = (img0 / (2**bit_depth - 1)).astype(float)
+    original_data = (reference_image / (2**bit_depth - 1)).astype(float)
     np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
 def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
-    img0, img, description, bit_depth = rgb_alignment_image_data
-    fake_tiff = TiffStack(MockTiffFile(data=[img]*6,
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image]*6,
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
@@ -323,14 +302,14 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
     fr = stack._get_frame(2)
 
     assert fr.is_rgb
-    original_data = (img0 / (2**bit_depth - 1)).astype(float)
+    original_data = (reference_image / (2**bit_depth - 1)).astype(float)
     np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
 def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
     # no metadata
-    img0, img, description, bit_depth = rgb_alignment_image_data
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description="", bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
@@ -344,7 +323,7 @@ def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
         if label in description:
             removed = description.pop(label)
             break
-    fake_tiff = TiffStack(MockTiffFile(data=[img], times=[["10", "18"]],
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
