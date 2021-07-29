@@ -151,7 +151,7 @@ class Kymo(ConfocalImage):
         max_times = self.timestamps[-1, :].astype(np.int64)
 
         # If the last line is incomplete, drop it!
-        if max_times[-1] == 0:
+        if force.start >= max_times[-1]:
             min_times, max_times = min_times[:-1], max_times[:-1]
 
         time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]

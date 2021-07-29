@@ -186,6 +186,9 @@ def test_regression_plot_with_force(h5_file):
         kymo._timestamp_factory = lambda self: incomplete_last_line_timestamps
         kymo.plot_with_force(force_channel="2x", color_channel="red")
 
+        incomplete_last_line_timestamps[-1, -1] = 100
+        kymo._timestamp_factory = lambda self: incomplete_last_line_timestamps
+        kymo.plot_with_force(force_channel="2x", color_channel="red")
 
 @cleanup
 def test_plotting_with_histograms(h5_file):
