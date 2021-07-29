@@ -1,15 +1,21 @@
 # Changelog
 
-## v0.9.0 | t.b.d.
+## v0.9.0 | 2021-07-29
+
+`Pylake v0.9` provides several new features. Starting from `pylake v0.9`, the kymotracker will handle units for you. From now on, all you have to worry about is physical quantities rather than pixels. Please see the updated [example on Cas9 binding](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) for a demonstration of this. In addition to that, you can now [infer diffusion constants from diffusive kymograph traces](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes).
+
+For convenience, we added the option to [simulate force-distance models](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html#simulating-the-model) without having to fit them first and directly do [arithmetic with channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#arithmetic). `Pylake` also supports [baseline corrected force data](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdcurves.html#baseline-correction) from `Bluelake` now.
+
+Unfortunately, some of these improvements required some breaking changes so please see the detailed changelog entries for more information.
 
 #### New features
 
 * Added `Kymo.downsampled_by()` for downsampling Kymographs in space and time. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
-* Added option to stitch Kymograph lines via the Jupyter notebook widget.
+* Added option to stitch Kymograph lines visually via the Jupyter notebook widget.
 * Added Mean Square Displacement (MSD) and diffusion constant estimation to `KymoLine`. For more information, please refer to [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html)
 * Added `FdCurve.with_baseline_corrected_x()` to return a baseline corrected version of the FD curve if the corrected data is available. **Note: currently the baseline is only calculated for the x-component of the force channel in Bluelake. Therefore baseline corrected `FdCurve` instances use only the x-component of the force channel, unlike default `FdCurve`s which use the full magnitude of the force channel by default.**
 * Added ability to perform arithmetic on `Slice` (e.g. `(f.force1x - f.force2x) / 2`). For more information see [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#exporting-h5-files) for more information.
-* Allow simulating force model with a custom set of parameters (see tutorial section [Fd Fitting](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html)).
+* Allow simulating force model with a custom set of parameters (see the tutorial section on [Fd Fitting](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html) for more information).
 * Added a slider to set the algorithm parameter `velocity` to the kymotracker widget.
 
 #### Bug fixes
@@ -27,12 +33,12 @@
   In the updated version, all image processing steps that depend on the image use the full image.
 * Fixed bug which could lead to bias when tracking lines using `track_lines()` with the rectangle tool.
   Selecting which region to track used to pass that region specifically to the tracking algorithm.
-  This means that the blurring steps involved in this algorithm become biased (since they do not get contributions from outside the selected areas, while they should).
+  This means that the blurring steps involved in this algorithm become biased near the edges (since they do not get contributions from outside the selected areas, while they should).
   In the updated version, all image processing steps that depend on the image use the full image.
+* Fixed a bug in `Kymo.plot_with_force()` which resulted in the plotting function throwing an error for Kymographs with an incomplete final line.
 * Fixed a bug in the plotting order of `CalibrationResults.plot()`. Previously, when plotting after performing a force calibration, the model fit was erroneously plotted first (while the legend indicated that the model fit was plotted last). The results of the calibration itself are unchanged.
 * Resolved `DeprecationWarning` with `tifffile >= 2021.7.2`.
 * Fixed a bug in `CalibrationResults.ps_model_fit` which resulted in its attribute `num_points_per_block` to be `1` rather than the number of points per block the model was fitted to. Note that this does not affect the calibration results as the calibration procedure internally used the correct number of points per block.
-* Fixed a bug in `Kymo.plot_with_force()` which resulted in the plotting function throwing an error for Kymographs with an incomplete final line.
 
 #### Breaking changes
 
@@ -41,13 +47,13 @@
 * Pylake now depends on `numpy>=1.20`. This change is required to use a different fft normalization in the force calibration tests.
 * The attribute `image_data` in `KymoLine` is now private.
 * Make kymotracker functions `track_greedy()`, `track_lines()`, and class `KymoWidgetGreedy` take `Kymo` and a channel (e.g. "red") as their input.
-  The advantage of this is that now units of time (seconds) and space (microns) are propagated automatically to the tracked `KymoLine`s.
+  The advantage of this is that now units of time (seconds) and space (microns) are propagated automatically to the tracked `KymoLines`.
   See the [Cas9 kymotracking example](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) or the [kymotracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 * `KymoLineGroup.save()` and `KymoWidgetGreedy.save_lines()` no longer take `dx` and `dt` arguments.
   Instead, the correct time and position calibration is now passed automatically to these functions. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 * Express kymotracker algorithm parameters `line_width`, `sigma`, `velocity` and `diffusion` in physical units rather than pixels. Prior to this change, the units of the kymotracking algorithm were in pixels. Note that if you want to reproduce your earlier results multiply `line_width` and `sigma` by `kymo.pixelsize_um[0]`, `velocity` by `kymo.pixelsize_um[0] / kymo.line_time_seconds` and `diffusion` by `kymo.pixelsize_um[0] ** 2 / kymo.line_time_seconds`.
-* `Parameters.keys()` is now a member function instead of a property (used to be invoked as `parameter.keys`) to be consistent with dictionary.
-* `Slice.downsampled_like()` now returns both the downsampled `Slice` and a copy of the low frequency reference `Slice` cropped such that both instances have exactly the same timestamps.
+* In the FD Fitter, `Parameters.keys()` is now a member function instead of a property (used to be invoked as `parameter.keys`) to be consistent with dictionary.
+* `Slice.downsampled_like()` now returns both the downsampled `Slice` and a copy of the low frequency reference `Slice` cropped such that both instances have exactly the same timestamps. The reason for this is that the first two samples of the low frequency trace can typically not be reconstructed (since there is no high frequency data for those available). This led to confusion, since now the trace `downsampled_like` produces is shorter than the input. By returning both, this problem is mitigated. Please refer to [Files and Channels](https://lumicks-pylake.readthedocs.io/en/excluded_ranges/tutorial/file.html#downsampling) for an example of its updated use. 
 * Optimization settings are now passed to `fit_power_spectrum()` as keyword arguments instead of using the class `lk.CalibrationSettings`.
 * Renamed `CalibrationResults.ps_model_fit` and `CalibrationResults.ps_fitted` to `CalibrationResults.ps_model` and `CalibrationResults.ps_data` for clarity.
 * Drop units from parameter names in `CalibrationResults`. Note that the unit is still available in the `.unit` attribute of a calibration parameter.
