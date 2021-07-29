@@ -70,8 +70,7 @@ class CalibrationResults:
                 raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
 
     def __getitem__(self, item):
-        # Provides the same access pattern as ForceCalibration
-        return self.params[item].value if item in self.params else self.results[item].value
+        return self.params[item] if item in self.params else self.results[item]
 
     def plot(self):
         """Plot the fitted spectrum"""

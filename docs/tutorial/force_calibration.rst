@@ -89,9 +89,9 @@ This will produce a table with your fitted calibration parameters.
 
 .. image:: force_calibration_table.png
 
-These parameters can be accessed analogously to the calibrations in Bluelake files::
+These parameters can be accessed as follows::
 
-    >>> print(calibration["kappa"])
+    >>> print(calibration["kappa"].value)
     >>> print(f.force1x.calibration[1]["kappa (pN/nm)"])
     0.17432391259341345
     0.17431947810792106

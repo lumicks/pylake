@@ -50,7 +50,8 @@
 * `Slice.downsampled_like()` now returns both the downsampled `Slice` and a copy of the low frequency reference `Slice` cropped such that both instances have exactly the same timestamps.
 * Optimization settings are now passed to `fit_power_spectrum()` as keyword arguments instead of using the class `lk.CalibrationSettings`.
 * Renamed `CalibrationResults.ps_model_fit` and `CalibrationResults.ps_fitted` to `CalibrationResults.ps_model` and `CalibrationResults.ps_data` for clarity.
-* Drop units from parameter names in `CalibrationResults`.
+* Drop units from parameter names in `CalibrationResults`. Note that the unit is still available in the `.unit` attribute of a calibration parameter.
+* Accessing an element from a force calibration performed with Pylake now returns a `CalibrationParameter` instead of a `float`. The calibration value can be accessed as `calibration["kappa"].value`, while the unit can be accessed in the `.unit` property.
 
 ## v0.8.2 | 2021-04-30
 
