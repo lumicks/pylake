@@ -76,10 +76,10 @@ def test_good_fit_integration_test(
     power_spectrum = psc.calculate_power_spectrum(data, f_sample, fit_range=(0, 15000), num_points_per_block=20)
     ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model)
 
-    np.testing.assert_allclose(ps_calibration["fc"], corner_frequency, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["D"], diffusion_constant, rtol=1e-4, atol=0)
-    np.testing.assert_allclose(ps_calibration["alpha"], alpha, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["f_diode"], f_diode, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["fc"].value, corner_frequency, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["D"].value, diffusion_constant, rtol=1e-4, atol=0)
+    np.testing.assert_allclose(ps_calibration["alpha"].value, alpha, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["f_diode"].value, f_diode, rtol=1e-4)
 
     gamma = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
@@ -87,15 +87,15 @@ def test_good_fit_integration_test(
         np.sqrt(sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K") / gamma / diffusion_constant)
         * 1e6
     )
-    np.testing.assert_allclose(ps_calibration["kappa"], kappa_true, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["Rd"], rd_true, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["Rf"], rd_true * kappa_true * 1e3, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"], 0, atol=1e-9)  # Noise free
+    np.testing.assert_allclose(ps_calibration["kappa"].value, kappa_true, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["Rd"].value, rd_true, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["Rf"].value, rd_true * kappa_true * 1e3, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"].value, 0, atol=1e-9)  # Noise free
 
-    np.testing.assert_allclose(ps_calibration["err_fc"], err_fc)
-    np.testing.assert_allclose(ps_calibration["err_D"], err_d, rtol=1e-4, atol=0)
-    np.testing.assert_allclose(ps_calibration["err_f_diode"], err_f_diode)
-    np.testing.assert_allclose(ps_calibration["err_alpha"], err_alpha, rtol=1e-6)
+    np.testing.assert_allclose(ps_calibration["err_fc"].value, err_fc)
+    np.testing.assert_allclose(ps_calibration["err_D"].value, err_d, rtol=1e-4, atol=0)
+    np.testing.assert_allclose(ps_calibration["err_f_diode"].value, err_f_diode)
+    np.testing.assert_allclose(ps_calibration["err_alpha"].value, err_alpha, rtol=1e-6)
 
 
 def test_fit_settings(reference_models):
@@ -128,8 +128,8 @@ def test_fit_settings(reference_models):
     calib = psc.fit_power_spectrum(
         power_spectrum=power_spectrum, model=model, ftol=10, max_function_evals=1
     )
-    np.testing.assert_allclose(calib["fc"], corner_frequency, rtol=1e-3)
-    np.testing.assert_allclose(calib["D"], diffusion_volt, rtol=1e-3)
+    np.testing.assert_allclose(calib["fc"].value, corner_frequency, rtol=1e-3)
+    np.testing.assert_allclose(calib["D"].value, diffusion_volt, rtol=1e-3)
 
     # If we corrupt the power spectrum, then the parameters should be quite different
     bad_power_spectrum = deepcopy(power_spectrum)
@@ -138,10 +138,10 @@ def test_fit_settings(reference_models):
         power_spectrum=bad_power_spectrum, model=model, ftol=10, max_function_evals=1
     )
     assert (
-        np.abs(bad_calibration["fc"] - calib["fc"]) > 1e-4
+        np.abs(bad_calibration["fc"].value - calib["fc"].value) > 1e-4
     ), "Fit did not get worse from including bad data."
     assert (
-        np.abs(bad_calibration["D"] - calib["D"]) > 1e-4
+        np.abs(bad_calibration["D"].value - calib["D"].value) > 1e-4
     ), "Fit did not get worse from including bad data."
 
     # If we exclude that region now, the fit should be OK again.
@@ -152,8 +152,8 @@ def test_fit_settings(reference_models):
         ftol=10,
         max_function_evals=1,
     )
-    np.testing.assert_allclose(ranged_calibration["fc"], corner_frequency, rtol=1e-3)
-    np.testing.assert_allclose(ranged_calibration["D"], diffusion_volt, rtol=1e-3)
+    np.testing.assert_allclose(ranged_calibration["fc"].value, corner_frequency, rtol=1e-3)
+    np.testing.assert_allclose(ranged_calibration["D"].value, diffusion_volt, rtol=1e-3)
 
 
 def test_bad_calibration_result_arg():
@@ -219,7 +219,7 @@ def test_actual_spectrum(reference_calibration_result):
     }
 
     for name, expected_result in results.items():
-        np.testing.assert_allclose(ps_calibration[name], **expected_result)
+        np.testing.assert_allclose(ps_calibration[name].value, **expected_result)
         np.testing.assert_allclose(ps_calibration.results[name].value, **expected_result)
 
     params = {
@@ -232,7 +232,7 @@ def test_actual_spectrum(reference_calibration_result):
     }
 
     for name, expected_result in params.items():
-        np.testing.assert_allclose(ps_calibration[name], **expected_result)
+        np.testing.assert_allclose(ps_calibration[name].value, **expected_result)
         np.testing.assert_allclose(ps_calibration.params[name].value, **expected_result)
 
     # Test whether the model contains the number of points per block that were used to fit it
