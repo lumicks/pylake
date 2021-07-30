@@ -159,9 +159,22 @@ def test_plotting_with_force(h5_file):
 
         ds = kymo._downsample_channel(2, "x", reduce=np.mean)
         np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
-        assert np.all(np.equal(ds.timestamps, kymo.timestamps[2]))
-
         kymo.plot_with_force(force_channel="2x", color_channel="red")
+
+        # Check timestamps
+        # Note that if the kymo would have the same samples per pixel, a simple:
+        #    np.testing.assert_allclose(np.mean(kymo.timestamps, axis=0)[:-1], ds.timestamps[:-1])
+        # would have sufficed. However, in this case we need the following solution:
+        min_ts, max_ts = (
+            reduce(kymo._timestamps("timestamps", reduce), axis=0) for reduce in (np.min, np.max)
+        )
+        target_timestamps = np.array(
+            [
+                np.mean(kymo.infowave[int(start) : int(stop) + 1].timestamps)
+                for start, stop in zip(min_ts, max_ts)
+            ]
+        )
+        np.testing.assert_allclose(ds.timestamps, target_timestamps)
 
         # The following assertion fails because of unequal line times in the test data. These
         # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
@@ -180,11 +193,19 @@ def test_regression_plot_with_force(h5_file):
     # of the ranges to downsample to against the first one of the channel to downsample).
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
+        # Kymo ends before last pixel is finished. All but the last timestamps are OK.
         kymo = f.kymos["Kymo1"]
-        incomplete_last_line_timestamps = kymo.timestamps
-        incomplete_last_line_timestamps[-1, -1] = 0
-        kymo._timestamp_factory = lambda self: incomplete_last_line_timestamps
+        kymo.stop = int(kymo.stop - 2 * 1e9 / 16)
         kymo.plot_with_force(force_channel="2x", color_channel="red")
+        ds = kymo._downsample_channel(2, "x", reduce=np.mean)
+        np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+
+        # Kymo ends on a partial last line. Multiple timestamps are zero now.
+        kymo = f.kymos["Kymo1"]
+        kymo.stop = int(kymo.stop - 10 * 1e9 / 16)
+        kymo.plot_with_force(force_channel="2x", color_channel="red")
+        ds = kymo._downsample_channel(2, "x", reduce=np.mean)
+        np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
 
 @cleanup
@@ -316,11 +337,6 @@ def test_downsampled_kymo_position():
 
     # We lost one line while downsampling
     np.testing.assert_allclose(kymo_ds.size_um[0], kymo.size_um[0] - kymo.pixelsize_um[0])
-
-    # Verify that we can pass a different reduce function
-    alt_ds = kymo.downsampled_by(position_factor=2, reduce=np.mean, reduce_timestamps=np.sum)
-    np.testing.assert_allclose(alt_ds.red_image, ds / 2)
-    np.testing.assert_allclose(alt_ds.timestamps, ds_ts * 2)
 
 
 def test_downsampled_kymo_both_axes():

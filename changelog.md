@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.9.1 | t.b.d.
+## v0.10.0 | t.b.d.
 
 #### New features
 
@@ -10,6 +10,11 @@
 #### Bug fixes
 
 * Fixed an error in the documentation. In v0.9.0 `PowerSpectrum.power` was changed to represent power in `V^2/Hz` instead of `0.5 V^2/Hz`. However, the docs were not appropriately updated to reflect this change in the model equation that's fitted to the spectrum. This is mitigated now.
+* Fixed bug in `plot_with_force` which caused an exception on Kymographs with a partial last pixel.
+
+#### Breaking changes
+
+* Removed the option to specify a custom `reduce_timestamps` function in `kymo.downsampled_by`. The reason for the removal is that by downsampling repeatedly with different `reduce` functions for the timestamps, the data can end up in an inconsistent state. Additionally, the timestamps of the original object (read directly from the h5 file) are defined as the mean of the pixel timestamps; this definition is now consistent regardless of downsampling state.
 
 ## v0.9.0 | 2021-07-29
 
