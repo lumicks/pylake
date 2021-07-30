@@ -185,18 +185,19 @@ class Kymo(ConfocalImage):
 
         import matplotlib.pyplot as plt
 
-        _, (ax1, ax2) = plt.subplots(2, 1)
+        _, (ax1, ax2) = plt.subplots(2, 1, sharex="all")
 
         # plot kymo
         plt.sca(ax1)
         getattr(self, f"plot_{color_channel}")()
         ax1.set_xlabel(None)
+        xlim_kymo = ax1.get_xlim()  # Stored since plotting the force channel will change the limits
 
         # plot force channel
         plt.sca(ax2)
         force = self._downsample_channel(force_channel[-2], force_channel[-1], reduce=reduce)
         force.plot(**kwargs)
-        ax2.set_xlim(ax1.get_xlim())
+        ax2.set_xlim(xlim_kymo)
 
         set_aspect_ratio(ax1, aspect_ratio)
         set_aspect_ratio(ax2, aspect_ratio)
