@@ -51,7 +51,7 @@ This model can be found in :class:`~.PassiveCalibrationModel`. It is calibrated 
 
 .. math::
 
-    P(f) = \frac{D}{2 \pi ^ 2 \left(f^2 + f_c ^ 2\right)} g(f, f_{diode}, \alpha)
+    P(f) = \frac{D}{\pi ^ 2 \left(f^2 + f_c ^ 2\right)} g(f, f_{diode}, \alpha)
 
 where :math:`D` corresponds to the diffusion constant, :math:`f` the frequency and :math:`f_c` the fitted cutoff. The second term :math:`g` takes into account the slower response of the position detection system and is given by:
 
