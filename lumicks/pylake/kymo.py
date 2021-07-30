@@ -147,12 +147,12 @@ class Kymo(ConfocalImage):
     def _downsample_channel(self, n, xy, reduce=np.mean):
         force = self.file._get_force(n, xy)
         # downsample exactly over the scanline time range
-        min_times = self.timestamps[0, :].astype(np.int64)
-        max_times = self.timestamps[-1, :].astype(np.int64)
-
-        # If the last line is incomplete, drop it!
-        if max_times[-1] == 0:
-            min_times, max_times = min_times[:-1], max_times[:-1]
+        min_times = self._timestamps("timestamps", reduce=np.min)[0, :].astype(np.int64)
+        max_times = (
+            # + 1 since we want inclusive end
+            np.max(self._timestamps("timestamps", reduce=np.max).astype(np.int64), axis=0)
+            + 1
+        )
 
         time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]
         return force.downsampled_over(time_ranges, reduce=reduce, where="center")
@@ -269,7 +269,10 @@ class Kymo(ConfocalImage):
         ax_hist.set_title(self.name)
 
     def downsampled_by(
-        self, time_factor=1, position_factor=1, reduce=np.sum, reduce_timestamps=np.mean
+        self,
+        time_factor=1,
+        position_factor=1,
+        reduce=np.sum,
     ):
         """Return a copy of this Kymograph which is downsampled by `time_factor` in time and
         `position_factor` in space.
@@ -283,9 +286,6 @@ class Kymo(ConfocalImage):
         reduce : callable
             The `numpy` function which is going to reduce multiple pixels into one.
             The default is `np.sum`.
-        reduce_timestamps : callable
-            The `numpy` function that is going to reduce timestamps into one.
-            The default is `np.mean`.
         """
         result = Kymo(self.name, self.file, self.start, self.stop, self._json)
 
@@ -295,7 +295,7 @@ class Kymo(ConfocalImage):
                 : data.shape[0] // position_factor, : data.shape[1] // time_factor
             ]
 
-        def timestamp_factory_ill_defined(_):
+        def timestamp_factory_ill_defined(_, reduce_timestamps=np.mean):
             raise AttributeError(
                 "Per-pixel timestamps are no longer available after downsampling a kymograph in "
                 "time since they are not well defined (the downsampling occurs over a "
@@ -303,10 +303,12 @@ class Kymo(ConfocalImage):
                 "`Kymo.line_time_seconds`."
             )
 
-        def timestamp_factory(_):
-            return block_reduce(self.timestamps, (position_factor, 1), func=reduce_timestamps)[
-                : self.timestamps.shape[0] // position_factor, :
-            ]
+        def timestamp_factory(_, reduce_timestamps):
+            return block_reduce(
+                self._timestamps("timestamps", reduce_timestamps),
+                (position_factor, 1),
+                func=reduce_timestamps,
+            )[: self.timestamps.shape[0] // position_factor, :]
 
         def line_time_factory(_):
             return self.line_time_seconds * time_factor

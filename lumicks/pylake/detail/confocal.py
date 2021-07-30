@@ -14,7 +14,7 @@ def _default_image_factory(self: "ConfocalImage", color):
     return self._to_spatial(raw_image)
 
 
-def _default_timestamp_factory(self: "ConfocalImage"):
+def _default_timestamp_factory(self: "ConfocalImage", reduce=np.mean):
     # Uses the timestamps from the first non-zero-sized photon channel
     for color in ("red", "green", "blue"):
         channel_data = getattr(self, f"{color}_photon_count").timestamps
@@ -22,7 +22,7 @@ def _default_timestamp_factory(self: "ConfocalImage"):
             break
     else:
         raise RuntimeError("Can't get pixel timestamps if there are no pixels")
-    raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=np.mean)
+    raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=reduce)
     return self._to_spatial(raw_image)
 
 
@@ -219,9 +219,9 @@ class ConfocalImage(BaseScan):
         return self._image_factory(self, channel)
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _timestamps(self, channel):
+    def _timestamps(self, channel, reduce=np.mean):
         assert channel == "timestamps"
-        return self._timestamp_factory(self)
+        return self._timestamp_factory(self, reduce)
 
     def _plot_color(self, color, **kwargs):
         from matplotlib.colors import LinearSegmentedColormap
