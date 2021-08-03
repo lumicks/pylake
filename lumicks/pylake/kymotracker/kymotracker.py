@@ -2,6 +2,7 @@ from .detail.calibrated_images import CalibratedKymographChannel
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
 from .kymoline import KymoLine
+from .detail.gaussian_mle import gaussian_mle_1d
 from .detail.peakfinding import (
     peak_estimate,
     refine_peak_based_on_moment,
@@ -10,8 +11,15 @@ from .detail.peakfinding import (
 )
 from .kymoline import KymoLineGroup
 import numpy as np
+import warnings
 
-__all__ = ["track_greedy", "track_lines", "filter_lines", "refine_lines_centroid"]
+__all__ = [
+    "track_greedy",
+    "track_lines",
+    "filter_lines",
+    "refine_lines_centroid",
+    "refine_lines_gaussian",
+]
 
 
 def track_greedy(
@@ -262,3 +270,77 @@ def refine_lines_centroid(lines, line_width):
         current += line_length
 
     return KymoLineGroup(interpolated_lines)
+
+
+def refine_lines_gaussian(
+    lines, window, refine_missing_frames, overlap_strategy, initial_sigma=None
+):
+    """Refine the lines by gaussian peak MLE.
+
+    Parameters
+    ----------
+    lines : List[pylake.KymoLine] or pylake.KymolineGroup
+        Detected traces on a kymograph.
+    window : int
+        Number of pixels on either side of the estimated line to include in the optimization data.
+    refine_missing_frames : bool
+        Whether to estimate location for frames which were missed in initial peak finding.
+    overlap_strategy : {'ignore', 'skip'}
+        How to deal with frames in which the fitting window of two `KymoLine`'s overlap.
+
+        - 'ignore' : do nothing, fit the frame as-is.
+        - 'skip' : skip optimization of the frame; remove from returned `KymoLine`.
+    initial_sigma : float
+        Initial guess for the `sigma` parameter.
+    """
+    assert overlap_strategy in ("ignore", "skip")
+    if refine_missing_frames:
+        lines = [line.interpolate() for line in lines]
+
+    image = lines[0]._image
+    initial_sigma = image._pixel_size * 1.1 if initial_sigma is None else initial_sigma
+    get_window_limits = lambda center: (max(int(center) - window, 0), int(center) + window + 1)
+    get_pixel_indices = lambda line: zip(line.time_idx.astype(int), np.rint(line.coordinate_idx))
+
+    # locate pixels with overlapping track windows
+    image_mask = np.zeros(image.data.shape)
+    for line in lines:
+        for j, (frame_index, coordinate_index) in enumerate(get_pixel_indices(line)):
+            limits = slice(*get_window_limits(coordinate_index))
+            image_mask[limits, frame_index] += 1
+
+    refined_lines = KymoLineGroup([])
+    full_position = image.to_position(np.arange(image.data.shape[0]))
+    overlap_count = 0
+
+    for line in lines:
+        tmp_times = []
+        tmp_positions = []
+        for j, (frame_index, coordinate_index) in enumerate(get_pixel_indices(line)):
+            limits = slice(*get_window_limits(coordinate_index))
+
+            overlap = image_mask[limits, frame_index] >= 2
+            if np.any(overlap) and overlap_strategy == "skip":
+                overlap_count += 1
+                continue
+            position = full_position[limits]
+            photon_counts = image.data[limits, frame_index]
+
+            r = gaussian_mle_1d(
+                position,
+                photon_counts,
+                image._pixel_size,
+                initial_position=line.position[j],
+                initial_sigma=initial_sigma,
+            )
+            tmp_positions.append(r.x[1] / image._pixel_size)
+            tmp_times.append(line.time_idx[j])
+
+        if len(tmp_positions):
+            refined_lines.extend(KymoLine(tmp_times, tmp_positions, image))
+
+    if overlap_count and overlap_strategy != "ignore":
+        warnings.warn(
+            f"There were {overlap_count} instances of overlapped tracks ignored while fitting."
+        )
+    return refined_lines

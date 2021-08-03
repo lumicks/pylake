@@ -5,6 +5,7 @@
 #### New features
 
 * Added option to exclude ranges with potential noise peaks from the calibration routines. Please refer to [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html) for more information.
+* Added `refine_lines_gaussian()` for refining lines detected by the kymotracking algorithm using gaussian localization. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 #### Bug fixes
 
@@ -63,7 +64,7 @@ Unfortunately, some of these improvements required some breaking changes so plea
   Instead, the correct time and position calibration is now passed automatically to these functions. See [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 * Express kymotracker algorithm parameters `line_width`, `sigma`, `velocity` and `diffusion` in physical units rather than pixels. Prior to this change, the units of the kymotracking algorithm were in pixels. Note that if you want to reproduce your earlier results multiply `line_width` and `sigma` by `kymo.pixelsize_um[0]`, `velocity` by `kymo.pixelsize_um[0] / kymo.line_time_seconds` and `diffusion` by `kymo.pixelsize_um[0] ** 2 / kymo.line_time_seconds`.
 * In the FD Fitter, `Parameters.keys()` is now a member function instead of a property (used to be invoked as `parameter.keys`) to be consistent with dictionary.
-* `Slice.downsampled_like()` now returns both the downsampled `Slice` and a copy of the low frequency reference `Slice` cropped such that both instances have exactly the same timestamps. The reason for this is that the first two samples of the low frequency trace can typically not be reconstructed (since there is no high frequency data for those available). This led to confusion, since now the trace `downsampled_like` produces is shorter than the input. By returning both, this problem is mitigated. Please refer to [Files and Channels](https://lumicks-pylake.readthedocs.io/en/excluded_ranges/tutorial/file.html#downsampling) for an example of its updated use. 
+* `Slice.downsampled_like()` now returns both the downsampled `Slice` and a copy of the low frequency reference `Slice` cropped such that both instances have exactly the same timestamps. The reason for this is that the first two samples of the low frequency trace can typically not be reconstructed (since there is no high frequency data for those available). This led to confusion, since now the trace `downsampled_like` produces is shorter than the input. By returning both, this problem is mitigated. Please refer to [Files and Channels](https://lumicks-pylake.readthedocs.io/en/excluded_ranges/tutorial/file.html#downsampling) for an example of its updated use.
 * Optimization settings are now passed to `fit_power_spectrum()` as keyword arguments instead of using the class `lk.CalibrationSettings`.
 * Renamed `CalibrationResults.ps_model_fit` and `CalibrationResults.ps_fitted` to `CalibrationResults.ps_model` and `CalibrationResults.ps_data` for clarity.
 * Drop units from parameter names in `CalibrationResults`. Note that the unit is still available in the `.unit` attribute of a calibration parameter.

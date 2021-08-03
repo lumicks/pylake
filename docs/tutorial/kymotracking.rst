@@ -84,6 +84,12 @@ Plotting all the detected traces is also quite easy by iterating over the list o
 
 .. image:: kymotracked.png
 
+Localization refinement
+-----------------------
+
+Centroid
+^^^^^^^^
+
 Once we are happy with the traces found by the algorithm, we may still want to refine them. Since the algorithm finds
 traces by determining local peaks and stringing these together, it is possible that some scan lines in the kymograph
 don't have an explicit point on the trace associated with them. Using :func:`~lumicks.pylake.refine_lines_centroid` we
@@ -109,6 +115,55 @@ the same `line_width`.
 Fortunately, the signal to noise level in this kymograph is quite good. In practice, when the signal to noise is lower,
 one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
 an acceptable result.
+
+Gaussian Maximum Likelihood Estimation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The function `refine_lines_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
+to characterize both the expected peak shape and photonic noise of the observed signal, adapted from :cite:`mortensen2010gauloc`.
+For each frame in the kymograph, we fit a small region around the tracked peak to the data by maximizing the following likelihood function:
+
+.. math::
+
+    \mathcal{L(\theta)} = \prod_i^M e^{-E_i(\theta)} \frac{E_i(\theta)^{n_i}}{n_i!}
+
+where :math:`\theta` represents the parameters to be fitted, :math:`M` is the number of pixels to be fit and :math:`n_i` and :math:`E_i(\theta)` are the observed photon count and expectation value
+for pixel :math:`i`. The shape of the peak is described with a Gaussian expectation function
+
+.. math::
+
+    E_i(\theta) = \frac{N a}{\sqrt{2 \pi \sigma^2}} \exp \left[ \frac{-(x_i-\mu)^2}{2 \sigma^2} \right] + b
+
+Here :math:`N` is the total photons emitted in the fitted image (line), :math:`a` is the pixel size, :math:`\mu` is the peak center,
+:math:`x_i` is the pixel center position, :math:`\sigma^2` is the variance, and :math:`b` is the background level in
+photons/pixel.
+
+This function is called in a similar manner as the centroid refinement::
+
+    refined = lk.refine_lines_centroid(traces, window=3, refine_missing_frames=True, overlap_strategy="skip")
+
+The number of pixels to be included in the fit is determined by the `window` argument, with a total size of `2*window+1` pixels.
+The exact value of this parameter is dependent on the quality of the data and should be balanced between including enough pixels to fully
+capture the peak lineshape while avoiding overlap with other traces or spurious high-photon count pixels due to noise or background.
+The effect of different window sizes are demonstrated in the following figure:
+
+.. image:: kymo_gau_window.png
+
+As noted in the above section, there may be intermediate frames which were not tracked in the original trace. As with the centroid fitting,
+we can optionally interpolate an initial guess for these frames before the Gaussian refinement by setting the argument
+`refine_missing_frames=True`. It should be noted, however, that frames with low photons counts (for instance due to fluorophore blinking)
+may not be well fit by this algorithm.
+
+Additionally, the presence of a nearby trace wherein the sampled pixels of the two traces overlap may interfere with the
+refinement algorithm. How the algorithm handles this situation is determined by the `overlap_strategy` argument. Setting `overlap_strategy="ignore"`
+simply ignores the situation and fits the data. A problem with the refinement in this case will manifest as the peak of the second trace
+is found rather than that of the current trace. Sometimes this can be avoided by decreasing the size of the `window` argument such that overlap no longer occurs.
+Alternatively we can simply ignore these frames by using `overlap_strategy="skip"`, in which case these frames
+are simply dropped from the trace.
+
+There is also an optional keyword argument `initial_sigma` that can be used to pass an initial guess for :math:`\sigma` in micrometers
+in the above expectation equation to the optimizer. The default value is `1.1*pixel_size`.
+
 
 Using the kymotracker widget
 ----------------------------

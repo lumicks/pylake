@@ -74,6 +74,7 @@ Kymotracking
     track_lines
     filter_lines
     refine_lines_centroid
+    refine_lines_gaussian
 
 Notebook widgets
 ----------------
