@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.signal
+from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
 def estimate_driving_input_parameters(
@@ -98,3 +99,16 @@ def estimate_driving_input_parameters(
     amp = np.exp(p[2] - 0.25 * p[1] ** 2 / p[0] + 0.5 * np.log(-np.pi / p[0])) * delta_freq
 
     return amp, freq
+
+
+def driving_power_peak(psd_data, sample_rate, driving_frequency, num_windows, freq_window=50.0):
+    """This function finds the amplitude and frequency bin size of the driving input."""
+    power_spectrum = PowerSpectrum(
+        psd_data, sample_rate, window_seconds=num_windows / driving_frequency
+    )
+
+    power_spectrum = power_spectrum.in_range(
+        max(1.0, driving_frequency - freq_window), driving_frequency + freq_window
+    )
+
+    return max(power_spectrum.power), power_spectrum.frequency[1] - power_spectrum.frequency[0]
