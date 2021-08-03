@@ -269,7 +269,10 @@ def fit_power_spectrum(
         ps_model=ps_model,
         results={
             **model.calibration_results(
-                fc=solution_params[0], diffusion_constant=solution_params[1]
+                fc=solution_params[0],
+                diffusion_constant_volts=solution_params[1],
+                f_diode=solution_params[2],
+                alpha=solution_params[3],
             ),
             "fc": CalibrationParameter("Corner frequency", solution_params[0], "Hz"),
             "D": CalibrationParameter("Diffusion constant", solution_params[1], "V^2/s"),
