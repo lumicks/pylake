@@ -35,6 +35,11 @@ Access the raw image data::
     # Plot manually
     plt.imshow(rgb)
 
+It is possible to crop a kymograph to a specific coordinate range, by using the function :meth:`~lumicks.pylake.Kymo.crop_by_distance`::
+For example, we can crop the region from `2` micron to `7` micron using the following command::
+
+    kymo.crop_by_distance(2, 7)
+
 Kymographs can also be sliced in order to obtain a specific time range.
 For example, one can plot the region of the kymograph between 175 and 180 seconds using::
 
