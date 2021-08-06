@@ -39,11 +39,14 @@ class Kymo(ConfocalImage):
         End point in the relevant info wave.
     json : dict
         Dictionary containing kymograph-specific metadata.
+    position_offset : float
+        Coordinate position offset with respect to the original raw data.
     """
 
-    def __init__(self, name, file, start, stop, json):
+    def __init__(self, name, file, start, stop, json, position_offset=0):
         super().__init__(name, file, start, stop, json)
         self._line_time_factory = _default_line_time_factory
+        self._position_offset = position_offset
 
     def _has_default_factories(self):
         return (
@@ -90,7 +93,7 @@ class Kymo(ConfocalImage):
 
         start = line_timestamps[i_min]
 
-        return Kymo(self.name, self.file, start, stop, self._json)
+        return Kymo(self.name, self.file, start, stop, self._json, self._position_offset)
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
@@ -269,6 +272,48 @@ class Kymo(ConfocalImage):
         ax_hist.set_ylabel("counts")
         ax_hist.set_title(self.name)
 
+    def crop_by_distance(self, lower, upper):
+        """Crop the kymo by position.
+
+        Crops the kymograph down to lower <= x < upper.
+
+        Parameters
+        ----------
+        lower : float
+            Lower bound in physical units.
+        upper : float
+            Upper bound in physical units.
+        """
+        if lower < 0 or upper < 0:
+            raise ValueError("Cropping by negative positions not allowed")
+
+        lower_pixels = int(lower / self.pixelsize_um[0])
+        upper_pixels = int(np.ceil(upper / self.pixelsize_um[0]))
+        n_pixels = len(np.arange(self._num_pixels[0])[lower_pixels:upper_pixels])
+        if n_pixels == 0:
+            raise IndexError("Cropped image would be empty")
+
+        position_offset = self._position_offset + lower_pixels * self.pixelsize_um[0]
+        result = Kymo(self.name, self.file, self.start, self.stop, self._json, position_offset)
+
+        def image_factory(_, channel):
+            return self._image(channel)[lower_pixels:upper_pixels, :]
+
+        def timestamp_factory(_, reduce):
+            return self._timestamps("timestamps", reduce)[lower_pixels:upper_pixels, :]
+
+        def pixelcount_factory(_):
+            num_pixels = self._num_pixels
+            num_pixels[0] = n_pixels
+            return num_pixels
+
+        result._image_factory = image_factory
+        result._timestamp_factory = timestamp_factory
+        result._line_time_factory = lambda _: self.line_time_seconds
+        result._pixelsize_factory = lambda _: self.pixelsize_um
+        result._pixelcount_factory = pixelcount_factory
+        return result
+
     def downsampled_by(
         self,
         time_factor=1,
@@ -288,7 +333,9 @@ class Kymo(ConfocalImage):
             The `numpy` function which is going to reduce multiple pixels into one.
             The default is `np.sum`.
         """
-        result = Kymo(self.name, self.file, self.start, self.stop, self._json)
+        result = Kymo(
+            self.name, self.file, self.start, self.stop, self._json, self._position_offset
+        )
 
         def image_factory(_, channel):
             data = self._image(channel)

@@ -5,6 +5,7 @@
 #### New features
 
 * Added option to exclude ranges with potential noise peaks from the calibration routines. Please refer to [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html) for more information.
+* Added `crop_by_distance` to `Kymo` to allow cropping Kymographs by distance. Please refer to [kymographs](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#kymo-data-and-details).
 * Added `refine_lines_gaussian()` for refining lines detected by the kymotracking algorithm using gaussian localization. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 #### Bug fixes

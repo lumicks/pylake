@@ -474,3 +474,192 @@ def test_downsampled_slice():
 
     with pytest.raises(NotImplementedError):
         kymo.downsampled_by(time_factor=2)["1s":"2s"]
+
+
+def test_kymo_crop():
+    """Test basic cropping functionality"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    # Test basic functionality
+    pixel_size_nm = 2
+    kymo = generate_kymo(
+        "Mock", image, pixel_size_nm=pixel_size_nm, start=100, dt=5, samples_per_pixel=5, line_padding=2
+    )
+    cropped = kymo.crop_by_distance(4e-3, 8e-3)
+    np.testing.assert_allclose(cropped.red_image,  [[12.0,  0.0,  0.0,  0.0, 12.0,  6.0,  0.0],
+                                                    [0.0, 12.0, 12.0, 12.0,  0.0,  6.0,  0.0]])
+    np.testing.assert_allclose(cropped.timestamps, [[170, 315, 460, 605, 750, 895, 1040],
+                                                    [195, 340, 485, 630, 775, 920, 1065]])
+    np.testing.assert_allclose(cropped.pixelsize_um, kymo.pixelsize_um)
+    np.testing.assert_allclose(cropped.line_time_seconds, kymo.line_time_seconds)
+    np.testing.assert_allclose(cropped.pixels_per_line, 2)
+    np.testing.assert_allclose(cropped._position_offset, 4e-3)
+
+    with pytest.raises(ValueError, match="Cropping by negative positions not allowed"):
+        kymo.crop_by_distance(-4e3, 1e3)
+
+    with pytest.raises(ValueError, match="Cropping by negative positions not allowed"):
+        kymo.crop_by_distance(1e3, -4e3)
+
+    with pytest.raises(IndexError, match="Cropped image would be empty"):
+        kymo.crop_by_distance(5e-3, 2e-3)
+
+    with pytest.raises(IndexError, match="Cropped image would be empty"):
+        kymo.crop_by_distance(2e-3, 2e-3)
+
+    with pytest.raises(IndexError, match="Cropped image would be empty"):
+        kymo.crop_by_distance(20e3, 21e3)
+
+    # Test rounding internally
+    np.testing.assert_allclose(
+        kymo.crop_by_distance(pixel_size_nm * 1.6 * 1e-3, pixel_size_nm * 1.6 * 1e-3).red_image,
+        image[1:2, :]
+    )
+    np.testing.assert_allclose(
+        kymo.crop_by_distance(pixel_size_nm * 1.6 * 1e-3, pixel_size_nm * 2.1 * 1e-3).red_image,
+        image[1:3, :]
+    )
+    np.testing.assert_allclose(
+        kymo.crop_by_distance(pixel_size_nm * 2.1 * 1e-3, pixel_size_nm * 2.1 * 1e-3).red_image,
+        image[2:3, :]
+    )
+
+
+def test_kymo_crop_ds():
+    """Test cropping interaction with downsampling"""
+
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [12, 12, 12, 12, 0, 6, 0],
+            [24, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    pixel_size_nm = 2
+    kymo = generate_kymo(
+        "Mock",
+        image,
+        pixel_size_nm=pixel_size_nm,
+        start=100,
+        dt=5,
+        samples_per_pixel=5,
+        line_padding=2
+    )
+
+    kymo_ds_pos = kymo.downsampled_by(position_factor=2)
+    cropped = kymo_ds_pos.crop_by_distance(4e-3, 8e-3)
+    np.testing.assert_allclose(cropped.red_image, kymo_ds_pos.red_image[1:2, :])
+    np.testing.assert_allclose(cropped.timestamps, kymo_ds_pos.timestamps[1:2, :])
+    np.testing.assert_allclose(cropped.pixelsize_um, kymo_ds_pos.pixelsize_um)
+    np.testing.assert_allclose(cropped.line_time_seconds, kymo_ds_pos.line_time_seconds)
+    np.testing.assert_allclose(cropped.pixels_per_line, 1)
+    np.testing.assert_allclose(cropped._position_offset, 4e-3)
+
+    kymo_ds_time = kymo.downsampled_by(time_factor=2)
+    cropped = kymo_ds_time.crop_by_distance(4e-3, 8e-3)
+    np.testing.assert_allclose(cropped.red_image, kymo_ds_time.red_image[2:4, :])
+    np.testing.assert_allclose(cropped.pixelsize_um, kymo_ds_time.pixelsize_um)
+    np.testing.assert_allclose(cropped.line_time_seconds, kymo_ds_time.line_time_seconds)
+    np.testing.assert_allclose(cropped.pixels_per_line, 2)
+    np.testing.assert_allclose(cropped._position_offset, 4e-3)
+
+    def check_order_of_operations(time_factor, pos_factor, crop_x, crop_y):
+        crop_ds = kymo.crop_by_distance(crop_x, crop_y).downsampled_by(time_factor, pos_factor)
+        ds_crop = kymo.downsampled_by(time_factor, pos_factor).crop_by_distance(crop_x, crop_y)
+
+        np.testing.assert_allclose(crop_ds.red_image, ds_crop.red_image)
+        np.testing.assert_allclose(crop_ds.line_time_seconds, ds_crop.line_time_seconds)
+        np.testing.assert_allclose(crop_ds.pixelsize_um, ds_crop.pixelsize_um)
+        np.testing.assert_allclose(crop_ds.pixels_per_line, ds_crop.pixels_per_line)
+        np.testing.assert_allclose(crop_ds._position_offset, ds_crop._position_offset)
+
+        if time_factor == 1:
+            np.testing.assert_allclose(crop_ds.red_image, ds_crop.red_image)
+
+    # Note that the order of operations check only makes sense for where the cropping happens on
+    # a multiple of the downsampling.
+    check_order_of_operations(2, 1, 4e-3, 8e-3)
+    check_order_of_operations(3, 1, 4e-3, 8e-3)
+    check_order_of_operations(1, 2, 4e-3, 8e-3)
+    check_order_of_operations(2, 2, 4e-3, 12e-3)
+    check_order_of_operations(1, 3, 6e-3, 14e-3)
+
+
+def test_kymo_slice_crop():
+    """Test cropping after slicing"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+    kymo = generate_kymo(
+        "Mock",
+        image,
+        pixel_size_nm=4,
+        start=int(100e9),
+        dt=int(5e9),
+        samples_per_pixel=5,
+        line_padding=2
+    )
+
+    sliced_cropped = kymo["245s":"725s"].crop_by_distance(8e-3, 14e-3)
+    np.testing.assert_allclose(sliced_cropped.timestamps,
+                               [[460e9, 605e9, 750e9],
+                                [485e9, 630e9, 775e9]])
+    np.testing.assert_allclose(sliced_cropped.red_image, [[0, 0, 12], [12, 12, 0]])
+    np.testing.assert_allclose(sliced_cropped._position_offset, 8e-3)
+    np.testing.assert_allclose(sliced_cropped._timestamps("timestamps", reduce=np.min),
+                               [[450e9, 595e9, 740e9],
+                                [475e9, 620e9, 765e9]])
+
+
+def test_incremental_offset():
+    """Test whether cropping twice propagates the offset correctly"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8,
+    )
+
+    kymo = generate_kymo(
+        "Mock", image, pixel_size_nm=2, start=100, dt=5, samples_per_pixel=5, line_padding=2
+    )
+    cropped = kymo.crop_by_distance(2e-3, 8e-3)
+    twice_cropped = cropped.crop_by_distance(2e-3, 8e-3)
+    np.testing.assert_allclose(
+        twice_cropped.red_image,
+        [[12.0, 0.0, 0.0, 0.0, 12.0, 6.0, 0.0], [0.0, 12.0, 12.0, 12.0, 0.0, 6.0, 0.0]],
+    )
+    np.testing.assert_allclose(
+        twice_cropped.timestamps,
+        [[170, 315, 460, 605, 750, 895, 1040], [195, 340, 485, 630, 775, 920, 1065]],
+    )
+    np.testing.assert_allclose(twice_cropped.pixelsize_um, kymo.pixelsize_um)
+    np.testing.assert_allclose(twice_cropped.line_time_seconds, kymo.line_time_seconds)
+    np.testing.assert_allclose(twice_cropped.pixels_per_line, 2)
+    np.testing.assert_allclose(twice_cropped._position_offset, 4e-3)
