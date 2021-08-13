@@ -185,6 +185,36 @@ def test_plotting_with_force(h5_file):
 
 
 @cleanup
+def test_downsample_channel_downsampled_kymo(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        kymo = f.kymos["Kymo1"]
+        kymo_ds = kymo.downsampled_by(position_factor=2)
+
+        ds = kymo_ds._downsample_channel(2, "x", reduce=np.mean)
+        np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+
+        # Downsampling by a factor of two in position means that the last pixel will be dropped
+        # from this kymo when downsampling (as it is 5 pixels wide). This is why the before last
+        # sample is taken when determining the maxima.
+        mins = kymo._timestamp_factory(kymo, np.min)[0, :]
+        maxs = kymo._timestamp_factory(kymo, np.max)[-2, :]
+        np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
+
+        # Downsampling by a factor of five in position means no pixel will be dropped.
+        kymo_ds = kymo.downsampled_by(position_factor=5)
+        ds = kymo_ds._downsample_channel(2, "x", reduce=np.mean)
+        mins = kymo._timestamp_factory(kymo, np.min)[0, :]
+        maxs = kymo._timestamp_factory(kymo, np.max)[-1, :]
+        np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
+
+        # Down-sampling by time should invalidate plot_with_force as it would correspond to
+        # non-contiguous sampling
+        with pytest.raises(AttributeError, match="Per-pixel timestamps are no longer available"):
+            kymo.downsampled_by(time_factor=2).plot_with_force("1x", "red")
+
+
+@cleanup
 def test_regression_plot_with_force(h5_file):
     # Plot_with_force used to fail when the last line of a kymograph was incomplete. The reason for
     # this was that the last few timestamps on the last line had zero as their timestamp. This meant
