@@ -6,7 +6,7 @@ from lumicks.pylake.force_calibration.power_spectrum_calibration import (
     fit_power_spectrum,
 )
 from lumicks.pylake.force_calibration.calibration_models import ActiveCalibrationModel
-from .data.simulate_calibration_data import generate_test_realisation_ideal
+from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 
 @pytest.mark.parametrize(
@@ -33,7 +33,7 @@ def test_integration_active_calibration(
     """Functional end to end test for active calibration"""
 
     np.random.seed(0)
-    force_voltage_data, driving_data = generate_test_realisation_ideal(
+    force_voltage_data, driving_data = generate_active_calibration_test_data(
         duration=20,
         sample_rate=sample_rate,
         bead_diameter=bead_diameter,
