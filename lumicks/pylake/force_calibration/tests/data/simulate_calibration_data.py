@@ -40,7 +40,7 @@ def response_peak_ideal(corner_frequency, driving_amplitude, driving_frequency):
     return driving_amplitude ** 2 / (2 * (1 + (corner_frequency / driving_frequency) ** 2))
 
 
-def generate_test_realisation_ideal(
+def generate_active_calibration_test_data(
     duration,
     sample_rate,
     bead_diameter,
