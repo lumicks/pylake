@@ -1,17 +1,18 @@
 import numpy as np
 import pytest
-from .data.generate_gaussian_data import read_dataset
+from .data.generate_gaussian_data import read_dataset as read_dataset_gaussian
+from .data.generate_exponential_data import read_dataset as read_dataset_exponential
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 
 @pytest.fixture
 def gaussian_1d():
-    return read_dataset("gaussian_data_1d.npz")
+    return read_dataset_gaussian("gaussian_data_1d.npz")
 
 
 @pytest.fixture
 def kymogroups_2lines():
-    _, _, photon_count, parameters = read_dataset("kymo_data_2lines.npz")
+    _, _, photon_count, parameters = read_dataset_gaussian("kymo_data_2lines.npz")
     pixel_size = parameters[0].pixel_size
     centers = [p.center / pixel_size for p in parameters]
 
@@ -30,3 +31,8 @@ def kymogroups_2lines():
     mixed_lines = KymoLineGroup([truncated_lines[0], lines[1]])
 
     return lines, gapped_lines, mixed_lines
+
+
+@pytest.fixture
+def exponential_data():
+    return read_dataset_exponential("exponential_data.npz")

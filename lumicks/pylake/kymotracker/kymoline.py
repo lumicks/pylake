@@ -1,5 +1,6 @@
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
+from lumicks.pylake.kymotracker.detail.binding_times import _kinetic_mle_optimize
 
 
 def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):
@@ -388,3 +389,27 @@ class KymoLineGroup:
             with the image. The value indicates the number of pixels in either direction to sum over.
         """
         export_kymolinegroup_to_csv(filename, self._src, delimiter, sampling_width)
+
+    def fit_binding_times(self, n_components):
+        """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
+
+        Parameters
+        ----------
+        n_components : int
+            number of components in the model. Currently only values of {1, 2} are supported.
+        """
+
+        if n_components not in (1, 2):
+            raise ValueError(
+                "Only 1- and 2-component exponential distributions are currently supported."
+            )
+
+        image = self[0]._image
+        dwelltimes_sec = np.hstack([line.seconds[-1] - line.seconds[0] for line in self])
+
+        min_observation_time = np.min(dwelltimes_sec)
+        max_observation_time = image.data.shape[1] * image.line_time_seconds
+
+        return _kinetic_mle_optimize(
+            n_components, dwelltimes_sec, min_observation_time, max_observation_time
+        )
