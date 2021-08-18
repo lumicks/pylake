@@ -663,3 +663,47 @@ def test_incremental_offset():
     np.testing.assert_allclose(twice_cropped.line_time_seconds, kymo.line_time_seconds)
     np.testing.assert_allclose(twice_cropped.pixels_per_line, 2)
     np.testing.assert_allclose(twice_cropped._position_offset, 4e-3)
+
+
+def test_slice_timestamps():
+    """Test slicing with realistically sized timestamps (this tests against floating point errors
+    induced in kymograph reconstruction)"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    kymo = generate_kymo(
+        "Mock",
+        image,
+        pixel_size_nm=4,
+        start=1623965975045144000,
+        dt=int(1e9),
+        samples_per_pixel=5,
+        line_padding=2
+    )
+
+    # Kymo line is 3 * 5 samples long, while there is 2 pixel padding on each side.
+    # Starting pixel time stamps relative to the original are as follows:
+    # [[2  21  40  59  78  97 116]
+    #  [7  26  45  64  83 102 121]
+    # [12  31  50  69  88 107 126]]
+    ref_ts = kymo.timestamps
+    sliced = kymo["2s":"120s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts)
+    sliced = kymo["3s":"120s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts[:, 1:])
+    sliced = kymo["21s":"120s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts[:, 1:])
+    sliced = kymo["22s":"120s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts[:, 2:])
+    sliced = kymo["22s":"97s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts[:, 2:5])
+    sliced = kymo["22s":"98s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts[:, 2:6])
+    sliced = kymo["0s":"98s"]
+    np.testing.assert_allclose(sliced.timestamps, ref_ts[:, :6])
