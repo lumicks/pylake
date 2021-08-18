@@ -10,6 +10,7 @@
 
 #### Bug fixes
 
+* Fixed bug in `Kymo` which resulted in erroneous timestamps and line times after slicing the Kymograph by time (e.g. `Kymo["1s":"5s"]`). The reason for this was imprecision in the timestamp reconstruction that occurred when slicing the data. This in turn led to an erroneous reconstruction of the timestamps. **As a result, any downstream analysis that relies on the time axis of a Kymograph post-slicing cannot be trusted (MSD analysis, plotting, tracking, attributes such as `.line_time_seconds`, etc.) in pylake v0.8.2 and v0.9.0.** Only those two versions are affected. Note that regular image reconstruction was not affected. Timestamps of unsliced kymographs constructed directly from the `.h5` files are also not affected.
 * Fixed an error in the documentation. In v0.9.0 `PowerSpectrum.power` was changed to represent power in `V^2/Hz` instead of `0.5 V^2/Hz`. However, the docs were not appropriately updated to reflect this change in the model equation that's fitted to the spectrum. This is mitigated now.
 * Fixed bug in `plot_with_force` which caused an exception on Kymographs with a partial last pixel.
 
