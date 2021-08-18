@@ -40,11 +40,15 @@ def test_timestamps_image(num_lines, pixels_per_line, pad_size):
     pad = np.zeros(pad_size, dtype=np.int32)
     infowave = np.hstack([np.hstack([pad, line_info_wave, pad]) for _ in np.arange(num_lines)])
     start_indices = np.hstack([np.hstack([pad, line_selector, pad]) for _ in np.arange(num_lines)])
-    time = np.arange(len(infowave), dtype=np.int64) + 100
+
+    # Generate list of timestamp data.
+    # It is important to use timestamps that are large enough such that floating point
+    # round-off errors will occur if the data is converted to floating point representation.
+    time = np.arange(len(infowave), dtype=np.int64) * int(700e9) + 1623965975045144000
 
     line_stamps = line_timestamps_image(time, infowave, pixels_per_line)
     assert line_stamps.shape == (sum(start_indices), )
-    assert np.all(np.allclose(line_stamps, time[start_indices == 1]))
+    np.testing.assert_equal(line_stamps, time[start_indices == 1])
 
 
 def test_reconstruct():
