@@ -75,6 +75,8 @@ Kymotracking
     filter_lines
     refine_lines_centroid
     refine_lines_gaussian
+    kymotracker.detail.binding_times.BindingDwelltimes
+    kymotracker.detail.binding_times.BindingDwelltimesBootstrap
 
 Notebook widgets
 ----------------
