@@ -116,8 +116,8 @@ Fortunately, the signal to noise level in this kymograph is quite good. In pract
 one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
 an acceptable result.
 
-Gaussian Maximum Likelihood Estimation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Maximum Likelihood Estimation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The function `refine_lines_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
 to characterize both the expected peak shape and photonic noise of the observed signal, adapted from :cite:`mortensen2010gauloc`.
