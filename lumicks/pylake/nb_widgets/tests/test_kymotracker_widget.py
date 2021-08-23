@@ -102,6 +102,16 @@ def test_refine_from_widget(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     in_um, in_s = calibrate_to_kymo(kymograph)
 
+    # Test whether error is handled when refining before tracking / loading
+    class MockLabel:
+        def __init__(self):
+            self.value = ""
+
+    kymo_widget._label = MockLabel()
+    kymo_widget.refine()
+    assert kymo_widget._label.value == "You need to track or load kymograph lines before you can " \
+                                       "refine them"
+
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
     kymo_widget.track_kymo(*region_select(in_um(12), in_s(5), in_um(13), in_s(20)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))

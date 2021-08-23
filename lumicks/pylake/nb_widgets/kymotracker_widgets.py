@@ -260,8 +260,11 @@ class KymoWidget:
         )
 
     def refine(self):
-        self.lines = refine_lines_centroid(self.lines, self._line_width_pixels)
-        self.update_lines()
+        if self.lines:
+            self.lines = refine_lines_centroid(self.lines, self._line_width_pixels)
+            self.update_lines()
+        else:
+            self._set_label("You need to track or load kymograph lines before you can refine them")
 
     def create_algorithm_sliders(self):
         raise NotImplementedError(
