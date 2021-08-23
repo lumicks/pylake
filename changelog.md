@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.1 | t.b.d.
+
+#### Bug fixes
+
+* Show an error message when user attempts to refine lines before tracking or loading them so the kymotracker widget does not become unresponsive.
+
 ## v0.10.0 | 2021-08-20
 
 Important notice: This release contains an important fix that could lead to timestamp corruption when slicing kymographs. If you are still on version `0.8.2` or `0.9.0` we highly recommend updating or not using the kymograph slicing functionality (e.g. using the syntax `kymo["0s":"5s"]`). Please refer to the `Bug fixes` section for more information.
