@@ -4,7 +4,11 @@ from .detail.driving_input import (
     estimate_driving_input_parameters,
     driving_power_peak,
 )
-from .detail.power_models import passive_power_spectrum_model, sphere_friction_coefficient
+from .detail.power_models import (
+    passive_power_spectrum_model,
+    sphere_friction_coefficient,
+    theoretical_driving_power_lorentzian,
+)
 from .power_spectrum_calibration import CalibrationParameter
 
 
@@ -211,7 +215,9 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         spectrum. This function returns the expected power contribution of the bead motion to the
         power spectrum. It corresponds to the driven power spectrum minus the thermal power spectrum
         integrated over the frequency bin corresponding to the driving input."""
-        return self.driving_amplitude ** 2 / (2 * (1 + (f_corner / self.driving_frequency) ** 2))
+        return theoretical_driving_power_lorentzian(
+            self.driving_amplitude, self.driving_frequency, f_corner
+        )
 
     def calibration_results(self, fc, diffusion_constant_volts, f_diode, alpha):
         """Compute calibration parameters from cutoff frequency and diffusion constant.
