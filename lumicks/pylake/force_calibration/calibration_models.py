@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from functools import partial
 from .detail.driving_input import (
     estimate_driving_input_parameters,
     driving_power_peak,
@@ -8,6 +9,10 @@ from .detail.power_models import (
     passive_power_spectrum_model,
     sphere_friction_coefficient,
     theoretical_driving_power_lorentzian,
+)
+from .detail.hydrodynamics import (
+    passive_power_spectrum_model_hydro,
+    theoretical_driving_power_hydrodynamics,
 )
 from .power_spectrum_calibration import CalibrationParameter
 
@@ -39,21 +44,80 @@ class PassiveCalibrationModel:
         Liquid viscosity [Pa*s].
     temperature : float, optional
         Liquid temperature [Celsius].
+    hydrodynamically_correct : bool, optional
+        Enable hydrodynamic correction.
+    distance_to_surface : float, optional
+        Distance from bead center to the surface [um].
+        Only used when using hydrodynamic corrections. None uses the approximation valid for deep
+        in bulk.
+    rho_sample : float, optional
+        Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
+    rho_bead : float, optional
+        Density of the bead [kg/m^3]. Only used when using hydrodynamic corrections.
     """
 
     def __name__(self):
         return "PassiveCalibrationModel"
 
-    def __init__(self, bead_diameter, viscosity=1.002e-3, temperature=20):
+    def __init__(
+        self,
+        bead_diameter,
+        viscosity=1.002e-3,
+        temperature=20,
+        hydrodynamically_correct=False,
+        distance_to_surface=None,
+        rho_sample=None,
+        rho_bead=1060.0,
+    ):
         self.viscosity = viscosity
         self.temperature = temperature
         self.bead_diameter = bead_diameter
+        self.drag_coeff = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
+
+        self.hydrodynamically_correct = hydrodynamically_correct
+        # Note that the default is set to None because in the future we may want to provide an
+        # estimate of rho_sample based on temperature. If we pin this to a value already, this
+        # would become a breaking change.
+        self.rho_sample = rho_sample if rho_sample is not None else 997.0
+        self.rho_bead = rho_bead
+        self.distance_to_surface = distance_to_surface
+
+        if hydrodynamically_correct:
+            self._passive_power_spectrum_model = partial(
+                passive_power_spectrum_model_hydro,
+                gamma0=self.drag_coeff,
+                bead_radius=self.bead_diameter * 1e-6 / 2.0,  # um diameter -> m radius
+                rho_sample=self.rho_sample,
+                rho_bead=self.rho_bead,
+                distance_to_surface=None
+                if self.distance_to_surface is None
+                else self.distance_to_surface * 1e-6,  # um => m
+            )
+        else:
+            self._passive_power_spectrum_model = passive_power_spectrum_model
 
     def __call__(self, f, fc, diffusion_constant, f_diode, alpha):
-        return passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha)
+        return self._passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha)
 
     def calibration_parameters(self):
+        hydrodynamic_parameters = (
+            {
+                "Sample density": CalibrationParameter(
+                    "Density of the sample", self.rho_sample, "kg/m**3"
+                ),
+                "Bead density": CalibrationParameter(
+                    "Density of bead material", self.rho_bead, "kg/m**3"
+                ),
+                "Distance to surface": CalibrationParameter(
+                    "Distance from bead center to surface", self.distance_to_surface, "um"
+                ),
+            }
+            if self.hydrodynamically_correct
+            else {}
+        )
+
         return {
+            **hydrodynamic_parameters,
             "Bead diameter": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
             "Viscosity": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
             "Temperature": CalibrationParameter("Liquid temperature", self.temperature, "C"),
@@ -77,16 +141,16 @@ class PassiveCalibrationModel:
             Fraction of PSD signal that is instantaneous
         """
         # diameter [um] -> [m]
-        gamma_0 = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
         temperature_k = scipy.constants.convert_temperature(self.temperature, "C", "K")
 
         # Distance response (Rd) needs to be output in um/V (m -> um or 1e6)
         distance_response = (
-            np.sqrt(scipy.constants.k * temperature_k / gamma_0 / diffusion_constant_volts) * 1e6
+            np.sqrt(scipy.constants.k * temperature_k / self.drag_coeff / diffusion_constant_volts)
+            * 1e6
         )
 
         # Stiffness is output in pN/nm (N/m -> pN/nm or 1e12 / 1e9 = 1e3)
-        kappa = 2 * np.pi * gamma_0 * fc * 1e3
+        kappa = 2 * np.pi * self.drag_coeff * fc * 1e3
 
         # Force response (Rf) is output in pN/V. Rd [um/V], stiffness [pN/nm]: um -> nm = 1e3
         force_response = distance_response * kappa * 1e3
@@ -95,6 +159,9 @@ class PassiveCalibrationModel:
             "Rd": CalibrationParameter("Distance response", distance_response, "um/V"),
             "kappa": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
             "Rf": CalibrationParameter("Force response", force_response, "pN/V"),
+            "gamma_0": CalibrationParameter(
+                "Theoretical drag coefficient", self.drag_coeff, "kg/s"
+            ),
         }
 
 
@@ -140,6 +207,16 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
     num_windows : int, optional
         Number of windows to average for the uncalibrated force. Using a larger number of
         windows potentially increases the bleed, but may be useful when the SNR is low.
+    hydrodynamically_correct : bool, optional
+        Enable hydrodynamically correct spectrum.
+    distance_to_surface : float, optional
+        Distance from bead center to the surface [um].
+        Only used when using hydrodynamic corrections. None uses the approximation valid for deep
+        in bulk.
+    rho_sample : float, optional
+        Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
+    rho_bead : float, optional
+        Density of the bead [kg/m^3]. Only used when using hydrodynamic corrections.
     """
 
     def __name__(self):
@@ -155,6 +232,10 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         viscosity=1.002e-3,
         temperature=20,
         num_windows=5,
+        hydrodynamically_correct=False,
+        distance_to_surface=None,
+        rho_sample=None,
+        rho_bead=1060.0,
     ):
         """
         Active Calibration Model.
@@ -174,14 +255,32 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         driving_frequency_guess : float
             Guess of the driving frequency.
         viscosity : float, optional
-            Liquid viscosity [Pa*s]. Only used when hydrodynamic corrections are enabled.
+            Liquid viscosity [Pa*s].
         temperature : float, optional
             Liquid temperature [Celsius].
         num_windows : int, optional
             Number of windows to average for the uncalibrated force. Using a larger number of
             windows potentially increases the bleed, but may be useful when the SNR is low.
+        hydrodynamically_correct : bool, optional
+            Enable hydrodynamically correct model.
+        distance_to_surface : float, optional
+            Distance from bead center to the surface [um]
+            Only used when using hydrodynamically correct model. None uses the approximation valid
+            for deep in bulk.
+        rho_sample : float, optional
+            Density of the sample [kg/m**3]. Only used when using hydrodynamically correct model.
+        rho_bead : float, optional
+            Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
         """
-        super().__init__(bead_diameter, viscosity, temperature)
+        super().__init__(
+            bead_diameter,
+            viscosity,
+            temperature,
+            hydrodynamically_correct,
+            distance_to_surface,
+            rho_sample,
+            rho_bead,
+        )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
         self.num_windows = num_windows
@@ -197,6 +296,26 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         self._response_power_density, self._frequency_bin_width = driving_power_peak(
             force_voltage_data, sample_rate, self.driving_frequency, num_windows
         )
+
+        if hydrodynamically_correct:
+            self._theoretical_driving_power_model = partial(
+                theoretical_driving_power_hydrodynamics,
+                driving_frequency=self.driving_frequency,
+                driving_amplitude=self.driving_amplitude,
+                gamma0=self.drag_coeff,
+                bead_radius=self.bead_diameter * 1e-6 / 2.0,  # um diameter -> m radius
+                rho_sample=self.rho_sample,
+                rho_bead=self.rho_bead,
+                distance_to_surface=None
+                if self.distance_to_surface is None
+                else self.distance_to_surface * 1e-6,  # um => m
+            )
+        else:
+            self._theoretical_driving_power_model = partial(
+                theoretical_driving_power_lorentzian,
+                driving_frequency=self.driving_frequency,
+                driving_amplitude=self.driving_amplitude,
+            )
 
     def calibration_parameters(self):
         return {
@@ -215,9 +334,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         spectrum. This function returns the expected power contribution of the bead motion to the
         power spectrum. It corresponds to the driven power spectrum minus the thermal power spectrum
         integrated over the frequency bin corresponding to the driving input."""
-        return theoretical_driving_power_lorentzian(
-            self.driving_amplitude, self.driving_frequency, f_corner
-        )
+        return self._theoretical_driving_power_model(f_corner)
 
     def calibration_results(self, fc, diffusion_constant_volts, f_diode, alpha):
         """Compute calibration parameters from cutoff frequency and diffusion constant.
@@ -235,13 +352,20 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         """
         reference_peak = self(self.driving_frequency, fc, diffusion_constant_volts, f_diode, alpha)
 
+        # Equation 14 from [6]
         power_exp = (self._response_power_density - reference_peak) * self._frequency_bin_width
+
+        # Equation 12 from [6]
         distance_response = np.sqrt(self._theoretical_driving_power(fc) / power_exp)  # m/V
 
+        # Equation 16 from [6]
         temperature_kelvin = scipy.constants.convert_temperature(self.temperature, "C", "K")
         k_temperature = scipy.constants.k * temperature_kelvin
-        gamma_0 = k_temperature / (distance_response ** 2 * diffusion_constant_volts)  # kg/s^2
-        kappa = 2.0 * np.pi * fc * gamma_0  # N/m
+        measured_drag_coeff = k_temperature / (
+            distance_response ** 2 * diffusion_constant_volts
+        )  # kg/s
+
+        kappa = 2.0 * np.pi * fc * measured_drag_coeff  # N/m
 
         force_response = distance_response * kappa  # N/V
 
@@ -249,5 +373,10 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             "Rd": CalibrationParameter("Distance response", distance_response * 1e6, "um/V"),
             "kappa": CalibrationParameter("Trap stiffness", kappa * 1e3, "pN/nm"),
             "Rf": CalibrationParameter("Force response", force_response * 1e12, "pN/V"),
-            "gamma_0": CalibrationParameter("Drag coefficient", gamma_0, "kg/s**2"),
+            "gamma_0": CalibrationParameter(
+                "Theoretical drag coefficient", self.drag_coeff, "kg/s"
+            ),
+            "gamma_ex": CalibrationParameter(
+                "Measured drag coefficient", measured_drag_coeff, "kg/s"
+            ),
         }

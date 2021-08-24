@@ -274,6 +274,7 @@ def test_repr(reference_calibration_result):
         Rd                   Distance response (um/V)                                      7.25365
         kappa                Trap stiffness (pN/nm)                                        0.171496
         Rf                   Force response (pN/V)                                      1243.97
+        gamma_0              Theoretical drag coefficient (kg/s)                           4.1552e-08
         fc                   Corner frequency (Hz)                                       656.875
         D                    Diffusion constant (V^2/s)                                    0.00185127
         f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.4

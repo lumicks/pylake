@@ -129,7 +129,7 @@ def g_diode(f, f_diode, alpha):
     return alpha ** 2 + (1 - alpha ** 2) / (1 + (f / f_diode) ** 2)
 
 
-def passive_power_spectrum_model(f, fc, D, f_diode, alpha):
+def passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha):
     """Theoretical model for the full power spectrum.
 
     See ref. 1, Eq. (10), and ref. 2, Eq. (11).
@@ -142,14 +142,14 @@ def passive_power_spectrum_model(f, fc, D, f_diode, alpha):
         Frequency values, in Hz.
     fc : float
         Corner frequency, in Hz.
-    D : float
+    diffusion_constant : float
         Diffusion constant, in (a.u.)^2/s
     f_diode : float
         Diode fall-off frequency, in Hz.
     alpha : float
         Diode parameter, between 0 and 1.
     """
-    return (D / (math.pi ** 2)) / (f ** 2 + fc ** 2) * g_diode(f, f_diode, alpha)
+    return (diffusion_constant / (math.pi ** 2)) / (f ** 2 + fc ** 2) * g_diode(f, f_diode, alpha)
 
 
 def sphere_friction_coefficient(eta, d):
@@ -165,7 +165,7 @@ def sphere_friction_coefficient(eta, d):
     return 3.0 * math.pi * eta * d
 
 
-def theoretical_driving_power_lorentzian(driving_frequency, driving_amplitude, fc):
+def theoretical_driving_power_lorentzian(fc, driving_frequency, driving_amplitude):
     """Compute the power expected for a given driving input.
 
     When driving the stage or trap, we expect to see a delta spike in the power density
@@ -173,11 +173,11 @@ def theoretical_driving_power_lorentzian(driving_frequency, driving_amplitude, f
     power spectrum. It corresponds to the driven power spectrum minus the thermal power spectrum
     integrated over the frequency bin corresponding to the driving input.
 
+    fc : float
+        Corner frequency [Hz]
     driving_frequency : float
         Driving frequency [Hz]
     driving_amplitude : float
         Driving amplitude [m]
-    fc : float
-        Corner frequency [Hz]
     """
     return driving_amplitude ** 2 / (2 * (1 + (fc / driving_frequency) ** 2))

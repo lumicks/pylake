@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.constants
 import pytest
+from lumicks.pylake.force_calibration.detail.power_models import sphere_friction_coefficient
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
     calculate_power_spectrum,
     fit_power_spectrum,
@@ -28,7 +29,7 @@ def test_integration_active_calibration(
     driving_sinusoid,
     diode,
     driving_frequency_guess,
-    power_density
+    power_density,
 ):
     """Functional end to end test for active calibration"""
 
@@ -77,7 +78,10 @@ def test_integration_active_calibration(
 
     kt = scipy.constants.k * scipy.constants.convert_temperature(temperature, "C", "K")
     drag_coeff_calc = kt / (fit["D"].value * fit["Rd"].value ** 2)
-    np.testing.assert_allclose(fit["gamma_0"].value, drag_coeff_calc * 1e12, rtol=1e-9)
+    np.testing.assert_allclose(
+        fit["gamma_0"].value, sphere_friction_coefficient(viscosity, bead_diameter*1e-6), rtol=1e-9
+    )
+    np.testing.assert_allclose(fit["gamma_ex"].value, drag_coeff_calc * 1e12, rtol=1e-9)
 
     np.testing.assert_allclose(fit["Bead diameter"].value, bead_diameter)
     np.testing.assert_allclose(fit["Driving frequency (guess)"].value, driving_frequency_guess)
