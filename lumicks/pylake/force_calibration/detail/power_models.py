@@ -163,3 +163,21 @@ def sphere_friction_coefficient(eta, d):
         Sphere diameter [m]
     """
     return 3.0 * math.pi * eta * d
+
+
+def theoretical_driving_power_lorentzian(driving_frequency, driving_amplitude, fc):
+    """Compute the power expected for a given driving input.
+
+    When driving the stage or trap, we expect to see a delta spike in the power density
+    spectrum. This function returns the expected power contribution of the bead motion to the
+    power spectrum. It corresponds to the driven power spectrum minus the thermal power spectrum
+    integrated over the frequency bin corresponding to the driving input.
+
+    driving_frequency : float
+        Driving frequency [Hz]
+    driving_amplitude : float
+        Driving amplitude [m]
+    fc : float
+        Corner frequency [Hz]
+    """
+    return driving_amplitude ** 2 / (2 * (1 + (fc / driving_frequency) ** 2))
