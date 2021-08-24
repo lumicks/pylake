@@ -162,8 +162,8 @@ def passive_power_spectrum_model_hydro(
 
 
 def theoretical_driving_power_hydrodynamics(
-    driving_frequency,
     fc,
+    driving_frequency,
     driving_amplitude,
     gamma0,
     bead_radius,
@@ -175,10 +175,10 @@ def theoretical_driving_power_hydrodynamics(
 
     Parameters
     ----------
-    driving_frequency : float
-        Driving frequency [Hz]
     fc : float
         Corner frequency [Hz]
+    driving_frequency : float
+        Driving frequency [Hz]
     driving_amplitude : float
         Driving amplitude [m]
     gamma0 : float
