@@ -8,27 +8,7 @@ from .detail.power_models import passive_power_spectrum_model, sphere_friction_c
 from .power_spectrum_calibration import CalibrationParameter
 
 
-class CalibrationModel:
-    def __init__(self, bead_diameter):
-        self.bead_diameter = bead_diameter
-
-    def __name__(self):
-        raise NotImplementedError
-
-    def __call__(self, f, fc, diffusion_constant, f_diode, alpha):
-        return passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha)
-
-    def __repr__(self):
-        return f"{self.__name__()}({''.join([f'{k}={v}, ' for k, v in vars(self).items()])[:-2]})"
-
-    def calibration_parameters(self):
-        raise NotImplementedError
-
-    def calibration_results(self, fc, diffusion_constant_volts, f_diode, alpha):
-        raise NotImplementedError
-
-
-class PassiveCalibrationModel(CalibrationModel):
+class PassiveCalibrationModel:
     """Model to fit data acquired during passive calibration.
 
     The power spectrum calibration algorithm implemented here is based on a number of publications
@@ -61,9 +41,12 @@ class PassiveCalibrationModel(CalibrationModel):
         return "PassiveCalibrationModel"
 
     def __init__(self, bead_diameter, viscosity=1.002e-3, temperature=20):
-        super().__init__(bead_diameter)
         self.viscosity = viscosity
         self.temperature = temperature
+        self.bead_diameter = bead_diameter
+
+    def __call__(self, f, fc, diffusion_constant, f_diode, alpha):
+        return passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha)
 
     def calibration_parameters(self):
         return {
@@ -111,7 +94,7 @@ class PassiveCalibrationModel(CalibrationModel):
         }
 
 
-class ActiveCalibrationModel(CalibrationModel):
+class ActiveCalibrationModel(PassiveCalibrationModel):
     """Model to fit data acquired during active calibration.
 
     The power spectrum calibration algorithm implemented here is based on [1]_, [2]_, [3]_, [4]_,
@@ -187,18 +170,16 @@ class ActiveCalibrationModel(CalibrationModel):
         driving_frequency_guess : float
             Guess of the driving frequency.
         viscosity : float, optional
-            Liquid viscosity [Pa*s].
+            Liquid viscosity [Pa*s]. Only used when hydrodynamic corrections are enabled.
         temperature : float, optional
             Liquid temperature [Celsius].
         num_windows : int, optional
             Number of windows to average for the uncalibrated force. Using a larger number of
             windows potentially increases the bleed, but may be useful when the SNR is low.
         """
-        super().__init__(bead_diameter)
+        super().__init__(bead_diameter, viscosity, temperature)
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
-        self.viscosity = viscosity
-        self.temperature = temperature
         self.num_windows = num_windows
 
         # Estimate driving input and response
@@ -215,13 +196,11 @@ class ActiveCalibrationModel(CalibrationModel):
 
     def calibration_parameters(self):
         return {
-            "Bead diameter": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
+            **super().calibration_parameters(),
             "Driving frequency (guess)": CalibrationParameter(
                 "Driving frequency (guess)", self.driving_frequency_guess, "Hz"
             ),
             "Sample rate": CalibrationParameter("Sample rate", self.sample_rate, "Hz"),
-            "Temperature": CalibrationParameter("Liquid temperature", self.temperature, "C"),
-            "Viscosity": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
             "num_windows": CalibrationParameter("Number of averaged windows", self.num_windows, ""),
         }
 
