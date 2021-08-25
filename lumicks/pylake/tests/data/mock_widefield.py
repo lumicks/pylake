@@ -134,7 +134,7 @@ def make_wt_description(version, bit_depth, m_red, m_blue, offsets):
 
 
 def make_alignment_image_data(spots, red_warp_parameters, blue_warp_parameters, bit_depth,
-                              offsets=None, version=1):
+                              offsets=None, camera="wt", version=1):
 
     spots = np.array(spots).T # [2 x N]
     m_red, red_spots = apply_transform(spots, offsets=offsets, **red_warp_parameters)
@@ -146,17 +146,24 @@ def make_alignment_image_data(spots, red_warp_parameters, blue_warp_parameters, 
 
     reference_image = np.repeat(green_image[:,:,np.newaxis], 3, axis=2)
     warped_image = np.stack((red_image, green_image, blue_image), axis=2).squeeze()
-    description = make_wt_description(version, bit_depth, m_red, m_blue, offsets)
+    if camera == "wt":
+        description = make_wt_description(version, bit_depth, m_red, m_blue, offsets)
+    elif camera == "irm":
+        description = make_irm_description(version, bit_depth)
+        # IRM images are grayscale so they only have 1 channel
+        reference_image = reference_image[:,:,1]
+        warped_image = warped_image[:,:,1]
+    else:
+        raise ValueError("camera argument must be 'wt' or 'irm'")
 
     return reference_image, warped_image, description, bit_depth
 
 
-def write_tiff_file(reference_image, warped_image, description, bit_depth, n_frames, filename):
-    if bit_depth == 8:
-        warped_image = warped_image[:,:,0]
-        channels = 1
-    else:
-        channels = 3
+def write_tiff_file(image_args, n_frames, filename):
+    _, warped_image, description, _ = image_args
+
+    # We use the dimension of image data to evaluate the number of color channels
+    channels = 1 if warped_image.ndim == 2 else 3
     movie = np.stack([warped_image for n in range(n_frames)], axis=0)
 
     tag_orientation = (274, 'H', 1, 1, False) # Orientation = ORIENTATION.TOPLEFT

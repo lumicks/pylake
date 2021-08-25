@@ -10,6 +10,8 @@
 
 * Show an error message when user attempts to refine lines before tracking or loading them so the kymotracker widget does not become unresponsive.
 * Force calibration models now throw an error when a bead diameter of less than `10^-2` microns is used (rather than produce `NaN` results).
+* Fixed bug that prevented export of `CorrelatedStack` if the alignment matrices were missing from the metadata.
+* Fixed bug where the exported metadata fields were erroneously exported as `"Applied channel X alignment"` for `CorrelatedStack` where the alignment was not actually applied.
 
 ## v0.10.0 | 2021-08-20
 

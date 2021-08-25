@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import tifffile
+import itertools
 from copy import deepcopy
 import pytest
 from lumicks.pylake.correlated_stack import CorrelatedStack
@@ -186,52 +187,52 @@ def warp_parameters():
 @pytest.fixture(scope="session")
 def gray_alignment_image_data(spot_coordinates, warp_parameters):
     return make_alignment_image_data(spot_coordinates, version=1,
-                                     bit_depth=8, **warp_parameters)
+                                     bit_depth=8, camera="irm", **warp_parameters)
 
 
 @pytest.fixture(scope="session", params=[1, 2])
 def rgb_alignment_image_data(spot_coordinates, warp_parameters, request):
     return make_alignment_image_data(spot_coordinates, version=request.param,
-                                     bit_depth=16, **warp_parameters)
+                                     bit_depth=16, camera="wt", **warp_parameters)
 
 
 @pytest.fixture(scope="session", params=[1,2])
 def rgb_alignment_image_data_offset(spot_coordinates, warp_parameters, request):
     return make_alignment_image_data(spot_coordinates, version=request.param,
-                                     bit_depth=16, offsets=(50, 50), **warp_parameters)
+                                     bit_depth=16, offsets=(50, 50), camera="wt", **warp_parameters)
 
 
 @pytest.fixture(scope="session")
 def rgb_tiff_file(tiff_dir, rgb_alignment_image_data):
     mock_filename = tiff_dir.join("rgb_single.tiff")
-    write_tiff_file(*rgb_alignment_image_data, n_frames=1, filename=str(mock_filename))
+    write_tiff_file(rgb_alignment_image_data, n_frames=1, filename=str(mock_filename))
     return mock_filename
 
 
 @pytest.fixture(scope="session")
 def rgb_tiff_file_multi(tiff_dir, rgb_alignment_image_data):
     mock_filename = tiff_dir.join("rgb_multi.tiff")
-    write_tiff_file(*rgb_alignment_image_data, n_frames=2, filename=str(mock_filename))
+    write_tiff_file(rgb_alignment_image_data, n_frames=2, filename=str(mock_filename))
     return mock_filename
 
 
 @pytest.fixture(scope="session")
 def gray_tiff_file(tiff_dir, gray_alignment_image_data):
     mock_filename = tiff_dir.join("gray_single.tiff")
-    write_tiff_file(*gray_alignment_image_data, n_frames=1, filename=str(mock_filename))
+    write_tiff_file(gray_alignment_image_data, n_frames=1, filename=str(mock_filename))
     return mock_filename
 
 
 @pytest.fixture(scope="session")
 def gray_tiff_file_multi(tiff_dir, gray_alignment_image_data):
     mock_filename = tiff_dir.join("gray_multi.tiff")
-    write_tiff_file(*gray_alignment_image_data, n_frames=2, filename=str(mock_filename))
+    write_tiff_file(gray_alignment_image_data, n_frames=2, filename=str(mock_filename))
     return mock_filename
 
 
 def test_image_reconstruction_grayscale(gray_alignment_image_data):
     reference_image, warped_image, description, bit_depth = gray_alignment_image_data
-    fake_tiff = TiffStack(MockTiffFile(data=[warped_image[:, :, 0]], times=[["10", "18"]],
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=8),
                           align=True)
     stack = CorrelatedStack.from_data(fake_tiff)
@@ -339,9 +340,10 @@ def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
 def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
     from os import stat
 
-    for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+    filenames = (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi)
+    for filename, align in itertools.product(filenames, (True, False)):
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
-        stack = CorrelatedStack(str(filename))
+        stack = CorrelatedStack(str(filename), align)
         stack.export_tiff(savename)
         stack.src._src.close()
         assert stat(savename).st_size > 0
@@ -350,8 +352,13 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
             assert len(tif0.pages) == len(tif.pages)
             assert tif0.pages[0].software != tif.pages[0].software
             assert "pylake" in tif.pages[0].software
-            assert "Applied channel 0 alignment" in tif.pages[0].description
-            assert "Channel 0 alignment" not in tif.pages[0].description
+            if stack._get_frame(0).is_rgb:
+                if stack._get_frame(0)._align:
+                    assert "Applied channel 0 alignment" in tif.pages[0].description
+                    assert "Channel 0 alignment" not in tif.pages[0].description
+                else:
+                    assert "Applied channel 0 alignment" not in tif.pages[0].description
+                    assert "Channel 0 alignment" in tif.pages[0].description
             for page0, page in zip(tif0.pages, tif.pages):
                 assert page0.tags["DateTime"].value == page.tags["DateTime"].value
 
