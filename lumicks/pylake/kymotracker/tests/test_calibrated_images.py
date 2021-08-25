@@ -1,6 +1,9 @@
 import pytest
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
 @pytest.fixture(scope="module")
@@ -62,3 +65,55 @@ def test_rect_errors(rect):
 
     with pytest.raises(IndexError):
         calibrated_channel.get_rect(rect)
+
+
+def test_from_kymo(test_img):
+    # from .h5
+    kymo = generate_kymo(
+        "Mock",
+        test_img,
+        pixel_size_nm=100,
+        start=1623965975045144000,
+        dt=int(1e9),
+        samples_per_pixel=5,
+        line_padding=2
+    )
+
+    # calibrated to base pairs
+    kymo_bp = kymo.calibrate_to_kbp(12.000)
+
+    channel = CalibratedKymographChannel.from_kymo(kymo, "red")
+    np.testing.assert_allclose(kymo.red_image, channel.data)
+    assert channel._position_unit == ("um", r"$\mu$m")
+
+    channel = CalibratedKymographChannel.from_kymo(kymo_bp, "red")
+    np.testing.assert_allclose(kymo_bp.red_image, channel.data)
+    assert channel._position_unit == ("kbp", "kbp")
+
+
+@cleanup
+def test_plotting(test_img):
+    channel = CalibratedKymographChannel(
+        "test", test_img, time_step_ns=3e9, pixel_size=7
+    )
+    channel.plot()
+    assert plt.gca().get_ylabel() == "position ()"
+
+
+    kymo = generate_kymo(
+        "Mock",
+        test_img,
+        pixel_size_nm=100,
+        start=1623965975045144000,
+        dt=int(1e9),
+        samples_per_pixel=5,
+        line_padding=2
+    )
+    channel = CalibratedKymographChannel.from_kymo(kymo, "red")
+    channel.plot()
+    assert plt.gca().get_ylabel() == r"position ($\mu$m)"
+
+    kymo_bp = kymo.calibrate_to_kbp(12.000)
+    channel = CalibratedKymographChannel.from_kymo(kymo_bp, "red")
+    channel.plot()
+    assert plt.gca().get_ylabel() == "position (kbp)"

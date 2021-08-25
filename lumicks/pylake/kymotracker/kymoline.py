@@ -21,6 +21,9 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_wi
     if not kymoline_group:
         raise RuntimeError("No kymograph traces to export")
 
+    time_units = "seconds"
+    position_units = kymoline_group[0]._image._position_unit[0]
+
     idx = np.hstack([np.full(len(line), idx) for idx, line in enumerate(kymoline_group)])
     coords_idx = np.hstack([line.coordinate_idx for line in kymoline_group])
     times_idx = np.hstack([line.time_idx for line in kymoline_group])
@@ -39,8 +42,8 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_wi
     store_column("time (pixels)", "%.18e", times_idx)
     store_column("coordinate (pixels)", "%.18e", coords_idx)
 
-    store_column("time", "%.18e", seconds)
-    store_column("position", "%.18e", position)
+    store_column(f"time ({time_units})", "%.18e", seconds)
+    store_column(f"position ({position_units})", "%.18e", position)
 
     if sampling_width is not None:
         store_column(
@@ -264,7 +267,7 @@ class KymoLine:
         lag_time, msd = self.msd(max_lag)
         plt.plot(lag_time, msd, **kwargs)
         plt.xlabel("Lag time [s]")
-        plt.ylabel("Mean Squared Displacement [$\\mu m^2$]")
+        plt.ylabel(f"Mean Squared Displacement [{self._image._position_unit[1]}$^2$]")
 
     def estimate_diffusion_ols(self, max_lag=None):
         """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.

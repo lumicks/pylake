@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.11.0 | t.b.d.
+
+#### New features
+
+* Added `Kymo.calibrate_to_kbp()` for calibrating the position axis of a kymograph from microns to kilobase-pairs. **Note: this calibration is applied to the full kymograph, so one should crop to the bead edges with `Kymo.crop_by_distance()` before calling this method.**
+
 ## v0.10.1 | 2021-10-27
 
 #### New features
@@ -27,6 +33,12 @@
 #### Deprecations
 
 * `CorrelatedStack.from_data()` has been renamed to `CorrelatedStack.from_dataset()` for consistency with `BaseScan.from_dataset()`.
+
+#### Breaking changes
+
+* Units are now included in the headers for exported kymograph traces. The header now reads:</br>
+`# line index;time (pixels);coordinate (pixels);time (seconds);position ({unit});counts (summed over {n} pixels)`</br>
+where `{unit}` is either `um` or `kbp` depending on the calibration of the kymograph.
 
 ## v0.10.0 | 2021-08-20
 
