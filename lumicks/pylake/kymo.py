@@ -1,6 +1,7 @@
 import numpy as np
 import warnings
 import cachetools
+from dataclasses import dataclass
 
 from skimage.measure import block_reduce
 from .detail.confocal import ConfocalImage
@@ -41,12 +42,15 @@ class Kymo(ConfocalImage):
         Dictionary containing kymograph-specific metadata.
     position_offset : float
         Coordinate position offset with respect to the original raw data.
+    calibration : PositionCalibration
+        Class defining calibration from microns to desired position units.
     """
 
-    def __init__(self, name, file, start, stop, json, position_offset=0):
+    def __init__(self, name, file, start, stop, json, position_offset=0, calibration=None):
         super().__init__(name, file, start, stop, json)
         self._line_time_factory = _default_line_time_factory
         self._position_offset = position_offset
+        self._calibration = PositionCalibration() if calibration is None else calibration
 
     def _has_default_factories(self):
         return (
@@ -93,7 +97,9 @@ class Kymo(ConfocalImage):
 
         start = line_timestamps[i_min]
 
-        return Kymo(self.name, self.file, start, stop, self._json, self._position_offset)
+        return Kymo(
+            self.name, self.file, start, stop, self._json, self._position_offset, self._calibration
+        )
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
@@ -128,23 +134,31 @@ class Kymo(ConfocalImage):
         """Line time in seconds"""
         return self._line_time_factory(self)
 
+    @property
+    def pixelsize(self):
+        """Returns a `List` of axes dimensions in calibrated units. The length of the
+        list corresponds to the number of scan axes."""
+        pixelsize = self.pixelsize_um
+        pixelsize[0] = self._calibration.from_um(pixelsize[0])
+        return pixelsize
+
     def _plot(self, image, **kwargs):
         import matplotlib.pyplot as plt
 
-        size_um = self.size_um[0]
+        size_calibrated = self._calibration.from_um(self.size_um[0])
         duration = self.line_time_seconds * image.shape[1]
         linetime = self.line_time_seconds
 
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             # pixel center aligned with mean time per line
-            extent=[-0.5 * linetime, duration - 0.5 * linetime, size_um, 0],
-            aspect=(image.shape[0] / image.shape[1]) * (duration / size_um),
+            extent=[-0.5 * linetime, duration - 0.5 * linetime, size_calibrated, 0],
+            aspect=(image.shape[0] / image.shape[1]) * (duration / size_calibrated),
         )
 
         plt.imshow(image, **{**default_kwargs, **kwargs})
         plt.xlabel("time (s)")
-        plt.ylabel(r"position ($\mu$m)")
+        plt.ylabel(f"position ({self._calibration.unit_label})")
         plt.title(self.name)
 
     def _downsample_channel(self, n, xy, reduce=np.mean):
@@ -225,7 +239,7 @@ class Kymo(ConfocalImage):
         from matplotlib.gridspec import GridSpec
 
         image = getattr(self, f"{color_channel}_image")
-        pixel_width = self.pixelsize_um[0]
+        pixel_width = self.pixelsize[0]
         edges, counts, bin_widths = histogram_rows(image, pixels_per_bin, pixel_width)
 
         gs = GridSpec(1, 2, width_ratios=(1, hist_ratio))
@@ -287,14 +301,22 @@ class Kymo(ConfocalImage):
         if lower < 0 or upper < 0:
             raise ValueError("Cropping by negative positions not allowed")
 
-        lower_pixels = int(lower / self.pixelsize_um[0])
-        upper_pixels = int(np.ceil(upper / self.pixelsize_um[0]))
+        lower_pixels = int(lower / self.pixelsize[0])
+        upper_pixels = int(np.ceil(upper / self.pixelsize[0]))
         n_pixels = len(np.arange(self._num_pixels[0])[lower_pixels:upper_pixels])
         if n_pixels == 0:
             raise IndexError("Cropped image would be empty")
 
-        position_offset = self._position_offset + lower_pixels * self.pixelsize_um[0]
-        result = Kymo(self.name, self.file, self.start, self.stop, self._json, position_offset)
+        position_offset = self._position_offset + lower_pixels * self.pixelsize[0]
+        result = Kymo(
+            self.name,
+            self.file,
+            self.start,
+            self.stop,
+            self._json,
+            position_offset,
+            self._calibration,
+        )
 
         def image_factory(_, channel):
             return self._image(channel)[lower_pixels:upper_pixels, :]
@@ -334,7 +356,13 @@ class Kymo(ConfocalImage):
             The default is `np.sum`.
         """
         result = Kymo(
-            self.name, self.file, self.start, self.stop, self._json, self._position_offset
+            self.name,
+            self.file,
+            self.start,
+            self.stop,
+            self._json,
+            self._position_offset,
+            self._calibration,
         )
 
         def image_factory(_, channel):
@@ -380,6 +408,35 @@ class Kymo(ConfocalImage):
         result._pixelcount_factory = pixelcount_factory
         return result
 
+    def calibrate_to_kbp(self, length_kbp):
+        """Calibrate from microns to other units.
+
+        Parameters
+        ----------
+        length : float
+            length of the kymo in kilobase pairs
+        """
+        if self._calibration.unit == "kbp":
+            raise RuntimeError("kymo is already calibrated in base pairs.")
+
+        calibration = PositionCalibration("kbp", length_kbp / self.size_um[0], "kbp")
+        result = Kymo(
+            self.name,
+            self.file,
+            self.start,
+            self.stop,
+            self._json,
+            self._position_offset,
+            calibration,
+        )
+        result._image_factory = self._image_factory
+        result._timestamp_factory = self._timestamp_factory
+        result._line_time_factory = self._line_time_factory
+        result._pixelsize_factory = self._pixelsize_factory
+        result._pixelcount_factory = self._pixelcount_factory
+
+        return result
+
 
 class EmptyKymo(Kymo):
     def plot_rgb(self):
@@ -402,3 +459,13 @@ class EmptyKymo(Kymo):
     @property
     def blue_image(self):
         return self._image()
+
+
+@dataclass(frozen=True)
+class PositionCalibration:
+    unit: str = "um"
+    calibration_per_um: float = 1.0
+    unit_label: str = r"$\mu$m"
+
+    def from_um(self, um):
+        return um * self.calibration_per_um

@@ -54,6 +54,15 @@ There are also several properties available for convenient access to the kymogra
 * `kymo.fast_axis` provides the axis that was scanned (x or y)
 * `kymo.line_time_seconds` provides the time between successive lines
 
+By default, kymographs are constructed with units of microns for the position axis. If, however, the kymograph spans a known length of DNA (for example,
+lambda DNA) we can calibrate the position axis to kilobase pairs::
+
+    kymo.calibrate_to_kbp(14.850)
+
+Now if we plot the image, the y-axis will be labeled in kbp. These units are also carried forward to any downstream operations such as cropping,
+kymotracking algorithms, MSD analysis, etc. *Note: currently this is a static calibration, meaning it is only valid if the traps do not
+change position during the time of the kymograph.*
+
 Downsampling kymograph
 ----------------------
 

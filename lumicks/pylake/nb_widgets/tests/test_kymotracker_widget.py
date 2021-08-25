@@ -178,3 +178,19 @@ def test_refine_line_width_units(kymograph, region_select):
     true_coordinate[2] = 12
     true_coordinate[3] = 12
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, true_coordinate)
+
+
+@cleanup
+def test_widget_with_calibration(kymograph):
+    widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
+    np.testing.assert_allclose(widget.algorithm_parameters["line_width"],
+                               kymograph.pixelsize[0] * 4)
+    np.testing.assert_allclose(widget.algorithm_parameters["line_width"], 1.6)
+    assert widget._axes.get_ylabel() == r"position ($\mu$m)"
+
+    kymo_bp = kymograph.calibrate_to_kbp(10.000)
+    widget = KymoWidgetGreedy(kymo_bp, "red", 1, use_widgets=False)
+    np.testing.assert_allclose(widget.algorithm_parameters["line_width"],
+                               kymo_bp.pixelsize[0] * 4)
+    np.testing.assert_allclose(widget.algorithm_parameters["line_width"], 2.0)
+    assert widget._axes.get_ylabel() == "position (kbp)"

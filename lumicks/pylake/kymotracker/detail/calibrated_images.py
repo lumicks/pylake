@@ -15,13 +15,16 @@ class CalibratedKymographChannel:
         Line time [nanoseconds].
     pixel_size : float
         Pixel calibration.
+    position_unit : tuple
+        Tuple of strings ("position unit raw text", "position unit formatted label")
     """
 
-    def __init__(self, name, data, time_step_ns, pixel_size):
+    def __init__(self, name, data, time_step_ns, pixel_size, position_unit=("", "")):
         self.name = name
         self.data = data
         self.time_step_ns = time_step_ns
         self._pixel_size = pixel_size
+        self._position_unit = position_unit
 
     @classmethod
     def from_array(
@@ -40,11 +43,13 @@ class CalibratedKymographChannel:
 
     @classmethod
     def from_kymo(cls, kymo, channel):
+        position_unit = (kymo._calibration.unit, kymo._calibration.unit_label)
         return cls(
             kymo.name,
             getattr(kymo, f"{channel}_image"),
             kymo.line_time_seconds * int(1e9),
-            kymo.pixelsize_um[0],
+            kymo.pixelsize[0],
+            position_unit,
         )
 
     def _to_pixel_rect(self, rect):
@@ -140,5 +145,5 @@ class CalibratedKymographChannel:
 
         plt.imshow(self.data, **{**default_kwargs, **kwargs})
         plt.xlabel("time (s)")
-        plt.ylabel(r"position ($\mu$m)")
+        plt.ylabel(f"position ({self._position_unit[1]})")
         plt.title(self.name)

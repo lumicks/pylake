@@ -68,10 +68,10 @@ def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimit
         np.testing.assert_allclose(np.array(line1.coordinate_idx), np.array(line2.coordinate_idx))
         np.testing.assert_allclose(np.array(line1.time_idx), np.array(line2.time_idx))
 
-    for line1, time in zip(lines, data["time"]):
+    for line1, time in zip(lines, data["time (seconds)"]):
         np.testing.assert_allclose(line1.seconds, time)
 
-    for line1, coord in zip(lines, data["position"]):
+    for line1, coord in zip(lines, data["position ()"]):
         np.testing.assert_allclose(line1.position, coord)
 
     if sampling_width is None:
