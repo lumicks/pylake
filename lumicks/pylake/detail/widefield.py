@@ -19,11 +19,14 @@ class TiffFrame:
 
     def __init__(self, page, align):
         self._src = page
-        self._description = ImageDescription(page)
-        self._align = align
+        self._description = ImageDescription(page, align)
+
+    @property
+    def _align(self):
+        return self._description._align
 
     def _align_image(self):
-        """ reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
+        """reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
 
         if not self._description:
             warnings.warn("File does not contain metadata. Only raw data is available")
@@ -66,7 +69,7 @@ class TiffFrame:
 
     @property
     def is_rgb(self):
-        return self._src.tags["SamplesPerPixel"].value == 3
+        return self._description.is_rgb
 
     def _get_plot_data(self, channel="rgb", vmax=None):
         """return data an numpy array, appropriate for use by `imshow`
@@ -129,7 +132,9 @@ class TiffStack:
 
 
 class ImageDescription:
-    def __init__(self, src):
+    def __init__(self, src, align):
+        self.is_rgb = src.tags["SamplesPerPixel"].value == 3
+        self._align = align
         try:
             self.json = json.loads(src.description)
         except json.decoder.JSONDecodeError:
@@ -191,6 +196,7 @@ class ImageDescription:
     def for_export(self):
         out = copy(self.json)
         if self:
-            for j in range(3):
-                out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
+            if self.is_rgb and self._align:
+                for j in range(3):
+                    out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
         return json.dumps(out, indent=4)
