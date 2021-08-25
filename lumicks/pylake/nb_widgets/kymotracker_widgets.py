@@ -231,8 +231,7 @@ class KymoWidget:
     def _load_from_ui(self):
         try:
             self.lines = import_kymolinegroup_from_csv(
-                self.output_filename,
-                CalibratedKymographChannel.from_kymo(self._kymo, self._channel),
+                self.output_filename, self._kymo, self._channel
             )
             self.update_lines()
             self._set_label(f"Loaded {self.output_filename}")

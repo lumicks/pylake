@@ -2,6 +2,7 @@ from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymogr
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup, import_kymolinegroup_from_csv
 import numpy as np
 import pytest
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
 @pytest.fixture(scope="session")
@@ -44,13 +45,20 @@ def read_txt(testfile, delimiter):
 def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimiter, sampling_width, sampling_outcome):
     test_img, lines = kymolinegroup_io_data
 
-    test_img.time_step_ns = dt
-    test_img._pixel_size = dx
+    kymo = generate_kymo(
+        "test",
+        test_img.data,
+        dx*1000,
+        start=4,
+        dt=dt,
+        samples_per_pixel=5,
+        line_padding=3
+    )
 
     # Test round trip through the API
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
     lines.save(testfile, delimiter, sampling_width)
-    read_file = import_kymolinegroup_from_csv(testfile, test_img, delimiter=delimiter)
+    read_file = import_kymolinegroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
 
     # Test raw fields
     data = read_txt(testfile, delimiter)
