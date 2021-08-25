@@ -1,4 +1,5 @@
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 
 
 def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):
@@ -51,15 +52,17 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_wi
     np.savetxt(filename, data, fmt=fmt, header=delimiter.join(header), delimiter=delimiter)
 
 
-def import_kymolinegroup_from_csv(filename, image, delimiter=";"):
+def import_kymolinegroup_from_csv(filename, kymo, channel, delimiter=";"):
     """Import kymolines from csv
 
     Parameters
     ----------
     filename : str
-        filename to import from
-    image : CalibratedKymographChannel
-        Calibrated 2D kymograph channel that these lines were tracked from
+        filename to import from.
+    kymo : Kymo
+        kymograph instance that these lines were tracked from.
+    channel : str
+        color channel that these lines were tracked from.
     delimiter : str
         A delimiter that delimits the column data.
 
@@ -71,6 +74,8 @@ def import_kymolinegroup_from_csv(filename, image, delimiter=";"):
 
     indices = data[:, 0]
     lines = np.unique(indices)
+
+    image = CalibratedKymographChannel.from_kymo(kymo, channel)
     return KymoLineGroup(
         [KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines]
     )
