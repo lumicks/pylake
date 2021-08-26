@@ -1,6 +1,15 @@
 import pytest
 import numpy as np
+from lumicks.pylake.force_calibration.power_spectrum_calibration import (
+    calculate_power_spectrum,
+    fit_power_spectrum,
+)
+from lumicks.pylake.force_calibration.calibration_models import (
+    PassiveCalibrationModel,
+    ActiveCalibrationModel,
+)
 from lumicks.pylake.force_calibration.detail.hydrodynamics import *
+from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 
 @pytest.mark.parametrize(
@@ -217,7 +226,7 @@ def test_hydro_spectra(
         [500e-6, 545.57, 7.557e-8, 4.4e-6, 997.0, 1060.0, 100e-9, 2.467139096e-09],
     ],
 )
-def test_hydro_spectra(
+def test_hydro_power(
     amp,
     fc,
     gamma0,
@@ -239,3 +248,130 @@ def test_hydro_spectra(
     )
 
     np.testing.assert_allclose(power, ref_power)
+
+
+def test_integration_active_calibration_hydrodynamics(integration_test_parameters):
+    shared_pars, simulation_pars = integration_test_parameters
+
+    np.random.seed(10071985)
+    volts, nanostage = generate_active_calibration_test_data(10, **simulation_pars, **shared_pars)
+    model = ActiveCalibrationModel(
+        nanostage,
+        volts,
+        **shared_pars,
+        sample_rate=simulation_pars["sample_rate"],
+        driving_frequency_guess=33,
+    )
+    power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
+    fit = fit_power_spectrum(power_spectrum, model)
+
+    np.testing.assert_allclose(fit.params["Sample density"].value, 997.0)
+    np.testing.assert_allclose(fit.params["Bead density"].value, 1040.0)
+    np.testing.assert_allclose(fit.params["Distance to surface"].value, 0.555)
+    np.testing.assert_allclose(fit.params["Bead diameter"].value, 1.03)
+    np.testing.assert_allclose(fit.params["Viscosity"].value, 0.0011)
+    np.testing.assert_allclose(fit.params["Temperature"].value, 25)
+    np.testing.assert_allclose(fit.params["Driving frequency (guess)"].value, 33)
+    np.testing.assert_allclose(fit.params["Sample rate"].value, 78125)
+    np.testing.assert_allclose(fit.params["num_windows"].value, 5)
+    np.testing.assert_allclose(fit.params["Max iterations"].value, 10000)
+    np.testing.assert_allclose(fit.params["Fit tolerance"].value, 1e-07)
+    np.testing.assert_allclose(fit.params["Points per block"].value, 2000)
+
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.6051649330570094)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.10543256286211536)
+    np.testing.assert_allclose(fit.results["Rf"].value, 63.80408984648098)
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+    np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.1141608095967259e-08)
+    np.testing.assert_allclose(fit.results["fc"].value, 1506.0764476562647)
+    np.testing.assert_allclose(fit.results["D"].value, 1.0088409661297066)
+    np.testing.assert_allclose(fit.results["f_diode"].value, 14678.932801906305)
+    np.testing.assert_allclose(fit.results["alpha"].value, 0.41654289354446566)
+    np.testing.assert_allclose(fit.results["err_fc"].value, 14.276233861052459, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_D"].value, 0.006159823623889375, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_f_diode"].value, 340.24103273566794, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_alpha"].value, 0.014047418012337998, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["chi_squared_per_deg"].value, 0.8650977340589278)
+    np.testing.assert_allclose(fit.results["backing"].value, 14.184338818615572)
+
+
+def test_integration_passive_calibration_hydrodynamics(integration_test_parameters):
+    shared_pars, simulation_pars = integration_test_parameters
+
+    np.random.seed(10071985)
+    volts, _ = generate_active_calibration_test_data(10, **simulation_pars, **shared_pars)
+    model = PassiveCalibrationModel(**shared_pars)
+    power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
+    fit = fit_power_spectrum(power_spectrum, model)
+
+    np.testing.assert_allclose(fit.params["Sample density"].value, 997.0)
+    np.testing.assert_allclose(fit.params["Bead density"].value, 1040.0)
+    np.testing.assert_allclose(fit.params["Distance to surface"].value, 0.555)
+    np.testing.assert_allclose(fit.params["Bead diameter"].value, 1.03)
+    np.testing.assert_allclose(fit.params["Viscosity"].value, 0.0011)
+    np.testing.assert_allclose(fit.params["Temperature"].value, 25)
+    np.testing.assert_allclose(fit.params["Max iterations"].value, 10000)
+    np.testing.assert_allclose(fit.params["Fit tolerance"].value, 1e-07)
+    np.testing.assert_allclose(fit.params["Points per block"].value, 2000)
+    np.testing.assert_allclose(fit.params["Sample rate"].value, 78125)
+
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.6181546988640827)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.10104804664845167)
+    np.testing.assert_allclose(fit.results["Rf"].value, 62.46332484677742)
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+    np.testing.assert_allclose(fit.results["fc"].value, 1506.0764476562647)
+    np.testing.assert_allclose(fit.results["D"].value, 1.0088409661297066)
+    np.testing.assert_allclose(fit.results["f_diode"].value, 14678.932801906305)
+    np.testing.assert_allclose(fit.results["alpha"].value, 0.41654289354446566)
+    np.testing.assert_allclose(fit.results["err_fc"].value, 14.276233861052459, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_D"].value, 0.006159823623889375, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_f_diode"].value, 340.24103273566794, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_alpha"].value, 0.014047418012337998, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["chi_squared_per_deg"].value, 0.8650977340589278)
+    np.testing.assert_allclose(fit.results["backing"].value, 14.184338818615572)
+
+
+def test_integration_active_calibration_hydrodynamics_bulk(integration_test_parameters):
+    shared_pars, simulation_pars = integration_test_parameters
+
+    np.random.seed(10071985)
+    shared_pars["distance_to_surface"] = None
+    volts, nanostage = generate_active_calibration_test_data(10, **simulation_pars, **shared_pars)
+    model = ActiveCalibrationModel(
+        nanostage,
+        volts,
+        **shared_pars,
+        sample_rate=simulation_pars["sample_rate"],
+        driving_frequency_guess=33,
+    )
+    power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
+    fit = fit_power_spectrum(power_spectrum, model)
+
+    np.testing.assert_allclose(fit.params["Sample density"].value, 997.0)
+    np.testing.assert_allclose(fit.params["Bead density"].value, 1040.0)
+    assert fit.params["Distance to surface"].value is None
+    np.testing.assert_allclose(fit.params["Bead diameter"].value, 1.03)
+    np.testing.assert_allclose(fit.params["Viscosity"].value, 0.0011)
+    np.testing.assert_allclose(fit.params["Temperature"].value, 25)
+    np.testing.assert_allclose(fit.params["Driving frequency (guess)"].value, 33)
+    np.testing.assert_allclose(fit.params["Sample rate"].value, 78125)
+    np.testing.assert_allclose(fit.params["num_windows"].value, 5)
+    np.testing.assert_allclose(fit.params["Max iterations"].value, 10000)
+    np.testing.assert_allclose(fit.params["Fit tolerance"].value, 1e-07)
+    np.testing.assert_allclose(fit.params["Points per block"].value, 2000)
+
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.6124727648954287)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.10261253656600618)
+    np.testing.assert_allclose(fit.results["Rf"].value, 62.84738398351507)
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+    np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.0874447128195706e-08)
+    np.testing.assert_allclose(fit.results["fc"].value, 1501.8043883199641)
+    np.testing.assert_allclose(fit.results["D"].value, 1.0091072985710965)
+    np.testing.assert_allclose(fit.results["f_diode"].value, 14669.854380073006)
+    np.testing.assert_allclose(fit.results["alpha"].value, 0.416574766034984)
+    np.testing.assert_allclose(fit.results["err_fc"].value, 11.599581832014788, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_D"].value, 0.0073323528722267824, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_f_diode"].value, 376.8348950010331, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["err_alpha"].value, 0.014665787938238972, rtol=1e-4)
+    np.testing.assert_allclose(fit.results["chi_squared_per_deg"].value, 0.8692224693465523)
+    np.testing.assert_allclose(fit.results["backing"].value, 14.919053123539882)
