@@ -121,7 +121,7 @@ def optimal_points(localization_error, num_points):
     1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
     single-particle tracking. Physical Review E, 85(6), 061916.
     """
-    if num_points < 4:
+    if num_points <= 4:
         raise RuntimeError(
             "You need at least 5 time points to estimate the number of points to include in the "
             "fit."
