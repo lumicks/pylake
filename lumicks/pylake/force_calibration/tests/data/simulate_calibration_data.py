@@ -5,6 +5,10 @@ from lumicks.pylake.force_calibration.detail.power_models import (
     sphere_friction_coefficient,
     passive_power_spectrum_model,
 )
+from lumicks.pylake.force_calibration.detail.hydrodynamics import (
+    passive_power_spectrum_model_hydro,
+    theoretical_driving_power_hydrodynamics,
+)
 
 
 def power_model_to_time_series(sample_rate, num_points, power_spectral_density):
@@ -50,6 +54,10 @@ def generate_active_calibration_test_data(
     pos_response_um_volt,
     driving_sinusoid,
     diode,
+    hydrodynamically_correct=False,
+    rho_sample=None,
+    rho_bead=1060.0,
+    distance_to_surface=None,
 ):
     """Generate test data to test active calibration.
 
@@ -79,6 +87,15 @@ def generate_active_calibration_test_data(
         Diode parameters:
         Alpha of the diode response that is instantaneous, ranges from 0 to 1 [-]
         Corner frequency of the filtering effect of the PSD [Hz]
+    hydrodynamically_correct : bool, optional
+        Enable hydrodynamically correct model.
+    rho_sample : float, optional
+        Density of the sample. Only used when using hydrodynamically correct model.
+    rho_bead : float, optional
+        Density of the bead. Only used when using hydrodynamically correct model.
+    distance_to_surface : float, optional
+        Distance from bead center to the surface. Only used when using hydrodynamically correct
+        model. None uses the approximation valid for deep in bulk.
     """
     pos_response_m_volt = pos_response_um_volt / 1e6
     gamma_0 = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)  # Ns/m
@@ -86,13 +103,35 @@ def generate_active_calibration_test_data(
     diffusion_volt = diffusion_physical / pos_response_m_volt / pos_response_m_volt  # V^2/s
     stiffness_si = stiffness * 1e-3  # N/m
     fc = stiffness_si / (2.0 * np.pi * gamma_0)  # Hz
+    driving_amplitude, driving_frequency = driving_sinusoid
 
-    power_spectrum_model = partial(
-        passive_power_spectrum_model, fc=fc, D=diffusion_volt, alpha=diode[0], f_diode=diode[1]
+    basic_pars = {
+        "fc": fc,
+        "diffusion_constant": diffusion_volt,
+        "alpha": diode[0],
+        "f_diode": diode[1],
+    }
+    hydro_pars = {
+        "gamma0": gamma_0,
+        "bead_radius": bead_diameter * 1e-6 / 2,
+        "rho_sample": rho_sample,
+        "rho_bead": rho_bead,
+        "distance_to_surface": None if distance_to_surface is None else distance_to_surface * 1e-6,
+    }
+
+    power_spectrum_model = (
+        partial(passive_power_spectrum_model_hydro, **basic_pars, **hydro_pars)
+        if hydrodynamically_correct
+        else partial(passive_power_spectrum_model, **basic_pars)
     )
 
-    driving_amplitude, driving_frequency = driving_sinusoid
-    p_response_m_squared = response_peak_ideal(fc, driving_amplitude * 1e-9, driving_frequency)
+    response_peak = (
+        partial(theoretical_driving_power_hydrodynamics, **hydro_pars)
+        if hydrodynamically_correct
+        else response_peak_ideal
+    )
+
+    p_response_m_squared = response_peak(fc, driving_amplitude * 1e-9, driving_frequency)
     p_response_volts = np.sqrt(p_response_m_squared) / pos_response_m_volt
 
     num_points = 2 * (sample_rate * duration // 2)  # Has to be multiple of two for FFT
