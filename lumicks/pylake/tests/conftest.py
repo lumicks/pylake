@@ -148,9 +148,11 @@ def h5_file(tmpdir_factory, request):
 
     mock_file.make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5.0))
     mock_file.make_continuous_channel("Force HF", "Force 1y", 1, 10, np.arange(5.0, 10.0))
+    mock_file.make_continuous_channel("Force HF", "Force 1z", 1, 10, np.arange(10.0, 15.0))
 
     mock_file.make_timeseries_channel("Force LF", "Force 1x", [(1, 1.1), (2, 2.1)])
     mock_file.make_timeseries_channel("Force LF", "Force 1y", [(1, 1.2), (2, 2.2)])
+    mock_file.make_timeseries_channel("Force LF", "Force 1z", [(1, 1.3), (2, 2.3)])
 
     if mock_class == MockDataFile_v2:
         mock_file.make_timetags_channel(
@@ -166,6 +168,10 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data("2", "Force 1y", {calibration_time_field: 1})
         mock_file.make_calibration_data("3", "Force 1y", {calibration_time_field: 10})
         mock_file.make_calibration_data("4", "Force 1y", {calibration_time_field: 100})
+        mock_file.make_calibration_data("1", "Force 1z", {calibration_time_field: 0})
+        mock_file.make_calibration_data("2", "Force 1z", {calibration_time_field: 1})
+        mock_file.make_calibration_data("3", "Force 1z", {calibration_time_field: 10})
+        mock_file.make_calibration_data("4", "Force 1z", {calibration_time_field: 100})
 
         mock_file.make_marker("test_marker", {'Start time (ns)': 100, 'Stop time (ns)': 200})
         mock_file.make_marker("test_marker2", {'Start time (ns)': 200, 'Stop time (ns)': 300})
