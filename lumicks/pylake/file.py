@@ -160,12 +160,16 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
                     for field in [
                         "force1x",
                         "force1y",
+                        "force1z",
                         "force2x",
                         "force2y",
+                        "force2z",
                         "force3x",
                         "force3y",
+                        "force3z",
                         "force4x",
                         "force4y",
+                        "force4z",
                     ]
                 )
             )
@@ -176,39 +180,43 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
                     for field in [
                         "downsampled_force1x",
                         "downsampled_force1y",
+                        "downsampled_force1z",
                         "downsampled_force2x",
                         "downsampled_force2y",
+                        "downsampled_force2z",
                         "downsampled_force3x",
                         "downsampled_force3y",
+                        "downsampled_force3z",
                         "downsampled_force4x",
                         "downsampled_force4y",
+                        "downsampled_force4z",
                     ]
                 )
             )
         )
 
-    def _get_force(self, n, xy):
+    def _get_force(self, n, xyz):
         """Return a Slice of force measurements, including calibration
         Note: direct access to HDF dataset does not include calibration data"""
-        force_group = self.h5["Force HF"][f"Force {n}{xy}"]
-        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+        force_group = self.h5["Force HF"][f"Force {n}{xyz}"]
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xyz)
 
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
-    def _get_downsampled_force(self, n, xy):
+    def _get_downsampled_force(self, n, xyz):
         """Return a Slice of low frequency force measurements, including calibration if applicable
         Note: direct access to HDF dataset does not include calibration data"""
         group = self.h5["Force LF"]
 
         def make(channel):
-            if xy:
-                calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+            if xyz:
+                calibration_data = ForceCalibration.from_dataset(self.h5, n, xyz)
                 return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data)
             else:
                 return TimeSeries.from_dataset(group[channel], "Force (pN)")
 
-        if xy:  # An x or y component of the downsampled force is easy
-            return make(f"Force {n}{xy}")
+        if xyz:  # An x, y or z component of the downsampled force is easy
+            return make(f"Force {n}{xyz}")
 
         # Sum force channels can have inconsistent names
         if f"Force {n}" in group:
@@ -216,7 +224,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         elif f"Trap {n}" in group:
             return make(f"Trap {n}")
 
-        # If it's completely missing, we can reconstruct it from the x and y components
+        # If it's completely missing, we can reconstruct it from the x and y components, z is not included
         fx = make(f"Force {n}x")
         fy = make(f"Force {n}y")
         return Slice(
@@ -224,12 +232,12 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"},
         )
 
-    def _get_corrected_force(self, n, xy):
+    def _get_corrected_force(self, n, xyz):
         """Return a Slice of force measurements, including calibration, with baseline
         correction applied. Only the x-component has correction available.
         Note: direct access to HDF dataset does not include calibration data"""
-        force_group = self.h5["Force HF"][f"Corrected Force {n}{xy}"]
-        calibration_data = ForceCalibration.from_dataset(self.h5, n, xy)
+        force_group = self.h5["Force HF"][f"Corrected Force {n}{xyz}"]
+        calibration_data = ForceCalibration.from_dataset(self.h5, n, xyz)
 
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 

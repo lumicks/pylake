@@ -122,7 +122,7 @@ def test_properties(h5_file):
 def test_groups(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 1:
-        assert str(f["Force HF"]) == "{'Force 1x', 'Force 1y'}"
+        assert str(f["Force HF"]) == "{'Force 1x', 'Force 1y', 'Force 1z'}"
 
         for x in range(0, 2):
             t = [name for name in f]
@@ -130,7 +130,7 @@ def test_groups(h5_file):
 
         for x in range(0, 2):
             t = [name for name in f["Force HF"]]
-            assert set(t) == set(["Force 1x", "Force 1y"])
+            assert set(t) == set(["Force 1x", "Force 1y", "Force 1z"])
 
 
 def test_redirect_list(h5_file):
@@ -173,6 +173,9 @@ def test_repr_and_str(h5_file):
               Force 1y:
               - Data type: float64
               - Size: 5
+              Force 1z:
+              - Data type: float64
+              - Size: 5
             Force LF:
               Force 1x:
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
@@ -180,12 +183,17 @@ def test_repr_and_str(h5_file):
               Force 1y:
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
               - Size: 2
+              Force 1z:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
             
             .force1x
             .force1y
+            .force1z
 
             .downsampled_force1x
             .downsampled_force1y
+            .downsampled_force1z
         """)
     if f.format_version == 2:
         assert str(f) == dedent("""\
@@ -204,6 +212,9 @@ def test_repr_and_str(h5_file):
               Force 1y:
               - Data type: float64
               - Size: 5
+              Force 1z:
+              - Data type: float64
+              - Size: 5
               Force 2x:
               - Data type: float64
               - Size: 70
@@ -212,6 +223,9 @@ def test_repr_and_str(h5_file):
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
               - Size: 2
               Force 1y:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+              Force 1z:
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
               - Size: 2
             Info wave:
@@ -254,12 +268,16 @@ def test_repr_and_str(h5_file):
               .calibration
             .force1y
               .calibration
+            .force1z
+              .calibration
             .force2x
               .calibration
 
             .downsampled_force1x
               .calibration
             .downsampled_force1y
+              .calibration
+            .downsampled_force1z
               .calibration
         """)
 

@@ -2,6 +2,10 @@
 
 ## v0.10.1 | t.b.d.
 
+#### New features
+
+* Add support for axial force detection (i.e. force detection along the Z axis). The high-frequency data can be accessed with `f.force1z` and `f.force2z` while the downsampled low-frequency channels can be accessed with `f.downsampled_force1z` and `f.downsampled_force2z`. The calibrations can be accessed with `f.force1z.calibration` and `f.force2z.calibration`. The Z component is *not* factored in the calculation of the total force `f.downsampled_force1` and `f.downsampled_force2`.
+
 #### Bug fixes
 
 * Show an error message when user attempts to refine lines before tracking or loading them so the kymotracker widget does not become unresponsive.

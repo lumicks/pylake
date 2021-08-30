@@ -25,12 +25,20 @@ class Force:
         return _try_get_or_empty(self._get_force, 1, "y")
 
     @property
+    def force1z(self) -> Slice:
+        return _try_get_or_empty(self._get_force, 1, "z")
+
+    @property
     def force2x(self) -> Slice:
         return _try_get_or_empty(self._get_force, 2, "x")
 
     @property
     def force2y(self) -> Slice:
         return _try_get_or_empty(self._get_force, 2, "y")
+
+    @property
+    def force2z(self) -> Slice:
+        return _try_get_or_empty(self._get_force, 2, "z")
 
     @property
     def force3x(self) -> Slice:
@@ -41,12 +49,20 @@ class Force:
         return _try_get_or_empty(self._get_force, 3, "y")
 
     @property
+    def force3z(self) -> Slice:
+        return _try_get_or_empty(self._get_force, 3, "z")
+
+    @property
     def force4x(self) -> Slice:
         return _try_get_or_empty(self._get_force, 4, "x")
 
     @property
     def force4y(self) -> Slice:
         return _try_get_or_empty(self._get_force, 4, "y")
+
+    @property
+    def force4z(self) -> Slice:
+        return _try_get_or_empty(self._get_force, 4, "z")
 
 
 class DownsampledFD:
@@ -83,12 +99,20 @@ class DownsampledFD:
         return _try_get_or_empty(self._get_downsampled_force, 1, "y")
 
     @property
+    def downsampled_force1z(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 1, "z")
+
+    @property
     def downsampled_force2x(self) -> Slice:
         return _try_get_or_empty(self._get_downsampled_force, 2, "x")
 
     @property
     def downsampled_force2y(self) -> Slice:
         return _try_get_or_empty(self._get_downsampled_force, 2, "y")
+
+    @property
+    def downsampled_force2z(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 2, "z")
 
     @property
     def downsampled_force3x(self) -> Slice:
@@ -99,12 +123,20 @@ class DownsampledFD:
         return _try_get_or_empty(self._get_downsampled_force, 3, "y")
 
     @property
+    def downsampled_force3z(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 3, "z")
+
+    @property
     def downsampled_force4x(self) -> Slice:
         return _try_get_or_empty(self._get_downsampled_force, 4, "x")
 
     @property
     def downsampled_force4y(self) -> Slice:
         return _try_get_or_empty(self._get_downsampled_force, 4, "y")
+
+    @property
+    def downsampled_force4z(self) -> Slice:
+        return _try_get_or_empty(self._get_downsampled_force, 4, "z")
 
     @property
     def distance1(self) -> Slice:
