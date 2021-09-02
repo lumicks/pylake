@@ -94,7 +94,22 @@ def estimate_driving_input_parameters(
     log_magnitudes = np.log(np.abs(windowed_fft[fit_range]))
 
     p = np.polyfit(frequency[fit_range], log_magnitudes, 2)
+
+    if p[0] >= 0:
+        raise RuntimeError(
+            "Did not manage to find driving peak in spectral search range. "
+            "Check whether your initial driving frequency guess is close enough to the driving "
+            "frequency."
+        )
+
     freq = -p[1] / (2.0 * p[0])  # Location of the peak of the quadratic approximation
+
+    if freq < f_drive_guess - f_search or freq > f_drive_guess + f_search:
+        raise RuntimeError(
+            "Peak is outside frequency search range. Check whether your initial driving frequency "
+            "guess is close enough to the driving frequency."
+        )
+
     delta_freq = 2 / sample_rate
     amp = np.exp(p[2] - 0.25 * p[1] ** 2 / p[0] + 0.5 * np.log(-np.pi / p[0])) * delta_freq
 
