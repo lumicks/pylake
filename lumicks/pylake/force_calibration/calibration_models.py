@@ -69,6 +69,13 @@ class PassiveCalibrationModel:
         rho_sample=None,
         rho_bead=1060.0,
     ):
+        if (
+            distance_to_surface
+            and hydrodynamically_correct
+            and distance_to_surface < bead_diameter / 2.0
+        ):
+            raise ValueError("Distance from bead center to surface is smaller than the bead radius")
+
         self.viscosity = viscosity
         self.temperature = temperature
         self.bead_diameter = bead_diameter

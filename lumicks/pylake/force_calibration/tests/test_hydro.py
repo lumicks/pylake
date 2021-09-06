@@ -375,3 +375,24 @@ def test_integration_active_calibration_hydrodynamics_bulk(integration_test_para
     np.testing.assert_allclose(fit.results["err_alpha"].value, 0.014665787938238972, rtol=1e-4)
     np.testing.assert_allclose(fit.results["chi_squared_per_deg"].value, 0.8692224693465523)
     np.testing.assert_allclose(fit.results["backing"].value, 14.919053123539882)
+
+
+def test_distance_to_surface_input(integration_test_parameters):
+    signal = np.cos(2 * np.pi * 37 * np.arange(0, 1, 1.0 / 78125))
+    pars = {"bead_diameter": 1.0,
+            "driving_data": signal,
+            "force_voltage_data": signal,
+            "driving_frequency_guess": 37,
+            "sample_rate": 78125}
+
+    with pytest.raises(ValueError):
+        ActiveCalibrationModel(distance_to_surface=0.49, hydrodynamically_correct=True, **pars)
+
+    # Passes because it's unused when not using hydro model
+    ActiveCalibrationModel(distance_to_surface=0.49, hydrodynamically_correct=False, **pars)
+
+    # Distance passes the check
+    ActiveCalibrationModel(distance_to_surface=0.51, hydrodynamically_correct=True, **pars)
+
+    # Passes because we're not using the distance in this case.
+    ActiveCalibrationModel(distance_to_surface=None, hydrodynamically_correct=True, **pars)
