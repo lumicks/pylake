@@ -69,6 +69,12 @@ class PassiveCalibrationModel:
         rho_sample=None,
         rho_bead=1060.0,
     ):
+        if bead_diameter < 1e-2:
+            raise ValueError(
+                f"Invalid bead diameter specified {bead_diameter}. Bead diameter should be bigger "
+                f"than 10^-2 um"
+            )
+
         if (
             distance_to_surface
             and hydrodynamically_correct

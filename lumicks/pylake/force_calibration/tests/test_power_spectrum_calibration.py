@@ -285,3 +285,13 @@ def test_repr(reference_calibration_result):
         err_alpha            Diode 'relaxation factor' Std Err                             0.0131415
         chi_squared_per_deg  Chi squared per degree of freedom                             1.06378
         backing              Statistical backing (%)                                      66.4331""")
+
+
+def test_invalid_bead_diameter():
+    with pytest.raises(ValueError, match="Invalid bead diameter specified"):
+        PassiveCalibrationModel(bead_diameter=0)
+
+    with pytest.raises(ValueError, match="Invalid bead diameter specified"):
+        PassiveCalibrationModel(bead_diameter=1e-7)
+
+    PassiveCalibrationModel(bead_diameter=1e-2)
