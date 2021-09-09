@@ -16,18 +16,14 @@ def test_spectrum(reference_models):
 
 
 def test_spectrum_parameter_scaling(reference_models):
-    from ..detail.power_models import _convert_to_alpha, _convert_to_a
-
     f = np.arange(10000)
-    a_true = 5.0
-    initials = [2.0, 3.0, 4.0, _convert_to_alpha(a_true)]
+    initials = np.array([2.0, 3.0, 4.0, 5.0])
     scaled_psc = ScaledModel(passive_power_spectrum_model, initials)
 
     fc, diff, alpha, diode = 1000, 1e9, 0.5, 10000
-    a_scaled = _convert_to_a(alpha) / a_true
 
     np.testing.assert_allclose(
-        scaled_psc(f, fc / initials[0], diff / initials[1], diode / initials[2], a_scaled),
+        scaled_psc(f, fc / initials[0], diff / initials[1], diode / initials[2], alpha / initials[3]),
         reference_models.lorentzian_filtered(f, fc, diff, alpha, diode),
     )
 
