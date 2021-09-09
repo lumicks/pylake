@@ -46,14 +46,14 @@ def test_calibration_result():
     "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,temperature,err_fc,err_d,"
     "err_f_diode,err_alpha,",
     [
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.9846e-11, 1239.06183, 0.05650019],
-        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.21810, 4.5890e-11, 1399.04982, 0.05896166],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 20.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.2e-3, 4.0, 20.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 8.0, 20.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 34.0, 84.85429, 1.04547e-10, 827.43118, 0.03077534],
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.9846e-11, 1239.06183, 0.05650019],
-        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.9846e-11, 1239.06183, 0.05650019],
+        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.06198, 0.05615039],
+        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.05017, 0.05856517],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.2e-3, 4.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 8.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
+        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 34.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
+        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.062, 0.05615039],
+        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.06198, 0.05615039],
     ],
 )
 def test_good_fit_integration_test(
@@ -115,45 +115,12 @@ def test_fit_settings(reference_models):
     )
 
     # Won't converge with so few maximum function evaluations
-    with pytest.raises(RuntimeError, match="Number of calls to function has reached maxfev"):
+    with pytest.raises(RuntimeError, match="The maximum number of function evaluations is exceeded"):
         psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, max_function_evals=1)
 
-    # If we set the termination tolerance very high, even a totally unconverged fit is accepted.
-    psc.fit_power_spectrum(
-        power_spectrum=power_spectrum, model=model, ftol=10, max_function_evals=1
-    )
-
-    # Our simulation has no diode effect, so we should get a reasonable fit from just the analytic
-    # fit even if we don't actually fit (ftol = 1).
-    calib = psc.fit_power_spectrum(
-        power_spectrum=power_spectrum, model=model, ftol=10, max_function_evals=1
-    )
-    np.testing.assert_allclose(calib["fc"].value, corner_frequency, rtol=1e-3)
-    np.testing.assert_allclose(calib["D"].value, diffusion_volt, rtol=1e-3)
-
-    # If we corrupt the power spectrum, then the parameters should be quite different
-    bad_power_spectrum = deepcopy(power_spectrum)
-    bad_power_spectrum.power[1] = 1e-8
-    bad_calibration = psc.fit_power_spectrum(
-        power_spectrum=bad_power_spectrum, model=model, ftol=10, max_function_evals=1
-    )
-    assert (
-        np.abs(bad_calibration["fc"].value - calib["fc"].value) > 1e-4
-    ), "Fit did not get worse from including bad data."
-    assert (
-        np.abs(bad_calibration["D"].value - calib["D"].value) > 1e-4
-    ), "Fit did not get worse from including bad data."
-
-    # If we exclude that region now, the fit should be OK again.
-    ranged_calibration = psc.fit_power_spectrum(
-        power_spectrum=bad_power_spectrum,
-        model=model,
-        analytical_fit_range=(500, 23000),
-        ftol=10,
-        max_function_evals=1,
-    )
-    np.testing.assert_allclose(ranged_calibration["fc"].value, corner_frequency, rtol=1e-3)
-    np.testing.assert_allclose(ranged_calibration["D"].value, diffusion_volt, rtol=1e-3)
+    # Make the analytical fit fail
+    with pytest.raises(RuntimeError, match="An empty power spectrum was passed to fit_analytical_lorentzian"):
+        psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, analytical_fit_range=(10, 100))
 
 
 def test_bad_calibration_result_arg():
@@ -205,17 +172,17 @@ def test_actual_spectrum(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
 
     results = {
-        "D": {"desired": 0.0018512665210876748, "rtol": 1e-4, "atol": 0},
-        "Rd": {"desired": 7.253645956145265, "rtol": 1e-4},
-        "Rf": {"desired": 1243.9711315478219, "rtol": 1e-4},
-        "kappa": {"desired": 0.17149598134079505, "rtol": 1e-4},
-        "alpha": {"desired": 0.5006103727942776, "rtol": 1e-4},
-        "backing": {"desired": 66.4331056392512, "rtol": 1e-4},
-        "chi_squared_per_deg": {"desired": 1.063783302378645, "rtol": 1e-4},
-        "err_fc": {"desired": 32.23007993226726, "rtol": 1e-4},
-        "err_D": {"desired": 6.43082000774291e-05, "rtol": 1e-4, "atol": 0},
-        "err_alpha": {"desired": 0.013141463933316694, "rtol": 1e-4},
-        "err_f_diode": {"desired": 561.6377089699399, "rtol": 1e-4},
+        "D": {"desired": 0.0018512505734895896, "rtol": 1e-4, "atol": 0},
+        "Rd": {"desired": 7.253677199344564, "rtol": 1e-4},
+        "Rf": {"desired": 1243.966729922322, "rtol": 1e-4},
+        "kappa": {"desired": 0.17149463585651784, "rtol": 1e-4},
+        "alpha": {"desired": 0.5006070381347969, "rtol": 1e-4},
+        "backing": {"desired": 66.43310564863437, "rtol": 1e-4},
+        "chi_squared_per_deg": {"desired": 1.0637833024139873, "rtol": 1e-4},
+        "err_fc": {"desired": 32.22822335114943, "rtol": 1e-4},
+        "err_D": {"desired": 6.429704886151389e-05, "rtol": 1e-4, "atol": 0},
+        "err_alpha": {"desired": 0.013140824804884007, "rtol": 1e-4},
+        "err_f_diode": {"desired": 561.7212147994059, "rtol": 1e-4},
     }
 
     for name, expected_result in results.items():
@@ -271,18 +238,18 @@ def test_repr(reference_calibration_result):
         Fit tolerance        Fitting tolerance                                             1e-07
         Points per block     Number of points per block                                  100
         Sample rate          Sample rate (Hz)                                          78125
-        Rd                   Distance response (um/V)                                      7.25365
-        kappa                Trap stiffness (pN/nm)                                        0.171496
+        Rd                   Distance response (um/V)                                      7.25368
+        kappa                Trap stiffness (pN/nm)                                        0.171495
         Rf                   Force response (pN/V)                                      1243.97
         gamma_0              Theoretical drag coefficient (kg/s)                           4.1552e-08
-        fc                   Corner frequency (Hz)                                       656.875
-        D                    Diffusion constant (V^2/s)                                    0.00185127
-        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.4
-        alpha                Diode 'relaxation factor'                                     0.50061
-        err_fc               Corner frequency Std Err (Hz)                                32.2301
-        err_D                Diffusion constant Std Err (V^2/s)                            6.43082e-05
-        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.638
-        err_alpha            Diode 'relaxation factor' Std Err                             0.0131415
+        fc                   Corner frequency (Hz)                                       656.87
+        D                    Diffusion constant (V^2/s)                                    0.00185125
+        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.6
+        alpha                Diode 'relaxation factor'                                     0.500607
+        err_fc               Corner frequency Std Err (Hz)                                32.2282
+        err_D                Diffusion constant Std Err (V^2/s)                            6.42965e-05
+        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.721
+        err_alpha            Diode 'relaxation factor' Std Err                             0.0131408
         chi_squared_per_deg  Chi squared per degree of freedom                             1.06378
         backing              Statistical backing (%)                                      66.4331""")
 

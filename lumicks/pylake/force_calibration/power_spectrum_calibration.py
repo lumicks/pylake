@@ -210,22 +210,21 @@ def fit_power_spectrum(
         )
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
-    initial_params = (
-        anl_fit_res.fc,
-        anl_fit_res.D,
-        guess_f_diode_initial_value(power_spectrum, anl_fit_res.fc, anl_fit_res.D),
-        0.3,
+    initial_params = np.array(
+        [
+            anl_fit_res.fc,
+            anl_fit_res.D,
+            guess_f_diode_initial_value(power_spectrum, anl_fit_res.fc, anl_fit_res.D),
+            0.3,
+        ]
     )
 
-    # Instead of directly fitting the model parameter alpha (a characteristic of the PSD diode),
-    # we instead plug a transformed variable "a = sqrt(1/alpha^2-1)" into the optimization process.
-    # In the model, we then transform "a" back using "alpha = 1/sqrt(1+a^2)". The latter function
-    # is bounded between [0,1], so we have effectively created a bound constraint on alpha.
-    #
     # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
     # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
     # care of this parameter rescaling.
-    scaled_model = ScaledModel(model, initial_params)
+    scaled_model = ScaledModel(
+        lambda f, fc, D, f_diode, alpha: 1 / model(f, fc, D, f_diode, alpha), initial_params
+    )
 
     # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
     # "hacking" `scipy.optimize.curve_fit` for this purpose, and passing in "y" values of "1/ps.power"
@@ -234,22 +233,26 @@ def fit_power_spectrum(
     # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
     sigma = (1 / power_spectrum.power) / math.sqrt(power_spectrum.num_points_per_block)
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
-        lambda f, fc, D, f_diode, a: 1 / scaled_model(f, fc, D, f_diode, a),
+        scaled_model,
         power_spectrum.frequency,
         1 / power_spectrum.power,
         p0=np.ones(4),
         sigma=sigma,
         absolute_sigma=True,
-        method="lm",
+        method="trf",
         ftol=ftol,
         maxfev=max_function_evals,
+        bounds=(
+            scaled_model.normalize_params([0.0, 0.0, 0.0, 0.0]),
+            scaled_model.normalize_params([np.inf, np.inf, np.inf, 1.0]),
+        ),
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
     perr = np.sqrt(np.diag(pcov))
 
     # Undo the scaling
     solution_params = scaled_model.scale_params(solution_params_rescaled)
-    perr = scaled_model.scale_stderrs(solution_params_rescaled, perr)
+    perr = scaled_model.scale_params(perr)
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
     chi_squared = np.sum(

@@ -71,54 +71,21 @@ def fit_analytical_lorentzian(ps):
     return FitResults(fc, D, sigma_fc, sigma_D, ps_fit)
 
 
-def _convert_to_alpha(a):
-    return 1 / math.sqrt(1 + a ** 2)
-
-
-def _convert_to_a(alpha):
-    return math.sqrt(1 / alpha ** 2 - 1)
-
-
 class ScaledModel:
     """Callable wrapper around a model function to handle scaling"""
 
     def __init__(self, model, initial_guess):
-        scale_factors = (
-            *initial_guess[0:3],
-            _convert_to_a(initial_guess[3]),
-        )
         self._model = model
-        self._scale_factors = scale_factors
+        self._scale_factors = initial_guess
 
     def scale_params(self, rescaled_params):
-        return (
-            rescaled_params[0] * self._scale_factors[0],
-            rescaled_params[1] * self._scale_factors[1],
-            rescaled_params[2] * self._scale_factors[2],
-            _convert_to_alpha(rescaled_params[3] * self._scale_factors[3]),
-        )
+        return rescaled_params * self._scale_factors
 
-    def scale_stderrs(self, rescaled_params, std_err):
-        perr = std_err * self._scale_factors
+    def normalize_params(self, params):
+        return params / self._scale_factors
 
-        # TODO Fix calculation of alpha confidence interval.
-        # The previous step calculated the confidence interval in the transformed
-        # variable 'a', *not* in 'alpha'! We're using this rather ugly, most likely
-        # not-quite-statistically-correct trick to transform the 'a' confidence
-        # interval into an 'alpha' confidence interval. Note that this also seems
-        # to give us different results for the alpha confidence interval than the
-        # original tweezercalib-2.1 code from ref. 3.
-        perr[3] = (
-            abs(
-                _convert_to_alpha(rescaled_params[3] * self._scale_factors[3] + perr[3])
-                - _convert_to_alpha(rescaled_params[3] * self._scale_factors[3] - perr[3])
-            )
-            / 2
-        )
-        return perr
-
-    def __call__(self, f, p1, p2, p3, p4):
-        return self._model(f, *self.scale_params((p1, p2, p3, p4)))
+    def __call__(self, f, *pars):
+        return self._model(f, *self.scale_params(pars))
 
 
 def g_diode(f, f_diode, alpha):
