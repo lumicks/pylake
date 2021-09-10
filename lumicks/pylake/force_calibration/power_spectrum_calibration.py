@@ -104,34 +104,6 @@ class CalibrationResults:
         return self._print_data()
 
 
-def guess_f_diode_initial_value(ps, guess_fc, guess_D):
-    """Calculates a good initial guess for the fit parameter `f_diode`.
-
-    Parameters
-    ----------
-    ps : PowerSpectrum
-        Power spectrum data, as will be passed into the `fit_full_powerspectrum`
-        function.
-    guess_fc : float
-        Guess for the corner frequency, in Hz.
-    guess_D : float
-        Guess for the diffusion constant, in (a.u.)^2/s.
-
-    Returns
-    -------
-    float:
-        A good initial value for the parameter `f_diode`, for fitting the full
-        power spectrum.
-    """
-    f_nyquist = ps.sample_rate / 2
-    P_aliased_nyq = (guess_D / (math.pi ** 2)) / (f_nyquist ** 2 + guess_fc ** 2)
-    if ps.power[-1] < P_aliased_nyq:
-        dif = ps.power[-1] / P_aliased_nyq
-        return math.sqrt(dif * f_nyquist ** 2 / (1.0 - dif))
-    else:
-        return 2 * f_nyquist
-
-
 def calculate_power_spectrum(
     data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=None
 ):
@@ -214,7 +186,7 @@ def fit_power_spectrum(
         [
             anl_fit_res.fc,
             anl_fit_res.D,
-            guess_f_diode_initial_value(power_spectrum, anl_fit_res.fc, anl_fit_res.D),
+            14000,
             0.3,
         ]
     )
