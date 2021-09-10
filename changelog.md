@@ -17,6 +17,7 @@
 #### Improvements
 
 * Switch to trust region reflective algorithm for fitting thermal calibration spectrum. This results in fewer optimization failures.
+* Make sure that `f_diode` stays below the Nyquist frequency during fitting.
 
 ## v0.10.0 | 2021-08-20
 
