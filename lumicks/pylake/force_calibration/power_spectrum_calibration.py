@@ -216,7 +216,7 @@ def fit_power_spectrum(
         maxfev=max_function_evals,
         bounds=(
             scaled_model.normalize_params([0.0, 0.0, 0.0, 0.0]),
-            scaled_model.normalize_params([np.inf, np.inf, np.inf, 1.0]),
+            scaled_model.normalize_params([np.inf, np.inf, power_spectrum.sample_rate / 2, 1.0]),
         ),
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)

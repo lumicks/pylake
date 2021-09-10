@@ -48,10 +48,10 @@ def test_calibration_result():
     [
         [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
         [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.049903, 0.05856517],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.2e-3, 4.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 8.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
-        [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 34.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
+        [1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        [1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        [1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        [1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
         [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
         [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
     ],
@@ -238,18 +238,18 @@ def test_repr(reference_calibration_result):
         Fit tolerance        Fitting tolerance                                             1e-07
         Points per block     Number of points per block                                  100
         Sample rate          Sample rate (Hz)                                          78125
-        Rd                   Distance response (um/V)                                      7.25368
+        Rd                   Distance response (um/V)                                      7.25366
         kappa                Trap stiffness (pN/nm)                                        0.171495
         Rf                   Force response (pN/V)                                      1243.97
         gamma_0              Theoretical drag coefficient (kg/s)                           4.1552e-08
-        fc                   Corner frequency (Hz)                                       656.87
-        D                    Diffusion constant (V^2/s)                                    0.00185125
-        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.6
-        alpha                Diode 'relaxation factor'                                     0.500607
-        err_fc               Corner frequency Std Err (Hz)                                32.2282
-        err_D                Diffusion constant Std Err (V^2/s)                            6.42966e-05
-        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.721
-        err_alpha            Diode 'relaxation factor' Std Err                             0.0131408
+        fc                   Corner frequency (Hz)                                       656.872
+        D                    Diffusion constant (V^2/s)                                    0.00185126
+        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.51
+        alpha                Diode 'relaxation factor'                                     0.500609
+        err_fc               Corner frequency Std Err (Hz)                                32.2284
+        err_D                Diffusion constant Std Err (V^2/s)                            6.42974e-05
+        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.715
+        err_alpha            Diode 'relaxation factor' Std Err                             0.0131406
         chi_squared_per_deg  Chi squared per degree of freedom                             1.06378
         backing              Statistical backing (%)                                      66.4331""")
 
