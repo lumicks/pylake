@@ -46,14 +46,14 @@ def test_calibration_result():
     "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,temperature,err_fc,err_d,"
     "err_f_diode,err_alpha,",
     [
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.06198, 0.05615039],
-        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.05017, 0.05856517],
+        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
+        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.049903, 0.05856517],
         [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
         [1500, 1.2e-9, 0.5, 5000, 10000, 1.2e-3, 4.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
         [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 8.0, 20.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
         [1500, 1.2e-9, 0.5, 5000, 10000, 1.002e-3, 4.0, 34.0, 84.85429, 1.045475e-10, 827.4312, 0.03071758],
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.062, 0.05615039],
-        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.06198, 0.05615039],
+        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
+        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
     ],
 )
 def test_good_fit_integration_test(
@@ -247,7 +247,7 @@ def test_repr(reference_calibration_result):
         f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.6
         alpha                Diode 'relaxation factor'                                     0.500607
         err_fc               Corner frequency Std Err (Hz)                                32.2282
-        err_D                Diffusion constant Std Err (V^2/s)                            6.42965e-05
+        err_D                Diffusion constant Std Err (V^2/s)                            6.42966e-05
         err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.721
         err_alpha            Diode 'relaxation factor' Std Err                             0.0131408
         chi_squared_per_deg  Chi squared per degree of freedom                             1.06378
