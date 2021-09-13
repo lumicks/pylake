@@ -4,6 +4,7 @@ import scipy.constants
 from lumicks.pylake.force_calibration.detail.power_models import (
     sphere_friction_coefficient,
     passive_power_spectrum_model,
+    g_diode,
 )
 from lumicks.pylake.force_calibration.detail.hydrodynamics import (
     passive_power_spectrum_model_hydro,
@@ -108,8 +109,6 @@ def generate_active_calibration_test_data(
     basic_pars = {
         "fc": fc,
         "diffusion_constant": diffusion_volt,
-        "alpha": diode[0],
-        "f_diode": diode[1],
     }
     hydro_pars = {
         "gamma0": gamma_0,
@@ -124,6 +123,7 @@ def generate_active_calibration_test_data(
         if hydrodynamically_correct
         else partial(passive_power_spectrum_model, **basic_pars)
     )
+    filtered_power_spectrum = lambda f: power_spectrum_model(f) * g_diode(f, diode[1], diode[0])
 
     response_peak = (
         partial(theoretical_driving_power_hydrodynamics, **hydro_pars)
@@ -143,6 +143,7 @@ def generate_active_calibration_test_data(
     psd_component = np.sqrt(2) * p_response_volts * driving_sine
 
     return (
-        power_model_to_time_series(sample_rate, num_points, power_spectrum_model) + psd_component,
+        power_model_to_time_series(sample_rate, num_points, filtered_power_spectrum)
+        + psd_component,
         nano_stage * 1e6,
     )

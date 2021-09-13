@@ -96,8 +96,8 @@ def g_diode(f, f_diode, alpha):
     return alpha ** 2 + (1 - alpha ** 2) / (1 + (f / f_diode) ** 2)
 
 
-def passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha):
-    """Theoretical model for the full power spectrum.
+def passive_power_spectrum_model(f, fc, diffusion_constant):
+    """Lorentzian model for the power spectrum.
 
     See ref. 1, Eq. (10), and ref. 2, Eq. (11).
     Note that this implementation deviates from Eq. (10) and Eq. (11) by a factor of 2 since we
@@ -111,12 +111,8 @@ def passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha):
         Corner frequency, in Hz.
     diffusion_constant : float
         Diffusion constant, in (a.u.)^2/s
-    f_diode : float
-        Diode fall-off frequency, in Hz.
-    alpha : float
-        Diode parameter, between 0 and 1.
     """
-    return (diffusion_constant / (math.pi ** 2)) / (f ** 2 + fc ** 2) * g_diode(f, f_diode, alpha)
+    return (diffusion_constant / (math.pi ** 2)) / (f ** 2 + fc ** 2)
 
 
 def sphere_friction_coefficient(eta, d):

@@ -8,8 +8,9 @@ def test_friction_coefficient():
 
 
 def test_spectrum(reference_models):
+    f = np.arange(10000)
     np.testing.assert_allclose(
-        passive_power_spectrum_model(np.arange(10000), 1000, 1e9, 10000, 0.5),
+        passive_power_spectrum_model(f, 1000, 1e9) * g_diode(f, 10000, 0.5),
         reference_models.lorentzian_filtered(np.arange(10000), 1000, 1e9, 0.5, 10000),
     )
 
@@ -17,12 +18,17 @@ def test_spectrum(reference_models):
 def test_spectrum_parameter_scaling(reference_models):
     f = np.arange(10000)
     initials = np.array([2.0, 3.0, 4.0, 5.0])
-    scaled_psc = ScaledModel(passive_power_spectrum_model, initials)
+    filtered_power_spectrum = lambda f, fc, diff, f_diode, alpha: passive_power_spectrum_model(
+        f, fc, diff
+    ) * g_diode(f, f_diode, alpha)
+    scaled_psc = ScaledModel(filtered_power_spectrum, initials)
 
     fc, diff, alpha, diode = 1000, 1e9, 0.5, 10000
 
     np.testing.assert_allclose(
-        scaled_psc(f, fc / initials[0], diff / initials[1], diode / initials[2], alpha / initials[3]),
+        scaled_psc(
+            f, fc / initials[0], diff / initials[1], diode / initials[2], alpha / initials[3]
+        ),
         reference_models.lorentzian_filtered(f, fc, diff, alpha, diode),
     )
 
