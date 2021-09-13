@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 from functools import partial
+from .detail.power_models import g_diode
 from .detail.driving_input import (
     estimate_driving_input_parameters,
     driving_power_peak,
@@ -110,7 +111,9 @@ class PassiveCalibrationModel:
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
     def __call__(self, f, fc, diffusion_constant, f_diode, alpha):
-        return self._passive_power_spectrum_model(f, fc, diffusion_constant, f_diode, alpha)
+        return self._passive_power_spectrum_model(f, fc, diffusion_constant) * g_diode(
+            f, f_diode, alpha
+        )
 
     def calibration_parameters(self):
         hydrodynamic_parameters = (

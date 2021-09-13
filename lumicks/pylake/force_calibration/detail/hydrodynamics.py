@@ -1,4 +1,3 @@
-from .power_models import g_diode
 import numpy as np
 
 """
@@ -119,8 +118,6 @@ def passive_power_spectrum_model_hydro(
     f,
     fc,
     diffusion_constant,
-    f_diode,
-    alpha,
     gamma0,
     bead_radius,
     rho_sample,
@@ -137,10 +134,6 @@ def passive_power_spectrum_model_hydro(
         Corner frequency, in Hz.
     diffusion_constant : float
         Diffusion constant, in (a.u.)^2/s
-    f_diode : float
-        Diode fall-off frequency, in Hz.
-    alpha : float
-        Diode parameter, between 0 and 1.
     gamma0 : float
         Drag coefficient, in mPas.
     bead_radius : float
@@ -158,7 +151,7 @@ def passive_power_spectrum_model_hydro(
     frequency_m = calculate_dissipation_frequency(gamma0, bead_radius, rho_bead)
     denominator = (fc + f * im_drag - f ** 2 / frequency_m) ** 2 + (f * re_drag) ** 2
     power_spectrum = diffusion_constant / (np.pi ** 2) * re_drag / denominator  # Equation D2 [6]
-    return power_spectrum * g_diode(f, f_diode, alpha)
+    return power_spectrum
 
 
 def theoretical_driving_power_hydrodynamics(

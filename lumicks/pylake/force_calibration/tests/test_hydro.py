@@ -8,6 +8,7 @@ from lumicks.pylake.force_calibration.calibration_models import (
     PassiveCalibrationModel,
     ActiveCalibrationModel,
 )
+from lumicks.pylake.force_calibration.detail.power_models import g_diode
 from lumicks.pylake.force_calibration.detail.hydrodynamics import *
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 
@@ -203,14 +204,12 @@ def test_hydro_spectra(
         f,
         fc=fc,
         diffusion_constant=diffusion,
-        f_diode=f_diode,
-        alpha=alpha,
         gamma0=gamma0,
         bead_radius=bead_radius,
         rho_sample=rho_sample,
         rho_bead=rho_bead,
         distance_to_surface=bead_radius + height,
-    )
+    ) * g_diode(f, f_diode, alpha)
 
     np.testing.assert_allclose(power_spectrum, ref_power_spectrum)
 
