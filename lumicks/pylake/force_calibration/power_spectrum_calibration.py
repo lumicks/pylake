@@ -84,7 +84,9 @@ class CalibrationResults:
                 [
                     key,
                     f"{param.description}{f' ({param.unit})' if param.unit else ''}",
-                    param.value if isinstance(param.value, str) else f"{param.value:.6g}",
+                    param.value
+                    if isinstance(param.value, str)
+                    else ("" if param.value is None else f"{param.value:.6g}"),
                 ]
                 for key, param in entries.items()
             ]
