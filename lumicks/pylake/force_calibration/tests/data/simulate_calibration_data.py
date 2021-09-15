@@ -32,7 +32,7 @@ def power_model_to_time_series(sample_rate, num_points, power_spectral_density):
     return np.fft.irfft(np.fft.rfft(noise) * np.sqrt(power_spectral_density(freq)))
 
 
-def response_peak_ideal(corner_frequency, driving_amplitude, driving_frequency):
+def response_peak_ideal(corner_frequency, driving_frequency, driving_amplitude):
     """Spectral peak corresponding to the driving input (no hydrodynamic corrections).
 
     Eq. 13 in [1].
@@ -131,7 +131,7 @@ def generate_active_calibration_test_data(
         else response_peak_ideal
     )
 
-    p_response_m_squared = response_peak(fc, driving_amplitude * 1e-9, driving_frequency)
+    p_response_m_squared = response_peak(fc, driving_frequency, driving_amplitude * 1e-9)
     p_response_volts = np.sqrt(p_response_m_squared) / pos_response_m_volt
 
     num_points = 2 * (sample_rate * duration // 2)  # Has to be multiple of two for FFT
