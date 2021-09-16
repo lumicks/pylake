@@ -17,6 +17,109 @@ from .detail.hydrodynamics import (
 )
 from .power_spectrum_calibration import CalibrationParameter
 
+from dataclasses import dataclass
+from typing import Callable
+
+
+@dataclass
+class Param:
+    name: str
+    description: str
+    unit: str
+    initial: float
+    lower_bound: float
+    upper_bound: Callable[[float], float]
+
+
+class FilterBase:
+    def __init__(self):
+        self.fitted_params = []
+
+    def lower_bounds(self):
+        return [p.lower_bound for p in self.fitted_params]
+
+    def upper_bounds(self, sample_rate):
+        return [p.upper_bound(sample_rate) for p in self.fitted_params]
+
+    @property
+    def initial_values(self):
+        return [p.initial for p in self.fitted_params]
+
+    def params(self):
+        """Parameters that were fixed during the fitting"""
+        return {}
+
+    def results(self, values, std_errs):
+        """Fitted parameter values"""
+        return {
+            **{
+                p.name: CalibrationParameter(p.description, val, p.unit)
+                for val, p in zip(values, self.fitted_params)
+            },
+            **{
+                f"err_{p.name}": CalibrationParameter(p.description + " Std Err", err, p.unit)
+                for err, p in zip(std_errs, self.fitted_params)
+            },
+        }
+
+
+class NoFilter(FilterBase):
+    def __call__(self, *_):
+        return 1
+
+
+class DiodeModel(FilterBase):
+    def __init__(self):
+        self.fitted_params = [
+            Param(
+                name="f_diode",
+                description="Diode low-pass filtering roll-off frequency",
+                unit="Hz",
+                initial=14000,
+                lower_bound=0.0,
+                upper_bound=lambda sample_rate: sample_rate / 2,
+            ),
+            Param(
+                name="alpha",
+                description="Diode 'relaxation factor'",
+                unit="",
+                initial=0.3,
+                lower_bound=0.0,
+                upper_bound=lambda _: 1.0,
+            ),
+        ]
+
+    def __call__(self, f, *pars):
+        return g_diode(f, *pars)
+
+
+class FixedDiodeModel(FilterBase):
+    """Model with fixed diode frequency"""
+
+    def __init__(self, diode_frequency):
+        self.diode_frequency = diode_frequency
+        self.fitted_params = [
+            Param(
+                name="alpha",
+                description="Diode 'relaxation factor'",
+                unit="",
+                initial=0.3,
+                lower_bound=0.0,
+                upper_bound=lambda _: 1.0,
+            )
+        ]
+
+    def params(self):
+        """Parameters that were fixed during the fitting"""
+        return {
+            "f_diode": CalibrationParameter(
+                "Diode low-pass filtering roll-off frequency (fixed)", self.diode_frequency, "Hz"
+            )
+        }
+
+    def __call__(self, f, alpha):
+        return g_diode(f, self.diode_frequency, alpha)
+
 
 class PassiveCalibrationModel:
     """Model to fit data acquired during passive calibration.
@@ -55,6 +158,8 @@ class PassiveCalibrationModel:
         Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
     rho_bead : float, optional
         Density of the bead [kg/m^3]. Only used when using hydrodynamic corrections.
+    fast_sensor : bool
+        Fast sensor? Fast sensors do not have the diode effect included in the model.
     """
 
     def __name__(self):
@@ -69,6 +174,7 @@ class PassiveCalibrationModel:
         distance_to_surface=None,
         rho_sample=None,
         rho_bead=1060.0,
+        fast_sensor=False,
     ):
         if bead_diameter < 1e-2:
             raise ValueError(
@@ -87,6 +193,7 @@ class PassiveCalibrationModel:
         self.temperature = temperature
         self.bead_diameter = bead_diameter
         self.drag_coeff = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
+        self._filter = NoFilter() if fast_sensor else DiodeModel()
 
         self.hydrodynamically_correct = hydrodynamically_correct
         # Note that the default is set to None because in the future we may want to provide an
@@ -110,10 +217,9 @@ class PassiveCalibrationModel:
         else:
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
-    def __call__(self, f, fc, diffusion_constant, f_diode, alpha):
-        return self._passive_power_spectrum_model(f, fc, diffusion_constant) * g_diode(
-            f, f_diode, alpha
-        )
+    def __call__(self, f, fc, diffusion_constant, *filter_params):
+        physical_spectrum = self._passive_power_spectrum_model(f, fc, diffusion_constant)
+        return physical_spectrum * self._filter(f, *filter_params)
 
     def calibration_parameters(self):
         hydrodynamic_parameters = (
@@ -133,17 +239,43 @@ class PassiveCalibrationModel:
         )
 
         return {
-            **hydrodynamic_parameters,
             "Bead diameter": CalibrationParameter("Bead diameter", self.bead_diameter, "um"),
             "Viscosity": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
             "Temperature": CalibrationParameter("Liquid temperature", self.temperature, "C"),
+            **self._filter.params(),
+            **hydrodynamic_parameters,
         }
 
-    def calibration_results(self, fc, diffusion_constant_volts, f_diode, alpha):
-        """Compute calibration parameters from cutoff frequency and diffusion constant.
+    def _format_passive_result(
+        self,
+        fc,
+        diffusion_constant_volts,
+        filter_params,
+        fc_err,
+        diffusion_constant_volts_err,
+        filter_params_err,
+    ):
+        """Format the fit parameters"""
+        return {
+            "fc": CalibrationParameter("Corner frequency", fc, "Hz"),
+            "D": CalibrationParameter("Diffusion constant", diffusion_constant_volts, "V^2/s"),
+            "err_fc": CalibrationParameter("Corner frequency Std Err", fc_err, "Hz"),
+            "err_D": CalibrationParameter(
+                "Diffusion constant Std Err", diffusion_constant_volts_err, "V^2/s"
+            ),
+            **self._filter.results(filter_params, filter_params_err),
+        }
 
-        Note: f_diode and alpha are not used for passive calibration and are there to maintain
-        the same call signature for active and passive calibration.
+    def calibration_results(
+        self,
+        fc,
+        diffusion_constant_volts,
+        filter_params,
+        fc_err,
+        diffusion_constant_volts_err,
+        filter_params_err,
+    ):
+        """Compute calibration parameters from cutoff frequency and diffusion constant.
 
         Parameters
         ----------
@@ -151,10 +283,14 @@ class PassiveCalibrationModel:
             Corner frequency, in Hz.
         diffusion_constant_volts : float
             Diffusion constant, in V^2/s
-        f_diode : float
-            Diode frequency.
-        alpha : float
-            Fraction of PSD signal that is instantaneous
+        filter_params : list of float
+            Parameters for the filter model.
+        fc_err : float
+            Corner frequency standard error, in Hz
+        diffusion_constant_volts_err : float
+            Diffusion constant standard error, in Hz
+        filter_params_err : list of float
+            Standard errors for the filter model
         """
         # diameter [um] -> [m]
         temperature_k = scipy.constants.convert_temperature(self.temperature, "C", "K")
@@ -177,6 +313,14 @@ class PassiveCalibrationModel:
             "Rf": CalibrationParameter("Force response", force_response, "pN/V"),
             "gamma_0": CalibrationParameter(
                 "Theoretical drag coefficient", self.drag_coeff, "kg/s"
+            ),
+            **self._format_passive_result(
+                fc,
+                diffusion_constant_volts,
+                filter_params,
+                fc_err,
+                diffusion_constant_volts_err,
+                filter_params_err,
             ),
         }
 
@@ -252,6 +396,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         distance_to_surface=None,
         rho_sample=None,
         rho_bead=1060.0,
+        fast_sensor=False,
     ):
         """
         Active Calibration Model.
@@ -287,6 +432,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             Density of the sample [kg/m**3]. Only used when using hydrodynamically correct model.
         rho_bead : float, optional
             Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
+        fast_sensor : bool
+            Fast sensor? Fast sensors do not have the diode effect included in the model.
         """
         super().__init__(
             bead_diameter,
@@ -296,6 +443,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             distance_to_surface,
             rho_sample,
             rho_bead,
+            fast_sensor,
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
@@ -339,7 +487,6 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             "Driving frequency (guess)": CalibrationParameter(
                 "Driving frequency (guess)", self.driving_frequency_guess, "Hz"
             ),
-            "Sample rate": CalibrationParameter("Sample rate", self.sample_rate, "Hz"),
             "num_windows": CalibrationParameter("Number of averaged windows", self.num_windows, ""),
         }
 
@@ -352,8 +499,16 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         integrated over the frequency bin corresponding to the driving input."""
         return self._theoretical_driving_power_model(f_corner)
 
-    def calibration_results(self, fc, diffusion_constant_volts, f_diode, alpha):
-        """Compute calibration parameters from cutoff frequency and diffusion constant.
+    def calibration_results(
+        self,
+        fc,
+        diffusion_constant_volts,
+        filter_params,
+        fc_err,
+        diffusion_constant_volts_err,
+        filter_params_err,
+    ):
+        """Compute active calibration parameters from cutoff frequency and diffusion constant.
 
         Parameters
         ----------
@@ -361,12 +516,16 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             Corner frequency, in Hz.
         diffusion_constant_volts : float
             Diffusion constant, in V^2/s
-        f_diode : float
-            Diode frequency.
-        alpha : float
-            Fraction of PSD signal that is instantaneous
+        filter_params : list of float
+            Parameters for the filter model.
+        fc_err : float
+            Corner frequency standard error, in Hz
+        diffusion_constant_volts_err : float
+            Diffusion constant standard error, in Hz
+        filter_params_err : list of float
+            Standard errors for the filter model
         """
-        reference_peak = self(self.driving_frequency, fc, diffusion_constant_volts, f_diode, alpha)
+        reference_peak = self(self.driving_frequency, fc, diffusion_constant_volts, *filter_params)
 
         # Equation 14 from [6]
         power_exp = (self._response_power_density - reference_peak) * self._frequency_bin_width
@@ -394,5 +553,13 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             ),
             "gamma_ex": CalibrationParameter(
                 "Measured drag coefficient", measured_drag_coeff, "kg/s"
+            ),
+            **self._format_passive_result(
+                fc,
+                diffusion_constant_volts,
+                filter_params,
+                fc_err,
+                diffusion_constant_volts_err,
+                filter_params_err,
             ),
         }

@@ -59,7 +59,7 @@ where :math:`D` corresponds to the diffusion constant, :math:`f` the frequency a
 
     g(f, f_{diode}, \alpha) = \alpha^2 + \frac{1 - \alpha ^ 2}{1 + (f / f_{diode})^2}
 
-Here :math:`\alpha` corresponds to the fraction of the signal response that is instantaneous, while :math:`f_{diode}` characterizes the frequency response of the diode.
+Here :math:`\alpha` corresponds to the fraction of the signal response that is instantaneous, while :math:`f_{diode}` characterizes the frequency response of the diode. Note that not all sensor types require this second term.
 
 To convert the parameters obtained from this spectral fit to a trap stiffness, the following is computed:
 
@@ -80,6 +80,8 @@ You can optionally also provide a viscosity (in Pa/s) and temperature (in degree
 
     bead_diameter = f.force1x.calibration[1]["Bead diameter (um)"]
     force_model = lk.PassiveCalibrationModel(bead_diameter, viscosity=0.001002, temperature=20)
+
+If you have a fast force detector, you can optionally omit the diode model by specifying the extra flag `fast_sensor=True`.
 
 To fit this model to the data, you can now invoke::
 

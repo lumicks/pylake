@@ -244,10 +244,10 @@ def test_repr(reference_calibration_result):
         gamma_0              Theoretical drag coefficient (kg/s)                           4.1552e-08
         fc                   Corner frequency (Hz)                                       656.872
         D                    Diffusion constant (V^2/s)                                    0.00185126
-        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.51
-        alpha                Diode 'relaxation factor'                                     0.500609
         err_fc               Corner frequency Std Err (Hz)                                32.2284
         err_D                Diffusion constant Std Err (V^2/s)                            6.42974e-05
+        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.51
+        alpha                Diode 'relaxation factor'                                     0.500609
         err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.715
         err_alpha            Diode 'relaxation factor' Std Err                             0.0131406
         chi_squared_per_deg  Chi squared per degree of freedom                             1.06378

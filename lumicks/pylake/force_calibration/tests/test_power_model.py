@@ -18,9 +18,8 @@ def test_spectrum(reference_models):
 def test_spectrum_parameter_scaling(reference_models):
     f = np.arange(10000)
     initials = np.array([2.0, 3.0, 4.0, 5.0])
-    filtered_power_spectrum = lambda f, fc, diff, f_diode, alpha: passive_power_spectrum_model(
-        f, fc, diff
-    ) * g_diode(f, f_diode, alpha)
+    def filtered_power_spectrum(f, fc, diff, f_diode, alpha): 
+        return passive_power_spectrum_model(f, fc, diff) * g_diode(f, f_diode, alpha)
     scaled_psc = ScaledModel(filtered_power_spectrum, initials)
 
     fc, diff, alpha, diode = 1000, 1e9, 0.5, 10000
