@@ -123,7 +123,9 @@ def generate_active_calibration_test_data(
         if hydrodynamically_correct
         else partial(passive_power_spectrum_model, **basic_pars)
     )
-    filtered_power_spectrum = lambda f: power_spectrum_model(f) * g_diode(f, diode[1], diode[0])
+
+    def filtered_power_spectrum(f):
+        return power_spectrum_model(f) * g_diode(f, diode[1], diode[0])
 
     response_peak = (
         partial(theoretical_driving_power_hydrodynamics, **hydro_pars)

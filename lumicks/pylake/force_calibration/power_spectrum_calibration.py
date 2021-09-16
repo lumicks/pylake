@@ -182,20 +182,13 @@ def fit_power_spectrum(
         )
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
-    initial_params = np.array(
-        [
-            anl_fit_res.fc,
-            anl_fit_res.D,
-            14000,
-            0.3,
-        ]
-    )
+    initial_params = np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values])
 
     # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
     # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
     # care of this parameter rescaling.
     scaled_model = ScaledModel(
-        lambda f, fc, D, f_diode, alpha: 1 / model(f, fc, D, f_diode, alpha), initial_params
+        lambda f, fc, D, *filter_pars: 1 / model(f, fc, D, *filter_pars), initial_params
     )
 
     # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
@@ -208,15 +201,17 @@ def fit_power_spectrum(
         scaled_model,
         power_spectrum.frequency,
         1 / power_spectrum.power,
-        p0=np.ones(4),
+        p0=np.ones(len(initial_params)),
         sigma=sigma,
         absolute_sigma=True,
         method="trf",
         ftol=ftol,
         maxfev=max_function_evals,
         bounds=(
-            scaled_model.normalize_params([0.0, 0.0, 0.0, 0.0]),
-            scaled_model.normalize_params([np.inf, np.inf, power_spectrum.sample_rate / 2, 1.0]),
+            scaled_model.normalize_params([0.0, 0.0, *model._filter.lower_bounds()]),
+            scaled_model.normalize_params(
+                [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
+            ),
         ),
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
@@ -248,21 +243,11 @@ def fit_power_spectrum(
             **model.calibration_results(
                 fc=solution_params[0],
                 diffusion_constant_volts=solution_params[1],
-                f_diode=solution_params[2],
-                alpha=solution_params[3],
+                filter_params=solution_params[2:],
+                fc_err=perr[0],
+                diffusion_constant_volts_err=perr[1],
+                filter_params_err=perr[2:],
             ),
-            "fc": CalibrationParameter("Corner frequency", solution_params[0], "Hz"),
-            "D": CalibrationParameter("Diffusion constant", solution_params[1], "V^2/s"),
-            "f_diode": CalibrationParameter(
-                "Diode low-pass filtering roll-off frequency", solution_params[2], "Hz"
-            ),
-            "alpha": CalibrationParameter("Diode 'relaxation factor'", solution_params[3], ""),
-            "err_fc": CalibrationParameter("Corner frequency Std Err", perr[0], "Hz"),
-            "err_D": CalibrationParameter("Diffusion constant Std Err", perr[1], "V^2/s"),
-            "err_f_diode": CalibrationParameter(
-                "Diode low-pass filtering roll-off frequency Std Err", perr[2], "Hz"
-            ),
-            "err_alpha": CalibrationParameter("Diode 'relaxation factor' Std Err", perr[3], ""),
             "chi_squared_per_deg": CalibrationParameter(
                 "Chi squared per degree of freedom", chi_squared_per_deg, ""
             ),
