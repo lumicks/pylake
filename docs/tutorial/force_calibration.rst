@@ -47,49 +47,51 @@ Additional parameters can be specified to change the amount of downsampling appl
     power_spectrum = lk.calculate_power_spectrum(volts, sample_rate=force_slice.sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=[(700, 800), (14500, 14600)])
 
 To fit the passive calibration data, we will use a model based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2006power`.
+Passive calibration is also often referred to as thermal calibration.
 This model can be found in :class:`~.PassiveCalibrationModel`. It is calibrated by fitting the following equation to the power spectrum:
 
 .. math::
 
-    P(f) = \frac{D}{\pi ^ 2 \left(f^2 + f_c ^ 2\right)} g(f, f_{diode}, \alpha)
+    P(f) = \frac{D_\mathrm{measured}}{\pi ^ 2 \left(f^2 + f_c ^ 2\right)} g(f, f_\mathrm{diode}, \alpha) \quad \mathrm{[V^2/Hz]}
 
-where :math:`D` corresponds to the diffusion constant, :math:`f` the frequency and :math:`f_c` the corner frequency.
+where :math:`D_\mathrm{measured}` corresponds to the diffusion constant (in `volts`), :math:`f` the frequency and :math:`f_c` the corner frequency.
 The first part of the equation is known as the Lorentzian model and represents the part of the spectrum that originates from the physical motion of the bead.
 The second term :math:`g` takes into account the slower response of the position detection system and is given by:
 
 .. math::
 
-    g(f, f_{diode}, \alpha) = \alpha^2 + \frac{1 - \alpha ^ 2}{1 + (f / f_{diode})^2}
+    g(f, f_\mathrm{diode}, \alpha) = \alpha^2 + \frac{1 - \alpha ^ 2}{1 + (f / f_\mathrm{diode})^2}
 
-Here :math:`\alpha` corresponds to the fraction of the signal response that is instantaneous, while :math:`f_{diode}` characterizes the frequency response of the diode. Note that not all sensor types require this second term.
+Here :math:`\alpha` corresponds to the fraction of the signal response that is instantaneous, while :math:`f_\mathrm{diode}` characterizes the frequency response of the diode. Note that not all sensor types require this second term.
 
 To convert the parameters obtained from this spectral fit to a trap stiffness, the following is computed:
 
 .. math::
 
-    \kappa = 2 \pi \gamma_0 f_c
+    \kappa = 2 \pi \gamma_0 f_c \quad \mathrm{[N/m]}
 
 Here :math:`\kappa` then represents the final trap stiffness.
 
-We can calibrate the position by considering the diffusion of the bead in squared microns per second:
+We can calibrate the position by considering the diffusion of the bead:
 
 .. math::
 
-    D = \frac{k_B T}{\gamma_0}
+    D_\mathrm{physical} = \frac{k_B T}{\gamma_0} \quad \mathrm{[m^2/s]}
 
-Here :math:`k_B` refers to the Boltzmann constant and :math:`T` reflects the temperature in Kelvin. Comparing this to its measured counterpart in volts squared per second provides us with the desired calibration factor:
-
-.. math::
-
-    \beta = \sqrt{\frac{D_{physical}}{D_{volts}}}
-
-Both of these quantities depend on the parameter :math:`\gamma_0`, which corresponds to the friction coefficient of a sphere and is given by:
+Here :math:`k_B` is the Boltzmann constant and :math:`T` is the local temperature in Kelvin. Comparing this to its measured counterpart in volts squared per second provides us with the desired calibration factor:
 
 .. math::
 
-    \gamma_0 = 3 \pi \eta d
+    R_d = \sqrt{\frac{D_\mathrm{physical}}{D_\mathrm{measured}}} \quad \mathrm{[m/V]}
 
-where :math:`\eta` corresponds to the dynamic viscosity and :math:`d` represents the bead diameter.
+Both of these quantities depend on the parameter :math:`\gamma_0`, which corresponds to the drag coefficient of a sphere and is given by:
+
+.. math::
+
+    \gamma_0 = 3 \pi \eta d \quad \mathrm{[kg/s]}
+
+where :math:`\eta` corresponds to the dynamic viscosity [Pa*s] and :math:`d` is the bead diameter [m].
+Note that in `pylake` we actually use `microns` to specify the bead diameter for convenience.
 
 We use the bead diameter found in the calibration performed in Bluelake.
 You can optionally also provide a viscosity (in Pa/s) and temperature (in degrees Celsius)::
@@ -136,27 +138,27 @@ The following equation accounts for a frequency dependent drag coefficient :cite
 
 .. math::
 
-    P_{hydro}(f) = \frac{D Re(\gamma / \gamma_0)}{\pi^2 \left(\left(f_{c,0} + f Im(\gamma/\gamma_0) - f^2/f_{m, 0}\right)^2 + \left(f Re(\gamma / \gamma_0)\right)^2\right)}
+    P_\mathrm{hydro}(f) = \frac{D \mathrm{Re}(\gamma / \gamma_0)}{\pi^2 \left(\left(f_{c,0} + f \mathrm{Im}(\gamma/\gamma_0) - f^2/f_{m, 0}\right)^2 + \left(f \mathrm{Re}(\gamma / \gamma_0)\right)^2\right)}
 
 where the corner frequency is given by:
 
 .. math::
 
-    f_{c, 0} = \frac{\kappa}{2 \pi \gamma_0}
+    f_{c, 0} = \frac{\kappa}{2 \pi \gamma_0} \quad \mathrm{[Hz]}
 
 and :math:`f_{m, 0}` parameterizes the time it takes for friction to dissipate the kinetic energy of the bead:
 
 .. math::
 
-    f_{m, 0} = \frac{\gamma_0}{2 \pi m}
+    f_{m, 0} = \frac{\gamma_0}{2 \pi m} \quad \mathrm{[Hz]}
 
 with :math:`m` the mass of the bead.
 Finally, :math:`\gamma` corresponds to the frequency dependent drag coefficient.
-For measurements in bulk, far away from a surface, :math:`\gamma` = :math:`\gamma_{stokes}`, where :math:`\gamma_{stokes}` is given by:
+For measurements in bulk, far away from a surface, :math:`\gamma` = :math:`\gamma_\mathrm{stokes}`, where :math:`\gamma_\mathrm{stokes}` is given by:
 
 .. math::
 
-    \gamma_{stokes} = \gamma_0 \left(1 + (1 - i)\sqrt{\frac{f}{f_{\nu}}} - \frac{2}{9}\frac{f}{f_{\nu}} i\right)
+    \gamma_\mathrm{stokes} = \gamma_0 \left(1 + (1 - i)\sqrt{\frac{f}{f_{\nu}}} - \frac{2}{9}\frac{f}{f_{\nu}} i\right) \quad \mathrm{[kg/s]}
 
 Where :math:`f_{\nu}` is the frequency at which the penetration depth equals the radius of the bead, :math:`4 \nu/(\pi d^2)` with :math:`\nu` the kinematic viscosity.
 
@@ -167,11 +169,11 @@ An approximate expression for the frequency dependent drag coefficient is then g
 
 .. math::
 
-    \gamma(f, R/l) = \frac{\gamma_{stokes}(f)}{1 - \frac{9}{16}\frac{R}{l}\left(1 - \left((1 - i)/3\right)\sqrt{\frac{f}{f_{\nu}}} + \frac{2}{9}\frac{f}{f_{\nu}}i - \frac{4}{3}(1 - e^{-(1-i)(2l-R)/\delta})\right)}
+    \gamma(f, R/l) = \frac{\gamma_\mathrm{stokes}(f)}{1 - \frac{9}{16}\frac{R}{l}\left(1 - \left((1 - i)/3\right)\sqrt{\frac{f}{f_{\nu}}} + \frac{2}{9}\frac{f}{f_{\nu}}i - \frac{4}{3}(1 - e^{-(1-i)(2l-R)/\delta})\right)} \quad \mathrm{[kg/s]}
 
 Where :math:`\delta = R \sqrt{\frac{f_{\nu}}{f}}` represents the aforementioned penetration depth, :math:`R` corresponds to the bead radius and :math:`l` to the distance from the bead center to the nearest surface.
 
-While these models may look daunting, they are all available in Pylake and can be used by simply providing a few additional arguments to the :class:`~.PassiveCalibrationModel`.
+While these models may look daunting, they are all available in `pylake` and can be used by simply providing a few additional arguments to the :class:`~.PassiveCalibrationModel`.
 It is recommended to use these equations when less than 10% systematic error is desired :cite:`tolic2006calibration`.
 
 The figure below shows the difference between the hydrodynamically correct spectrum and the regular Lorentzian for various bead sizes.
@@ -212,3 +214,103 @@ If we compare the different fits, we can see that the Lorentzian model with diod
 While this is true for this particular dataset, no general statement can be made about the bias of fitting a Lorentzian rather than the hydrodynamically correct power spectrum.
 If low bias is desired, one should use the hydrodynamically correct model.
 On regular sensors, it is best to fit the hydrodynamically correct model with the diode model enabled.
+
+Active Calibration
+------------------
+
+For certain applications, passive force calibration, as described above, is not sufficiently accurate.
+Using active calibration, the accuracy of the calibration can be improved, because active calibration uses fewer assumptions than passive calibration.
+
+When performing passive calibration, we base our calculations on a theoretical drag coefficient.
+This theoretical drag coefficient depends on parameters that are only known with limited precision: the diameter of the bead and the viscosity.
+This viscosity in turn depends strongly on the local temperature around the bead, which is typically poorly known.
+
+During active calibration, the trap or nanostage is oscillated sinusoidally.
+These oscillations result in a driving peak in the force spectrum.
+Using power spectral analysis, the force can then be calibrated without prior knowledge of the drag coefficient.
+
+When the power spectrum is computed from an integer number of oscillations, the driving peak is visible at a single data point at :math:`f_\mathrm{drive}`.
+
+.. image:: driving_input.png
+
+The physical spectrum is then given by a thermal part (like before) and an active part:
+
+.. math::
+
+    P^\mathrm{thermal}(f) = \frac{D}{\pi ^ 2 \left(f^2 + f_c ^ 2\right)}
+
+    P^\mathrm{active}(f) = \frac{A^2}{2\left(1 + \frac{f_c^2}{f_\mathrm{drive}^2}\right)} \delta(f - f_\mathrm{drive})
+
+    P^\mathrm{total}(f) = P^\mathrm{thermal}(f) + P^\mathrm{active}(f)
+
+Since we know the driving amplitude, :math:`A`, we know how the bead reacts to the driving motion and we can observe this response in the power spectral density (PSD), we can use this relation to determine the positional calibration.
+
+If we use the basic Lorentzian model, then the theoretical power (integral over the delta spike) corresponding to the driving input is given by :cite:`tolic2006calibration`:
+
+.. math::
+
+    W_\mathrm{physical} = \frac{A^2}{2\left(1 + \frac{f_c^2}{f_\mathrm{drive}^2}\right)} \quad \mathrm{[m^2]}
+
+Subtracting the thermal part of the spectrum, we can determine the same quantity experimentally.
+
+.. math::
+
+    W_\mathrm{measured} = \left(P_\mathrm{measured}^\mathrm{total}(f_\mathrm{drive}) - P_\mathrm{measured}^\mathrm{thermal}(f_\mathrm{drive})\right) \Delta f \quad \mathrm{[V^2]}
+
+:math:`\Delta f` refers to the width of one spectral bin.
+Here the thermal contribution that needs to be subtracted is obtained from fitting the thermal part of the spectrum using the passive calibration procedure from before.
+The desired positional calibration is then:
+
+.. math::
+
+    R_d = \sqrt{\frac{W_\mathrm{physical}}{W_\mathrm{measured}}} \quad \mathrm{[m/V]}
+
+Note how this time around, we did not rely on assumptions on the viscosity of the medium or the bead size.
+
+As a side effect of this calibration, we actually obtain an experimental estimate of the drag coefficient:
+
+.. math::
+
+    \gamma_\mathrm{measured} = \frac{k_B T}{R_d^2 D_\mathrm{measured}} \quad \mathrm{[kg/s]}
+
+How to do active calibration in Pylake
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using `pylake`, the procedure to use active calibration is not very different from passive calibration.
+However, it does require some additional data channels as inputs.
+Instead of using the :class:`~.PassiveCalibrationModel` presented in the previous section, we now use the :class:`ActiveCalibrationModel`.
+
+In this tutorial, we're going to assume the nanostage was used as driving input::
+
+    driving_data = f["Nanostage Position"]["Nanostage X"][start:stop]
+
+We also need to provide the sample rate at which the data was acquired, and a rough guess for the driving frequency.
+`pylake` will find an accurate estimate of the driving frequency based on this initial estimate (provided that it is close enough)::
+
+    active_model = lk.ActiveCalibrationModel(driving_data.data, volts, driving_data.sample_rate, bead_diameter, driving_frequency_guess=37)
+
+To check the determined frequency, we can look at the determined driving frequency::
+
+    >>> active_model.driving_frequency
+    36.95
+
+We can now use this model to fit the power spectrum::
+
+    calibration = lk.fit_power_spectrum(power_spectrum, active_model)
+    calibration
+
+And that's all there is to it.
+
+Analogously, we can specify `hydrodynamically_correct=True` if we wish to use the hydrodynamically correct theory here.
+This fits the thermal part with the hydrodynamically correct power spectrum and also uses a hydrodynamically correct model for the peak:
+
+.. math::
+
+    P_\mathrm{hydro}^\mathrm{active}(f) = \delta \left(f - f_\mathrm{drive}\right) \frac{\left(A f_\mathrm{drive} \left|\gamma / \gamma_0\right|\right)^2}{2 \left(\left(f_{c,0} + f \mathrm{Im}(\gamma/\gamma_0) - f^2/f_{m, 0}\right)^2 + \left(f \mathrm{Re}(\gamma / \gamma_0)\right)^2\right)}
+
+We can also include a distance to the surface like before.
+This results in the expression for `\gamma` becoming dependent on the distance to the surface.
+This uses the same expression as listed in the section on the :ref:`hydrodynamically correct model<Hydrodynamically correct model>`.
+
+One thing to note is that when using the hydrodynamically correct model, the equation for the drag _does_ include the viscosity and bead diameter.
+However, they now appear in a term which already amounts to a small correction therefore the impact of any errors in these is reduced :cite:`tolic2006calibration`.
