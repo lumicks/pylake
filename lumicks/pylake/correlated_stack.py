@@ -37,7 +37,7 @@ class CorrelatedStack:
     """
 
     def __init__(self, image_name, align=True):
-        self.src = TiffStack.from_file(image_name, align=align)
+        self.src = TiffStack.from_file(image_name, align_requested=align)
         self.name = os.path.splitext(os.path.basename(image_name))[0]
         self.start_idx = 0
         self.stop_idx = self.src.num_frames
@@ -238,7 +238,7 @@ class CorrelatedStack:
             sample_format = (339, "H", n_channels, (1,) * n_channels)
 
             # DateTime, str, len, start:stop
-            datetime = frame._src.tags["DateTime"].value
+            datetime = frame._page.tags["DateTime"].value
             datetime = (306, "s", len(datetime), datetime)
 
             return (orientation, sample_format, datetime)
@@ -260,7 +260,7 @@ class CorrelatedStack:
         description = self._get_frame(0)._description.for_export
 
         # add pylake to Software tag
-        software = self._get_frame(0)._src.tags["Software"].value
+        software = self._get_frame(0)._page.tags["Software"].value
         if "pylake" not in software:
             software += f", pylake v{version}"
 
