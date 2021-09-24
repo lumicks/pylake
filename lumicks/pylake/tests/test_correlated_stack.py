@@ -16,8 +16,8 @@ from .data.mock_widefield import make_alignment_image_data, write_tiff_file
 @pytest.mark.parametrize("shape", [(3,3), (5,4,3)])
 def test_correlated_stack(shape):
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones(shape)]*6,
-                                       times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]),
-                          align=True)
+                                    times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]),
+                        align_requested=False)
     stack = CorrelatedStack.from_data(fake_tiff)
 
     assert (stack[0].start == 10)
@@ -69,14 +69,14 @@ def test_correlation(shape):
     # Test image stack without dead time
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones(shape)]*6,
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]]),
-                          align=True)
+                          align_requested=False)
     stack = CorrelatedStack.from_data(fake_tiff)
     np.testing.assert_allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]), np.arange(30, 50, 2))
 
     # Test image stack with dead time
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones(shape)]*6,
                                        times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]),
-                          align=True)
+                          align_requested=False)
     stack = CorrelatedStack.from_data(fake_tiff)
 
     np.testing.assert_allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]),
@@ -126,7 +126,7 @@ def test_plot_correlated():
                                              np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
                                               ["60", "70"]]),
-                                       align=True)
+                                       align_requested=False)
 
     CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc)
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
@@ -148,7 +148,7 @@ def test_plot_correlated_smaller_channel():
                                              np.ones((3, 3))*3, np.ones((3, 3))*4, np.ones((3, 3))*5],
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"],
                                               ["60", "70"]]),
-                                       align=True)
+                                       align_requested=False)
 
     # Add test for when there's only a subset in terms of channel data
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 30, 2), {"y": "mock", "title": "mock"})
@@ -234,7 +234,7 @@ def test_image_reconstruction_grayscale(gray_alignment_image_data):
     reference_image, warped_image, description, bit_depth = gray_alignment_image_data
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=8),
-                          align=True)
+                          align_requested=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
@@ -247,7 +247,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
-                          align=True)
+                          align_requested=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
@@ -275,7 +275,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     bad_description[label][2] = 25
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(bad_description), bit_depth=16),
-                          align=True)
+                          align_requested=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
@@ -285,7 +285,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data_offset
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
-                          align=True)
+                          align_requested=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(0)
 
@@ -298,7 +298,7 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image]*6,
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]],
                                        description=json.dumps(description), bit_depth=16),
-                          align=True)
+                          align_requested=True)
     stack = CorrelatedStack.from_data(fake_tiff)
     fr = stack._get_frame(2)
 
@@ -310,30 +310,21 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
 def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
     # no metadata
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
-    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
-                                       description="", bit_depth=16),
-                          align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
-    fr = stack._get_frame(0)
-
     with pytest.warns(UserWarning, match="File does not contain metadata. Only raw data is available"):
-        fr.data
+        fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
+                                        description="", bit_depth=16),
+                            align_requested=True)
 
     # missing alignment matrices
     for label in ("Alignment red channel", "Channel 0 alignment"):
         if label in description:
             removed = description.pop(label)
             break
-    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
-                                       description=json.dumps(description), bit_depth=16),
-                          align=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
-    fr = stack._get_frame(0)
+    with pytest.warns(UserWarning, match="File does not contain alignment matrices. Only raw data is available"):
+        fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
+                                        description=json.dumps(description), bit_depth=16),
+                            align_requested=True)
 
-    with pytest.warns(UserWarning) as record:
-        fr.data
-    assert len(record) == 1
-    assert record[0].message.args[0] == "File does not contain alignment matrices. Only raw data is available"
     description[label] = removed # reset fixture
 
 
@@ -345,7 +336,7 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
         stack = CorrelatedStack(str(filename), align)
         stack.export_tiff(savename)
-        stack.src._src.close()
+        stack.src._tiff_file.close()
         assert stat(savename).st_size > 0
 
         with tifffile.TiffFile(str(filename)) as tif0, tifffile.TiffFile(savename) as tif:
@@ -353,7 +344,7 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
             assert tif0.pages[0].software != tif.pages[0].software
             assert "pylake" in tif.pages[0].software
             if stack._get_frame(0).is_rgb:
-                if stack._get_frame(0)._align:
+                if stack._get_frame(0)._is_aligned:
                     assert "Applied channel 0 alignment" in tif.pages[0].description
                     assert "Channel 0 alignment" not in tif.pages[0].description
                 else:
@@ -381,4 +372,4 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
 
         with pytest.raises(ValueError):
             stack.export_tiff(savename, roi=[190, 10, 20, 80])
-        stack.src._src.close()
+        stack.src._tiff_file.close()
