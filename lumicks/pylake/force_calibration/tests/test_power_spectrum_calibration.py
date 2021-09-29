@@ -213,6 +213,12 @@ def test_result_plot(reference_calibration_result):
     ps_calibration.plot()
 
 
+@cleanup
+def test_result_plot(reference_calibration_result):
+    ps_calibration, model, reference_spectrum = reference_calibration_result
+    ps_calibration.plot_spectrum_residual()
+
+
 def test_attributes_ps_calibration(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     assert id(ps_calibration.model) == id(model)
