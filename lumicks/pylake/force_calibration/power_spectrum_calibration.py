@@ -78,6 +78,26 @@ class CalibrationResults:
         self.ps_model.plot(label="Model")
         plt.legend()
 
+    def plot_spectrum_residual(self):
+        """Plot the residuals of the fitted spectrum.
+
+        This diagnostic plot can be used to determine how well the spectrum fits the data. While
+        it cannot be used to diagnose over-fitting (being unable to reliably estimate parameters
+        due to insufficient information in the data), it can be used to diagnose under-fitting (the
+        model not fitting the data adequately).
+
+        In an ideal situation, the residual plot should show a noise band around 1 without any
+        systematic deviations.
+        """
+        residual = self.ps_data.power / self.ps_model.power
+        theoretical_std = 1.0 / np.sqrt(self.ps_model.num_points_per_block)
+
+        plt.plot(self.ps_data.frequency, residual, ".")
+        plt.axhline(1.0 + theoretical_std, color="k", linestyle="--")
+        plt.axhline(1.0 - theoretical_std, color="k", linestyle="--")
+        plt.ylabel("Data / Fit [-]")
+        plt.xlabel("Frequency [Hz]")
+
     def _print_data(self, tablefmt="text"):
         def generate_table(entries):
             return [
