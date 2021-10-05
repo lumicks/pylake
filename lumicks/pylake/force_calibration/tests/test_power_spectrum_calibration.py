@@ -74,7 +74,7 @@ def test_good_fit_integration_test(
     data, f_sample = reference_models.lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples)
     model = PassiveCalibrationModel(bead_diameter, temperature=temperature, viscosity=viscosity)
     power_spectrum = psc.calculate_power_spectrum(data, f_sample, fit_range=(0, 15000), num_points_per_block=20)
-    ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model)
+    ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, bias_correction=False)
 
     np.testing.assert_allclose(ps_calibration["fc"].value, corner_frequency, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["D"].value, diffusion_constant, rtol=1e-4, atol=0)
@@ -163,7 +163,9 @@ def reference_calibration_result():
     reference_spectrum = psc.calculate_power_spectrum(reference_spectrum, sample_rate=78125,
                                                       num_points_per_block=100,
                                                       fit_range=(100.0, 23000.0))
-    ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum, model=model)
+    ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum,
+                                            model=model,
+                                            bias_correction=False)
 
     return ps_calibration, model, reference_spectrum
 
@@ -244,6 +246,7 @@ def test_repr(reference_calibration_result):
         Fit tolerance        Fitting tolerance                                             1e-07
         Points per block     Number of points per block                                  100
         Sample rate          Sample rate (Hz)                                          78125
+        Bias correction      Perform bias correction thermal fit                           0
         Rd                   Distance response (um/V)                                      7.25366
         kappa                Trap stiffness (pN/nm)                                        0.171495
         Rf                   Force response (pN/V)                                      1243.97

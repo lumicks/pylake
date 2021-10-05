@@ -119,6 +119,10 @@ We can plot the calibration by calling::
 
 .. image:: force_calibration_fit.png
 
+Note that by default, a bias correction is applied to the fitted results :cite:`norrelykke2010power`.
+This bias correction is applied to the diffusion constant and amounts to a correction of :math:`\frac{N}{N+1}`, where :math:`N` refers to the number of points used for a particular spectral data point.
+It can optionally be disabled by passing `bias_correction=False` to :func:`~lumicks.pylake.fit_power_spectrum`.
+
 Hydrodynamically correct model
 ------------------------------
 

@@ -29,7 +29,7 @@ def test_fit_fixed_pars(reference_models):
     """Test model without diode effect"""
     models, power_spectrum = model_and_data(reference_models, diode_alpha=1.0, fast_sensor=True)
     for model in models:
-        fit = fit_power_spectrum(power_spectrum, model=model)
+        fit = fit_power_spectrum(power_spectrum, model=model, bias_correction=False)
         np.testing.assert_allclose(fit.results["fc"].value, 4000, 1e-6)
         np.testing.assert_allclose(fit.results["D"].value, 1.14632, 1e-6)
         assert "f_diode" not in fit.results
@@ -50,7 +50,7 @@ def test_fixed_diode(reference_models):
     models, power_spectrum = model_and_data(reference_models, diode_alpha=0.4, fast_sensor=True)
     for model in models:
         model._filter = FixedDiodeModel(14000)
-        fit = fit_power_spectrum(power_spectrum, model=model)
+        fit = fit_power_spectrum(power_spectrum, model=model, bias_correction=False)
 
         np.testing.assert_allclose(fit.results["fc"].value, 4000, 1e-6)
         np.testing.assert_allclose(fit.results["D"].value, 1.14632, 1e-6)
@@ -62,6 +62,6 @@ def test_fixed_diode(reference_models):
 
         # Fix diode to the wrong frequency. We should not get a great fit that way.
         model._filter = FixedDiodeModel(13000)
-        fit = fit_power_spectrum(power_spectrum, model=model)
+        fit = fit_power_spectrum(power_spectrum, model=model, bias_correction=False)
         assert abs(fit.results["fc"].value - 4000) > 1.0
         assert abs(fit.results["D"].value - 1.14632) > 1e-2

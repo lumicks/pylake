@@ -139,6 +139,12 @@ class PassiveCalibrationModel:
     .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
            spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
            filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
+    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
+           fitting: amplitude bias and its elimination, with application to optical tweezers and
+           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
+    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
+           Calibration of optical tweezers with positional detection in the back focal plane,
+           Review of scientific instruments 77, 103101 (2006).
 
     Attributes
     ----------
