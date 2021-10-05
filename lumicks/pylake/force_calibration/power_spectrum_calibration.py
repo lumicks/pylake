@@ -19,6 +19,10 @@ References
        Flyvbjerg, H. Power spectrum analysis for optical tweezers. II: Laser
        wavelength dependence of parasitic filtering, and how to achieve high
        bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
+.. [5] Nørrelykke, Simon F., and Henrik Flyvbjerg. "Power spectrum analysis with
+       least-squares fitting: amplitude bias and its elimination, with application
+       to optical tweezers and atomic force microscope cantilevers." Review of
+       Scientific Instruments 81.7 (2010).
 """
 
 import numpy as np
@@ -160,7 +164,12 @@ def calculate_power_spectrum(
 
 
 def fit_power_spectrum(
-    power_spectrum, model, analytical_fit_range=(1e1, 1e4), ftol=1e-7, max_function_evals=10000
+    power_spectrum,
+    model,
+    analytical_fit_range=(1e1, 1e4),
+    ftol=1e-7,
+    max_function_evals=10000,
+    bias_correction=True,
 ):
     """Power Spectrum Calibration
 
@@ -178,11 +187,34 @@ def fit_power_spectrum(
         Termination tolerance for the model fit.
     max_function_evals : int
         Maximum number of function evaluations during the fit.
+    bias_correction : bool
+        Apply bias correction to the estimate of the diffusion coefficient according to [5]. This
+        bias correction is calculated as N/(N+1) where N represents the number of points used in the
+        computation of each data point in the power spectral density.
 
     Returns
     -------
     :class:`~.CalibrationResults`
         Parameters obtained from the calibration procedure.
+
+    References
+    ----------
+    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
+           Instrum. 75, 594 (2004).
+    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
+           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
+    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
+           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
+           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
+    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
+           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
+           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
+    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
+           fitting: amplitude bias and its elimination, with application to optical tweezers and
+           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
+    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
+           Calibration of optical tweezers with positional detection in the back focal plane,
+           Review of scientific instruments 77, 103101 (2006).
     """
     if len(power_spectrum.frequency) < 4:
         raise RuntimeError(
@@ -255,6 +287,13 @@ def fit_power_spectrum(
         model(power_spectrum.frequency, *solution_params), power_spectrum.num_points_per_block
     )
 
+    # When using theoretical weights for fitting, ref [5] mentions that the found value for D will
+    # be biased by a factor (n+1)/n. Multiplying by n/(n+1) compensates for this.
+    if bias_correction:
+        bias_corr = power_spectrum.num_points_per_block / (power_spectrum.num_points_per_block + 1)
+        solution_params[1] *= bias_corr
+        perr[1] *= bias_corr
+
     return CalibrationResults(
         model=model,
         ps_data=power_spectrum,
@@ -283,5 +322,8 @@ def fit_power_spectrum(
                 "Number of points per block", power_spectrum.num_points_per_block, ""
             ),
             "Sample rate": CalibrationParameter("Sample rate", power_spectrum.sample_rate, "Hz"),
+            "Bias correction": CalibrationParameter(
+                "Perform bias correction thermal fit", bias_correction, ""
+            ),
         },
     )

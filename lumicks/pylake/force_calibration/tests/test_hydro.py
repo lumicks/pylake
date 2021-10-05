@@ -262,7 +262,7 @@ def test_integration_active_calibration_hydrodynamics(integration_test_parameter
         driving_frequency_guess=33,
     )
     power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
-    fit = fit_power_spectrum(power_spectrum, model)
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
 
     np.testing.assert_allclose(fit.params["Sample density"].value, 997.0)
     np.testing.assert_allclose(fit.params["Bead density"].value, 1040.0)
@@ -301,7 +301,7 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
     volts, _ = generate_active_calibration_test_data(10, **simulation_pars, **shared_pars)
     model = PassiveCalibrationModel(**shared_pars)
     power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
-    fit = fit_power_spectrum(power_spectrum, model)
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
 
     np.testing.assert_allclose(fit.params["Sample density"].value, 997.0)
     np.testing.assert_allclose(fit.params["Bead density"].value, 1040.0)
@@ -344,7 +344,7 @@ def test_integration_active_calibration_hydrodynamics_bulk(integration_test_para
         driving_frequency_guess=33,
     )
     power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
-    fit = fit_power_spectrum(power_spectrum, model)
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
 
     np.testing.assert_allclose(fit.params["Sample density"].value, 997.0)
     np.testing.assert_allclose(fit.params["Bead density"].value, 1040.0)
