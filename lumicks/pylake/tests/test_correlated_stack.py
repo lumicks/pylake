@@ -3,6 +3,7 @@ import json
 import tifffile
 import itertools
 from copy import deepcopy
+from pathlib import Path
 import pytest
 from lumicks.pylake.correlated_stack import CorrelatedStack
 from lumicks.pylake.detail.widefield import TiffStack
@@ -120,6 +121,39 @@ def test_name_change_from_data():
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones((5, 4, 3))], times=[["10", "18"]]), align_requested=False)
     with pytest.deprecated_call():
         CorrelatedStack.from_data(fake_tiff)
+        
+        
+def test_stack_roi():
+    first_page = np.arange(60).reshape((6,10))
+    data = np.stack([first_page + (j*60) for j in range(3)], axis=2)
+    stack_0 = TiffStack(MockTiffFile([data], times=[["10", "20"]]), align_requested=False)
+
+    # recursive cropping
+    stack_1 = stack_0.with_roi([1, 7, 3, 6])
+    np.testing.assert_equal(
+        stack_1.get_frame(0).data,
+        data[3:6, 1:7, :]
+    )
+
+    stack_2 = stack_1.with_roi([3, 6, 0, 3])
+    np.testing.assert_equal(
+        stack_2.get_frame(0).data,
+        data[3:6, 4:7, :]
+    )
+
+    stack_3 = stack_2.with_roi([1, 2, 1, 2])
+    np.testing.assert_equal(
+        stack_3.get_frame(0).data,
+        data[4:5, 5:6, :]
+    )
+
+    # negative indices
+    with pytest.raises(ValueError):
+        stack_4 = stack_0.with_roi([-5, 4, 1, 2])
+
+    # out of bounds
+    with pytest.raises(ValueError):
+        stack_5 = stack_0.with_roi([0, 11, 1, 2])
 
 
 @cleanup
@@ -366,7 +400,8 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
     for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
         savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
         stack = CorrelatedStack(str(filename))
-        stack.export_tiff(savename, roi=[10, 190, 20, 80])
+        with pytest.warns(DeprecationWarning):
+            stack.export_tiff(savename, roi=[10, 190, 20, 80])
         assert stat(savename).st_size > 0
 
         with tifffile.TiffFile(savename) as tif:
@@ -374,8 +409,45 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
             assert tif.pages[0].tags["ImageLength"].value == 60
 
         with pytest.raises(ValueError):
-            stack.export_tiff(savename, roi=[-10, 190, 20, 80])
+            with pytest.warns(DeprecationWarning):
+                stack.export_tiff(savename, roi=[-10, 190, 20, 80])
 
         with pytest.raises(ValueError):
-            stack.export_tiff(savename, roi=[190, 10, 20, 80])
+            with pytest.warns(DeprecationWarning):
+                stack.export_tiff(savename, roi=[190, 10, 20, 80])
+        stack.src._tiff_file.close()
+
+
+def test_cropping(rgb_tiff_file, gray_tiff_file):
+    for filename in (rgb_tiff_file, gray_tiff_file):
+        for align in (True, False):
+            stack = CorrelatedStack(filename, align=True)
+            cropped = stack.crop_by_pixels(25, 50, 25, 50)
+            np.testing.assert_allclose(
+                cropped._get_frame(0).data,
+                stack._get_frame(0).data[25:50, 25:50],
+                err_msg=f"failed on {Path(filename).name}, align={align}, frame.data"
+            )
+            np.testing.assert_allclose(
+                cropped._get_frame(0).raw_data,
+                stack._get_frame(0).raw_data[25:50, 25:50],
+                err_msg=f"failed on {Path(filename).name}, align={align}, frame.raw_data"
+            )
+            stack.src._tiff_file.close()
+
+
+def test_cropping_then_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+    from os import stat
+
+    for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+        savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
+        stack = CorrelatedStack(str(filename))
+        stack =stack.crop_by_pixels(10, 190, 20, 80)
+
+        stack.export_tiff(savename)
+        assert stat(savename).st_size > 0
+
+        with tifffile.TiffFile(savename) as tif:
+            assert tif.pages[0].tags["ImageWidth"].value == 180
+            assert tif.pages[0].tags["ImageLength"].value == 60
         stack.src._tiff_file.close()

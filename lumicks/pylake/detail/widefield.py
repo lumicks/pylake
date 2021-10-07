@@ -21,9 +21,10 @@ class TiffFrame:
         Wrapper around TIFF 'ImageDescription' metadata tag.
     """
 
-    def __init__(self, page, description):
+    def __init__(self, page, description, roi):
         self._page = page
         self._description = description
+        self._roi = roi
 
     @property
     def _is_aligned(self):
@@ -33,7 +34,7 @@ class TiffFrame:
         """reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
         align_mats = [self._description.alignment_matrix(color) for color in ("red", "blue")]
 
-        img = self.raw_data
+        img = self._page.asarray()
         rows, cols, _ = img.shape
         for mat, channel in zip(align_mats, (0, 2)):
             img[:, :, channel] = cv2.warpAffine(
@@ -48,15 +49,16 @@ class TiffFrame:
 
     @property
     def data(self):
-        return (
+        data = (
             self._align_image()
             if self._description._alignment.status == AlignmentStatus.ready
             else self._page.asarray()
         )
+        return self._roi(data)
 
     @property
     def raw_data(self):
-        return self._page.asarray()
+        return self._roi(self._page.asarray())
 
     @property
     def bit_depth(self):
@@ -116,7 +118,7 @@ class TiffStack:
         Whether color channel alignment is requested.
     """
 
-    def __init__(self, tiff_file, align_requested):
+    def __init__(self, tiff_file, align_requested, roi=None):
         self._tiff_file = tiff_file
         self._description = ImageDescription(tiff_file, align_requested)
 
@@ -125,12 +127,41 @@ class TiffStack:
         if self._description._alignment.has_problem:
             warnings.warn(self._description._alignment.status.value, stacklevel=4)
 
+        if roi is None:
+            height, width = self._src_shape
+            self._roi = Roi(0, width, 0, height)
+        else:
+            self._roi = roi
+
     def get_frame(self, frame):
-        return TiffFrame(self._tiff_file.pages[frame], description=self._description)
+        return TiffFrame(self._tiff_file.pages[frame], description=self._description, roi=self._roi)
 
     @staticmethod
     def from_file(image_file, align_requested):
         return TiffStack(tifffile.TiffFile(image_file), align_requested=align_requested)
+
+    def with_roi(self, roi):
+        return TiffStack(
+            self._tiff_file,
+            self._description._alignment.requested,
+            roi=self._roi.crop(roi),
+        )
+
+    @property
+    def _src_shape(self):
+        """Return source image shape as (n_rows, n_columns)."""
+        width = self._tags["ImageWidth"].value
+        height = self._tags["ImageLength"].value
+        return (height, width)
+
+    @property
+    def _shape(self):
+        """Return cropped image shape as (n_rows, n_columns)."""
+        return self._roi.shape
+
+    @property
+    def _tags(self):
+        return self._tiff_file.pages[0].tags
 
     @property
     def num_frames(self):
@@ -259,3 +290,35 @@ class Alignment:
         """True if alignment is requested but cannot be performed."""
         bad_status = self.status in (AlignmentStatus.empty, AlignmentStatus.missing)
         return self.requested and bad_status
+
+
+@dataclass
+class Roi:
+    x_min: int
+    x_max: int
+    y_min: int
+    y_max: int
+
+    def __post_init__(self):
+        if np.any(self.asarray() < 0):
+            raise ValueError("Pixel indices must be >= 0.")
+        if (self.x_max <= self.x_min) or (self.y_max <= self.y_min):
+            raise ValueError("Max must be larger than min.")
+
+    def __call__(self, data):
+        return data[self.y_min : self.y_max, self.x_min : self.x_max]
+
+    def asarray(self):
+        """Return corner coordinates as `np.array`."""
+        return np.array([self.x_min, self.x_max, self.y_min, self.y_max])
+
+    def crop(self, roi):
+        """Crop again, taking into account origin of current ROI."""
+        if roi[1] > self.shape[1] or roi[3] > self.shape[0]:
+            raise ValueError("Pixel indices cannot exceed image size.")
+        roi = np.array(roi) + [self.x_min, self.x_min, self.y_min, self.y_min]
+        return Roi(*roi)
+
+    @property
+    def shape(self):
+        return self.y_max - self.y_min, self.x_max - self.x_min

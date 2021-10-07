@@ -19,7 +19,9 @@ class MockTiffPage:
         self.tags = {"DateTime": MockTag(f"{start_time}:{end_time}"),
                      "ImageDescription": MockTag(description),
                      "BitsPerSample": MockTag(bit_depth),
-                     "SamplesPerPixel": MockTag(1 if (data.ndim==2) else data.shape[2])}
+                     "SamplesPerPixel": MockTag(1 if (data.ndim==2) else data.shape[2]),
+                     "ImageWidth": MockTag(data.shape[1]),
+                     "ImageLength": MockTag(data.shape[0])}
 
     def asarray(self):
         return self._data.copy()

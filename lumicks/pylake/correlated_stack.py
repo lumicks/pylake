@@ -98,6 +98,23 @@ class CorrelatedStack:
         )
         return new_correlated_stack
 
+    def crop_by_pixels(self, x_min, x_max, y_min, y_max):
+        """Crop the image stack by pixel values.
+
+        Parameters
+        ----------
+        x_min : int
+            minimum x pixel (inclusive)
+        x_max : int
+            maximum x pixel (exclusive)
+        y_min : int
+            minimum y pixel (inclusive)
+        y_max : int
+            maximum y pixel (exclusive)
+        """
+        data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
+        return self.from_data(data, self.name, self.start_idx, self.stop_idx)
+
     def plot(self, frame=0, channel="rgb", show_title=True, **kwargs):
         """Plot image from image stack
 
@@ -230,6 +247,7 @@ class CorrelatedStack:
             File name to export to.
         roi : list_like
             region of interest in pixel values [xmin, xmax, ymin, ymax]
+            *Deprecated since v0.10.1* Instead, use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting."
         """
         from . import __version__ as version
 
@@ -253,32 +271,33 @@ class CorrelatedStack:
 
             return (orientation, sample_format, datetime)
 
-        # get ROI coordinates
+        # crop to ROI if applicable
         if roi is not None:
-            if np.any([val < 0 for val in roi]):
-                raise ValueError("ROI coordinates cannot be negative")
-            xmin, xmax, ymin, ymax = roi
-            if (xmax < xmin) or (ymax < ymin):
-                raise ValueError("max coordinate must be larger than min coordinate")
+            warnings.warn(
+                (
+                    "The `roi` argument is deprecated since v0.10.1 "
+                    "Instead, use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting."
+                ),
+                DeprecationWarning,
+            )
+            to_save = self.crop_by_pixels(*roi)
         else:
-            ymin, xmin = 0, 0
-            ymax = self._get_frame(0).data.shape[0]
-            xmax = self._get_frame(0).data.shape[1]
+            to_save = self
 
         # re-name alignment matrices fields in image description
         # to reflect the fact that the image has already been processed
-        description = self._get_frame(0)._description.for_export
+        description = to_save.src._description.for_export
 
         # add pylake to Software tag
-        software = self._get_frame(0)._page.tags["Software"].value
+        software = to_save.src._tags["Software"].value
         if "pylake" not in software:
             software += f", pylake v{version}"
 
         # write frames sequentially
         with tifffile.TiffWriter(file_name) as tif:
-            for frame in self:
+            for frame in to_save:
                 tif.save(
-                    frame.data[ymin:ymax, xmin:xmax],
+                    frame.data,
                     description=description,
                     software=software,
                     metadata=None,  # suppress tifffile default ImageDescription tag
