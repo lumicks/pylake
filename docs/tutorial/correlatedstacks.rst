@@ -11,6 +11,13 @@ These videos can be opened and sliced using `CorrelatedStack`::
     stack = lk.CorrelatedStack("example.tiff")  # Loading a stack.
     stack_slice = stack[2:10]  # Grab frame 2 to 9
 
+You can also spatially crop to select a smaller region of interest::
+
+    stack_roi = stack.crop_by_pixels(10, 50, 20, 80)  # pixel coordinates as x_max, x_min, y_max, y_min
+
+This can be useful, for instance, after applying color alignment to RGB images as the edges
+can become corrupted due to interpolation artifacts.
+
 Full color RGB images are automatically reconstructed using the alignment matrices
 from Bluelake if available. This functionality can be turned off with the optional
 `align` keyword::
@@ -37,9 +44,3 @@ The aligned image stack can also be exported to tiff format::
 
     stack.export_tiff("aligned_stack.tiff")
     stack[5:20].export_tiff("aligned_short_stack.tiff") # export a slice of the CorrelatedStack
-
-Generally, the edges of an aligned image can become corrupted due interopolation artefacts. 
-In this case, we can export a cropped region of interest by supplying the `roi` kwarg in the form
-`[min_x_pixel, max_x_pixel, min_y_pixel, max_y_pixel]`::
-
-    stack.export_tiff("aligned_cropped_stack.tiff", roi=[20, 280, 20, 180])
