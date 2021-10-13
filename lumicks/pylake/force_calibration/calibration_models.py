@@ -6,6 +6,7 @@ from .detail.driving_input import (
     estimate_driving_input_parameters,
     driving_power_peak,
 )
+from .detail.drag_models import faxen_factor, brenner_axial
 from .detail.power_models import (
     passive_power_spectrum_model,
     sphere_friction_coefficient,
@@ -158,13 +159,16 @@ class PassiveCalibrationModel:
         Enable hydrodynamic correction.
     distance_to_surface : float, optional
         Distance from bead center to the surface [um].
-        Currently not supported for models without hydrodynamics.
+        When specifying `None`, the model will use an approximation which is only suitable for
+        measurements performed deep in bulk.
     rho_sample : float, optional
         Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
     rho_bead : float, optional
         Density of the bead [kg/m^3]. Only used when using hydrodynamic corrections.
     fast_sensor : bool
         Fast sensor? Fast sensors do not have the diode effect included in the model.
+    axial : bool
+        Is this an axial force model?
     """
 
     def __name__(self):
@@ -180,6 +184,7 @@ class PassiveCalibrationModel:
         rho_sample=None,
         rho_bead=1060.0,
         fast_sensor=False,
+        axial=False,
     ):
         if bead_diameter < 1e-2:
             raise ValueError(
@@ -187,11 +192,7 @@ class PassiveCalibrationModel:
                 f"than 10^-2 um"
             )
 
-        if (
-            distance_to_surface
-            and hydrodynamically_correct
-            and distance_to_surface < bead_diameter / 2.0
-        ):
+        if distance_to_surface and distance_to_surface < bead_diameter / 2.0:
             raise ValueError("Distance from bead center to surface is smaller than the bead radius")
 
         self.viscosity = viscosity
@@ -200,6 +201,7 @@ class PassiveCalibrationModel:
         self.drag_coeff = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
         self._filter = NoFilter() if fast_sensor else DiodeModel()
 
+        self.axial = axial
         self.hydrodynamically_correct = hydrodynamically_correct
         # Note that the default is set to None because in the future we may want to provide an
         # estimate of rho_sample based on temperature. If we pin this to a value already, this
@@ -209,12 +211,20 @@ class PassiveCalibrationModel:
         self.distance_to_surface = distance_to_surface
 
         if hydrodynamically_correct:
+            if self.axial:
+                raise NotImplementedError(
+                    "No hydrodynamically correct axial force model is currently available."
+                )
+
+            # The hydrodynamically correct model already accounts for the effect of a nearby wall.
+            # Here the drag coefficient in the model represents the bulk drag coefficient.
+            self._drag_correction_factor = 1
             # This model is only valid up to l/R < 1.5 [6] so throw in case that is violated.
             if distance_to_surface and distance_to_surface / (self.bead_diameter / 2) < 1.5:
                 raise ValueError(
-                    "This model is only valid for distances to the surface larger "
-                    "than 1.5 times the bead radius. Distances closer to the surface "
-                    "are currently not supported."
+                    "The hydrodynamically correct model is only valid for distances to the surface "
+                    "larger than 1.5 times the bead radius. For distances closer to the surface, "
+                    "turn off the hydrodynamically correct model."
                 )
 
             self._passive_power_spectrum_model = partial(
@@ -228,17 +238,29 @@ class PassiveCalibrationModel:
                 else self.distance_to_surface * 1e-6,  # um => m
             )
         else:
-            if self.distance_to_surface:
-                raise NotImplementedError(
-                    "Using a distance to the surface is currently not supported for models without "
-                    "hydrodynamic effects."
+            if distance_to_surface:
+                args = (distance_to_surface * 1e-6, bead_diameter * 1e-6 / 2.0)
+                self._drag_correction_factor = (
+                    brenner_axial(*args) if self.axial else faxen_factor(*args)
                 )
+            else:
+                self._drag_correction_factor = 1
 
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
     def __call__(self, f, fc, diffusion_constant, *filter_params):
         physical_spectrum = self._passive_power_spectrum_model(f, fc, diffusion_constant)
         return physical_spectrum * self._filter(f, *filter_params)
+
+    @property
+    def _drag(self):
+        """Returns the corrected drag coefficient
+
+        Note that the hydrodynamic model already has a surface dependent drag coefficient baked in
+        and therefore no correction is necessary (in this case self._drag_correction_factor is set
+        to 1).
+        """
+        return self.drag_coeff * self._drag_correction_factor
 
     def calibration_parameters(self):
         hydrodynamic_parameters = (
@@ -248,9 +270,6 @@ class PassiveCalibrationModel:
                 ),
                 "Bead density": CalibrationParameter(
                     "Density of bead material", self.rho_bead, "kg/m**3"
-                ),
-                "Distance to surface": CalibrationParameter(
-                    "Distance from bead center to surface", self.distance_to_surface, "um"
                 ),
             }
             if self.hydrodynamically_correct
@@ -262,6 +281,9 @@ class PassiveCalibrationModel:
             "Viscosity": CalibrationParameter("Liquid viscosity", self.viscosity, "Pa*s"),
             "Temperature": CalibrationParameter("Liquid temperature", self.temperature, "C"),
             **self._filter.params(),
+            "Distance to surface": CalibrationParameter(
+                "Distance from bead center to surface", self.distance_to_surface, "um"
+            ),
             **hydrodynamic_parameters,
         }
 
@@ -316,12 +338,11 @@ class PassiveCalibrationModel:
 
         # Distance response (Rd) needs to be output in um/V (m -> um or 1e6)
         distance_response = (
-            np.sqrt(scipy.constants.k * temperature_k / self.drag_coeff / diffusion_constant_volts)
-            * 1e6
+            np.sqrt(scipy.constants.k * temperature_k / self._drag / diffusion_constant_volts) * 1e6
         )
 
         # Stiffness is output in pN/nm (N/m -> pN/nm or 1e12 / 1e9 = 1e3)
-        kappa = 2 * np.pi * self.drag_coeff * fc * 1e3
+        kappa = 2 * np.pi * self._drag * fc * 1e3
 
         # Force response (Rf) is output in pN/V. Rd [um/V], stiffness [pN/nm]: um -> nm = 1e3
         force_response = distance_response * kappa * 1e3
@@ -390,7 +411,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Enable hydrodynamically correct spectrum.
     distance_to_surface : float, optional
         Distance from bead center to the surface [um].
-        Currently not supported for models without hydrodynamics.
+        When specifying `None`, the model will use an approximation which is only suitable for
+        measurements performed deep in bulk.
     rho_sample : float, optional
         Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
     rho_bead : float, optional
@@ -415,6 +437,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         rho_sample=None,
         rho_bead=1060.0,
         fast_sensor=False,
+        axial=False,
     ):
         """
         Active Calibration Model.
@@ -444,13 +467,16 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             Enable hydrodynamically correct model.
         distance_to_surface : float, optional
             Distance from bead center to the surface [um]
-            Currently not supported for models without hydrodynamics.
+            When specifying `None`, the model will use an approximation which is only suitable for
+            measurements performed deep in bulk.
         rho_sample : float, optional
             Density of the sample [kg/m**3]. Only used when using hydrodynamically correct model.
         rho_bead : float, optional
             Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
         fast_sensor : bool
             Fast sensor? Fast sensors do not have the diode effect included in the model.
+        axial : bool
+            Is this an axial force model?
         """
         super().__init__(
             bead_diameter,
@@ -461,6 +487,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             rho_sample,
             rho_bead,
             fast_sensor,
+            axial,
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
