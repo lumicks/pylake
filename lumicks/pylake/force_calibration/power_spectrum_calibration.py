@@ -23,6 +23,9 @@ References
        least-squares fitting: amplitude bias and its elimination, with application
        to optical tweezers and atomic force microscope cantilevers." Review of
        Scientific Instruments 81.7 (2010).
+.. [6] Schäffer, E., Nørrelykke, S. F., & Howard, J. "Surface forces and drag
+       coefficients of microspheres near a plane surface measured with optical
+       tweezers." Langmuir, 23(7), 3654-3665 (2007).
 """
 
 import numpy as np

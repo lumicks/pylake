@@ -10,6 +10,7 @@ from lumicks.pylake.force_calibration.calibration_models import (
 )
 from lumicks.pylake.force_calibration.detail.power_models import g_diode
 from lumicks.pylake.force_calibration.detail.hydrodynamics import *
+from lumicks.pylake.force_calibration.detail.drag_models import *
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 
@@ -422,9 +423,9 @@ def test_distance_to_surface_input(integration_test_parameters):
 
     with pytest.raises(
         ValueError,
-        match="This model is only valid for distances to the surface larger "
-        "than 1.5 times the bead radius. Distances closer to the surface "
-        "are currently not supported.",
+        match="The hydrodynamically correct model is only valid for distances to the surface "
+        "larger than 1.5 times the bead radius. For distances closer to the surface, "
+        "turn off the hydrodynamically correct model.",
     ):
         ActiveCalibrationModel(distance_to_surface=0.51, hydrodynamically_correct=True, **pars)
 
@@ -434,7 +435,36 @@ def test_distance_to_surface_input(integration_test_parameters):
     # Passes because we're not using the distance in this case.
     ActiveCalibrationModel(distance_to_surface=None, hydrodynamically_correct=True, **pars)
 
-    with pytest.raises(NotImplementedError):
-        ActiveCalibrationModel(
-            distance_to_surface=0.5 * 1.51, hydrodynamically_correct=False, **pars
-        )
+
+def test_invalid_model():
+    with pytest.raises(
+        NotImplementedError,
+        match="No hydrodynamically correct axial force model is currently available.",
+    ):
+        PassiveCalibrationModel(1.0, hydrodynamically_correct=True, axial=True)
+
+
+@pytest.mark.parametrize(
+    "bead_radius,result",
+    [
+        [0.25e-6, [2.1352513786215033, 1.6311828228718854, 1.4516296587727144]],
+        [2.0e-6, [2.8792155472899172, 2.5749756763637657, 2.3602598028304977]],
+    ],
+)
+def test_faxen(bead_radius, result):
+    np.testing.assert_allclose(
+        faxen_factor(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius), result
+    )
+
+
+@pytest.mark.parametrize(
+    "bead_radius,result",
+    [
+        [0.25e-6, [7.632480461251682, 3.294133315431444, 2.3978511310669433]],
+        [2.0e-6, [51.589633228999176, 18.179860649675998, 11.452290555393493]],
+    ],
+)
+def test_brenner(bead_radius, result):
+    np.testing.assert_allclose(
+        brenner_axial(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius), result
+    )

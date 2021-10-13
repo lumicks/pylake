@@ -188,6 +188,53 @@ Note that when `rho_sample` and `rho_bead` are omitted, values for water and pol
 
 Additionally, when the parameter `distance_to_surface` is omitted, a simpler model is used which assumes the experiment was performed deep in bulk (neglecting the increased drag induced by the nearby surface).
 
+Faxen's law
+-----------
+
+The hydrodynamically correct model presented in the previous section works well when the bead center is at least 1.5 times the radius above the surface.
+
+When going closer, the drag effect becomes stronger than the frequency dependent effects and better models to approximate the local drag exist.
+
+For lateral calibration, the following approximation is typically used :cite:`schaffer2007surface`:
+
+.. math::
+
+    \gamma_\mathrm{faxen}(R/l) = \frac{\gamma_0}{
+        1 - \frac{9R}{16l} + \frac{1R^3}{8l^3} - \frac{45R^4}{256l^4} - \frac{1R^5}{16l^5}
+    }
+
+We can use this model by setting `hydrodynamically_correct` to `False`, while still providing a distance to the surface::
+
+    force_model = lk.PassiveCalibrationModel(bead_diameter, hydrodynamically_correct=False, distance_to_surface=1e-6)
+
+Note that `pylake` always returns the bulk drag coefficient :math:`\gamma_0`.
+
+Axial Calibration
+-----------------
+
+For calibration in the axial direction, no hydrodynamically correct theory exists.
+In this case, one should use a Lorentzian with a specific correction term :cite:`schaffer2007surface`:
+
+.. math::
+
+    \gamma_\mathrm{axial}(R/l) = \frac{\gamma_0}{
+        1.0
+        - \frac{9R}{8l}
+        + \frac{1R^3}{2l^3}
+        - \frac{57R^4}{100l^4}
+        + \frac{1R^5}{5l^5}
+        + \frac{7R^{11}}{200l^{11}}
+        - \frac{1R^{12}}{25l^{12}}
+    }
+
+This model deviates less than 0.1% from Brenner's exact formula for :math:`l/R >= 1.1` and less than 0.3% over the entire range of :math:`l` :cite:`schaffer2007surface`:.
+
+This model can be used in Pylake by specifying `axial=True`::
+
+    force_model = lk.PassiveCalibrationModel(bead_diameter, distance_to_surface=1e-6, axial=True)
+
+Note that no hydrodynamically correct model is available for axial calibration.
+
 Fast Sensors
 ------------
 

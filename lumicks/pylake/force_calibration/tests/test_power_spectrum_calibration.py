@@ -1,3 +1,4 @@
+from .data.simulate_calibration_data import generate_active_calibration_test_data
 from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
 from lumicks.pylake.force_calibration.calibration_models import PassiveCalibrationModel, sphere_friction_coefficient
 from matplotlib.testing.decorators import cleanup
@@ -227,30 +228,31 @@ def test_attributes_ps_calibration(reference_calibration_result):
 def test_repr(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     assert str(ps_calibration) == dedent("""\
-        Name                 Description                                                         Value
-        -------------------  --------------------------------------------------------  ---------------
-        Bead diameter        Bead diameter (um)                                            4.4
-        Viscosity            Liquid viscosity (Pa*s)                                       0.001002
-        Temperature          Liquid temperature (C)                                       20
+        Name                 Description                                               Value
+        -------------------  --------------------------------------------------------  -----------
+        Bead diameter        Bead diameter (um)                                        4.4
+        Viscosity            Liquid viscosity (Pa*s)                                   0.001002
+        Temperature          Liquid temperature (C)                                    20
+        Distance to surface  Distance from bead center to surface (um)
         Max iterations       Maximum number of function evaluations                    10000
-        Fit tolerance        Fitting tolerance                                             1e-07
-        Points per block     Number of points per block                                  100
+        Fit tolerance        Fitting tolerance                                         1e-07
+        Points per block     Number of points per block                                100
         Sample rate          Sample rate (Hz)                                          78125
-        Bias correction      Perform bias correction thermal fit                           0
-        Rd                   Distance response (um/V)                                      7.25366
-        kappa                Trap stiffness (pN/nm)                                        0.171495
-        Rf                   Force response (pN/V)                                      1243.97
-        gamma_0              Theoretical drag coefficient (kg/s)                           4.1552e-08
-        fc                   Corner frequency (Hz)                                       656.872
-        D                    Diffusion constant (V^2/s)                                    0.00185126
-        err_fc               Corner frequency Std Err (Hz)                                32.2284
-        err_D                Diffusion constant Std Err (V^2/s)                            6.42974e-05
-        f_diode              Diode low-pass filtering roll-off frequency (Hz)           7936.51
-        alpha                Diode 'relaxation factor'                                     0.500609
-        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)    561.715
-        err_alpha            Diode 'relaxation factor' Std Err                             0.0131406
-        chi_squared_per_deg  Chi squared per degree of freedom                             1.06378
-        backing              Statistical backing (%)                                      66.4331""")
+        Bias correction      Perform bias correction thermal fit                       0
+        Rd                   Distance response (um/V)                                  7.25366
+        kappa                Trap stiffness (pN/nm)                                    0.171495
+        Rf                   Force response (pN/V)                                     1243.97
+        gamma_0              Theoretical drag coefficient (kg/s)                       4.1552e-08
+        fc                   Corner frequency (Hz)                                     656.872
+        D                    Diffusion constant (V^2/s)                                0.00185126
+        err_fc               Corner frequency Std Err (Hz)                             32.2284
+        err_D                Diffusion constant Std Err (V^2/s)                        6.42974e-05
+        f_diode              Diode low-pass filtering roll-off frequency (Hz)          7936.51
+        alpha                Diode 'relaxation factor'                                 0.500609
+        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.715
+        err_alpha            Diode 'relaxation factor' Std Err                         0.0131406
+        chi_squared_per_deg  Chi squared per degree of freedom                         1.06378
+        backing              Statistical backing (%)                                   66.4331""")
 
 
 def test_invalid_bead_diameter():
@@ -261,3 +263,49 @@ def test_invalid_bead_diameter():
         PassiveCalibrationModel(bead_diameter=1e-7)
 
     PassiveCalibrationModel(bead_diameter=1e-2)
+
+
+def test_faxen_correction():
+    """When hydro is off, but a height is given, the interpretation of the Lorentzian fit can still
+    benefit from using the distance to the surface in a correction factor for the drag. This will
+    only affect thermal calibration. This behaviour is tested here."""
+    shared_pars = {
+        "bead_diameter": 1.03,
+        "viscosity": 1.1e-3,
+        "temperature": 25,
+        "rho_sample": 997.0,
+        "rho_bead": 1040.0,
+        "distance_to_surface": 1.03 / 2 + 400e-3,
+    }
+    sim_pars = {
+        "sample_rate": 78125,
+        "stiffness": 0.1,
+        "pos_response_um_volt": 0.618,
+        "driving_sinusoid": (500, 31.95633),
+        "diode": (0.4, 15000),
+    }
+
+    np.random.seed(10071985)
+    volts, _ = generate_active_calibration_test_data(
+        10, hydrodynamically_correct=True, **sim_pars, **shared_pars
+    )
+    power_spectrum = psc.calculate_power_spectrum(volts, sim_pars["sample_rate"])
+
+    model = PassiveCalibrationModel(**shared_pars, hydrodynamically_correct=False)
+    fit = psc.fit_power_spectrum(power_spectrum, model, bias_correction=False)
+
+    # Fitting with *no* hydrodynamically correct model, but *with* Faxen's law
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.6136895577998873)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.10312266251783221)
+    np.testing.assert_allclose(fit.results["Rf"].value, 63.285301159715466)
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+
+    # Disabling Faxen's correction on the drag makes the estimates *much* worse
+    shared_pars["distance_to_surface"] = None
+    model = PassiveCalibrationModel(**shared_pars, hydrodynamically_correct=False)
+    fit = psc.fit_power_spectrum(power_spectrum, model, bias_correction=False)
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.741747603986908)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.07058936587810064)
+    np.testing.assert_allclose(fit.results["Rf"].value, 52.35949300703634)
+    # Not affected since this is gamma bulk
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
