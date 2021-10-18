@@ -3,6 +3,7 @@ import os
 import json
 import tifffile
 import warnings
+from deprecated.sphinx import deprecated
 from .detail.widefield import TiffStack
 
 
@@ -49,14 +50,14 @@ class CorrelatedStack:
                 raise IndexError("Slice steps are not supported")
 
             start, stop, _ = item.indices(self.num_frames)
-            return CorrelatedStack.from_data(
+            return CorrelatedStack.from_dataset(
                 self.src, self.name, self.start_idx + start, self.start_idx + stop
             )
         else:
             item = self.start_idx + item if item >= 0 else self.stop_idx + item
             if item >= self.stop_idx or item < self.start_idx:
                 raise IndexError("Index out of bounds")
-            return CorrelatedStack.from_data(self.src, self.name, item, item + 1)
+            return CorrelatedStack.from_dataset(self.src, self.name, item, item + 1)
 
     def __iter__(self):
         idx = 0
@@ -65,7 +66,16 @@ class CorrelatedStack:
             idx += 1
 
     @classmethod
+    @deprecated(
+        reason=("Renamed to `from_dataset()` for consistency with `Kymo` and `Scan`."),
+        action="always",
+        version="0.10.1",
+    )
     def from_data(cls, data, name=None, start_idx=0, stop_idx=None):
+        return cls.from_dataset(data, name, start_idx, stop_idx)
+
+    @classmethod
+    def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None):
         """Construct CorrelatedStack from image stack object
 
         Parameters

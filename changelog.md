@@ -22,6 +22,10 @@
 * Make sure that `f_diode` stays below the Nyquist frequency during fitting.
 * Implemented a bias correction for the thermal calibration. Note that this typically leads to a small correction unless you use a very low number of points per block.
 
+#### Deprecations
+
+* `CorrelatedStack.from_data()` has been renamed to `CorrelatedStack.from_dataset()` for consistency with `BaseScan.from_dataset()`.
+
 ## v0.10.0 | 2021-08-20
 
 Important notice: This release contains an important fix that could lead to timestamp corruption when slicing kymographs. If you are still on version `0.8.2` or `0.9.0` we highly recommend updating or not using the kymograph slicing functionality (e.g. using the syntax `kymo["0s":"5s"]`). Please refer to the `Bug fixes` section for more information.
