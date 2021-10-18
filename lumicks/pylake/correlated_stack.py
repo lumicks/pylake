@@ -312,6 +312,14 @@ class CorrelatedStack:
         return self.stop_idx - self.start_idx
 
     @property
+    @deprecated(
+        reason=(
+            "Access to raw frame instances will be removed in a future release. "
+            "All operations on these objects should be handled through the `CorrelatedStack` public API."
+        ),
+        action="always",
+        version="0.10.1",
+    )
     def raw(self):
         """Raw frame data."""
         if self.num_frames > 1:

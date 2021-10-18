@@ -105,11 +105,11 @@ def test_correlation(shape):
     with pytest.raises(AssertionError):
         cc["40ns":"70ns"].downsampled_over(stack[0:1].timestamps)
 
-    assert (stack[0].raw.start == 10)
-    assert (stack[1].raw.start == 20)
-    assert (stack[1:3][0].raw.start == 20)
-    assert (stack[1:3].raw[0].start == 20)
-    assert (stack[1:3].raw[1].start == 30)
+    assert (stack[0]._get_frame(0).start == 10)
+    assert (stack[1]._get_frame(0).start == 20)
+    assert (stack[1:3]._get_frame(0).start == 20)
+    assert (stack[1:3]._get_frame(0).start == 20)
+    assert (stack[1:3]._get_frame(1).start == 30)
 
     # Regression test downsampled_over losing precision due to reverting to double rather than int64.
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 1588267266006287100, 1000))
@@ -154,6 +154,14 @@ def test_stack_roi():
     # out of bounds
     with pytest.raises(ValueError):
         stack_5 = stack_0.with_roi([0, 11, 1, 2])
+
+
+def test_deprecate_raw():
+    fake_tiff = TiffStack(MockTiffFile(data=[np.ones((5, 4, 3))], times=[["10", "18"]]), align_requested=False)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    with pytest.deprecated_call():
+        stack.raw
 
 
 @cleanup
