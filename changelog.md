@@ -14,9 +14,16 @@
 
 * Fixed issue in force calibration where the analytical fit would sometimes fail when the corner frequency is below the lower fitting bound. What would happen is that the analytical fit resulted in a negative term of which the square root was taken to obtain the corner frequency. Now this case is gracefully handled by setting the initial guess halfway between the lowest frequency in the power spectrum and zero.
 
+#### Deprecations
+
+* `CorrelatedStack.raw` has been deprecated and will be removed in a future release.
+
 #### Breaking changes
 
 * Changed default for `viscosity` in force calibration models. When omitted, `pylake` will use the viscosity of water calculated from the temperature. Note that this results in the default (when no viscosity or temperature is set) changing from `1.002e-3`  to `1.00157e-3`. See: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html).
+* Units are now included in the headers for exported kymograph traces. The header now reads:</br>
+`# line index;time (pixels);coordinate (pixels);time (seconds);position ({unit});counts (summed over {n} pixels)`</br>
+where `{unit}` is either `um` or `kbp` depending on the calibration of the kymograph.
 
 ## v0.10.1 | 2021-10-27
 
@@ -45,12 +52,6 @@
 #### Deprecations
 
 * `CorrelatedStack.from_data()` has been renamed to `CorrelatedStack.from_dataset()` for consistency with `BaseScan.from_dataset()`.
-
-#### Breaking changes
-
-* Units are now included in the headers for exported kymograph traces. The header now reads:</br>
-`# line index;time (pixels);coordinate (pixels);time (seconds);position ({unit});counts (summed over {n} pixels)`</br>
-where `{unit}` is either `um` or `kbp` depending on the calibration of the kymograph.
 
 ## v0.10.0 | 2021-08-20
 
