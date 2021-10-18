@@ -18,7 +18,7 @@ def test_correlated_stack(shape):
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones(shape)]*6,
                                     times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]),
                         align_requested=False)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
 
     assert (stack[0].start == 10)
     assert (stack[1].start == 20)
@@ -70,14 +70,14 @@ def test_correlation(shape):
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones(shape)]*6,
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]]),
                           align_requested=False)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
     np.testing.assert_allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]), np.arange(30, 50, 2))
 
     # Test image stack with dead time
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones(shape)]*6,
                                        times=[["10", "18"], ["20", "28"], ["30", "38"], ["40", "48"], ["50", "58"], ["60", "68"]]),
                           align_requested=False)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
 
     np.testing.assert_allclose(np.hstack([cc[x.start:x.stop].data for x in stack[2:4]]),
                         np.hstack([np.arange(30, 38, 2), np.arange(40, 48, 2)]))
@@ -116,6 +116,12 @@ def test_correlation(shape):
     assert int(ch.timestamps[0]) == 1588267266006287100
 
 
+def test_name_change_from_data():
+    fake_tiff = TiffStack(MockTiffFile(data=[np.ones((5, 4, 3))], times=[["10", "18"]]), align_requested=False)
+    with pytest.deprecated_call():
+        CorrelatedStack.from_data(fake_tiff)
+
+
 @cleanup
 def test_plot_correlated():
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 10, 2), {"y": "mock", "title": "mock"})
@@ -128,12 +134,12 @@ def test_plot_correlated():
                                               ["60", "70"]]),
                                        align_requested=False)
 
-    CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc)
+    CorrelatedStack.from_dataset(fake_tiff)[3:5].plot_correlated(cc)
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
     assert len(imgs) == 1
     np.testing.assert_allclose(imgs[0].get_array(), np.ones((3, 3)) * 3)
 
-    CorrelatedStack.from_data(fake_tiff)[3:5].plot_correlated(cc, frame=1)
+    CorrelatedStack.from_dataset(fake_tiff)[3:5].plot_correlated(cc, frame=1)
     imgs = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.image.AxesImage)]
     assert len(imgs) == 1
     np.testing.assert_allclose(imgs[0].get_array(), np.ones((3, 3)) * 4)
@@ -154,7 +160,7 @@ def test_plot_correlated_smaller_channel():
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 30, 2), {"y": "mock", "title": "mock"})
 
     with pytest.warns(UserWarning):
-        CorrelatedStack.from_data(fake_tiff).plot_correlated(cc)
+        CorrelatedStack.from_dataset(fake_tiff).plot_correlated(cc)
 
     def mock_click(fig, data_position):
         pos = fig.axes[0].transData.transform(data_position)
@@ -235,7 +241,7 @@ def test_image_reconstruction_grayscale(gray_alignment_image_data):
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=8),
                           align_requested=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     assert not fr.is_rgb
@@ -248,7 +254,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align_requested=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
@@ -276,7 +282,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(bad_description), bit_depth=16),
                           align_requested=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
@@ -286,7 +292,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
                                        description=json.dumps(description), bit_depth=16),
                           align_requested=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     original_data = (reference_image / (2**bit_depth - 1)).astype(float)
@@ -299,7 +305,7 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
                                        times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]],
                                        description=json.dumps(description), bit_depth=16),
                           align_requested=True)
-    stack = CorrelatedStack.from_data(fake_tiff)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
     fr = stack._get_frame(2)
 
     assert fr.is_rgb
