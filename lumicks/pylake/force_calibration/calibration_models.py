@@ -593,10 +593,12 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             "kappa": CalibrationParameter("Trap stiffness", kappa * 1e3, "pN/nm"),
             "Rf": CalibrationParameter("Force response", force_response * 1e12, "pN/V"),
             "gamma_0": CalibrationParameter(
-                "Theoretical drag coefficient", self.drag_coeff, "kg/s"
+                "Theoretical bulk drag coefficient", self.drag_coeff, "kg/s"
             ),
             "gamma_ex": CalibrationParameter(
-                "Measured drag coefficient", measured_drag_coeff, "kg/s"
+                "Measured bulk drag coefficient",
+                measured_drag_coeff / self._drag_correction_factor,
+                "kg/s",
             ),
             **self._format_passive_result(
                 fc,

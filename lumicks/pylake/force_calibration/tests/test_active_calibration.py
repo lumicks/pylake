@@ -139,3 +139,63 @@ def test_bias_correction():
 
     assert fit_biased.params["Bias correction"].value is False
     assert fit_debiased.params["Bias correction"].value is True
+
+
+def test_faxen_correction_active():
+    """Active calibration should barely be affected by surface corrections for the drag coefficient.
+    However, the interpretation of gamma_ex, which may be carried over to the other calibration
+    *is* important, so this should be covered by a specific test."""
+    shared_pars = {
+        "bead_diameter": 1.03,
+        "viscosity": 1.1e-3,
+        "temperature": 25,
+        "rho_sample": 997.0,
+        "rho_bead": 1040.0,
+        "distance_to_surface": 1.03 / 2 + 500e-3,
+    }
+    sim_pars = {
+        "sample_rate": 78125,
+        "stiffness": 0.1,
+        "pos_response_um_volt": 0.618,
+        "driving_sinusoid": (500, 31.95633),
+        "diode": (0.4, 15000),
+    }
+
+    np.random.seed(10071985)
+    volts, stage = generate_active_calibration_test_data(
+        10, hydrodynamically_correct=True, **sim_pars, **shared_pars
+    )
+    power_spectrum = calculate_power_spectrum(volts, sim_pars["sample_rate"])
+
+    active_pars = {
+        "force_voltage_data": volts,
+        "driving_data": stage,
+        "sample_rate": 78125,
+        "driving_frequency_guess": 32,
+        "hydrodynamically_correct": False,
+    }
+
+    model = ActiveCalibrationModel(**active_pars, **shared_pars)
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
+
+    # Fitting with *no* hydrodynamically correct model, but *with* Faxen's law
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.5979577465734786)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.10852140970454485)
+    np.testing.assert_allclose(fit.results["Rf"].value, 64.89121760190687)
+    # gamma_0 and gamma_ex should be the same, since gamma_ex is corrected to be "in bulk".
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+    np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.1271667835127709e-08)
+
+    # Disabling Faxen's correction on the drag makes the estimates *much* worse
+    shared_pars["distance_to_surface"] = None
+    model = ActiveCalibrationModel(**active_pars, **shared_pars)
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
+
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.5979577465734786)
+    np.testing.assert_allclose(fit.results["kappa"].value, 0.10852140970454485)
+    np.testing.assert_allclose(fit.results["Rf"].value, 64.89121760190687)
+    # Not affected since this is gamma bulk
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+    # The drag is now much different, since we're not using Faxen's law to back-correct the drag
+    # to its actual bulk value.
+    np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.571688034506783e-08)

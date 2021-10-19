@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def faxen_factor(distance_to_surface_m, radius_m):
     """Faxen factor for lateral drag coefficient.
 
