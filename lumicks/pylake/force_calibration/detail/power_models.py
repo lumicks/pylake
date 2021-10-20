@@ -46,7 +46,15 @@ def fit_analytical_lorentzian(ps):
     )
 
     # Having a and b, calculating fc and D is trivial.
-    fc = math.sqrt(a / b)  # corner frequency [Hz]
+    if a > 0:
+        fc = math.sqrt(a / b)  # corner frequency [Hz]
+    else:
+        # When the corner frequency is very low and the power spectrum doesn't reach all the way,
+        # this can fail. As initial guess we then use the half the lowest nonzero frequency observed
+        # in the power spectrum (optimal when assuming uniform prior for our guess). Note that zero
+        # isn't a valid choice, since this leads to nan's and infinities down the road.
+        fc = 0.5 * (ps.frequency[0] if ps.frequency[0] > 0 else ps.frequency[1])
+
     D = (1 / b) * (math.pi ** 2)  # diffusion constant [V^2/s]
 
     # Fitted power spectrum values.

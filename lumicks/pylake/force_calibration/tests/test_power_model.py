@@ -1,6 +1,7 @@
 import pytest
 from lumicks.pylake.force_calibration.detail.power_models import *
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
+from .data.simulate_calibration_data import power_model_to_time_series
 
 
 def test_friction_coefficient():
@@ -18,8 +19,10 @@ def test_spectrum(reference_models):
 def test_spectrum_parameter_scaling(reference_models):
     f = np.arange(10000)
     initials = np.array([2.0, 3.0, 4.0, 5.0])
-    def filtered_power_spectrum(f, fc, diff, f_diode, alpha): 
+
+    def filtered_power_spectrum(f, fc, diff, f_diode, alpha):
         return passive_power_spectrum_model(f, fc, diff) * g_diode(f, f_diode, alpha)
+
     scaled_psc = ScaledModel(filtered_power_spectrum, initials)
 
     fc, diff, alpha, diode = 1000, 1e9, 0.5, 10000
@@ -73,6 +76,20 @@ def test_fit_analytic(
     np.testing.assert_allclose(fit.D, diffusion_constant, rtol=1e-5, atol=0)
     np.testing.assert_allclose(fit.sigma_fc, sigma_fc)
     np.testing.assert_allclose(fit.sigma_D, sigma_diffusion)
+
+
+def test_analytic_low_frequency(reference_models):
+    # When the corner frequency is below the lower bound of the fit, the analytic fit fails with a
+    # non-informative error. The reason for this is that a term which produces the corner frequency
+    # becomes negative. This test makes sure the initial guess estimator behaves nicely in that
+    # region.
+    np.random.seed(101985)
+    data = power_model_to_time_series(
+        78125, 78125, lambda f: reference_models.lorentzian(f, 35, 0.33)
+    )
+    ps = PowerSpectrum(data, sample_rate=78125).in_range(1e2, 1e4)
+    fit = fit_analytical_lorentzian(ps)
+    np.testing.assert_allclose(fit.fc, 0.5 * ps.frequency[0])
 
 
 def test_fit_analytic_curve():
