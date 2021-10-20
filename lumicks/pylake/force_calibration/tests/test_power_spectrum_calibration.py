@@ -128,16 +128,6 @@ def test_bad_calibration_result_arg():
         psc.CalibrationResults(bad_arg=5)
 
 
-def test_bad_data():
-    num_samples = 30000
-    data = np.sin(.1*np.arange(num_samples))
-    model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0001)
-    power_spectrum = psc.PowerSpectrum(data, num_samples)
-
-    with pytest.raises(ValueError):
-        psc.fit_power_spectrum(power_spectrum, model=model)
-
-
 def test_no_data_in_range():
     model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0001)
 
