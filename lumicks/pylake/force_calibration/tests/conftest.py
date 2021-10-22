@@ -38,7 +38,7 @@ def integration_test_parameters():
         "hydrodynamically_correct": True,
         "rho_sample": 997.0,
         "rho_bead": 1040.0,
-        "distance_to_surface": 1.03 / 2 + 40e-3,
+        "distance_to_surface": 1.51 * 1.03 / 2,
     }, {
         "sample_rate": 78125,
         "stiffness": 0.1,
