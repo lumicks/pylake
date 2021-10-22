@@ -387,9 +387,6 @@ def test_distance_to_surface_input(integration_test_parameters):
     with pytest.raises(ValueError):
         ActiveCalibrationModel(distance_to_surface=0.49, hydrodynamically_correct=True, **pars)
 
-    # Passes because it's unused when not using hydro model
-    ActiveCalibrationModel(distance_to_surface=0.49, hydrodynamically_correct=False, **pars)
-
     # Distance passes the check
     ActiveCalibrationModel(distance_to_surface=0.51, hydrodynamically_correct=True, **pars)
 
