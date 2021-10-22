@@ -209,6 +209,14 @@ class PassiveCalibrationModel:
         self.distance_to_surface = distance_to_surface
 
         if hydrodynamically_correct:
+            # This model is only valid up to l/R < 1.5 [6] so throw in case that is violated.
+            if distance_to_surface and distance_to_surface / (self.bead_diameter / 2) < 1.5:
+                raise ValueError(
+                    "This model is only valid for distances to the surface larger "
+                    "than 1.5 times the bead radius. Distances closer to the surface "
+                    "are currently not supported."
+                )
+
             self._passive_power_spectrum_model = partial(
                 passive_power_spectrum_model_hydro,
                 gamma0=self.drag_coeff,
