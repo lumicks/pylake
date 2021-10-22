@@ -158,8 +158,7 @@ class PassiveCalibrationModel:
         Enable hydrodynamic correction.
     distance_to_surface : float, optional
         Distance from bead center to the surface [um].
-        Only used when using hydrodynamic corrections. None uses the approximation valid for deep
-        in bulk.
+        Currently not supported for models without hydrodynamics.
     rho_sample : float, optional
         Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
     rho_bead : float, optional
@@ -221,6 +220,12 @@ class PassiveCalibrationModel:
                 else self.distance_to_surface * 1e-6,  # um => m
             )
         else:
+            if self.distance_to_surface:
+                raise NotImplementedError(
+                    "Using a distance to the surface is currently not supported for models without "
+                    "hydrodynamic effects."
+                )
+
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
     def __call__(self, f, fc, diffusion_constant, *filter_params):
@@ -377,8 +382,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Enable hydrodynamically correct spectrum.
     distance_to_surface : float, optional
         Distance from bead center to the surface [um].
-        Only used when using hydrodynamic corrections. None uses the approximation valid for deep
-        in bulk.
+        Currently not supported for models without hydrodynamics.
     rho_sample : float, optional
         Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
     rho_bead : float, optional
@@ -432,8 +436,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             Enable hydrodynamically correct model.
         distance_to_surface : float, optional
             Distance from bead center to the surface [um]
-            Only used when using hydrodynamically correct model. None uses the approximation valid
-            for deep in bulk.
+            Currently not supported for models without hydrodynamics.
         rho_sample : float, optional
             Density of the sample [kg/m**3]. Only used when using hydrodynamically correct model.
         rho_bead : float, optional
