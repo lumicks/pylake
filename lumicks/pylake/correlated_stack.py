@@ -113,7 +113,7 @@ class CorrelatedStack:
             maximum y pixel (exclusive)
         """
         data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
-        return self.from_data(data, self.name, self.start_idx, self.stop_idx)
+        return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
 
     def plot(self, frame=0, channel="rgb", show_title=True, **kwargs):
         """Plot image from image stack
