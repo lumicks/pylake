@@ -114,8 +114,8 @@ class Scan(ConfocalImage):
             image_handle.set_data(image)
 
         axes = self._ordered_axes()
-        plt.xlabel(f"{axis_label[axes[0]['axis']]} ($\\mu m$)")
-        plt.ylabel(f"{axis_label[axes[1]['axis']]} ($\\mu m$)")
+        plt.xlabel(fr"{axis_label[axes[0]['axis']]} ($\mu$m)")
+        plt.ylabel(fr"{axis_label[axes[1]['axis']]} ($\mu$m)")
         if self.num_frames == 1:
             plt.title(self.name)
         else:
