@@ -27,7 +27,6 @@ Force calibration
 
     calculate_power_spectrum
     fit_power_spectrum
-    CalibrationSettings
     PassiveCalibrationModel
     force_calibration.power_spectrum.PowerSpectrum
     force_calibration.power_spectrum_calibration.CalibrationResults
@@ -85,8 +84,7 @@ Notebook widgets
     :toctree: _api
 
     FdRangeSelector
-    nb_widgets.fd_selector.SliceRangeSelector
-    nb_widgets.fd_selector.FdRangeSelectorWidget
+    FdDistanceRangeSelector
 
 Population Dynamics
 -------------------
