@@ -337,9 +337,9 @@ With pure diffusive motion (a complete absence of drift) in an isotropic medium,
 
 .. math::
 
-    \rho[n] = 2 D t + offset
+    \rho[n] = 2 D n \Delta t + offset
 
-where :math:`D` is the diffusion constant in :math:`um^2/s`, :math:`t` is time, and the offset is determined by the localization accuracy:
+where :math:`D` is the diffusion constant in :math:`um^2/s`, :math:`\Delta t` is the time step, :math:`n` is the step index and the offset is determined by the localization accuracy:
 
 .. math::
 
