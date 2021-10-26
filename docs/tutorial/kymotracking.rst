@@ -52,8 +52,8 @@ If we zoom in a bit, we can see that our traces in this image are about 0.3 micr
 .. image:: kymo_zoom.png
 
 The peaks have an intensity of about 3-7 photon counts, whereas the background fluctuates around 0-2. Let's set our
-`pixel_threshold` to 4. We also see that sometimes, a particle momentarily disappears. To still connect these in a
-single trace, we want to allow for some gaps in the connection step. Let's use a `window` size of 9 in this test.
+`pixel_threshold` to 3. We also see that sometimes, a particle momentarily disappears. To still connect these in a
+single trace, we want to allow for some gaps in the connection step. Let's use a `window` size of 6 in this test.
 Considering that we only want to run the kymotracker on part of the image, we also pass the rect argument, which defines a rectangle over which to track peaks.
 In this case, we track particles between 0 and 350 seconds, and 7 and 22 micron.
 Running the algorithm is easy using the function :func:`~lumicks.pylake.track_greedy`::
@@ -479,7 +479,7 @@ Here, a random dataset with the same size as the original is sampled (with repla
 is then fit using the MLE method, just as for the original dataset. The fit results in a new estimate for the model parameters.
 This process is repeated many times, and the distribution of the resulting parameters can be analyzed to estimate certain statistics about the them::
 
-    dwell_2.run_bootstrap(iterations=1000)
+    dwell_2.calculate_bootstrap(iterations=1000)
     dwell_2.bootstrap.plot(alpha=0.05)
 
 .. image:: kymo_bind_bootstrap_2.png
