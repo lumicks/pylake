@@ -28,6 +28,7 @@ Force calibration
     calculate_power_spectrum
     fit_power_spectrum
     PassiveCalibrationModel
+    ActiveCalibrationModel
     force_calibration.power_spectrum.PowerSpectrum
     force_calibration.power_spectrum_calibration.CalibrationResults
 
