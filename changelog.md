@@ -4,6 +4,7 @@
 
 #### New features
 
+* Added support for active force calibration. For more information, please read: See [force calibration](https://lumicks-pylake.readthedocs.io/en/active_calibration_docs/tutorial/force_calibration.html#active-calibration).
 * Added `Kymo.calibrate_to_kbp()` for calibrating the position axis of a kymograph from microns to kilobase-pairs. **Note: this calibration is applied to the full kymograph, so one should crop to the bead edges with `Kymo.crop_by_distance()` before calling this method.**
 
 #### Improvements
