@@ -69,3 +69,27 @@ def downsample(data, factor, reduce):
 
     data = data[: round_down(data.size, factor)]
     return reduce(data.reshape(-1, factor), axis=1)
+
+
+def will_mul_overflow(a, b):
+    """Will `a * b` overflow?
+
+    We know that `a * b > int_max` iff `a > int_max // b`. The expression `a * b > int_max` can
+    overflow but the `a > int_max // b` cannot. Hence the latter can be used for testing whether
+    the former will overflow without actually incurring an overflow. The result is an array if
+    the inputs are arrays.
+    """
+    int_max = np.iinfo(np.result_type(a, b)).max
+    return np.logical_and(b > 0, a > int_max // b)
+
+
+def could_sum_overflow(a, axis=None):
+    """Could the sum of `a` overflow?
+
+    For safety, this estimate is conservative. A `True` result indicates that the result could
+    overflow, but it may not. This is because it assumes that the largest number in the array
+    could appear at every index.
+
+    A `False` result is definitive. The sum will definitely not overflow.
+    """
+    return np.any(will_mul_overflow(np.max(a, axis), a.size if axis is None else a.shape[axis]))

@@ -6,6 +6,33 @@ from deprecated.sphinx import deprecated
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
 from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
+from .utilities import could_sum_overflow
+
+
+def _int_mean(a, total_size, axis):
+    """Compute the `mean` for `a`.
+
+    When the mean can safely be computed for the entire block, we simply do so in a single step.
+    The early return will actually be called in most cases. When an overflow would occur, we
+    split the blocks to sum over recursively until the individual blocks can be summed without
+    incurring an overflow."""
+    if not could_sum_overflow(a, axis):
+        return np.sum(a, axis) // total_size
+
+    # Swap axis is used so the dimension we average over is the first. This makes it easier to
+    # divide it into blocks and sum over them. It also generalizes between nD and 1D.
+    b = a if axis is None else np.swapaxes(a, axis, 0)
+    n = b.shape[0] // 2
+    return _int_mean(b[:n], total_size, 0) + _int_mean(b[n:], total_size, 0)
+
+
+def timestamp_mean(a, axis=None):
+    """An overflow protected `mean` for `timestamps`."""
+    # By subtracting the minimal timestamp first, we greatly reduce the magnitude of the values we
+    # we have to sum over to obtain the mean (since now we are not dealing with timestamps since
+    # epoch, but timestamps since start of this timestamp array).
+    minimum = np.min(a)
+    return minimum + _int_mean(a - minimum, a.size if axis is None else a.shape[axis], axis)
 
 
 def _default_image_factory(self: "ConfocalImage", color):
@@ -14,7 +41,7 @@ def _default_image_factory(self: "ConfocalImage", color):
     return self._to_spatial(raw_image)
 
 
-def _default_timestamp_factory(self: "ConfocalImage", reduce=np.mean):
+def _default_timestamp_factory(self: "ConfocalImage", reduce=timestamp_mean):
     # Uses the timestamps from the first non-zero-sized photon channel
     for color in ("red", "green", "blue"):
         channel_data = getattr(self, f"{color}_photon_count").timestamps
@@ -22,6 +49,7 @@ def _default_timestamp_factory(self: "ConfocalImage", reduce=np.mean):
             break
     else:
         raise RuntimeError("Can't get pixel timestamps if there are no pixels")
+
     raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=reduce)
     return self._to_spatial(raw_image)
 
@@ -219,7 +247,7 @@ class ConfocalImage(BaseScan):
         return self._image_factory(self, channel)
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _timestamps(self, channel, reduce=np.mean):
+    def _timestamps(self, channel, reduce=timestamp_mean):
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 

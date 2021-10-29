@@ -151,6 +151,11 @@ def round_up(size, n):
     return int(math.ceil(size / n)) * n
 
 
+def round_down(size, n):
+    """Round down `size` to the nearest multiple of `n`"""
+    return (size // n) * n
+
+
 def reshape_reconstructed_image(pixels, shape):
     """Reshape reconstructed image data from 1D array into appropriate shape for plotting
 
@@ -161,7 +166,7 @@ def reshape_reconstructed_image(pixels, shape):
     shape : array_like
         The shape of the image ([optional: pixels on slow axis], pixels on fast axis)
     """
-    resized_pixels = np.zeros(round_up(pixels.size, np.prod(shape)))
+    resized_pixels = np.zeros(round_up(pixels.size, np.prod(shape)), dtype=pixels.dtype)
     resized_pixels[: pixels.size] = pixels
     return resized_pixels.reshape(-1, *shape)
 
@@ -217,8 +222,7 @@ def reconstruct_image(data, infowave, shape, reduce=np.sum):
     #   pixel_sizes = np.diff(np.flatnonzero(infowave == InfowaveCode.pixel_boundary))
     # But for now we assume that every pixel consists of the same number of samples
     pixel_size = np.argmax(subset) + 1
-    resized_data = np.zeros(round_up(subset.size, pixel_size))
-    resized_data[: subset.size] = data[valid_idx]
+    resized_data = data[valid_idx][: round_down(subset.size, pixel_size)]
     pixels = reduce(resized_data.reshape(-1, pixel_size), axis=1)
     return reshape_reconstructed_image(pixels, shape)
 
