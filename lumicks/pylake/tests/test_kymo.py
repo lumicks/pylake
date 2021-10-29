@@ -367,7 +367,7 @@ def test_downsampled_kymo_position():
 
     assert kymo_ds.name == "Mock"
     np.testing.assert_allclose(kymo_ds.red_image, ds)
-    np.testing.assert_allclose(kymo_ds.timestamps, ds_ts)
+    np.testing.assert_allclose(kymo_ds.timestamps, ds_ts.astype(np.int64))
     np.testing.assert_allclose(kymo_ds.start, 100)
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, kymo.line_time_seconds)
@@ -506,6 +506,7 @@ def test_kymo_crop():
                                                     [0.0, 12.0, 12.0, 12.0,  0.0,  6.0,  0.0]])
     np.testing.assert_allclose(cropped.timestamps, [[170, 315, 460, 605, 750, 895, 1040],
                                                     [195, 340, 485, 630, 775, 920, 1065]])
+    assert cropped.timestamps.dtype == np.int64
     np.testing.assert_allclose(cropped.pixelsize_um, kymo.pixelsize_um)
     np.testing.assert_allclose(cropped.line_time_seconds, kymo.line_time_seconds)
     np.testing.assert_allclose(cropped.pixels_per_line, 2)
@@ -728,6 +729,64 @@ def test_slice_timestamps():
     np.testing.assert_allclose(sliced.timestamps, ref_ts[:, 2:6])
     sliced = kymo["0s":"98s"]
     np.testing.assert_allclose(sliced.timestamps, ref_ts[:, :6])
+
+
+def test_roundoff_errors_kymo():
+    """Test slicing with realistically sized timestamps (this tests against floating point errors
+    induced in kymograph reconstruction)"""
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+        ],
+        dtype=np.uint8
+    )
+
+    test_parameters = {
+        "start": 1623965975045144000,
+        "dt": int(1e9),
+        "samples_per_pixel": 10,
+        "line_padding": 2,
+    }
+
+    kymo = generate_kymo(
+        "Mock",
+        image,
+        pixel_size_nm=4,
+        **test_parameters,
+    )
+
+    pixel_time = test_parameters["dt"] * test_parameters["samples_per_pixel"]
+    padding_time = test_parameters["dt"] * test_parameters["line_padding"]
+
+    first_pixel_start = test_parameters["start"] + padding_time
+    pixel_area_time = image.shape[0] * pixel_time
+    line_time = pixel_area_time + 2 * padding_time
+    # Note that the - dt comes from the mean over the pixel being not inclusive of the end.
+    first_pixel_center = (2 * first_pixel_start + pixel_time - test_parameters["dt"]) // 2
+    timestamp_line = first_pixel_center + np.arange(image.shape[0], dtype=np.int64) * pixel_time
+
+    ref_timestamps = np.tile(timestamp_line, (image.shape[1], 1)).T
+    ref_timestamps += np.arange(image.shape[1], dtype=np.int64) * line_time
+
+    np.testing.assert_equal(kymo.timestamps, ref_timestamps)
+
+
+def test_regression_unequal_timestamp_spacing():
+    """This particular set of initial timestamp and sampler per pixel led to unequal timestamp
+    spacing in an actual dataset."""
+    kymo = generate_kymo(
+        "Mock",
+        np.array([[1, 1, 1, 1, 1], [1, 1, 1, 1, 1]]),
+        pixel_size_nm=100,
+        start=1536582124217030400,
+        dt=int(1e9 / 78125),
+        samples_per_pixel=47,
+        line_padding=0
+    )
+    assert len(np.unique(np.diff(kymo.timestamps))) == 1
 
 
 def test_calibrate_to_kbp():

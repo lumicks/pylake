@@ -146,8 +146,8 @@ def generate_kymo(name, image, pixel_size_nm, start=4, dt=7, samples_per_pixel=5
         image,
         pixel_sizes_nm=[pixel_size_nm],
         axes=[0],
-        start=start,
-        dt=dt,
+        start=np.int64(start),
+        dt=np.int64(dt),
         samples_per_pixel=samples_per_pixel,
         line_padding=line_padding,
     )

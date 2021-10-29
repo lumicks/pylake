@@ -8,13 +8,21 @@ from .mixin import ExcitationLaserPower
 from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
 
 
+def _timestamp_mean(a, axis):
+    """Compute mean of consecutive timestamps.
+
+    Note: This function should only be used for consecutive timestamps. It is used to avoid
+    incurring an integer overflow when computing the mean of a series of timestamps."""
+    return (np.min(a, axis=axis) + np.max(a, axis=axis)) // 2  # We lose at most half a nanosecond
+
+
 def _default_image_factory(self: "ConfocalImage", color):
     channel_data = getattr(self, f"{color}_photon_count").data
     raw_image = reconstruct_image_sum(channel_data, self.infowave.data, self._shape)
     return self._to_spatial(raw_image)
 
 
-def _default_timestamp_factory(self: "ConfocalImage", reduce=np.mean):
+def _default_timestamp_factory(self: "ConfocalImage", reduce=_timestamp_mean):
     # Uses the timestamps from the first non-zero-sized photon channel
     for color in ("red", "green", "blue"):
         channel_data = getattr(self, f"{color}_photon_count").timestamps
@@ -22,6 +30,7 @@ def _default_timestamp_factory(self: "ConfocalImage", reduce=np.mean):
             break
     else:
         raise RuntimeError("Can't get pixel timestamps if there are no pixels")
+
     raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=reduce)
     return self._to_spatial(raw_image)
 
@@ -219,7 +228,7 @@ class ConfocalImage(BaseScan):
         return self._image_factory(self, channel)
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _timestamps(self, channel, reduce=np.mean):
+    def _timestamps(self, channel, reduce=_timestamp_mean):
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 
