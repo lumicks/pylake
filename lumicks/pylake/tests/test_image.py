@@ -175,3 +175,21 @@ def test_histogram_rows():
         np.testing.assert_allclose(e, [0.0, 0.5])
         assert np.all(np.equal(h, [435, 195]))
         np.testing.assert_allclose(w, [0.5, 0.1])
+
+
+def test_partial_pixel_image_reconstruction():
+    """This function tests whether a partial pixel at the end is fully dropped. This is important,
+    since in the timestamp reconstruction, we subtract the minimum value prior to averaging (to
+    allow taking averages of larger chunks). Without this functionality, the lowest timestamp to be
+    reconstructed can be smaller than the first timestamp. This means that the value subtracted
+    from the timestamps prior to summing is smaller. This means that the timestamps more quickly
+    get into the range where they are at risk of overflow (and therefore have to be summed in
+    smaller blocks). This in turn can lead to unnecessarily long reconstruction times."""
+    def size_test(x, axis):
+        assert len(x) == 4, "The last pixel should have been dropped since it was partial"
+        return np.array([1, 1, 1, 1])
+
+    iw = np.tile([1, 1, 1, 1, 2], (5,))
+    iw[-1] = 0
+    ts = np.arange(iw.size)
+    reconstruct_image(ts, iw, (5, 1), reduce=size_test)

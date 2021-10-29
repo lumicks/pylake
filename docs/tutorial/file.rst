@@ -104,7 +104,15 @@ The channels have a few convenient methods, like `.plot()` which make it easy to
     f1x_timestamps = file.force1x.timestamps
     plt.plot(f1x_timestamps, f1x_data)
 
-The `timestamps` attribute returns absolute values in nanoseconds.
+The `timestamps` attribute returns the measurement time in nanoseconds since epoch (January 1st 1970, midnight UTC/GMT).
+Note that since these values are typically very large, they cannot be converted to floating point without losing precision::
+
+    >>> t = f1x_timestamps[0]
+    >>> roundtrip_t = np.int64(np.float64(t))
+    >>> print(t - roundtrip_t)
+    24
+
+The reason for this is that timestamps exceed the maximum integer value representable by the mantissa.
 The relative time values in seconds can also be accessed directly::
 
     f1x_seconds = file.force1x.seconds
