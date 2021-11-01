@@ -37,7 +37,7 @@ def timestamp_mean(a, axis=None):
 
 def _default_image_factory(self: "ConfocalImage", color):
     channel_data = getattr(self, f"{color}_photon_count").data
-    raw_image = reconstruct_image_sum(channel_data, self.infowave.data, self._shape)
+    raw_image = reconstruct_image_sum(channel_data.astype(float), self.infowave.data, self._shape)
     return self._to_spatial(raw_image)
 
 
