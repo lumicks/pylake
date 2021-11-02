@@ -9,6 +9,10 @@ from matplotlib.testing.decorators import cleanup
 from .data.mock_confocal import generate_kymo
 
 
+def with_offset(t, start_time=1592916040906356300):
+    return np.array(t, dtype=np.int64) + start_time
+
+
 def test_kymo_properties(h5_file):
 
     f = pylake.File.from_h5py(h5_file)
@@ -313,7 +317,13 @@ def test_downsampled_kymo():
     )
 
     kymo = generate_kymo(
-        "Mock", image, pixel_size_nm=1, start=100, dt=7, samples_per_pixel=5, line_padding=2
+        "Mock",
+        image,
+        pixel_size_nm=1,
+        start=with_offset(0),
+        dt=7,
+        samples_per_pixel=5,
+        line_padding=2
     )
 
     kymo_ds = kymo.downsampled_by(time_factor=2)
@@ -329,7 +339,7 @@ def test_downsampled_kymo():
 
     assert kymo_ds.name == "Mock"
     np.testing.assert_allclose(kymo_ds.red_image, ds)
-    np.testing.assert_allclose(kymo_ds.start, 100)
+    np.testing.assert_allclose(kymo_ds.start, with_offset(0))
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 1 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 7 * (5 * 4 + 2 + 2) / 1e9)
 
@@ -357,18 +367,28 @@ def test_downsampled_kymo_position():
     )
 
     kymo = generate_kymo(
-        "Mock", image, pixel_size_nm=1, start=100, dt=5, samples_per_pixel=5, line_padding=2
+        "Mock",
+        image,
+        pixel_size_nm=1,
+        start=with_offset(100),
+        dt=5,
+        samples_per_pixel=5,
+        line_padding=2
     )
 
     kymo_ds = kymo.downsampled_by(position_factor=2)
     ds = np.array([[0, 12, 0, 12, 0, 12, 0], [12, 12, 12, 12, 12, 12, 0]], dtype=np.uint8)
-    ds_ts = np.array([[132.5,  277.5,  422.5,  567.5,  712.5,  857.5, 1002.5],
-                      [182.5,  327.5,  472.5,  617.5,  762.5,  907.5, 1052.5]])
+    ds_ts = with_offset(
+        [
+            [132.5,  277.5,  422.5,  567.5,  712.5,  857.5, 1002.5],
+            [182.5,  327.5,  472.5,  617.5,  762.5,  907.5, 1052.5],
+        ],
+    )
 
     assert kymo_ds.name == "Mock"
     np.testing.assert_allclose(kymo_ds.red_image, ds)
-    np.testing.assert_allclose(kymo_ds.timestamps, ds_ts.astype(np.int64))
-    np.testing.assert_allclose(kymo_ds.start, 100)
+    np.testing.assert_equal(kymo_ds.timestamps, ds_ts)
+    np.testing.assert_allclose(kymo_ds.start, with_offset(100))
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, kymo.line_time_seconds)
 
@@ -427,16 +447,22 @@ def test_side_no_side_effects_downsampling():
     )
 
     kymo = generate_kymo(
-        "Mock", image, pixel_size_nm=1, start=100, dt=5, samples_per_pixel=5, line_padding=2
+        "Mock",
+        image,
+        pixel_size_nm=1,
+        start=with_offset(100),
+        dt=5,
+        samples_per_pixel=5,
+        line_padding=2
     )
     timestamps = kymo.timestamps.copy()
     downsampled_kymos = kymo.downsampled_by(time_factor=2, position_factor=2)
 
     np.testing.assert_allclose(kymo.red_image, image)
-    np.testing.assert_allclose(kymo.start, 100)
+    np.testing.assert_allclose(kymo.start, with_offset(100))
     np.testing.assert_allclose(kymo.pixelsize_um, 1 / 1000)
     np.testing.assert_allclose(kymo.line_time_seconds, 5 * (5 * 5 + 2 + 2) / 1e9)
-    np.testing.assert_allclose(kymo.timestamps, timestamps)
+    np.testing.assert_equal(kymo.timestamps, timestamps)
 
 
 def test_calibrated_channels():
@@ -499,13 +525,21 @@ def test_kymo_crop():
     # Test basic functionality
     pixel_size_nm = 2
     kymo = generate_kymo(
-        "Mock", image, pixel_size_nm=pixel_size_nm, start=100, dt=5, samples_per_pixel=5, line_padding=2
+        "Mock",
+        image,
+        pixel_size_nm=pixel_size_nm,
+        start=with_offset(100),
+        dt=5,
+        samples_per_pixel=5,
+        line_padding=2
     )
     cropped = kymo.crop_by_distance(4e-3, 8e-3)
     np.testing.assert_allclose(cropped.red_image,  [[12.0,  0.0,  0.0,  0.0, 12.0,  6.0,  0.0],
                                                     [0.0, 12.0, 12.0, 12.0,  0.0,  6.0,  0.0]])
-    np.testing.assert_allclose(cropped.timestamps, [[170, 315, 460, 605, 750, 895, 1040],
-                                                    [195, 340, 485, 630, 775, 920, 1065]])
+    np.testing.assert_equal(
+        cropped.timestamps,
+        with_offset([[170, 315, 460, 605, 750, 895, 1040], [195, 340, 485, 630, 775, 920, 1065]]),
+    )
     assert cropped.timestamps.dtype == np.int64
     np.testing.assert_allclose(cropped.pixelsize_um, kymo.pixelsize_um)
     np.testing.assert_allclose(cropped.line_time_seconds, kymo.line_time_seconds)
@@ -577,7 +611,7 @@ def test_kymo_crop_ds():
         "Mock",
         image,
         pixel_size_nm=pixel_size_nm,
-        start=100,
+        start=with_offset(100),
         dt=5,
         samples_per_pixel=5,
         line_padding=2
@@ -645,14 +679,16 @@ def test_kymo_slice_crop():
     )
 
     sliced_cropped = kymo["245s":"725s"].crop_by_distance(8e-3, 14e-3)
-    np.testing.assert_allclose(sliced_cropped.timestamps,
-                               [[460e9, 605e9, 750e9],
-                                [485e9, 630e9, 775e9]])
+    np.testing.assert_equal(
+        sliced_cropped.timestamps, [[460e9, 605e9, 750e9], [485e9, 630e9, 775e9]]
+    )
     np.testing.assert_allclose(sliced_cropped.red_image, [[0, 0, 12], [12, 12, 0]])
     np.testing.assert_allclose(sliced_cropped._position_offset, 8e-3)
-    np.testing.assert_allclose(sliced_cropped._timestamps("timestamps", reduce=np.min),
-                               [[450e9, 595e9, 740e9],
-                                [475e9, 620e9, 765e9]])
+    np.testing.assert_equal(
+        sliced_cropped._timestamps("timestamps", reduce=np.min),
+        [[450e9, 595e9, 740e9], [475e9, 620e9, 765e9]],
+    )
+
 
 
 def test_incremental_offset():
@@ -669,7 +705,13 @@ def test_incremental_offset():
     )
 
     kymo = generate_kymo(
-        "Mock", image, pixel_size_nm=2, start=100, dt=5, samples_per_pixel=5, line_padding=2
+        "Mock",
+        image,
+        pixel_size_nm=2,
+        start=with_offset(100),
+        dt=5,
+        samples_per_pixel=5,
+        line_padding=2
     )
     cropped = kymo.crop_by_distance(2e-3, 8e-3)
     twice_cropped = cropped.crop_by_distance(2e-3, 8e-3)
@@ -677,9 +719,9 @@ def test_incremental_offset():
         twice_cropped.red_image,
         [[12.0, 0.0, 0.0, 0.0, 12.0, 6.0, 0.0], [0.0, 12.0, 12.0, 12.0, 0.0, 6.0, 0.0]],
     )
-    np.testing.assert_allclose(
+    np.testing.assert_equal(
         twice_cropped.timestamps,
-        [[170, 315, 460, 605, 750, 895, 1040], [195, 340, 485, 630, 775, 920, 1065]],
+        with_offset([[170, 315, 460, 605, 750, 895, 1040], [195, 340, 485, 630, 775, 920, 1065]]),
     )
     np.testing.assert_allclose(twice_cropped.pixelsize_um, kymo.pixelsize_um)
     np.testing.assert_allclose(twice_cropped.line_time_seconds, kymo.line_time_seconds)
