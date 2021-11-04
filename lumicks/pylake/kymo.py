@@ -380,11 +380,13 @@ class Kymo(ConfocalImage):
             )
 
         def timestamp_factory(_, reduce_timestamps):
-            return block_reduce(
-                self._timestamps("timestamps", reduce_timestamps),
-                (position_factor, 1),
-                func=reduce_timestamps,
-            )[: self.timestamps.shape[0] // position_factor, :]
+            def round_down(n, factor):
+                return (n // factor) * factor
+
+            ts = self._timestamps("timestamps", reduce_timestamps)
+            full_blocks = ts[: round_down(ts.shape[0], position_factor), :]
+            reshaped = full_blocks.reshape(-1, position_factor, ts.shape[1])
+            return reduce_timestamps(reshaped, axis=1)
 
         def line_time_factory(_):
             return self.line_time_seconds * time_factor
