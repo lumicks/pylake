@@ -115,6 +115,23 @@ class CorrelatedStack:
         data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
         return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
 
+    def get_image(self, channel="rgb"):
+        """Get image data for the full stack as an `np.ndarray`.
+
+        Parameters
+        ----------
+        channel : {'red', 'green', 'blue', 'rgb'}
+            The color channel of the requested data.
+            For single-color data, this argument is ignored.
+        """
+        if self.src._description.is_rgb:
+            channel_indices = {"red": 0, "green": 1, "blue": 2, "rgb": slice(None)}
+            slc = (slice(None), slice(None), channel_indices[channel])
+        else:
+            slc = (slice(None),)
+
+        return np.stack([frame.data[slc] for frame in self], axis=0).squeeze()
+
     def plot(self, frame=0, channel="rgb", show_title=True, **kwargs):
         """Plot image from image stack
 
@@ -315,7 +332,8 @@ class CorrelatedStack:
     @deprecated(
         reason=(
             "Access to raw frame instances will be removed in a future release. "
-            "All operations on these objects should be handled through the `CorrelatedStack` public API."
+            "All operations on these objects should be handled through the `CorrelatedStack` public API. "
+            "For example, to retrieve the image data as an `np.ndarray` please use `CorrelatedStack.get_image()`."
         ),
         action="always",
         version="0.10.1",

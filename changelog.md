@@ -9,6 +9,7 @@
 * Added support for using near-surface corrections for lateral and axial calibration, please read: See [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#faxen-s-law).
 * Added `Kymo.calibrate_to_kbp()` for calibrating the position axis of a kymograph from microns to kilobase-pairs. **Note: this calibration is applied to the full kymograph, so one should crop to the bead edges with `Kymo.crop_by_distance()` before calling this method.**
 * Added function to compute viscosity of water at specific temperature. See: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html).
+* Added `CorrelatedStack.get_image()` to get the image stack data as an `np.ndarray`.
 
 #### Improvements
 
