@@ -14,9 +14,14 @@ def _contiguous_timestamp_mean(a, axis):
     Note: This function should only be used for contiguous timestamps. It is used to avoid
     incurring an integer overflow when computing the mean of a series of timestamps."""
     second_derivative = np.diff(a, n=2, axis=axis)
+
+    # To test whether the timestamps for each pixel are contiguous we look at the second derivative
+    # along the averaged axis. We check all but the last pixel for this precondition. Unfortunately,
+    # this is necessary since Bluelake can end a scan mid-pixel.
     assert np.all(
-        second_derivative == 0
+        second_derivative[:-1] == 0
     ), "This function should only be used for contiguous timestamps"
+
     return (np.take(a, 0, axis=axis) + np.max(a, axis=axis)) // 2  # Lose at most half a nanosecond
 
 

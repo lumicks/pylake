@@ -93,7 +93,12 @@ def test_violated_assumption__contiguous_timestamp_mean():
     ds = _contiguous_timestamp_mean(a, axis=1)
     np.testing.assert_equal(ds, [3, 8])
 
-    a = np.array([[1, 2, 3, 4, 5], [4, 7, 8, 10, 12]], dtype=np.int64)  # Variable rate
+    # Test whether ending with a partial pixel doesn't raise
+    a = np.array([[1, 2, 3, 4, 5, 6], [4, 6, 8, 10, 12, 0]], dtype=np.int64)
+    ds = _contiguous_timestamp_mean(a, axis=1)
+    np.testing.assert_equal(ds, [3, 8])
+
+    a = np.array([[1, 2, 3, 4, 5], [4, 7, 8, 10, 12], [2, 3, 4, 5, 6]], dtype=np.int64)  # Variable
     with pytest.raises(
         AssertionError, match="This function should only be used for contiguous timestamps"
     ):
@@ -103,7 +108,7 @@ def test_violated_assumption__contiguous_timestamp_mean():
     _contiguous_timestamp_mean(a, axis=0)
     np.testing.assert_equal(ds, [3, 8])
 
-    a = np.array([[1, 2, 3, 4, 5], [4, 7, 8, 10, 12]], dtype=np.int64).T  # Variable rate
+    a = np.array([[1, 2, 3, 4, 5], [4, 7, 8, 10, 12], [2, 3, 4, 5, 6]], dtype=np.int64).T
     with pytest.raises(
         AssertionError, match="This function should only be used for contiguous timestamps"
     ):
