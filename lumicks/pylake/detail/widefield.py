@@ -199,11 +199,11 @@ class ImageDescription:
             self.json = json.loads(first_page.description)
         except json.decoder.JSONDecodeError:
             self.json = {}
+            self._cmap = {}
 
         # if metadata is missing, set default values
         if len(self.json) == 0:
             self._alignment = Alignment(align_requested, AlignmentStatus.empty, False)
-            self._cmap = {}
             return
 
         # update format if necessary

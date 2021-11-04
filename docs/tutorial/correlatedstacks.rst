@@ -24,6 +24,14 @@ from Bluelake if available. This functionality can be turned off with the option
 
     stack2 = lk.CorrelatedStack("example2.tiff", align=False)
 
+You can obtain the image stack data as a `numpy` array using the `get_image()` method::
+
+    red_data = stack.get_image(channel="red") # shape = [n_frames, y_pixels, x_pixels]
+    rgb_data = stack.get_image(channel="rgb") # shape = [n_frames, y_pixels, x_pixels, 3 channels]
+
+If the `channel` argument is not provided, the default behavior is `"rgb"` for 3-color images. For single-color
+images, this argument is ignored as there is only one channel available.
+
 Quite often, it is interesting to correlate events on the camera's to `channel` data.
 To quickly explore the correlation between images in a `CorrelatedStack` and channel data
 you can use the following function::

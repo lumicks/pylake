@@ -121,8 +121,8 @@ def test_name_change_from_data():
     fake_tiff = TiffStack(MockTiffFile(data=[np.ones((5, 4, 3))], times=[["10", "18"]]), align_requested=False)
     with pytest.deprecated_call():
         CorrelatedStack.from_data(fake_tiff)
-        
-        
+
+
 def test_stack_roi():
     first_page = np.arange(60).reshape((6,10))
     data = np.stack([first_page + (j*60) for j in range(3)], axis=2)
@@ -459,3 +459,50 @@ def test_cropping_then_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
         stack.src._tiff_file.close()
+
+
+def test_get_image():
+    # grayscale image - multiple frames
+    data = [np.full((2, 2), j) for j in range(3)]
+    times = [["10", "18"], ["20", "28"], ["30", "38"]]
+
+    fake_tiff = TiffStack(
+        MockTiffFile(data, times), align_requested=False
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+    np.testing.assert_array_equal(np.stack(data, axis=0), stack.get_image())
+
+    # grayscale image - single frame
+    fake_tiff = TiffStack(
+        MockTiffFile([data[0]], [times[0]]), align_requested=False
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+    np.testing.assert_array_equal(data[0], stack.get_image())
+
+    # RGB image - multiple frames
+    rgb_data = np.stack(
+        [np.full((2, 2), j) for j in range(3)],
+        axis=2
+    )
+    data = [rgb_data] * 3
+
+    fake_tiff = TiffStack(
+        MockTiffFile(data, times), align_requested=False
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    for j, color in enumerate(("red", "green", "blue")):
+        np.testing.assert_array_equal(stack.get_image(channel=color), j, err_msg=f"failed on {color}")
+    np.testing.assert_array_equal(np.stack(data, axis=0), stack.get_image())
+    np.testing.assert_array_equal(np.stack(data, axis=0), stack.get_image(channel="rgb"))
+
+    # RGB image - multiple frames
+    fake_tiff = TiffStack(
+        MockTiffFile([data[0]], [times[0]]), align_requested=False
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    for j, color in enumerate(("red", "green", "blue")):
+        np.testing.assert_array_equal(stack.get_image(channel=color), data[0][:,:,j], err_msg=f"failed on {color}")
+    np.testing.assert_array_equal(data[0], stack.get_image())
+    np.testing.assert_array_equal(data[0], stack.get_image("rgb"))
