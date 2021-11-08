@@ -51,7 +51,7 @@ class TiffFrame:
     def data(self):
         data = (
             self._align_image()
-            if self._description._alignment.status == AlignmentStatus.ready
+            if self._description._alignment.do_alignment
             else self._page.asarray()
         )
         return self._roi(data)
@@ -217,7 +217,7 @@ class ImageDescription:
         if not self.is_rgb:
             self._alignment = Alignment(align_requested, AlignmentStatus.not_applicable, False)
         elif "Channel 0 alignment" in self.json.keys():
-            self._alignment = Alignment(align_requested, AlignmentStatus.ready, True)
+            self._alignment = Alignment(align_requested, AlignmentStatus.ready, align_requested)
         elif any([re.search(r"^Applied (.*)channel(.*)$", key) for key in self.json.keys()]):
             self._alignment = Alignment(align_requested, AlignmentStatus.applied, True)
         else:
@@ -265,7 +265,7 @@ class ImageDescription:
     @property
     def for_export(self):
         out = copy(self.json)
-        if self._alignment.status == AlignmentStatus.ready:
+        if self._alignment.do_alignment:
             for j in range(3):
                 out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
         return json.dumps(out, indent=4)
@@ -290,6 +290,11 @@ class Alignment:
         """True if alignment is requested but cannot be performed."""
         bad_status = self.status in (AlignmentStatus.empty, AlignmentStatus.missing)
         return self.requested and bad_status
+
+    @property
+    def do_alignment(self):
+        """Should alignment be performed?"""
+        return self.status == AlignmentStatus.ready and self.requested
 
 
 @dataclass

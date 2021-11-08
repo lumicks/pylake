@@ -341,6 +341,16 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
     np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
 
 
+def test_no_alignment_requested(rgb_alignment_image_data):
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(MockTiffFile(data=[warped_image], times=[["10", "18"]],
+                                       description=json.dumps(description), bit_depth=16),
+                          align_requested=False)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+    fr = stack._get_frame(0)
+    np.testing.assert_allclose(fr.data, warped_image)
+
+
 def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(MockTiffFile(data=[warped_image]*6,
