@@ -15,6 +15,10 @@
 
 * Fixed issue in force calibration where the analytical fit would sometimes fail when the corner frequency is below the lower fitting bound. What would happen is that the analytical fit resulted in a negative term of which the square root was taken to obtain the corner frequency. Now this case is gracefully handled by setting the initial guess halfway between the lowest frequency in the power spectrum and zero.
 
+#### Bug fixes
+
+* Fixed bug where color-aligned data was returned from `TiffFrame.data` although alignment was not requested (e.g., `CorrelatedStack("filename.tiff", align=False)`). This bug was introduced in `v0.10.1`.
+
 #### Deprecations
 
 * `CorrelatedStack.raw` has been deprecated and will be removed in a future release.
