@@ -243,7 +243,7 @@ def test_repr(reference_calibration_result):
         Rd                   Distance response (um/V)                                  7.25366
         kappa                Trap stiffness (pN/nm)                                    0.171495
         Rf                   Force response (pN/V)                                     1243.97
-        gamma_0              Theoretical drag coefficient (kg/s)                       4.1552e-08
+        gamma_0              Theoretical bulk drag coefficient (kg/s)                  4.1552e-08
         fc                   Corner frequency (Hz)                                     656.872
         D                    Diffusion constant (V^2/s)                                0.00185126
         err_fc               Corner frequency Std Err (Hz)                             32.2284
