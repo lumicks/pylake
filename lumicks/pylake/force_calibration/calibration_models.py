@@ -230,6 +230,8 @@ class PassiveCalibrationModel:
         self.bead_diameter = bead_diameter
         self.drag_coeff = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
         self._filter = NoFilter() if fast_sensor else DiodeModel()
+        self._drag_fieldname = "gamma_0"
+        self._drag_description = "Theoretical bulk drag coefficient"
 
         self.axial = axial
         self.hydrodynamically_correct = hydrodynamically_correct
@@ -291,6 +293,17 @@ class PassiveCalibrationModel:
         to 1).
         """
         return self.drag_coeff * self._drag_correction_factor
+
+    def _set_drag(
+        self,
+        drag,
+        new_name="gamma_ex_lateral",
+        new_description="Bulk drag coefficient from lateral calibration",
+    ):
+        """Set the bulk drag parameter used for this calibration."""
+        self.drag_coeff = drag
+        self._drag_fieldname = new_name
+        self._drag_description = new_description
 
     def calibration_parameters(self):
         hydrodynamic_parameters = (
@@ -381,8 +394,8 @@ class PassiveCalibrationModel:
             "Rd": CalibrationParameter("Distance response", distance_response, "um/V"),
             "kappa": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
             "Rf": CalibrationParameter("Force response", force_response, "pN/V"),
-            "gamma_0": CalibrationParameter(
-                "Theoretical drag coefficient", self.drag_coeff, "kg/s"
+            self._drag_fieldname: CalibrationParameter(
+                self._drag_description, self.drag_coeff, "kg/s"
             ),
             **self._format_passive_result(
                 fc,
@@ -626,8 +639,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             "Rd": CalibrationParameter("Distance response", distance_response * 1e6, "um/V"),
             "kappa": CalibrationParameter("Trap stiffness", kappa * 1e3, "pN/nm"),
             "Rf": CalibrationParameter("Force response", force_response * 1e12, "pN/V"),
-            "gamma_0": CalibrationParameter(
-                "Theoretical bulk drag coefficient", self.drag_coeff, "kg/s"
+            self._drag_fieldname: CalibrationParameter(
+                self._drag_description, self.drag_coeff, "kg/s"
             ),
             "gamma_ex": CalibrationParameter(
                 "Measured bulk drag coefficient",

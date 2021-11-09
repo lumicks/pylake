@@ -92,10 +92,14 @@ def test_axial_calibration(reference_models, hydro):
     )
 
     # Transfer the result to axial calibration
-    axial_model.drag_coeff = lateral_fit["gamma_ex"].value
+    axial_model._set_drag(lateral_fit["gamma_ex"].value)
 
     volts_axial, stage = height_simulation(brenner_axial)
     ps_axial = calculate_power_spectrum(volts_axial, sample_rate=78125)
     axial_fit = fit_power_spectrum(ps_axial, axial_model)
-    np.testing.assert_allclose(axial_fit["gamma_0"].value, gamma_ref, rtol=5e-2)
+    np.testing.assert_allclose(axial_fit["gamma_ex_lateral"].value, gamma_ref, rtol=5e-2)
     np.testing.assert_allclose(axial_fit["kappa"].value, sim_params["stiffness"], rtol=5e-2)
+    assert (
+        axial_fit["gamma_ex_lateral"].description
+        == "Bulk drag coefficient from lateral calibration"
+    )
