@@ -539,6 +539,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
         self.num_windows = num_windows
+        self._measured_drag_fieldname = "gamma_ex"
 
         # Estimate driving input and response
         amplitude_um, self.driving_frequency = estimate_driving_input_parameters(
@@ -642,7 +643,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             self._drag_fieldname: CalibrationParameter(
                 self._drag_description, self.drag_coeff, "kg/s"
             ),
-            "gamma_ex": CalibrationParameter(
+            self._measured_drag_fieldname: CalibrationParameter(
                 "Measured bulk drag coefficient",
                 measured_drag_coeff / self._drag_correction_factor,
                 "kg/s",

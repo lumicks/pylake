@@ -80,7 +80,9 @@ def test_axial_calibration(reference_models, hydro):
     )
     ps_lateral = calculate_power_spectrum(volts_lateral, sample_rate=78125)
     lateral_fit = fit_power_spectrum(ps_lateral, lateral_model)
-    np.testing.assert_allclose(lateral_fit["gamma_ex"].value, gamma_ref, rtol=5e-2)
+    np.testing.assert_allclose(
+        lateral_fit[lateral_model._measured_drag_fieldname].value, gamma_ref, rtol=5e-2
+    )
 
     # Axial calibration
     axial_model = PassiveCalibrationModel(
@@ -92,7 +94,7 @@ def test_axial_calibration(reference_models, hydro):
     )
 
     # Transfer the result to axial calibration
-    axial_model._set_drag(lateral_fit["gamma_ex"].value)
+    axial_model._set_drag(lateral_fit[lateral_model._measured_drag_fieldname].value)
 
     volts_axial, stage = height_simulation(brenner_axial)
     ps_axial = calculate_power_spectrum(volts_axial, sample_rate=78125)
