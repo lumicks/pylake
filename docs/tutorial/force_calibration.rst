@@ -99,6 +99,8 @@ You can optionally also provide a viscosity (in Pa/s) and temperature (in degree
     bead_diameter = f.force1x.calibration[1]["Bead diameter (um)"]
     force_model = lk.PassiveCalibrationModel(bead_diameter, viscosity=0.001002, temperature=20)
 
+To find the viscosity of water at a particular temperature, you can use :func:`~lumicks.pylake.viscosity_of_water` :cite:`huber2009new`.
+When omitted, this function will automatically be used to look up the viscosity of water for that particular temperature.
 To fit this model to the data, you can now invoke::
 
     calibration = lk.fit_power_spectrum(power_spectrum, force_model)

@@ -22,6 +22,34 @@ from dataclasses import dataclass
 from typing import Callable
 
 
+def viscosity_of_water(temperature):
+    """Computes the viscosity of water in [Pa*s] at a particular temperature.
+
+    These equations come from section 3.7 from [7].
+
+    [7] Huber, M. L., Perkins, R. A., Laesecke, A., Friend, D. G., Sengers, J. V.,
+    Assael, M. J., & Miyagawa, K. (2009). New international formulation for the viscosity of H2O.
+    Journal of Physical and Chemical Reference Data, 38(2), 101-125.
+
+    Parameters
+    ----------
+    temperature : array_like
+        Temperature [Celsius]. Should be between -20°C and 110°C
+
+    Returns
+    -------
+    array_like
+        Viscosity of water [Pa*s]
+    """
+    if not np.all(np.logical_and(temperature >= -20, temperature < 110)):
+        raise ValueError("Function for viscosity of water is only valid for -20°C <= T < 110°C")
+
+    temp_tilde = np.tile((temperature + 273.15) / 300, (4, 1)).T
+    ai = np.array([280.68, 511.45, 61.131, 0.45903])
+    bi = np.array([-1.9, -7.7, -19.6, -40.0])
+    return np.sum(ai * temp_tilde ** bi, axis=1) * 1e-6
+
+
 @dataclass
 class Param:
     name: str
@@ -153,6 +181,8 @@ class PassiveCalibrationModel:
         Bead diameter [um].
     viscosity : float, optional
         Liquid viscosity [Pa*s].
+        When omitted, the temperature will be used to look up the viscosity of water at that
+        particular temperature.
     temperature : float, optional
         Liquid temperature [Celsius].
     hydrodynamically_correct : bool, optional
@@ -177,7 +207,7 @@ class PassiveCalibrationModel:
     def __init__(
         self,
         bead_diameter,
-        viscosity=1.002e-3,
+        viscosity=None,
         temperature=20,
         hydrodynamically_correct=False,
         distance_to_surface=None,
@@ -195,7 +225,7 @@ class PassiveCalibrationModel:
         if distance_to_surface and distance_to_surface < bead_diameter / 2.0:
             raise ValueError("Distance from bead center to surface is smaller than the bead radius")
 
-        self.viscosity = viscosity
+        self.viscosity = viscosity if viscosity is not None else viscosity_of_water(temperature)
         self.temperature = temperature
         self.bead_diameter = bead_diameter
         self.drag_coeff = sphere_friction_coefficient(self.viscosity, self.bead_diameter * 1e-6)
@@ -402,6 +432,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Estimated driving amplitude [m].
     viscosity : float, optional
         Liquid viscosity [Pa*s].
+        When omitted, the temperature will be used to look up the viscosity of water at that
+        particular temperature.
     temperature : float, optional
         Liquid temperature [Celsius].
     num_windows : int, optional
@@ -429,7 +461,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         sample_rate,
         bead_diameter,
         driving_frequency_guess,
-        viscosity=1.002e-3,
+        viscosity=None,
         temperature=20,
         num_windows=5,
         hydrodynamically_correct=False,
@@ -458,6 +490,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             Guess of the driving frequency.
         viscosity : float, optional
             Liquid viscosity [Pa*s].
+            When omitted, the temperature will be used to look up the viscosity of water at that
+            particular temperature.
         temperature : float, optional
             Liquid temperature [Celsius].
         num_windows : int, optional
