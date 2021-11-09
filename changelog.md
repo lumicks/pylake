@@ -8,10 +8,15 @@
 * Added support for axial calibration. See See [axial calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#axial-calibration).
 * Added support for using near-surface corrections for lateral and axial calibration, please read: See [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#faxen-s-law).
 * Added `Kymo.calibrate_to_kbp()` for calibrating the position axis of a kymograph from microns to kilobase-pairs. **Note: this calibration is applied to the full kymograph, so one should crop to the bead edges with `Kymo.crop_by_distance()` before calling this method.**
+* Added function to compute viscosity of water at specific temperature. See: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html).
 
 #### Improvements
 
 * Fixed issue in force calibration where the analytical fit would sometimes fail when the corner frequency is below the lower fitting bound. What would happen is that the analytical fit resulted in a negative term of which the square root was taken to obtain the corner frequency. Now this case is gracefully handled by setting the initial guess halfway between the lowest frequency in the power spectrum and zero.
+
+#### Breaking changes
+
+* Changed default for `viscosity` in force calibration models. When omitted, `pylake` will use the viscosity of water calculated from the temperature. Note that this results in the default (when no viscosity or temperature is set) changing from `1.002e-3`  to `1.00157e-3`. See: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html).
 
 ## v0.10.1 | 2021-10-27
 

@@ -20,7 +20,11 @@ from .kymotracker.kymotracker import *
 from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from .fdensemble import FdEnsemble
 from .population.mixture import GaussianMixtureModel
-from .force_calibration.calibration_models import PassiveCalibrationModel, ActiveCalibrationModel
+from .force_calibration.calibration_models import (
+    PassiveCalibrationModel,
+    ActiveCalibrationModel,
+    viscosity_of_water,
+)
 from .force_calibration.power_spectrum_calibration import (
     calculate_power_spectrum,
     fit_power_spectrum,

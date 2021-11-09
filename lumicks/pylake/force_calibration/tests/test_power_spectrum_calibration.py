@@ -1,9 +1,10 @@
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
-from lumicks.pylake.force_calibration.calibration_models import PassiveCalibrationModel, sphere_friction_coefficient
+from lumicks.pylake.force_calibration.calibration_models import (
+    PassiveCalibrationModel, sphere_friction_coefficient, viscosity_of_water
+)
 from matplotlib.testing.decorators import cleanup
 from textwrap import dedent
-from copy import deepcopy
 import numpy as np
 import scipy as sp
 import os
@@ -13,7 +14,7 @@ import pytest
 def test_model_parameters():
     params = PassiveCalibrationModel(10, temperature=30)
     assert params.bead_diameter == 10
-    assert params.viscosity == 1.002e-3
+    assert params.viscosity == viscosity_of_water(30)
     assert params.temperature == 30
 
     with pytest.raises(TypeError):
@@ -309,3 +310,31 @@ def test_faxen_correction():
     np.testing.assert_allclose(fit.results["Rf"].value, 52.35949300703634)
     # Not affected since this is gamma bulk
     np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+
+
+@pytest.mark.parametrize("temperatures", [np.arange(-30, -10), np.arange(100, 130), -21, 110])
+def test_viscosity_calculation_invalid_range(temperatures):
+    with pytest.raises(
+        ValueError, match="Function for viscosity of water is only valid for -20°C <= T < 110°C"
+    ):
+        viscosity_of_water(temperatures)
+
+
+def test_viscosity_calculation():
+    temperatures = np.arange(20, 100, 10)
+
+    np.testing.assert_allclose(
+        viscosity_of_water(temperatures),
+        np.array(
+            [
+                0.0010015672646030015,
+                0.0007972062022678064,
+                0.0006527334742093661,
+                0.0005465265005450516,
+                0.00046603929414699226,
+                0.000403545426497709,
+                0.000354046106187348,
+                0.0003141732579601075,
+            ]
+        ),
+    )

@@ -31,6 +31,7 @@ Force calibration
     ActiveCalibrationModel
     force_calibration.power_spectrum.PowerSpectrum
     force_calibration.power_spectrum_calibration.CalibrationResults
+    viscosity_of_water
 
 
 FD Fitting
