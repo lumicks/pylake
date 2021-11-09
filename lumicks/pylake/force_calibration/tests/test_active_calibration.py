@@ -198,4 +198,6 @@ def test_faxen_correction_active():
     np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
     # The drag is now much different, since we're not using Faxen's law to back-correct the drag
     # to its actual bulk value.
-    np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.571688034506783e-08)
+    np.testing.assert_allclose(
+        fit.results[model._measured_drag_fieldname].value, 1.571688034506783e-08
+    )
