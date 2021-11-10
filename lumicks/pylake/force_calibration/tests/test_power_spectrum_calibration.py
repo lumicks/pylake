@@ -323,18 +323,22 @@ def test_viscosity_calculation_invalid_range(temperatures):
 def test_viscosity_calculation():
     temperatures = np.arange(20, 100, 10)
 
-    np.testing.assert_allclose(
-        viscosity_of_water(temperatures),
-        np.array(
-            [
-                0.0010015672646030015,
-                0.0007972062022678064,
-                0.0006527334742093661,
-                0.0005465265005450516,
-                0.00046603929414699226,
-                0.000403545426497709,
-                0.000354046106187348,
-                0.0003141732579601075,
-            ]
-        ),
+    ref = np.array(
+        [
+            0.0010015672646030015,
+            0.0007972062022678064,
+            0.0006527334742093661,
+            0.0005465265005450516,
+            0.00046603929414699226,
+            0.000403545426497709,
+            0.000354046106187348,
+            0.0003141732579601075,
+        ]
     )
+
+    np.testing.assert_allclose(viscosity_of_water(temperatures), ref)
+    np.testing.assert_allclose(viscosity_of_water(list(temperatures)), ref)
+    assert viscosity_of_water(temperatures).shape == ref.shape
+
+    np.testing.assert_allclose(viscosity_of_water(20), 0.0010015672646030015)
+    assert viscosity_of_water(20).shape == ()
