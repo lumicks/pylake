@@ -28,5 +28,5 @@ jobs:
         python pylake_test.py
     - name: Black
       run: |
-        pip install black==20.8b1
+        pip install black==21.10b0
         black --check --diff --color .
