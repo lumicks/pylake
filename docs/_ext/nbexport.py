@@ -204,7 +204,7 @@ class NBTranslator(nodes.NodeVisitor):
 
 
 def export_notebooks(app, document, docname):
-    """"Export the recently resolved document to a Jupyter notebook"""
+    """Export the recently resolved document to a Jupyter notebook"""
     if not hasattr(app.env, "nbfiles"):
         return
     if docname not in app.env.nbfiles:

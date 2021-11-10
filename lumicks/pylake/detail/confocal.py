@@ -193,7 +193,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
     @property
     def center_point_um(self):
-        """Returns a dictionary of the x/y/z center coordinates of the scan (w.r.t. brightfield field of view) """
+        """Returns a dictionary of the x/y/z center coordinates of the scan (w.r.t. brightfield field of view)"""
         return self._json["scan volume"]["center point (um)"]
 
 
@@ -210,7 +210,7 @@ class ConfocalImage(BaseScan):
         return np.argsort([x["axis"] for x in self._json["scan volume"]["scan axes"]])
 
     def _to_spatial(self, data):
-        """Implements any necessary post-processing actions after image reconstruction from infowave """
+        """Implements any necessary post-processing actions after image reconstruction from infowave"""
         raise NotImplementedError
 
     @cachetools.cachedmethod(lambda self: self._cache)
