@@ -41,13 +41,14 @@ def viscosity_of_water(temperature):
     array_like
         Viscosity of water [Pa*s]
     """
+    temperature = np.asarray(temperature)
     if not np.all(np.logical_and(temperature >= -20, temperature < 110)):
         raise ValueError("Function for viscosity of water is only valid for -20°C <= T < 110°C")
 
     temp_tilde = np.tile((temperature + 273.15) / 300, (4, 1)).T
     ai = np.array([280.68, 511.45, 61.131, 0.45903])
     bi = np.array([-1.9, -7.7, -19.6, -40.0])
-    return np.sum(ai * temp_tilde ** bi, axis=1) * 1e-6
+    return np.sum(ai * temp_tilde ** bi, axis=1).squeeze() * 1e-6
 
 
 @dataclass
