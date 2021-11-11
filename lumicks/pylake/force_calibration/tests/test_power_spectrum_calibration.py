@@ -226,6 +226,22 @@ def test_attributes_ps_calibration(reference_calibration_result):
                                results={"test2": 5})
 
 
+def test_calibration_results_params():
+    result = psc.CalibrationResults(
+        model=None,
+        ps_model=None,
+        ps_data=None,
+        params={"test": psc.CalibrationParameter("par", "val", 5)},
+        results={
+            "Rf": psc.CalibrationParameter("Rf", "val", 5),
+            "kappa": psc.CalibrationParameter("kappa", "val", 5),
+        },
+    )
+    assert "test" in result
+    assert "Rf" in result
+    assert "nope" not in result
+
+
 def test_repr(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     assert str(ps_calibration) == dedent("""\
