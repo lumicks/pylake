@@ -76,6 +76,9 @@ class CalibrationResults:
             if key not in results:
                 raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
 
+    def __contains__(self, key):
+        return key in self.params or key in self.results
+
     def __getitem__(self, item):
         return self.params[item] if item in self.params else self.results[item]
 
