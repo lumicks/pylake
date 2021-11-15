@@ -456,6 +456,7 @@ class KymoWidgetGreedy(KymoWidget):
         min_length=3,
         use_widgets=True,
         output_filename="kymotracks.txt",
+        slider_ranges={},
         **kwargs,
     ):
         """Create a widget for performing kymotracking.
@@ -499,6 +500,10 @@ class KymoWidgetGreedy(KymoWidget):
             Add interactive widgets for interacting with algorithm parameters.
         output_filename : str, optional
             Filename to save to and load from.
+        slider_ranges : dict of list, optional
+            Dictionary with custom ranges for selected parameter sliders. Ranges should be in the
+            following format: (lower bound, upper bound).
+            Valid options are: "window", "pixel_threshold", "line_width", "sigma" and "vel".
         """
         algorithm = track_greedy
         calibrated_kymo_channel = CalibratedKymographChannel.from_kymo(kymo, channel)
@@ -515,6 +520,36 @@ class KymoWidgetGreedy(KymoWidget):
             "diffusion": diffusion,
             "sigma_cutoff": sigma_cutoff,
         }
+
+        position_scale = calibrated_kymo_channel._pixel_size
+        vel_calibration = position_scale / calibrated_kymo_channel.line_time_seconds
+
+        self._slider_ranges = {
+            "window": (1, 15),
+            "pixel_threshold": (1, np.max(calibrated_kymo_channel.data)),
+            "line_width": (0.0, 15.0 * position_scale),
+            "sigma": (1.0 * position_scale, 5.0 * position_scale),
+            "vel": (-5.0 * vel_calibration, 5.0 * vel_calibration),
+        }
+        for key, slider_range in slider_ranges.items():
+            if key not in self._slider_ranges:
+                raise KeyError(
+                    f"Slider range provided for parameter that does not exist ({key}) "
+                    f"Valid parameters are: {list(self._slider_ranges.keys())}"
+                )
+
+            if len(slider_range) != 2:
+                raise ValueError(
+                    f"Slider range for parameter {key} should be given as "
+                    f"(lower bound, upper bound)."
+                )
+
+            if slider_range[1] < slider_range[0]:
+                raise ValueError(
+                    f"Lower bound should be lower than upper bound for parameter {key}"
+                )
+
+            self._slider_ranges[key] = slider_range
 
         super().__init__(
             kymo,
@@ -535,18 +570,14 @@ class KymoWidgetGreedy(KymoWidget):
             "Window",
             "window",
             "How many frames can a line disappear.",
-            minimum=1,
-            maximum=15,
+            *self._slider_ranges["window"],
             slider_type=ipywidgets.IntSlider,
         )
-        calibrated_kymo_channel = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
-        position_scale = calibrated_kymo_channel._pixel_size
         thresh_slider = self._add_slider(
             "Threshold",
             "pixel_threshold",
             "Set the pixel threshold.",
-            minimum=1,
-            maximum=np.max(calibrated_kymo_channel.data),
+            *self._slider_ranges["pixel_threshold"],
             step_size=1,
             slider_type=ipywidgets.IntSlider,
         )
@@ -554,28 +585,24 @@ class KymoWidgetGreedy(KymoWidget):
             "Line width",
             "line_width",
             "Estimated spot width.",
-            minimum=0.0,
-            maximum=15.0 * position_scale,
-            step_size=0.001 * position_scale,
+            *self._slider_ranges["line_width"],
+            step_size=1e-3 * self._slider_ranges["line_width"][1],
             slider_type=ipywidgets.FloatSlider,
         )
         sigma_slider = self._add_slider(
             "Sigma",
             "sigma",
             "How much does the line fluctuate?",
-            minimum=1.0 * position_scale,
-            maximum=5.0 * position_scale,
-            step_size=0.001 * position_scale,
+            *self._slider_ranges["sigma"],
+            step_size=1e-3 * (self._slider_ranges["sigma"][1] - self._slider_ranges["sigma"][0]),
             slider_type=ipywidgets.FloatSlider,
         )
-        vel_calibration = position_scale / calibrated_kymo_channel.line_time_seconds
         vel_slider = self._add_slider(
             "Velocity",
             "vel",
             "How fast does the particle move?",
-            minimum=-5.0 * vel_calibration,
-            maximum=5.0 * vel_calibration,
-            step_size=0.001 * vel_calibration,
+            *self._slider_ranges["vel"],
+            step_size=1e-3 * (self._slider_ranges["vel"][1] - self._slider_ranges["vel"][0]),
             slider_type=ipywidgets.FloatSlider,
         )
         return ipywidgets.VBox(
