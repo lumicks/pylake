@@ -179,6 +179,12 @@ You can optionally also pass algorithm parameters when opening the widget::
 
     KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14)
 
+You can also change the range of each of the algorithm parameter sliders.
+To do this, simply pass a dictionary where the key indicates the algorithm parameter and the value contains its desired range in the form `(minimum bound, maximum bound)`.
+For example::
+
+    KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, slider_ranges={"window": (0, 8)})
+
 Traced lines are accessible through the `.lines` property::
 
     >>> lines = kymowidget.lines

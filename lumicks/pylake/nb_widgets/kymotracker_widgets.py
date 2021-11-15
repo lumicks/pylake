@@ -20,6 +20,7 @@ class KymoWidget:
         output_filename,
         algorithm,
         algorithm_parameters,
+        min_length_range,
         **kwargs,
     ):
         """Create a widget for performing kymotracking.
@@ -43,6 +44,8 @@ class KymoWidget:
             Kymotracking algorithm used
         algorithm_parameters : dict
             Parameters for the kymotracking algorithm.
+        minimum_length_range : tuple of int
+            Range of the minimum length parameter. Should be of the form (lower bound, upper bound).
         **kwargs
             Extra arguments forwarded to imshow.
         """
@@ -61,6 +64,7 @@ class KymoWidget:
         self.lines = KymoLineGroup([])
         self.plotted_lines = []
         self.min_length = min_length
+        self._min_length_range = min_length_range
         self._kymo = kymo
         self._channel = channel
         self._label = None
@@ -323,8 +327,8 @@ class KymoWidget:
                 description="Min length",
                 value=self.min_length,
                 disabled=False,
-                min=1,
-                max=10,
+                min=self._min_length_range[0],
+                max=self._min_length_range[1],
                 tooltip="Minimum number of frames a spot has to be detected in to be considered",
             ),
         )
@@ -503,7 +507,8 @@ class KymoWidgetGreedy(KymoWidget):
         slider_ranges : dict of list, optional
             Dictionary with custom ranges for selected parameter sliders. Ranges should be in the
             following format: (lower bound, upper bound).
-            Valid options are: "window", "pixel_threshold", "line_width", "sigma" and "vel".
+            Valid options are: "window", "pixel_threshold", "line_width", "sigma", "min_length" and
+            "vel".
         """
         algorithm = track_greedy
         calibrated_kymo_channel = CalibratedKymographChannel.from_kymo(kymo, channel)
@@ -530,6 +535,7 @@ class KymoWidgetGreedy(KymoWidget):
             "line_width": (0.0, 15.0 * position_scale),
             "sigma": (1.0 * position_scale, 5.0 * position_scale),
             "vel": (-5.0 * vel_calibration, 5.0 * vel_calibration),
+            "min_length": (1, 10),
         }
         for key, slider_range in slider_ranges.items():
             if key not in self._slider_ranges:
@@ -560,6 +566,7 @@ class KymoWidgetGreedy(KymoWidget):
             output_filename,
             algorithm,
             algorithm_parameters,
+            min_length_range=self._slider_ranges["min_length"],
             **kwargs,
         )
 
