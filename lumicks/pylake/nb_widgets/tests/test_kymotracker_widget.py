@@ -3,6 +3,7 @@ from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 from matplotlib.testing.decorators import cleanup
 import numpy as np
+import re
 import pytest
 
 
@@ -194,3 +195,33 @@ def test_widget_with_calibration(kymograph):
                                kymo_bp.pixelsize[0] * 4)
     np.testing.assert_allclose(widget.algorithm_parameters["line_width"], 2.0)
     assert widget._axes.get_ylabel() == "position (kbp)"
+
+
+@cleanup
+def test_invalid_range_overrides(kymograph):
+    with pytest.raises(KeyError, match="Slider range provided for parameter that does not exist"):
+        KymoWidgetGreedy(kymograph, "red", 1, slider_ranges={"wrong_par": (1, 5)})
+    with pytest.raises(
+        ValueError,
+        match="Lower bound should be lower than upper bound for " "parameter pixel_threshold",
+    ):
+        KymoWidgetGreedy(kymograph, "red", 1, slider_ranges={"pixel_threshold": (5, 1)})
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Slider range for parameter pixel_threshold should be given as "
+                        "(lower bound, upper bound)."),
+    ):
+        KymoWidgetGreedy(kymograph, "red", 1, slider_ranges={"pixel_threshold": (1, 5, 6)})
+
+
+@cleanup
+def test_valid_override(kymograph):
+    """Tests whether the correct ranges make it into the widget data. Unfortunately we cannot test
+    the full widget as we cannot spin up the UI."""
+    kw = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
+    assert kw._slider_ranges["pixel_threshold"] == (1, 10)
+
+    kw = KymoWidgetGreedy(
+        kymograph, "red", 1, use_widgets=False, slider_ranges={"pixel_threshold": (5, 10)}
+    )
+    assert kw._slider_ranges["pixel_threshold"] == (5, 10)
