@@ -225,3 +225,8 @@ def test_valid_override(kymograph):
         kymograph, "red", 1, use_widgets=False, slider_ranges={"pixel_threshold": (5, 10)}
     )
     assert kw._slider_ranges["pixel_threshold"] == (5, 10)
+
+    kw = KymoWidgetGreedy(
+        kymograph, "red", 1, use_widgets=False, slider_ranges={"min_length": (5, 10)}
+    )
+    assert kw._min_length_range == (5, 10)
