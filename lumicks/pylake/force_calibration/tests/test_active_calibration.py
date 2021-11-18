@@ -11,17 +11,15 @@ from .data.simulate_calibration_data import generate_active_calibration_test_dat
 
 
 @pytest.mark.parametrize(
-    "sample_rate, bead_diameter, stiffness, viscosity, temperature, pos_response_um_volt, "
-    "driving_sinusoid, diode, driving_frequency_guess, power_density",
+    "stiffness, viscosity, temperature, pos_response_um_volt, driving_sinusoid, diode, driving_"
+    "frequency_guess, power_density, response_power",
     [
-        [78125, 1.03, 0.1, 1.002e-3, 20, 0.618, (500, 31.95633), (0.4, 15000), 32, 1.958068e-5],
-        [78125, 1.03, 0.2, 1.012e-3, 20, 1.618, (500, 31.95633), (0.4, 14000), 32, 7.28664e-07],
-        [78125, 1.03, 0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29, 1.098337e-07],
+        [0.1, 1.002e-3, 20, 0.618, (500, 31.95633), (0.4, 15000), 32, 1.958068e-5, 0.000124879648],
+        [0.2, 1.012e-3, 20, 1.618, (500, 31.95633), (0.4, 14000), 32, 7.28664e-07, 4.64730000e-06],
+        [0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29, 1.098337e-07, 6.63921666e-07],
     ],
 )
 def test_integration_active_calibration(
-    sample_rate,
-    bead_diameter,
     stiffness,
     viscosity,
     temperature,
@@ -30,9 +28,10 @@ def test_integration_active_calibration(
     diode,
     driving_frequency_guess,
     power_density,
+    response_power,
 ):
     """Functional end to end test for active calibration"""
-
+    sample_rate, bead_diameter = 78125, 1.03
     np.random.seed(0)
     force_voltage_data, driving_data = generate_active_calibration_test_data(
         duration=20,
@@ -90,6 +89,10 @@ def test_integration_active_calibration(
     np.testing.assert_allclose(fit["Sample rate"].value, sample_rate)
     np.testing.assert_allclose(fit["Viscosity"].value, viscosity)
     np.testing.assert_allclose(fit["num_windows"].value, 5)
+
+    np.testing.assert_allclose(fit["driving_amplitude"].value, driving_sinusoid[0] * 1e-3, rtol=1e-5)
+    np.testing.assert_allclose(fit["driving_frequency"].value, driving_sinusoid[1], rtol=1e-5)
+    np.testing.assert_allclose(fit["driving_power"].value, response_power, rtol=1e-6)
 
 
 def test_bias_correction():
