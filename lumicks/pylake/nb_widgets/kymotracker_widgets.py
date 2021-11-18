@@ -430,7 +430,6 @@ class KymoWidget:
         self._area_selector = RectangleSelector(
             self._axes,
             self.track_kymo,
-            drawtype="box",
             useblit=True,
             button=[3],
             minspanx=5,
