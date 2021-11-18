@@ -649,6 +649,22 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
                 measured_drag_coeff / self._drag_correction_factor,
                 "kg/s",
             ),
+            "driving_amplitude": CalibrationParameter(
+                "Driving amplitude",
+                self.driving_amplitude * 1e6,
+                "um",
+            ),
+            "driving_frequency": CalibrationParameter(
+                "Driving frequency",
+                self.driving_frequency,
+                "Hz",
+            ),
+            "driving_power": CalibrationParameter(
+                "Experimentally determined power in the spike observed on the positional power "
+                "spectrum",
+                power_exp,
+                "V^2",
+            ),
             **self._format_passive_result(
                 fc,
                 diffusion_constant_volts,
