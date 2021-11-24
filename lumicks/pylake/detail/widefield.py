@@ -6,7 +6,7 @@ import tifffile
 import warnings
 import enum
 from copy import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class TiffFrame:
@@ -32,19 +32,9 @@ class TiffFrame:
 
     def _align_image(self):
         """reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
-        align_mats = [self._description.alignment_matrix(color) for color in ("red", "blue")]
-
         img = self._page.asarray()
-        rows, cols, _ = img.shape
-        for mat, channel in zip(align_mats, (0, 2)):
-            img[:, :, channel] = cv2.warpAffine(
-                img[:, :, channel],
-                mat,
-                (cols, rows),
-                flags=(cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP),
-                borderMode=cv2.BORDER_CONSTANT,
-                borderValue=0,
-            )
+        for channel, mat in self._description._alignment_matrices.items():
+            img[:, :, channel] = mat.warp_image(img[:, :, channel])
         return img
 
     @property
@@ -186,8 +176,6 @@ class ImageDescription:
         details of color channel alignment.
     json : dict
         dictionary of parsed json string held in frame ImageDescription tag.
-    _cmap : dict
-        dictionary of color : channel index pairs
     """
 
     def __init__(self, tiff_file, align_requested):
@@ -199,19 +187,27 @@ class ImageDescription:
             self.json = json.loads(first_page.description)
         except json.decoder.JSONDecodeError:
             self.json = {}
-            self._cmap = {}
 
         # if metadata is missing, set default values
         if len(self.json) == 0:
             self._alignment = Alignment(align_requested, AlignmentStatus.empty, False)
             return
 
-        # update format if necessary
-        self._cmap = {"red": 0, "green": 1, "blue": 2}
+        # update json fields if necessary
         if "Alignment red channel" in self.json:
-            for color, j in self._cmap.items():
+            for j, color in enumerate(("red", "green", "blue")):
                 self.json[f"Channel {j} alignment"] = self.json.pop(f"Alignment {color} channel")
                 self.json[f"Channel {j} detection wavelength (nm)"] = "N/A"
+
+        if "Channel 0 alignment" in self.json:
+            self._alignment_matrices = {
+                channel: TransformMatrix.from_alignment(
+                    self._raw_alignment_matrix(channel), *self.offsets
+                ).invert()
+                for channel in range(3)
+            }
+        else:
+            self._alignment_matrices = {}
 
         # check alignment status
         if not self.is_rgb:
@@ -235,32 +231,8 @@ class ImageDescription:
     def offsets(self):
         return self.alignment_roi[:2] - self.roi[:2]
 
-    def _raw_alignment_matrix(self, color):
-        return np.array(self.json[f"Channel {self._cmap[color]} alignment"]).reshape((2, 3))
-
-    def alignment_matrix(self, color):
-        def correct_alignment_offset(alignment, x_offset, y_offset):
-            # translate the origin of the image so that it matches that of the original transform
-            translation = np.eye(3)
-            translation[0, -1] = -x_offset
-            translation[1, -1] = -y_offset
-            # apply the original transform to the translated image.
-            # it only needs to be resized from a 2x3 to a 3x3 matrix
-            original = np.vstack((alignment, [0, 0, 1]))
-            # translate the image back to the original origin.
-            # takes into account both the offset and the scaling performed by the first step
-            back_translation = np.eye(3)
-            back_translation[0, -1] = original[0, 0] * x_offset
-            back_translation[1, -1] = original[1, 1] * y_offset
-            # concatenate the transforms by multiplying their matrices and ignore the unused 3rd row
-            return np.dot(back_translation, np.dot(original, translation))[:2, :]
-
-        align_mat = self._raw_alignment_matrix(color)
-        x_offset, y_offset = self.offsets
-        if x_offset == 0 and y_offset == 0:
-            return align_mat
-        else:
-            return correct_alignment_offset(align_mat, x_offset, y_offset)
+    def _raw_alignment_matrix(self, index):
+        return np.array(self.json[f"Channel {index} alignment"]).reshape((2, 3))
 
     @property
     def for_export(self):
@@ -327,3 +299,102 @@ class Roi:
     @property
     def shape(self):
         return self.y_max - self.y_min, self.x_max - self.x_min
+
+
+class TransformMatrix:
+    def __init__(self, matrix=None):
+        """Wrapper around affine transformation matrix with convenience functions."""
+        self.matrix = np.eye(3) if matrix is None else np.vstack((matrix, [0, 0, 1]))
+
+    def __mul__(self, mat):
+        """Perform matrix multiplication such that `self * mat == np.matmul(self, mat)`."""
+        assert isinstance(mat, TransformMatrix), "Operands must be of type `TransformMatrix`."
+        return TransformMatrix(np.matmul(self.matrix, mat.matrix)[:2])
+
+    def invert(self):
+        return TransformMatrix(np.linalg.inv(self.matrix)[:2])
+
+    @classmethod
+    def from_alignment(cls, alignment, x_offset=0, y_offset=0):
+        """Recalculate matrix with offset. Same implementation as Bluelake.
+
+        Parameters
+        ----------
+        alignment: np.ndarray
+            alignment matrix read from Bluelake metadata
+        x_offset: float
+            alignment ROI x offset
+        y_offset: float
+            alignment ROI y offset
+        """
+        if x_offset == 0 and y_offset == 0:
+            return cls(alignment)
+
+        # translate the origin of the image so that it matches that of the original transform
+        translation = np.eye(3)
+        translation[0, -1] = -x_offset
+        translation[1, -1] = -y_offset
+        # apply the original transform to the translated image.
+        # it only needs to be resized from a 2x3 to a 3x3 matrix
+        original = np.vstack((alignment, [0, 0, 1]))
+        # translate the image back to the original origin.
+        # takes into account both the offset and the scaling performed by the first step
+        back_translation = np.eye(3)
+        back_translation[0, -1] = original[0, 0] * x_offset
+        back_translation[1, -1] = original[1, 1] * y_offset
+        # concatenate the transforms by multiplying their matrices and ignore the unused 3rd row
+        return cls(np.dot(back_translation, np.dot(original, translation))[:2, :])
+
+    @classmethod
+    def rotation(cls, theta, center):
+        """Construct matrix for rotation by angle `theta` about a point `center`.
+
+        Parameters
+        ----------
+        theta: float
+            angle of rotation
+        center: np.ndarray
+            (x, y) point, center of rotation
+        """
+        return cls(cv2.getRotationMatrix2D(center, theta, scale=1.0))
+
+    def warp_image(self, data):
+        """Apply affine transformation to image data.
+
+        Parameters
+        ----------
+        data: np.ndarray
+            image data
+        """
+
+        if np.all(np.equal(self.matrix, np.eye(3))):
+            return data
+
+        data = np.atleast_3d(data)
+        rows, cols, channels = data.shape
+        image = [
+            cv2.warpAffine(
+                data[:, :, channel],
+                self.matrix[:2],
+                (cols, rows),
+                flags=cv2.INTER_LINEAR,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=0,
+            )
+            for channel in range(channels)
+        ]
+        return np.stack(image, axis=2).squeeze()
+
+    def warp_coordinates(self, coordinates):
+        """Apply affine transformation to coordinate points.
+
+        Parameters
+        ----------
+        coordinates: list
+            list of (x, y) coordinates
+        """
+        coordinates = np.vstack(coordinates).T
+        coordinates = np.vstack((coordinates, np.ones(coordinates.shape[1])))
+
+        warped = np.matmul(self.matrix, coordinates)[:2].T
+        return [(x, y) for x, y in warped]
