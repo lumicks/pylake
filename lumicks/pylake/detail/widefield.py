@@ -19,12 +19,17 @@ class TiffFrame:
         Tiff page recorded from a camera in Bluelake.
     description : ImageDescription
         Wrapper around TIFF 'ImageDescription' metadata tag.
+    roi : Roi
+        Region of interest corner coordinates.
+    tether : Tether
+        Tether coordinates.
     """
 
-    def __init__(self, page, description, roi):
+    def __init__(self, page, description, roi, tether):
         self._page = page
         self._description = description
         self._roi = roi
+        self._tether = tether
 
     @property
     def _is_aligned(self):
@@ -34,6 +39,7 @@ class TiffFrame:
         """reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
         img = self._page.asarray()
         for channel, mat in self._description._alignment_matrices.items():
+            mat = self._tether.rot_matrix * mat
             img[:, :, channel] = mat.warp_image(img[:, :, channel])
         return img
 
@@ -42,7 +48,7 @@ class TiffFrame:
         data = (
             self._align_image()
             if self._description._alignment.do_alignment
-            else self._page.asarray()
+            else self._tether.rot_matrix.warp_image(self._page.asarray())
         )
         return self._roi(data)
 
@@ -108,7 +114,7 @@ class TiffStack:
         Whether color channel alignment is requested.
     """
 
-    def __init__(self, tiff_file, align_requested, roi=None):
+    def __init__(self, tiff_file, align_requested, roi=None, tether=None):
         self._tiff_file = tiff_file
         self._description = ImageDescription(tiff_file, align_requested)
 
@@ -123,18 +129,64 @@ class TiffStack:
         else:
             self._roi = roi
 
+        self._tether = Tether(self._roi.origin) if tether is None else tether
+
     def get_frame(self, frame):
-        return TiffFrame(self._tiff_file.pages[frame], description=self._description, roi=self._roi)
+        return TiffFrame(
+            self._tiff_file.pages[frame],
+            description=self._description,
+            roi=self._roi,
+            tether=self._tether,
+        )
 
     @staticmethod
     def from_file(image_file, align_requested):
         return TiffStack(tifffile.TiffFile(image_file), align_requested=align_requested)
 
     def with_roi(self, roi):
+        """Define a region of interest (ROI) to crop from raw image.
+
+        Parameters
+        ----------
+        roi : (int, int, int, int)
+            (x_min, x_max, y_min, y_max) pixel coordinates defining the ROI.
+
+        """
+        roi = self._roi.crop(roi)
+        tether = self._tether.with_new_offsets(roi.origin)
+
         return TiffStack(
             self._tiff_file,
             self._description._alignment.requested,
-            roi=self._roi.crop(roi),
+            roi=roi,
+            tether=tether,
+        )
+
+    def with_tether(self, points):
+        """Define the endpoints of the tether and rotate the image such that the tether is horizontal.
+
+        The rotation angle is calculated from the slope of the line defined by the two endpoints
+        while the center of rotation is defined as the centroid of the two points.
+
+        Parameters
+        ----------
+        point_1 : (float, float)
+            (x, y) coordinates of the tether start point
+        point_2 : (float, float)
+            (x, y) coordinates of the tether end point
+        """
+        # if tether is already defined, un-rotate input points
+        if self._tether:
+            mat = self._tether.offsets.invert() * (
+                self._tether.rot_matrix.invert() * self._tether.offsets
+            )
+            points = mat.warp_coordinates(points)
+
+        return TiffStack(
+            self._tiff_file,
+            self._description._alignment.requested,
+            roi=self._roi,
+            tether=Tether(self._roi.origin, points),
         )
 
     @property
@@ -300,6 +352,10 @@ class Roi:
     def shape(self):
         return self.y_max - self.y_min, self.x_max - self.x_min
 
+    @property
+    def origin(self):
+        return np.array([self.x_min, self.y_min])
+
 
 class TransformMatrix:
     def __init__(self, matrix=None):
@@ -413,3 +469,55 @@ class TransformMatrix:
 
         warped = np.matmul(self.matrix, coordinates)[:2].T
         return [(x, y) for x, y in warped]
+
+
+class Tether:
+    def __init__(self, offsets, points=None):
+        """Helper class to define the coordinates of the tether ends.
+
+        Parameters
+        ----------
+        offsets: np.ndarray
+            (x,y) coordinates of the ROI origin
+        points: list
+            list of (x,y) coordinates for the tether end points
+            in the coordinate system of the current processed image
+
+        Attributes
+        ----------
+        offsets: np.ndarray
+            (x,y) coordinate offsets from the raw image origin
+        rot_matrix: TransformMatrix
+            rotation matrix to be applied to the raw image data
+            to make the tether horizontal in the final image
+        """
+        self.offsets = TransformMatrix.translation(*offsets)
+
+        if points is None:
+            self._ends = None
+            self.rot_matrix = TransformMatrix()
+        else:
+            # list of (x,y) coordinates for the tether end points
+            # in the coordinate system of the raw image data
+            self._ends = self.offsets.warp_coordinates(points)
+            # calculate rotation matrix
+            slope, _ = np.polyfit(*np.vstack(self._ends).T, deg=1)
+            theta = np.degrees(np.arctan(slope))
+            center = np.mean(np.vstack(self._ends), axis=0)
+            self.rot_matrix = TransformMatrix.rotation(theta, center)
+
+    def with_new_offsets(self, new_offsets):
+        if not self:  # empty tether
+            return Tether(new_offsets)
+        # find end points in new ROI coordinate system, reform tether
+        new_tether_ends = self._ends - np.array(new_offsets)
+        return Tether(new_offsets, new_tether_ends)
+
+    def __bool__(self):
+        return self._ends is not None
+
+    @property
+    def ends(self):
+        """Tether end points in the processed image coordinate system."""
+        rotated_ends = self.rot_matrix.warp_coordinates(self._ends)
+        return self.offsets.invert().warp_coordinates(rotated_ends)

@@ -115,6 +115,20 @@ class CorrelatedStack:
         data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
         return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
 
+    def define_tether(self, point1, point2):
+        """Returns a copy of the stack rotated such that the tether defined by `point_1` and
+        `point_2` is horizontal.
+
+        Parameters
+        ----------
+        point_1 : (float, float)
+            (x, y) coordinates of the tether start point
+        point_2 : (float, float)
+            (x, y) coordinates of the tether end point
+        """
+        data = self.src.with_tether((point1, point2))
+        return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
+
     def get_image(self, channel="rgb"):
         """Get image data for the full stack as an `np.ndarray`.
 
@@ -161,6 +175,23 @@ class CorrelatedStack:
             else:
                 # display with 1-based index for frames and total frames
                 plt.title(f"{self.name} [frame {frame+1}/{self.num_frames}]")
+
+    def plot_tether(self, **kwargs):
+        """Plot a line at the tether position.
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to :fun:`matplotlib.pyplot.plot`.
+        """
+        import matplotlib.pyplot as plt
+
+        if not self.src._tether:
+            raise ValueError("A tether is not defined yet for this image stack.")
+
+        x, y = np.vstack(self.src._tether.ends).T
+        tether_kwargs = {"c": "w", "marker": "o", "mfc": "none", "ls": ":", **kwargs}
+        plt.plot(x, y, **tether_kwargs)
 
     def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:

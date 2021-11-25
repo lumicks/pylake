@@ -516,3 +516,114 @@ def test_get_image():
         np.testing.assert_array_equal(stack.get_image(channel=color), data[0][:,:,j], err_msg=f"failed on {color}")
     np.testing.assert_array_equal(data[0], stack.get_image())
     np.testing.assert_array_equal(data[0], stack.get_image("rgb"))
+
+
+def test_define_tether():
+    from pylake.detail.widefield import TransformMatrix
+
+    def make_stack(data, description, bit_depth):
+        tiff = TiffStack(
+            MockTiffFile(
+                data=[data],
+                times=[["10", "18"]],
+                description=json.dumps(description),
+                bit_depth=bit_depth,
+            ),
+            align_requested=True
+        )
+        return CorrelatedStack.from_dataset(tiff)
+
+    rot = TransformMatrix.rotation(25, (100, 50))
+    horizontal_spot_coordinates = [(50, 50), (100, 50), (150, 50)]
+    spot_coordinates = rot.warp_coordinates(horizontal_spot_coordinates)
+    tether_ends = np.array((spot_coordinates[0], spot_coordinates[-1]))
+    warp_parameters = {"red_warp_parameters": {"Tx": 0, "Ty": 0, "theta": 0},
+                       "blue_warp_parameters": {"Tx": 0, "Ty": 0, "theta": 0}}
+
+    def make_test_data(version, bit_depth, camera):
+        _, image, description, bit_depth = make_alignment_image_data(
+            spot_coordinates, version=version, bit_depth=bit_depth, camera=camera, **warp_parameters
+        )
+        ref_image, _, ref_description, _ = make_alignment_image_data(
+            horizontal_spot_coordinates, version=version, bit_depth=bit_depth, camera=camera, **warp_parameters
+        )
+
+        test_stack = make_stack(image, description, bit_depth)
+        ref_stack = make_stack(ref_image, ref_description, bit_depth)
+        return test_stack, ref_stack
+
+    def check_result(stack, ref_stack, bit_depth):
+        # calculate error as max absolute difference
+        # as fraction of bit depth, allow some room for interpolation error
+        frame = np.atleast_3d(stack._get_frame(0).data)[:,:,0].astype(float)
+        ref = np.atleast_3d(ref_stack._get_frame(0).data)[:,:,0].astype(float)
+        assert np.max(np.abs(frame-ref)) / (2**bit_depth-1) < 0.055
+
+    # IRM - grayscale
+    stack, ref_stack = make_test_data(1, 8, "irm")
+    stack = stack.define_tether(*tether_ends)
+    check_result(stack, ref_stack, 8)
+    np.testing.assert_allclose(
+        stack.src._tether.ends,
+        (horizontal_spot_coordinates[0], horizontal_spot_coordinates[-1])
+    )
+
+    # WT - RGB
+    stack, ref_stack = make_test_data(1, 16, "wt")
+    stack = stack.define_tether(*tether_ends)
+    check_result(stack, ref_stack, 16)
+    np.testing.assert_allclose(
+        stack.src._tether.ends,
+        (horizontal_spot_coordinates[0], horizontal_spot_coordinates[-1])
+    )
+
+    # test crop/tether permutations
+    original_stack, original_ref_stack = make_test_data(1, 16, "wt")
+    crop_coordinates = (25, 175, 25, 75)
+    bad_tether_ends = tether_ends + [[5, -10], [5, 10]]
+    offset_tether_ends = tether_ends - (25, 25)
+
+    # tether -> crop
+    ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
+    stack = original_stack.define_tether(*tether_ends)
+    stack = stack.crop_by_pixels(*crop_coordinates)
+    check_result(stack, ref_stack, 16)
+
+    # crop -> tether
+    ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
+    stack = original_stack.crop_by_pixels(*crop_coordinates)
+    stack = stack.define_tether(*offset_tether_ends)
+    check_result(stack, ref_stack, 16)
+
+    # tether -> tether
+    stack = original_stack.define_tether(*bad_tether_ends)
+    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    stack = stack.define_tether(*correct_points)
+    check_result(stack, original_ref_stack, 16)
+
+    # tether -> tether -> crop
+    ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
+    stack = original_stack.define_tether(*bad_tether_ends)
+    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    stack = stack.define_tether(*correct_points)
+    stack = stack.crop_by_pixels(*crop_coordinates)
+    check_result(stack, ref_stack, 16)
+
+    # crop -> tether -> tether
+    ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
+    stack = original_stack.crop_by_pixels(*crop_coordinates)
+    cropped_offset_tether_ends = offset_tether_ends + [[5, -10], [5, 10]]
+    stack = stack.define_tether(*cropped_offset_tether_ends)
+    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    offset_correct_points = [np.array(pp) - (25, 25) for pp in correct_points]
+    stack = stack.define_tether(*offset_correct_points)
+    check_result(stack, ref_stack, 16)
+
+    # tether -> crop -> tether
+    ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
+    stack = original_stack.define_tether(*bad_tether_ends)
+    stack = stack.crop_by_pixels(*crop_coordinates)
+    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    offset_correct_points = [np.array(pp) - (25, 25) for pp in correct_points]
+    stack = stack.define_tether(*offset_correct_points)
+    check_result(stack, ref_stack, 16)
