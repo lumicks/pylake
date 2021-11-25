@@ -132,3 +132,30 @@ def test_transform_multiplication_identity():
     np.testing.assert_equal(mat_a.matrix, (mat_b * mat_a).matrix)
     np.testing.assert_equal(mat_a.matrix, (mat_c * mat_a).matrix)
     np.testing.assert_equal(mat_a.matrix, (mat_d * mat_a).matrix)
+
+
+def test_tether():
+    origin = (0, 0)
+    point_1 = np.array((1.46446609, 1.46446609))
+    point_2 = np.array((8.53553391, 8.53553391))
+
+    # empty tether
+    tether = widefield.Tether((0, 0), None)
+    assert tether._ends is None
+    np.testing.assert_allclose(tether.rot_matrix.matrix, widefield.TransformMatrix().matrix)
+    with pytest.raises(TypeError, match="did not return an iterable$"):
+        tether.ends
+
+    # test coordinates of tether after rotation
+    tether = widefield.Tether(origin, (point_1, point_2))
+    np.testing.assert_allclose(tether.ends[0], (0, 5), atol=1e-8)
+    np.testing.assert_allclose(tether.ends[1], (10, 5))
+
+    # test offsets
+    tether = widefield.Tether((1, 2), (point_1 - (1, 2), point_2 - (1, 2)))
+    np.testing.assert_allclose(tether.ends, [(-1, 3), (9, 3)])
+
+    # test re-define offsets
+    tether = widefield.Tether((0, 0), (point_1, point_2))
+    tether = tether.with_new_offsets((1, 2))
+    np.testing.assert_allclose(tether.ends, [(-1, 3), (9, 3)])

@@ -17,9 +17,22 @@ You can quickly plot an individual frame using the `plot()` method::
 
 .. image:: correlatedstack_aligned.png
 
+To define the location of the tether between beads, supply the `(x, y)` pixel coordinates of the end points
+to the `define_tether()` method::
+
+    stack = stack.define_tether((126, 193), (341, 200))
+    stack.plot()
+    stack.plot_tether(lw=0.7)
+
+.. image:: correlatedstack_tether.png
+
+Note, after defining a tether location the image is rotated such that the tether is horizontal in the field of view.
+You can also plot the overlay of the tether location using `plot_tether(**kwargs)`, which also accepts keyword
+arguments that are passed to `plt.plot()`.
+
 You can also spatially crop to select a smaller region of interest::
 
-    stack_roi = stack.crop_by_pixels(60, 460, 100, 200)  # pixel coordinates as x_max, x_min, y_max, y_min
+    stack_roi = stack.crop_by_pixels(45, 420, 150, 245)  # pixel coordinates as x_min, x_max, y_min, y_max
     stack_roi.plot()  # note: the default channel is "rgb"
 
 .. image:: correlatedstack_cropped.png
@@ -30,7 +43,7 @@ can become corrupted due to interpolation artifacts.
 You can also plot only a single color channel. Note that here we pass some additional formatting arguments, which are
 forwarded to `plt.imshow()`::
 
-    stack_roi.plot(channel="red", cmap="magma", vmin=250, vmax=450)
+    stack_roi.plot(channel="red", cmap="magma", vmin=550, vmax=800)
 
 .. image:: correlatedstack_red.png
 
