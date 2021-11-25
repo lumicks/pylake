@@ -53,10 +53,6 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
     conda install lumicks.pylake
 
-#. To make sure Jupyter notebook can find the ipykernel, we invoke::
-
-    python -m ipykernel install --user
-
 #. It should be possible to open a jupyter notebook in this environment by calling::
 
     jupyter notebook
@@ -342,6 +338,25 @@ Please follow these `uninstall instructions`_ to uninstall conda.
 After uninstalling, you should be able to reinstall using the regular installation instructions.
 
 
+**I tried the installation instructions, but I cannot import pylake**
+
+If Python claims there is no package with the name `lumicks.pylake`, even after you're followed the above installation instructions, then please check the following:
+
+* You should be launching the Jupyter Notebook from within the same environment where you installed `pylake`.
+
+* If you already had an installation of Anaconda, and you installed `pylake` into a new environment alongside existing environments, it may be that you have a conflict between multiple Jupyter installations. In this case, try running the following command from an Anaconda Prompt::
+
+    jupyter kernelspec list
+
+If the output of this command lists any paths containing `AppData\Roaming\jupyter\kernels` or `C:\ProgramData\jupyter\kernels` (Windows); `.local/share/jupyter/kernels` or `/usr/share/jupyter/kernels` or `/usr/local/share/jupyter/kernels` (Mac/Linux); or `/Library/Jupyter/kernels` (Mac); then invoke::
+
+    python -m ipykernel install --user
+
+Now restart the Jupyter Notebook, and make sure you open your Notebook using the "pylake" kernel that's now available in the list.
+
+Background: if an explicit kernelspec has been created in the all-users or per-user kernel registry, Jupyter no longer performs auto-detection of the IPython kernel in the current conda environment. That means you are no longer able to start a Jupyter kernel from the `pylake` environment. Explicitly registering a kernelspec for the IPython kernel installation in the `pylake` environment resolves this issue.
+
+
 **Conda-forge is very slow in China, what can I do?**
 
 Conda-forge can be slow when accessed from China.
@@ -367,10 +382,5 @@ Install pip in the activated environment by invoking::
 Then install Pylake as follows::
 
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
-
-On Windows, you should also make sure that Jupyter notebook can connect to the ipython kernel by invoking::
-
-    conda install pywin32
-    python -m ipykernel install --user
 
 Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip, and do not install additional dependencies via `conda install`, since this can break your environment.
