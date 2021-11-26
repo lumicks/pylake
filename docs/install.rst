@@ -357,6 +357,27 @@ Now restart the Jupyter Notebook, and make sure you open your Notebook using the
 Background: if an explicit kernelspec has been created in the all-users or per-user kernel registry, Jupyter no longer performs auto-detection of the IPython kernel in the current conda environment. That means you are no longer able to start a Jupyter kernel from the `pylake` environment. Explicitly registering a kernelspec for the IPython kernel installation in the `pylake` environment resolves this issue.
 
 
+**(Windows/Anaconda only) When I try to import `pylake`, I receive an `ImportError: DLL load failed`**
+
+In some cases, we've seen that the Anaconda installation instructions above result in an exception when importing `pylake`::
+
+    ImportError: DLL load failed while importing win32api: The specified procedure could not be found.
+
+If this happens, please try the following:
+
+* Open an Anaconda Prompt.
+
+* Activate the environment in which you installed `pylake`. For instance::
+
+    conda activate pylake
+
+* Run the following command::
+
+    python %CONDA_PREFIX%\Scripts\pywin32_postinstall.py -install
+
+* Restart the Jupyter Notebook and try again.
+
+
 **Conda-forge is very slow in China, what can I do?**
 
 Conda-forge can be slow when accessed from China.
