@@ -210,7 +210,7 @@ Extracting summed intensities
 
 Sometimes, it can be desirable to extract pixel intensities in a region around our kymograph trace. We can quite easily
 extract these using the method :func:`~lumicks.pylake.kymotracker.kymoline.KymoLine.sample_from_image`. For instance,
-if we want to sum the pixels in a 9 pixel area around the longest kymograph trace, we can invoke::
+if we want to sum the pixels in a 11 pixel area around the longest kymograph trace, we can invoke::
 
     plt.figure()
     longest_trace_idx = np.argmax([len(trace) for trace in traces])
