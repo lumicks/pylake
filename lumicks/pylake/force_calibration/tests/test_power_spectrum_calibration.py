@@ -8,6 +8,7 @@ from textwrap import dedent
 import numpy as np
 import scipy as sp
 import os
+import re
 import pytest
 
 
@@ -131,7 +132,7 @@ def test_bad_calibration_result_arg():
 
 
 def test_no_data_in_range():
-    model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0001)
+    model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0004)
 
     # Here the range slices off all the data and we are left with an empty spectrum
     power_spectrum = psc.PowerSpectrum(np.arange(100), sample_rate=100).in_range(47, 100)
@@ -358,3 +359,47 @@ def test_viscosity_calculation():
 
     np.testing.assert_allclose(viscosity_of_water(20), 0.0010015672646030015)
     assert viscosity_of_water(20).shape == ()
+
+
+def test_invalid_densities():
+    """Densities lower than aerogel should not be accepted."""
+    with pytest.raises(
+            ValueError, match=re.escape("Density of the sample cannot be below 100 kg/m^3")
+    ):
+        PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_sample=99.9)
+
+    with pytest.raises(
+            ValueError, match=re.escape("Density of the bead cannot be below 100 kg/m^3")
+    ):
+        PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_bead=99.9)
+
+    PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_sample=100.1)
+    PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_bead=100.1)
+
+    # When not using hydro, these arguments are not used (no need to raise).
+    PassiveCalibrationModel(4.1, hydrodynamically_correct=False, rho_sample=99.9)
+    PassiveCalibrationModel(4.1, hydrodynamically_correct=False, rho_bead=99.9)
+
+
+def test_invalid_viscosity():
+    with pytest.raises(
+            ValueError, match=re.escape("Viscosity must be higher than 0.0003 Pa*s")
+    ):
+        PassiveCalibrationModel(4.1, viscosity=0.0003)
+
+    PassiveCalibrationModel(4.1, viscosity=0.00031)
+
+
+def test_invalid_temperature():
+    with pytest.raises(
+            ValueError, match=re.escape("Temperature must be between 5 and 90 Celsius")
+    ):
+        PassiveCalibrationModel(4.1, temperature=90.0)
+
+    with pytest.raises(
+            ValueError, match=re.escape("Temperature must be between 5 and 90 Celsius")
+    ):
+        PassiveCalibrationModel(4.1, temperature=5.0)
+
+    PassiveCalibrationModel(4.1, temperature=89.9)
+    PassiveCalibrationModel(4.1, temperature=5.1)
