@@ -34,6 +34,7 @@
 * Units are now included in the headers for exported kymograph traces. The header now reads:</br>
 `# line index;time (pixels);coordinate (pixels);time (seconds);position ({unit});counts (summed over {n} pixels)`</br>
 where `{unit}` is either `um` or `kbp` depending on the calibration of the kymograph.
+* Added more input validation for force calibration. We now force bead and sample density to be more than 100 kg/m^3 when specified. Temperature should stay between 5 and 90 degrees Celsius and viscosity should be bigger than 0.0003 (viscosity of water at 90 degrees Celsius).
 
 ## v0.10.1 | 2021-10-27
 

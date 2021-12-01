@@ -226,6 +226,12 @@ class PassiveCalibrationModel:
         if distance_to_surface and distance_to_surface < bead_diameter / 2.0:
             raise ValueError("Distance from bead center to surface is smaller than the bead radius")
 
+        if viscosity and viscosity <= 0.0003:
+            raise ValueError("Viscosity must be higher than 0.0003 Pa*s")
+
+        if not 5.0 < temperature < 90.0:
+            raise ValueError("Temperature must be between 5 and 90 Celsius")
+
         self.viscosity = viscosity if viscosity is not None else viscosity_of_water(temperature)
         self.temperature = temperature
         self.bead_diameter = bead_diameter
@@ -259,6 +265,12 @@ class PassiveCalibrationModel:
                     "larger than 1.5 times the bead radius. For distances closer to the surface, "
                     "turn off the hydrodynamically correct model."
                 )
+
+            if rho_sample and rho_sample < 100.0:
+                raise ValueError("Density of the sample cannot be below 100 kg/m^3")
+
+            if rho_bead < 100.0:
+                raise ValueError("Density of the bead cannot be below 100 kg/m^3")
 
             self._passive_power_spectrum_model = partial(
                 passive_power_spectrum_model_hydro,
