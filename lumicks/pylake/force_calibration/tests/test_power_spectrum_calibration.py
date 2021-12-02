@@ -368,6 +368,12 @@ def test_invalid_densities():
     ):
         PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_sample=99.9)
 
+    # Make sure 0 also fires (since it's falsy)
+    with pytest.raises(
+            ValueError, match=re.escape("Density of the sample cannot be below 100 kg/m^3")
+    ):
+        PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_sample=0)
+
     with pytest.raises(
             ValueError, match=re.escape("Density of the bead cannot be below 100 kg/m^3")
     ):
@@ -387,6 +393,11 @@ def test_invalid_viscosity():
     ):
         PassiveCalibrationModel(4.1, viscosity=0.0003)
 
+    with pytest.raises(
+            ValueError, match=re.escape("Viscosity must be higher than 0.0003 Pa*s")
+    ):
+        PassiveCalibrationModel(4.1, viscosity=0)
+
     PassiveCalibrationModel(4.1, viscosity=0.00031)
 
 
@@ -403,3 +414,12 @@ def test_invalid_temperature():
 
     PassiveCalibrationModel(4.1, temperature=89.9)
     PassiveCalibrationModel(4.1, temperature=5.1)
+
+
+def test_invalid_distance_to_surface():
+    # Check that zero does not work specifically (since it is falsy).
+    with pytest.raises(
+        ValueError,
+        match="Distance from bead center to surface is smaller than the bead radius",
+    ):
+        PassiveCalibrationModel(4.11, distance_to_surface=0, hydrodynamically_correct=False)
