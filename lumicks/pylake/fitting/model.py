@@ -28,12 +28,14 @@ class Model:
         self,
         name,
         model_function,
-        dependent=None,
+        dependent="y",
         independent=None,
         jacobian=None,
         derivative=None,
         eqn=None,
         eqn_tex=None,
+        dependent_unit="au",
+        independent_unit="au",
         **kwargs,
     ):
         """
@@ -104,6 +106,8 @@ class Model:
         parameter_names = args[1:]
         self.independent = independent if independent else args[0]
         self.dependent = dependent
+        self._independent_unit = independent_unit
+        self._dependent_unit = dependent_unit
 
         for key in kwargs:
             assert (
@@ -227,7 +231,7 @@ class Model:
         param_name = (
             f"{self.name}/{self.independent}_offset" if self.independent else f"{self.name}/offset"
         )
-        return SubtractIndependentOffset(self, param_name)
+        return SubtractIndependentOffset(self, self._independent_unit, param_name)
 
     @property
     def defaults(self):
@@ -479,6 +483,14 @@ class CompositeModel(Model):
     def independent(self):
         return self.lhs.independent
 
+    @property
+    def _dependent_unit(self):
+        return self.lhs._dependent_unit
+
+    @property
+    def _independent_unit(self):
+        return self.lhs._independent_unit
+
     def eqn(self, independent_name, *parameter_names):
         return (
             self.lhs.eqn(independent_name, *[parameter_names[x] for x in self.lhs_params])
@@ -565,6 +577,14 @@ class InverseModel(Model):
     def independent(self):
         return self.model.dependent
 
+    @property
+    def _dependent_unit(self):
+        return self.model._independent_unit
+
+    @property
+    def _independent_unit(self):
+        return self.model._dependent_unit
+
     def eqn(self, independent_name, *parameter_names):
         return solve_formatter(
             self.model.eqn(independent_name, *parameter_names), self.dependent, self.independent
@@ -628,7 +648,7 @@ class InverseModel(Model):
 
 
 class SubtractIndependentOffset(Model):
-    def __init__(self, model, parameter_name="independent_offset"):
+    def __init__(self, model, unit, parameter_name="independent_offset"):
         """
         Combine two model outputs to form a new model (addition).
 
@@ -642,7 +662,7 @@ class SubtractIndependentOffset(Model):
         self.name = self.model.name + "(x-d)"
         self._params = OrderedDict()
         self._params[offset_name] = Parameter(
-            value=0.01, lower_bound=-0.1, upper_bound=0.1, unit="au"
+            value=0.01, lower_bound=-0.1, upper_bound=0.1, unit=unit
         )
         for i, v in self.model._params.items():
             self._params[i] = v
@@ -678,6 +698,14 @@ class SubtractIndependentOffset(Model):
     @property
     def independent(self):
         return self.model.independent
+
+    @property
+    def _dependent_unit(self):
+        return self.model._dependent_unit
+
+    @property
+    def _independent_unit(self):
+        return self.model._independent_unit
 
     @property
     def has_jacobian(self):
