@@ -223,10 +223,10 @@ class PassiveCalibrationModel:
                 f"than 10^-2 um"
             )
 
-        if distance_to_surface and distance_to_surface < bead_diameter / 2.0:
+        if distance_to_surface is not None and distance_to_surface < bead_diameter / 2.0:
             raise ValueError("Distance from bead center to surface is smaller than the bead radius")
 
-        if viscosity and viscosity <= 0.0003:
+        if viscosity is not None and viscosity <= 0.0003:
             raise ValueError("Viscosity must be higher than 0.0003 Pa*s")
 
         if not 5.0 < temperature < 90.0:
@@ -259,14 +259,17 @@ class PassiveCalibrationModel:
             # Here the drag coefficient in the model represents the bulk drag coefficient.
             self._drag_correction_factor = 1
             # This model is only valid up to l/R < 1.5 [6] so throw in case that is violated.
-            if distance_to_surface and distance_to_surface / (self.bead_diameter / 2) < 1.5:
+            if (
+                distance_to_surface is not None
+                and distance_to_surface / (self.bead_diameter / 2) < 1.5
+            ):
                 raise ValueError(
                     "The hydrodynamically correct model is only valid for distances to the surface "
                     "larger than 1.5 times the bead radius. For distances closer to the surface, "
                     "turn off the hydrodynamically correct model."
                 )
 
-            if rho_sample and rho_sample < 100.0:
+            if rho_sample is not None and rho_sample < 100.0:
                 raise ValueError("Density of the sample cannot be below 100 kg/m^3")
 
             if rho_bead < 100.0:
