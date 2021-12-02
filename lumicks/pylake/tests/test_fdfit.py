@@ -637,10 +637,14 @@ def test_model_composition():
     composite = (distance_offset("d") + odijk("DNA"))
     assert composite.dependent == "d"
     assert composite.independent == "f"
+    assert composite._dependent_unit == "micron"
+    assert composite._independent_unit == "pN"
 
     inverted = composite.invert()
     assert inverted.dependent == "f"
     assert inverted.independent == "d"
+    assert inverted._dependent_unit == "pN"
+    assert inverted._independent_unit == "micron"
 
 
 def test_parameter_inversion():
@@ -1125,3 +1129,23 @@ def test_no_jac():
 
     with pytest.raises(NotImplementedError):
         linear_fit.cov
+
+
+@pytest.mark.parametrize(
+    "model,param,unit",
+    [
+        (odijk("m").subtract_independent_offset(), "m/f_offset", "pN"),
+        (inverted_odijk("m").subtract_independent_offset(), "m/d_offset", "micron"),
+        ((odijk("m") + odijk("m")).subtract_independent_offset(), "m_with_m/f_offset", "pN"),
+        (odijk("m").invert().subtract_independent_offset(), "inv(m)/d_offset", "micron"),
+        (Model("m", lambda c, a: c + a).subtract_independent_offset(), "m/c_offset", "au"),
+        (
+            Model("m", lambda c, a: c + a).invert().subtract_independent_offset(),
+            "inv(m)/y_offset",
+            "au",
+        ),
+    ],
+)
+def test_subtract_independent_offset_unit(model, param, unit):
+    """ "Validate that the model units propagate to the subtracted independent offset parameter"""
+    assert model.defaults[param].unit == unit

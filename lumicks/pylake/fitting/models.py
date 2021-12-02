@@ -1,5 +1,18 @@
 from .parameters import Parameter
 
+force_model_vars = {
+    "dependent": "f",
+    "dependent_unit": "pN",
+    "independent": "d",
+    "independent_unit": "micron",
+}
+distance_model_vars = {
+    "independent": "f",
+    "independent_unit": "pN",
+    "dependent": "d",
+    "dependent_unit": "micron",
+}
+
 
 def force_offset(name):
     """Offset on the the model output.
@@ -21,7 +34,7 @@ def force_offset(name):
     return Model(
         name,
         force_offset_model,
-        dependent="f",
+        **force_model_vars,
         jacobian=offset_model_jac,
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
@@ -50,7 +63,7 @@ def distance_offset(name):
     return Model(
         name,
         distance_offset_model,
-        dependent="d",
+        **distance_model_vars,
         jacobian=offset_model_jac,
         eqn=offset_equation,
         eqn_tex=offset_equation_tex,
@@ -84,7 +97,7 @@ def marko_siggia_ewlc_force(name):
     return Model(
         name,
         marko_siggia_ewlc_solve_force,
-        dependent="f",
+        **force_model_vars,
         jacobian=marko_siggia_ewlc_solve_force_jac,
         derivative=marko_siggia_ewlc_solve_force_derivative,
         eqn=marko_siggia_ewlc_solve_force_equation,
@@ -121,7 +134,7 @@ def marko_siggia_ewlc_distance(name):
     return Model(
         name,
         marko_siggia_ewlc_solve_distance,
-        dependent="d",
+        **distance_model_vars,
         jacobian=marko_siggia_ewlc_solve_distance_jac,
         derivative=marko_siggia_ewlc_solve_distance_derivative,
         eqn=marko_siggia_ewlc_solve_distance_equation,
@@ -159,7 +172,7 @@ def marko_siggia_simplified(name):
     return Model(
         name,
         marko_siggia_simplified,
-        dependent="f",
+        **force_model_vars,
         jacobian=marko_siggia_simplified_jac,
         derivative=marko_siggia_simplified_derivative,
         eqn=marko_siggia_simplified_equation,
@@ -196,7 +209,7 @@ def inverted_marko_siggia_simplified(name):
     return Model(
         name,
         inverted_marko_siggia_simplified,
-        dependent="d",
+        **distance_model_vars,
         jacobian=inverted_marko_siggia_simplified_jac,
         derivative=inverted_marko_siggia_simplified_derivative,
         eqn=inverted_marko_siggia_simplified_equation,
@@ -234,7 +247,7 @@ def odijk(name):
     return Model(
         name,
         WLC,
-        dependent="d",
+        **distance_model_vars,
         jacobian=WLC_jac,
         derivative=WLC_derivative,
         eqn=WLC_equation,
@@ -273,7 +286,7 @@ def inverted_odijk(name):
     return Model(
         name,
         invWLC,
-        dependent="f",
+        **force_model_vars,
         jacobian=invWLC_jac,
         derivative=invWLC_derivative,
         eqn=invWLC_equation,
@@ -313,7 +326,7 @@ def freely_jointed_chain(name):
     return Model(
         name,
         FJC,
-        dependent="d",
+        **distance_model_vars,
         jacobian=FJC_jac,
         eqn=FJC_equation,
         eqn_tex=FJC_equation_tex,
@@ -373,7 +386,7 @@ def twistable_wlc(name):
     return Model(
         name,
         tWLC,
-        dependent="d",
+        **distance_model_vars,
         jacobian=tWLC_jac,
         derivative=tWLC_derivative,
         eqn=tWLC_equation,
@@ -418,7 +431,7 @@ def inverted_twistable_wlc(name):
     return Model(
         name,
         invtWLC,
-        dependent="f",
+        **force_model_vars,
         jacobian=invtWLC_jac,
         eqn=invtWLC_equation,
         eqn_tex=invtWLC_equation_tex,

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.11.1 | t.b.d.
+
+#### Bug fixes
+
+* Fixed issue which resulted in the offset parameter added by `Model.subtract_independent_offset()` not having a unit associated with it.
+
 ## v0.11.0 | 2021-12-07
 
 #### New force calibration features
