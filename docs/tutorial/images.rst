@@ -87,3 +87,15 @@ at a frame rate of 40 frames per second, we can do this::
 
 For other video formats such as `.mp4` or `.avi`, ffmpeg must be installed. See
 :ref:`installation instructions <ffmpeg_installation>` for more information on this.
+
+
+Correlating scans
+-----------------
+
+We can downsample a scan according to the frames in a scan. We can use :func:`~lumicks.pylake.scan.Scan.frame_timestamp_ranges()` for this::
+
+    frame_timestamp_ranges = scan.frame_timestamp_ranges()
+
+This returns a list of start and stop timestamps that can be passed directly to :func:`~lumicks.pylake.channel.Slice.downsampled_to`, which will then return a :class:`~lumicks.pylake.channel.Slice` with a datapoint per frame::
+
+    downsampled = f.force1x.downsampled_over(frame_timestamp_ranges)

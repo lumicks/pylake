@@ -46,6 +46,26 @@ class Scan(ConfocalImage):
             )
         return self._num_frames
 
+    def frame_timestamp_ranges(self, exclude=True):
+        """Get start and stop timestamp of each frame in the scan.
+
+        Parameters
+        ----------
+        exclude : bool
+            Exclude dead time at the end of each frame.
+        """
+        ts_min = self._timestamps("timestamps", reduce=np.min)
+        ts_max = self._timestamps("timestamps", reduce=np.max)
+        if ts_min.ndim == 2:
+            return [(np.min(ts_min), np.max(ts_max))]
+        else:
+            if exclude:
+                maximum_timestamp = [np.max(ts) for ts in ts_max]
+                return [(t1, t2) for t1, t2 in zip(ts_min[:, 0, 0], maximum_timestamp)]
+            else:
+                frame_time = ts_min[1, 0, 0] - ts_min[0, 0, 0]
+                return [(t, t + frame_time) for t in ts_min[:, 0, 0]]
+
     @property
     def lines_per_frame(self):
         return self._num_pixels[self._scan_order[1]]

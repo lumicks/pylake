@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lumicks import pylake
 from matplotlib.testing.decorators import cleanup
+from .data.mock_confocal import generate_scan
 
 
 def test_scans(h5_file):
@@ -198,3 +199,72 @@ def test_movie_export(tmpdir_factory, h5_file):
         assert stat(f"{tmpdir}/red.gif").st_size > 0
         scan.export_video_rgb(f"{tmpdir}/rgb.gif", 0, 4)
         assert stat(f"{tmpdir}/rgb.gif").st_size > 0
+
+
+@pytest.mark.parametrize("dim_x, dim_y, line_padding, start, dt, samples_per_pixel", [
+    (5, 6, 3, 14, 4, 4),
+    (3, 4, 60, 1592916040906356300, 12800, 30),
+    (3, 2, 60, 1592916040906356300, 12800, 3000),
+])
+def test_single_frame_times(dim_x, dim_y, line_padding, start, dt, samples_per_pixel):
+    img = np.ones((dim_x, dim_y))
+    scan = generate_scan("test",
+                         img,
+                         [1, 1],
+                         start=start,
+                         dt=dt,
+                         samples_per_pixel=samples_per_pixel,
+                         line_padding=line_padding)
+    frame_times = scan.frame_timestamp_ranges()
+    assert len(frame_times) == 1
+    assert frame_times[0][0] == start + line_padding * dt
+    line_time = dt * (img.shape[1] * samples_per_pixel + 2 * line_padding) * img.shape[0]
+    assert frame_times[0][1] == start + line_time - line_padding * dt - dt
+
+    # For the single frame case, there is no dead time, so these are identical
+    frame_times_inclusive = scan.frame_timestamp_ranges(exclude=False)
+    assert len(frame_times_inclusive) == 1
+    assert frame_times_inclusive[0][0] == frame_times[0][0]
+    assert frame_times_inclusive[0][1] == frame_times[0][1]
+
+
+@pytest.mark.parametrize("dim_x, dim_y, frames, line_padding, start, dt, samples_per_pixel", [
+    (5, 6, 3, 3, 14, 4, 4),
+    (3, 4, 4, 60, 1592916040906356300, 12800, 30),
+    (3, 2, 2, 60, 1592916040906356300, 12800, 3000),
+])
+def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, samples_per_pixel):
+    img = np.ones((dim_x, dim_y, frames))
+    scan = generate_scan(
+        "test",
+        img,
+        [1, 1],
+        start=start,
+        dt=dt,
+        samples_per_pixel=samples_per_pixel,
+        line_padding=line_padding,
+    )
+    frame_times = scan.frame_timestamp_ranges()
+
+    line_time = dt * (img.shape[2] * samples_per_pixel + 2 * line_padding) * img.shape[1]
+    assert len(frame_times) == scan.num_frames
+    assert frame_times[0][0] == start + line_padding * dt
+    assert frame_times[0][1] == start + line_time - line_padding * dt - dt
+    assert frame_times[1][0] == start + line_padding * dt + line_time
+    assert frame_times[1][1] == start + 2 * line_time - line_padding * dt - dt
+    assert frame_times[-1][0] == start + line_padding * dt + (len(frame_times) - 1) * line_time
+    assert frame_times[-1][1] == start + len(frame_times) * line_time - line_padding * dt - dt
+
+    frame_times_inclusive = scan.frame_timestamp_ranges(exclude=False)
+
+    # Start times should be the same
+    assert len(frame_times_inclusive) == scan.num_frames
+    assert frame_times_inclusive[0][0] == frame_times[0][0]
+    assert frame_times_inclusive[1][0] == frame_times[1][0]
+    assert frame_times_inclusive[-1][0] == frame_times[-1][0]
+
+    assert frame_times_inclusive[0][1] == frame_times[1][0]
+    assert frame_times_inclusive[1][1] == frame_times[2][0]
+    assert frame_times_inclusive[-1][1] == frame_times[-1][0] + (
+        frame_times[1][0] - frame_times[0][0]
+    )

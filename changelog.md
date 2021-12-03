@@ -12,6 +12,7 @@
 * Added `CorrelatedStack.get_image()` to get the image stack data as an `np.ndarray`.
 * Allow setting custom slider ranges for the algorithm parameters in the kymotracker widget. See: [kymotracker widget](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#using-the-kymotracker-widget).
 * Added parameters describing the inferred driving peak (`driving_amplitude`, `driving_frequency`, `driving_power`) when performing active force calibration to `CalibrationResults`.
+* Added function (`Scan.frame_timestamp_ranges()`) to obtain start and stop timestamp of each frame in a `Scan`. See: [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html). 
 
 #### Improvements
 
