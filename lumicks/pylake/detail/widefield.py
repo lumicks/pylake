@@ -358,6 +358,21 @@ class TransformMatrix:
         """
         return cls(cv2.getRotationMatrix2D(center, theta, scale=1.0))
 
+    @classmethod
+    def translation(cls, x, y):
+        """Construct matrix for translation by `x` and `y`.
+
+        Parameters
+        ----------
+        x: float
+            translation in x direction
+        y: float
+            translation in y direction
+        """
+        matrix = np.eye(3)
+        matrix[:2, -1] = (x, y)
+        return cls(matrix[:2])
+
     def warp_image(self, data):
         """Apply affine transformation to image data.
 
