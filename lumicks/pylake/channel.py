@@ -296,6 +296,12 @@ class Slice:
     def downsampled_like(self, other_slice, reduce=np.mean):
         """Downsample high frequency data analogously to a low frequency channel in the same way that Bluelake does it.
 
+        Note: some data required to reconstruct the first low frequency time point can actually occur before the starting
+        timestamp of the marker and is therefore missing from the exported `.h5` file. Therefore, it is not always possible
+        to downsample to all of the data points in the low frequency `other_slice`. This function returns both the
+        requested downsampled channel data *and* a copy of the input channel cropped such that both returned `Slice` objects
+        have the same time points.
+
         Parameters
         ----------
         other_slice : Slice
@@ -305,6 +311,13 @@ class Slice:
             The `numpy` function which is going to reduce multiple samples into one.
             The default is `np.mean`, but `np.sum` could also be appropriate for some
             cases, e.g. photon counts.
+
+        Returns
+        -------
+        downsampled_slice : Slice
+            This channel downsampled to the same timestamp ranges as `other_slice`.
+        cropped_other_slice : Slice
+            A copy of `other_slice` cropped such that the timestamps match those of `downsampled_slice`.
         """
         assert isinstance(other_slice._src, TimeSeries), (
             "You did not pass a low frequency channel to serve as " "reference channel."
