@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import json
 import tifffile
 import warnings
 from deprecated.sphinx import deprecated
@@ -228,63 +227,16 @@ class CorrelatedStack:
             stack = pylake.CorrelatedStack("example.tiff")
             stack.plot_correlated(file.force1x, frame=5)
         """
-        import matplotlib.pyplot as plt
+        from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
 
-        downsampled = channel_slice.downsampled_over(self.timestamps, where="left", reduce=reduce)
-
-        if len(downsampled.timestamps) < len(self.timestamps):
-            warnings.warn("Only subset of time range available for selected channel")
-
-        fetched_frame = self._get_frame(frame)
-        aspect_ratio = fetched_frame.data.shape[0] / np.max([fetched_frame.data.shape])
-
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=plt.figaspect(aspect_ratio / 2))
-        t0 = downsampled.timestamps[0]
-        t, y = (downsampled.timestamps - t0) / 1e9, downsampled.data
-        ax1.step(t, y, where="pre")
-        ax2.tick_params(
-            axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
+        frame_timestamps = self.timestamps
+        plot_correlated(
+            channel_slice,
+            frame_timestamps,
+            lambda frame_idx: self._get_frame(frame_idx)._get_plot_data(channel),
+            frame,
+            reduce,
         )
-        image_object = ax2.imshow(fetched_frame._get_plot_data(channel=channel), cmap="gray")
-        plt.title(f"Frame {frame}")
-
-        # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
-        y1, y2 = ax1.get_ylim()
-        ax1.set_ylim(y1, y2)
-
-        def update_position(new_frame):
-            return ax1.fill_between(
-                (np.array([new_frame.start, new_frame.stop]) - t0) / 1e9,
-                y1,
-                y2,
-                alpha=0.7,
-                color="r",
-            )
-
-        poly = update_position(fetched_frame)
-
-        ax1.set_xlabel("Time [s]")
-        ax1.set_ylabel(downsampled.labels["y"])
-        ax1.set_title(downsampled.labels["title"])
-        ax1.set_xlim([np.min(t), np.max(t)])
-
-        def select_frame(event):
-            nonlocal poly
-
-            if not event.canvas.widgetlock.locked() and event.inaxes == ax1:
-                time = event.xdata * 1e9 + t0
-                for img_idx in np.arange(0, self.num_frames):
-                    current_frame = self._get_frame(img_idx)
-
-                    if current_frame.start <= time < current_frame.stop:
-                        plt.title(f"Frame {img_idx}")
-                        poly.remove()
-                        image_object.set_data(current_frame._get_plot_data(channel=channel))
-                        poly = update_position(current_frame)
-                        fig.canvas.draw()
-                        return
-
-        fig.canvas.mpl_connect("button_press_event", select_frame)
 
     def export_tiff(self, file_name, roi=None):
         """Export a video of a particular scan plot
