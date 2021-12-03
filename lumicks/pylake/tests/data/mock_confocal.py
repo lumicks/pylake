@@ -3,6 +3,7 @@ import json
 from lumicks.pylake.detail.image import InfowaveCode
 from lumicks.pylake.channel import Continuous, Slice
 from lumicks.pylake.kymo import Kymo
+from lumicks.pylake.scan import Scan
 
 
 def generate_scan_json(axes):
@@ -24,7 +25,7 @@ def generate_scan_json(axes):
 
     axes_metadata = [
         {
-            "axis": axis["axis"],
+            "axis": int(axis["axis"]),
             "cereal_class_version": 1,
             "num of pixels": axis["num of pixels"],
             "pixel size (nm)": axis["pixel size (nm)"],
@@ -52,13 +53,13 @@ def generate_scan_json(axes):
     )
 
 
-def generate_image_data(image, samples_per_pixel, line_padding):
-    """Generates the appropriate info_wave and photon_count data for a particular image.
+def generate_image_data(image_data, samples_per_pixel, line_padding):
+    """Generates the appropriate info_wave and photon_count data for image data.
 
     Parameters
     ----------
-    image : array_like
-        Image to generate an infowave for.
+    image_data : array_like
+        Image data to generate an infowave for.
     samples_per_pixel : int
         How many samples to divide a pixel over.
     line_padding : int
@@ -92,8 +93,12 @@ def generate_image_data(image, samples_per_pixel, line_padding):
             (padding, np.hstack([split_pixel(pixel, samples_per_pixel) for pixel in line]), padding)
         )
 
-    return np.hstack([generate_infowave_line(line) for line in image.T]), np.hstack(
-        [generate_photon_count_line(line) for line in image.T]
+    if image_data.ndim == 3:
+        # Flattens lines of a multi-frame image. This concatenates the lines of different frames.
+        image_data = np.hstack([img for img in image_data])
+
+    return np.hstack([generate_infowave_line(line) for line in image_data.T]), np.hstack(
+        [generate_photon_count_line(line) for line in image_data.T]
     )
 
 
@@ -127,7 +132,7 @@ class MockConfocalFile:
                     "num of pixels": num_pixels,
                     "pixel size (nm)": pixel_size,
                 }
-                for pixel_size, axis, num_pixels in zip(pixel_sizes_nm, axes, image.shape)
+                for pixel_size, axis, num_pixels in zip(pixel_sizes_nm, axes, image.shape[-2:])
             ]
         )
 
@@ -153,3 +158,17 @@ def generate_kymo(name, image, pixel_size_nm, start=4, dt=7, samples_per_pixel=5
     )
 
     return Kymo(name, confocal_file, start, stop, json)
+
+
+def generate_scan(name, scan_data, pixel_sizes_nm, start=4, dt=7, samples_per_pixel=5, line_padding=3):
+    confocal_file, json, stop = MockConfocalFile.from_image(
+        np.swapaxes(scan_data, -1, -2),
+        pixel_sizes_nm=pixel_sizes_nm,
+        axes=np.arange(scan_data.ndim),
+        start=np.int64(start),
+        dt=np.int64(dt),
+        samples_per_pixel=samples_per_pixel,
+        line_padding=line_padding,
+    )
+
+    return Scan(name, confocal_file, start, stop, json)
