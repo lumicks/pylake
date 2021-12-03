@@ -85,6 +85,16 @@ def test_rotate_image():
     assert np.max(np.abs(rotation_wrong_origin.warp_image(original_image), target_image)) > 0.02
 
 
+@pytest.mark.parametrize("x, y", [(0, 0), (1, 1), (-3, 4), (2, -6)])
+def test_transform_translation(x, y):
+    points = ((1, 2), (3, 4), (6, 5), (-5, -5))
+    translation = widefield.TransformMatrix.translation(x, y)
+
+    expected_points = np.vstack(points) + (x, y)
+    new_points = translation.warp_coordinates(points)
+    np.testing.assert_allclose(np.vstack(new_points), expected_points)
+
+
 @pytest.mark.parametrize(
     "theta1, theta2, center",
     [(5, 10, (8, 6)), (-5, 10, (8, 6)), (0, 0, (0, 0)), (0, 10, (6, 8)), (5, 0, (6, 8))],
