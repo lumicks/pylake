@@ -99,3 +99,7 @@ We can downsample a scan according to the frames in a scan. We can use :func:`~l
 This returns a list of start and stop timestamps that can be passed directly to :func:`~lumicks.pylake.channel.Slice.downsampled_to`, which will then return a :class:`~lumicks.pylake.channel.Slice` with a datapoint per frame::
 
     downsampled = f.force1x.downsampled_over(frame_timestamp_ranges)
+
+We can also correlate multi-frame confocal scans with a channel :class:`~lumicks.pylake.channel.Slice` using a small interactive plot::
+
+    scan.plot_correlated(f.force1x)

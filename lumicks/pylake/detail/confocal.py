@@ -7,6 +7,13 @@ from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
 from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
 from .utilities import could_sum_overflow
+from matplotlib.colors import LinearSegmentedColormap
+
+linear_colormaps = {
+    "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
+    "green": LinearSegmentedColormap.from_list("green", colors=[(0, 0, 0), (0, 1, 0)]),
+    "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
+}
 
 
 def _int_mean(a, total_size, axis):
@@ -252,14 +259,6 @@ class ConfocalImage(BaseScan):
         return self._timestamp_factory(self, reduce)
 
     def _plot_color(self, color, **kwargs):
-        from matplotlib.colors import LinearSegmentedColormap
-
-        linear_colormaps = {
-            "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
-            "green": LinearSegmentedColormap.from_list("green", colors=[(0, 0, 0), (0, 1, 0)]),
-            "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
-        }
-
         image = getattr(self, f"{color}_image")
         return self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
 

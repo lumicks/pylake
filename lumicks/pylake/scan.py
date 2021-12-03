@@ -1,7 +1,7 @@
 import numpy as np
 
 from .detail.confocal import ConfocalImage
-from .detail.image import reconstruct_image_sum, reconstruct_image, reconstruct_num_frames
+from .detail.image import reconstruct_num_frames
 
 
 """Axis label used for plotting"""
@@ -65,6 +65,62 @@ class Scan(ConfocalImage):
             else:
                 frame_time = ts_min[1, 0, 0] - ts_min[0, 0, 0]
                 return [(t, t + frame_time) for t in ts_min[:, 0, 0]]
+
+    def plot_correlated(self, channel_slice, frame=0, reduce=np.mean, channel="rgb"):
+        """Downsample channel on a frame by frame basis and plot the results. The downsampling
+        function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
+        Note: In environments which support interactive figures (e.g. jupyter notebook with
+        ipywidgets or interactive python) this plot will be interactive.
+
+        Parameters
+        ----------
+        channel_slice : pylake.channel.Slice
+            Data slice that we with to downsample.
+        frame : int
+            Frame to show.
+        reduce : callable
+            The function which is going to reduce multiple samples into one. The default is
+            :func:`numpy.mean`, but :func:`numpy.sum` could also be appropriate for some cases
+            e.g. photon counts.
+        channel : 'rgb', 'red', 'green', 'blue', None; optional
+            Channel to plot for RGB images (None defaults to 'rgb')
+            Not used for grayscale images
+
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            file = pylake.File("example.h5")
+            scan = file.scans["my scan"]
+            scan.plot_correlated(file.force1x, channel="red")
+        """
+        import matplotlib.pyplot as plt
+        from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
+        from .detail.confocal import linear_colormaps
+
+        channels = ("red", "green", "blue")
+
+        def plot_channel(frame):
+            if channel == "rgb":
+                return self.rgb_image[frame, :, :, :] / self.rgb_image.max()
+            elif channel in channels:
+                return getattr(self, f"{channel}_image")[frame, :, :]
+            else:
+                raise RuntimeError("Invalid channel selected")
+
+        frame_timestamps = self.frame_timestamp_ranges()
+        plot_correlated(
+            channel_slice,
+            frame_timestamps,
+            plot_channel,
+            frame,
+            reduce,
+            colormap=linear_colormaps[channel] if channel in channels else None,
+        )
+        plt.tight_layout()
 
     @property
     def lines_per_frame(self):
