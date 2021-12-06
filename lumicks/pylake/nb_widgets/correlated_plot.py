@@ -3,7 +3,13 @@ import warnings
 
 
 def plot_correlated(
-    channel_slice, frame_timestamps, get_plot_data, frame=0, reduce=np.mean, colormap="gray"
+    channel_slice,
+    frame_timestamps,
+    get_plot_data,
+    frame=0,
+    reduce=np.mean,
+    colormap="gray",
+    figure_scale=0.75,
 ):
     """Downsample channel on a frame by frame basis and plot the results.
 
@@ -23,6 +29,9 @@ def plot_correlated(
         e.g. photon counts.
     colormap : str or Colormap
         Colormap used for plotting.
+    figure_scale : float
+        Scaling of the figure width and height. Values greater than one increase the size of the
+        figure.
     """
     import matplotlib.pyplot as plt
 
@@ -34,9 +43,15 @@ def plot_correlated(
     plot_data = get_plot_data(frame)
     aspect_ratio = plot_data.shape[0] / np.max([plot_data.shape])
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=plt.figaspect(aspect_ratio / 2))
+    aspect_ratio = max(0.2, aspect_ratio)
+    fig, (ax1, ax2) = plt.subplots(
+        1,
+        2,
+        figsize=figure_scale * plt.figaspect(aspect_ratio / (aspect_ratio + 1)),
+        gridspec_kw={"width_ratios": [1, 1 / aspect_ratio]},
+    )
     t0 = downsampled.timestamps[0]
-    t, y = (downsampled.timestamps - t0) / 1e9, downsampled.data
+    t, y = downsampled.seconds, downsampled.data
     ax1.step(t, y, where="pre")
     ax2.tick_params(
         axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
@@ -79,3 +94,4 @@ def plot_correlated(
                     return
 
     fig.canvas.mpl_connect("button_press_event", select_frame)
+    plt.tight_layout()

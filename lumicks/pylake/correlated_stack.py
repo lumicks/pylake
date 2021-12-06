@@ -197,7 +197,9 @@ class CorrelatedStack:
             raise IndexError("Frame index out of range")
         return self.src.get_frame(self.start_idx + frame)
 
-    def plot_correlated(self, channel_slice, frame=0, reduce=np.mean, channel="rgb"):
+    def plot_correlated(
+        self, channel_slice, frame=0, reduce=np.mean, channel="rgb", figure_scale=0.75
+    ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling function (e.g. np.mean)
         is evaluated for the time between a start and end time of a frame. Note: In environments which support
         interactive figures (e.g. jupyter notebook with ipywidgets or interactive python) this plot will be interactive.
@@ -215,6 +217,9 @@ class CorrelatedStack:
         channel : 'rgb', 'red', 'green', 'blue', None; optional
             Channel to plot for RGB images (None defaults to 'rgb')
             Not used for grayscale images
+        figure_scale : float
+            Scaling of the figure width and height. Values greater than one increase the size of the
+            figure.
 
 
         Examples
@@ -236,6 +241,7 @@ class CorrelatedStack:
             lambda frame_idx: self._get_frame(frame_idx)._get_plot_data(channel),
             frame,
             reduce,
+            figure_scale=figure_scale,
         )
 
     def export_tiff(self, file_name, roi=None):

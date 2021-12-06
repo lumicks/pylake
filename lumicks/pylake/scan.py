@@ -66,7 +66,9 @@ class Scan(ConfocalImage):
                 frame_time = ts_min[1, 0, 0] - ts_min[0, 0, 0]
                 return [(t, t + frame_time) for t in ts_min[:, 0, 0]]
 
-    def plot_correlated(self, channel_slice, frame=0, reduce=np.mean, channel="rgb"):
+    def plot_correlated(
+        self, channel_slice, frame=0, reduce=np.mean, channel="rgb", figure_scale=0.75
+    ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
         Note: In environments which support interactive figures (e.g. jupyter notebook with
@@ -85,6 +87,9 @@ class Scan(ConfocalImage):
         channel : 'rgb', 'red', 'green', 'blue', None; optional
             Channel to plot for RGB images (None defaults to 'rgb')
             Not used for grayscale images
+        figure_scale : float
+            Scaling of the figure width and height. Values greater than one increase the size of the
+            figure.
 
 
         Examples
@@ -97,7 +102,6 @@ class Scan(ConfocalImage):
             scan = file.scans["my scan"]
             scan.plot_correlated(file.force1x, channel="red")
         """
-        import matplotlib.pyplot as plt
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
         from .detail.confocal import linear_colormaps
 
@@ -119,8 +123,8 @@ class Scan(ConfocalImage):
             frame,
             reduce,
             colormap=linear_colormaps[channel] if channel in channels else None,
+            figure_scale=figure_scale,
         )
-        plt.tight_layout()
 
     @property
     def lines_per_frame(self):
