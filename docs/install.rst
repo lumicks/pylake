@@ -348,7 +348,7 @@ If Python claims there is no package with the name `lumicks.pylake`, even after 
 
     jupyter kernelspec list
 
-If the output of this command lists any paths containing `AppData\Roaming\jupyter\kernels` or `C:\ProgramData\jupyter\kernels` (Windows); `.local/share/jupyter/kernels` or `/usr/share/jupyter/kernels` or `/usr/local/share/jupyter/kernels` (Mac/Linux); or `/Library/Jupyter/kernels` (Mac); then invoke::
+If the output of this command lists any paths containing `AppData\\Roaming\\jupyter\\kernels` or `C:\\ProgramData\\jupyter\\kernels` (Windows); `.local/share/jupyter/kernels` or `/usr/share/jupyter/kernels` or `/usr/local/share/jupyter/kernels` (Mac/Linux); or `/Library/Jupyter/kernels` (Mac); then invoke::
 
     python -m ipykernel install --user
 
@@ -357,11 +357,11 @@ Now restart the Jupyter Notebook, and make sure you open your Notebook using the
 Background: if an explicit kernelspec has been created in the all-users or per-user kernel registry, Jupyter no longer performs auto-detection of the IPython kernel in the current conda environment. That means you are no longer able to start a Jupyter kernel from the `pylake` environment. Explicitly registering a kernelspec for the IPython kernel installation in the `pylake` environment resolves this issue.
 
 
-**(Windows/Anaconda only) When I try to import `pylake`, I receive an `ImportError: DLL load failed`**
+**(Windows/Anaconda only) When I try to import pylake, I receive an ImportError: DLL load failed**
 
-In some cases, we've seen that the Anaconda installation instructions above result in an exception when importing `pylake`::
+In some cases, we've seen that the Anaconda installation instructions above result in an exception when importing `pylake`:
 
-    ImportError: DLL load failed while importing win32api: The specified procedure could not be found.
+`ImportError: DLL load failed while importing win32api: The specified procedure could not be found.`
 
 If this happens, please try the following:
 

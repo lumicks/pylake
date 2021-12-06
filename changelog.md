@@ -1,41 +1,39 @@
 # Changelog
 
-## v0.11.0 | t.b.d.
+## v0.11.0 | 2021-12-07
 
-#### New features
+#### New force calibration features
 
-* Added support for active force calibration. For more information, please read: See [active force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#active-calibration).
-* Added support for axial calibration. See See [axial calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#axial-calibration).
-* Added support for using near-surface corrections for lateral and axial calibration, please read: See [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#faxen-s-law).
-* Added `Kymo.calibrate_to_kbp()` for calibrating the position axis of a kymograph from microns to kilobase-pairs. **Note: this calibration is applied to the full kymograph, so one should crop to the bead edges with `Kymo.crop_by_distance()` before calling this method.**
-* Added function to compute viscosity of water at specific temperature. See: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html).
-* Added `CorrelatedStack.get_image()` to get the image stack data as an `np.ndarray`.
-* Allow setting custom slider ranges for the algorithm parameters in the kymotracker widget. See: [kymotracker widget](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#using-the-kymotracker-widget).
+* Added support for active force calibration. For more information, please read: [active force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#active-calibration).
+* Added support for axial force calibration. See [axial calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#axial-calibration) for more information.
+* Added support for using near-surface corrections for lateral and axial force calibration, please read: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#faxen-s-law).
+* Added function to compute viscosity of water at specific temperature. Please refer to: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html) for more information.
 * Added parameters describing the inferred driving peak (`driving_amplitude`, `driving_frequency`, `driving_power`) when performing active force calibration to `CalibrationResults`.
-* Added function (`Scan.frame_timestamp_ranges()`) to obtain start and stop timestamp of each frame in a `Scan`. See: [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html). 
 
-#### Improvements
+#### Other new features
 
-* Fixed issue in force calibration where the analytical fit would sometimes fail when the corner frequency is below the lower fitting bound. What would happen is that the analytical fit resulted in a negative term of which the square root was taken to obtain the corner frequency. Now this case is gracefully handled by setting the initial guess halfway between the lowest frequency in the power spectrum and zero.
-* Fixed bug that would implicitly convert `Kymograph` and `Scan` `timestamps` to floating point values. Converting them to floating point values leads to a loss of precision. For more information see [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#channels) for more information.
-* Fixed issue that led to `DeprecationWarning` in the kymotracker widget.
-* Fixed error in kymotracking documentation. The tutorial previously indicated the incorrect number of samples for `sample_from_image`.
+* Added `Kymo.calibrate_to_kbp()` for calibrating the position axis of a kymograph from microns to kilobase-pairs. **Note: this calibration is applied to the full kymograph, so one should crop to the bead edges with `Kymo.crop_by_distance()` before calling this method.**
+* Added `CorrelatedStack.get_image()` to get the image stack data as an `np.ndarray`.
+* Allow setting custom slider ranges for the algorithm parameters in the kymotracker widget. Please refer to [kymotracker widget](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#using-the-kymotracker-widget) for more information.
+* Added function `Scan.frame_timestamp_ranges()` to obtain the start and stop timestamp of each frame in a `Scan`. Please refer to [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) for more information. 
 
 #### Bug fixes
 
+* Fixed issue in force calibration where the analytical fit would sometimes fail when the corner frequency is below the lower fitting bound. What would happen is that the analytical fit resulted in a negative term of which the square root was taken to obtain the corner frequency. Now this case is gracefully handled by setting the initial guess halfway between the lowest frequency in the power spectrum and zero.
+* Fixed issue that led to `DeprecationWarning` in the kymotracker widget.
+* Fixed error in kymotracking documentation. The tutorial previously indicated the incorrect number of samples for `sample_from_image`.
+* Fixed bug that would implicitly convert `Kymograph` and `Scan` `timestamps` to floating point values. Converting them to floating point values leads to a loss of precision. For more information see [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#channels) for more information.
 * Fixed bug where color-aligned data was returned from `TiffFrame.data` although alignment was not requested (e.g., `CorrelatedStack("filename.tiff", align=False)`). This bug was introduced in `v0.10.1`.
 
 #### Deprecations
 
-* `CorrelatedStack.raw` has been deprecated and will be removed in a future release.
+* `CorrelatedStack.raw` has been deprecated and will be removed in a future release. Use `CorrelatedStack.get_image()` instead.
 
 #### Breaking changes
 
-* Changed default for `viscosity` in force calibration models. When omitted, `pylake` will use the viscosity of water calculated from the temperature. Note that this results in the default (when no viscosity or temperature is set) changing from `1.002e-3`  to `1.00157e-3`. See: [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html).
-* Units are now included in the headers for exported kymograph traces. The header now reads:</br>
-`# line index;time (pixels);coordinate (pixels);time (seconds);position ({unit});counts (summed over {n} pixels)`</br>
-where `{unit}` is either `um` or `kbp` depending on the calibration of the kymograph.
-* Added more input validation for force calibration. We now force bead and sample density to be more than 100 kg/m^3 when specified. Temperature should stay between 5 and 90 degrees Celsius and viscosity should be bigger than 0.0003 (viscosity of water at 90 degrees Celsius).
+* Changed default for `viscosity` in force calibration models. When omitted, `pylake` will use the viscosity of water calculated from the temperature. Note that this results in the default (when no viscosity or temperature is set) changing from `1.002e-3`  to `1.00157e-3 Pa*s`. Please refer to [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html) for more information.
+* Units are now included in the headers for kymograph traces exported from the widget or with `KymoLineGroup.save()` (either `um` or `kbp` depending on the calibration of the kymograph). Any code that hardcoded the header names directly should be updated.
+* Added more input validation for model parameters when performing force calibration. We now force bead and sample density to be more than `100 kg/m³` when specified. Temperature should be specified between `5` and `90 °C` and viscosity should be bigger than `0.0003 Pa*s` (viscosity of water at 90 degrees Celsius).
 
 ## v0.10.1 | 2021-10-27
 
@@ -45,7 +43,7 @@ where `{unit}` is either `um` or `kbp` depending on the calibration of the kymog
 * Added `KymoLineGroup.fit_binding_times()` to allow for dwelltime analysis of bound states found using kymotracker. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 * Allow using data acquired with a fast force sensor by passing `fast_sensor=True` when creating a `PassiveCalibrationModel`.
 * Allow using hydrodynamically correct power spectrum when performing force calibration. See [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html) for more information.
-* Added ability to crop `CorrelatedStacks`. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
+* Added ability to crop a `CorrelatedStack`. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 
 #### Bug fixes
 
