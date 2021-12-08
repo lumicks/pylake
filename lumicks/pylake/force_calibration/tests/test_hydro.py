@@ -468,3 +468,79 @@ def test_brenner(bead_radius, result):
     np.testing.assert_allclose(
         brenner_axial(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius), result
     )
+
+
+def test_near_surface_consistency():
+    """For small beads, the results (Rf, Rd, and kappa) with or without the hydrodynamically correct
+    model should be the same near a surface.
+
+    Since internally, the effect of the surface is handled very differently in all the calibration
+    options (hydro on/off, active on/off), this provides an integration test that actually tests
+    whether all the parts are functioning correctly.
+
+    AC on,  Hydro off - Drag is measured and used directly.
+    AC on,  Hydro on  - Drag is measured and used directly.
+    AC off, Hydro off - Surface effect on drag coefficient is modelled with Faxen's law.
+    AC off, Hydro on  - Surface effect on drag coefficient is in equation describing the spectrum.
+    """
+    bead_diameter = 0.5
+    shared_pars = {
+        "bead_diameter": bead_diameter,
+        "viscosity": 1.1e-3,
+        "temperature": 25,
+        "rho_sample": 997.0,
+        "rho_bead": 1040.0,
+        "distance_to_surface": bead_diameter,
+    }
+    sim_pars = {
+        "sample_rate": 78125,
+        "stiffness": 0.1,
+        "pos_response_um_volt": 0.618,
+        "driving_sinusoid": (500, 31.95633),
+        "diode": (0.6, 15000),
+    }
+
+    np.random.seed(1337)
+    volts, stage = generate_active_calibration_test_data(
+        10, hydrodynamically_correct=True, **sim_pars, **shared_pars
+    )
+    power_spectrum = calculate_power_spectrum(volts, sim_pars["sample_rate"])
+
+    active_pars = {
+        "force_voltage_data": volts,
+        "driving_data": stage,
+        "sample_rate": 78125,
+        "driving_frequency_guess": 32,
+    }
+
+    def fit_spectrum(active, hydro):
+        model = (
+            ActiveCalibrationModel(
+                **active_pars, **shared_pars, hydrodynamically_correct=hydro
+            )
+            if active
+            else PassiveCalibrationModel(**shared_pars, hydrodynamically_correct=hydro)
+        )
+        return fit_power_spectrum(power_spectrum, model)
+
+    parameters_of_interest = {
+        "kappa": sim_pars["stiffness"],
+        "Rd": sim_pars["pos_response_um_volt"],
+        "Rf": sim_pars["stiffness"] * sim_pars["pos_response_um_volt"] * 1e3,
+    }
+
+    for active_calibration in (True, False):
+        for hydrodynamic_model in (True, False):
+            fit = fit_spectrum(active_calibration, hydrodynamic_model)
+
+            # Note that the corner frequency of the hydrodynamic model is specified in bulk, while
+            # the regular model has its corner frequency specified at the current height.
+            fc_bulk = (
+                fit["fc"].value
+                if hydrodynamic_model
+                else fit["fc"].value
+                * faxen_factor(shared_pars["distance_to_surface"] * 1e-6, bead_diameter * 1e-6 / 2)
+            )
+            np.testing.assert_allclose(fc_bulk, 3070.33, rtol=2e-2)
+            for param, ref_value in parameters_of_interest.items():
+                np.testing.assert_allclose(fit[param].value, ref_value, rtol=2e-2)
