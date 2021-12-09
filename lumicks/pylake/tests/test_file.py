@@ -3,6 +3,7 @@ from lumicks import pylake
 import pytest
 from textwrap import dedent
 from lumicks.pylake.detail.h5_helper import write_h5
+from .data.mock_json import force_feedback_dict
 
 
 def test_scans(h5_file):
@@ -100,6 +101,17 @@ def test_marker(h5_file):
         assert np.isclose(f.markers["test_marker"].stop, 200)
         assert np.isclose(f.markers["test_marker2"].start, 200)
         assert np.isclose(f.markers["test_marker2"].stop, 300)
+
+
+def test_marker_metadata(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+
+    if f.format_version == 2:
+        assert not f.markers["test_marker"]._json
+        assert not f.markers["test_marker2"]._json
+        assert np.isclose(f.markers["force feedback"].start, 200)
+        assert np.isclose(f.markers["force feedback"].stop, 300)
+        assert f.markers["force feedback"]._json == force_feedback_dict
 
 
 def test_properties(h5_file):
@@ -252,6 +264,7 @@ def test_repr_and_str(h5_file):
               - Size: 1
             
             .markers
+              - force feedback
               - test_marker
               - test_marker2
 

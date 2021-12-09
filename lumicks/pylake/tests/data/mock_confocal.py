@@ -1,5 +1,6 @@
 import numpy as np
 import json
+from .mock_json import mock_json
 from lumicks.pylake.detail.image import InfowaveCode
 from lumicks.pylake.channel import Continuous, Slice
 from lumicks.pylake.kymo import Kymo
@@ -21,8 +22,6 @@ def generate_scan_json(axes):
         "pixel size (nm)" : float
             Pixel size along this axis.
     """
-    enc = json.JSONEncoder()
-
     axes_metadata = [
         {
             "axis": int(axis["axis"]),
@@ -35,21 +34,19 @@ def generate_scan_json(axes):
         for axis in axes
     ]
 
-    return enc.encode(
+    return mock_json(
         {
-            "value0": {
+            "cereal_class_version": 1,
+            "fluorescence": True,
+            "force": False,
+            "scan count": 0,
+            "scan volume": {
+                "center point (um)": {"x": 58.075877109272604, "y": 31.978375270573267, "z": 0},
                 "cereal_class_version": 1,
-                "fluorescence": True,
-                "force": False,
-                "scan count": 0,
-                "scan volume": {
-                    "center point (um)": {"x": 58.075877109272604, "y": 31.978375270573267, "z": 0},
-                    "cereal_class_version": 1,
-                    "pixel time (ms)": 0.2,
-                    "scan axes": axes_metadata,
-                },
-            }
-        }
+                "pixel time (ms)": 0.2,
+                "scan axes": axes_metadata,
+            },
+        },
     )
 
 
@@ -160,7 +157,9 @@ def generate_kymo(name, image, pixel_size_nm, start=4, dt=7, samples_per_pixel=5
     return Kymo(name, confocal_file, start, stop, json)
 
 
-def generate_scan(name, scan_data, pixel_sizes_nm, start=4, dt=7, samples_per_pixel=5, line_padding=3):
+def generate_scan(
+    name, scan_data, pixel_sizes_nm, start=4, dt=7, samples_per_pixel=5, line_padding=3
+):
     confocal_file, json, stop = MockConfocalFile.from_image(
         np.swapaxes(scan_data, -1, -2),
         pixel_sizes_nm=pixel_sizes_nm,
