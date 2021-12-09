@@ -6,6 +6,7 @@ import warnings
 import matplotlib.pyplot as plt
 from .data.mock_confocal import generate_scan_json
 from .data.mock_fdcurve import generate_fdcurve_with_baseline_offset
+from .data.mock_json import mock_force_feedback_json
 
 
 def pytest_addoption(parser):
@@ -103,12 +104,15 @@ class MockDataFile_v2(MockDataFile_v1):
             for i, v in attributes.items():
                 dset.attrs[i] = v
 
-    def make_marker(self, marker_name, attributes):
+    def make_marker(self, marker_name, attributes, payload=None):
         if "Marker" not in self.file:
             self.file.create_group("Marker")
 
         if marker_name not in self.file["Marker"]:
-            dset = self.file["Marker"].create_dataset(marker_name, data=f'{{"name":"{marker_name}"}}')
+            payload_string = f', "payload":{payload}' if payload else ""
+            dset = self.file["Marker"].create_dataset(
+                marker_name, data=f'{{"name":"{marker_name}"{payload_string}}}'
+            )
 
             for i, v in attributes.items():
                 dset.attrs[i] = v
@@ -175,6 +179,11 @@ def h5_file(tmpdir_factory, request):
 
         mock_file.make_marker("test_marker", {'Start time (ns)': 100, 'Stop time (ns)': 200})
         mock_file.make_marker("test_marker2", {'Start time (ns)': 200, 'Stop time (ns)': 300})
+        mock_file.make_marker(
+            "force feedback",
+            {"Start time (ns)": 200, "Stop time (ns)": 300},
+            payload=mock_force_feedback_json(),
+        )
         mock_file.make_fd()
 
         counts = np.uint32([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
