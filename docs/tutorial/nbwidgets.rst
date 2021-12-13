@@ -115,7 +115,7 @@ It is also possible to select a portion of an F,d curve based on distance::
 
     selector = lk.FdDistanceRangeSelector(fdcurves)
 
-.. image:: fd_dist_widget.png    
+.. image:: fd_dist_widget.png
 
 Again, we can retrieve the selected data just as with `FdRangeSelector`::
 
@@ -135,15 +135,15 @@ Again, we can retrieve the selected data just as with `FdRangeSelector`::
 
 .. image::  fd_dist_widget2.png
 
-The returned F,d curves correspond to the longest contiguous (in time) stretch of data that falls 
+The returned F,d curves correspond to the longest contiguous (in time) stretch of data that falls
 within the distance thresholds. However, noise in the distance measurement can lead to short gaps of the time
 trace falling slightly outside of the thresholds, as illustrated below:
 
 .. image:: fd_dist_widget3a.png
 
-To avoid premature truncation caused by this noise, there is an additional `max_gap` keyword argument 
+To avoid premature truncation caused by this noise, there is an additional `max_gap` keyword argument
 to `FdDistanceRangeSelector` that can be used to adjust the acceptable length of noise gaps. The default values
-is zero, such that all data points are guaranteed to fall within the selected distance range. The effect of this 
+is zero, such that all data points are guaranteed to fall within the selected distance range. The effect of this
 argument is shown below for an F,d curve sliced with the same distance thresholds:
 
 .. image:: fd_dist_widget3.png
@@ -156,3 +156,31 @@ The selector widgets can also be easily accessed from single F,d curve instances
     fdcurve = fdcurves["Fd pull #6"]
     t_selector = fdcurve.range_selector()
     d_selector = fdcurve.distance_range_selector(max_gap=3)
+
+
+Cropping and Rotating Image Stacks
+----------------------------------
+
+You can interactively define the location of a tether for a `CorrelatedStack` by using::
+
+    stack = lk.CorrelatedStack("cas9_wf.tiff")
+    editor = stack.crop_and_rotate()
+    plt.show()
+
+Simply click on the start of the tether
+
+    .. image:: widget_stack_editor_1.png
+
+and then on the end of the tether
+
+    .. image:: widget_stack_editor_2.png
+
+After a tether is defined, the view will update showing the location of the tether and the
+image rotated such that the tether is horizontal. Note that `CorrelatedStack.crop_and_rotate()` accepts
+all of the arguments that can be used for `CorrelatedStack.plot()`.
+
+You can also use the mouse wheel to scroll through the individual frames (if using Jupyter Lab, hold `Shift` while scrolling).
+
+To obtain a copy of the edited `CorrelatedStack` object, use::
+
+    new_stack = editor.image

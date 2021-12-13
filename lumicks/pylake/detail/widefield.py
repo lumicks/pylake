@@ -412,7 +412,7 @@ class TransformMatrix:
         center: np.ndarray
             (x, y) point, center of rotation
         """
-        return cls(cv2.getRotationMatrix2D(center, theta, scale=1.0))
+        return cls(cv2.getRotationMatrix2D(tuple(center), theta, scale=1.0))
 
     @classmethod
     def translation(cls, x, y):
