@@ -4,6 +4,7 @@ import tifffile
 import warnings
 from deprecated.sphinx import deprecated
 from .detail.widefield import TiffStack
+from .nb_widgets.image_editing import ImageEditorWidget
 
 
 class CorrelatedStack:
@@ -191,6 +192,27 @@ class CorrelatedStack:
         x, y = np.vstack(self.src._tether.ends).T
         tether_kwargs = {"c": "w", "marker": "o", "mfc": "none", "ls": ":", **kwargs}
         plt.plot(x, y, **tether_kwargs)
+
+    def crop_and_rotate(self, frame=0, channel="rgb", show_title=True, **kwargs):
+        """Open a widget to interactively edit the image stack.
+
+        Actions include:
+            * scrolling through frames using the mouse wheel
+            * left-click to define the location of the tether
+
+        Parameters
+        ----------
+        frame : int, optional
+            Index of the frame to plot.
+        channel : 'rgb', 'red', 'green', 'blue', None; optional
+            Channel to plot for RGB images (None defaults to 'rgb')
+            Not used for grayscale images
+        show_title : bool, optional
+            Controls display of auto-generated plot title
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
+        """
+        return ImageEditorWidget(self, frame, channel, show_title, **kwargs)
 
     def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:

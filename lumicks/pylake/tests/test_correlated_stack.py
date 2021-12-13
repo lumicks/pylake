@@ -519,7 +519,7 @@ def test_get_image():
 
 
 def test_define_tether():
-    from pylake.detail.widefield import TransformMatrix
+    from lumicks.pylake.detail.widefield import TransformMatrix
 
     def make_stack(data, description, bit_depth):
         tiff = TiffStack(
