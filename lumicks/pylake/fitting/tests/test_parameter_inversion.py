@@ -5,23 +5,27 @@ import numpy as np
 
 
 def test_parameter_inversion():
-    def f(x, a, b):
-        return a + b * x
+    def f(independent, a, b):
+        return a + b * independent
 
-    def f_jac(x, a, b):
-        return np.vstack((np.ones((1, len(x))), x))
+    def f_jac(independent, a, b):
+        del a, b
+        return np.vstack((np.ones((1, len(independent))), independent))
 
-    def g(x, a, d, b):
-        return a - b * x + d * x * x
+    def g(independent, a, d, b):
+        return a - b * independent + d * independent * independent
 
-    def g_jac(x, a, d, b):
-        return np.vstack((np.ones((1, len(x))), x * x, -x))
+    def g_jac(independent, a, d, b):
+        del a, d, b
+        return np.vstack((np.ones((1, len(independent))), independent * independent, -independent))
 
-    def f_der(x, a, b):
+    def f_der(independent, a, b):
+        del independent, a
         return b * np.ones((len(x)))
 
-    def g_der(x, a, d, b):
-        return -b * np.ones((len(x))) + 2.0 * d * x
+    def g_der(independent, a, d, b):
+        del independent, a
+        return -b * np.ones((len(independent))) + 2.0 * d * independent
 
     x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     a_true = 5.0
