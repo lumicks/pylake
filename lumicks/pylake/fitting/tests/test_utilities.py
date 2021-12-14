@@ -27,9 +27,7 @@ def test_transformation_parser():
     assert parse_transformation(pars, {"foo": 5}) == OrderedDict((("blip", "blip"), ("foo", 5)))
 
     with pytest.raises(KeyError):
-        parse_transformation(pars, {"blap": "new_foo"}) == OrderedDict(
-            (("blip", "blip"), ("foo", "new_foo"))
-        )
+        parse_transformation(pars, {"blap": "new_foo"})
 
     param_names = ["gamma", "alpha", "beta", "delta"]
     params = OrderedDict(zip(param_names, param_names))

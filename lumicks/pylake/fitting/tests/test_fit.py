@@ -13,23 +13,24 @@ def test_model_defaults():
     """Test whether model defaults propagate to the fit object correctly"""
 
     def g(data, mu, sig, a, b, c, d, e, f, q):
+        del sig, a, b, c, d, e, f, q
         return (data - mu) * 2
 
-    m = Model("M", g, f=Parameter(5))
-    f = Fit(m)
-    f._add_data("test", [1, 2, 3], [2, 3, 4])
-    f._add_data("test2", [1, 2, 3], [2, 3, 4], params={"M/f": "f/new"})
-    f._build_fit()
+    model = Model("M", g, f=Parameter(5))
+    fit = Fit(model)
+    fit._add_data("test", [1, 2, 3], [2, 3, 4])
+    fit._add_data("test2", [1, 2, 3], [2, 3, 4], params={"M/f": "f/new"})
+    fit._build_fit()
 
-    assert f["M/a"].value == Parameter().value
-    assert f.params["M/a"].value == Parameter().value
-    assert f.params["f/new"].value == 5
-    assert f.params["M/f"].value == 5
+    assert fit["M/a"].value == Parameter().value
+    assert fit.params["M/a"].value == Parameter().value
+    assert fit.params["f/new"].value == 5
+    assert fit.params["M/f"].value == 5
 
     # Check whether each parameter is actually unique
-    f.params["f/new"] = 6
-    assert f.params["f/new"].value == 6
-    assert f.params["M/f"].value == 5
+    fit.params["f/new"] = 6
+    assert fit.params["f/new"].value == 6
+    assert fit.params["M/f"].value == 5
 
     # Test whether providing a default for a parameter that doesn't exist throws
     with pytest.raises(AssertionError):
@@ -37,40 +38,43 @@ def test_model_defaults():
 
     # Verify that the defaults are in fact copies
     default = Parameter(5)
-    m = Model("M", g, f=default)
-    m._params["M/f"].value = 6
+    model = Model("M", g, f=default)
+    model._params["M/f"].value = 6
     assert default.value == 5
 
 
 def test_datasets_build_status():
     def g(data, mu, sig, a, b, c, d, e, f, q):
+        del sig, a, b, c, d, e, f, q
         return (data - mu) * 2
 
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/f", "M/q"]
 
     m = Model("M", g)
-    d = Datasets(m, 0)
+    data_set = Datasets(m, 0)
 
-    d._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4})
-    assert not d.built
+    data_set._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4})
+    assert not data_set.built
 
-    d._link_data(OrderedDict(zip(all_params, np.arange(len(all_params)))))
-    assert d.built
+    data_set._link_data(OrderedDict(zip(all_params, np.arange(len(all_params)))))
+    assert data_set.built
 
     # Loading new data should invalidate the build
-    d._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 5, "M/f": "f/new"})
-    assert not d.built
+    data_set._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 5, "M/f": "f/new"})
+    assert not data_set.built
 
 
 def test_model_fit_object_linking():
-    def fetch_params(keys, indices):
-        p_list = list(f.params.keys())
+    def fetch_params(parameters, indices):
+        p_list = list(parameters.keys())
         return [p_list[x] if x is not None else None for x in indices]
 
     def g(data, mu, sig, a, b, c, d, e, f, q):
+        del sig, a, b, c, d, e, f, q
         return (data - mu) * 2
 
     def h(data, mu, e, q, c, r):
+        del e, q, c, r
         return (data - mu) * 2
 
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/f", "M/q"]
@@ -78,118 +82,121 @@ def test_model_fit_object_linking():
     m2 = Model("M", h)
 
     # Model should not be built
-    f = Fit(m, m2)
-    f[m]._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4})
-    assert f.dirty
+    fit = Fit(m, m2)
+    fit[m]._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4})
+    assert fit.dirty
 
     # Asking for the parameters should have triggered a build
-    f.params
-    assert not f.dirty
-    assert set(f.params.keys()) == set(all_params)
+    fit.params
+    assert not fit.dirty
+    assert set(fit.params.keys()) == set(all_params)
 
     # Check the parameters included in the model
     np.testing.assert_allclose(
-        f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        f.datasets[id(m)]._conditions[0].p_local
+        fit.datasets[id(m)]._conditions[0].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
-    param_names = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
-    assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == param_names
+    params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
+    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[0]._p_global_indices) == params
 
     # Loading data should make it dirty again
-    f[m]._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/e": "M/e_new"})
-    assert f.dirty
+    fit[m]._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/e": "M/e_new"})
+    assert fit.dirty
 
     # Check the parameters included in the model
-    f._rebuild()
+    fit._rebuild()
     np.testing.assert_allclose(
-        f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        f.datasets[id(m)]._conditions[0].p_local
+        fit.datasets[id(m)]._conditions[0].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
-    param_names = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
-    assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == param_names
+    params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
+    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[0]._p_global_indices) == params
 
     np.testing.assert_allclose(
-        f.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        f.datasets[id(m)]._conditions[1].p_local
+        fit.datasets[id(m)]._conditions[1].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
-    param_names = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
-    assert fetch_params(f.params, f.datasets[id(m)]._conditions[1]._p_global_indices) == param_names
+    params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
+    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[1]._p_global_indices) == params
 
     # Load data into model 2
-    f[m2]._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/r": 6})
-    assert f.dirty
+    fit[m2]._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/r": 6})
+    assert fit.dirty
 
     # Since M/r is set fixed in that model, it should not appear as a parameter
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/e_new", "M/f", "M/q"]
-    assert set(f.params.keys()) == set(all_params)
+    assert set(fit.params.keys()) == set(all_params)
 
     all_params = ["M/mu", "M/sig", "M/a", "M/b", "M/d", "M/e", "M/e_new", "M/f", "M/q", "M/r"]
-    f[m2]._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/e": 5})
-    assert set(f.params.keys()) == set(all_params)
+    fit[m2]._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/e": 5})
+    assert set(fit.params.keys()) == set(all_params)
     np.testing.assert_allclose(
-        f.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        f.datasets[id(m)]._conditions[0].p_local
+        fit.datasets[id(m)]._conditions[0].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
-    param_names = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
-    assert fetch_params(f.params, f.datasets[id(m)]._conditions[0]._p_global_indices) == param_names
+    params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
+    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[0]._p_global_indices) == params
 
     np.testing.assert_allclose(
-        f.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        f.datasets[id(m)]._conditions[1].p_local
+        fit.datasets[id(m)]._conditions[1].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
-    param_names = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
-    assert fetch_params(f.params, f.datasets[id(m)]._conditions[1]._p_global_indices) == param_names
+    params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
+    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[1]._p_global_indices) == params
 
-    np.testing.assert_allclose(f.datasets[id(m2)]._conditions[0].p_external, [0, 1, 2])
-    assert np.all(f.datasets[id(m2)]._conditions[0].p_local == [None, None, None, 4, 6])
+    np.testing.assert_allclose(fit.datasets[id(m2)]._conditions[0].p_external, [0, 1, 2])
+    assert np.all(fit.datasets[id(m2)]._conditions[0].p_local == [None, None, None, 4, 6])
     params = ["M/mu", "M/e", "M/q", None, None]
-    assert fetch_params(f.params, f.datasets[id(m2)]._conditions[0]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[id(m2)]._conditions[0]._p_global_indices) == params
 
     params = ["M/mu", None, "M/q", None, "M/r"]
-    assert fetch_params(f.params, f.datasets[id(m2)]._conditions[1]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[id(m2)]._conditions[1]._p_global_indices) == params
 
-    f.update_params(Params(**{"M/mu": 4, "M/sig": 6}))
-    assert f["M/mu"].value == 4
-    assert f["M/sig"].value == 6
+    fit.update_params(Params(**{"M/mu": 4, "M/sig": 6}))
+    assert fit["M/mu"].value == 4
+    assert fit["M/sig"].value == 6
 
     f2 = Fit(m)
     f2._add_data("test", [1, 2, 3], [2, 3, 4])
     f2["M/mu"].value = 12
 
-    f.update_params(f2)
-    assert f["M/mu"].value == 12
+    fit.update_params(f2)
+    assert fit["M/mu"].value == 12
 
     with pytest.raises(RuntimeError):
-        f.update_params(5)
+        fit.update_params(5)  # noqa
 
 
 def test_jacobian_test_fit():
-    def f(x, a, b):
-        return a + b * x
+    def f(independent, a, b):
+        return a + b * independent
 
-    def f_jac(x, a, b):
-        return np.vstack((np.ones((1, len(x))), x))
+    def f_jac(independent, a, b):
+        del a, b
+        return np.vstack((np.ones((1, len(independent))), independent))
 
-    def f_der(x, a, b):
-        return b * np.ones((len(x)))
+    def f_der(independent, a, b):
+        del a
+        return b * np.ones((len(independent)))
 
-    def f_jac_wrong(x, a, b):
-        return np.vstack((2.0 * np.ones((1, len(x))), x))
+    def f_jac_wrong(independent, a, b):
+        del a, b
+        return np.vstack((2.0 * np.ones((1, len(independent))), independent))
 
     x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     a_true, b_true = (5.0, 5.0)
@@ -216,16 +223,18 @@ def test_jacobian_test_fit():
 
 
 def test_integration_test_fitting():
-    def linear(x, a, b):
-        f = a * x + b
+    def linear(independent, a, b):
+        f = a * independent + b
         return f
 
-    def linear_jac(x, a, b):
-        jacobian = np.vstack((x, np.ones(len(x))))
+    def linear_jac(independent, a, b):
+        del a, b
+        jacobian = np.vstack((independent, np.ones(len(independent))))
         return jacobian
 
-    def linear_jac_wrong(x, a, b):
-        jacobian = np.vstack((np.ones(len(x)), x))
+    def linear_jac_wrong(independent, a, b):
+        del a, b
+        jacobian = np.vstack((np.ones(len(independent)), independent))
         return jacobian
 
     assert Model("M", linear, jacobian=linear_jac).has_jacobian
@@ -282,14 +291,15 @@ def test_integration_test_fitting():
 
 
 def test_integration_parameter_linkage():
-    """Verify that we estimate correctly across models."""
+    """Verify that we estimate correctly across models when models share parameters."""
 
-    def const(x, b):
-        f = b * np.ones(x.shape)
+    def const(independent, b):
+        f = b * np.ones(independent.shape)
         return f
 
-    def const_jac(x, b):
-        return np.ones((1, len(x)))
+    def const_jac(independent, b):
+        del b
+        return np.ones((1, len(independent)))
 
     x = np.arange(3)
     y1 = np.ones(3) * 2
@@ -349,13 +359,12 @@ def test_parameter_availability():
         ]
     )
 
-    def linear(x, a=1, b=1):
-        f = a * x + b
-        return f
+    def linear(independent, a=1, b=1):
+        return a * independent + b
 
-    def linear_jac(x, a, b):
-        J = np.vstack((x, np.ones(len(x))))
-        return J
+    def linear_jac(independent, a, b):
+        del a, b
+        return np.vstack((independent, np.ones(len(independent))))
 
     linear_model = Model("linear", linear, jacobian=linear_jac)
     linear_fit = Fit(linear_model)
@@ -372,7 +381,7 @@ def test_parameter_availability():
         linear_fit.params["linear/a"]
 
     linear_fit._add_data("test", x, y)
-    assert linear_fit.params["linear/a"]
+    assert "linear/a" in linear_fit.params
 
 
 def test_data_loading():
@@ -417,15 +426,13 @@ def test_parameter_access():
 
     # This should throw since we have multiple models.
     with pytest.raises(RuntimeError):
-        data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+        fit._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
 
     data1 = fit[m1]._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
     data2 = fit[m2]._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"Protein/Lc": "Protein/Lc2"})
 
     with pytest.raises(KeyError):
-        data3 = fit[m2]._add_data(
-            "RecA3", [1, 2, 3], [1, 2, 3], params={"Protein2/Lc": "Protein2/Lc2"}
-        )
+        fit[m2]._add_data("RecA3", [1, 2, 3], [1, 2, 3], params={"Protein2/Lc": "Protein2/Lc2"})
 
     assert fit[m1]["RecA"] == fit.params[data1]
     assert fit[m2]["RecA2"] == fit.params[data2]
@@ -454,15 +461,13 @@ def test_data_access():
 
     # This should throw since we have multiple models.
     with pytest.raises(RuntimeError):
-        data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
+        fit._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
 
     data1 = fit[m1]._add_data("RecA", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
     data2 = fit[m2]._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"Protein/Lc": "Protein/Lc2"})
 
     with pytest.raises(KeyError):
-        data3 = fit[m2]._add_data(
-            "RecA3", [1, 2, 3], [1, 2, 3], params={"Protein2/Lc": "Protein2/Lc2"}
-        )
+        fit[m2]._add_data("RecA3", [1, 2, 3], [1, 2, 3], params={"Protein2/Lc": "Protein2/Lc2"})
 
     assert fit[m1].data["RecA"] == data1
     assert fit[m2].data["RecA2"] == data2
@@ -595,7 +600,6 @@ def test_plotting():
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
     odijk("WLC").verify_jacobian(independent, params, plot=1)
 
-    independent = np.arange(0.15, 2, 0.25)
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
     fit = FdFit(odijk("WLC"))
     fit.add_data("dataset 3", [1, 2, 3], [2, 3, 4])
