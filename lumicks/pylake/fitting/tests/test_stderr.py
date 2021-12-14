@@ -4,24 +4,51 @@ import pytest
 import numpy as np
 
 
-def test_no_jac():
+def test_data():
     x = np.arange(10)
     y = np.array(
         [
-            8.24869073,
-            7.77648717,
-            11.9436565,
-            14.85406276,
-            22.73081526,
-            20.39692261,
-            32.48962353,
-            31.4775862,
-            37.63807819,
-            40.50125925,
+            23.250234526945302,
+            28.342680403327503,
+            34.15303580256364,
+            39.74756396347861,
+            49.98132078695123,
+            60.51421884139438,
+            73.2211796692214,
+            86.9299566694317,
+            104.81050416917682,
+            124.25500144427338,
         ]
     )
+    return x, y
 
-    linear_model = Model("linear", lambda x, a, b: a * x + b)
+
+def linear_func():
+    def linear(x, a, b):
+        return a * x + b
+
+    def linear_jac(x, a, b):
+        del a, b
+        return np.vstack((x, np.ones(len(x))))
+
+    return {"model_function": linear, "jacobian": linear_jac}
+
+
+def quadratic_func():
+    def quadratic(x, a, b, c):
+        return a * x * x + b * x + c
+
+    def quadratic_jac(x, a, b, c):
+        del a, b, c
+        return np.vstack((x * x, x, np.ones(len(x))))
+
+    return {"model_function": quadratic, "jacobian": quadratic_jac}
+
+
+def test_no_jac():
+    x, y = test_data()
+
+    linear_model = Model("linear", linear_func()["model_function"])
     linear_fit = Fit(linear_model)
     linear_fit._add_data("test", x, y, {"linear/a": 5})
     linear_fit.fit()
@@ -30,67 +57,73 @@ def test_no_jac():
         linear_fit.cov
 
 
-def test_uncertainty_analysis():
-    x = np.arange(10)
-    y = np.array(
-        [
-            8.24869073,
-            7.77648717,
-            11.9436565,
-            14.85406276,
-            22.73081526,
-            20.39692261,
-            32.48962353,
-            31.4775862,
-            37.63807819,
-            40.50125925,
-        ]
-    )
+@pytest.mark.parametrize(
+    "model_funcs, sigma, aic, aicc, bic",
+    [
+        (linear_func, 7.717703868870184, 71.24910853378455, 72.96339424807026, 71.85427871977264),
+        (
+            quadratic_func,
+            0.8795877788756955,
+            28.8127323769986,
+            32.812732376998596,
+            29.720487655980737,
+        ),
+    ],
+)
+def test_fit_metrics(model_funcs, sigma, aic, aicc, bic):
+    x, y = test_data()
 
-    def quad(x, a=1, b=1, c=1):
-        return a * x * x + b * x + c
+    fit = Fit(Model("linear", **model_funcs()))
+    fit._add_data("test", x, y)
+    fit.fit()
 
-    def quad_jac(x, a=1, b=1, c=1):
-        return np.vstack((x * x, x, np.ones(len(x))))
+    np.testing.assert_allclose(fit.sigma[0], sigma)
+    np.testing.assert_allclose(fit.aic, aic)
+    np.testing.assert_allclose(fit.aicc, aicc)
+    np.testing.assert_allclose(fit.bic, bic)
 
-    def linear(x, a=1, b=1):
-        f = a * x + b
-        return f
 
-    def linear_jac(x, a, b):
-        J = np.vstack((x, np.ones(len(x))))
-        return J
+def test_asymptotic_errs_all_parameters():
+    """Tests whether the covariance matrix is computed correctly"""
+    x, y = test_data()
 
-    linear_model = Model("linear", linear, jacobian=linear_jac)
-    linear_fit = Fit(linear_model)
-    linear_fit._add_data("test", x, y)
-    linear_fit.fit()
-    model_quad = Model("quad", quad, jacobian=quad_jac)
-    quad_fit = Fit(model_quad)
-    quad_fit._add_data("test", x, y)
-    quad_fit.fit()
+    quadratic_fit = Fit(Model("quadratic", **quadratic_func()))
+    quadratic_fit._add_data("test", x, y)
+    quadratic_fit.fit()
 
     np.testing.assert_allclose(
-        linear_fit.cov, np.array([[0.08524185, -0.38358832], [-0.38358832, 2.42939269]])
-    )
-    np.testing.assert_allclose(
-        quad_fit.cov,
+        quadratic_fit.cov,
         np.array(
             [
-                [0.01390294, -0.12512650, 0.16683533],
-                [-0.1251265, 1.21511735, -1.90192281],
-                [0.16683533, -1.90192281, 4.53792109],
+                [0.001465292918082, -0.013187636262741, 0.017583515016988],
+                [-0.013187636262741, 0.128066601040397, -0.200452071193665],
+                [0.017583515016988, -0.200452071193665, 0.478271608462078],
             ]
         ),
-        rtol=1e-6,
     )
 
-    np.testing.assert_allclose(linear_fit.sigma[0], 2.65187717)
-    np.testing.assert_allclose(linear_fit.aic, 49.88412577726061)
-    np.testing.assert_allclose(linear_fit.aicc, 51.59841149154632)
-    np.testing.assert_allclose(linear_fit.bic, 50.4892959632487)
+    np.testing.assert_allclose(quadratic_fit["quadratic/a"].stderr, 0.038279144688489905)
+    np.testing.assert_allclose(quadratic_fit["quadratic/b"].stderr, 0.35786394207910477)
+    np.testing.assert_allclose(quadratic_fit["quadratic/c"].stderr, 0.6915718389741429)
 
-    np.testing.assert_allclose(quad_fit.sigma[0], 2.70938272)
-    np.testing.assert_allclose(quad_fit.aic, 51.31318724618379)
-    np.testing.assert_allclose(quad_fit.aicc, 55.31318724618379)
-    np.testing.assert_allclose(quad_fit.bic, 52.220942525165924)
+
+def test_asymptotic_errs_subset_parameters():
+    """Check whether the asymptotic uncertainty handling is correct by checking a nested model
+
+    Fixing a parameter in quadratic function converts it to a linear one. This should result in
+    identical standard errors and covariance matrix"""
+    x, y = test_data()
+
+    linear_fit = Fit(Model("m", **linear_func()))
+    linear_fit._add_data("test", x, y)
+    linear_fit.fit()
+
+    quadratic_fit = Fit(Model("m", **quadratic_func()))
+    quadratic_fit._add_data("test", x, y)
+    quadratic_fit["m/a"].fixed = True
+    quadratic_fit.fit()
+
+    np.testing.assert_allclose(linear_fit.cov, quadratic_fit.cov)
+    np.testing.assert_allclose(quadratic_fit["m/b"].stderr, linear_fit["m/a"].stderr)
+    np.testing.assert_allclose(quadratic_fit["m/c"].stderr, linear_fit["m/b"].stderr)
+    assert quadratic_fit["m/a"].stderr is None

@@ -254,8 +254,11 @@ class Fit:
             self.params[name] = value
 
         if self.has_jacobian:
-            for name, value in zip(parameter_names, np.diag(self.cov)):
+            for name, value in zip(parameter_names[fitted], np.diag(self.cov)):
                 self.params[name].stderr = np.sqrt(value)
+
+            for name in parameter_names[np.logical_not(fitted)]:
+                self.params[name].stderr = None
 
         return self
 
@@ -623,12 +626,12 @@ class Fit:
         """
         # Note that this approximation is only valid if the noise on each data set is the same.
         if self.has_jacobian:
-            J = self._calculate_jacobian()
+            J = self._calculate_jacobian()[:, self.params.fitted]
             J = J / np.transpose(np.tile(self.sigma, (J.shape[1], 1)))
             return np.linalg.pinv(np.transpose(J).dot(J))
         else:
             raise NotImplementedError(
-                "In order to calculate a covariance matrix, a model Jacobian has to be specified"
+                "In order to calculate a covariance matrix, a model Jacobian has to be specified "
                 "for the model."
             )
 
