@@ -44,10 +44,27 @@ def test_model_calls():
     model = Model("m", model_function)
     y_ref = model._raw_call(t, [2.0, 3.0, 4.0])
 
-    np.testing.assert_allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/c": Parameter(3),
-                                          "m/d": Parameter(4)})), y_ref)
+    np.testing.assert_allclose(
+        model(
+            t,
+            Params(
+                **{
+                    "m/a": Parameter(1),
+                    "m/b": Parameter(2),
+                    "m/c": Parameter(3),
+                    "m/d": Parameter(4),
+                }
+            ),
+        ),
+        y_ref,
+    )
 
-    np.testing.assert_allclose(model(t, Params(**{"m/d": Parameter(4), "m/c": Parameter(3), "m/b": Parameter(2)})), y_ref)
+    np.testing.assert_allclose(
+        model(t, Params(**{"m/d": Parameter(4), "m/c": Parameter(3), "m/b": Parameter(2)})), y_ref
+    )
 
     with pytest.raises(KeyError):
-        np.testing.assert_allclose(model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/d": Parameter(4)})), y_ref)
+        np.testing.assert_allclose(
+            model(t, Params(**{"m/a": Parameter(1), "m/b": Parameter(2), "m/d": Parameter(4)})),
+            y_ref,
+        )
