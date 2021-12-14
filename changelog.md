@@ -3,11 +3,13 @@
 ## v0.11.1 | t.b.d.
 
 #### New features
-Added `CorrelatedStack.define_tether()` which can be used to define the endpoints of the tether between two beads and return image data rotated such that the tether is horizontal. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html) for more information.
+
+* Added `CorrelatedStack.define_tether()` which can be used to define the endpoints of the tether between two beads and return image data rotated such that the tether is horizontal. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html) for more information.
 
 #### Bug fixes
 
 * Fixed issue which resulted in the offset parameter added by `Model.subtract_independent_offset()` not having a unit associated with it.
+* Fixed bug which resulted in erroneous standard errors on parameter estimates computed from an `FdFit` with fixed parameters. For such a fitting problem, the covariance matrix was evaluated for the unconstrained problem (without the fixed parameter constraints). As a result, standard errors were always overestimated. Note that uncertainty estimation by profile likelihood was unaffected.
 
 ## v0.11.0 | 2021-12-07
 
