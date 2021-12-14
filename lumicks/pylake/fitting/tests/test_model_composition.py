@@ -27,16 +27,17 @@ def test_model_composition():
         return np.ones((len(x)))
 
     def g_der(x, a, d, b):
-        return - b * np.ones((len(x))) + 2.0 * d * x
+        return -b * np.ones((len(x))) + 2.0 * d * x
 
     m1 = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der)
     m2 = Model("M", g, dependent="x", jacobian=g_jac, derivative=g_der)
-    t = np.arange(0, 2, .5)
+    t = np.arange(0, 2, 0.5)
 
     # Check actual composition
     # (a + b * x) + a - b * x + d * x * x = 2 * a + d * x * x
-    np.testing.assert_allclose((m1 + m2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t), \
-        "Model composition returns invalid function evaluation (parameter order issue?)"
+    np.testing.assert_allclose(
+        (m1 + m2)._raw_call(t, np.array([1.0, 2.0, 3.0])), 2.0 + 3.0 * t * t
+    ), "Model composition returns invalid function evaluation (parameter order issue?)"
 
     # Check correctness of the Jacobians and derivatives
     assert (m1 + m2).verify_jacobian(t, [1.0, 2.0, 3.0])
@@ -59,8 +60,12 @@ def test_model_composition():
     assert InverseModel(m1 + m2 + m1).verify_derivative(t, [-1.0, 2.0, 3.0])
 
     m1_wrong_derivative = Model("M", f, dependent="x", jacobian=f_jac, derivative=f_der_wrong)
-    assert not (InverseModel(m1_wrong_derivative) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
-    assert not (InverseModel(m1_wrong_jacobian) + m2).verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
+    assert not (InverseModel(m1_wrong_derivative) + m2).verify_jacobian(
+        t, [-1.0, 2.0, 3.0], verbose=False
+    )
+    assert not (InverseModel(m1_wrong_jacobian) + m2).verify_jacobian(
+        t, [-1.0, 2.0, 3.0], verbose=False
+    )
     assert not (InverseModel(m1_wrong_derivative) + m2).verify_derivative(t, [-1.0, 2.0, 3.0])
 
     assert m1.subtract_independent_offset().verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
@@ -68,16 +73,16 @@ def test_model_composition():
 
     m1 = inverted_odijk("DNA").subtract_independent_offset() + force_offset("f")
     m2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
-    t = np.array([.19, .2, .3])
-    p1 = np.array([.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
-    p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, .1, 1.5])
+    t = np.array([0.19, 0.2, 0.3])
+    p1 = np.array([0.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
+    p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, 0.1, 1.5])
     np.testing.assert_allclose(m1._raw_call(t, p1), m2._raw_call(t, p2))
 
     # Check whether incompatible variables are found
     with pytest.raises(AssertionError):
         distance_offset("d") + force_offset("f")
 
-    composite = (distance_offset("d") + odijk("DNA"))
+    composite = distance_offset("d") + odijk("DNA")
     assert composite.dependent == "d"
     assert composite.independent == "f"
     assert composite._dependent_unit == "micron"
@@ -111,7 +116,6 @@ def test_subtract_independent_offset_unit(model, param, unit):
 
 
 def test_interpolation_inversion():
-    # Test interpolation
     m = odijk("Nucleosome").invert(independent_max=120.0, interpolate=True)
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
