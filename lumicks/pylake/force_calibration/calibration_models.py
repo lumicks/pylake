@@ -498,7 +498,6 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         rho_sample=None,
         rho_bead=1060.0,
         fast_sensor=False,
-        axial=False,
     ):
         """
         Active Calibration Model.
@@ -538,8 +537,6 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
         fast_sensor : bool
             Fast sensor? Fast sensors do not have the diode effect included in the model.
-        axial : bool
-            Is this an axial force model?
         """
         super().__init__(
             bead_diameter,
@@ -550,7 +547,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             rho_sample,
             rho_bead,
             fast_sensor,
-            axial,
+            False,
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
