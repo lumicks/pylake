@@ -133,26 +133,29 @@ class KymoWidget:
 
         MouseDragCallback(self._axes, 1, set_xlim)
 
-    def _to_pixel(self, x, y):
-        return self._axes.transData.transform((x, y))
+    def _get_scale(self):
+        """Get scaling of the image axes"""
+        return tuple(lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim()))
 
     def _connect_line_callback(self):
-        cutoff_radius = 20
+        cutoff_radius = 0.05  # We use a connection cutoff of 5% of the axis ranges
         line_to_extend = None
         plotted_line = None
+
+        def get_nearest(positions, ref_position, axis_scaling):
+            squared_dist = np.sum(((ref_position - positions) / axis_scaling) ** 2, 1)
+            idx = np.argmin(squared_dist)
+            return np.sqrt(squared_dist[idx]), idx
 
         def initiate_line(event):
             nonlocal line_to_extend
             if len(self.lines) == 0:
                 return
 
-            positions = np.array(
-                [self._to_pixel(l.seconds[-1], l.position[-1]) for l in self.lines]
-            )
-            squared_dist = np.sum((self._to_pixel(event.x, event.y) - positions) ** 2, 1)
-            idx = np.argmin(squared_dist)
+            tips = np.array([np.array([l.seconds[-1], l.position[-1]]) for l in self.lines])
+            distance, idx = get_nearest(tips, np.array([event.x, event.y]), self._get_scale())
 
-            if squared_dist[idx] < cutoff_radius:
+            if distance < cutoff_radius:
                 line_to_extend = idx
                 return True
 
@@ -174,11 +177,10 @@ class KymoWidget:
                 plotted_line.remove()
                 plotted_line = None
 
-            positions = np.array([self._to_pixel(l.seconds[0], l.position[0]) for l in self.lines])
-            squared_dist = np.sum((self._to_pixel(event.x, event.y) - positions) ** 2, 1)
-            idx = np.argmin(squared_dist)
+            tips = np.array([np.array([l.seconds[0], l.position[0]]) for l in self.lines])
+            distance, idx = get_nearest(tips, np.array([event.x, event.y]), self._get_scale())
 
-            if squared_dist[idx] < cutoff_radius:
+            if distance < cutoff_radius:
                 self.lines._concatenate_lines(self.lines[line_to_extend], self.lines[idx])
                 self.update_lines()
 
