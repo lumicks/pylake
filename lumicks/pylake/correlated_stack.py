@@ -34,7 +34,7 @@ class CorrelatedStack:
         stack.plot_correlated(file.force1x)
 
         # Determine the force trace averaged over frame 2...9.
-        file.force1x.downsampled_over(stack[2:10].timestamps)
+        file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges)
     """
 
     def __init__(self, image_name, align=True):
@@ -256,7 +256,7 @@ class CorrelatedStack:
         """
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
 
-        frame_timestamps = self.timestamps
+        frame_timestamps = self.frame_timestamp_ranges
         plot_correlated(
             channel_slice,
             frame_timestamps,
@@ -367,7 +367,19 @@ class CorrelatedStack:
         return self._get_frame(self.num_frames - 1).stop
 
     @property
+    @deprecated(
+        reason=(
+            "For camera based images only the integration start/stop timestamps are defined. "
+            "Use `CorrelatedStack.frame_timestamp_ranges` instead."
+        ),
+        action="always",
+        version="0.11.1",
+    )
     def timestamps(self):
+        return self.frame_timestamp_ranges
+
+    @property
+    def frame_timestamp_ranges(self):
         """List of time stamps."""
         return [
             (self._get_frame(idx).start, self._get_frame(idx).stop)

@@ -63,6 +63,16 @@ def test_correlated_stack(shape):
     np.testing.assert_allclose([x.start for x in stack[2]], [30])
 
 
+def test_deprecated_timestamps():
+    fake_tiff = TiffStack(MockTiffFile(data=[np.ones((5,4,3))]*6,
+                                       times=[["10", "20"], ["20", "30"], ["30", "40"], ["40", "50"], ["50", "60"], ["60", "70"]]),
+                          align_requested=False)
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+    with pytest.deprecated_call():
+        stack.timestamps
+
+
+
 @pytest.mark.parametrize("shape", [(3,3), (5,4,3)])
 def test_correlation(shape):
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 10, 2))
@@ -85,11 +95,11 @@ def test_correlation(shape):
 
     # Unit test which tests whether we obtain an appropriately downsampled time series when ask for downsampling of a
     # slice based on a stack.
-    ch = cc.downsampled_over(stack[0:3].timestamps)
+    ch = cc.downsampled_over(stack[0:3].frame_timestamp_ranges)
     np.testing.assert_allclose(ch.data, [np.mean(np.arange(10, 18, 2)), np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2))])
     np.testing.assert_allclose(ch.timestamps, [(10 + 16) / 2, (20 + 26) / 2, (30 + 36) / 2])
 
-    ch = cc.downsampled_over(stack[1:4].timestamps)
+    ch = cc.downsampled_over(stack[1:4].frame_timestamp_ranges)
     np.testing.assert_allclose(ch.data, [np.mean(np.arange(20, 28, 2)), np.mean(np.arange(30, 38, 2)), np.mean(np.arange(40, 48, 2))])
     np.testing.assert_allclose(ch.timestamps, [(20 + 26) / 2, (30 + 36) / 2, (40 + 46) / 2])
 
@@ -97,13 +107,13 @@ def test_correlation(shape):
         cc.downsampled_over(stack[1:4])
 
     with pytest.raises(ValueError):
-        cc.downsampled_over(stack[1:4].timestamps, where='up')
+        cc.downsampled_over(stack[1:4].frame_timestamp_ranges, where='up')
 
     with pytest.raises(AssertionError):
-        cc["0ns":"20ns"].downsampled_over(stack[3:4].timestamps)
+        cc["0ns":"20ns"].downsampled_over(stack[3:4].frame_timestamp_ranges)
 
     with pytest.raises(AssertionError):
-        cc["40ns":"70ns"].downsampled_over(stack[0:1].timestamps)
+        cc["40ns":"70ns"].downsampled_over(stack[0:1].frame_timestamp_ranges)
 
     assert (stack[0]._get_frame(0).start == 10)
     assert (stack[1]._get_frame(0).start == 20)
