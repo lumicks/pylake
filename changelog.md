@@ -16,6 +16,10 @@
 * Removed `axial` parameter from `lk.ActiveCalibrationModel()` as we do not support active force calibration in the axial direction.
 * Improved default scaling behaviour for `CorrelatedStack.plot_correlated()` and `Scan.plot_correlated()`. It now ensures the ratio between the image and temporal plot is according to the aspect ratio of the scan or stack.
 
+#### Deprecations
+
+* Deprecated `CorrelatedStack.timestamps` and replaced with `CorrelatedStack.frame_timestamp_ranges`. The reason for this change is that per-pixel timestamps are not defined for camera based images; therefore, this previous use was not in line with the use of the `timestamps` property of confocal image classes. This change also brings consistency with `Scan.frame_timestamp_ranges`.
+
 ## v0.11.0 | 2021-12-07
 
 #### New force calibration features

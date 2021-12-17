@@ -91,4 +91,4 @@ downsampled over the video frames. This can be done using the function `Slice.do
 using timestamps obtained from the `CorrelatedStack`::
 
     # Determine the force trace averaged over frame 2...9.
-    file.force1x.downsampled_over(stack[2:10].timestamps)
+    file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges)
