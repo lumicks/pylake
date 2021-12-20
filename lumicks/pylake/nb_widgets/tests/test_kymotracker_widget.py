@@ -54,14 +54,14 @@ def test_track_kymo(kymograph, region_select):
 
     # Track a line in a particular region. Only a single line exists in this region.
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
-    kymo_widget.track_kymo(*region_select(in_um(8), in_s(10), in_um(9), in_s(20)))
+    kymo_widget.track_kymo(*region_select(in_s(10), in_um(8), in_s(20), in_um(9)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(10, 20))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 10)
     assert len(kymo_widget.lines) == 1
 
     # Verify that if we track the same region, the old one gets deleted and we track the same line
     # again.
-    kymo_widget.track_kymo(*region_select(in_um(8), in_s(15), in_um(9), in_s(20)))
+    kymo_widget.track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(15, 20))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 5)
     assert len(kymo_widget.lines) == 1
@@ -72,7 +72,7 @@ def test_track_kymo(kymograph, region_select):
 
     # Remove a single line
     kymo_widget.adding = False
-    kymo_widget.track_kymo(*region_select(in_um(8), in_s(15), in_um(9), in_s(20)))
+    kymo_widget.track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
     assert len(kymo_widget.lines) == 2
 
 
@@ -114,7 +114,7 @@ def test_refine_from_widget(kymograph, region_select):
                                        "refine them"
 
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
-    kymo_widget.track_kymo(*region_select(in_um(12), in_s(5), in_um(13), in_s(20)))
+    kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 13)
     assert len(kymo_widget.lines) == 1
@@ -171,7 +171,7 @@ def test_refine_line_width_units(kymograph, region_select):
     in_um, in_s = calibrate_to_kymo(kymograph)
 
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
-    kymo_widget.track_kymo(*region_select(in_um(12), in_s(5), in_um(13), in_s(20)))
+    kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
     kymo_widget.refine()
 
     # With this line_width we'll include the two dim pixels in the test data

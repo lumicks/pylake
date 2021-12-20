@@ -2,6 +2,7 @@ import numpy as np
 from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.widgets import RectangleSelector
 
 
 class ImageStackAxes(Axes):
@@ -29,11 +30,11 @@ class ImageStackAxes(Axes):
             keyword arguments, forwarded to superclass
         """
         super().__init__(*args, **kwargs)
-        self.current_image = image
+        self._current_image = image
 
         self.channel = channel
         self.current_frame = frame
-        self.num_frames = self.current_image.num_frames
+        self.num_frames = self._current_image.num_frames
         self.make_title = (
             (lambda: f"{image.name}\n[frame {self.current_frame + 1} / {self.num_frames}]")
             if show_title
@@ -46,7 +47,7 @@ class ImageStackAxes(Axes):
         self.set_title(self.make_title())
 
     def get_frame_data(self):
-        return self.current_image._get_frame(self.current_frame)._get_plot_data(self.channel)
+        return self._current_image._get_frame(self.current_frame)._get_plot_data(self.channel)
 
     def update_image(self):
         self.im.set_data(self.get_frame_data())
@@ -105,6 +106,22 @@ class ImageEditorAxes(ImageStackAxes):
         (self._tether_line,) = self.plot([], [], marker="o", mfc="none", c="w", ls="--", lw="0.5")
         self.get_figure().canvas.mpl_connect("button_press_event", self.handle_button_event)
 
+        self.roi_limits = None
+        self.selector = RectangleSelector(
+            self,
+            self.handle_crop,
+            button=3,
+            minspanx=5,
+            minspany=5,
+            spancoords="pixels",
+            interactive=True,
+            rectprops={
+                "facecolor": "none",
+                "edgecolor": "w",
+                "fill": False,
+            },
+        )
+
     def handle_button_event(self, event):
         """Function to handle mouse click events."""
         if event.inaxes != self:
@@ -117,13 +134,20 @@ class ImageEditorAxes(ImageStackAxes):
         if event.button == 1:
             self.add_point(event.xdata, event.ydata)
 
+    def handle_crop(self, event_click, event_release):
+        corners = (
+            np.sort([event.xdata for event in (event_click, event_release)]),
+            np.sort([event.ydata for event in (event_click, event_release)]),
+        )
+        self.roi_limits = np.rint(np.hstack(corners)).astype(int)
+
     def add_point(self, x, y):
         """Add a point to the tether coordinates; if both ends are defined, rotate the image."""
         self.current_points.append(np.array((x, y)))
 
         if len(self.current_points) == 2:
-            self.current_image = self.current_image.define_tether(*self.current_points)
-            temp_tether = np.vstack(self.current_image[0].src._tether.ends)
+            self._current_image = self._current_image.define_tether(*self.current_points)
+            temp_tether = np.vstack(self._current_image[0].src._tether.ends)
             self.current_points = []
         else:
             temp_tether = np.atleast_2d(np.vstack(self.current_points))
@@ -140,6 +164,13 @@ class ImageEditorAxes(ImageStackAxes):
         for lims, setter in zip(current_limits, [self.set_xlim, self.set_ylim]):
             setter(lims)
         self.get_figure().canvas.draw()
+
+    def get_edited_image(self):
+        return (
+            self._current_image
+            if self.roi_limits is None
+            else self._current_image.crop_by_pixels(*self.roi_limits)
+        )
 
 
 @dataclass
@@ -177,4 +208,4 @@ class ImageEditorWidget:
     @property
     def image(self):
         """Return the edited image object."""
-        return self._ax.current_image
+        return self._ax.get_edited_image()

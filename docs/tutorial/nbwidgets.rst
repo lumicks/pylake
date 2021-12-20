@@ -167,20 +167,30 @@ You can interactively define the location of a tether for a `CorrelatedStack` by
     editor = stack.crop_and_rotate()
     plt.show()
 
-Simply click on the start of the tether
+Simply left-click on the start of the tether
 
-    .. image:: widget_stack_editor_1.png
+.. image:: widget_stack_editor_1.png
 
 and then on the end of the tether
 
-    .. image:: widget_stack_editor_2.png
+.. image:: widget_stack_editor_2.png
 
 After a tether is defined, the view will update showing the location of the tether and the
-image rotated such that the tether is horizontal. Note that `CorrelatedStack.crop_and_rotate()` accepts
-all of the arguments that can be used for `CorrelatedStack.plot()`.
+image rotated such that the tether is horizontal.
+
+To crop an image, right-click and drag a rectangle around the region of interest. Once the rectangle is defined,
+you can edit the shape by right-clicking and dragging the various handles.
+
+.. image:: widget_stack_editor_3.png
 
 You can also use the mouse wheel to scroll through the individual frames (if using Jupyter Lab, hold `Shift` while scrolling).
+
+*Note that* `CorrelatedStack.crop_and_rotate()` *accepts all of the arguments that can be used for* `CorrelatedStack.plot()`.
 
 To obtain a copy of the edited `CorrelatedStack` object, use::
 
     new_stack = editor.image
+    new_stack.plot()
+    new_stack.plot_tether()
+
+.. image:: widget_stack_editor_4.png
