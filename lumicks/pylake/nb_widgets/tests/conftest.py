@@ -31,7 +31,7 @@ def mockevent():
 @pytest.fixture
 def region_select():
     def region(xs, ys, xe, ye):
-        return MockEvent(0, ys, xs, 0, 0), MockEvent(0, ye, xe, 0, 0)
+        return MockEvent(0, xs, ys, 0, 0), MockEvent(0, xe, ye, 0, 0)
 
     return lambda xs, ys, xe, ye: region(xs, ys, xe, ye)
 

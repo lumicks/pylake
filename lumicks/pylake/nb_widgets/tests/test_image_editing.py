@@ -71,7 +71,7 @@ def test_editor_clicks(mockevent):
     ax = plt.gca()
 
     # test returned stack is same as currently plotted stack
-    assert id(w.image) == id(ax.current_image)
+    assert id(w.image) == id(ax._current_image)
     # returned stack is the original stack
     assert id(w.image) == id(stack)
     # no points currently defined
@@ -80,12 +80,23 @@ def test_editor_clicks(mockevent):
     # click first tether point
     event = mockevent(ax, 50, 50, 1, False)
     ax.handle_button_event(event)
-    assert id(w.image) == id(ax.current_image) # widget synced with axes
+    assert id(w.image) == id(ax._current_image) # widget synced with axes
     assert len(ax.current_points) == 1 # one click registered
 
     # click second tether point
     event = mockevent(ax, 50, 75, 1, False)
     ax.handle_button_event(event)
-    assert id(w.image) == id(ax.current_image) # widget synced with axes
+    assert id(w.image) == id(ax._current_image) # widget synced with axes
     assert id(w.image) != id(stack) # stack was updated
     assert len(ax.current_points) == 0 # tether defined, refresh points list
+
+
+def test_cropping_clicks(region_select):
+    stack = make_mock_stack()
+    w = ImageEditorWidget(stack)
+    ax = plt.gca()
+
+    events = region_select(50, 25, 150, 75)
+    ax.handle_crop(*events)
+    np.testing.assert_equal(ax.roi_limits, (50, 150, 25, 75))
+    np.testing.assert_equal(w.image.src._shape, (50, 100))

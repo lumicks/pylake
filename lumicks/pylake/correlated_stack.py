@@ -211,6 +211,24 @@ class CorrelatedStack:
             Controls display of auto-generated plot title
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
+
+        Examples
+        --------
+        ::
+
+        from lumicks import pylake
+        import matplotlib.pyplot as plt
+
+        # Loading a stack.
+        stack = pylake.CorrelatedStack("example.tiff")
+        widget = stack.crop_and_rotate()
+        plt.show()
+
+        # Select cropping ROI by right-click drag
+        # Select tether ends by left-click
+
+        # Grab the updated image stack
+        new_stack = widget.image
         """
         return ImageEditorWidget(self, frame, channel, show_title, **kwargs)
 
