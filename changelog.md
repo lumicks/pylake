@@ -7,6 +7,7 @@
 * Added `CorrelatedStack.define_tether()` which can be used to define the endpoints of the tether between two beads and return image data rotated such that the tether is horizontal. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html) for more information.
 * Added function to correlate `Scan` frames to channel data. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html#correlating-scans).
 * Added `CorrelatedStack.crop_and_rotate()` for interactive editing of the image stack. Actions include scrolling through image frames with the mouse wheel, and left-clicking to define the tether coordinates, and right-click/drag to define a cropping region. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html#image-stack-editor) for more information.
+* Added 'KymoLineGroup.plot_binding_histogram()` to plot histograms of binding events for tracked lines. See [Kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#plotting-binding-histograms) for more details.
 
 #### Bug fixes
 

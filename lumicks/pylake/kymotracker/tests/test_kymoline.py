@@ -229,3 +229,34 @@ def test_kymoline_msd_plot(max_lag, x_data, y_data):
     k.plot_msd(max_lag=max_lag)
     np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), x_data)
     np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), y_data)
+
+
+def test_binding_histograms():
+    channel = CalibratedKymographChannel("test_data", np.zeros((10, 10)), 1e9, 1)
+
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2.5, 3.5, 4.5]), channel)
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3.5, 4.5, 5.5]), channel)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4.5, 5.5, 6.5]), channel)
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5.5, 6.5, 7.5]), channel)
+
+    lines = KymoLineGroup([k1, k2, k3, k4])
+
+    # Counting only the first position of each track with the default number of bins
+    counts, edges = lines._histogram_binding_events("binding")
+    np.testing.assert_equal(counts, [0, 0, 1, 1, 1, 1, 0, 0, 0, 0])
+    np.testing.assert_allclose(edges, [0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10])
+
+    # Counting all points of each track with the default number of bins
+    counts, edges = lines._histogram_binding_events("all")
+    np.testing.assert_equal(counts, [0, 0, 1, 2, 3, 3, 2, 1, 0, 0])
+    np.testing.assert_allclose(edges, [0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10])
+
+    # Counting only the first position of each track with custom bin edges
+    counts, edges = lines._histogram_binding_events("binding", bins=[2, 3, 4, 5, 6, 7, 8])
+    np.testing.assert_equal(counts, [1, 1, 1, 1, 0, 0])
+    np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
+
+    # Counting all points of each track with custom bin edges
+    counts, edges = lines._histogram_binding_events("all", bins=[2, 3, 4, 5, 6, 7, 8])
+    np.testing.assert_equal(counts, [1, 2, 3, 3, 2, 1])
+    np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
