@@ -416,3 +416,51 @@ class KymoLineGroup:
         return _kinetic_mle_optimize(
             n_components, dwelltimes_sec, min_observation_time, max_observation_time
         )
+
+    def _histogram_binding_events(self, kind, bins=10):
+        """Make histogram of bound events.
+
+        Parameters
+        ----------
+        kind : {'binding', 'all'}
+            Type of events to count. 'binding' counts only the first position of each track whereas
+            'all' counts positions of all time points in each track.
+        bins : int or sequence of scalars
+            Definition of the histogram bins; passed to `np.histogram()`. If `int`, defines the total
+            number of bins. If sequence of scalars, defines the edges of the bins.
+        """
+        if kind == "all":
+            slc = slice(None)
+        elif kind == "binding":
+            slc = slice(0, 1)
+        else:
+            raise ValueError(f"`kind` argument '{kind}' must be 'all' or 'binding'.")
+        events = np.hstack([track.position[slc] for track in self])
+
+        image = self[0]._image
+        pos_range = (0, image._pixel_size * image.data.shape[0])
+        return np.histogram(events, bins=bins, range=pos_range)
+
+    def plot_binding_histogram(self, kind, bins=10, **kwargs):
+        """Plot histogram of bound events.
+
+        Parameters
+        ----------
+        kind : {'binding', 'all'}
+            Type of events to count. 'binding' counts only the first position of each track whereas
+            'all' counts positions of all time points in each track.
+        bins : int or sequence of scalars
+            Definition of the histogram bins; passed to `np.histogram()`. When an integer is supplied
+            to the `bins` argument, the full position range is used to calculate the bin edges (this
+            is equivalent to using `np.histogram(data, bins=n, range=(0, max_position))`). If a
+            sequence of scalars is provided, they directly define the edges of the bins.
+        **kwargs
+            Keyword arguments forwarded to `plt.bar()`.
+        """
+        import matplotlib.pyplot as plt
+
+        counts, edges = self._histogram_binding_events(kind, bins)
+        widths = np.diff(edges)
+        plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
+        plt.ylabel("Counts")
+        plt.xlabel(f"Position ({self[0]._image._position_unit[1]})")

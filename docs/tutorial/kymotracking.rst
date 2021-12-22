@@ -224,6 +224,39 @@ Here `num_pixels` is the number of pixels to sum on either side of the trace.
 .. image:: kymo_sumcounts.png
 
 
+Plotting binding histograms
+---------------------------
+
+We can easily plot some histograms of the binding events located with the kymotracker. Simply use::
+
+    plt.figure()
+    traces.plot_binding_histogram(kind="binding")
+
+.. image:: kymo_bind_histogram_1.png
+
+Here, the `kind="binding"` argument indicates that we only wish to analyze the initial binding events (the first
+position of each track). We can optionally supply a `bins` argument, which is forwarded to `np.histogram()`.
+For instance, we can increase the number of bins from 10 (the default) to 50::
+
+    plt.figure()
+    traces.plot_binding_histogram("binding", bins=50)
+
+.. image:: kymo_bind_histogram_2.png
+
+When an integer is supplied to the `bins` argument, the full position range is used to calculate the bin edges (this is
+equivalent to using `np.histogram(data, bins=n, range=(0, max_position))`). This facilitates comparison of histograms calculated
+from different kymographs, as the absolute x-scale is dependent on the kymograph acquisition options, rather than the positions
+of the tracked lines. Alternatively, it is possible to supply a custom array of bin edges, as demonstrated below::
+
+    plt.figure()
+    traces.plot_binding_histogram("kind=all", bins=np.linspace(12, 18, 75), fc="#dcdcdc", ec="tab:blue")
+
+.. image:: kymo_bind_histogram_3.png
+
+Notice that here we use `kind="all"` to include all of the bound positions for each track. This snippet also demonstrates
+how we can pass keyword arguments (forwarded to `plt.bar()`) to format the histogram.
+
+
 Exporting kymograph traces
 --------------------------
 
