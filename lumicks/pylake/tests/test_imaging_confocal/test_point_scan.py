@@ -5,40 +5,42 @@ from lumicks import pylake
 from matplotlib.testing.decorators import cleanup
 
 
-def test_point_scans(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-    if f.format_version == 2:
-        ps = f.point_scans["PointScan1"]
-        ps_red = ps.red_photon_count
+def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
+    ps = test_point_scans["PointScan1"]
+    ps_red = ps.red_photon_count
 
-        assert ps_red.data.shape == (64, )
-        reference_timestamps = np.arange(2.0e+10, 2.0e+10+(6.25e+7*len(ps_red)) , 6.25e+7)
-        reference_data = np.array([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0, 0, 0, 0,
-                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0,
-                                   0, 0, 0, 0, 0, 0, 1, 0, 8, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0,
-                                   0, 1, 0, 0, 0, 8, 0])
-        np.testing.assert_allclose(ps_red.timestamps, reference_timestamps)
-        np.testing.assert_allclose(ps_red.data, reference_data)
+    assert ps_red.data.shape == (64,)
 
-        with pytest.deprecated_call():
-            ps.json
-        with pytest.deprecated_call():
-            assert ps.has_fluorescence
-        with pytest.deprecated_call():
-            assert not ps.has_force
+    np.testing.assert_allclose(ps_red.timestamps, reference_timestamps)
+    np.testing.assert_allclose(ps_red.data, reference_counts)
+
+    with pytest.deprecated_call():
+        ps.json
+    with pytest.deprecated_call():
+        assert ps.has_fluorescence
+    with pytest.deprecated_call():
+        assert not ps.has_force
 
 
 @cleanup
-def test_plotting(h5_file):
-    import matplotlib.pyplot as plt
-    f = pylake.File.from_h5py(h5_file)
-    if f.format_version == 2:
-        ps = f.point_scans["PointScan1"]
-        for plot_func in (ps.plot_red, ps.plot_green, ps.plot_blue):
-            plot_func()
-            np.testing.assert_allclose(np.sort(plt.xlim()), [0, 0.0625 * 64])
-            np.testing.assert_allclose(np.sort(plt.ylim()), [0, 8])
+def test_plotting(test_point_scans):
+    ps = test_point_scans["PointScan1"]
 
-        ps.plot_rgb(lw=5)
-        np.testing.assert_allclose(np.sort(plt.xlim()), [0, 0.0625 * 64])
-        np.testing.assert_allclose(np.sort(plt.ylim()), [0, 8])
+    for channel in ("red", "green", "blue"):
+        plot_func = getattr(ps, f"plot_{channel}")
+        plot_func()
+
+        xline, yline = plt.gca().get_lines()[0].get_xydata().T
+        count = getattr(ps, f"{channel}_photon_count")
+        np.testing.assert_allclose(xline, (count.timestamps - count.timestamps[0]) * 1e-9)
+        np.testing.assert_allclose(yline, count.data)
+        plt.close()
+
+    ps.plot_rgb(lw=5)
+    lines = plt.gca().get_lines()
+    for channel, line in zip(("red", "green", "blue"), lines):
+        xline, yline = line.get_xydata().T
+        count = getattr(ps, f"{channel}_photon_count")
+        np.testing.assert_allclose(xline, (count.timestamps - count.timestamps[0]) * 1e-9)
+        np.testing.assert_allclose(yline, count.data)
+    plt.close()
