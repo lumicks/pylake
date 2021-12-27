@@ -173,10 +173,10 @@ def test_fd_slice(slice_parameters, f, d):
     np.testing.assert_allclose(fdr.d, d)
 
 
-def test_copy_behaviour_with_offset(h5_file):
+def test_copy_behaviour_with_offset(fd_h5_file):
     """Test whether with_offset is successful when there's an actual file attached. The reason this is tested explicitly
     is because with_offset may not deepcopy the handle it holds to the parent file."""
-    fd1 = make_mock_fd(force=[1, 2, 3], distance=[2.0, 0.0, 4.0], start=0, file=h5_file)
+    fd1 = make_mock_fd(force=[1, 2, 3], distance=[2.0, 0.0, 4.0], start=0, file=fd_h5_file)
     fd1.with_offset(distance_offset=-1.0)
 
 
