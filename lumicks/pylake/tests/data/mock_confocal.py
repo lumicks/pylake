@@ -142,6 +142,44 @@ class MockConfocalFile:
             start + len(infowave) * dt,
         )
 
+    @staticmethod
+    def from_streams(
+        start,
+        dt,
+        axes,
+        num_pixels,
+        pixel_sizes_nm,
+        infowave,
+        red_photon_counts=None,
+        blue_photon_counts=None,
+        green_photon_counts=None,
+    ):
+        make_slice = lambda data: None if data is None else Slice(Continuous(data, start, dt))
+        if axes == [] and num_pixels == [] and pixel_sizes_nm == []:
+            json_string = generate_scan_json([])
+        else:
+            json_string = generate_scan_json(
+                [
+                    {
+                        "axis": axis,
+                        "num of pixels": num_pixels,
+                        "pixel size (nm)": pixel_size,
+                    }
+                    for (axis, pixel_size, num_pixels) in zip(axes, pixel_sizes_nm, num_pixels)
+                ]
+            )
+
+        return (
+            MockConfocalFile(
+                infowave=make_slice(infowave),
+                red_channel=make_slice(red_photon_counts),
+                blue_channel=make_slice(blue_photon_counts),
+                green_channel=make_slice(green_photon_counts),
+            ),
+            json.loads(json_string)["value0"],
+            start + len(infowave) * dt,
+        )
+
 
 def generate_kymo(name, image, pixel_size_nm, start=4, dt=7, samples_per_pixel=5, line_padding=3):
     confocal_file, json, stop = MockConfocalFile.from_image(
