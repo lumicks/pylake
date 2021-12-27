@@ -3,35 +3,7 @@ from lumicks import pylake
 import pytest
 from textwrap import dedent
 from lumicks.pylake.detail.h5_helper import write_h5
-from .data.mock_json import force_feedback_dict
-
-
-def test_scans(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-    if f.format_version == 2:
-        scan = f.scans["fast Y slow X"]
-        assert scan.pixels_per_line == 4  # Fast axis
-        np.testing.assert_allclose(scan.red_image, np.transpose([[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0], [1, 1, 1, 0]]))
-
-        scan2 = f.scans["fast Y slow X multiframe"]
-        reference = np.array([[[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0]], [[0, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]])
-        reference = np.transpose(reference, [0, 2, 1])
-        np.testing.assert_allclose(scan2.red_image, reference)
-
-        scan2 = f.scans["fast Y slow X multiframe"]
-        rgb = np.zeros((2, 4, 3, 3))
-        rgb[:, :, :, 0] = reference
-        rgb[:, :, :, 1] = reference
-        rgb[:, :, :, 2] = reference
-        np.testing.assert_allclose(scan2.rgb_image, rgb)
-
-
-def test_kymos(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-    if f.format_version == 2:
-        kymo = f.kymos["Kymo1"]
-        assert kymo.pixels_per_line == 5
-        np.testing.assert_allclose(kymo.red_image, np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]))
+from . import test_file_items
 
 
 def test_attributes(h5_file):
@@ -43,75 +15,6 @@ def test_attributes(h5_file):
     assert type(f.description) is str
     assert type(f.guid) is str
     assert np.issubdtype(f.export_time, np.dtype(int).type)
-
-
-def test_channels(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-
-    np.testing.assert_allclose(f.force1x.data, [0, 1, 2, 3, 4])
-    np.testing.assert_allclose(f.force1x.timestamps, [1, 11, 21, 31, 41])
-    assert "x" not in f.force1x.labels
-    assert f.force1x.labels["y"] == "Force (pN)"
-    assert f.force1x.labels["title"] == "Force HF/Force 1x"
-
-    np.testing.assert_allclose(f.downsampled_force1x.data, [1.1, 2.1])
-    np.testing.assert_allclose(f.downsampled_force1x.timestamps, [1, 2])
-    assert "x" not in f.downsampled_force1x.labels
-    assert f.downsampled_force1x.labels["y"] == "Force (pN)"
-    assert f.downsampled_force1x.labels["title"] == "Force LF/Force 1x"
-
-    vsum_force = np.sqrt(f.downsampled_force1x.data**2 + f.downsampled_force1y.data**2)
-    np.testing.assert_allclose(f.downsampled_force1.data, vsum_force)
-    np.testing.assert_allclose(f.downsampled_force1.timestamps, [1, 2])
-    assert "x" not in f.downsampled_force1.labels
-    assert f.downsampled_force1.labels["y"] == "Force (pN)"
-    assert f.downsampled_force1.labels["title"] == "Force LF/Force 1"
-
-
-def test_calibration(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-
-    assert type(f.force1x.calibration) is list
-    assert type(f.downsampled_force1.calibration) is list
-    assert type(f.downsampled_force1x.calibration) is list
-
-    if f.format_version == 1:
-        # v1 version doesn't include calibration data field
-        assert len(f.force1x.calibration) == 0
-        assert len(f.downsampled_force1.calibration) == 0
-        assert len(f.downsampled_force1x.calibration) == 0
-
-    if f.format_version == 2:
-        assert len(f.force1x.calibration) == 2
-        assert len(f.downsampled_force1.calibration) == 0
-        assert len(f.downsampled_force1x.calibration) == 1
-
-
-def test_marker(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-
-    if f.format_version == 2:
-        with pytest.warns(FutureWarning):
-            m = f["Marker"]
-
-        with pytest.raises(IndexError):
-            m["test_marker"]
-
-        assert np.isclose(f.markers["test_marker"].start, 100)
-        assert np.isclose(f.markers["test_marker"].stop, 200)
-        assert np.isclose(f.markers["test_marker2"].start, 200)
-        assert np.isclose(f.markers["test_marker2"].stop, 300)
-
-
-def test_marker_metadata(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-
-    if f.format_version == 2:
-        assert not f.markers["test_marker"]._json
-        assert not f.markers["test_marker2"]._json
-        assert np.isclose(f.markers["force feedback"].start, 200)
-        assert np.isclose(f.markers["force feedback"].stop, 300)
-        assert f.markers["force feedback"]._json == force_feedback_dict
 
 
 def test_properties(h5_file):
@@ -172,12 +75,12 @@ def test_repr_and_str(h5_file):
         assert str(f) == dedent("""\
             File root metadata:
             - Bluelake version: unknown
-            - Description: 
-            - Experiment: 
+            - Description: test
+            - Experiment: test
             - Export time (ns): -1
             - File format version: 1
-            - GUID: 
-        
+            - GUID: invalid
+
             Force HF:
               Force 1x:
               - Data type: float64
@@ -198,7 +101,7 @@ def test_repr_and_str(h5_file):
               Force 1z:
               - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
               - Size: 2
-            
+
             .force1x
             .force1y
             .force1z
@@ -211,12 +114,12 @@ def test_repr_and_str(h5_file):
         assert str(f) == dedent("""\
             File root metadata:
             - Bluelake version: unknown
-            - Description: 
-            - Experiment: 
+            - Description: test
+            - Experiment: test
             - Export time (ns): -1
             - File format version: 2
-            - GUID: 
-            
+            - GUID: invalid
+
             Force HF:
               Force 1x:
               - Data type: float64
@@ -262,7 +165,7 @@ def test_repr_and_str(h5_file):
               PointScan1:
               - Data type: object
               - Size: 1
-            
+
             .markers
               - force feedback
               - test_marker
@@ -270,7 +173,7 @@ def test_repr_and_str(h5_file):
 
             .kymos
               - Kymo1
-            
+
             .scans
               - fast X slow Z multiframe
               - fast Y slow X
@@ -338,12 +241,12 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     assert str(g) == str(f)
 
     # Verify that all attributes are there and correct
-    test_scans(g.h5)
-    test_kymos(g.h5)
+    test_file_items.test_scans(g.h5)
+    test_file_items.test_kymos(g.h5)
     test_attributes(g.h5)
-    test_channels(g.h5)
-    test_calibration(g.h5)
-    test_marker(g.h5)
+    test_file_items.test_channels(g.h5)
+    test_file_items.test_calibration(g.h5)
+    test_file_items.test_marker(g.h5)
     test_properties(g.h5)
 
     new_file = f"{tmpdir}/omit_LF1y.h5"

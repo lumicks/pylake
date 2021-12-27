@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lumicks import pylake
 from matplotlib.testing.decorators import cleanup
-from .data.mock_confocal import generate_scan
+from ..data.mock_confocal import generate_scan
 
 
 def test_scans(h5_file):
