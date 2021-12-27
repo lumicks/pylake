@@ -6,7 +6,7 @@ from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymogr
 from lumicks.pylake.kymo import EmptyKymo
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
-from .data.mock_confocal import generate_kymo
+from ..data.mock_confocal import generate_kymo
 
 
 def with_offset(t, start_time=1592916040906356300):
