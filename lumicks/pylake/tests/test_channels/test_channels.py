@@ -309,24 +309,24 @@ def test_time_indexing():
     assert len(s['1s':'2h'].data) == 0
 
 
-def test_inspections(h5_file):
-    assert channel.channel_class(h5_file["Force HF"]["Force 1x"]) == channel.Continuous
-    assert channel.channel_class(h5_file["Force LF"]["Force 1x"]) == channel.TimeSeries
-    if "Photon Time Tags" in h5_file:
-        assert channel.channel_class(h5_file["Photon Time Tags"]["Red"]) == channel.TimeTags
+def test_inspections(channel_h5_file):
+    assert channel.channel_class(channel_h5_file["Force HF"]["Force 1x"]) == channel.Continuous
+    assert channel.channel_class(channel_h5_file["Force LF"]["Force 1x"]) == channel.TimeSeries
+    if "Photon Time Tags" in channel_h5_file:
+        assert channel.channel_class(channel_h5_file["Photon Time Tags"]["Red"]) == channel.TimeTags
 
 
-def test_channel(h5_file):
-    force = channel.Continuous.from_dataset(h5_file["Force HF"]["Force 1x"])
+def test_channel(channel_h5_file):
+    force = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
     np.testing.assert_allclose(force.data, [0, 1, 2, 3, 4])
     np.testing.assert_allclose(force.timestamps, [1, 11, 21, 31, 41])
 
-    downsampled = channel.TimeSeries.from_dataset(h5_file["Force LF"]["Force 1x"])
+    downsampled = channel.TimeSeries.from_dataset(channel_h5_file["Force LF"]["Force 1x"])
     np.testing.assert_allclose(downsampled.data, [1.1, 2.1])
     np.testing.assert_allclose(downsampled.timestamps, [1, 2])
 
-    if "Photon Time Tags" in h5_file:
-        timetags = channel.TimeTags.from_dataset(h5_file["Photon Time Tags"]["Red"])
+    if "Photon Time Tags" in channel_h5_file:
+        timetags = channel.TimeTags.from_dataset(channel_h5_file["Photon Time Tags"]["Red"])
         assert np.all(np.equal(timetags.data, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
         assert np.all(np.equal(timetags.timestamps, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
 
@@ -613,8 +613,8 @@ def test_channel_plot():
     testLine(np.arange(0, 230, 10) - 100 + 5, d)
 
 
-def test_regression_lazy_loading(h5_file):
-    ch = channel.Continuous.from_dataset(h5_file["Force HF"]["Force 1x"])
+def test_regression_lazy_loading(channel_h5_file):
+    ch = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
     assert type(ch._src._src_data) == h5py.Dataset
 
 
