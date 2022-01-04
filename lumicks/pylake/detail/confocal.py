@@ -126,6 +126,15 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
         return cls(name, file, start, stop, json_data)
 
+    def __copy__(self):
+        return self.__class__(
+            name=self.name,
+            file=self.file,
+            start=self.start,
+            stop=self.stop,
+            json=self._json,
+        )
+
     @property
     @deprecated(
         reason=(

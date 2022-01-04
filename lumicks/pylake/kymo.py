@@ -2,7 +2,7 @@ import numpy as np
 import warnings
 import cachetools
 from dataclasses import dataclass
-
+from copy import copy
 from skimage.measure import block_reduce
 from .detail.confocal import ConfocalImage
 from .detail.image import (
@@ -63,6 +63,12 @@ class Kymo(ConfocalImage):
         name = self.__class__.__name__
         return f"{name}(pixels={self.pixels_per_line})"
 
+    def __copy__(self):
+        kymo_copy = super().__copy__()
+        kymo_copy._position_offset = self._position_offset
+        kymo_copy._calibration = self._calibration
+        return kymo_copy
+
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
         if not isinstance(item, slice):
@@ -98,9 +104,11 @@ class Kymo(ConfocalImage):
 
         start = line_timestamps[i_min]
 
-        return Kymo(
-            self.name, self.file, start, stop, self._json, self._position_offset, self._calibration
-        )
+        sliced_kymo = copy(self)
+        sliced_kymo.start = start
+        sliced_kymo.stop = stop
+
+        return sliced_kymo
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
@@ -308,16 +316,8 @@ class Kymo(ConfocalImage):
         if n_pixels == 0:
             raise IndexError("Cropped image would be empty")
 
-        position_offset = self._position_offset + lower_pixels * self.pixelsize[0]
-        result = Kymo(
-            self.name,
-            self.file,
-            self.start,
-            self.stop,
-            self._json,
-            position_offset,
-            self._calibration,
-        )
+        result = copy(self)
+        result._position_offset = self._position_offset + lower_pixels * self.pixelsize[0]
 
         def image_factory(_, channel):
             return self._image(channel)[lower_pixels:upper_pixels, :]
@@ -356,15 +356,7 @@ class Kymo(ConfocalImage):
             The `numpy` function which is going to reduce multiple pixels into one.
             The default is `np.sum`.
         """
-        result = Kymo(
-            self.name,
-            self.file,
-            self.start,
-            self.stop,
-            self._json,
-            self._position_offset,
-            self._calibration,
-        )
+        result = copy(self)
 
         def image_factory(_, channel):
             data = self._image(channel)
@@ -419,16 +411,8 @@ class Kymo(ConfocalImage):
         if self._calibration.unit == "kbp":
             raise RuntimeError("kymo is already calibrated in base pairs.")
 
-        calibration = PositionCalibration("kbp", length_kbp / self.size_um[0], "kbp")
-        result = Kymo(
-            self.name,
-            self.file,
-            self.start,
-            self.stop,
-            self._json,
-            self._position_offset,
-            calibration,
-        )
+        result = copy(self)
+        result._calibration = PositionCalibration("kbp", length_kbp / self.size_um[0], "kbp")
         result._image_factory = self._image_factory
         result._timestamp_factory = self._timestamp_factory
         result._line_time_factory = self._line_time_factory
