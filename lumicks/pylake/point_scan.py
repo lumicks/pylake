@@ -18,23 +18,27 @@ class PointScan(BaseScan):
         Dictionary containing scan-specific metadata.
     """
 
-    def _plot_color(self, color, **kwargs):
-        import matplotlib.pyplot as plt
+    def _get_plot_data(self, channel):
+        """Get photon count `Slice` for requested channel."""
+        return getattr(self, f"{channel}_photon_count")
 
-        count = getattr(self, f"{color}_photon_count")
-        time = (count.timestamps - count.timestamps[0]) * 1e-9
-        plt.plot(time, count.data, **{"color": color, "label": color, **kwargs})
-        plt.xlabel("time (s)")
-        plt.ylabel(r"photon count")
-        plt.title(self.name)
-
-    def plot_rgb(self, **kwargs):
-        """Plot all color channels
+    def _plot(self, channel, axes, **kwargs):
+        """Plot photon counts for the selected channel(s).
 
         Parameters
         ----------
+        channe : {'red', 'green', 'blue', 'rgb'}
+            Color channel to plot
+        axes : mpl.axes.Axes or None
+            If supplied, the axes instance in which to plot.
         **kwargs
-            Forwarded to `~matplotlib.pyplot.plot`.
+            Forwarded to :func:`matplotlib.pyplot.imshow`
         """
-        for color in ["red", "green", "blue"]:
-            self._plot_color(color, **kwargs)
+        channels = ["red", "green", "blue"] if channel == "rgb" else [channel]
+        for channel in channels:
+            count = self._get_plot_data(channel)
+            time = (count.timestamps - count.timestamps[0]) * 1e-9
+            axes.plot(time, count.data, **{"color": channel, "label": channel, **kwargs})
+            axes.set_xlabel("time (s)")
+            axes.set_ylabel(r"photon count")
+            axes.set_title(self.name)

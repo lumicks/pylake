@@ -39,7 +39,7 @@ Load the kymograph in the file::
 Plot the green channel::
 
     plt.figure(figsize=(15, 10))
-    kymo.plot_green()
+    kymo.plot("green")
 
 .. image:: force_kymograph1.png
 
@@ -66,7 +66,7 @@ Get a sense of the pixel values in the kymos
 Scale the colorbar and make the kymograph look better::
 
     plt.figure(figsize=(15,10))
-    kymo.plot_green(vmax=10)
+    kymo.plot("green", vmax=10)
 
 .. image:: force_kymograph2.png
 
@@ -114,7 +114,7 @@ Plot the final figure::
     plt.figure(figsize=(15,10))
 
     plt.subplot(2,1,1)
-    kymo.plot_green(vmax=10)
+    kymo.plot("green", vmax=10)
 
     plt.subplot(2,1,2)
     forcex.plot(label="Original")

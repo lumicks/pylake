@@ -49,7 +49,7 @@ data looks like::
     ax1 = plt.subplot(2, 1, 1)
 
     # We use aspect="auto" because otherwise the kymograph would be very long and thin
-    kymo.plot_green(vmax=4, aspect="auto")
+    kymo.plot("green", vmax=4, aspect="auto")
 
     # Plot the force
     ax2 = plt.subplot(2, 1, 2, sharex = ax1)

@@ -16,13 +16,13 @@ Once again, `.kymos` is a regular Python dictionary so we can easily iterate ove
 
     # Plot all kymos in a file
     for name, kymo in file.kymos.items():
-        kymo.plot_rgb()
+        kymo.plot(channel="rgb")
         plt.savefig(name)
 
 Or just pick a single one::
 
     kymo = file.kymos["name"]
-    kymo.plot_red()
+    kymo.plot("red")
 
 Kymo data and details
 ---------------------
@@ -43,7 +43,7 @@ For example, we can crop the region from `2` micron to `7` micron using the foll
 Kymographs can also be sliced in order to obtain a specific time range.
 For example, one can plot the region of the kymograph between 175 and 180 seconds using::
 
-    kymo["175s":"180s"].plot_red()
+    kymo["175s":"180s"].plot("red")
 
 There are also several properties available for convenient access to the kymograph metadata:
 
@@ -91,9 +91,9 @@ Plotting and exporting
 There are also convenience functions to plot individual color channels and the full RGB image::
 
     plt.subplot(2, 1, 1)
-    kymo.plot_rgb()
+    kymo.plot("rgb")
     plt.subplot(2, 1, 2)
-    kymo.plot_blue()
+    kymo.plot("blue")
 
 The images can also be exported in the TIFF format::
 

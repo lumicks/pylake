@@ -187,25 +187,38 @@ def test_damaged_scan(test_scans):
 @cleanup
 def test_plotting(test_scans):
     scan = test_scans["fast Y slow X multiframe"]
-    scan.plot_blue()
+    scan.plot(channel="blue")
     image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), scan.blue_image[0])
     np.testing.assert_allclose(image.get_extent(), [0, 0.197 * 3, 0.191 * 4, 0])
     plt.close()
 
     scan = test_scans["fast X slow Z multiframe"]
-    scan.plot_rgb()
+    scan.plot(channel="rgb")
     image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), scan.rgb_image[0] / np.max(scan.rgb_image[0]))
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
 
     scan = test_scans["fast Y slow Z multiframe"]
-    scan.plot_rgb()
+    scan.plot(channel="rgb")
     image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), scan.rgb_image[0] / np.max(scan.rgb_image[0]))
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
+
+
+@cleanup
+def test_deprecated_plotting(test_scans):
+    scan = test_scans["fast Y slow X multiframe"]
+    with pytest.deprecated_call():
+        scan.plot_red()
+    with pytest.deprecated_call():
+        scan.plot_green()
+    with pytest.deprecated_call():
+        scan.plot_blue()
+    with pytest.deprecated_call():
+        scan.plot_rgb()
 
 
 def test_save_tiff(tmpdir_factory, test_scans):

@@ -13,6 +13,7 @@ linear_colormaps = {
     "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
     "green": LinearSegmentedColormap.from_list("green", colors=[(0, 0, 0), (0, 1, 0)]),
     "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
+    "rgb": None,
 }
 
 
@@ -173,10 +174,11 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         """Resolve error when confocal scan starts before the timeline information."""
         raise NotImplementedError
 
-    def _plot_color(self, color, **kwargs):
-        """Implementation of plotting for selected color."""
-        raise NotImplementedError
-
+    @deprecated(
+        reason="`plot_red()` is deprecated. Use `plot(channel='red') instead.",
+        version="0.11.1",
+        action="always",
+    )
     def plot_red(self, **kwargs):
         """Plot an image of the red photon channel
 
@@ -185,8 +187,13 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        return self._plot_color("red", **kwargs)
+        return self.plot(channel="red", **kwargs)
 
+    @deprecated(
+        reason="`plot_green()` is deprecated. Use `plot(channel='green') instead.",
+        version="0.11.1",
+        action="always",
+    )
     def plot_green(self, **kwargs):
         """Plot an image of the green photon channel
 
@@ -195,8 +202,13 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        return self._plot_color("green", **kwargs)
+        return self.plot(channel="green", **kwargs)
 
+    @deprecated(
+        reason="`plot_blue()` is deprecated. Use `plot(channel='blue') instead.",
+        version="0.11.1",
+        action="always",
+    )
     def plot_blue(self, **kwargs):
         """Plot an image of the blue photon channel
 
@@ -205,17 +217,48 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        return self._plot_color("blue", **kwargs)
+        return self.plot(channel="blue", **kwargs)
 
+    @deprecated(
+        reason="`plot_rgb()` is deprecated. Use `plot(channel='rgb') instead.",
+        version="0.11.1",
+        action="always",
+    )
     def plot_rgb(self, **kwargs):
-        """Plot all color channels
+        """Plot an image of all color channels.
 
         Parameters
         ----------
         **kwargs
-            Forwarded to `~matplotlib.pyplot.plot`.
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
+        return self.plot(channel="rgb", **kwargs)
+
+    def _get_plot_data(self, channel):
+        """Get data for plotting requested channel."""
         raise NotImplementedError
+
+    def _plot(self, channel, axes, **kwargs):
+        """Internal implementation of the plotting."""
+        raise NotImplementedError
+
+    def plot(self, channel, axes=None, **kwargs):
+        """Show a formatted plot for the requested color channel.
+
+        Parameters
+        ----------
+        channel : {'red', 'green', 'blue', 'rgb'}
+            Color channel to plot.
+        axes : mpl.axes.Axes or None
+            If supplied, the axes instance in which to plot.
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot` or :func:`matplotlib.pyplot.imshow`
+        """
+        import matplotlib.pyplot as plt
+
+        if axes is None:
+            axes = plt.gca()
+        return self._plot(channel, axes=axes, **kwargs)
 
     @property
     @deprecated(
@@ -267,24 +310,12 @@ class ConfocalImage(BaseScan):
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 
-    def _plot_color(self, color, **kwargs):
-        image = getattr(self, f"{color}_image")
-        return self._plot(image, **{"cmap": linear_colormaps[color], **kwargs})
-
-    def _plot(self, image, **kwargs):
-        raise NotImplementedError
-
-    def plot_rgb(self, **kwargs):
-        """Plot a full rbg kymograph image
-
-        Parameters
-        ----------
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
-        image = self.rgb_image
-        image = image / np.max(image)
-        return self._plot(image, **kwargs)
+    def _get_plot_data(self, channel):
+        """Get image data for plotting requested channel."""
+        image = getattr(self, f"{channel}_image")
+        if channel == "rgb":
+            image = image / np.max(image)
+        return image
 
     def save_tiff(self, filename, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image
