@@ -24,6 +24,7 @@
 #### Deprecations
 
 * Deprecated `CorrelatedStack.timestamps` and replaced with `CorrelatedStack.frame_timestamp_ranges`. The reason for this change is that per-pixel timestamps are not defined for camera based images; therefore, this previous use was not in line with the use of the `timestamps` property of confocal image classes. This change also brings consistency with `Scan.frame_timestamp_ranges`.
+* Deprecated `plot_red()`, `plot_green()`, `plot_blue()`, and `plot_rgb()` methods for `PointScan`, `Scan`, and `Kymo`. These methods have been replaced with a single `.plot(channel={color})` method.
 
 ## v0.11.0 | 2021-12-07
 

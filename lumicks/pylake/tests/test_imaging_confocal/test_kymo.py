@@ -139,7 +139,7 @@ def test_plotting(test_kymos):
     kymo = test_kymos["Kymo1"]
 
     plt.figure()
-    kymo.plot_red()
+    kymo.plot(channel="red")
     # # The following assertion fails because of unequal line times in the test data. These
     # # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
     # # which is why the old version of this test fails.
@@ -155,9 +155,23 @@ def test_plotting(test_kymos):
     plt.close()
 
     kymo_bp = kymo.calibrate_to_kbp(10.000)
-    kymo_bp.plot_red()
+    kymo_bp.plot(channel="red")
     assert plt.gca().get_ylabel() == "position (kbp)"
     plt.close()
+
+
+@cleanup
+def test_deprecated_plotting(test_kymos):
+    kymo = test_kymos["Kymo1"]
+    with pytest.deprecated_call():
+        kymo.plot_red()
+    with pytest.deprecated_call():
+        kymo.plot_green()
+    with pytest.deprecated_call():
+        kymo.plot_blue()
+    with pytest.deprecated_call():
+        kymo.plot_rgb()
+
 
 
 @cleanup

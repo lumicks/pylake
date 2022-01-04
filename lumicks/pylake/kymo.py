@@ -4,7 +4,7 @@ import cachetools
 from dataclasses import dataclass
 from copy import copy
 from skimage.measure import block_reduce
-from .detail.confocal import ConfocalImage
+from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import (
     line_timestamps_image,
     seek_timestamp_next_line,
@@ -151,9 +151,19 @@ class Kymo(ConfocalImage):
         pixelsize[0] = self._calibration.from_um(pixelsize[0])
         return pixelsize
 
-    def _plot(self, image, **kwargs):
-        import matplotlib.pyplot as plt
+    def _plot(self, channel, axes, **kwargs):
+        """Plot a kymo for requested color channel(s).
 
+        Parameters
+        ----------
+        channel : {'red', 'green', 'blue', 'rgb'}
+            Color channel to plot.
+        axes : mpl.axes.Axes
+            The axes instance in which to plot.
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.imshow`
+        """
+        image = self._get_plot_data(channel)
         size_calibrated = self._calibration.from_um(self.size_um[0])
         duration = self.line_time_seconds * image.shape[1]
         linetime = self.line_time_seconds
@@ -163,12 +173,13 @@ class Kymo(ConfocalImage):
             # pixel center aligned with mean time per line
             extent=[-0.5 * linetime, duration - 0.5 * linetime, size_calibrated, 0],
             aspect=(image.shape[0] / image.shape[1]) * (duration / size_calibrated),
+            cmap=linear_colormaps[channel],
         )
 
-        plt.imshow(image, **{**default_kwargs, **kwargs})
-        plt.xlabel("time (s)")
-        plt.ylabel(f"position ({self._calibration.unit_label})")
-        plt.title(self.name)
+        axes.imshow(image, **{**default_kwargs, **kwargs})
+        axes.set_xlabel("time (s)")
+        axes.set_ylabel(f"position ({self._calibration.unit_label})")
+        axes.set_title(self.name)
 
     def _downsample_channel(self, n, xy, reduce=np.mean):
         force = self.file._get_force(n, xy)
@@ -214,8 +225,7 @@ class Kymo(ConfocalImage):
         _, (ax1, ax2) = plt.subplots(2, 1, sharex="all")
 
         # plot kymo
-        plt.sca(ax1)
-        getattr(self, f"plot_{color_channel}")()
+        self.plot(channel=color_channel, axes=ax1)
         ax1.set_xlabel(None)
         xlim_kymo = ax1.get_xlim()  # Stored since plotting the force channel will change the limits
 
@@ -253,7 +263,7 @@ class Kymo(ConfocalImage):
 
         gs = GridSpec(1, 2, width_ratios=(1, hist_ratio))
         ax_kymo = plt.subplot(gs[0])
-        getattr(self, f"plot_{color_channel}")(aspect="auto")
+        self.plot(channel=color_channel, axes=ax_kymo, aspect="auto")
 
         ax_hist = plt.subplot(gs[1])
         ax_hist.barh(edges, counts, bin_widths, align="edge", **kwargs)
@@ -286,7 +296,7 @@ class Kymo(ConfocalImage):
 
         gs = GridSpec(2, 1, height_ratios=(hist_ratio, 1))
         ax_kymo = plt.subplot(gs[1])
-        getattr(self, f"plot_{color_channel}")(aspect="auto")
+        self.plot(channel=color_channel, axes=ax_kymo, aspect="auto")
         ax_kymo.set_title("")
 
         ax_hist = plt.subplot(gs[0])

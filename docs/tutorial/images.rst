@@ -18,13 +18,13 @@ Once again, `.scans` is a regular Python dictionary so we can easily iterate ove
 
     # Plot all scans in a file
     for name, scan in file.scans.items():
-        scan.plot_rgb()
+        scan.plot(channel="rgb")
         plt.savefig(name)
 
 Or just pick a single one::
 
     scan = file.scans["name"]
-    scan.plot_red()
+    scan.plot("red")
 
 Scan data and details
 ---------------------
@@ -79,7 +79,7 @@ As shown above, there are convenience functions for plotting either the full RGB
 If a few pixels dominate the image, one might want to set the scale by hand. We can pass an extra argument to `plot_red`
 named `vmax` to accomplish this. This parameter gets forwarded to :func:`matplotlib.pyplot.imshow`::
 
-    scan.plot_red(vmax=5)
+    scan.plot(channel="red", vmax=5)
 
 Multi-frame scans are also supported::
 
@@ -87,7 +87,7 @@ Multi-frame scans are also supported::
     print(scan.blue_image.shape)  # (self.num_frames, h, w) -> single color channel
     print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
 
-    scan.plot(frame=3)  # plot the third frame -- defaults to the first frame if no argument is given
+    scan.plot("green", frame=3)  # plot the third frame -- defaults to the first frame if no argument is given
 
 The images can also be exported in the TIFF format::
 

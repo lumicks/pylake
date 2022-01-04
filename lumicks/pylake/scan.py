@@ -1,7 +1,7 @@
 import numpy as np
 from copy import copy
 
-from .detail.confocal import ConfocalImage
+from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import reconstruct_num_frames
 
 
@@ -128,13 +128,9 @@ class Scan(ConfocalImage):
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
         from .detail.confocal import linear_colormaps
 
-        channels = ("red", "green", "blue")
-
         def plot_channel(frame):
-            if channel == "rgb":
-                return self.rgb_image[frame, :, :, :] / self.rgb_image.max()
-            elif channel in channels:
-                return getattr(self, f"{channel}_image")[frame, :, :]
+            if channel in ("red", "green", "blue", "rgb"):
+                return self._get_plot_data(channel)[frame]
             else:
                 raise RuntimeError("Invalid channel selected")
 
@@ -145,7 +141,7 @@ class Scan(ConfocalImage):
             plot_channel,
             frame,
             reduce,
-            colormap=linear_colormaps[channel] if channel in channels else None,
+            colormap=linear_colormaps[channel],
             figure_scale=figure_scale,
         )
 
@@ -182,13 +178,15 @@ class Scan(ConfocalImage):
         else:
             return data
 
-    def _plot(self, image, frame=1, image_handle=None, **kwargs):
-        """Plot a scan frame.
+    def _plot(self, channel, axes, frame=1, image_handle=None, **kwargs):
+        """Plot a scan frame for requested color channel(s).
 
         Parameters
         ----------
-        image : array_like
-            Image data
+        channel : {'red', 'green', 'blue', 'rgb'}
+            Color channel to plot.
+        axes : mpl.axes.Axes
+            The axes instance in which to plot.
         frame : int
             Frame index (starting at 1).
         image_handle : `matplotlib.image.AxesImage` or None
@@ -197,7 +195,7 @@ class Scan(ConfocalImage):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`
         """
-        import matplotlib.pyplot as plt
+        image = self._get_plot_data(channel)
 
         frame = np.clip(frame, 1, self.num_frames)
         if self.num_frames != 1:
@@ -208,21 +206,22 @@ class Scan(ConfocalImage):
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um),
+            cmap=linear_colormaps[channel],
         )
 
         if not image_handle:
-            image_handle = plt.imshow(image, **{**default_kwargs, **kwargs})
+            image_handle = axes.imshow(image, **{**default_kwargs, **kwargs})
         else:
             # Updating the image data in an existing plot is a lot faster than re-plotting with `imshow`.
             image_handle.set_data(image)
 
-        axes = self._ordered_axes()
-        plt.xlabel(fr"{axis_label[axes[0]['axis']]} ($\mu$m)")
-        plt.ylabel(fr"{axis_label[axes[1]['axis']]} ($\mu$m)")
+        scan_axes = self._ordered_axes()
+        axes.set_xlabel(fr"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
+        axes.set_ylabel(fr"{axis_label[scan_axes[1]['axis']]} ($\mu$m)")
         if self.num_frames == 1:
-            plt.title(self.name)
+            axes.set_title(self.name)
         else:
-            plt.title(f"{self.name} [frame {frame}/{self.num_frames}]")
+            axes.set_title(f"{self.name} [frame {frame}/{self.num_frames}]")
 
         return image_handle
 
@@ -268,12 +267,14 @@ class Scan(ConfocalImage):
         else:
             face_color = None
 
-        plot_func = getattr(self, f"plot_{plot_type}")
+        plot_func = lambda frame, image_handle: self.plot(
+            channel=plot_type, frame=frame, image_handle=image_handle, **kwargs
+        )
         image_handle = None
 
         def plot(num):
             nonlocal image_handle
-            image_handle = plot_func(frame=start_frame + num, image_handle=image_handle, **kwargs)
+            image_handle = plot_func(frame=start_frame + num, image_handle=image_handle)
             return plt.gca().get_children()
 
         fig = plt.gcf()
