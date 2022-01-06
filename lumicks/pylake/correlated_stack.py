@@ -4,7 +4,6 @@ import tifffile
 import warnings
 from deprecated.sphinx import deprecated
 from .detail.widefield import TiffStack
-from .nb_widgets.image_editing import ImageEditorWidget
 
 
 class CorrelatedStack:
@@ -236,6 +235,8 @@ class CorrelatedStack:
         # Grab the updated image stack
         new_stack = widget.image
         """
+        from .nb_widgets.image_editing import ImageEditorWidget
+
         return ImageEditorWidget(self, frame, channel, show_title, **kwargs)
 
     def _get_frame(self, frame=0):

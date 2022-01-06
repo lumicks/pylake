@@ -3,6 +3,23 @@ from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.widgets import RectangleSelector
+from ..correlated_stack import CorrelatedStack
+from ..kymo import Kymo
+
+
+def add_selector(axes, callback, button=None, interactive=True, **kwargs):
+    kwargs = {
+        "button": button,
+        "interactive": interactive,
+        "rectprops": {
+            "facecolor": "none",
+            "edgecolor": "w",
+            "fill": False,
+        },
+        **kwargs,
+    }
+
+    return RectangleSelector(axes, callback, useblit=True, spancoords="data", **kwargs)
 
 
 class ImageStackAxes(Axes):
@@ -107,20 +124,7 @@ class ImageEditorAxes(ImageStackAxes):
         self.get_figure().canvas.mpl_connect("button_press_event", self.handle_button_event)
 
         self.roi_limits = None
-        self.selector = RectangleSelector(
-            self,
-            self.handle_crop,
-            button=3,
-            minspanx=5,
-            minspany=5,
-            spancoords="pixels",
-            interactive=True,
-            rectprops={
-                "facecolor": "none",
-                "edgecolor": "w",
-                "fill": False,
-            },
-        )
+        self.selector = add_selector(self, self.handle_crop, button=3, interactive=True)
 
     def handle_button_event(self, event):
         """Function to handle mouse click events."""
@@ -175,7 +179,7 @@ class ImageEditorAxes(ImageStackAxes):
 
 @dataclass
 class ImageEditorProjection:
-    image: object
+    image: CorrelatedStack
     frame: int
     channel: str
     show_title: bool
@@ -198,7 +202,7 @@ class ImageEditorWidget:
         Parameters
         ----------
         image : lk.CorrelatedStack
-            image object
+            Image stack object
         """
         plt.figure()
         self._ax = plt.subplot(
@@ -209,3 +213,91 @@ class ImageEditorWidget:
     def image(self):
         """Return the edited image object."""
         return self._ax.get_edited_image()
+
+
+class KymoEditorAxes(Axes):
+    def __init__(self, *args, kymo, channel="rgb", plot_kwargs={}, **kwargs):
+        """Custom axes to handle mouse events for rotating images about a defined tether.
+
+        Parameters
+        ----------
+        *args
+            positional arguments, forwarded to superclass
+        kymo : lk.kymo.Kymo
+            kymograph object
+        channel : {'rgb', 'red', 'green', 'blue'}
+            Color channel to plot
+        plot_kwargs : dict
+            plotting keyword arguments, forwarded to `Kymo.plot()`
+        **kwargs
+            keyword arguments, forwarded to superclass
+        """
+        super().__init__(*args, **kwargs)
+        self._kymo = kymo
+        self._kymo.plot(channel, axes=self, **plot_kwargs)
+
+        self.time_limits = None
+        self.position_limits = None
+        self.selector = add_selector(self, self.handle_crop, button=1, interactive=True)
+
+    def handle_crop(self, event_click, event_release):
+        self.time_limits = np.sort([event.xdata for event in (event_click, event_release)])
+        self.position_limits = np.sort([event.ydata for event in (event_click, event_release)])
+
+    def get_edited_kymo(self):
+        if self.time_limits is None and self.position_limits is None:
+            return self._kymo
+
+        time_slice = slice(*[f"{lim}s" for lim in self.time_limits])
+        kymo = self._kymo[time_slice]
+        kymo = kymo.crop_by_distance(*self.position_limits)
+        return kymo
+
+
+@dataclass
+class KymoEditorProjection:
+    kymo: Kymo
+    channel: str
+    plot_kwargs: field(default_factory=dict)
+
+    def _as_mpl_axes(self):
+        return KymoEditorAxes, {
+            "kymo": self.kymo,
+            "channel": self.channel,
+            "plot_kwargs": self.plot_kwargs,
+        }
+
+
+class KymoEditorWidget:
+    def __init__(self, kymo, channel="rgb", tether_length_kbp=None, **kwargs):
+        """Wrapper class to handle interactive tether axes.
+
+        Parameters
+        ----------
+        kymo: lk.kymo.Kymo
+            Kymograph object
+        channel : {'rgb', 'red', 'green', 'blue'}
+            Color channel to plot
+        tether_length_kbp : float
+            Length of the tether in the cropped region in kilobase pairs.
+            If provided, the kymo returned from the `image` property will be automatically
+            calibrated to this tether length.
+        """
+        # check if kymo has already been processed
+        if not kymo._has_default_factories():
+            raise NotImplementedError(
+                "Slicing is not implemented for processed kymographs. Please slice prior to "
+                "processing the data."
+            )
+
+        plt.figure()
+        self._ax = plt.subplot(1, 1, 1, projection=KymoEditorProjection(kymo, channel, kwargs))
+        self._tether_length_kbp = tether_length_kbp
+
+    @property
+    def kymo(self):
+        """Return the cropped kymo object."""
+        new_kymo = self._ax.get_edited_kymo()
+        if self._tether_length_kbp is not None:
+            new_kymo = new_kymo.calibrate_to_kbp(self._tether_length_kbp)
+        return new_kymo
