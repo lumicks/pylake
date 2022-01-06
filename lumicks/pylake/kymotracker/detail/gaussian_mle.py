@@ -111,8 +111,16 @@ def peak_expectation_1d_derivatives(x, total_photons, center, sigma, background,
     return d_dphotons, d_dcenter, d_dsigma, d_dbackground
 
 
-def gaussian_mle_1d(x, photon_count, pixel_size, initial_position=None, initial_sigma=0.250):
-    """Calculate the maximum likelihood estimate of the model parameters given measured photon count for 1D data.
+def peak_expectation_1d_derivatives_fixed_background(x, total_photons, center, sigma, pixel_size):
+    """Evaluate the derivatives of the expectation w.r.t. each parameter."""
+    return peak_expectation_1d_derivatives(x, total_photons, center, sigma, 1, pixel_size)[:-1]
+
+
+def gaussian_mle_1d(
+    x, photon_count, pixel_size, initial_position=None, initial_sigma=0.250, fixed_background=None
+):
+    """Calculate the maximum likelihood estimate of the model parameters given measured photon count
+    for 1D data.
 
     Parameters
     ----------
@@ -126,20 +134,37 @@ def gaussian_mle_1d(x, photon_count, pixel_size, initial_position=None, initial_
         Initial guess for the peak position, in um.
     initial_sigma : float
         Initial guess for the `sigma` parameter, in um.
+    fixed_background : float
+        Fixed background parameter in photons per second.
+        When supplied, the background is not estimated but fixed at this value.
     """
-    expectation_fun = partial(peak_expectation_1d, x, pixel_size=pixel_size)
-    derivatives_fun = partial(peak_expectation_1d_derivatives, x, pixel_size=pixel_size)
+    if fixed_background is not None and fixed_background <= 0:
+        raise ValueError("Fixed background should be larger than zero.")
+
+    expectation_fun = partial(
+        peak_expectation_1d,
+        x,
+        **({"background": fixed_background} if fixed_background is not None else {}),
+        pixel_size=pixel_size,
+    )
+    derivatives_fun = partial(
+        peak_expectation_1d_derivatives
+        if fixed_background is None
+        else peak_expectation_1d_derivatives_fixed_background,
+        x,
+        pixel_size=pixel_size,
+    )
     initial_guess = (
         np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma ** 2),
         initial_position if initial_position is not None else x[np.argmax(photon_count)],
         initial_sigma,
-        1,
+        *([] if fixed_background is not None else [1]),
     )
     bounds = (
         (0.01, None),
         (np.min(x), np.max(x)),
         (pixel_size, 10 * pixel_size),
-        (np.finfo(float).eps, None),
+        *([] if fixed_background is not None else [(np.finfo(float).eps, None)]),
     )
     result = _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count, bounds)
     return result
