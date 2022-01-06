@@ -108,3 +108,23 @@ def test_gaussian_refinement(kymogroups_2lines):
     assert len(refined) == 1
     # 2 frames in mixed_lines[1] overlap with first track, 2 skipped, 3 fitted
     assert np.allclose(refined[0].position, [4.94659924, 5.00920806, 4.97724526])
+
+
+def test_gaussian_refinement_fixed_background(kymogroups_2lines):
+    lines, _, _ = kymogroups_2lines
+
+    refined = refine_lines_gaussian(
+        lines,
+        window=3,
+        refine_missing_frames=True,
+        overlap_strategy="ignore",
+        fixed_background=1.0,
+    )
+    assert np.allclose(
+        refined[0].position,
+        [3.54875771, 3.52793245, 3.56789807, 3.46844518, 3.48508813],
+    )
+    assert np.allclose(
+        refined[1].position,
+        [4.96956982, 4.99811141, 5.02009032, 5.01614766, 4.99094119],
+    )

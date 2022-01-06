@@ -273,7 +273,12 @@ def refine_lines_centroid(lines, line_width):
 
 
 def refine_lines_gaussian(
-    lines, window, refine_missing_frames, overlap_strategy, initial_sigma=None
+    lines,
+    window,
+    refine_missing_frames,
+    overlap_strategy,
+    initial_sigma=None,
+    fixed_background=None,
 ):
     """Refine the lines by gaussian peak MLE.
 
@@ -292,6 +297,9 @@ def refine_lines_gaussian(
         - 'skip' : skip optimization of the frame; remove from returned `KymoLine`.
     initial_sigma : float
         Initial guess for the `sigma` parameter.
+    fixed_background : float
+        Fixed background parameter in photons per second.
+        When supplied, the background is not estimated but fixed at this value.
     """
     assert overlap_strategy in ("ignore", "skip")
     if refine_missing_frames:
@@ -332,6 +340,7 @@ def refine_lines_gaussian(
                 image._pixel_size,
                 initial_position=line.position[j],
                 initial_sigma=initial_sigma,
+                fixed_background=fixed_background,
             )
             tmp_positions.append(r.x[1] / image._pixel_size)
             tmp_times.append(line.time_idx[j])
