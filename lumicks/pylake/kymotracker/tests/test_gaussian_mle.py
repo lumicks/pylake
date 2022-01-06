@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from functools import partial
 
@@ -39,3 +40,23 @@ def test_gaussian_1d(gaussian_1d):
     result = gaussian_mle.gaussian_mle_1d(coordinates, photon_count[:,0], parameters.pixel_size)
     assert np.allclose(result.x, [54.3777483, 3.50778329,  0.2836636, 0.80622237])
     assert np.allclose(result.x, p, rtol=0.2)
+
+
+def test_gaussian_1d_fixed_offset(gaussian_1d):
+    """Providing the true background we get closer to the truth values of 50, 3.5 and 0.25"""
+    coordinates, expectation, photon_count, [parameters, *_] = gaussian_1d
+    result = gaussian_mle.gaussian_mle_1d(
+        coordinates,
+        photon_count[:, 0],
+        fixed_background=1.0,
+        pixel_size=parameters.pixel_size,
+    )
+    assert np.allclose(result.x, [51.46192613, 3.50342814, 0.272388])
+
+
+def test_gaussian_1d_invalid_background_value():
+    with pytest.raises(ValueError, match="Fixed background should be larger than zero"):
+        gaussian_mle.gaussian_mle_1d([], [], fixed_background=-1.0, pixel_size=1.0)
+
+    with pytest.raises(ValueError, match="Fixed background should be larger than zero"):
+        gaussian_mle.gaussian_mle_1d([], [], fixed_background=0.0, pixel_size=1.0)
