@@ -6,18 +6,20 @@ from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.tests.data.mock_widefield import make_alignment_image_data, MockTiffFile
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake import CorrelatedStack
-from lumicks.pylake.nb_widgets.image_editing import ImageEditorWidget
+from lumicks.pylake.nb_widgets.image_editing import ImageEditorWidget, KymoEditorWidget
 
 import matplotlib.pyplot as plt
 
 
 def make_mock_stack():
     spot_coordinates = ((25, 25), (50, 50))
-    warp_parameters = {"red_warp_parameters": {"Tx": 0, "Ty": 0, "theta": 0},
-                        "blue_warp_parameters": {"Tx": 0, "Ty": 0, "theta": 0}}
+    warp_parameters = {
+        "red_warp_parameters": {"Tx": 0, "Ty": 0, "theta": 0},
+        "blue_warp_parameters": {"Tx": 0, "Ty": 0, "theta": 0},
+    }
     _, image, description, bit_depth = make_alignment_image_data(
-                spot_coordinates, version=2, bit_depth=16, camera="wt", **warp_parameters
-            )
+        spot_coordinates, version=2, bit_depth=16, camera="wt", **warp_parameters
+    )
 
     tiff = TiffStack(
         MockTiffFile(
@@ -26,7 +28,7 @@ def make_mock_stack():
             description=json.dumps(description),
             bit_depth=bit_depth,
         ),
-        align_requested=True
+        align_requested=True,
     )
 
     return CorrelatedStack.from_dataset(tiff)
@@ -80,15 +82,15 @@ def test_editor_clicks(mockevent):
     # click first tether point
     event = mockevent(ax, 50, 50, 1, False)
     ax.handle_button_event(event)
-    assert id(w.image) == id(ax._current_image) # widget synced with axes
-    assert len(ax.current_points) == 1 # one click registered
+    assert id(w.image) == id(ax._current_image)  # widget synced with axes
+    assert len(ax.current_points) == 1  # one click registered
 
     # click second tether point
     event = mockevent(ax, 50, 75, 1, False)
     ax.handle_button_event(event)
-    assert id(w.image) == id(ax._current_image) # widget synced with axes
-    assert id(w.image) != id(stack) # stack was updated
-    assert len(ax.current_points) == 0 # tether defined, refresh points list
+    assert id(w.image) == id(ax._current_image)  # widget synced with axes
+    assert id(w.image) != id(stack)  # stack was updated
+    assert len(ax.current_points) == 0  # tether defined, refresh points list
 
 
 def test_cropping_clicks(region_select):
@@ -100,3 +102,31 @@ def test_cropping_clicks(region_select):
     ax.handle_crop(*events)
     np.testing.assert_equal(ax.roi_limits, (50, 150, 25, 75))
     np.testing.assert_equal(w.image.src._shape, (50, 100))
+
+
+def test_kymo_cropping_clicks(kymograph, region_select):
+    # without calibration
+    w = KymoEditorWidget(kymograph, "red")
+    ax = plt.gca()
+
+    events = region_select(20, 1, 80, 7)
+    ax.handle_crop(*events)
+    np.testing.assert_equal(ax.time_limits, (20, 80))
+    np.testing.assert_equal(ax.position_limits, (1, 7))
+
+    new_kymo = w.kymo
+    assert new_kymo._calibration.unit == "um"
+    np.testing.assert_equal(new_kymo.red_image.shape, (16, 12))
+
+    # with calibration
+    w = KymoEditorWidget(kymograph, "red", tether_length_kbp=0.3)
+    ax = plt.gca()
+
+    events = region_select(20, 1, 80, 7)
+    ax.handle_crop(*events)
+    np.testing.assert_equal(ax.time_limits, (20, 80))
+    np.testing.assert_equal(ax.position_limits, (1, 7))
+
+    new_kymo = w.kymo
+    assert new_kymo._calibration.unit == "kbp"
+    np.testing.assert_equal(new_kymo.red_image.shape, (16, 12))
