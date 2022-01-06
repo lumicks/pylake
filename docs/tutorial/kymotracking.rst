@@ -140,7 +140,7 @@ photons/pixel.
 
 This function is called in a similar manner as the centroid refinement::
 
-    refined = lk.refine_lines_centroid(traces, window=3, refine_missing_frames=True, overlap_strategy="skip")
+    refined = lk.refine_lines_gaussian(traces, window=3, refine_missing_frames=True, overlap_strategy="skip")
 
 The number of pixels to be included in the fit is determined by the `window` argument, with a total size of `2*window+1` pixels.
 The exact value of this parameter is dependent on the quality of the data and should be balanced between including enough pixels to fully
@@ -164,6 +164,24 @@ are simply dropped from the trace.
 There is also an optional keyword argument `initial_sigma` that can be used to pass an initial guess for :math:`\sigma` in micrometers
 in the above expectation equation to the optimizer. The default value is `1.1*pixel_size`.
 
+When lines are well separated, it is possible to use a relatively large window and estimate the peak parameters and offset from the fit directly.
+When this is not the case, one can estimate the offset separately.
+To do this, crop an area of the Kymograph that only has background in it.
+Here we crop the kymograph from 14 to 15 seconds and 9 to 14.5 microns::
+
+    kymo_cropped = kymo["14s":"15s"].crop_by_distance(9, 14.5)
+
+Computing the appropriate photons/pixel background considering a Poissonian noise model can be done by computing the mean of the pixels in this area::
+
+    offset = np.mean(kymo_cropped.green_image)
+
+The independently determined offset (in photons per pixel) can then be provided directly to `lk.refine_lines_centroid`::
+
+    refined = lk.refine_lines_gaussian(traces, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
+
+In this case the parameter will not be fitted, but fixed to the user specified value.
+This can help reduce the variance of the parameter estimates.
+Note that this method can only be used if the background can be assumed to be constant over time and position.
 
 Using the kymotracker widget
 ----------------------------
