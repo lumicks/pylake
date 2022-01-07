@@ -3,7 +3,7 @@ import json
 import tifffile
 
 
-class MockTag():
+class MockTag:
     def __init__(self, value):
         self._value = value
 
@@ -16,12 +16,14 @@ class MockTiffPage:
     def __init__(self, data, start_time, end_time, description="", bit_depth=8):
         self._data = data
         bit_depth = bit_depth if data.ndim == 2 else (bit_depth, bit_depth, bit_depth)
-        self.tags = {"DateTime": MockTag(f"{start_time}:{end_time}"),
-                     "ImageDescription": MockTag(description),
-                     "BitsPerSample": MockTag(bit_depth),
-                     "SamplesPerPixel": MockTag(1 if (data.ndim==2) else data.shape[2]),
-                     "ImageWidth": MockTag(data.shape[1]),
-                     "ImageLength": MockTag(data.shape[0])}
+        self.tags = {
+            "DateTime": MockTag(f"{start_time}:{end_time}"),
+            "ImageDescription": MockTag(description),
+            "BitsPerSample": MockTag(bit_depth),
+            "SamplesPerPixel": MockTag(1 if (data.ndim == 2) else data.shape[2]),
+            "ImageWidth": MockTag(data.shape[1]),
+            "ImageLength": MockTag(data.shape[0]),
+        }
 
     def asarray(self):
         return self._data.copy()
@@ -35,18 +37,24 @@ class MockTiffFile:
     def __init__(self, data, times, description="", bit_depth=8):
         self.pages = []
         for d, r in zip(data, times):
-            self.pages.append(MockTiffPage(d, r[0], r[1], description=description, bit_depth=bit_depth))
+            self.pages.append(
+                MockTiffPage(d, r[0], r[1], description=description, bit_depth=bit_depth)
+            )
 
     @property
     def num_frames(self):
         return len(self._src.pages)
 
 
+def make_frame_times(n_frames, step=8):
+    return [[f"{j}", f"{j+step}"] for j in range(10, (n_frames + 1) * 100, 10)]
+
+
 def apply_transform(spots, Tx, Ty, theta, offsets=None):
     theta = np.radians(theta)
-    transform_matrix = np.array([[np.cos(theta), -np.sin(theta), Tx],
-                                [np.sin(theta), np.cos(theta), Ty],
-                                [0, 0, 1]])
+    transform_matrix = np.array(
+        [[np.cos(theta), -np.sin(theta), Tx], [np.sin(theta), np.cos(theta), Ty], [0, 0, 1]]
+    )
 
     # translate origin by offsets if necessary
     offsets = np.zeros((2, 1)) if offsets is None else np.array(offsets, ndmin=2).T
@@ -54,7 +62,7 @@ def apply_transform(spots, Tx, Ty, theta, offsets=None):
     # reshape spots into coordinate matrix; [x,y,z] as columns
     spots = np.vstack((spots, np.ones(spots.shape[1])))
     # affine transformation
-    transformed_spots =  np.dot(transform_matrix, spots)[:2]
+    transformed_spots = np.dot(transform_matrix, spots)[:2]
     # back-translate origin if necessary
     transformed_spots = transformed_spots + offsets
 
@@ -62,20 +70,20 @@ def apply_transform(spots, Tx, Ty, theta, offsets=None):
 
 
 def make_image(spots, bit_depth):
-        # RGB image, 2D (normalized) gaussians at spot locations
-        sigma = np.eye(2)*5
-        X, Y = np.meshgrid(np.arange(0, 200), np.arange(0, 100))
-        img = np.zeros(X.shape)
+    # RGB image, 2D (normalized) gaussians at spot locations
+    sigma = np.eye(2) * 5
+    X, Y = np.meshgrid(np.arange(0, 200), np.arange(0, 100))
+    img = np.zeros(X.shape)
 
-        for x, y, in spots.T:
-            mu = np.array([x,y])[:,np.newaxis]
-            XX = np.vstack((X.ravel(), Y.ravel())) - mu
-            quad_form = np.sum(np.dot(XX.T, np.linalg.inv(sigma)) * XX.T, axis=1)
-            Z = np.exp(-0.5 * quad_form)
-            img += Z.reshape(X.shape)
-        img = img / img.max()
+    for x, y in spots.T:
+        mu = np.array([x, y])[:, np.newaxis]
+        XX = np.vstack((X.ravel(), Y.ravel())) - mu
+        quad_form = np.sum(np.dot(XX.T, np.linalg.inv(sigma)) * XX.T, axis=1)
+        Z = np.exp(-0.5 * quad_form)
+        img += Z.reshape(X.shape)
+    img = img / img.max()
 
-        return (img * (2**bit_depth - 1)).astype(f"uint{bit_depth}")
+    return (img * (2 ** bit_depth - 1)).astype(f"uint{bit_depth}")
 
 
 def _make_base_description(version, bit_depth):
@@ -94,7 +102,7 @@ def _make_base_description(version, bit_depth):
         "Frame averaging": None,
         "Frame rate (Hz)": None,
         "Pixel clock (MHz)": None,
-        "Region of interest (x, y, width, height)": [0, 0, 200, 100]
+        "Region of interest (x, y, width, height)": [0, 0, 200, 100],
     }
     for c in colors:
         description[laser_wavelength(c)] = None
@@ -129,16 +137,23 @@ def make_wt_description(version, bit_depth, m_red, m_blue, offsets):
     description["Camera"] = "WT"
     for c, mat in zip(channel_choices, matrices):
         description[alignment_matrices(c)] = mat[:2].ravel().tolist()
-    description["Alignment region of interest (x, y, width, height)"] = [offsets[0], offsets[1], 200, 100]
+    description["Alignment region of interest (x, y, width, height)"] = [*offsets, 200, 100]
     description["TIRF"] = None
     description["TIRF angle (device units)"] = None
     return description
 
 
-def make_alignment_image_data(spots, red_warp_parameters, blue_warp_parameters, bit_depth,
-                              offsets=None, camera="wt", version=1):
+def make_alignment_image_data(
+    spots,
+    red_warp_parameters,
+    blue_warp_parameters,
+    bit_depth,
+    offsets=None,
+    camera="wt",
+    version=1,
+):
 
-    spots = np.array(spots).T # [2 x N]
+    spots = np.array(spots).T  # [2 x N]
     m_red, red_spots = apply_transform(spots, offsets=offsets, **red_warp_parameters)
     m_blue, blue_spots = apply_transform(spots, offsets=offsets, **blue_warp_parameters)
 
@@ -146,15 +161,15 @@ def make_alignment_image_data(spots, red_warp_parameters, blue_warp_parameters, 
     green_image = make_image(spots, bit_depth)
     blue_image = make_image(blue_spots, bit_depth)
 
-    reference_image = np.repeat(green_image[:,:,np.newaxis], 3, axis=2)
+    reference_image = np.repeat(green_image[:, :, np.newaxis], 3, axis=2)
     warped_image = np.stack((red_image, green_image, blue_image), axis=2).squeeze()
     if camera == "wt":
         description = make_wt_description(version, bit_depth, m_red, m_blue, offsets)
     elif camera == "irm":
         description = make_irm_description(version, bit_depth)
         # IRM images are grayscale so they only have 1 channel
-        reference_image = reference_image[:,:,1]
-        warped_image = warped_image[:,:,1]
+        reference_image = reference_image[:, :, 1]
+        warped_image = warped_image[:, :, 1]
     else:
         raise ValueError("camera argument must be 'wt' or 'irm'")
 
@@ -168,15 +183,20 @@ def write_tiff_file(image_args, n_frames, filename):
     channels = 1 if warped_image.ndim == 2 else 3
     movie = np.stack([warped_image for n in range(n_frames)], axis=0)
 
-    tag_orientation = (274, 'H', 1, 1, False) # Orientation = ORIENTATION.TOPLEFT
-    tag_sample_format = (339, 'H', channels, (1, )*channels, False) # SampleFormat = SAMPLEFORMAT.UINT
+    # Orientation = ORIENTATION.TOPLEFT
+    tag_orientation = (274, "H", 1, 1, False)
+    # SampleFormat = SAMPLEFORMAT.UINT
+    tag_sample_format = (339, "H", channels, (1,) * channels, False)
 
     with tifffile.TiffWriter(filename) as tif:
         for n, frame in enumerate(movie):
             str_datetime = f"{n*10+10}:{n*10+18}"
-            tag_datetime = (306, 's', len(str_datetime), str_datetime, False)
-            tif.save(frame,
-                    description=json.dumps(description, indent=4),
-                    software="Bluelake Unknown",
-                    metadata=None, contiguous=False,
-                    extratags=(tag_orientation, tag_sample_format, tag_datetime))
+            tag_datetime = (306, "s", len(str_datetime), str_datetime, False)
+            tif.save(
+                frame,
+                description=json.dumps(description, indent=4),
+                software="Bluelake Unknown",
+                metadata=None,
+                contiguous=False,
+                extratags=(tag_orientation, tag_sample_format, tag_datetime),
+            )

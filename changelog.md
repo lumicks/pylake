@@ -17,6 +17,7 @@
 * Fixed issue which resulted in overly stringent positional tolerance when using the kymotracker widget. This tolerance has now been made proportional to the axis viewport.
 * Removed `axial` parameter from `lk.ActiveCalibrationModel()` as we do not support active force calibration in the axial direction.
 * Improved default scaling behaviour for `CorrelatedStack.plot_correlated()` and `Scan.plot_correlated()`. It now ensures the ratio between the image and temporal plot is according to the aspect ratio of the scan or stack.
+* Slicing `CorrelatedStack` in reverse (i.e., `stack[5:3]`) or resulting in an empty stack (i.e., `stack[5:5]`) now throws an exception.
 
 #### Deprecations
 
