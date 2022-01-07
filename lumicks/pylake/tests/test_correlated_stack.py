@@ -41,7 +41,8 @@ def test_correlated_stack(shape):
     with pytest.raises(IndexError):
         stack[3:5][2]
 
-    assert(stack[2:5][3:5].num_frames == 0)
+    with pytest.raises(NotImplementedError, match="Slice is empty"):
+        assert(stack[2:5][3:5].num_frames == 0)
     assert(stack[2:5][1:2].start == 40)
     assert(stack[2:5][1:3]._get_frame(1).start == 50)
 
@@ -61,6 +62,43 @@ def test_correlated_stack(shape):
     np.testing.assert_allclose([x.start for x in stack[:-1]], [10, 20, 30, 40, 50])
     np.testing.assert_allclose([x.start for x in stack[2:4]], [30, 40])
     np.testing.assert_allclose([x.start for x in stack[2]], [30])
+
+
+@pytest.mark.parametrize("shape", [(3,3), (5,4,3)])
+def test_slicing(shape):
+    image = [np.random.poisson(10, size=shape) for _ in range(10)]
+    times = [[f"{j}", f"{j+8}"] for j in range(10, 1100, 10)]
+    fake_tiff = TiffStack(MockTiffFile(data=image, times=times), align_requested=False)
+    stack0 = CorrelatedStack.from_dataset(fake_tiff)
+
+    def compare_frames(original_frames, new_stack):
+        for new_frame_index, index in enumerate(original_frames):
+            frame = stack0._get_frame(index).data
+            new_frame = new_stack._get_frame(new_frame_index).data
+            np.testing.assert_equal(frame, new_frame)
+
+    compare_frames([0], stack0[0])  # first frame
+    compare_frames([9], stack0[-1])  # last frame
+    compare_frames([3], stack0[3])  # single frame
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], stack0[:])  # all frames
+    compare_frames([3, 4, 5], stack0[3:6])  # normal slice
+    compare_frames([0, 1, 2], stack0[:3]) #  from beginning
+    compare_frames([6, 7, 8, 9], stack0[6:]) #  until end
+    compare_frames([0, 1, 2, 3, 4, 5], stack0[:-4]) #  until negative index
+    compare_frames([5, 6, 7], stack0[5:-2]) #  mixed sign indices
+    compare_frames([6, 7], stack0[-4:-2]) #  negative indices slice
+
+    # reverse slice
+    with pytest.raises(NotImplementedError, match="Reverse slicing is not supported"):
+        stack0[5:2]
+
+    # reverse slice, negative indices
+    with pytest.raises(NotImplementedError, match="Reverse slicing is not supported"):
+        stack0[-1:-3]
+
+    # empty slice
+    with pytest.raises(NotImplementedError, match="Slice is empty"):
+        stack0[5:5]
 
 
 def test_deprecated_timestamps():

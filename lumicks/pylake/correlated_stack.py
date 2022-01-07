@@ -50,9 +50,15 @@ class CorrelatedStack:
                 raise IndexError("Slice steps are not supported")
 
             start, stop, _ = item.indices(self.num_frames)
-            return CorrelatedStack.from_dataset(
-                self.src, self.name, self.start_idx + start, self.start_idx + stop
-            )
+            new_start = self.start_idx + start
+            new_stop = self.start_idx + stop
+
+            if new_stop - new_start < 0:
+                raise NotImplementedError("Reverse slicing is not supported")
+            if new_stop == new_start:
+                raise NotImplementedError("Slice is empty")
+
+            return CorrelatedStack.from_dataset(self.src, self.name, new_start, new_stop)
         else:
             item = self.start_idx + item if item >= 0 else self.stop_idx + item
             if item >= self.stop_idx or item < self.start_idx:
