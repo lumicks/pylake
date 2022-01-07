@@ -1,4 +1,5 @@
 import numpy as np
+from copy import copy
 
 from .detail.confocal import ConfocalImage
 from .detail.image import reconstruct_num_frames
@@ -36,7 +37,29 @@ class Scan(ConfocalImage):
         return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
 
     def __getitem__(self, item):
-        raise NotImplementedError("Indexing and slicing are not implemented for scans")
+        """All indexing is in frames"""
+        ts_ranges = self.frame_timestamp_ranges(exclude=False)
+
+        if isinstance(item, slice):
+            if item.step is not None:
+                raise IndexError("Slice steps are not supported")
+
+            sliced_ts_ranges = ts_ranges[item]
+            if not sliced_ts_ranges:
+                raise NotImplementedError("Slice is empty.")
+
+            start, stop = sliced_ts_ranges[0][0], sliced_ts_ranges[-1][-1]
+            num_frames = len(sliced_ts_ranges)
+        else:
+            start, stop = ts_ranges[item]
+            num_frames = 1
+
+        new_scan = copy(self)
+        new_scan.start = start
+        new_scan.stop = stop
+        new_scan._num_frames = num_frames
+
+        return new_scan
 
     @property
     def num_frames(self):

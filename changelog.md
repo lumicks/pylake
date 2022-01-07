@@ -10,6 +10,7 @@
 * Added 'KymoLineGroup.plot_binding_histogram()` to plot histograms of binding events for tracked lines. See [Kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#plotting-binding-histograms) for more details.
 * Allow fixing the photon background parameter in `refine_lines_gaussian()`. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#maximum-likelihood-estimation) for more information.
 * Added option to specify a custom label when plotting fit with `FdFit.plot()`. See the tutorial section on [Fd Fitting](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html#plotting-the-data) for more information.
+* Added functionality to slice `Scan` objects by frame indices. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html).
 
 #### Bug fixes
 
