@@ -19,12 +19,12 @@ def make_dataset(parameters, n_samples=1000):
     for amplitude, lifetime in zip(parameters.amplitudes, parameters.lifetimes):
         n = int(np.floor(n_samples * amplitude))
         tmp = np.random.exponential(lifetime, n)
-        idx = np.logical_and(tmp >= parameters.observation_limits[0],
-                             tmp <= parameters.observation_limits[1])
+        idx = np.logical_and(
+            tmp >= parameters.observation_limits[0], tmp <= parameters.observation_limits[1]
+        )
         dwells.append(tmp[idx])
     dwells = np.hstack(dwells)
-    return {"parameters": json.dumps(asdict(parameters)),
-            "data": dwells}
+    return {"parameters": json.dumps(asdict(parameters)), "data": dwells}
 
 
 def read_dataset(filename):
@@ -46,7 +46,7 @@ def read_dataset(filename):
         parameters = json.loads(str(data[f"parameters_{name}"]))
         output[f"dataset_{name}"] = {
             "parameters": ExponentialParameters(**parameters),
-            "data": data[f"data_{name}"]
+            "data": data[f"data_{name}"],
         }
     return output
 
@@ -54,8 +54,10 @@ def read_dataset(filename):
 if __name__ == "__main__":
     np.random.seed(10071985)
 
-    parameters = [ExponentialParameters([1], [1.5], (0.1, 120)),
-                  ExponentialParameters([0.4, 0.6], [1.5, 5], (0.1, 120))]
+    parameters = [
+        ExponentialParameters([1], [1.5], (0.1, 120)),
+        ExponentialParameters([0.4, 0.6], [1.5, 5], (0.1, 120)),
+    ]
     names = ["1exp", "2exp"]
 
     data = {"names": names}
