@@ -386,7 +386,7 @@ With Pylake, we can calculate the MSD from a :class:`~lumicks.pylake.kymotracker
 
 This returns a tuple of lags and MSD estimates. If we only wish MSDs up to a certain lag, we can provide a `max_lag` argument::
 
-    >>> kymolines[0].msd(mag_lag = 5)
+    >>> kymolines[0].msd(max_lag = 5)
     (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([12.48593965, 16.34844311, 17.21359513, 27.25210869, 32.34473104]))
 
 MSDs are typically used to calculate diffusion constants.
@@ -404,7 +404,7 @@ where :math:`D` is the diffusion constant in :math:`um^2/s`, :math:`\Delta t` is
 
 where :math:`\sigma` is the static localization accuracy, :math:`R` is a motion blur constant and :math:`\Delta t` represents the time step.
 
-While it may be tempting to use a large number of MSDs in the diffusion estimation procedure, this actually produces poor estimates of the diffusion constant :cite:`qian1991single,michalet2010mean,michalet2012optimal`.
+While it may be tempting to use a large number of lags in the diffusion estimation procedure, this actually produces poor estimates of the diffusion constant :cite:`qian1991single,michalet2010mean,michalet2012optimal`.
 There exists an optimal number of lags to fit such that the estimation error is minimal.
 This optimal number of lags depends on the ratio between the diffusion constant and the dynamic localization accuracy:
 
