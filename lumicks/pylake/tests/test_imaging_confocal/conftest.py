@@ -173,6 +173,18 @@ def test_scans(reference_counts):
     middle = scans["fast Y slow X"].red_photon_count.timestamps[5]
     scans["sted bug"] = Scan("sted bug", mock_file, middle - 62400000, stop, metadata)
 
+    image = np.random.poisson(10, (10, 3, 4))
+    mock_file, metadata, stop = MockConfocalFile.from_image(
+        image,
+        pixel_sizes_nm=[5, 5],
+        start=start,
+        dt=dt,
+        axes=[0, 1],
+        samples_per_pixel=5,
+        line_padding=3,
+    )
+    scans["multiframe_poisson"] = Scan("multiframe_poisson", mock_file, start, stop, metadata)
+
     return scans
 
 

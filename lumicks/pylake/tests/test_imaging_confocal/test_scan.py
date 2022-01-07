@@ -42,9 +42,6 @@ def test_scans(test_scans):
     with pytest.warns(DeprecationWarning):
         np.testing.assert_allclose(scan.scan_width_um, [0.197 * 5 + 0.5, 0.191 * 4 + 0.5])
 
-    with pytest.raises(NotImplementedError):
-        scan["1s":"2s"]
-
     scan = test_scans["fast Y slow X multiframe"]
     reference_timestamps2 = np.zeros((2, 4, 3))
     reference_timestamps2[0, :, :] = reference_timestamps.T[:, :3]
@@ -127,6 +124,50 @@ def test_scans(test_scans):
     np.testing.assert_allclose(scan.center_point_um["y"], 31.978375270573267)
     np.testing.assert_allclose(scan.center_point_um["z"], 0)
     np.testing.assert_allclose(scan.size_um, [0.191 * 4, 0.197 * 3])
+
+
+def test_slicing(test_scans):
+    scan0 = test_scans["multiframe_poisson"]
+    assert scan0.num_frames == 10
+
+    def compare_frames(original_frames, new_scan):
+        assert new_scan.num_frames == len(original_frames)
+        for new_frame_index, index in enumerate(original_frames):
+            frame = scan0.red_image[index]
+            new_frame = (
+                new_scan.red_image[new_frame_index]
+                if new_scan.num_frames > 1
+                else new_scan.red_image
+            )
+            np.testing.assert_equal(frame, new_frame)
+
+    compare_frames([0], scan0[0])  # first frame
+    compare_frames([9], scan0[-1])  # last frame
+    compare_frames([3], scan0[3])  # single frame
+    compare_frames([2, 3, 4], scan0[2:5])  # slice
+    compare_frames([0, 1, 2], scan0[:3])  # from beginning
+    compare_frames([8, 9], scan0[8:])  # until end
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[:])  # all
+    compare_frames([7], scan0[-3])  # negative index
+    compare_frames([0, 1, 2, 3], scan0[:-6])  # until negative index
+    compare_frames([5, 6, 7], scan0[5:-2])  # mixed sign indices
+    compare_frames([6, 7], scan0[-4:-2])  # full negative slice
+
+    compare_frames([3, 4], scan0[2:6][1:3])  # iterative slicing
+
+    compare_frames([1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[1:100])  # test clamping past the end
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], scan0[-100:9])  # test clamping past the beginning
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[-100:100])  # test clamping both dirs
+
+    # reverse slice
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        scan0[5:3]
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        scan0[-2:-4]
+
+    # empty slice
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        scan0[5:5]
 
 
 def test_damaged_scan(test_scans):

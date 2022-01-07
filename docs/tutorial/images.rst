@@ -29,13 +29,31 @@ Or just pick a single one::
 Scan data and details
 ---------------------
 
-You can access the raw image data::
+You can access the raw image data directly. For a `Scan` with only a single frame::
 
     rgb = scan.rgb_image  # matrix with `shape == (h, w, 3)`
     blue = scan.blue_image  # single color so `shape == (h, w)`
 
     # Plot manually
     plt.imshow(rgb)
+
+For scans with multiple frames::
+
+    # returned data has `shape == (n_frames, h, w, 3)`
+    rgb = multiframe_scan.rgb_image
+    # returned data has `shape == (n_frames, h, w)`
+    blue = multiframe_scan.blue_image
+
+    # Manually plot the RGB image of the first frame.
+    plt.imshow(rgb[0, :, :, :])
+
+We can also slice out a subset of frames from an image stack::
+
+    sliced_scan = multiframe_scan[5:10]
+
+This will return a new `Scan` containing data equivalent to:
+
+    multiframe_scan.rgb_image[5:10, :, :, :]
 
 The images contain pixel data where each pixel represents summed photon counts.
 For an even lower-level look at data, the raw photon count samples can be accessed::
