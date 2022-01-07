@@ -1,6 +1,10 @@
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
-from lumicks.pylake.kymotracker.kymotracker import refine_lines_centroid, refine_lines_gaussian
-from lumicks.pylake.kymotracker.kymoline import KymoLine
+from lumicks.pylake.kymotracker.kymotracker import (
+    refine_lines_centroid,
+    refine_lines_gaussian,
+    filter_lines,
+)
+from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 import numpy as np
 import pytest
 
@@ -60,50 +64,72 @@ def test_gaussian_refinement(kymogroups_2lines):
     lines, gapped_lines, mixed_lines = kymogroups_2lines
 
     # full data, no overlap
-    refined = refine_lines_gaussian(lines, window=3, refine_missing_frames=True,
-                                    overlap_strategy="ignore")
-    assert np.allclose(refined[0].position, [3.54449334, 3.52869383, 3.51225048, 3.38714712, 3.48588412])
-    assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495,  4.99092852])
+    refined = refine_lines_gaussian(
+        lines, window=3, refine_missing_frames=True, overlap_strategy="ignore"
+    )
+    assert np.allclose(
+        refined[0].position, [3.54449334, 3.52869383, 3.51225048, 3.38714712, 3.48588412]
+    )
+    assert np.allclose(
+        refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
+    )
 
     # initial guess for sigma
-    refined = refine_lines_gaussian(lines, window=3, refine_missing_frames=True,
-                                    overlap_strategy="ignore", initial_sigma=0.250)
-    assert np.allclose(refined[0].position, [3.54796251, 3.52869378, 3.51225141, 3.4718899, 3.48588423])
-    assert np.allclose(refined[1].position, [4.96700218, 4.99771571, 5.04086917, 5.00664717, 4.9909296])
+    refined = refine_lines_gaussian(
+        lines, window=3, refine_missing_frames=True, overlap_strategy="ignore", initial_sigma=0.250
+    )
+    assert np.allclose(
+        refined[0].position, [3.54796251, 3.52869378, 3.51225141, 3.4718899, 3.48588423]
+    )
+    assert np.allclose(
+        refined[1].position, [4.96700218, 4.99771571, 5.04086917, 5.00664717, 4.9909296]
+    )
 
     # all frames overlap, therefore skipped and result is empty
     with pytest.warns(UserWarning):
-        refined = refine_lines_gaussian(lines, window=10, refine_missing_frames=True,
-                                        overlap_strategy="skip")
+        refined = refine_lines_gaussian(
+            lines, window=10, refine_missing_frames=True, overlap_strategy="skip"
+        )
     assert len(refined) == 0
 
     # invalid overlap strategy
     with pytest.raises(AssertionError):
-        refined = refine_lines_gaussian(lines, window=3, refine_missing_frames=True,
-                                        overlap_strategy="something")
+        refined = refine_lines_gaussian(
+            lines, window=3, refine_missing_frames=True, overlap_strategy="something"
+        )
 
     # gapped data, fill in missing frames
-    refined = refine_lines_gaussian(gapped_lines, window=3, refine_missing_frames=True,
-                                    overlap_strategy="skip")
-    assert np.allclose(refined[0].position, [3.54449334, 3.52869383, 3.51225048, 3.38714712, 3.48588412])
-    assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495,  4.99092852])
+    refined = refine_lines_gaussian(
+        gapped_lines, window=3, refine_missing_frames=True, overlap_strategy="skip"
+    )
+    assert np.allclose(
+        refined[0].position, [3.54449334, 3.52869383, 3.51225048, 3.38714712, 3.48588412]
+    )
+    assert np.allclose(
+        refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
+    )
 
     # gapped data, skip missing frames
-    refined = refine_lines_gaussian(gapped_lines, window=3, refine_missing_frames=False,
-                                    overlap_strategy="ignore")
+    refined = refine_lines_gaussian(
+        gapped_lines, window=3, refine_missing_frames=False, overlap_strategy="ignore"
+    )
     assert np.allclose(refined[0].position, [3.54449334, 3.52869383, 3.38714712, 3.48588412])
-    assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.0066495,  4.99092852])
+    assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.0066495, 4.99092852])
 
     # mixed length lines, no overlap
-    refined = refine_lines_gaussian(mixed_lines, window=3, refine_missing_frames=True,
-                                    overlap_strategy="skip")
+    refined = refine_lines_gaussian(
+        mixed_lines, window=3, refine_missing_frames=True, overlap_strategy="skip"
+    )
     assert np.allclose(refined[0].position, [3.52869383, 3.51225048])
-    assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852])
+    assert np.allclose(
+        refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
+    )
 
     # mixed length lines, track windows overlap
     with pytest.warns(UserWarning):
-        refined = refine_lines_gaussian(mixed_lines, window=10, refine_missing_frames=True,
-                                        overlap_strategy="skip")
+        refined = refine_lines_gaussian(
+            mixed_lines, window=10, refine_missing_frames=True, overlap_strategy="skip"
+        )
     # all frames in mixed_lines[0] overlap with second track, all skipped
     assert len(refined) == 1
     # 2 frames in mixed_lines[1] overlap with first track, 2 skipped, 3 fitted
@@ -128,3 +154,15 @@ def test_gaussian_refinement_fixed_background(kymogroups_2lines):
         refined[1].position,
         [4.96956982, 4.99811141, 5.02009032, 5.01614766, 4.99094119],
     )
+
+
+def test_filter_lines():
+    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], channel)
+    k2 = KymoLine([2, 3], [1, 2], channel)
+    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], channel)
+    lines = KymoLineGroup([k1, k2, k3])
+    assert len(filter_lines(lines, 5)) == 0
+    assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])
+    assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 2), [k1, k2, k3])])
