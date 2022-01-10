@@ -82,7 +82,8 @@ def test_line_append():
     np.testing.assert_allclose(kymoline.coordinate_idx, [2.0, 2.0, 1.0])
     assert np.array_equal(frame.unassigned, [False, False, True])
 
-    # Only coordinate 3 is left, but returns -np.inf and should not be considered a candidate ever. Terminate line!
+    # Only coordinate 3 is left, but returns -np.inf and should not be considered a candidate ever.
+    # Terminate line!
     assert not append_next_point(kymoline, frame, score_fun)  # No more assignable coordinates
     np.testing.assert_allclose(kymoline.time_idx, [0.0, 1.0, 1.0])
     np.testing.assert_allclose(kymoline.coordinate_idx, [2.0, 2.0, 1.0])
@@ -127,8 +128,6 @@ def test_extend_line():
 
 
 def test_kymotracker_two_integration():
-    channel = CalibratedKymographChannel("test", np.array([[]]), 4e9, 5)
-
     peaks = KymoPeaks(
         np.array([1.0, 2.0, 3.0, 4.0, 6.0, 5.0, 7.0]),
         np.array([1.0, 2.0, 3.0, 1.0, 3.0, 2.0, 5.0]),
