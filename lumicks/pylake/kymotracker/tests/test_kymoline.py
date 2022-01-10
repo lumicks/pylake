@@ -1,5 +1,4 @@
 import pytest
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import *
 from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
 import matplotlib.pyplot as plt
