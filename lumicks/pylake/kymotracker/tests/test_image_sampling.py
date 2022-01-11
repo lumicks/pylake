@@ -4,14 +4,16 @@ from lumicks.pylake.kymotracker.kymoline import KymoLine
 
 
 def test_sampling():
-    test_data = np.array([
-        [0, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0],
-        [0, 1, 1, 0, 0],
-        [0, 0, 1, 1, 0],
-        [0, 0, 1, 1, 0],
-        [0, 0, 0, 0, 0],
-    ])
+    test_data = np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 1, 1, 0, 0],
+            [0, 0, 1, 1, 0],
+            [0, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0],
+        ]
+    )
     test_img = CalibratedKymographChannel("test", test_data, 10e9, 5)
 
     # Tests the bound handling
@@ -20,15 +22,17 @@ def test_sampling():
     np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
     np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    np.testing.assert_allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img).sample_from_image(0), [0, 0, 1, 1, 0])
+    np.testing.assert_allclose(
+        KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img).sample_from_image(0), [0, 0, 1, 1, 0]
+    )
 
     kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img)
     np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
     np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    np.testing.assert_allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img).sample_from_image(0),
-                               [0, 0, 1, 1, 0])
+    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img)
+    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 0, 1, 1, 0])
 
 
 def test_kymoline_regression_sample_from_image_clamp():

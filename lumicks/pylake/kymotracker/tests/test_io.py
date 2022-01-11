@@ -1,7 +1,11 @@
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
-from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup, import_kymolinegroup_from_csv
-import numpy as np
 import pytest
+import numpy as np
+from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
+from lumicks.pylake.kymotracker.kymoline import (
+    KymoLine,
+    KymoLineGroup,
+    import_kymolinegroup_from_csv,
+)
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
@@ -35,24 +39,24 @@ def read_txt(testfile, delimiter):
         return data
 
 
-@pytest.mark.parametrize("dt, dx, delimiter, sampling_width, sampling_outcome",
-                         [[int(1e9), 1.0, ';', 0, 2],
-                          [int(2e9), 1.0, ';', 0, 2],
-                          [int(1e9), 2.0, ';', 0, 2],
-                          [int(1e9), 1.0, ',', 0, 2],
-                          [int(1e9), 1.0, ';', 1, 3],
-                          [int(1e9), 2.0, ';', None, None]])
-def test_kymolinegroup_io(tmpdir_factory, kymolinegroup_io_data, dt, dx, delimiter, sampling_width, sampling_outcome):
+@pytest.mark.parametrize(
+    "dt, dx, delimiter, sampling_width, sampling_outcome",
+    [
+        [int(1e9), 1.0, ";", 0, 2],
+        [int(2e9), 1.0, ";", 0, 2],
+        [int(1e9), 2.0, ";", 0, 2],
+        [int(1e9), 1.0, ",", 0, 2],
+        [int(1e9), 1.0, ";", 1, 3],
+        [int(1e9), 2.0, ";", None, None],
+    ],
+)
+def test_kymolinegroup_io(
+    tmpdir_factory, kymolinegroup_io_data, dt, dx, delimiter, sampling_width, sampling_outcome
+):
     test_img, lines = kymolinegroup_io_data
 
     kymo = generate_kymo(
-        "test",
-        test_img.data,
-        dx*1000,
-        start=4,
-        dt=dt,
-        samples_per_pixel=5,
-        line_padding=3
+        "test", test_img.data, dx * 1000, start=4, dt=dt, samples_per_pixel=5, line_padding=3
     )
 
     # Test round trip through the API

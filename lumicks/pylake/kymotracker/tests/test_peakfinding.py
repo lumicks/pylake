@@ -1,11 +1,11 @@
+import pytest
+import numpy as np
 from lumicks.pylake.kymotracker.detail.peakfinding import (
     peak_estimate,
     refine_peak_based_on_moment,
     KymoPeaks,
     merge_close_peaks,
 )
-import pytest
-import numpy as np
 
 
 @pytest.mark.parametrize("location", [12.3, 12.7, 11.7, 11.49, 11.51])
@@ -33,7 +33,8 @@ def test_regression_peak_estimation():
 
 
 def test_kymopeaks():
-    # First time frame we choose the right one first, then the second one. Second time frame vice versa.
+    # First time frame we choose the right one first, then the second one. Second time frame vice
+    # versa.
     coordinates = np.array([3.2, 4.1, 6.4, 8.2])
     time_points = np.array([0.0, 1.0, 0.5, 1.0])
     peak_amplitudes = np.array([2.0, 3.0, 3.0, 2.0])
@@ -47,7 +48,8 @@ def test_kymopeaks():
 
 
 def test_peak_proximity_removal():
-    # First time frame we choose the right one first, then the second one. Second time frame vice versa.
+    # First time frame we choose the right one first, then the second one. Second time frame vice
+    # versa.
     coordinates = np.array([3.2, 4.1, 6.4, 8.2, 12.1, 12.2, 3.2, 4.1, 6.4, 8.2, 12.1, 12.2])
     time_points = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
     peak_amplitudes = np.array([2.0, 3.0, 3.0, 2.0, 3.0, 2.0, 3.0, 2.0, 0.0, 0.0, 2.0, 3.0])

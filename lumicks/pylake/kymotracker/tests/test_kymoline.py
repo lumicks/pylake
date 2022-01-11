@@ -1,8 +1,8 @@
 import pytest
-from lumicks.pylake.kymotracker.kymoline import *
-from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.kymotracker.kymoline import *
+from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
 
 
 def test_kymo_line():
@@ -243,12 +243,12 @@ def test_binding_histograms():
     # Counting only the first position of each track with the default number of bins
     counts, edges = lines._histogram_binding_events("binding")
     np.testing.assert_equal(counts, [0, 0, 1, 1, 1, 1, 0, 0, 0, 0])
-    np.testing.assert_allclose(edges, [0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10])
+    np.testing.assert_allclose(edges, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
     # Counting all points of each track with the default number of bins
     counts, edges = lines._histogram_binding_events("all")
     np.testing.assert_equal(counts, [0, 0, 1, 2, 3, 3, 2, 1, 0, 0])
-    np.testing.assert_allclose(edges, [0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10])
+    np.testing.assert_allclose(edges, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
     # Counting only the first position of each track with custom bin edges
     counts, edges = lines._histogram_binding_events("binding", bins=[2, 3, 4, 5, 6, 7, 8])

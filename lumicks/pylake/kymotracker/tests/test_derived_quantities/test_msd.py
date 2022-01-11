@@ -1,6 +1,6 @@
-from lumicks.pylake.kymotracker.detail.msd_estimation import *
-import contextlib
 import pytest
+import contextlib
+from lumicks.pylake.kymotracker.detail.msd_estimation import *
 
 
 @contextlib.contextmanager

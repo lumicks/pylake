@@ -1,3 +1,5 @@
+import pytest
+import numpy as np
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymotracker import (
     refine_lines_centroid,
@@ -5,8 +7,6 @@ from lumicks.pylake.kymotracker.kymotracker import (
     filter_lines,
 )
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
-import numpy as np
-import pytest
 
 
 def test_kymoline_interpolation():
