@@ -55,7 +55,7 @@ def test_in_rect(test_img, rect, valid_result):
         ((-1, 8), (22, 20)),
         ((5, -1), (22, 20)),
         ((5, 8), (-1, 20)),
-        ((5, 8), (22, -1))
+        ((5, 8), (22, -1)),
     ],
 )
 def test_rect_errors(rect):
@@ -76,7 +76,7 @@ def test_from_kymo(test_img):
         start=1623965975045144000,
         dt=int(1e9),
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     # calibrated to base pairs
@@ -93,12 +93,9 @@ def test_from_kymo(test_img):
 
 @cleanup
 def test_plotting(test_img):
-    channel = CalibratedKymographChannel(
-        "test", test_img, time_step_ns=3e9, pixel_size=7
-    )
+    channel = CalibratedKymographChannel("test", test_img, time_step_ns=3e9, pixel_size=7)
     channel.plot()
     assert plt.gca().get_ylabel() == "position ()"
-
 
     kymo = generate_kymo(
         "Mock",
@@ -107,7 +104,7 @@ def test_plotting(test_img):
         start=1623965975045144000,
         dt=int(1e9),
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
     channel = CalibratedKymographChannel.from_kymo(kymo, "red")
     channel.plot()

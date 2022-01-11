@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from scipy.stats import norm
 from lumicks.pylake.kymotracker.detail.linalg_2d import (
     eigenvalues_2d_symmetric,
     eigenvector_2d_symmetric,
@@ -8,7 +9,6 @@ from lumicks.pylake.kymotracker.detail.geometry_2d import (
     calculate_image_geometry,
     get_candidate_generator,
 )
-from scipy.stats import norm
 
 
 def test_eigen_2d():

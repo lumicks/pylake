@@ -1,9 +1,9 @@
 import numpy as np
+from copy import deepcopy
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
 from lumicks.pylake.kymotracker.kymotracker import track_lines
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from lumicks.pylake.kymotracker.detail.geometry_2d import get_candidate_generator
-from copy import deepcopy
 
 
 def test_tracing():
