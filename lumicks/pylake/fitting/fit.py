@@ -480,13 +480,14 @@ class Fit:
 
         def plot(fit_data):
             x_values = fit_data.x if independent is None else independent
+            label = kwargs.pop("label", fit_data.name)
             model_lines = model.plot(
                 params[fit_data],
                 x_values,
                 fmt,
                 **kwargs,
                 zorder=1,
-                label=fit_data.name + " (model)",
+                label=label + " (model)",
             )
 
             if plot_data:
@@ -496,7 +497,7 @@ class Fit:
                     **kwargs,
                     color=lighten_color(color, -0.3),
                     zorder=0,
-                    label=fit_data.name + " (data)",
+                    label=label + " (data)",
                 )
 
         if data:

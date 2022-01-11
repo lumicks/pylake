@@ -662,3 +662,19 @@ def test_fit_reprs():
         "    DNA/St  1500     [pN]      True                  0            inf\n"
         "    kT         4.11  [pN*nm]   False                 0              8"
     )
+
+
+@cleanup
+def test_custom_legend_labels():
+    """Test whether users can provide a custom label for plotting"""
+    def test_labels(labels):
+        for legend_entry, label in zip(plt.gca().get_legend().texts, labels):
+            assert label == legend_entry.get_text()
+
+    fit = Fit(odijk("m"))
+    fit._add_data("data_1", [1, 2, 3], [2, 3, 4])
+    fit.plot()
+    test_labels(["data_1 (model)", "data_1 (data)"])
+    plt.gca().clear()
+    fit.plot(label="custom label")
+    test_labels(["custom label (model)", "custom label (data)"])

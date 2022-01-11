@@ -214,6 +214,10 @@ Fits can be plotted using the built-in plot functionality::
     plt.ylabel("Force [pN]")
     plt.xlabel("Distance [$\\mu$M]");
 
+If you wish to customize the label that appears in the legend, you can pass a custom `label` as an additional argument::
+
+    fit.plot(label="my_fit")
+
 Sometimes, more fine grained control over the plots is required. Let's say we want to plot the model over a range of
 values (in this case values from 2.0 to 5.0) for the conditions corresponding to the `Control` and `RecA` data. We can
 do this by supplying different arguments to the plot function::
