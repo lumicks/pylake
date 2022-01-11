@@ -20,7 +20,7 @@ def test_score_matrix():
 
     # No velocity
     matrix = np.reshape(build_score_matrix(lines, times, positions, kymo_score(vel=0, sigma=.5, diffusion=.125),
-                                           sigma_cutoff=2), ((len(unique_times), -1)))
+                                           sigma_cutoff=2), (len(unique_times), -1))
     reference = [
         [-np.inf, -np.inf, -1.0, -0.0, -1.0, -np.inf, -np.inf],
         [-np.inf, -2.745166004060959, -0.6862915010152397, -0.0, -0.6862915010152397, -2.745166004060959, -np.inf],
@@ -155,31 +155,3 @@ def test_kymotracker_two_integration():
     np.testing.assert_allclose(lines[1].coordinate_idx, [4.0, 5.0, 6.0])
     np.testing.assert_allclose(lines[2].time_idx, [5.0])
     np.testing.assert_allclose(lines[2].coordinate_idx, [7.0])
-
-
-def test_sampling():
-    test_data = np.array([
-        [0, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0],
-        [0, 1, 1, 0, 0],
-        [0, 0, 1, 1, 0],
-        [0, 0, 1, 1, 0],
-        [0, 0, 0, 0, 0],
-    ])
-    test_img = CalibratedKymographChannel("test", test_data, 10e9, 5)
-
-    # Tests the bound handling
-    kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img)
-    np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    np.testing.assert_allclose(KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img).sample_from_image(0), [0, 0, 1, 1, 0])
-
-    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img)
-    np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    np.testing.assert_allclose(KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img).sample_from_image(0),
-                       [0, 0, 1, 1, 0])
