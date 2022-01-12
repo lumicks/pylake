@@ -363,3 +363,16 @@ This uses the same expression as listed in the section on the :ref:`hydrodynamic
 
 One thing to note is that when using the hydrodynamically correct model, the equation for the drag _does_ include the viscosity and bead diameter.
 However, they now appear in a term which already amounts to a small correction therefore the impact of any errors in these is reduced :cite:`tolic2006calibration`.
+
+More convenient calibration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For convenience, we also provide a function named :func:`~lumicks.pylake.calibrate_force` which executes the entire calibration procedure::
+
+    fit = lk.calibrate_force(volts, bead_diameter, temperature)
+
+It takes the same arguments as the aforementioned methods to calibrate.
+This function can help quickly compare the effect of varying calibration parameters or switching between active and passive calibration.
+Note that most arguments have to be provided as keyworded arguments to prevent errors. For example::
+
+    fit = lk.calibrate_force(volts, bead_diameter, temperature, active_calibration=True, hydrodynamically_correct=True, fit_range=(10e2, 20e3))

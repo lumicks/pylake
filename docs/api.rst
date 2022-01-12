@@ -24,7 +24,7 @@ Force calibration
 .. autosummary::
     :toctree: _api
 
-
+    calibrate_force
     calculate_power_spectrum
     fit_power_spectrum
     PassiveCalibrationModel
