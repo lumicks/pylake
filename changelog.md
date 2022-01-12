@@ -11,6 +11,7 @@
 * Allow fixing the photon background parameter in `refine_lines_gaussian()`. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#maximum-likelihood-estimation) for more information.
 * Added option to specify a custom label when plotting fit with `FdFit.plot()`. See the tutorial section on [Fd Fitting](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/fdfitting.html#plotting-the-data) for more information.
 * Added functionality to slice `Scan` objects by frame indices. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html).
+* Added convenience function which allows users to perform a force calibration procedure with a single function call `calibrate_force()`. See [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#more-convenient-calibration).
 
 #### Bug fixes
 

@@ -20,6 +20,7 @@ from .kymotracker.kymotracker import *
 from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from .fdensemble import FdEnsemble
 from .population.mixture import GaussianMixtureModel
+from .force_calibration.convenience import calibrate_force
 from .force_calibration.calibration_models import (
     PassiveCalibrationModel,
     ActiveCalibrationModel,
