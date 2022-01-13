@@ -2,6 +2,7 @@ import re
 import numpy as np
 from lumicks import pylake
 import pytest
+from lumicks.pylake.channel import Slice, TimeSeries, empty_slice
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymo import EmptyKymo
 import matplotlib.pyplot as plt
@@ -179,7 +180,7 @@ def test_plotting_with_force(kymo_h5_file):
     f = pylake.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["Kymo1"]
 
-    ds = kymo._downsample_channel(2, "x", reduce=np.mean)
+    ds = kymo._downsample_channel(f.force2x, reduce=np.mean)
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
     kymo.plot_with_force(force_channel="2x", color_channel="red")
 
@@ -212,7 +213,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
     kymo = f.kymos["Kymo1"]
     kymo_ds = kymo.downsampled_by(position_factor=2)
 
-    ds = kymo_ds._downsample_channel(2, "x", reduce=np.mean)
+    ds = kymo_ds._downsample_channel(f.force2x, reduce=np.mean)
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
     # Downsampling by a factor of two in position means that the last pixel will be dropped
@@ -224,7 +225,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
 
     # Downsampling by a factor of five in position means no pixel will be dropped.
     kymo_ds = kymo.downsampled_by(position_factor=5)
-    ds = kymo_ds._downsample_channel(2, "x", reduce=np.mean)
+    ds = kymo_ds._downsample_channel(f.force2x, reduce=np.mean)
     mins = kymo._timestamp_factory(kymo, np.min)[0, :]
     maxs = kymo._timestamp_factory(kymo, np.max)[-1, :]
     np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
@@ -248,14 +249,14 @@ def test_regression_plot_with_force(kymo_h5_file):
     kymo = f.kymos["Kymo1"]
     kymo.stop = int(kymo.stop - 2 * 1e9 / 16)
     kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = kymo._downsample_channel(2, "x", reduce=np.mean)
+    ds = kymo._downsample_channel(f.force2x, reduce=np.mean)
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
     # Kymo ends on a partial last line. Multiple timestamps are zero now.
     kymo = f.kymos["Kymo1"]
     kymo.stop = int(kymo.stop - 10 * 1e9 / 16)
     kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = kymo._downsample_channel(2, "x", reduce=np.mean)
+    ds = kymo._downsample_channel(f.force2x, reduce=np.mean)
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
 
@@ -938,3 +939,36 @@ def test_partial_pixel_kymo():
     np.testing.assert_equal(kymo.timestamps[-2, -1], 0)
     np.testing.assert_equal(kymo.red_image[-1, -1], 0)
     np.testing.assert_equal(kymo.red_image[-2, -1], 0)
+
+
+@cleanup
+def test_plot_with_lf_force():
+    dt = int(1e9 / 78125)
+    start = 1536582124217030400
+    kymo = generate_kymo(
+        "Mock",
+        np.ones((5, 5)),
+        pixel_size_nm=100,
+        start=start,
+        dt=dt,
+        samples_per_pixel=2,
+        line_padding=0,
+    )
+
+    # Mock a force channel onto this file
+    data = np.array([-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    timestamps = data * 5 * dt + start
+    channel = Slice(TimeSeries(data, timestamps))
+    setattr(kymo.file, "force1x", empty_slice)  # Not present in file
+    setattr(kymo.file, "downsampled_force1x", empty_slice)  # Not present in file
+    setattr(kymo.file, "force2y", empty_slice)  # Not present in file
+    setattr(kymo.file, "downsampled_force2y", channel)
+
+    with pytest.warns(
+        RuntimeWarning, match="Using downsampled force since high frequency force is unavailable."
+    ):
+        kymo.plot_with_force("2y", "red")
+        np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), [0.5, 2.5, 4.5, 6.5, 8.5])
+
+    with pytest.raises(RuntimeError, match="Desired force channel 1x not available in h5 file"):
+        kymo.plot_with_force("1x", "red")

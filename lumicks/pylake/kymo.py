@@ -181,8 +181,7 @@ class Kymo(ConfocalImage):
         axes.set_ylabel(f"position ({self._calibration.unit_label})")
         axes.set_title(self.name)
 
-    def _downsample_channel(self, n, xy, reduce=np.mean):
-        force = self.file._get_force(n, xy)
+    def _downsample_channel(self, channel, reduce=np.mean):
         # downsample exactly over the scanline time range
         min_times = self._timestamps("timestamps", reduce=np.min)[0, :].astype(np.int64)
         max_times = (
@@ -192,7 +191,7 @@ class Kymo(ConfocalImage):
         )
 
         time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]
-        return force.downsampled_over(time_ranges, reduce=reduce, where="center")
+        return channel.downsampled_over(time_ranges, reduce=reduce, where="center")
 
     def plot_with_force(
         self, force_channel, color_channel, aspect_ratio=0.25, reduce=np.mean, **kwargs
@@ -231,7 +230,18 @@ class Kymo(ConfocalImage):
 
         # plot force channel
         plt.sca(ax2)
-        force = self._downsample_channel(force_channel[-2], force_channel[-1], reduce=reduce)
+        channel = getattr(self.file, f"force{force_channel}")
+        if not channel:
+            channel = getattr(self.file, f"downsampled_force{force_channel}")
+            if not channel:
+                raise RuntimeError(
+                    f"Desired force channel {force_channel} not available in h5 file"
+                )
+
+            warnings.warn(
+                RuntimeWarning("Using downsampled force since high frequency force is unavailable.")
+            )
+        force = self._downsample_channel(channel, reduce=reduce)
         force.plot(**kwargs)
         ax2.set_xlim(xlim_kymo)
 
