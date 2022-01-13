@@ -1,3 +1,4 @@
+from copy import copy
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.detail.binding_times import _kinetic_mle_optimize
@@ -326,6 +327,9 @@ class KymoLineGroup:
 
     def __setitem__(self, item, value):
         raise NotImplementedError("Cannot overwrite KymoLines.")
+
+    def __copy__(self):
+        return KymoLineGroup(copy(self._src))
 
     def _concatenate_lines(self, starting_line, ending_line):
         """Concatenate two lines together.
