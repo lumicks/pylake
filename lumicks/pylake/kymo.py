@@ -194,7 +194,13 @@ class Kymo(ConfocalImage):
         return channel.downsampled_over(time_ranges, reduce=reduce, where="center")
 
     def plot_with_force(
-        self, force_channel, color_channel, aspect_ratio=0.25, reduce=np.mean, **kwargs
+        self,
+        force_channel,
+        color_channel,
+        aspect_ratio=0.25,
+        reduce=np.mean,
+        kymo_args={},
+        **kwargs,
     ):
         """Plot kymo with force channel downsampled over scan lines
 
@@ -211,6 +217,8 @@ class Kymo(ConfocalImage):
         reduce : callable
             The `numpy` function which is going to reduce multiple samples into one.
             Forwarded to :func:`Slice.downsampled_over`
+        kymo_args : dict
+            Forwarded to :func:`matplotlib.pyplot.imshow`
         **kwargs
             Forwarded to :func:`Slice.plot`.
         """
@@ -224,7 +232,7 @@ class Kymo(ConfocalImage):
         _, (ax1, ax2) = plt.subplots(2, 1, sharex="all")
 
         # plot kymo
-        self.plot(channel=color_channel, axes=ax1)
+        self.plot(channel=color_channel, axes=ax1, **kymo_args)
         ax1.set_xlabel(None)
         xlim_kymo = ax1.get_xlim()  # Stored since plotting the force channel will change the limits
 
