@@ -259,3 +259,10 @@ def test_binding_histograms():
     counts, edges = lines._histogram_binding_events("all", bins=[2, 3, 4, 5, 6, 7, 8])
     np.testing.assert_equal(counts, [1, 2, 3, 3, 2, 1])
     np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
+
+
+def test_kymolinegroup_copy():
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), [])
+    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), [])
+    group = KymoLineGroup([k1, k2])
+    assert id(group._src) != id(copy(group)._src)
