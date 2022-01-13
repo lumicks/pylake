@@ -1,12 +1,14 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import copy
 from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_lines, refine_lines_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.kymotracker.kymoline import KymoLineGroup, import_kymolinegroup_from_csv
+from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
 
 class KymoWidget:
@@ -61,7 +63,7 @@ class KymoWidget:
             if axis_aspect_ratio
             else None
         )
-        self.lines = KymoLineGroup([])
+        self._lines_history = UndoStack(KymoLineGroup([]))
         self.plotted_lines = []
         self.min_length = min_length
         self._min_length_range = min_length_range
@@ -85,6 +87,14 @@ class KymoWidget:
         self.show(use_widgets=use_widgets, **kwargs)
 
     @property
+    def lines(self):
+        return self._lines_history.state
+
+    @lines.setter
+    def lines(self, new_lines):
+        self._lines_history.state = new_lines
+
+    @property
     def _line_width_pixels(self):
         calibrated_image = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
         return np.ceil(self.algorithm_parameters["line_width"] / calibrated_image._pixel_size)
@@ -95,12 +105,16 @@ class KymoWidget:
         Removes lines in a region, and traces new ones."""
         p1 = [click.xdata, click.ydata]
         p2 = [release.xdata, release.ydata]
-        self.lines.remove_lines_in_rect([p1, p2])
+
+        # Explicit copy to make modifications. Current state pushed to undo stack on assignment.
+        lines = copy(self.lines)
+        lines.remove_lines_in_rect([p1, p2])
 
         if self.adding:
             new_lines = self._track(rect=[p1, p2])
-            self.lines.extend(new_lines)
+            lines.extend(new_lines)
 
+        self.lines = lines
         self.update_lines()
 
     def track_all(self):
@@ -181,7 +195,11 @@ class KymoWidget:
             distance, idx = get_nearest(tips, np.array([event.x, event.y]), self._get_scale())
 
             if distance < cutoff_radius:
-                self.lines._concatenate_lines(self.lines[line_to_extend], self.lines[idx])
+                # Explicit copy to make modifications. Current state pushed to undo stack on
+                # assignment.
+                lines = copy(self.lines)
+                lines._concatenate_lines(lines[line_to_extend], lines[idx])
+                self.lines = lines
                 self.update_lines()
 
         self._line_connector = MouseDragCallback(
@@ -323,6 +341,19 @@ class KymoWidget:
         )
         all_button.on_click(lambda button: self.track_all())
 
+        def undo(button):
+            self._lines_history.undo()
+            self.update_lines()
+
+        def redo(button):
+            self._lines_history.redo()
+            self.update_lines()
+
+        undo_button = ipywidgets.Button(description="Undo", tooltip="Undo")
+        undo_button.on_click(undo)
+        redo_button = ipywidgets.Button(description="Redo", tooltip="Redo")
+        redo_button.on_click(redo)
+
         minimum_length = ipywidgets.interactive(
             lambda min_length: setattr(self, "min_length", min_length),
             min_length=ipywidgets.IntSlider(
@@ -367,6 +398,7 @@ class KymoWidget:
                         minimum_length,
                         ipywidgets.HBox([refine_button, show_lines_toggle]),
                         fn_widget,
+                        ipywidgets.HBox([undo_button, redo_button]),
                         ipywidgets.HBox([load_button, save_button]),
                         self._mode,
                         self._label,
