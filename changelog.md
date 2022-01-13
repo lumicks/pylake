@@ -13,6 +13,7 @@
 * Added functionality to slice `Scan` objects by frame indices. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html).
 * Added convenience function which allows users to perform a force calibration procedure with a single function call `calibrate_force()`. See [force calibration](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#more-convenient-calibration).
 * Added `Kymo.crop_and_calibrate()` for interactive cropping of a kymograph. If the optional `tether_length_kbp` argument is supplied, the resulting kymograph will be automatically calibrated to this length. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#calibrating-to-base-pairs) for more information.
+* Added fallback to the function `Kymo.plot_with_force()` when only low-frequency force data is available.
 
 #### Bug fixes
 
