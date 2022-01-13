@@ -150,3 +150,34 @@ example, if we downsample a kymograph by time, we can no longer access the per p
     AttributeError: Per pixel timestamps are no longer available after downsampling a kymograph in time since they
     are not well defined (the downsampling occurs over a non contiguous time window). Line timestamps are still
     available however. See: `Kymo.line_time_seconds`.
+
+Plotting and exporting
+----------------------
+
+There are also convenience functions to plot individual color channels and the full RGB image::
+
+    plt.subplot(2, 1, 1)
+    kymo.plot("rgb")
+    plt.subplot(2, 1, 2)
+    kymo.plot("blue")
+
+The images can also be exported in the TIFF format::
+
+    kymo.save_tiff("image.tiff")
+
+Correlating with force
+----------------------
+
+We can plot a kymograph along its force trace using::
+
+    kymo.plot_with_force("1x", "green")
+
+This will average the forces over each Kymograph line and plot them in a correlated fashion.
+The function can also take a dictionary of extra arguments to customize the kymograph plot.
+These parameter values get forwarded to :func:`matplotlib.pyplot.imshow`.
+For instance, if a few pixels dominate the image, it might be preferable to set the scale by hand.
+This can be accomplished by setting `vmax`::
+
+    kymo.plot_with_force("1x", "green", kymo_args={"vmax": 3})
+
+.. image:: ./figures/kymographs/kymo_correlated.png
