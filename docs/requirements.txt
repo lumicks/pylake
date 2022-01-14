@@ -1,4 +1,4 @@
-git-lfs==1.5
+sphinx_lfs_content==1.0.0
 matplotlib
 nbconvert
 nbformat
