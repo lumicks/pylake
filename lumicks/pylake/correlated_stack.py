@@ -151,7 +151,7 @@ class CorrelatedStack:
 
         return np.stack([frame.data[slc] for frame in self], axis=0).squeeze()
 
-    def plot(self, frame=0, channel="rgb", show_title=True, **kwargs):
+    def plot(self, frame=0, channel="rgb", show_title=True, axes=None, **kwargs):
         """Plot image from image stack
 
         Parameters
@@ -163,29 +163,37 @@ class CorrelatedStack:
             Not used for grayscale images
         show_title : bool, optional
             Controls display of auto-generated plot title
+        axes : mpl.axes.Axes or None
+            If supplied, the axes instance in which to plot.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         import matplotlib.pyplot as plt
 
+        if axes is None:
+            axes = plt.gca()
+
         default_kwargs = dict(cmap="gray", vmax=None)
         kwargs = {**default_kwargs, **kwargs}
 
         image = self._get_frame(frame)._get_plot_data(channel, vmax=kwargs["vmax"])
-        plt.imshow(image, **kwargs)
+        axes.imshow(image, **kwargs)
 
         if show_title:
-            if self.num_frames == 1:
-                plt.title(self.name)
-            else:
-                # display with 1-based index for frames and total frames
-                plt.title(f"{self.name} [frame {frame+1}/{self.num_frames}]")
+            # for multiframe stacks, display with 1-based index for frames and total frames
+            axes.set_title(
+                self.name
+                if self.num_frames == 1
+                else f"{self.name} [frame {frame+1}/{self.num_frames}]"
+            )
 
-    def plot_tether(self, **kwargs):
+    def plot_tether(self, axes=None, **kwargs):
         """Plot a line at the tether position.
 
         Parameters
         ----------
+        axes : mpl.axes.Axes or None
+            If supplied, the axes instance in which to plot.
         **kwargs
             Forwarded to :fun:`matplotlib.pyplot.plot`.
         """
@@ -194,9 +202,12 @@ class CorrelatedStack:
         if not self.src._tether:
             raise ValueError("A tether is not defined yet for this image stack.")
 
+        if axes is None:
+            axes = plt.gca()
+
         x, y = np.vstack(self.src._tether.ends).T
         tether_kwargs = {"c": "w", "marker": "o", "mfc": "none", "ls": ":", **kwargs}
-        plt.plot(x, y, **tether_kwargs)
+        axes.plot(x, y, **tether_kwargs)
 
     def crop_and_rotate(self, frame=0, channel="rgb", show_title=True, **kwargs):
         """Open a widget to interactively edit the image stack.
