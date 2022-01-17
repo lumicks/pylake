@@ -7,6 +7,7 @@ from lumicks.pylake.correlated_stack import CorrelatedStack
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake import channel
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
 from ..data.mock_widefield import MockTiffFile, make_alignment_image_data, make_frame_times
 
@@ -226,6 +227,39 @@ def test_deprecate_raw():
 
     with pytest.deprecated_call():
         stack.raw
+
+
+@cleanup
+def test_plotting(rgb_alignment_image_data):
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(
+        MockTiffFile(
+            data=[warped_image] * 2,
+            times=make_frame_times(2),
+            description=json.dumps(description),
+            bit_depth=16,
+        ),
+        align_requested=True,
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    stack.plot(channel="blue", frame=0)
+    ref_image = stack._get_frame(0)._get_plot_data(channel="blue")
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(image.get_array(), ref_image)
+    plt.close()
+
+    stack.plot(channel="rgb", frame=0)
+    ref_image = stack._get_frame(0)._get_plot_data(channel="rgb")
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(image.get_array(), ref_image)
+    plt.close()
+
+    with pytest.raises(IndexError, match="Frame index out of range"):
+        stack.plot(channel="blue", frame=4)
+
+    with pytest.raises(IndexError, match="Frame index out of range"):
+        stack.plot(channel="blue", frame=-1)
 
 
 @cleanup

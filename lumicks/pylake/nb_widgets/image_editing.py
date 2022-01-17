@@ -60,7 +60,8 @@ class ImageStackAxes(Axes):
 
         self.get_figure().canvas.mpl_connect("scroll_event", self.handle_scroll_event)
 
-        self.im = self.imshow(self.get_frame_data(), **plot_kwargs)
+        image.plot(frame=frame, channel=channel, axes=self, **plot_kwargs)
+        self.im = self.get_images()[-1]
         self.set_title(self.make_title())
 
     def get_frame_data(self):
