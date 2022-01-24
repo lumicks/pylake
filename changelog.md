@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.12.0 | t.b.d.
+
+#### Breaking changes
+* Changed the frame indexing convention for plotting confocal scans to match `CorrelatedStack.plot()`. Previously, `Scan.plot(frame=1)` referred to the first frame in the stack. Now, indexing starts at `0`.
+* Requesting a frame outside of the available range for `Scan.plot()` now throws an `IndexError`.
+
+#### Other changes
+* Changed titles for all plots of `Scan` and `CorrelatedStack` images to be consistent. First frame is titled as `"[frame 1 / N]"` and last frame is titled as `"[frame N / N]"`.
+
 ## v0.11.1 | 2022-02-22
 
 #### New features

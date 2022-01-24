@@ -2,7 +2,7 @@ import numpy as np
 from copy import copy
 
 from .detail.confocal import ConfocalImage, linear_colormaps
-from .detail.image import reconstruct_num_frames
+from .detail.image import reconstruct_num_frames, make_image_title
 
 
 """Axis label used for plotting"""
@@ -134,11 +134,14 @@ class Scan(ConfocalImage):
             else:
                 raise RuntimeError("Invalid channel selected")
 
+        title_factory = lambda frame: make_image_title(self, frame, show_name=False)
         frame_timestamps = self.frame_timestamp_ranges()
+
         plot_correlated(
             channel_slice,
             frame_timestamps,
             plot_channel,
+            title_factory,
             frame,
             reduce,
             colormap=linear_colormaps[channel],
@@ -178,7 +181,7 @@ class Scan(ConfocalImage):
         else:
             return data
 
-    def _plot(self, channel, axes, frame=1, image_handle=None, **kwargs):
+    def _plot(self, channel, axes, frame=0, image_handle=None, **kwargs):
         """Plot a scan frame for requested color channel(s).
 
         Parameters
@@ -188,18 +191,20 @@ class Scan(ConfocalImage):
         axes : mpl.axes.Axes
             The axes instance in which to plot.
         frame : int
-            Frame index (starting at 1).
+            Frame index.
         image_handle : `matplotlib.image.AxesImage` or None
             Optional image handle which is used to update plots with new data rather than reconstruct them (better for
             performance).
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`
         """
+        if frame < 0:
+            raise IndexError("negative indexing is not supported.")
+
         image = self._get_plot_data(channel)
 
-        frame = np.clip(frame, 1, self.num_frames)
         if self.num_frames != 1:
-            image = image[frame - 1]
+            image = image[frame]
 
         x_um, y_um = self.size_um
         default_kwargs = dict(
@@ -218,10 +223,7 @@ class Scan(ConfocalImage):
         scan_axes = self._ordered_axes()
         axes.set_xlabel(rf"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
         axes.set_ylabel(rf"{axis_label[scan_axes[1]['axis']]} ($\mu$m)")
-        if self.num_frames == 1:
-            axes.set_title(self.name)
-        else:
-            axes.set_title(f"{self.name} [frame {frame}/{self.num_frames}]")
+        axes.set_title(make_image_title(self, frame))
 
         return image_handle
 
@@ -254,8 +256,8 @@ class Scan(ConfocalImage):
         else:
             raise RuntimeError("You need either ffmpeg or pillow installed to export videos.")
 
-        start_frame = start_frame if start_frame else 1
-        end_frame = end_frame if end_frame else self.num_frames + 1
+        start_frame = start_frame if start_frame else 0
+        end_frame = end_frame if end_frame else self.num_frames - 1
 
         # On some notebook backends, figures render with a transparent background by default. This leads to very
         # poor image quality, since it prevents font anti-aliasing (at the cost of not having transparent regions

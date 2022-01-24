@@ -5,6 +5,7 @@ from matplotlib.axes import Axes
 from matplotlib.widgets import RectangleSelector
 from ..correlated_stack import CorrelatedStack
 from ..kymo import Kymo
+from ..detail.image import make_image_title
 
 
 def add_selector(axes, callback, button=None, interactive=True, **kwargs):
@@ -53,7 +54,7 @@ class ImageStackAxes(Axes):
         self.current_frame = frame
         self.num_frames = self._current_image.num_frames
         self.make_title = (
-            (lambda: f"{image.name}\n[frame {self.current_frame + 1} / {self.num_frames}]")
+            lambda: make_image_title(self._current_image, self.current_frame, show_name=False)
             if show_title
             else (lambda: "")
         )

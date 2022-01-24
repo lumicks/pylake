@@ -207,6 +207,12 @@ def test_plotting(test_scans):
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
 
+    # test invalid inidices (num_frames=2)
+    with pytest.raises(IndexError):
+        scan.plot(channel="rgb", frame=4)
+    with pytest.raises(IndexError, match="negative indexing is not supported."):
+        scan.plot(channel="rgb", frame=-1)
+
 
 @cleanup
 def test_deprecated_plotting(test_scans):
@@ -241,10 +247,14 @@ def test_movie_export(tmpdir_factory, test_scans):
     tmpdir = tmpdir_factory.mktemp("pylake")
 
     scan = test_scans["fast Y slow X multiframe"]
-    scan.export_video_red(f"{tmpdir}/red.gif", 0, 4)
+    scan.export_video_red(f"{tmpdir}/red.gif", 0, 2)
     assert stat(f"{tmpdir}/red.gif").st_size > 0
-    scan.export_video_rgb(f"{tmpdir}/rgb.gif", 0, 4)
+    scan.export_video_rgb(f"{tmpdir}/rgb.gif", 0, 2)
     assert stat(f"{tmpdir}/rgb.gif").st_size > 0
+
+    # test end frame > num frames
+    with pytest.raises(IndexError):
+        scan.export_video_rgb(f"{tmpdir}/rgb.gif", 0, 4)
 
 
 @pytest.mark.parametrize(
