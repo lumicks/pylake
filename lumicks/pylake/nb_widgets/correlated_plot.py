@@ -6,6 +6,7 @@ def plot_correlated(
     channel_slice,
     frame_timestamps,
     get_plot_data,
+    title_factory,
     frame=0,
     reduce=np.mean,
     colormap="gray",
@@ -21,6 +22,8 @@ def plot_correlated(
         List of tuples with start and stop timestamps of each frame.
     get_plot_data : callable
         Function that will return the plotdata for a frame.
+    title_factory : callable
+        Function to generate title for the image plot.
     frame : int
         Frame to show.
     reduce : callable
@@ -57,7 +60,7 @@ def plot_correlated(
         axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
     )
     image_object = ax2.imshow(plot_data, cmap=colormap)
-    plt.title(f"Frame {frame}")
+    ax2.set_title(title_factory(frame))
 
     # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
     y1, y2 = ax1.get_ylim()
@@ -86,7 +89,7 @@ def plot_correlated(
             time = event.xdata * 1e9 + t0
             for img_idx, (start, stop) in enumerate(frame_timestamps):
                 if start <= time < stop:
-                    plt.title(f"Frame {img_idx}")
+                    ax2.set_title(title_factory(img_idx))
                     poly.remove()
                     image_object.set_data(get_plot_data(img_idx))
                     poly = update_position(*frame_timestamps[img_idx])

@@ -51,7 +51,7 @@ We can also slice out a subset of frames from an image stack::
 
     sliced_scan = multiframe_scan[5:10]
 
-This will return a new `Scan` containing data equivalent to:
+This will return a new `Scan` containing data equivalent to::
 
     multiframe_scan.rgb_image[5:10, :, :, :]
 
@@ -87,7 +87,9 @@ Multi-frame scans are also supported::
     print(scan.blue_image.shape)  # (self.num_frames, h, w) -> single color channel
     print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
 
-    scan.plot("green", frame=3)  # plot the third frame -- defaults to the first frame if no argument is given
+    # plot frame at index 3 (first frame is index 0)
+    # defaults to the first frame if no argument is given
+    scan.plot("green", frame=3)
 
 The images can also be exported in the TIFF format::
 

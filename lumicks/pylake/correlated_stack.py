@@ -4,6 +4,7 @@ import tifffile
 import warnings
 from deprecated.sphinx import deprecated
 from .detail.widefield import TiffStack
+from .detail.image import make_image_title
 
 
 class CorrelatedStack:
@@ -180,12 +181,7 @@ class CorrelatedStack:
         axes.imshow(image, **kwargs)
 
         if show_title:
-            # for multiframe stacks, display with 1-based index for frames and total frames
-            axes.set_title(
-                self.name
-                if self.num_frames == 1
-                else f"{self.name} [frame {frame+1}/{self.num_frames}]"
-            )
+            axes.set_title(make_image_title(self, frame))
 
     def plot_tether(self, axes=None, **kwargs):
         """Plot a line at the tether position.
@@ -292,11 +288,14 @@ class CorrelatedStack:
         """
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
 
+        title_factory = lambda frame: make_image_title(self, frame, show_name=False)
         frame_timestamps = self.frame_timestamp_ranges
+
         plot_correlated(
             channel_slice,
             frame_timestamps,
             lambda frame_idx: self._get_frame(frame_idx)._get_plot_data(channel),
+            title_factory,
             frame,
             reduce,
             figure_scale=figure_scale,

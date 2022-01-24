@@ -284,3 +284,12 @@ def histogram_rows(image, pixels_per_bin, pixel_width):
     edges = np.arange(n_bins) * bin_width
     widths = np.diff(np.hstack((edges, n_rows * pixel_width)))
     return edges, counts, widths
+
+
+def make_image_title(image_object, frame, show_name=True):
+    name = f"{image_object.name} " if show_name else ""
+    return (
+        name
+        if image_object.num_frames == 1
+        else f"{name}[frame {frame + 1} / {image_object.num_frames}]"
+    )
