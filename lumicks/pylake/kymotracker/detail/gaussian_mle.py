@@ -15,15 +15,15 @@ def poisson_log_likelihood(params, expectation_fun, photon_count):
     photon_count : array-like
         Measured photon counts at each position to be fitted.
     """
-    expectation = expectation_fun(*params)
+    expectation = expectation_fun(params)
     log_likelihood = photon_count * np.log(expectation) - expectation
     return np.sum(-log_likelihood)
 
 
 def poisson_log_likelihood_jacobian(params, expectation_fun, derivatives_fun, photon_count):
     """Evaluate the derivatives of the likelihood function w.r.t. each parameter."""
-    derivatives = derivatives_fun(*params)
-    count_over_expectation = photon_count / expectation_fun(*params)
+    derivatives = derivatives_fun(params)
+    count_over_expectation = photon_count / expectation_fun(params)
     return [-np.sum(d * ((count_over_expectation) - 1)) for d in derivatives]
 
 
@@ -80,40 +80,45 @@ def normal_pdf_1d(x, center, sigma):
     return norm_factor * np.exp(-0.5 * ((x - center) / sigma) ** 2)
 
 
-def peak_expectation_1d(x, total_photons, center, sigma, background, pixel_size):
-    """Calculates the expectation value of a gaussian peak evaluated at x with baseline offset.
+def peak_expectation_1d(x, params, fixed_background, pixel_size, n_components):
+    """Calculates the expectation value of a sum of gaussian peaks evaluated at x with baseline
+    offset.
 
     Parameters
     ----------
     x : array-like
         Position data at which the function is to be evaluated.
-    total_photons : float
-        Total number of photons emitted by the imaged particle.
-    center : float
-        Peak center in um.
-    sigma : float
-        sigma parameter in um.
-    background : float
-        Background in photons per pixel.
+    params : array-like
+        Model parameters.
+        Model parameters should be provided as an array of parameters for each peak in the fit
+        followed by an optional offset parameter (in photons per pixel).
+        The peak parameters are: photon counts, center (in microns) and sigma (in microns).
+    fixed_background : float or None
+        Fixed background value in photons per pixel.
     pixel_size : float
         Pixel size in um.
     """
-    return total_photons * pixel_size * normal_pdf_1d(x, center, sigma) + background
+    signal = np.zeros(x.shape)
+    for total_photons, center, sigma in params[: n_components * 3].reshape(-1, 3):
+        signal += total_photons * pixel_size * normal_pdf_1d(x, center, sigma)
+    background = fixed_background if fixed_background is not None else params[-1]
+    return signal + background
 
 
-def peak_expectation_1d_derivatives(x, total_photons, center, sigma, background, pixel_size):
+def peak_expectation_1d_derivatives(x, params, fixed_background, pixel_size, n_components):
     """Evaluate the derivatives of the expectation w.r.t. each parameter."""
-    pdf = normal_pdf_1d(x, center, sigma)
-    d_dphotons = pixel_size * pdf
-    d_dcenter = total_photons * pixel_size / sigma ** 2 * pdf * (x - center)
-    d_dsigma = total_photons * pixel_size * pdf * ((x - center) ** 2 - sigma ** 2) / sigma ** 3
-    d_dbackground = 1
-    return d_dphotons, d_dcenter, d_dsigma, d_dbackground
+    components = []
+    for total_photons, center, sigma in params[: n_components * 3].reshape(-1, 3):
+        pdf = normal_pdf_1d(x, center, sigma)
+        d_dphotons = pixel_size * pdf
+        d_dcenter = total_photons * pixel_size / sigma ** 2 * pdf * (x - center)
+        d_dsigma = total_photons * pixel_size * pdf * ((x - center) ** 2 - sigma ** 2) / sigma ** 3
+        components.extend((d_dphotons, d_dcenter, d_dsigma))
 
+    if fixed_background is None:
+        components.append(1)
 
-def peak_expectation_1d_derivatives_fixed_background(x, total_photons, center, sigma, pixel_size):
-    """Evaluate the derivatives of the expectation w.r.t. each parameter."""
-    return peak_expectation_1d_derivatives(x, total_photons, center, sigma, 1, pixel_size)[:-1]
+    return components
 
 
 def gaussian_mle_1d(
@@ -141,30 +146,38 @@ def gaussian_mle_1d(
     if fixed_background is not None and fixed_background <= 0:
         raise ValueError("Fixed background should be larger than zero.")
 
+    initial_position = x[np.argmax(photon_count)] if initial_position is None else initial_position
+    initial_position = np.atleast_1d(initial_position)
+
     expectation_fun = partial(
         peak_expectation_1d,
         x,
-        **({"background": fixed_background} if fixed_background is not None else {}),
+        fixed_background=fixed_background,
         pixel_size=pixel_size,
+        n_components=initial_position.size,
     )
     derivatives_fun = partial(
-        peak_expectation_1d_derivatives
-        if fixed_background is None
-        else peak_expectation_1d_derivatives_fixed_background,
+        peak_expectation_1d_derivatives,
         x,
+        fixed_background=fixed_background,
         pixel_size=pixel_size,
+        n_components=initial_position.size,
     )
-    initial_guess = (
-        np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma ** 2),
-        initial_position if initial_position is not None else x[np.argmax(photon_count)],
-        initial_sigma,
-        *([] if fixed_background is not None else [1]),
-    )
-    bounds = (
-        (0.01, None),
-        (np.min(x), np.max(x)),
-        (pixel_size, 10 * pixel_size),
-        *([] if fixed_background is not None else [(np.finfo(float).eps, None)]),
-    )
+
+    amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma ** 2)
+    initial_guess, bounds = [], []
+    for init_pos in initial_position:
+        initial_guess.extend([amp_estimate / initial_position.size, init_pos, initial_sigma])
+        bounds.extend([(0.01, None), (np.min(x), np.max(x)), (pixel_size, 10 * pixel_size)])
+    if fixed_background is None:
+        initial_guess.append(1)
+        bounds.append((np.finfo(float).eps, None))
+
     result = _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count, bounds)
+
+    # Pack the results
+    background = result.x[-1] if fixed_background is None else fixed_background
+    result = tuple(
+        (*param, background) for param in result.x[: initial_position.size * 3].reshape(-1, 3)
+    )
     return result
