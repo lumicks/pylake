@@ -170,7 +170,7 @@ def gaussian_mle_1d(
         initial_guess.extend([amp_estimate / initial_position.size, init_pos, initial_sigma])
         bounds.extend([(0.01, None), (np.min(x), np.max(x)), (pixel_size, 10 * pixel_size)])
     if fixed_background is None:
-        initial_guess.append(1)
+        initial_guess.append(max(1, np.min(photon_count)))
         bounds.append((np.finfo(float).eps, None))
 
     result = _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count, bounds)

@@ -68,7 +68,7 @@ def test_gaussian_refinement(kymogroups_2lines):
         lines, window=3, refine_missing_frames=True, overlap_strategy="ignore"
     )
     assert np.allclose(
-        refined[0].position, [3.54449334, 3.52869383, 3.51225048, 3.38714712, 3.48588412]
+        refined[0].position, [3.54796254, 3.52869381, 3.51225177, 3.38714711, 3.48588436]
     )
     assert np.allclose(
         refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
@@ -79,7 +79,7 @@ def test_gaussian_refinement(kymogroups_2lines):
         lines, window=3, refine_missing_frames=True, overlap_strategy="ignore", initial_sigma=0.250
     )
     assert np.allclose(
-        refined[0].position, [3.54796251, 3.52869378, 3.51225141, 3.4718899, 3.48588423]
+        refined[0].position, [3.54796279, 3.52869369, 3.51225138, 3.46877412, 3.48588434]
     )
     assert np.allclose(
         refined[1].position, [4.96700218, 4.99771571, 5.04086917, 5.00664717, 4.9909296]
@@ -103,7 +103,7 @@ def test_gaussian_refinement(kymogroups_2lines):
         gapped_lines, window=3, refine_missing_frames=True, overlap_strategy="skip"
     )
     assert np.allclose(
-        refined[0].position, [3.54449334, 3.52869383, 3.51225048, 3.38714712, 3.48588412]
+        refined[0].position, [3.54796254, 3.52869381, 3.51225177, 3.38714711, 3.48588436]
     )
     assert np.allclose(
         refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
@@ -113,7 +113,7 @@ def test_gaussian_refinement(kymogroups_2lines):
     refined = refine_lines_gaussian(
         gapped_lines, window=3, refine_missing_frames=False, overlap_strategy="ignore"
     )
-    assert np.allclose(refined[0].position, [3.54449334, 3.52869383, 3.38714712, 3.48588412])
+    assert np.allclose(refined[0].position, [3.54796254, 3.52869381, 3.38714711, 3.48588436])
     assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.0066495, 4.99092852])
 
     # mixed length lines, no overlap
