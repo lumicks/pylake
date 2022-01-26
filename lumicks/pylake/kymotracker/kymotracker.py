@@ -342,7 +342,7 @@ def refine_lines_gaussian(
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
             )
-            tmp_positions.append(r.x[1] / image._pixel_size)
+            tmp_positions.append(r[0][1] / image._pixel_size)
             tmp_times.append(line.time_idx[j])
 
         if len(tmp_positions):
