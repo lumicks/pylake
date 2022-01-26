@@ -37,6 +37,11 @@ def gaussian_1d():
 
 
 @pytest.fixture
+def two_gaussians_1d():
+    return read_dataset_gaussian("two_gaussians_1d.npz")
+
+
+@pytest.fixture
 def kymogroups_2lines():
     _, _, photon_count, parameters = read_dataset_gaussian("kymo_data_2lines.npz")
     pixel_size = parameters[0].pixel_size
