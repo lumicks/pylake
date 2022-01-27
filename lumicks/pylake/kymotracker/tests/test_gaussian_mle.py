@@ -13,7 +13,7 @@ def test_likelihood(gaussian_1d):
         coordinates,
         pixel_size=params.pixel_size,
         fixed_background=None,
-        n_components=1,
+        num_peaks=1,
     )
 
     p = np.array([params.total_photons, params.center, params.width, params.background])
@@ -23,7 +23,7 @@ def test_likelihood(gaussian_1d):
 
 def test_likelihood_jacobian(gaussian_1d):
     coordinates, expectation, photon_count, [params, *_] = gaussian_1d
-    args = {"pixel_size": params.pixel_size, "fixed_background": None, "n_components": 1}
+    args = {"pixel_size": params.pixel_size, "fixed_background": None, "num_peaks": 1}
     expectation_fcn = partial(gaussian_mle.peak_expectation_1d, coordinates, **args)
     derivatives_fcn = partial(gaussian_mle.peak_expectation_1d_derivatives, coordinates, **args)
 
@@ -49,7 +49,7 @@ def test_likelihood_jacobian(gaussian_1d):
 
 def test_gaussian_1d(gaussian_1d):
     coordinates, expectation, photon_count, [params, *_] = gaussian_1d
-    args = {"pixel_size": params.pixel_size, "fixed_background": None, "n_components": 1}
+    args = {"pixel_size": params.pixel_size, "fixed_background": None, "num_peaks": 1}
     expectation_fcn = partial(gaussian_mle.peak_expectation_1d, coordinates, **args)
     p = np.array([params.total_photons, params.center, params.width, params.background])
     assert np.allclose(expectation_fcn(p), expectation)
@@ -81,7 +81,7 @@ def test_gaussian_1d_invalid_background_value():
 
 def test_two_component_jacobian(two_gaussians_1d):
     coordinates, expectation, photon_count, [param1, param2] = two_gaussians_1d
-    args = {"pixel_size": param1.pixel_size, "fixed_background": None, "n_components": 2}
+    args = {"pixel_size": param1.pixel_size, "fixed_background": None, "num_peaks": 2}
     expectation_fcn = partial(gaussian_mle.peak_expectation_1d, coordinates, **args)
     derivatives_fcn = partial(gaussian_mle.peak_expectation_1d_derivatives, coordinates, **args)
 

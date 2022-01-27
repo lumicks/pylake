@@ -8,11 +8,11 @@ def poisson_log_likelihood(params, expectation_fun, photon_count):
 
     Parameters
     ----------
-    params : array-like
+    params : np.ndarray
         Model parameters to be estimated
     expectation_fun : callable
         expectation function to be evaluated in the likelihood; takes model parameters as arguments.
-    photon_count : array-like
+    photon_count : np.ndarray
         Measured photon counts at each position to be fitted.
     """
     expectation = expectation_fun(params)
@@ -24,7 +24,7 @@ def poisson_log_likelihood_jacobian(params, expectation_fun, derivatives_fun, ph
     """Evaluate the derivatives of the likelihood function w.r.t. each parameter."""
     derivatives = derivatives_fun(params)
     count_over_expectation = photon_count / expectation_fun(params)
-    return [-np.sum(d * ((count_over_expectation) - 1)) for d in derivatives]
+    return -np.sum(derivatives * (count_over_expectation - 1), axis=1)
 
 
 def _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count, bounds):
@@ -34,13 +34,13 @@ def _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count,
 
     Parameters
     ----------
-    initial_guess : array-like
+    initial_guess : np.ndarray
         Initial guesses for the model parameters.
     expectation_fun : callable
         expectation function to be evaluated in the likelihood; takes model parameters as arguments.
     derivatives_fun : callable
         expectation derivatives function to be evaluated in the Jacobian; takes model parameters as arguments.
-    photon_count : array-like
+    photon_count : np.ndarray
         Measured photon counts at each position to be fitted.
     bounds : tuple
         Tuple of (`min`, `max`) pairs for each parameter. `None` is used to specify no bound.
@@ -69,7 +69,7 @@ def normal_pdf_1d(x, center, sigma):
 
     Parameters
     ----------
-    x : array-like
+    x : np.ndarray
         Position data at which the function is to be evaluated.
     center : float
         Distribution center.
@@ -80,45 +80,58 @@ def normal_pdf_1d(x, center, sigma):
     return norm_factor * np.exp(-0.5 * ((x - center) / sigma) ** 2)
 
 
-def peak_expectation_1d(x, params, fixed_background, pixel_size, n_components):
+def peak_expectation_1d(x, params, fixed_background, pixel_size, num_peaks):
     """Calculates the expectation value of a sum of gaussian peaks evaluated at x with baseline
     offset.
 
     Parameters
     ----------
-    x : array-like
+    x : np.ndarray
         Position data at which the function is to be evaluated.
-    params : array-like
+    params : np.ndarray
         Model parameters.
-        Model parameters should be provided as an array of parameters for each peak in the fit
-        followed by an optional offset parameter (in photons per pixel).
-        The peak parameters are: photon counts, center (in microns) and sigma (in microns).
+        Model parameters should be provided as an array of parameters. The parameters are:
+        photon counts for all peaks, center (in microns) for all peaks and sigma (in microns) for
+        all peaks followed by an optional offset parameter (in photons per pixel).
     fixed_background : float or None
         Fixed background value in photons per pixel.
     pixel_size : float
         Pixel size in um.
+    num_peaks : int
+        Number of peaks to fit.
     """
-    signal = np.zeros(x.shape)
-    for total_photons, center, sigma in params[: n_components * 3].reshape(-1, 3):
-        signal += total_photons * pixel_size * normal_pdf_1d(x, center, sigma)
+    total_photons, center, sigma = (
+        params[np.newaxis, :num_peaks],
+        params[np.newaxis, num_peaks : 2 * num_peaks],
+        params[np.newaxis, 2 * num_peaks : 3 * num_peaks],
+    )
+    x = x[:, np.newaxis]
+
+    signal = np.sum(total_photons * pixel_size * normal_pdf_1d(x, center, sigma), axis=1)
+
     background = fixed_background if fixed_background is not None else params[-1]
     return signal + background
 
 
-def peak_expectation_1d_derivatives(x, params, fixed_background, pixel_size, n_components):
+def peak_expectation_1d_derivatives(x, params, fixed_background, pixel_size, num_peaks):
     """Evaluate the derivatives of the expectation w.r.t. each parameter."""
-    components = []
-    for total_photons, center, sigma in params[: n_components * 3].reshape(-1, 3):
-        pdf = normal_pdf_1d(x, center, sigma)
-        d_dphotons = pixel_size * pdf
-        d_dcenter = total_photons * pixel_size / sigma ** 2 * pdf * (x - center)
-        d_dsigma = total_photons * pixel_size * pdf * ((x - center) ** 2 - sigma ** 2) / sigma ** 3
-        components.extend((d_dphotons, d_dcenter, d_dsigma))
+    total_photons, center, sigma = (
+        params[np.newaxis, :num_peaks],
+        params[np.newaxis, num_peaks : 2 * num_peaks],
+        params[np.newaxis, 2 * num_peaks : 3 * num_peaks],
+    )
+    x = x[:, np.newaxis]
+
+    pdf = normal_pdf_1d(x, center, sigma)
+    d_dphotons = pixel_size * pdf
+    d_dcenter = total_photons * pixel_size / sigma ** 2 * pdf * (x - center)
+    d_dsigma = total_photons * pixel_size * pdf * ((x - center) ** 2 - sigma ** 2) / sigma ** 3
+    derivatives = np.hstack((d_dphotons, d_dcenter, d_dsigma))
 
     if fixed_background is None:
-        components.append(1)
+        derivatives = np.hstack((derivatives, np.ones(x.shape)))
 
-    return components
+    return derivatives.T
 
 
 def gaussian_mle_1d(
@@ -129,9 +142,9 @@ def gaussian_mle_1d(
 
     Parameters
     ----------
-    x : array-like
+    x : np.ndarray
         Position data at which the function is to be evaluated.
-    photon_count : array-like
+    photon_count : np.ndarray
         Measured photon counts at each position.
     pixel_size : float
         Pixel size in um.
@@ -146,38 +159,50 @@ def gaussian_mle_1d(
     if fixed_background is not None and fixed_background <= 0:
         raise ValueError("Fixed background should be larger than zero.")
 
-    initial_position = x[np.argmax(photon_count)] if initial_position is None else initial_position
-    initial_position = np.atleast_1d(initial_position)
+    initial_position = np.atleast_1d(
+        x[np.argmax(photon_count)] if initial_position is None else initial_position
+    )
 
+    num_peaks = initial_position.size
     expectation_fun = partial(
         peak_expectation_1d,
         x,
         fixed_background=fixed_background,
         pixel_size=pixel_size,
-        n_components=initial_position.size,
+        num_peaks=num_peaks,
     )
     derivatives_fun = partial(
         peak_expectation_1d_derivatives,
         x,
         fixed_background=fixed_background,
         pixel_size=pixel_size,
-        n_components=initial_position.size,
+        num_peaks=num_peaks,
     )
 
     amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma ** 2)
-    initial_guess, bounds = [], []
-    for init_pos in initial_position:
-        initial_guess.extend([amp_estimate / initial_position.size, init_pos, initial_sigma])
-        bounds.extend([(0.01, None), (np.min(x), np.max(x)), (pixel_size, 10 * pixel_size)])
+
+    num_pars = num_peaks * 3 + (0 if fixed_background else 1)
+    initial_guess = np.empty(num_pars)
+    initial_guess[:num_peaks] = amp_estimate / initial_position.size
+    initial_guess[num_peaks : 2 * num_peaks] = initial_position
+    initial_guess[2 * num_peaks :] = initial_sigma
+
+    bounds = np.vstack(
+        (
+            np.tile((0.01, np.inf), (num_peaks, 1)),
+            np.tile((np.min(x), np.max(x)), (num_peaks, 1)),
+            np.tile((pixel_size, 10 * pixel_size), (num_peaks, 1)),
+        )
+    )
+
     if fixed_background is None:
-        initial_guess.append(max(1, np.min(photon_count)))
-        bounds.append((np.finfo(float).eps, None))
+        initial_guess[-1] = max(1, np.min(photon_count))
+        bounds = np.vstack((bounds, (np.finfo(float).eps, None)))
 
     result = _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count, bounds)
 
     # Pack the results
     background = result.x[-1] if fixed_background is None else fixed_background
-    result = tuple(
-        (*param, background) for param in result.x[: initial_position.size * 3].reshape(-1, 3)
+    return tuple(
+        (*param, background) for param in result.x[: initial_position.size * 3].reshape(3, -1).T
     )
-    return result
