@@ -3,6 +3,33 @@ from functools import partial
 from scipy.optimize import minimize
 
 
+def overlapping_pixels(coordinates, width):
+    """Determine which fitting regions are expected to overlap.
+
+    Returns a list of indices grouped by overlapping coordinates within a window 2 * width.
+
+    This function constructs a list of lists. Each inner list contains the indices of the
+    coordinates which are separated by < 2 * width. The outer list is sorted by spatial position.
+
+    Parameters
+    ----------
+    coordinates : array_like
+        coordinates
+    width : float
+        width in either direction
+    """
+    if not len(coordinates):
+        return []
+
+    coordinates = np.asarray(coordinates)
+    indices = np.argsort(coordinates)
+    sorted_coordinates = coordinates[indices]
+    differences = np.diff(sorted_coordinates)
+    groups = np.split(indices, np.flatnonzero(differences > 2 * width) + 1)
+
+    return groups
+
+
 def poisson_log_likelihood(params, expectation_fun, photon_count):
     """Calculates the log likelihood of Poisson distributed values.
 

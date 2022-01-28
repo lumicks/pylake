@@ -4,6 +4,48 @@ from functools import partial
 
 from lumicks.pylake.kymotracker.detail import gaussian_mle
 from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
+from lumicks.pylake.kymotracker.detail.gaussian_mle import overlapping_pixels
+
+
+@pytest.mark.parametrize(
+    "positions,width,output",
+    [
+        [[], 1, []],
+        [[35, 50], 3, [[0], [1]]],
+        [[35, 50], 10, [[0, 1]]],
+        [[2, 6], 1, [[0], [1]]],
+        [[2, 5], 1, [[0], [1]]],
+        [[2, 4], 1, [[0, 1]]],
+        [[2, 8], 2, [[0], [1]]],
+        [[2, 7], 2, [[0], [1]]],
+        [[2, 6], 2, [[0, 1]]],
+        [[2, 10], 3, [[0], [1]]],
+        [[2, 9], 3, [[0], [1]]],
+        [[2, 8], 3, [[0, 1]]],
+        [[3, 4, 5], 1, [[0, 1, 2]]],
+        [[3, 5, 7], 1, [[0, 1, 2]]],
+        [[3, 6, 7], 1, [[0], [1, 2]]],
+        [[3, 6, 9], 1, [[0], [1], [2]]],
+        # test order
+        [[4, 6, 3, 5], 1, [[2, 0, 3, 1]]],
+        [[6, 3, 1], 1, [[2, 1], [0]]],
+        [[4, 7, 2], 1, [[2, 0], [1]]],
+        [[6, 4, 3, 5], 1, [[2, 1, 3, 0]]],
+        [[18, 8, 10, 22, 24], 2, [[1, 2], [0, 3, 4]]],
+    ],
+)
+def test_overlapping_pixels(positions, width, output):
+    result = overlapping_pixels(positions, width)
+    assert len(result) == len(output), (
+        f"Input: {positions} / {width}, Expected: {output}, "
+        f"Got {overlapping_pixels(positions, width)}"
+    )
+
+    for p, q in zip(result, output):
+        assert np.all(p == q), (
+            f"Input: {positions} / {width}, Expected: {output}, "
+            f"Got {overlapping_pixels(positions, width)}"
+        )
 
 
 def test_likelihood(gaussian_1d):
@@ -85,15 +127,17 @@ def test_two_component_jacobian(two_gaussians_1d):
     expectation_fcn = partial(gaussian_mle.peak_expectation_1d, coordinates, **args)
     derivatives_fcn = partial(gaussian_mle.peak_expectation_1d_derivatives, coordinates, **args)
 
-    p = np.array([
-        param1.total_photons,
-        param1.center,
-        param1.width,
-        param2.total_photons,
-        param2.center,
-        param2.width,
-        param1.background + param2.background
-    ])
+    p = np.array(
+        [
+            param1.total_photons,
+            param1.center,
+            param1.width,
+            param2.total_photons,
+            param2.center,
+            param2.width,
+            param1.background + param2.background,
+        ]
+    )
 
     f = lambda pp: np.array(
         [gaussian_mle.poisson_log_likelihood(pp, expectation_fcn, photon_count[:, 0])]
