@@ -72,8 +72,8 @@ if __name__ == "__main__":
     # generate double gaussian peak dataset
     # Note that we end up adding the two offsets (1 and 2 in this case)
     parameters = [
-        GaussianParameters1D(100, 3.500, 0.50, 1, 0.100),
-        GaussianParameters1D(50, 5.000, 0.250, 2, 0.100),
+        GaussianParameters1D(50, 5.000, 0.50, 1, 0.100),
+        GaussianParameters1D(100, 3.500, 0.50, 2, 0.100),
     ]
-    dataset = make_dataset(parameters, n_pixels=100, n_samples=1)
+    dataset = make_dataset(parameters, n_pixels=100, n_samples=5)
     np.savez(save_path / "two_gaussians_1d.npz", **dataset)

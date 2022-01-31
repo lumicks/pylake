@@ -179,8 +179,16 @@ def gaussian_mle_1d(
         num_peaks=num_peaks,
     )
 
+    # Sort the positions for consistency during optimization
+    idx = np.argsort(initial_position)
+    initial_position = initial_position[idx]
+
+    # Keep a set of reverse sort indices so the original order can be preserved on output
+    reverse_idx = np.argsort(idx)
+
     amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma ** 2)
 
+    # parameters are ordered as follows: amplitudes, centers, widths, background offset
     num_pars = num_peaks * 3 + (0 if fixed_background else 1)
     initial_guess = np.empty(num_pars)
     initial_guess[:num_peaks] = amp_estimate / initial_position.size
@@ -203,6 +211,10 @@ def gaussian_mle_1d(
 
     # Pack the results
     background = result.x[-1] if fixed_background is None else fixed_background
-    return tuple(
-        (*param, background) for param in result.x[: initial_position.size * 3].reshape(3, -1).T
-    )
+    peak_parameters = result.x[: initial_position.size * 3].reshape(3, -1).T
+
+    # Restore original order
+    sort_idx = np.argsort(peak_parameters[:, 1])
+    peak_parameters = peak_parameters[sort_idx[reverse_idx], :]
+
+    return tuple((*param, background) for param in peak_parameters)
