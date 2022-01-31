@@ -62,3 +62,17 @@ def kymogroups_2lines():
     mixed_lines = KymoLineGroup([truncated_lines[0], lines[1]])
 
     return lines, gapped_lines, mixed_lines
+
+
+@pytest.fixture
+def kymogroups_close_lines():
+    _, _, photon_count, parameters = read_dataset_gaussian("two_gaussians_1d.npz")
+    pixel_size = parameters[0].pixel_size
+    centers = [p.center / pixel_size for p in parameters]
+
+    image = CalibratedKymographChannel.from_array(photon_count, pixel_size=pixel_size)
+    _, n_frames = image.data.shape
+
+    lines = KymoLineGroup([KymoLine(np.arange(0.0, n_frames), np.full(n_frames, c), image) for c in centers])
+
+    return lines
