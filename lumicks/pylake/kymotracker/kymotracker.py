@@ -293,7 +293,8 @@ def refine_lines_gaussian(
     overlap_strategy : {'ignore', 'skip'}
         How to deal with frames in which the fitting window of two `KymoLine`'s overlap.
 
-        - 'ignore' : do nothing, fit the frame as-is.
+        - 'multiple' : fit the peaks simultaneously.
+        - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
         - 'skip' : skip optimization of the frame; remove from returned `KymoLine`.
     initial_sigma : float
         Initial guess for the `sigma` parameter.
@@ -301,7 +302,7 @@ def refine_lines_gaussian(
         Fixed background parameter in photons per second.
         When supplied, the background is not estimated but fixed at this value.
     """
-    assert overlap_strategy in ("ignore", "skip")
+    assert overlap_strategy in ("ignore", "skip", "multiple")
     if refine_missing_frames:
         lines = [line.interpolate() for line in lines]
 
@@ -326,7 +327,11 @@ def refine_lines_gaussian(
             int(lines[line_index].coordinate_idx[idx]) for (line_index, idx) in frame
         ]
 
-        groups = overlapping_pixels(pixel_coordinates, window)
+        groups = (
+            [[idx] for idx in range(len(pixel_coordinates))]
+            if overlap_strategy == "ignore"
+            else overlapping_pixels(pixel_coordinates, window)
+        )
         for group in groups:
             if len(group) > 1 and overlap_strategy == "skip":
                 overlap_count += 1
