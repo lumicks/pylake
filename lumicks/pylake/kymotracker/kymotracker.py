@@ -315,7 +315,7 @@ def refine_lines_gaussian(
     lines_per_frame = [[] for _ in range(lines[0]._image.data.shape[1])]
     for line_index, line in enumerate(lines):
         for idx, time_idx in enumerate(line.time_idx):
-            lines_per_frame[time_idx].append((line_index, idx))
+            lines_per_frame[int(time_idx)].append((line_index, idx))
 
     # Prepare storage for the refined lines
     refined_lines_time_idx = [[] for _ in range(len(lines))]

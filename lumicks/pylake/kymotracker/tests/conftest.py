@@ -50,7 +50,7 @@ def kymogroups_2lines():
     image = CalibratedKymographChannel.from_array(photon_count, pixel_size=pixel_size)
     _, n_frames = image.data.shape
 
-    lines = KymoLineGroup([KymoLine(np.arange(n_frames), np.full(n_frames, c), image) for c in centers])
+    lines = KymoLineGroup([KymoLine(np.arange(0.0, n_frames), np.full(n_frames, c), image) for c in centers])
 
     # introduce gaps into tracked lines
     use_frames = np.array([0, 1, -2, -1])
@@ -58,7 +58,7 @@ def kymogroups_2lines():
                                   for line in lines])
 
     # crop the ends of initial lines and make new set of lines with one cropped and the second full
-    truncated_lines = KymoLineGroup([KymoLine(np.arange(1, n_frames-2), np.full(n_frames-3, c), image) for c in centers])
+    truncated_lines = KymoLineGroup([KymoLine(np.arange(1.0, n_frames-2), np.full(n_frames-3, c), image) for c in centers])
     mixed_lines = KymoLineGroup([truncated_lines[0], lines[1]])
 
     return lines, gapped_lines, mixed_lines
