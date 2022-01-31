@@ -2,7 +2,7 @@ from .detail.calibrated_images import CalibratedKymographChannel
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
 from .kymoline import KymoLine
-from .detail.gaussian_mle import gaussian_mle_1d
+from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.peakfinding import (
     peak_estimate,
     refine_peak_based_on_moment,
@@ -307,49 +307,69 @@ def refine_lines_gaussian(
 
     image = lines[0]._image
     initial_sigma = image._pixel_size * 1.1 if initial_sigma is None else initial_sigma
-    get_window_limits = lambda center: (max(int(center) - window, 0), int(center) + window + 1)
-    get_pixel_indices = lambda line: zip(line.time_idx.astype(int), np.rint(line.coordinate_idx))
 
-    # locate pixels with overlapping track windows
-    image_mask = np.zeros(image.data.shape)
-    for line in lines:
-        for j, (frame_index, coordinate_index) in enumerate(get_pixel_indices(line)):
-            limits = slice(*get_window_limits(coordinate_index))
-            image_mask[limits, frame_index] += 1
-
-    refined_lines = KymoLineGroup([])
     full_position = image.to_position(np.arange(image.data.shape[0]))
     overlap_count = 0
 
-    for line in lines:
-        tmp_times = []
-        tmp_positions = []
-        for j, (frame_index, coordinate_index) in enumerate(get_pixel_indices(line)):
-            limits = slice(*get_window_limits(coordinate_index))
+    # Generate a structure in which we can look up which lines contribute to which frame
+    lines_per_frame = [[] for _ in range(lines[0]._image.data.shape[1])]
+    for line_index, line in enumerate(lines):
+        for idx, time_idx in enumerate(line.time_idx):
+            lines_per_frame[time_idx].append((line_index, idx))
 
-            overlap = image_mask[limits, frame_index] >= 2
-            if np.any(overlap) and overlap_strategy == "skip":
+    # Prepare storage for the refined lines
+    refined_lines_time_idx = [[] for _ in range(len(lines))]
+    refined_lines_coordinates = [[] for _ in range(len(lines))]
+    for frame_index, frame in enumerate(lines_per_frame):
+        # Determine which lines are close enough so that they have to be fitted in the same group
+        pixel_coordinates = [
+            int(lines[line_index].coordinate_idx[idx]) for (line_index, idx) in frame
+        ]
+
+        groups = overlapping_pixels(pixel_coordinates, window)
+        for group in groups:
+            if len(group) > 1 and overlap_strategy == "skip":
                 overlap_count += 1
                 continue
-            position = full_position[limits]
+
+            # Grab the line indices within the group
+            line_indices_group = [frame[idx] for idx in group]
+            particle_positions = [
+                lines[line_idx].position[idx] for (line_idx, idx) in line_indices_group
+            ]
+
+            # Cut out the relevant chunk of data
+            limits = slice(
+                max(pixel_coordinates[group[0]] - window, 0),
+                pixel_coordinates[group[-1]] + window + 1,
+            )
             photon_counts = image.data[limits, frame_index]
+            positions = full_position[limits]
 
             r = gaussian_mle_1d(
-                position,
+                positions,
                 photon_counts,
                 image._pixel_size,
-                initial_position=line.position[j],
+                initial_position=particle_positions,
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
             )
-            tmp_positions.append(r[0][1] / image._pixel_size)
-            tmp_times.append(line.time_idx[j])
+            particle_positions = [peak_params[1] for peak_params in r]
 
-        if len(tmp_positions):
-            refined_lines.extend(KymoLine(tmp_times, tmp_positions, image))
+            # Store results in refined lines
+            for pos, (line_idx, _) in zip(particle_positions, line_indices_group):
+                refined_lines_time_idx[line_idx].append(frame_index)
+                refined_lines_coordinates[line_idx].append(pos / image._pixel_size)
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
             f"There were {overlap_count} instances of overlapped tracks ignored while fitting."
         )
-    return refined_lines
+
+    return KymoLineGroup(
+        [
+            KymoLine(t, c, image)
+            for t, c in zip(refined_lines_time_idx, refined_lines_coordinates)
+            if len(t) > 0
+        ]
+    )
