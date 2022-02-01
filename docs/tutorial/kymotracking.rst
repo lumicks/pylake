@@ -155,11 +155,13 @@ we can optionally interpolate an initial guess for these frames before the Gauss
 may not be well fit by this algorithm.
 
 Additionally, the presence of a nearby trace wherein the sampled pixels of the two traces overlap may interfere with the
-refinement algorithm. How the algorithm handles this situation is determined by the `overlap_strategy` argument. Setting `overlap_strategy="ignore"`
-simply ignores the situation and fits the data. A problem with the refinement in this case will manifest as the peak of the second trace
-is found rather than that of the current trace. Sometimes this can be avoided by decreasing the size of the `window` argument such that overlap no longer occurs.
-Alternatively we can simply ignore these frames by using `overlap_strategy="skip"`, in which case these frames
-are simply dropped from the trace.
+refinement algorithm. How the algorithm handles this situation is determined by the `overlap_strategy` argument.
+Setting `overlap_strategy="ignore"` simply ignores the situation and fits the data.
+A problem with the refinement in this case will manifest as the peak of the second trace is found rather than that of the current trace.
+Sometimes this can be avoided by decreasing the size of the `window` argument such that overlap no longer occurs.
+A better alternative is to use `overlap_strategy="fit_multiple"`.
+When this option is specified, peaks where the windows overlap are fitted simultaneously (using a shared offset parameter).
+Alternatively, we can simply ignore these frames by using `overlap_strategy="skip"`, in which case these frames are simply dropped from the trace.
 
 There is also an optional keyword argument `initial_sigma` that can be used to pass an initial guess for :math:`\sigma` in micrometers
 in the above expectation equation to the optimizer. The default value is `1.1*pixel_size`.
