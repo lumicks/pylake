@@ -15,6 +15,7 @@
 * Added `Kymo.crop_and_calibrate()` for interactive cropping of a kymograph. If the optional `tether_length_kbp` argument is supplied, the resulting kymograph will be automatically calibrated to this length. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#calibrating-to-base-pairs) for more information.
 * Added fallback to the function `Kymo.plot_with_force()` when only low-frequency force data is available.
 * Added option to undo/redo actions in the kymotracker widget.
+* Added option to fit peaks simultaneously in `refine_lines_gaussian()` using the flag `overlap_strategy="fit_multiple"`. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 
 #### Bug fixes
 
@@ -25,6 +26,7 @@
 * Improved default scaling behaviour for `CorrelatedStack.plot_correlated()` and `Scan.plot_correlated()`. It now ensures the ratio between the image and temporal plot is according to the aspect ratio of the scan or stack.
 * Slicing `CorrelatedStack` in reverse (i.e., `stack[5:3]`) or resulting in an empty stack (i.e., `stack[5:5]`) now throws an exception.
 * Resolved `DeprecationWarning` for `tifffile.imsave()` and `tifffile.TiffWriter.save()` with `tifffile >= 2020.9.30`.
+* Fixed a bug in `refine_lines_gaussian()` which incorrectly rounded the pixel position instead of flooring it. For pixels with a subpixel position larger than half the pixel, this resulted in shifting the window by one pixel in the positive direction. Typically, this would have little or no effect since the majority of the peak should still be covered.
 
 #### Deprecations
 
