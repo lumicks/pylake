@@ -67,6 +67,13 @@ of the colormap. Any photon count higher than that will be clipped to the maxima
 What we can observe in this data is that as more force is applied, we get an increased binding activity. Let’s see
 if we can put the kymotracker to some good use and quantify these.
 
+Computing the background
+------------------
+First, we select a small region without traces to determine the background signal::
+
+    background = kymo["100s":"200s"].crop_by_distance(28, 31)
+    green_background_per_pixel = np.mean(background.green_image)
+
 Downsampling the kymograph
 --------------------------
 
@@ -150,11 +157,13 @@ the longest line we found, and have a look at its position over time::
 
 .. image:: kymo_position_over_time.png
 
-We can use such a line to sample the photon counts in the image. If we want to sum the photon count in a pixel region
-around the line from -3 to 3, we can achieve this by::
+The line coordinates can be used to sample the photon counts in the image. The example below demonstrates how to obtain the sum of the photon counts in a pixel region around the line from -3 to 3 (a line with a width of 7 pixels). The background per pixel as computed earlier is subtracted from the photon counts. Since the kymograph was downsampled by a factor 2 after computing the background, the background per pixel is multiplied by 2::
 
+    window = 3
+    bg_corrected = longest_line.sample_from_image(window) - (2 * window + 1) * 2 * green_background_per_pixel
+    
     plt.figure()
-    plt.plot(longest_line.seconds, longest_line.sample_from_image(3))
+    plt.plot(longest_line.seconds, bg_corrected)
     plt.ylabel('Photon count')
     plt.xlabel('Time [s]')
     plt.title('Photon counts along the longest line')
