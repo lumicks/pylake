@@ -313,20 +313,21 @@ def refine_lines_gaussian(
     overlap_count = 0
 
     # Generate a structure in which we can look up which lines contribute to which frame
-    lines_per_frame = [[] for _ in range(lines[0]._image.data.shape[1])]
+    # 3 groups: (spatial) pixel coordinate, spatial position, line index
+    lines_per_frame = [[[] for _ in range(lines[0]._image.data.shape[1])] for _ in range(3)]
     for line_index, line in enumerate(lines):
-        for idx, time_idx in enumerate(line.time_idx):
-            lines_per_frame[int(time_idx)].append((line_index, idx))
+        for idx, frame_index in enumerate(line.time_idx):
+            lines_per_frame[0][int(frame_index)].append(int(line.coordinate_idx[idx]))
+            lines_per_frame[1][int(frame_index)].append(line.position[idx])
+            lines_per_frame[2][int(frame_index)].append(line_index)
+    lines_per_frame = zip(*lines_per_frame)
 
     # Prepare storage for the refined lines
     refined_lines_time_idx = [[] for _ in range(len(lines))]
     refined_lines_coordinates = [[] for _ in range(len(lines))]
-    for frame_index, frame in enumerate(lines_per_frame):
-        # Determine which lines are close enough so that they have to be fitted in the same group
-        pixel_coordinates = [
-            int(lines[line_index].coordinate_idx[idx]) for (line_index, idx) in frame
-        ]
 
+    for frame_index, (pixel_coordinates, positions, line_indices) in enumerate(lines_per_frame):
+        # Determine which lines are close enough so that they have to be fitted in the same group
         groups = (
             [[idx] for idx in range(len(pixel_coordinates))]
             if overlap_strategy == "ignore"
@@ -338,10 +339,8 @@ def refine_lines_gaussian(
                 continue
 
             # Grab the line indices within the group
-            line_indices_group = [frame[idx] for idx in group]
-            particle_positions = [
-                lines[line_idx].position[idx] for (line_idx, idx) in line_indices_group
-            ]
+            line_indices_group = [line_indices[idx] for idx in group]
+            initial_positions = [positions[idx] for idx in group]
 
             # Cut out the relevant chunk of data
             limits = slice(
@@ -349,20 +348,19 @@ def refine_lines_gaussian(
                 pixel_coordinates[group[-1]] + window + 1,
             )
             photon_counts = image.data[limits, frame_index]
-            positions = full_position[limits]
 
-            r = gaussian_mle_1d(
-                positions,
+            result = gaussian_mle_1d(
+                full_position[limits],
                 photon_counts,
                 image._pixel_size,
-                initial_position=particle_positions,
+                initial_position=initial_positions,
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
             )
-            particle_positions = [peak_params[1] for peak_params in r]
+            particle_positions = [peak_params[1] for peak_params in result]
 
             # Store results in refined lines
-            for pos, (line_idx, _) in zip(particle_positions, line_indices_group):
+            for pos, line_idx in zip(particle_positions, line_indices_group):
                 refined_lines_time_idx[line_idx].append(frame_index)
                 refined_lines_coordinates[line_idx].append(pos / image._pixel_size)
 
