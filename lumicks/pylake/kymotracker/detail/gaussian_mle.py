@@ -167,6 +167,9 @@ def gaussian_mle_1d(
     """Calculate the maximum likelihood estimate of the model parameters given measured photon count
     for 1D data.
 
+    Returns a tuple of length {number of fitted peaks} containing
+    (position, total photons, width, background) for each fitted peak
+
     Parameters
     ----------
     x : np.ndarray
@@ -239,9 +242,10 @@ def gaussian_mle_1d(
     # Pack the results
     background = result.x[-1] if fixed_background is None else fixed_background
     peak_parameters = result.x[: initial_position.size * 3].reshape(3, -1).T
+    # re-order position, photons, width
+    peak_parameters = peak_parameters[:, [1, 0, 2]]
 
-    # Restore original order
-    sort_idx = np.argsort(peak_parameters[:, 1])
+    # Restore original order; sort by peak position
+    sort_idx = np.argsort(peak_parameters[:, 0])
     peak_parameters = peak_parameters[sort_idx[reverse_idx], :]
-
     return tuple((*param, background) for param in peak_parameters)

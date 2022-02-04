@@ -21,8 +21,8 @@ def kymolinegroup_io_data():
     lines = KymoLineGroup([k1, k2, k3, k4])
 
     for k in lines:
-        test_data[k.coordinate_idx, k.time_idx] = 2
-        test_data[np.array(k.coordinate_idx) - 1, k.time_idx] = 1
+        test_data[np.array(k.coordinate_idx).astype(int), k.time_idx] = 2
+        test_data[np.array(k.coordinate_idx).astype(int) - 1, k.time_idx] = 1
 
     return test_img, lines
 
