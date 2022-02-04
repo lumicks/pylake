@@ -261,9 +261,9 @@ def test_binding_histograms():
     np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
 
 
-def test_kymolinegroup_copy():
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), [])
-    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), [])
+def test_kymolinegroup_copy(blank_channel):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_channel)
+    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_channel)
     group = KymoLineGroup([k1, k2])
     assert id(group._src) != id(copy(group)._src)
 

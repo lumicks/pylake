@@ -9,10 +9,10 @@ from lumicks.pylake.kymotracker.kymotracker import (
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 
 
-def test_kymoline_interpolation():
+def test_kymoline_interpolation(blank_channel):
     time_idx = np.array([1.0, 3.0, 5.0])
     coordinate_idx = np.array([1.0, 3.0, 3.0])
-    kymoline = KymoLine(time_idx, coordinate_idx, [])
+    kymoline = KymoLine(time_idx, coordinate_idx, blank_channel)
     interpolated = kymoline.interpolate()
     np.testing.assert_allclose(interpolated.time_idx, [1.0, 2.0, 3.0, 4.0, 5.0])
     np.testing.assert_allclose(interpolated.coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0])
@@ -176,12 +176,10 @@ def test_gaussian_refinement_overlap(kymogroups_close_lines):
     )
 
 
-def test_filter_lines():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
-
-    k1 = KymoLine([1, 2, 3], [1, 2, 3], channel)
-    k2 = KymoLine([2, 3], [1, 2], channel)
-    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], channel)
+def test_filter_lines(blank_channel):
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], blank_channel)
+    k2 = KymoLine([2, 3], [1, 2], blank_channel)
+    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], blank_channel)
     lines = KymoLineGroup([k1, k2, k3])
     assert len(filter_lines(lines, 5)) == 0
     assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])

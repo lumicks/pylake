@@ -42,6 +42,11 @@ def two_gaussians_1d():
 
 
 @pytest.fixture
+def blank_channel():
+    return CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+
+
+@pytest.fixture
 def kymogroups_2lines():
     _, _, photon_count, parameters = read_dataset_gaussian("kymo_data_2lines.npz")
     pixel_size = parameters[0].pixel_size
