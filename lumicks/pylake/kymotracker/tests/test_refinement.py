@@ -43,6 +43,9 @@ def test_refinement_2d():
     np.testing.assert_allclose(refined_line.time_idx, time_idx)
     np.testing.assert_allclose(refined_line.coordinate_idx, coordinate_idx + offset)
 
+    # Test line group not modified in place
+    assert id(line) != id(refined_line)
+
     # Test whether concatenation still works after refinement
     np.testing.assert_allclose((refined_line + line).time_idx, np.hstack((time_idx, time_idx[::2])))
     np.testing.assert_allclose(
