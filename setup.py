@@ -55,7 +55,7 @@ setup(
         "numpy>=1.20, <2",
         "scipy>=1.1, <2",
         "matplotlib>=2.2",
-        "tifffile>=2019.7.26",
+        "tifffile>=2020.9.30",
         "tabulate==0.8.6",
         "opencv-python-headless>=3.0",
         "ipywidgets>=7.0.0",
