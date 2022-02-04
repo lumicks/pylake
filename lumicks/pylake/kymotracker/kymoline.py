@@ -90,11 +90,11 @@ def import_kymolinegroup_from_csv(filename, kymo, channel, delimiter=";"):
 class KymoLine:
     """A line on a kymograph"""
 
-    __slots__ = ["time_idx", "coordinate_idx", "_image"]
+    __slots__ = ["_time_idx", "_coordinate_idx", "_image"]
 
     def __init__(self, time_idx, coordinate_idx, image):
-        self.time_idx = np.asarray(time_idx)
-        self.coordinate_idx = np.asarray(coordinate_idx)
+        self._time_idx = np.asarray(time_idx)
+        self._coordinate_idx = np.asarray(coordinate_idx)
         self._image = image
 
     @classmethod
@@ -125,6 +125,14 @@ class KymoLine:
         return np.squeeze(
             np.array(np.vstack((self.time_idx[item], self.coordinate_idx[item]))).transpose()
         )
+
+    @property
+    def time_idx(self):
+        return self._time_idx
+
+    @property
+    def coordinate_idx(self):
+        return self._coordinate_idx
 
     @property
     def seconds(self):
