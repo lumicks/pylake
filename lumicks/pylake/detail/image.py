@@ -255,7 +255,7 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
             f" or pass `force=True` to clip the data."
         )
 
-    tifffile.imsave(
+    tifffile.imwrite(
         filename,
         image.astype(dtype),
         resolution=metadata.resolution,
