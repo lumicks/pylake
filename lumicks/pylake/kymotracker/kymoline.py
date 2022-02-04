@@ -1,7 +1,8 @@
 from copy import copy
 from sklearn.neighbors import KernelDensity
-from lumicks.pylake.kymotracker.detail.msd_estimation import *
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
+from .detail.msd_estimation import *
+from .detail.calibrated_images import CalibratedKymographChannel
+from .detail.localization_models import LocalizationModel
 from lumicks.pylake.population.dwelltime import DwelltimeModel
 
 
@@ -88,13 +89,29 @@ def import_kymolinegroup_from_csv(filename, kymo, channel, delimiter=";"):
 
 
 class KymoLine:
-    """A line on a kymograph"""
+    """A line on a kymograph.
 
-    __slots__ = ["_time_idx", "_coordinate_idx", "_image"]
+    Parameters
+    ----------
+    time_idx : array-like
+        Frame time indices.
+    localization : LocalizationModel or array-like
+        LocalizationModel instance containing localization parameters
+        or list of (sub)pixel coordinates to be converted to spatial
+        position via calibration with pixel size.
+    image : CalibratedKymographChannel
+        Image data from kymograph.
+    """
 
-    def __init__(self, time_idx, coordinate_idx, image):
+    __slots__ = ["_time_idx", "_localization", "_image"]
+
+    def __init__(self, time_idx, localization, image):
         self._time_idx = np.asarray(time_idx)
-        self._coordinate_idx = np.asarray(coordinate_idx)
+        self._localization = (
+            localization
+            if isinstance(localization, LocalizationModel)
+            else LocalizationModel(np.array(localization) * image._pixel_size)
+        )
         self._image = image
 
     @classmethod
@@ -132,7 +149,8 @@ class KymoLine:
 
     @property
     def coordinate_idx(self):
-        return self._coordinate_idx
+        """Return spatial coordinates in units of pixels."""
+        return self._localization.position / self._image._pixel_size
 
     @property
     def seconds(self):
@@ -140,7 +158,7 @@ class KymoLine:
 
     @property
     def position(self):
-        return self._image.to_position(self.coordinate_idx)
+        return self._localization.position
 
     def _check_ends_are_defined(self):
         """Checks if beginning and end of the line are not in the first/last frame."""

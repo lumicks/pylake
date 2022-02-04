@@ -9,6 +9,7 @@ from .detail.peakfinding import (
     merge_close_peaks,
     KymoPeaks,
 )
+from .detail.localization_models import GaussianLocalizationModel
 from .kymoline import KymoLineGroup
 import numpy as np
 import warnings
@@ -290,7 +291,7 @@ def refine_lines_gaussian(
         Number of pixels on either side of the estimated line to include in the optimization data.
     refine_missing_frames : bool
         Whether to estimate location for frames which were missed in initial peak finding.
-    overlap_strategy : {'ignore', 'skip'}
+    overlap_strategy : {'multiple', 'ignore', 'skip'}
         How to deal with frames in which the fitting window of two `KymoLine`'s overlap.
 
         - 'multiple' : fit the peaks simultaneously.
@@ -324,7 +325,7 @@ def refine_lines_gaussian(
 
     # Prepare storage for the refined lines
     refined_lines_time_idx = [[] for _ in range(len(lines))]
-    refined_lines_coordinates = [[] for _ in range(len(lines))]
+    refined_lines_parameters = [[] for _ in range(len(lines))]
 
     for frame_index, (pixel_coordinates, positions, line_indices) in enumerate(lines_per_frame):
         # Determine which lines are close enough so that they have to be fitted in the same group
@@ -357,12 +358,12 @@ def refine_lines_gaussian(
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
             )
-            particle_positions = [peak_params[1] for peak_params in result]
 
             # Store results in refined lines
-            for pos, line_idx in zip(particle_positions, line_indices_group):
+            for line_idx, params in zip(line_indices_group, result):
                 refined_lines_time_idx[line_idx].append(frame_index)
-                refined_lines_coordinates[line_idx].append(pos / image._pixel_size)
+                is_overlapping = len(result) != 1 if overlap_strategy == "multiple" else False
+                refined_lines_parameters[line_idx].append(np.hstack((params, is_overlapping)))
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
@@ -371,8 +372,8 @@ def refine_lines_gaussian(
 
     return KymoLineGroup(
         [
-            KymoLine(t, c, image)
-            for t, c in zip(refined_lines_time_idx, refined_lines_coordinates)
+            KymoLine(t, GaussianLocalizationModel(*np.vstack(p).T), image)
+            for t, p in zip(refined_lines_time_idx, refined_lines_parameters)
             if len(t) > 0
         ]
     )
