@@ -262,14 +262,14 @@ def refine_lines_centroid(lines, line_width):
         interpolated_lines[0]._image.data, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
     )
 
-    current = 0
-    for line in interpolated_lines:
-        line_length = len(line.time_idx)
-        line.time_idx = time_idx[current : current + line_length]
-        line.coordinate_idx = coordinate_idx[current : current + line_length]
-        current += line_length
-
-    return KymoLineGroup(interpolated_lines)
+    line_ids = np.hstack(
+        [np.full(len(line.time_idx), j) for j, line in enumerate(interpolated_lines)]
+    )
+    new_lines = [
+        KymoLine(time_idx[line_ids == j], coordinate_idx[line_ids == j], line._image)
+        for j, line in enumerate(interpolated_lines)
+    ]
+    return KymoLineGroup(new_lines)
 
 
 def refine_lines_gaussian(
