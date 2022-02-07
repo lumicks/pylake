@@ -349,7 +349,7 @@ class CorrelatedStack:
         # write frames sequentially
         with tifffile.TiffWriter(file_name) as tif:
             for frame in to_save:
-                tif.save(
+                tif.write(
                     frame.data,
                     description=description,
                     software=software,
