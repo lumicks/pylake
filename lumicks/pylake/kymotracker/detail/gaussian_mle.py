@@ -244,4 +244,4 @@ def gaussian_mle_1d(
     sort_idx = np.argsort(peak_parameters[:, 1])
     peak_parameters = peak_parameters[sort_idx[reverse_idx], :]
 
-    return tuple(np.hstack((*param, background)) for param in peak_parameters)
+    return tuple((*param, background) for param in peak_parameters)

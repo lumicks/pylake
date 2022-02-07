@@ -25,6 +25,7 @@ class GaussianLocalizationModel(LocalizationModel):
     total_photons: np.ndarray
     sigma: np.ndarray
     background: np.ndarray
+    _overlap_fit: np.ndarray
 
     @property
     def loc_variance(self):
@@ -36,9 +37,14 @@ class GaussianLocalizationModel(LocalizationModel):
         """
 
         var = []
-        for p, s, b in zip(self.total_photons, self.sigma, self.background):
-            tau = 2 * np.pi * s ** 2 * b / (p * self.pixel_size)
-            fn = lambda t: np.log(t) / (1 + t / tau)
-            integral, _ = integrate.quad(fn, 0, 1)
-            var.append(s ** 2 / p * (1 + integral) ** -1)
+        for photons, sigma, background, overlap in zip(
+            self.total_photons, self.sigma, self.background, self._overlap_fit
+        ):
+            if overlap:
+                var.append(np.nan)
+            else:
+                tau = 2 * np.pi * sigma ** 2 * background / (photons * self.pixel_size)
+                fn = lambda t: np.log(t) / (1 + t / tau)
+                integral, _ = integrate.quad(fn, 0, 1)
+                var.append(sigma ** 2 / photons * (1 + integral) ** -1)
         return var

@@ -291,7 +291,7 @@ def refine_lines_gaussian(
         Number of pixels on either side of the estimated line to include in the optimization data.
     refine_missing_frames : bool
         Whether to estimate location for frames which were missed in initial peak finding.
-    overlap_strategy : {'ignore', 'skip'}
+    overlap_strategy : {'multiple', 'ignore', 'skip'}
         How to deal with frames in which the fitting window of two `KymoLine`'s overlap.
 
         - 'multiple' : fit the peaks simultaneously.
@@ -326,7 +326,9 @@ def refine_lines_gaussian(
     # Prepare storage for the refined lines
     refined_lines_time_idx = [[] for _ in range(len(lines))]
     refined_lines_parameters = [[] for _ in range(len(lines))]
-    parameter_order = [1, 0, 2, 3]
+
+    # to re-order parameters as position, total photons, sigma, background, is_overlap_frame
+    parameter_order = [1, 0, 2, 3, 4]
 
     for frame_index, (pixel_coordinates, positions, line_indices) in enumerate(lines_per_frame):
         # Determine which lines are close enough so that they have to be fitted in the same group
@@ -363,7 +365,10 @@ def refine_lines_gaussian(
             # Store results in refined lines
             for line_idx, params in zip(line_indices_group, result):
                 refined_lines_time_idx[line_idx].append(frame_index)
-                refined_lines_parameters[line_idx].append(params[parameter_order])
+                is_overlapping = len(result) != 1 if overlap_strategy == "multiple" else False
+                refined_lines_parameters[line_idx].append(
+                    np.hstack((params, is_overlapping))[parameter_order]
+                )
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
