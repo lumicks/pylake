@@ -159,6 +159,10 @@ class KymoLine:
     def position(self):
         return self._localization.position
 
+    @property
+    def position_variance(self):
+        return self._localization.loc_variance
+        
     def _check_ends_are_defined(self):
         """Checks if beginning and end of the line are not in the first/last frame."""
         return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.data.shape[1] - 1

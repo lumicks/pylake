@@ -9,6 +9,7 @@ from .detail.peakfinding import (
     merge_close_peaks,
     KymoPeaks,
 )
+from .detail.loc_models import GaussianLocalizationModel
 from .kymoline import KymoLineGroup
 import numpy as np
 import warnings
@@ -324,7 +325,8 @@ def refine_lines_gaussian(
 
     # Prepare storage for the refined lines
     refined_lines_time_idx = [[] for _ in range(len(lines))]
-    refined_lines_coordinates = [[] for _ in range(len(lines))]
+    refined_lines_parameters = [[] for _ in range(len(lines))]
+    parameter_order = [1, 0, 2, 3]
 
     for frame_index, (pixel_coordinates, positions, line_indices) in enumerate(lines_per_frame):
         # Determine which lines are close enough so that they have to be fitted in the same group
@@ -357,12 +359,11 @@ def refine_lines_gaussian(
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
             )
-            particle_positions = [peak_params[1] for peak_params in result]
 
             # Store results in refined lines
-            for pos, line_idx in zip(particle_positions, line_indices_group):
+            for line_idx, params in zip(line_indices_group, result):
                 refined_lines_time_idx[line_idx].append(frame_index)
-                refined_lines_coordinates[line_idx].append(pos / image._pixel_size)
+                refined_lines_parameters[line_idx].append(params[parameter_order])
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
@@ -371,8 +372,8 @@ def refine_lines_gaussian(
 
     return KymoLineGroup(
         [
-            KymoLine(t, c, image)
-            for t, c in zip(refined_lines_time_idx, refined_lines_coordinates)
+            KymoLine(t, GaussianLocalizationModel(image._pixel_size, *np.vstack(p).T), image)
+            for t, p in zip(refined_lines_time_idx, refined_lines_parameters)
             if len(t) > 0
         ]
     )
