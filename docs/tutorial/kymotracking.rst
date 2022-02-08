@@ -185,6 +185,29 @@ In this case the parameter will not be fitted, but fixed to the user specified v
 This can help reduce the variance of the parameter estimates.
 Note that this method can only be used if the background can be assumed to be constant over time and position.
 
+Position uncertainty
+^^^^^^^^^^^^^^^^^^^^
+
+The variance of the position estimate is available for `KymoLine` refined by the MLE method, which is calculated according to :cite:`mortensen2010gauloc`
+(SI Equation 54)
+
+.. math::
+    \mathrm{Var} \left( \mu \right) = \frac{\sigma^2}{N} \left( 1 + \int_0^1 \frac{\ln{t}}{1 + t / \tau} dt \right)^{-1}
+
+where :math:`\tau` is defined as:
+
+.. math::
+    \tau = \frac{2 \pi \sigma^2 b}{N a}
+
+You can access these values for the full line with::
+
+    refined.position_variance
+
+Note that the variance estimtate is only available for lines that have been refined by the MLE method and were not fit as overlapping windows.
+For lines and/or time frames that do not meet these conditions, the value will be `np.nan`. Also, when two lines are manually connected
+(in the widget for instance), the gaussian model parameters are no longer considered valid and therefore the position variance will also return `np.nan`.
+
+
 Using the kymotracker widget
 ----------------------------
 

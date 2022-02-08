@@ -10,6 +10,7 @@
 * Allow slicing directly with an object with a `.start` and `.stop` property. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#markers) for more information.
 * Allow boolean array indexing on `Slice` (e.g. `file.force1x[file.force1x.data > 5]`. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#boolean-array-indexing) for more information.
 * When doing arithmetic on `Slice`, propagate the calibration if it is still valid.
+* Added `Kymoline.position_variance` to obtain an estimate of the variance on the localized track position. This value is only calculated for tracks that have been refined by the gaussian MLE method and do not overlap with other tracks. In other cases, this property will return `np.nan`.
 
 #### Bug fixes
 

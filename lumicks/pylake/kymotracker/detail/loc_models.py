@@ -6,6 +6,11 @@ from typing import ClassVar
 
 @dataclass(frozen=True)
 class LocalizationModel:
+    """Data structure to handle localization parameters.
+
+    All position/spatial values are in physical units (microns, kbp, etc).
+    """
+
     _name: ClassVar[str] = "default"
     pixel_size: float
     position: np.ndarray
@@ -21,6 +26,12 @@ class LocalizationModel:
 
 @dataclass(frozen=True)
 class GaussianLocalizationModel(LocalizationModel):
+    """
+    Mortensen, K. I., Churchman, L. S., Spudich, J. A., & Flyvbjerg, H. (2010).
+    Optimized localization analysis for single-molecule tracking and super-resolution microscopy.
+    Nature Methods, 7(5), 377-381.
+    """
+
     _name: ClassVar[str] = "gaussian"
     total_photons: np.ndarray
     sigma: np.ndarray
@@ -29,13 +40,7 @@ class GaussianLocalizationModel(LocalizationModel):
 
     @property
     def loc_variance(self):
-        """
-        [ ] Mortensen, K. I., Churchman, L. S., Spudich, J. A., & Flyvbjerg, H. (2010).
-        Optimized localization analysis for single-molecule tracking and super-resolution microscopy.
-        Nature Methods, 7(5), 377-381.
-        SI Eq. 54
-        """
-
+        # Mortensen et al. SI Eq. 54
         var = []
         for photons, sigma, background, overlap in zip(
             self.total_photons, self.sigma, self.background, self._overlap_fit
@@ -43,8 +48,8 @@ class GaussianLocalizationModel(LocalizationModel):
             if overlap:
                 var.append(np.nan)
             else:
-                tau = 2 * np.pi * sigma ** 2 * background / (photons * self.pixel_size)
+                tau = 2 * np.pi * sigma**2 * background / (photons * self.pixel_size)
                 fn = lambda t: np.log(t) / (1 + t / tau)
                 integral, _ = integrate.quad(fn, 0, 1)
-                var.append(sigma ** 2 / photons * (1 + integral) ** -1)
+                var.append(sigma**2 / photons * (1 + integral) ** -1)
         return var

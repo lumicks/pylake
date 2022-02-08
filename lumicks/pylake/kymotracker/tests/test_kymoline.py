@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.kymotracker.kymoline import *
 from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
+from lumicks.pylake.kymotracker.detail.loc_models import (
+    LocalizationModel,
+    GaussianLocalizationModel,
+)
 
 
 def test_kymo_line():
@@ -266,6 +270,30 @@ def test_kymolinegroup_copy(blank_channel):
     k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_channel)
     group = KymoLineGroup([k1, k2])
     assert id(group._src) != id(copy(group)._src)
+
+
+def test_kymoline_concat_gaussians(blank_channel):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_channel)
+    k2 = KymoLine(
+        np.array([6, 7, 8]),
+        GaussianLocalizationModel(
+            1, np.full(3, 2), np.full(3, 7), np.full(3, 0.5), np.ones(3), np.full(3, False)
+        ),
+        blank_channel,
+    )
+    group = KymoLineGroup([k1, k2])
+
+    assert isinstance(k1._localization, LocalizationModel)
+    assert isinstance(k2._localization, GaussianLocalizationModel)
+
+    np.testing.assert_equal(k1.position_variance, np.full(3, np.nan))
+    np.testing.assert_allclose(k2.position_variance, np.full(3, 0.08342221225415065))
+
+    # test concatenation clears gaussian parameters
+    group._concatenate_lines(k1, k2)
+    assert len(group) == 1
+    assert isinstance(group[0]._localization, LocalizationModel)
+    np.testing.assert_equal(group[0].position_variance, np.full(6, np.nan))
 
 
 def test_binding_profile_histogram():
