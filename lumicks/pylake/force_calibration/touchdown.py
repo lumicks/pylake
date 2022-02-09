@@ -192,6 +192,10 @@ def touchdown(
         Degree of the polynomial to use for the background intensity when fitting the intensity
         pattern.
     """
+    if len(nanostage) != len(axial_force):
+        min_length = min(len(nanostage), len(axial_force))
+        nanostage, axial_force = nanostage[:min_length], axial_force[:min_length]
+
     # Find the surface position
     piecewise_parameters = fit_piecewise_linear(nanostage, axial_force)
     surface_position = piecewise_parameters[0]
