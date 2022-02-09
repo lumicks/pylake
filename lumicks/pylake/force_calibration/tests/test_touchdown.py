@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.force_calibration.touchdown import (
     fit_piecewise_linear,
     fit_sine_with_polynomial,
@@ -74,6 +75,12 @@ def test_touchdown():
         nonlinear_shift=0.0,
     )
 
-    surface_position, focal_shift = touchdown(stage_positions, simulation)
-    np.testing.assert_allclose(surface_position, 101.663872)
-    np.testing.assert_allclose(focal_shift, 0.9282888602488462)
+    touchdown_result = touchdown(stage_positions, simulation)
+    np.testing.assert_allclose(touchdown_result.surface_position, 101.663872)
+    np.testing.assert_allclose(touchdown_result.focal_shift, 0.9282888602488462)
+
+
+@cleanup
+def test_plot():
+    touchdown_result = touchdown(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]))
+    touchdown_result.plot()

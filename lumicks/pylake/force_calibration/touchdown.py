@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
+from dataclasses import dataclass
+import matplotlib.pyplot as plt
 
 
 def mack_model(
@@ -141,6 +143,25 @@ def fit_sine_with_polynomial(independent, dependent, freq_guess, freq_bounds, ba
     return par[0], sine_with_polynomial(independent, par[0])
 
 
+@dataclass
+class TouchdownResult:
+    surface_position: float
+    focal_shift: float
+    nanostage_position: np.ndarray
+    axial_force: np.ndarray
+    surface_fit: np.ndarray
+    interference_nanostage: np.ndarray
+    interference_force: np.ndarray
+
+    def plot(self, legend=True):
+        plt.plot(self.nanostage_position, self.axial_force, label="Axial force")
+        plt.plot(self.interference_nanostage, self.interference_force, label="Interference fit")
+        plt.plot(self.nanostage_position, self.surface_fit, label="Piecewise linear fit")
+        plt.axvline(self.surface_position, label="Determined surface position")
+        if legend:
+            plt.legend()
+
+
 def touchdown(
     nanostage,
     axial_force,
@@ -182,7 +203,7 @@ def touchdown(
     # A poor initial estimate of the focal shift can lead to getting stuck in local optima
     # Hence we optimize from a range of starting values.
     bounds = np.array([0.5, 1.0001]) / expected_wavelength
-    pars, errs = [], []
+    pars, errs, simulations = [], [], []
     for freq_guess in np.arange(*bounds, np.diff(bounds) / 10):
         par, simulation = fit_sine_with_polynomial(
             surface_position - stage_trimmed,
@@ -194,7 +215,16 @@ def touchdown(
         err = np.sum((simulation - force_trimmed) ** 2)
         pars.append(par)
         errs.append(err)
+        simulations.append(simulation)
 
-    focal_shift = pars[np.argmin(errs)] * expected_wavelength
-
-    return surface_position, focal_shift
+    best_fit_index = np.argmin(errs)
+    focal_shift = pars[best_fit_index] * expected_wavelength
+    return TouchdownResult(
+        surface_position=surface_position,
+        focal_shift=focal_shift,
+        nanostage_position=nanostage,
+        axial_force=axial_force,
+        surface_fit=piecewise_linear(nanostage, *piecewise_parameters),
+        interference_nanostage=stage_trimmed,
+        interference_force=simulations[best_fit_index],
+    )
