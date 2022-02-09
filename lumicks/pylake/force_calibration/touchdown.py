@@ -2,6 +2,68 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 
+def mack_model(
+    wavelength_nm,
+    refractive_index_medium,
+    nanostage_z_position,
+    surface_position,
+    displacement_sensitivity,
+    intensity_amplitude,
+    intensity_phase_shift,
+    intensity_decay_length,
+    scattering_polynomial_coeffs,
+    focal_shift,
+    nonlinear_shift,
+):
+    """Phenomenological model describing axial force near the surface.
+
+    [1] Mack, A. H., Schlingman, D. J., Regan, L., & Mochrie, S. G. J. (2012). Practical axial
+    optical trapping. Review of Scientific Instruments, 83(10), 103106.
+
+    Parameters
+    ----------
+    wavelength_nm : float
+        Trapping laser wavelength
+    refractive_index_medium : float
+        Refractive index of the medium
+    nanostage_z_position : np.ndarray
+        Nanostage z-position
+    surface_position : float
+        Position of the surface.
+    displacement_sensitivity : float
+        Displacement sensitivity in Z.
+    intensity_amplitude : float
+        Amplitude of the interference pattern.
+    intensity_phase_shift : float
+        Phase of the interference pattern.
+    intensity_decay_length:
+        Intensity decay length.
+    scattering_polynomial_coeffs : np.ndarray
+        Background polynomial coefficients.
+    focal_shift : float
+        Focal shift.
+    nonlinear_shift : float
+        Nonlinear focal shift.
+    """
+
+    def interference_pattern(h):
+        background = np.polyval(scattering_polynomial_coeffs, h)
+        bead_center_to_stage = np.polyval([nonlinear_shift, focal_shift, 0], h)
+        laser_wavelength = wavelength_nm * 1e-3 / (2 * refractive_index_medium)
+        k = 2.0 * np.pi / laser_wavelength
+
+        return background + intensity_amplitude * np.exp(
+            -intensity_decay_length * bead_center_to_stage
+        ) * np.sin(k * bead_center_to_stage + intensity_phase_shift)
+
+    h = surface_position - nanostage_z_position
+    axial_force = np.zeros(h.shape)
+    axial_force[h >= 0] = interference_pattern(h[h >= 0])
+    axial_force[h < 0] = displacement_sensitivity * np.abs(h[h < 0]) + interference_pattern(0)
+
+    return axial_force
+
+
 def piecewise_linear(x, x0, y0, k1, k2):
     return np.piecewise(x, [x < x0], [lambda x: k1 * (x - x0) + y0, lambda x: k2 * (x - x0) + y0])
 
@@ -78,3 +140,61 @@ def fit_sine_with_polynomial(independent, dependent, freq_guess, freq_bounds, ba
     par, _ = curve_fit(sine_with_polynomial, independent, dependent, freq_guess, bounds=freq_bounds)
     return par[0], sine_with_polynomial(independent, par[0])
 
+
+def touchdown(
+    nanostage,
+    axial_force,
+    wavelength_nm=1064,
+    refractive_index_medium=1.333,
+    omit_microns=0.5,
+    background_degree=3,
+):
+    """This function determines the surface and focal shift from an approach curve.
+
+    We use a piecewise linear function to find the surface, and a sine fit (with a polynomial
+    background to infer the focal shift from the interference pattern).
+
+    Parameters
+    ----------
+    nanostage : np.ndarray
+        Nanostage Z position.
+    axial_force : np.ndarray
+        Axial force.
+    wavelength_nm : float
+        Wavelength of the trapping laser in nanometers.
+    refractive_index_medium : float
+        Refractive index of the medium.
+    omit_microns : float
+        This parameter sets the gap between the surface and where we begin to fit the interference
+        pattern.
+    background_degree : int
+        Degree of the polynomial to use for the background intensity when fitting the intensity
+        pattern.
+    """
+    # Find the surface position
+    piecewise_parameters = fit_piecewise_linear(nanostage, axial_force)
+    surface_position = piecewise_parameters[0]
+
+    mask = nanostage < (surface_position - omit_microns)
+    stage_trimmed, force_trimmed = nanostage[mask], axial_force[mask]
+    expected_wavelength = wavelength_nm * 1e-3 / 2 / refractive_index_medium
+
+    # A poor initial estimate of the focal shift can lead to getting stuck in local optima
+    # Hence we optimize from a range of starting values.
+    bounds = np.array([0.5, 1.0001]) / expected_wavelength
+    pars, errs = [], []
+    for freq_guess in np.arange(*bounds, np.diff(bounds) / 10):
+        par, simulation = fit_sine_with_polynomial(
+            surface_position - stage_trimmed,
+            force_trimmed,
+            freq_guess,
+            bounds,
+            background_degree=background_degree,
+        )
+        err = np.sum((simulation - force_trimmed) ** 2)
+        pars.append(par)
+        errs.append(err)
+
+    focal_shift = pars[np.argmin(errs)] * expected_wavelength
+
+    return surface_position, focal_shift

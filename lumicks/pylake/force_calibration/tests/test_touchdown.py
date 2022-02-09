@@ -3,6 +3,8 @@ import numpy as np
 from lumicks.pylake.force_calibration.touchdown import (
     fit_piecewise_linear,
     fit_sine_with_polynomial,
+    touchdown,
+    mack_model,
 )
 
 
@@ -49,3 +51,29 @@ def test_sine_with_polynomial(amplitude, frequency, phase_shift, poly_coeffs, f_
     par, sim = fit_sine_with_polynomial(h, test_data, f_guess, [0.0, 5.0], background_degree=2)
     np.testing.assert_allclose(frequency, par)
     np.testing.assert_allclose(np.sum((sim - test_data) ** 2), 0, atol=1e-12)
+
+
+def test_touchdown():
+    stage_positions = np.arange(100.5, 103.5, 0.01)
+    simulation = mack_model(
+        wavelength_nm=1064.0,
+        refractive_index_medium=1.333,
+        nanostage_z_position=stage_positions,
+        surface_position=101.65754300557573,
+        displacement_sensitivity=9.724913160609043,
+        intensity_amplitude=-0.10858224326787835,
+        intensity_phase_shift=1.6535670092299886,
+        intensity_decay_length=0.308551871490813,
+        scattering_polynomial_coeffs=[
+            -0.043577454353825644,
+            0.22333743993836863,
+            -0.33331150250090585,
+            0.1035148152731559,
+        ],
+        focal_shift=0.921283446497108,
+        nonlinear_shift=0.0,
+    )
+
+    surface_position, focal_shift = touchdown(stage_positions, simulation)
+    np.testing.assert_allclose(surface_position, 101.663872)
+    np.testing.assert_allclose(focal_shift, 0.9282888602488462)
