@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize_scalar
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
@@ -97,7 +97,9 @@ def fit_piecewise_linear(x, y):
     return pars
 
 
-def fit_sine_with_polynomial(independent, dependent, freq_guess, freq_bounds, background_degree):
+def fit_sine_with_polynomial(
+    independent, dependent, freq_bounds, background_degree, search_resolution=50
+):
     """Fit a sine wave plus polynomial background.
 
     We wish to fit a sine wave (with phase shift) plus a polynomial. By using a trick we can rewrite
@@ -114,33 +116,54 @@ def fit_sine_with_polynomial(independent, dependent, freq_guess, freq_bounds, ba
     polynomial is essentially a linear one in all variables except the frequency (our parameter of
     interest). Doing this allows us to estimate this using only one estimated variable.
 
+    This function divides the search area into equidistant segments defined by the search
+    resolution. For each of these segments it solves the linear subproblem yielding an error
+    as a function of the frequency. It then uses bounded optimization in the region spanned by
+    the samples adjacent to the optimal value.
+
     Parameters
     ----------
     independent : np.ndarray
         Values for the independent variable
     dependent : np.ndarray
         Values for the dependent variable
-    freq_guess : float
-        Initial guess for the frequency
     freq_bounds : 2-tuple of array_like
         Bounds for the frequency guess
     background_degree : int
         Polynomial degree to use to fit the background
+    search_resolution : int
+        Search resolution to use over the search domain to find an appropriate initial guess
+        for the optimizer.
     """
 
-    def sine_with_polynomial(x, frequency):
+    def sine_with_polynomial(frequency):
         design_matrix = np.vstack(
             (
-                np.sin(2.0 * np.pi * frequency * x),
-                np.cos(2.0 * np.pi * frequency * x),
-                x[np.newaxis, :] ** np.arange(0, background_degree + 1)[:, np.newaxis],
+                np.sin(2.0 * np.pi * frequency * independent),
+                np.cos(2.0 * np.pi * frequency * independent),
+                independent[np.newaxis, :] ** np.arange(0, background_degree + 1)[:, np.newaxis],
             ),
         )
         ests, _, _, _ = np.linalg.lstsq(design_matrix.T, dependent, rcond=None)
         return np.sum(design_matrix.T * ests, axis=1)
 
-    par, _ = curve_fit(sine_with_polynomial, independent, dependent, freq_guess, bounds=freq_bounds)
-    return par[0], sine_with_polynomial(independent, par[0])
+    def cost(freq):
+        return np.sum((sine_with_polynomial(freq) - dependent) ** 2)
+
+    # A poor initial estimate of the focal shift can lead to getting stuck in local optima. The
+    # optimum is typically very narrow, which makes most optimizers fail, so we try a range of
+    # values first.
+    step = np.diff(freq_bounds)[0] / search_resolution
+    guesses = np.arange(freq_bounds[0], freq_bounds[1] + step, step)
+    min_error_index = np.argmin([cost(guess) for guess in guesses])
+    search_range = [
+        guesses[max(0, min_error_index - 1)],
+        guesses[min(min_error_index + 1, guesses.size - 1)],
+    ]
+    result = minimize_scalar(cost, method="bounded", bounds=search_range)
+
+    par = result.x
+    return par, sine_with_polynomial(par)
 
 
 @dataclass
@@ -204,25 +227,15 @@ def touchdown(
     stage_trimmed, force_trimmed = nanostage[mask], axial_force[mask]
     expected_wavelength = wavelength_nm * 1e-3 / 2 / refractive_index_medium
 
-    # A poor initial estimate of the focal shift can lead to getting stuck in local optima
-    # Hence we optimize from a range of starting values.
     bounds = np.array([0.5, 1.0001]) / expected_wavelength
-    pars, errs, simulations = [], [], []
-    for freq_guess in np.arange(*bounds, np.diff(bounds) / 10):
-        par, simulation = fit_sine_with_polynomial(
-            surface_position - stage_trimmed,
-            force_trimmed,
-            freq_guess,
-            bounds,
-            background_degree=background_degree,
-        )
-        err = np.sum((simulation - force_trimmed) ** 2)
-        pars.append(par)
-        errs.append(err)
-        simulations.append(simulation)
+    par, simulation = fit_sine_with_polynomial(
+        surface_position - stage_trimmed,
+        force_trimmed,
+        bounds,
+        background_degree=background_degree,
+    )
 
-    best_fit_index = np.argmin(errs)
-    focal_shift = pars[best_fit_index] * expected_wavelength
+    focal_shift = par * expected_wavelength
     return TouchdownResult(
         surface_position=surface_position,
         focal_shift=focal_shift,
@@ -230,5 +243,5 @@ def touchdown(
         axial_force=axial_force,
         surface_fit=piecewise_linear(nanostage, *piecewise_parameters),
         interference_nanostage=stage_trimmed,
-        interference_force=simulations[best_fit_index],
+        interference_force=simulation,
     )
