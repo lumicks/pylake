@@ -35,23 +35,23 @@ def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset):
 
 
 @pytest.mark.parametrize(
-    "amplitude, frequency, phase_shift, poly_coeffs, f_guess",
+    "amplitude, frequency, phase_shift, poly_coeffs",
     [
-        [0.478463, 1.9889, 1.51936, [-1.26749, 8.06], 2.3],
-        [1.6, 1.3, 1.51936, [-1.26749, 8.06], 1.5],
-        [1.6, 1.3, 0.21936, [3.26749, -4.06], 1.5],
-        [0.6, 1.6, 0.21936, [3.26749, -4.06], 1.5],
+        [0.478463, 1.9889, 1.51936, [-1.26749, 8.06]],
+        [1.6, 1.3, 1.51936, [-1.26749, 8.06]],
+        [1.6, 1.3, 0.21936, [3.26749, -4.06]],
+        [0.6, 1.6, 0.21936, [3.26749, -4.06]],
     ],
 )
-def test_sine_with_polynomial(amplitude, frequency, phase_shift, poly_coeffs, f_guess):
+def test_sine_with_polynomial(amplitude, frequency, phase_shift, poly_coeffs):
     h = np.arange(2.5554, 0.0654, -0.01)
     test_data = amplitude * np.sin(2.0 * np.pi * frequency * h + phase_shift) + np.polyval(
         [-1.26749, 8.06], h
     )
 
-    par, sim = fit_sine_with_polynomial(h, test_data, f_guess, [0.0, 5.0], background_degree=2)
-    np.testing.assert_allclose(frequency, par)
-    np.testing.assert_allclose(np.sum((sim - test_data) ** 2), 0, atol=1e-12)
+    par, sim = fit_sine_with_polynomial(h, test_data, [0.0, 5.0], background_degree=2)
+    np.testing.assert_allclose(frequency, par, atol=1e-5)
+    np.testing.assert_allclose(np.sum((sim - test_data) ** 2), 0, atol=1e-8)
 
 
 def test_touchdown():
@@ -84,3 +84,20 @@ def test_touchdown():
 def test_plot():
     touchdown_result = touchdown(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]))
     touchdown_result.plot()
+
+
+@pytest.mark.parametrize(
+    "amplitude, frequency, phase_shift",
+    [
+        [0.478463, 5.23242, 1.51936],
+        [1.478463, 5.23242, 0.51936],
+        [1.478463, 3.83242, 0.51936],
+        [1.478463, 3.43242, 0.51936],
+        [1.478463, 10.0, 0.51936],
+    ],
+)
+def test_sine_fits(amplitude, frequency, phase_shift):
+    x = np.arange(1, 10, 0.01)
+    y = np.sin(2 * np.pi * frequency * x + phase_shift)
+    par, sim = fit_sine_with_polynomial(x, y, [0.0, 20.0], background_degree=0)
+    np.testing.assert_allclose(par, frequency, rtol=1e-6)
