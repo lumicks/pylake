@@ -153,52 +153,76 @@ class KymoWidget:
 
     def _connect_line_callback(self):
         cutoff_radius = 0.05  # We use a connection cutoff of 5% of the axis ranges
-        line_to_extend = None
+        clicked_line_info = None
         plotted_line = None
+        nodes = None
 
-        def get_nearest(positions, ref_position, axis_scaling):
-            squared_dist = np.sum(((ref_position - positions) / axis_scaling) ** 2, 1)
+        def get_node_info():
+            nodes = [
+                np.vstack(
+                    (
+                        np.full(len(track), j),  # track index
+                        np.arange(len(track)),  # node index within track
+                        track.seconds,  # x-coordinate
+                        track.position,  # y-coordinate
+                    )
+                )
+                for j, track in enumerate(self.lines)
+            ]
+            return np.hstack(nodes).T
+
+        def get_nearest(x, y):
+            nonlocal nodes
+            ref_position = np.array([x, y])
+            squared_dist = np.sum(((ref_position - nodes[:, -2:]) / self._get_scale()) ** 2, 1)
             idx = np.argmin(squared_dist)
             return np.sqrt(squared_dist[idx]), idx
 
         def initiate_line(event):
-            nonlocal line_to_extend
+            nonlocal nodes, clicked_line_info
             if len(self.lines) == 0:
                 return
 
-            tips = np.array([np.array([l.seconds[-1], l.position[-1]]) for l in self.lines])
-            distance, idx = get_nearest(tips, np.array([event.x, event.y]), self._get_scale())
+            nodes = get_node_info()
+            distance, idx = get_nearest(event.x, event.y)
 
             if distance < cutoff_radius:
-                line_to_extend = idx
+                line_index, *line_info = nodes[idx]
+                clicked_line_info = [self.lines[int(line_index)], *line_info]
                 return True
 
         def drag_line(event):
-            nonlocal line_to_extend, plotted_line
+            nonlocal clicked_line_info, plotted_line
             if plotted_line:
                 plotted_line.remove()
                 plotted_line = None
 
-            plotted_line = self._axes.plot(
-                [self.lines[line_to_extend].seconds[-1], event.x],
-                [self.lines[line_to_extend].position[-1], event.y],
+            line, node_index, *_ = clicked_line_info
+            plotted_line, *_ = self._axes.plot(
+                [line.seconds[int(node_index)], event.x],
+                [line.position[int(node_index)], event.y],
                 "r",
-            )[0]
+            )
 
         def finalize_line(event):
-            nonlocal line_to_extend, plotted_line
+            nonlocal clicked_line_info, plotted_line
             if plotted_line:
                 plotted_line.remove()
                 plotted_line = None
 
-            tips = np.array([np.array([l.seconds[0], l.position[0]]) for l in self.lines])
-            distance, idx = get_nearest(tips, np.array([event.x, event.y]), self._get_scale())
-
+            distance, idx = get_nearest(event.x, event.y)
             if distance < cutoff_radius:
                 # Explicit copy to make modifications. Current state pushed to undo stack on
                 # assignment.
                 lines = copy(self.lines)
-                lines._concatenate_lines(lines[line_to_extend], lines[idx])
+
+                line_index, *line_info = nodes[idx]
+                released_line_info = [self.lines[int(line_index)], *line_info]
+
+                clicked = [clicked_line_info, released_line_info]
+                clicked.sort(key=lambda x: x[2])  # by time
+                lines._merge_lines(*clicked[0][:2], *clicked[1][:2])
+
                 self.lines = lines
                 self.update_lines()
 

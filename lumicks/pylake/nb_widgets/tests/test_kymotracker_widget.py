@@ -110,8 +110,10 @@ def test_refine_from_widget(kymograph, region_select):
 
     kymo_widget._label = MockLabel()
     kymo_widget.refine()
-    assert kymo_widget._label.value == "You need to track or load kymograph lines before you can " \
-                                       "refine them"
+    assert (
+        kymo_widget._label.value == "You need to track or load kymograph lines before you can "
+        "refine them"
+    )
 
     kymo_widget.algorithm_parameters["pixel_threshold"] = 4
     kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
@@ -166,6 +168,48 @@ def test_stitch(kymograph, mockevent):
     assert len(kymo_widget.lines) == 1
 
 
+@pytest.mark.parametrize(
+    "start,stop,same_line", [(2, 7, False), (3, 7, False), (2, 6, False), (2, 5, True)]
+)
+def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
+
+    k1 = KymoLine(
+        np.array([1, 2, 3, 4, 5]),
+        np.array([1, 1, 1, 3, 3]),
+        CalibratedKymographChannel.from_kymo(kymograph, "red"),
+    )
+    k2 = KymoLine(
+        np.array([6, 7, 8]),
+        np.array([3, 3, 3]),
+        CalibratedKymographChannel.from_kymo(kymograph, "red"),
+    )
+    kymo_widget.lines = KymoLineGroup([k1, k2])
+
+    # Go into line connection mode
+    kymo_widget._select_state({"new": "Connect Lines"})
+    in_um, in_s = calibrate_to_kymo(kymograph)
+
+    # Merge points
+    kymo_widget._line_connector.button_down(
+        mockevent(kymo_widget._axes, in_s(start), in_um(1), 3, 0)
+    )
+    kymo_widget._line_connector.button_release(
+        mockevent(kymo_widget._axes, in_s(stop), in_um(3), 3, 0)
+    )
+
+    # Verify the stitched line
+    if not same_line:
+        time_result = np.hstack((np.arange(start) + 1, np.arange(stop, 9)))
+        coord_result = np.hstack((np.full(start, 1), np.full(9 - stop, 3)))
+    else:
+        time_result = np.hstack((np.arange(start) + 1, np.arange(stop, 6)))
+        coord_result = np.hstack((np.full(start, 1), np.full(6 - stop, 3)))
+    np.testing.assert_allclose(kymo_widget.lines[0].time_idx, time_result)
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, coord_result)
+    assert len(kymo_widget.lines) == 2 if same_line else 1
+
+
 def test_refine_line_width_units(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, line_width=2, use_widgets=False)
     in_um, in_s = calibrate_to_kymo(kymograph)
@@ -184,15 +228,15 @@ def test_refine_line_width_units(kymograph, region_select):
 @cleanup
 def test_widget_with_calibration(kymograph):
     widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
-    np.testing.assert_allclose(widget.algorithm_parameters["line_width"],
-                               kymograph.pixelsize[0] * 4)
+    np.testing.assert_allclose(
+        widget.algorithm_parameters["line_width"], kymograph.pixelsize[0] * 4
+    )
     np.testing.assert_allclose(widget.algorithm_parameters["line_width"], 1.6)
     assert widget._axes.get_ylabel() == r"position ($\mu$m)"
 
     kymo_bp = kymograph.calibrate_to_kbp(10.000)
     widget = KymoWidgetGreedy(kymo_bp, "red", 1, use_widgets=False)
-    np.testing.assert_allclose(widget.algorithm_parameters["line_width"],
-                               kymo_bp.pixelsize[0] * 4)
+    np.testing.assert_allclose(widget.algorithm_parameters["line_width"], kymo_bp.pixelsize[0] * 4)
     np.testing.assert_allclose(widget.algorithm_parameters["line_width"], 2.0)
     assert widget._axes.get_ylabel() == "position (kbp)"
 
@@ -208,8 +252,10 @@ def test_invalid_range_overrides(kymograph):
         KymoWidgetGreedy(kymograph, "red", 1, slider_ranges={"pixel_threshold": (5, 1)})
     with pytest.raises(
         ValueError,
-        match=re.escape("Slider range for parameter pixel_threshold should be given as "
-                        "(lower bound, upper bound)."),
+        match=re.escape(
+            "Slider range for parameter pixel_threshold should be given as "
+            "(lower bound, upper bound)."
+        ),
     ):
         KymoWidgetGreedy(kymograph, "red", 1, slider_ranges={"pixel_threshold": (1, 5, 6)})
 

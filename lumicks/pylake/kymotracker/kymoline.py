@@ -349,6 +349,26 @@ class KymoLineGroup:
         self._src[self._src.index(starting_line)] = starting_line + ending_line
         self._src.remove(ending_line)
 
+    def _merge_lines(self, starting_line, starting_node, ending_line, ending_node):
+        starting_node = int(starting_node) + 1
+        ending_node = int(ending_node)
+
+        first_half = KymoLine(
+            starting_line.time_idx[:starting_node],
+            starting_line.coordinate_idx[:starting_node],
+            starting_line._image,
+        )
+
+        last_half = KymoLine(
+            ending_line.time_idx[ending_node:],
+            ending_line.coordinate_idx[ending_node:],
+            ending_line._image,
+        )
+
+        self._src[self._src.index(starting_line)] = first_half + last_half
+        if starting_line != ending_line:
+            self._src.remove(ending_line)
+
     def __len__(self):
         return len(self._src)
 
