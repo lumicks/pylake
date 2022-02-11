@@ -16,6 +16,7 @@
 * Added fallback to the function `Kymo.plot_with_force()` when only low-frequency force data is available.
 * Added option to undo/redo actions in the kymotracker widget.
 * Added option to fit peaks simultaneously in `refine_lines_gaussian()` using the flag `overlap_strategy="fit_multiple"`. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
+* Added ability to manually connect two lines from any points (not just the ends) in the kymotracker widget.
 
 #### Bug fixes
 
