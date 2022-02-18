@@ -46,3 +46,24 @@ def integration_test_parameters():
         "driving_sinusoid": (500, 31.95633),
         "diode": (0.4, 15000),
     }
+
+
+@pytest.fixture
+def mack_parameters():
+    return {
+        "wavelength_nm": 1064.0,
+        "refractive_index_medium": 1.333,
+        "surface_position": 101.65754300557573,
+        "displacement_sensitivity": 9.724913160609043,
+        "intensity_amplitude": -0.10858224326787835,
+        "intensity_phase_shift": 1.6535670092299886,
+        "intensity_decay_length": 0.308551871490813,
+        "scattering_polynomial_coeffs": [
+            -0.043577454353825644,
+            0.22333743993836863,
+            -0.33331150250090585,
+            0.1035148152731559,
+        ],
+        "focal_shift": 0.921283446497108,
+        "nonlinear_shift": 0.0,
+    }
