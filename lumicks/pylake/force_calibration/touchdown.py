@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit, minimize_scalar
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
+import warnings
 
 
 def mack_model(
@@ -178,7 +179,12 @@ class TouchdownResult:
 
     def plot(self, legend=True):
         plt.plot(self.nanostage_position, self.axial_force, label="Axial force")
-        plt.plot(self.interference_nanostage, self.interference_force, label="Interference fit")
+        plt.plot(
+            self.interference_nanostage,
+            self.interference_force,
+            label=f"Interference fit{'' if self.focal_shift else ' (failed)'}",
+            linestyle="--" if self.focal_shift is None else "-",
+        )
         plt.plot(self.nanostage_position, self.surface_fit, label="Piecewise linear fit")
         plt.axvline(self.surface_position, label="Determined surface position")
         if legend:
@@ -236,6 +242,17 @@ def touchdown(
     )
 
     focal_shift = par * expected_wavelength
+    used_range = np.max(stage_trimmed) - np.min(stage_trimmed)
+
+    if used_range < (2 * expected_wavelength / focal_shift):
+        warnings.warn(
+            RuntimeWarning(
+                "Insufficient data available to reliably fit touchdown curve. We need at least two "
+                "oscillations to reliably fit the interference pattern."
+            )
+        )
+        focal_shift = None
+
     return TouchdownResult(
         surface_position=surface_position,
         focal_shift=focal_shift,
