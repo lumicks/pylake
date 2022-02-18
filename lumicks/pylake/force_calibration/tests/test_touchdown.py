@@ -11,15 +11,15 @@ from lumicks.pylake.force_calibration.touchdown import (
 
 
 @pytest.mark.parametrize(
-    "direction, surface, slope1, slope2, offset",
+    "direction, surface, slope1, slope2, offset, p_value",
     [
-        [0.1, 7.5, 3.0, 5.0, 7.0],
-        [0.1, 7.5, -3.0, 5.0, 7.0],
-        [0.1, 7.5, -3.0, 5.0, -7.0],
-        [0.1, 7.5, 0.0, 5.0, -7.0],
+        [0.1, 7.5, 3.0, 5.0, 7.0, 0.0],
+        [0.1, 7.5, -3.0, 5.0, 7.0, 0.0],
+        [0.1, 7.5, -3.0, 5.0, -7.0, 0.0],
+        [0.1, 7.5, 0.0, 5.0, -7.0, 0.0],
     ],
 )
-def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset):
+def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset, p_value):
     def y_func(x):
         return (
             slope1 * (x - surface) * (x < surface)
@@ -30,11 +30,21 @@ def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")
         independent = np.arange(5.0, 10.0, 0.1)
-        pars = fit_piecewise_linear(independent, y_func(independent))
+        pars, p_value = fit_piecewise_linear(independent, y_func(independent))
         np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
+        np.testing.assert_allclose(p_value, 0, atol=1e-12)
 
-        pars = fit_piecewise_linear(np.flip(independent), np.flip(y_func(independent)))
+        pars, p_value = fit_piecewise_linear(np.flip(independent), np.flip(y_func(independent)))
         np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
+        np.testing.assert_allclose(p_value, 0, atol=1e-12)
+
+
+def test_failed_linear():
+    """Touchdown relies on being able to tell a linear slope from a segmented one. Here we test
+    whether we can detect whether the segmented model provides a better fit"""
+    x, y = np.arange(5), np.array([1.99420679, 6.99469027, 11.99487776, 16.97811258, 22.00990092])
+    pars, p_value = fit_piecewise_linear(x, y)
+    np.testing.assert_allclose(p_value, 1.0)
 
 
 @pytest.mark.parametrize(
@@ -100,3 +110,23 @@ def test_insufficient_data(mack_parameters):
     ):
         touchdown_result = touchdown(stage_positions, simulation)
         assert touchdown_result.focal_shift is None
+
+
+def test_fail_touchdown_too_little_data(mack_parameters):
+    stage_positions = np.arange(25.0, 40.0, 0.1)
+
+    with pytest.warns(
+        RuntimeWarning,
+        match="Surface detection failed [(]piecewise linear fit not better than linear fit[)]",
+    ):
+        touchdown_result = touchdown(
+            stage_positions, stage_positions ** 2 + 100 * np.sin(10 * stage_positions)
+        )
+        assert touchdown_result.surface_position is None
+
+    with pytest.warns(
+        RuntimeWarning,
+        match="Surface detection failed [(]piecewise linear fit not better than linear fit[)]",
+    ):
+        touchdown_result = touchdown(stage_positions, 100 * np.sin(10 * stage_positions))
+        assert touchdown_result.surface_position is None
