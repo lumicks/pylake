@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit, minimize_scalar
+from scipy import stats
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import warnings
@@ -71,6 +72,15 @@ def piecewise_linear(x, x0, y0, k1, k2):
     return np.piecewise(x, [x < x0], [lambda x: k1 * (x - x0) + y0, lambda x: k2 * (x - x0) + y0])
 
 
+def f_test(sse_restricted, sse_unrestricted, num_data, num_pars_difference, num_pars_unrestricted):
+    """Determine p-value whether the bigger model describes the variance significantly better"""
+    nominator = (sse_restricted - sse_unrestricted) / num_pars_difference
+    denominator = sse_unrestricted / (num_data - num_pars_unrestricted)
+    f_statistic = nominator / denominator
+    p_value = 1.0 - stats.f.cdf(f_statistic, num_pars_difference, num_pars_unrestricted)
+    return p_value
+
+
 def fit_piecewise_linear(x, y):
     """Fits a two-segment piecewise linear function and returns the parameters.
 
@@ -95,7 +105,13 @@ def fit_piecewise_linear(x, y):
     initial_guess = [x_mid, y_mid, slope1_est, slope2_est]
     pars, _ = curve_fit(piecewise_linear, x, y, initial_guess)
 
-    return pars
+    single_pars = np.polyfit(x, y, 1)
+    sse_restricted = np.sum((np.polyval(single_pars, x) - y) ** 2)
+    sse_unrestricted = np.sum((piecewise_linear(x, *pars) - y) ** 2)
+    # Note that the breakpoint is not a parameter in this context
+    p_value = f_test(sse_restricted, sse_unrestricted, len(x), 1, 3)
+
+    return pars, p_value
 
 
 def fit_sine_with_polynomial(
@@ -185,8 +201,13 @@ class TouchdownResult:
             label=f"Interference fit{'' if self.focal_shift else ' (failed)'}",
             linestyle="--" if self.focal_shift is None else "-",
         )
-        plt.plot(self.nanostage_position, self.surface_fit, label="Piecewise linear fit")
-        plt.axvline(self.surface_position, label="Determined surface position")
+        plt.plot(
+            self.nanostage_position,
+            self.surface_fit,
+            label=f"Piecewise linear fit{'' if self.surface_position else ' (failed)'}",
+        )
+        if self.surface_position:
+            plt.axvline(self.surface_position, label="Determined surface position")
         if legend:
             plt.legend()
 
@@ -198,6 +219,7 @@ def touchdown(
     refractive_index_medium=1.333,
     omit_microns=0.5,
     background_degree=3,
+    maximum_p_value=0.0001,
 ):
     """This function determines the surface and focal shift from an approach curve.
 
@@ -220,13 +242,17 @@ def touchdown(
     background_degree : int
         Degree of the polynomial to use for the background intensity when fitting the intensity
         pattern.
+    maximum_p_value : float
+        Maximum p-value of F-test that compares the fit of a linear model to the piecewise linear
+        model. If the fit is not significantly better, it means that the procedure likely did
+        not find the surface.
     """
     if len(nanostage) != len(axial_force):
         min_length = min(len(nanostage), len(axial_force))
         nanostage, axial_force = nanostage[:min_length], axial_force[:min_length]
 
     # Find the surface position
-    piecewise_parameters = fit_piecewise_linear(nanostage, axial_force)
+    piecewise_parameters, p_value = fit_piecewise_linear(nanostage, axial_force)
     surface_position = piecewise_parameters[0]
 
     mask = nanostage < (surface_position - omit_microns)
@@ -252,6 +278,14 @@ def touchdown(
             )
         )
         focal_shift = None
+
+    if p_value > maximum_p_value:
+        warnings.warn(
+            RuntimeWarning(
+                "Surface detection failed (piecewise linear fit not better than linear fit)"
+            )
+        )
+        surface_position = None
 
     return TouchdownResult(
         surface_position=surface_position,
