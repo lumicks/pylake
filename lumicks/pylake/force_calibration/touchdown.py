@@ -227,7 +227,7 @@ def touchdown(
     stage_trimmed, force_trimmed = nanostage[mask], axial_force[mask]
     expected_wavelength = wavelength_nm * 1e-3 / 2 / refractive_index_medium
 
-    bounds = np.array([0.5, 1.0001]) / expected_wavelength
+    bounds = np.array([0.7, 1.0001]) / expected_wavelength
     par, simulation = fit_sine_with_polynomial(
         surface_position - stage_trimmed,
         force_trimmed,
