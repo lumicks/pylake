@@ -1,4 +1,5 @@
 from copy import copy
+from sklearn.neighbors import KernelDensity
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.detail.binding_times import _kinetic_mle_optimize
@@ -488,3 +489,50 @@ class KymoLineGroup:
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
         plt.xlabel(f"Position ({self[0]._image._position_unit[1]})")
+
+    def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points):
+        """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.
+
+        First the kymograph is binned along the temporal axis. In the case of non-integer `frames / bins`,
+        remaining frames are discarded. Next, for each time bin, a KDE is calculated along the spatial axis.
+
+        Parameters
+        ----------
+        n_time_bins : int
+            Requested number of time bins.
+        bandwidth : float
+            KDE bandwidth; units are in the physical spatial units of the kymograph.
+        n_position_points : int
+            Length of the returned density array(s).
+        """
+        if n_time_bins == 0:
+            raise ValueError("Number of time bins must be > 0.")
+        if n_position_points < 2:
+            raise ValueError("Number of spatial bins must be >= 2.")
+
+        n_rows, n_frames = self[0]._image.data.shape
+        position_max = n_rows * self[0]._image._pixel_size
+        try:
+            bin_size = n_frames // n_time_bins
+            bin_edges = np.arange(n_frames, step=bin_size)
+        except ZeroDivisionError:
+            raise ValueError("Number of time bins must be <= number of frames.")
+
+        frames = np.hstack([line.time_idx for line in self])
+        positions = np.hstack([line.position for line in self])
+        bin_labels = np.digitize(frames, bin_edges, right=False)
+
+        x = np.linspace(0, position_max, n_position_points)[:, np.newaxis]
+        densities = []
+        for bin_index in np.arange(n_time_bins) + 1:
+            binned_positions = positions[bin_labels == bin_index][:, np.newaxis]
+            try:
+                kde = KernelDensity(kernel="gaussian", bandwidth=bandwidth).fit(binned_positions)
+                densities.append(np.exp(kde.score_samples(x)))
+            except ValueError as err:
+                if len(binned_positions) == 0:
+                    densities.append(np.zeros(x.size))
+                else:
+                    raise err
+
+        return x.squeeze(), densities
