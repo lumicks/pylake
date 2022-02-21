@@ -266,3 +266,44 @@ def test_kymolinegroup_copy():
     k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), [])
     group = KymoLineGroup([k1, k2])
     assert id(group._src) != id(copy(group)._src)
+
+
+def test_binding_profile_histogram():
+    channel = CalibratedKymographChannel("test_data", np.ones((10, 10)), 1e9, 1)
+
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), channel)
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), channel)
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
+
+    lines = KymoLineGroup([k1, k2, k3, k4])
+    x, densities = lines._histogram_binding_profile(3, 0.2, 4)
+
+    np.testing.assert_allclose(x, np.linspace(0, 10, 4))
+    np.testing.assert_allclose(
+        densities[0], [1.28243310e-022, 3.31590463e-001, 1.37463811e-073, 1.31346543e-266]
+    )
+    np.testing.assert_allclose(
+        densities[1], [1.03517782e-87, 2.89177312e-03, 1.92784875e-03, 6.90118545e-88]
+    )
+    np.testing.assert_allclose(
+        densities[2], [1.97019814e-266, 2.06195717e-073, 4.97385694e-001, 2.76535477e-049]
+    )
+
+    # test empty bin than frames
+    x, densities = lines._histogram_binding_profile(10, 0.2, 4)
+    for j, d in enumerate(densities):
+        if j in (0, 7, 8, 9):
+            np.testing.assert_equal(d, 0)
+
+    # test no spatial bins
+    with pytest.raises(ValueError, match="Number of spatial bins must be >= 2."):
+        lines._histogram_binding_profile(11, 0.2, 0)
+
+    # test more bins than frames
+    with pytest.raises(ValueError, match="Number of time bins must be <= number of frames."):
+        lines._histogram_binding_profile(11, 0.2, 4)
+
+    # no bins requested
+    with pytest.raises(ValueError, match="Number of time bins must be > 0."):
+        lines._histogram_binding_profile(0, 0.2, 4)
