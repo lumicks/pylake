@@ -192,7 +192,7 @@ def write_tiff_file(image_args, n_frames, filename):
         for n, frame in enumerate(movie):
             str_datetime = f"{n*10+10}:{n*10+18}"
             tag_datetime = (306, "s", len(str_datetime), str_datetime, False)
-            tif.save(
+            tif.write(
                 frame,
                 description=json.dumps(description, indent=4),
                 software="Bluelake Unknown",
