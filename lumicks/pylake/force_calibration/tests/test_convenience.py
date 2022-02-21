@@ -50,11 +50,17 @@ def test_active_force_calibration_active(reference_models):
     """This test tests merely whether values were handed to the low level API correctly, not whether
     the calibration results are correct."""
     data, f_sample = reference_models.lorentzian_td(4000, 1, 0.4, 14000, 78125)
+    oscillation = np.sin(77 * 2 * np.pi * np.arange(data.size) / 78125)
+
+    # We need a driving peak in the power spectrum, otherwise we obtain a negative value for the
+    # peak power which leads to a downstream warning.
+    data += oscillation
+
     fit = calibrate_force(
         data,
         2,
         9,
-        driving_data=np.sin(77 * 2 * np.pi * np.arange(data.size) / 78125),
+        driving_data=oscillation,
         driving_frequency_guess=77,
         viscosity=6,
         active_calibration=True,
