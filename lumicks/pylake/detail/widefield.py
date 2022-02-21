@@ -501,8 +501,8 @@ class Tether:
             # in the coordinate system of the raw image data
             self._ends = self.offsets.warp_coordinates(points)
             # calculate rotation matrix
-            slope, _ = np.polyfit(*np.vstack(self._ends).T, deg=1)
-            theta = np.degrees(np.arctan(slope))
+            dy, dx = self._ends[1][1] - self._ends[0][1], self._ends[1][0] - self._ends[0][0]
+            theta = np.degrees(np.arctan2(dy, dx))
             center = np.mean(np.vstack(self._ends), axis=0)
             self.rot_matrix = TransformMatrix.rotation(theta, center)
 
