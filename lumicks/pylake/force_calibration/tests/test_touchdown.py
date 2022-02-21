@@ -1,4 +1,5 @@
 import pytest
+import warnings
 import numpy as np
 from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.force_calibration.touchdown import (
@@ -26,12 +27,14 @@ def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset):
             + offset
         )
 
-    independent = np.arange(5.0, 10.0, 0.1)
-    pars = fit_piecewise_linear(independent, y_func(independent))
-    np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")
+        independent = np.arange(5.0, 10.0, 0.1)
+        pars = fit_piecewise_linear(independent, y_func(independent))
+        np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
 
-    pars = fit_piecewise_linear(np.flip(independent), np.flip(y_func(independent)))
-    np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
+        pars = fit_piecewise_linear(np.flip(independent), np.flip(y_func(independent)))
+        np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
 
 
 @pytest.mark.parametrize(
@@ -82,8 +85,10 @@ def test_touchdown():
 
 @cleanup
 def test_plot():
-    touchdown_result = touchdown(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]))
-    touchdown_result.plot()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")
+        touchdown_result = touchdown(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]))
+        touchdown_result.plot()
 
 
 @pytest.mark.parametrize(
