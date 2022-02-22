@@ -81,7 +81,7 @@ class TiffFrame:
             return self.data
 
         if channel.lower() == "rgb":
-            data = (self.data / (2 ** self.bit_depth - 1)).astype(float)
+            data = (self.data / (2**self.bit_depth - 1)).astype(float)
             if vmax is None:
                 return data / data.max()
             else:

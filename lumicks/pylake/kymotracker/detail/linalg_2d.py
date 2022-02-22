@@ -16,7 +16,7 @@ def eigenvalues_2d_symmetric(a, b, d):
         2D images containing the values of the matrix elements a b and d.
     """
     t = a + d
-    bsq4 = 4 * b ** 2
+    bsq4 = 4 * b**2
     amdsq = (a - d) ** 2
     ht = 0.5 * t
     half_sqrt_discriminant = 0.5 * np.sqrt(bsq4 + amdsq)

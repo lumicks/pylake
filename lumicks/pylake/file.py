@@ -228,7 +228,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         fx = make(f"Force {n}x")
         fy = make(f"Force {n}y")
         return Slice(
-            TimeSeries(np.sqrt(fx.data ** 2 + fy.data ** 2), fx.timestamps),
+            TimeSeries(np.sqrt(fx.data**2 + fy.data**2), fx.timestamps),
             labels={"title": f"Force LF/Force {n}", "y": "Force (pN)"},
         )
 

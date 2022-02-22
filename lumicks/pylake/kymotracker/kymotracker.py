@@ -123,7 +123,7 @@ def track_greedy(
 
     # Convert algorithm parameters to pixel units
     velocity_pixels = vel * kymograph_channel.line_time_seconds / position_scale
-    diffusion_pixels = diffusion / (position_scale ** 2 / kymograph_channel.line_time_seconds)
+    diffusion_pixels = diffusion / (position_scale**2 / kymograph_channel.line_time_seconds)
     sigma_pixels = sigma / position_scale if sigma else 0.5 * line_width_pixels
 
     lines = points_to_line_segments(

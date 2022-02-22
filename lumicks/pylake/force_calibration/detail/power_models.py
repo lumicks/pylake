@@ -55,7 +55,7 @@ def fit_analytical_lorentzian(ps):
         # isn't a valid choice, since this leads to nan's and infinities down the road.
         fc = 0.5 * (ps.frequency[0] if ps.frequency[0] > 0 else ps.frequency[1])
 
-    D = (1 / b) * (math.pi ** 2)  # diffusion constant [V^2/s]
+    D = (1 / b) * (math.pi**2)  # diffusion constant [V^2/s]
 
     # Fitted power spectrum values.
     ps_fit = ps.with_spectrum(1 / (a + b * np.power(ps.frequency, 2)))
@@ -65,8 +65,8 @@ def fit_analytical_lorentzian(ps):
     x_max = ps.frequency.max() / fc
 
     u = (
-        (2 * x_max) / (1 + x_max ** 2)
-        - (2 * x_min) / (1 + x_min ** 2)
+        (2 * x_max) / (1 + x_max**2)
+        - (2 * x_min) / (1 + x_min**2)
         + 2 * math.atan((x_max - x_min) / (1 + x_min * x_max))
     )
     v = (4 / (x_max - x_min)) * (math.atan((x_max - x_min) / (1 + x_min * x_max))) ** 2
@@ -101,7 +101,7 @@ def g_diode(f, f_diode, alpha):
 
     See ref. 2, Eq. (11).
     """
-    return alpha ** 2 + (1 - alpha ** 2) / (1 + (f / f_diode) ** 2)
+    return alpha**2 + (1 - alpha**2) / (1 + (f / f_diode) ** 2)
 
 
 def passive_power_spectrum_model(f, fc, diffusion_constant):
@@ -120,7 +120,7 @@ def passive_power_spectrum_model(f, fc, diffusion_constant):
     diffusion_constant : float
         Diffusion constant, in (a.u.)^2/s
     """
-    return (diffusion_constant / (math.pi ** 2)) / (f ** 2 + fc ** 2)
+    return (diffusion_constant / (math.pi**2)) / (f**2 + fc**2)
 
 
 def sphere_friction_coefficient(eta, d):
@@ -151,4 +151,4 @@ def theoretical_driving_power_lorentzian(fc, driving_frequency, driving_amplitud
     driving_amplitude : float
         Driving amplitude [m]
     """
-    return driving_amplitude ** 2 / (2 * (1 + (fc / driving_frequency) ** 2))
+    return driving_amplitude**2 / (2 * (1 + (fc / driving_frequency) ** 2))
