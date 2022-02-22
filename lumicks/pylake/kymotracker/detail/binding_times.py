@@ -128,7 +128,7 @@ class BindingDwelltimesBootstrap:
 
             label = "a" if key == "amplitude" else r"\tau"
             unit = "" if key == "amplitude" else "sec"
-            prefix = fr"${label}_{component+1}$" if use_index else fr"${label}$"
+            prefix = rf"${label}_{component+1}$" if use_index else rf"${label}$"
             plt.title(f"{prefix} = {mean:0.2g} ({lower:0.2g}, {upper:0.2g}) {unit}")
 
         if self.n_components == 1:
@@ -264,7 +264,7 @@ class BindingDwelltimes:
                 lifetime_label = r"$\tau$"
             else:
                 amplitude = f"($a_{n}$ = {a:0.2g}) "
-                lifetime_label = fr"$\tau_{n}$"
+                lifetime_label = rf"$\tau_{n}$"
             return f"{amplitude}{lifetime_label} = {t:0.2g} sec"
 
         # plot histogram

@@ -103,7 +103,7 @@ def normal_pdf_1d(x, center, sigma):
     sigma : float
         Distribution sigma; square root of the variance.
     """
-    norm_factor = 1 / np.sqrt(2 * np.pi * sigma ** 2)
+    norm_factor = 1 / np.sqrt(2 * np.pi * sigma**2)
     return norm_factor * np.exp(-0.5 * ((x - center) / sigma) ** 2)
 
 
@@ -151,8 +151,8 @@ def peak_expectation_1d_derivatives(x, params, fixed_background, pixel_size, num
 
     pdf = normal_pdf_1d(x, center, sigma)
     d_dphotons = pixel_size * pdf
-    d_dcenter = total_photons * pixel_size / sigma ** 2 * pdf * (x - center)
-    d_dsigma = total_photons * pixel_size * pdf * ((x - center) ** 2 - sigma ** 2) / sigma ** 3
+    d_dcenter = total_photons * pixel_size / sigma**2 * pdf * (x - center)
+    d_dsigma = total_photons * pixel_size * pdf * ((x - center) ** 2 - sigma**2) / sigma**3
     derivatives = np.hstack((d_dphotons, d_dcenter, d_dsigma))
 
     if fixed_background is None:
@@ -213,7 +213,7 @@ def gaussian_mle_1d(
     # Keep a set of reverse sort indices so the original order can be preserved on output
     reverse_idx = np.argsort(idx)
 
-    amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma ** 2)
+    amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma**2)
 
     # parameters are ordered as follows: amplitudes, centers, widths, background offset
     num_pars = num_peaks * 3 + (0 if fixed_background else 1)

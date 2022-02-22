@@ -216,8 +216,8 @@ class Scan(ConfocalImage):
             image_handle.set_data(image)
 
         scan_axes = self._ordered_axes()
-        axes.set_xlabel(fr"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
-        axes.set_ylabel(fr"{axis_label[scan_axes[1]['axis']]} ($\mu$m)")
+        axes.set_xlabel(rf"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
+        axes.set_ylabel(rf"{axis_label[scan_axes[1]['axis']]} ($\mu$m)")
         if self.num_frames == 1:
             axes.set_title(self.name)
         else:

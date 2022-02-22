@@ -44,7 +44,7 @@ def calculate_dissipation_frequency(gamma0, bead_radius, rho_bead):
     the bead mass whereas [1] contains a typographical error. Note that in the code that implements
     [6] (ref [3]), they did include it however. We decided to follow the paper and omit the second
     term. The effects of this difference were very small for all simulations tested."""
-    bead_mass = (4.0 / 3.0) * np.pi * bead_radius ** 3 * rho_bead
+    bead_mass = (4.0 / 3.0) * np.pi * bead_radius**3 * rho_bead
     return gamma0 / (2.0 * np.pi * bead_mass)
 
 
@@ -81,7 +81,7 @@ def calculate_complex_drag(f, gamma0, rho_sample, bead_radius, distance_to_surfa
     #
     #   gamma0 / (6 * pi * rho_sample * radius)
     nu = gamma0 / (6.0 * np.pi * rho_sample * bead_radius)
-    frequency_nu = nu / (np.pi * bead_radius ** 2)
+    frequency_nu = nu / (np.pi * bead_radius**2)
 
     freq_ratio = f / frequency_nu
     sqrt_freq_ratio = np.sqrt(freq_ratio)
@@ -149,8 +149,8 @@ def passive_power_spectrum_model_hydro(
         f, gamma0, rho_sample, bead_radius, distance_to_surface
     )
     frequency_m = calculate_dissipation_frequency(gamma0, bead_radius, rho_bead)
-    denominator = (fc + f * im_drag - f ** 2 / frequency_m) ** 2 + (f * re_drag) ** 2
-    power_spectrum = diffusion_constant / (np.pi ** 2) * re_drag / denominator  # Equation D2 [6]
+    denominator = (fc + f * im_drag - f**2 / frequency_m) ** 2 + (f * re_drag) ** 2
+    power_spectrum = diffusion_constant / (np.pi**2) * re_drag / denominator  # Equation D2 [6]
     return power_spectrum
 
 

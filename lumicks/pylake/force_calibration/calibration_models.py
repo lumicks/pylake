@@ -48,7 +48,7 @@ def viscosity_of_water(temperature):
     temp_tilde = np.tile((temperature + 273.15) / 300, (4, 1)).T
     ai = np.array([280.68, 511.45, 61.131, 0.45903])
     bi = np.array([-1.9, -7.7, -19.6, -40.0])
-    return np.sum(ai * temp_tilde ** bi, axis=1).squeeze() * 1e-6
+    return np.sum(ai * temp_tilde**bi, axis=1).squeeze() * 1e-6
 
 
 @dataclass
@@ -642,7 +642,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         temperature_kelvin = scipy.constants.convert_temperature(self.temperature, "C", "K")
         k_temperature = scipy.constants.k * temperature_kelvin
         measured_drag_coeff = k_temperature / (
-            distance_response ** 2 * diffusion_constant_volts
+            distance_response**2 * diffusion_constant_volts
         )  # kg/s
 
         kappa = 2.0 * np.pi * fc * measured_drag_coeff  # N/m

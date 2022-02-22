@@ -127,18 +127,18 @@ def optimal_points(localization_error, num_points):
             "fit."
         )
 
-    fa = 2.0 + 1.6 * localization_error ** 0.51
-    limit_a = 3 + (4.5 * num_points ** 0.4 - 8.5) ** 1.2
+    fa = 2.0 + 1.6 * localization_error**0.51
+    limit_a = 3 + (4.5 * num_points**0.4 - 8.5) ** 1.2
 
-    fb = 2 + 1.35 * localization_error ** 0.6
+    fb = 2 + 1.35 * localization_error**0.6
     limit_b = 0.8 + 0.564 * num_points
 
     if np.isinf(localization_error):
         num_points_intercept, num_points_slope = np.floor(limit_a), np.floor(limit_b)
     else:
-        num_points_intercept = np.floor(fa * limit_a / (fa ** 3 + limit_a ** 3) ** (1.0 / 3.0))
+        num_points_intercept = np.floor(fa * limit_a / (fa**3 + limit_a**3) ** (1.0 / 3.0))
         num_points_slope = min(
-            np.floor(limit_b), np.floor(fb * limit_b / (fb ** 3 + limit_b ** 3) ** (1.0 / 3.0))
+            np.floor(limit_b), np.floor(fb * limit_b / (fb**3 + limit_b**3) ** (1.0 / 3.0))
         )
 
     return max(2, int(num_points_slope)), max(2, int(num_points_intercept))
