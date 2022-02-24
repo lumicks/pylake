@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from lumicks.pylake.adjustments import ColorAdjustment
 from lumicks.pylake.detail.image import reconstruct_image, reconstruct_image_sum, reconstruct_num_frames, save_tiff,\
     ImageMetadata, line_timestamps_image, histogram_rows
 
@@ -193,3 +194,64 @@ def test_partial_pixel_image_reconstruction():
     iw[-1] = 0
     ts = np.arange(iw.size)
     reconstruct_image(ts, iw, (5, 1), reduce=size_test)
+
+
+@pytest.mark.parametrize(
+    "minimum, maximum, ref_minimum, ref_maximum",
+    [
+        (1.0, 5.0, [1.0, 1.0, 1.0], [5.0, 5.0, 5.0]),
+        ([1.0, 2.0, 3.0], [3.0, 4.0, 5.0], [1.0, 2.0, 3.0], [3.0, 4.0, 5.0]),
+        ([1.0], [3.0, 4.0, 5.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0]),
+        ([1.0, 2.0, 3.0], [5.0], [1.0, 2.0, 3.0], [5.0, 5.0, 5.0]),
+        ([1.0, 2.0, 3.0], 5.0, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0]),
+    ],
+)
+def test_absolute_ranges(minimum, maximum, ref_minimum, ref_maximum):
+    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+
+    ca = ColorAdjustment(minimum, maximum, mode="absolute")
+    np.testing.assert_allclose(ca.minimum, ref_minimum)
+    np.testing.assert_allclose(ca.maximum, ref_maximum)
+
+    np.testing.assert_allclose(
+        ca._get_data_rgb(ref_img), np.clip((ref_img - ca.minimum) / (ca.maximum - ca.minimum), 0, 1)
+    )
+
+
+@pytest.mark.parametrize(
+    "minimum, maximum, ref_minimum, ref_maximum",
+    [
+        (25.0, 75.0, [25.0, 25.0, 25.0], [75.0, 75.0, 75.0]),
+        ([25.0, 35.0, 45.0], [75.0, 85.0, 95.0], [25.0, 35.0, 45.0], [75.0, 85.0, 95.0]),
+        ([25.0], [55.0, 65.0, 75.0], [25.0, 25.0, 25.0], [55.0, 65.0, 75.0]),
+        ([25.0, 35.0, 45.0], [5.0], [25.0, 35.0, 45.0], [5.0, 5.0, 5.0]),
+        ([25.0, 35.0, 45.0], 5.0, [25.0, 35.0, 45.0], [5.0, 5.0, 5.0]),
+        (1.0, [3.0, 4.0, 5.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0]),
+    ],
+)
+def test_percentile_ranges(minimum, maximum, ref_minimum, ref_maximum):
+    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+
+    ca = ColorAdjustment(minimum, maximum, mode="percentile")
+    np.testing.assert_allclose(ca.minimum, ref_minimum)
+    np.testing.assert_allclose(ca.maximum, ref_maximum)
+
+    bounds = np.array(
+        [
+            np.percentile(img, [mini, maxi])
+            for img, mini, maxi in zip(np.moveaxis(ref_img, 2, 0), ca.minimum, ca.maximum)
+        ]
+    )
+    minimum, maximum = bounds.T
+
+    np.testing.assert_allclose(
+        ca._get_data_rgb(ref_img), np.clip((ref_img - minimum) / (maximum - minimum), 0, 1)
+    )
+
+
+def test_invalid_range():
+    with pytest.raises(ValueError, match="Color value bounds should be of length 1 or 3"):
+        ColorAdjustment([2.0, 3.0], [1.0, 2.0, 3.0], mode="absolute")
+
+    with pytest.raises(ValueError, match="Mode nust be percentile or absolute"):
+        ColorAdjustment(1.0, 1.0, mode="spaghetti")
