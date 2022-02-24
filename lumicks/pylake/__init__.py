@@ -10,6 +10,7 @@ from .__about__ import (
     __version__,
 )
 
+from .adjustments import ColorAdjustment
 from .correlated_stack import CorrelatedStack
 from .file import *
 from .fitting.models import *
