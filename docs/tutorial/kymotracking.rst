@@ -177,7 +177,7 @@ Computing the appropriate photons/pixel background considering a Poissonian nois
 
     offset = np.mean(kymo_cropped.green_image)
 
-The independently determined offset (in photons per pixel) can then be provided directly to `lk.refine_lines_centroid`::
+The independently determined offset (in photons per pixel) can then be provided directly to `lk.refine_lines_gaussian`::
 
     refined = lk.refine_lines_gaussian(traces, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
 
