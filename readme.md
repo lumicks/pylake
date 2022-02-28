@@ -3,7 +3,7 @@
 
 [![DOI](https://zenodo.org/badge/133832492.svg)](https://zenodo.org/badge/latestdoi/133832492)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](license.md)
-![Build Status](https://github.com/lumicks/pylake/workflows/pytest/badge.svg)
+[![Build Status](https://github.com/lumicks/pylake/workflows/pytest/badge.svg?branch=main)](https://github.com/lumicks/pylake/actions/workflows/pylake_test.yml?query=branch%3Amain)
 [![Documentation Status](https://readthedocs.org/projects/lumicks-pylake/badge/?version=latest)](https://lumicks-pylake.readthedocs.io/)
 
 Pylake is a Python package for analyzing single-molecule optical tweezer data.
