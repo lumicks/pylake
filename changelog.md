@@ -25,7 +25,7 @@
 * Added `Kymo.crop_and_calibrate()` for interactive cropping of a kymograph. If the optional `tether_length_kbp` argument is supplied, the resulting kymograph will be automatically calibrated to this length. Check out the [documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#calibrating-to-base-pairs) for more information.
 * Added fallback to the function `Kymo.plot_with_force()` when only low-frequency force data is available.
 * Added option to undo/redo actions in the kymotracker widget.
-* Added option to fit peaks simultaneously in `refine_lines_gaussian()` using the flag `overlap_strategy="fit_multiple"`. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
+* Added option to fit peaks simultaneously in `refine_lines_gaussian()` using the flag `overlap_strategy="multiple"`. See [kymotracking](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more information.
 * Added ability to manually connect two lines from any points (not just the ends) in the kymotracker widget.
 
 #### Bug fixes

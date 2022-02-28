@@ -159,7 +159,7 @@ refinement algorithm. How the algorithm handles this situation is determined by 
 Setting `overlap_strategy="ignore"` simply ignores the situation and fits the data.
 A problem with the refinement in this case will manifest as the peak of the second trace is found rather than that of the current trace.
 Sometimes this can be avoided by decreasing the size of the `window` argument such that overlap no longer occurs.
-A better alternative is to use `overlap_strategy="fit_multiple"`.
+A better alternative is to use `overlap_strategy="multiple"`.
 When this option is specified, peaks where the windows overlap are fitted simultaneously (using a shared offset parameter).
 Alternatively, we can simply ignore these frames by using `overlap_strategy="skip"`, in which case these frames are simply dropped from the trace.
 
