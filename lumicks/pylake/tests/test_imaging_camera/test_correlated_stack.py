@@ -3,6 +3,7 @@ import json
 import tifffile
 from pathlib import Path
 import pytest
+from lumicks.pylake.adjustments import ColorAdjustment
 from lumicks.pylake.correlated_stack import CorrelatedStack
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake import channel
@@ -531,3 +532,118 @@ def test_define_tether():
     offset_correct_points = [np.array(pp) - (25, 25) for pp in correct_points]
     stack = stack.define_tether(*offset_correct_points)
     check_result(stack, ref_stack, 16)
+
+
+@cleanup
+def test_correlated_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image_data):
+    """Tests whether we can set an absolute color range for RGB plots."""
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(
+        MockTiffFile(
+            data=[warped_image] * 2,
+            times=make_frame_times(2),
+            description=json.dumps(description),
+            bit_depth=16,
+        ),
+        align_requested=False,
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    fig = plt.figure()
+    lb = np.array([10000.0, 20000.0, 5000.0])
+    ub = np.array([30000.0, 40000.0, 50000.0])
+    stack.plot(channel="rgb", frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(image.get_array(), np.clip((warped_image.astype(float) - lb) / (ub - lb), 0, 1))
+    plt.close(fig)
+
+
+@cleanup
+def test_correlated_stack_plot_channels_absolute_color_adjustment(rgb_alignment_image_data):
+    """Tests whether we can set an absolute color range for separate channel plots."""
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(
+        MockTiffFile(
+            data=[warped_image] * 2,
+            times=make_frame_times(2),
+            description=json.dumps(description),
+            bit_depth=16,
+        ),
+        align_requested=False,
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    lbs = np.array([10000.0, 20000.0, 5000.0])
+    ubs = np.array([30000.0, 40000.0, 50000.0])
+    for channel_idx, (lb, ub, channel) in enumerate(zip(lbs, ubs, ("red", "green", "blue"))):
+        fig = plt.figure()
+        stack.plot(channel=channel, frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), warped_image[:, :, channel_idx])
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+
+@cleanup
+def test_correlated_stack_plot_rgb_percentile_color_adjustment(rgb_alignment_image_data):
+    """Tests whether we can set a percentile color range for RGB plots."""
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(
+        MockTiffFile(
+            data=[warped_image] * 2,
+            times=make_frame_times(2),
+            description=json.dumps(description),
+            bit_depth=16,
+        ),
+        align_requested=True,
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    fig = plt.figure()
+    lb, ub = np.array([94, 93, 95]), np.array([95, 98, 97])
+    stack.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="percentile"))
+    raw_image = stack[0].get_image(channel="rgb")
+    image = plt.gca().get_images()[0]
+    bounds = np.array(
+        [
+            np.percentile(img, [mini, maxi])
+            for img, mini, maxi in zip(np.moveaxis(raw_image, 2, 0), lb, ub)
+        ]
+    )
+    lb, ub = (b for b in np.moveaxis(bounds, 1, 0))
+    np.testing.assert_allclose(image.get_array(), np.clip((raw_image - lb) / (ub - lb), 0, 1))
+    plt.close(fig)
+
+
+@cleanup
+def test_correlated_stack_plot_single_channel_percentile_color_adjustment(rgb_alignment_image_data):
+    """Tests whether we can set a percentile color range for separate channel plots."""
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    fake_tiff = TiffStack(
+        MockTiffFile(
+            data=[warped_image] * 2,
+            times=make_frame_times(2),
+            description=json.dumps(description),
+            bit_depth=16,
+        ),
+        align_requested=True,
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+
+    lbs, ubs = np.array([94, 93, 95]), np.array([95, 98, 97])
+    for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
+        # Test whether setting RGB values and then sampling one of them works correctly.
+        fig = plt.figure()
+        stack.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+        # Test whether setting a single color works correctly (should use the same for R G and B).
+        fig = plt.figure()
+        stack.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)

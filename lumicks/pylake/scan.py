@@ -130,7 +130,7 @@ class Scan(ConfocalImage):
 
         def plot_channel(frame):
             if channel in ("red", "green", "blue", "rgb"):
-                return self._get_plot_data(channel)[frame]
+                return self._get_plot_data(channel, frame=frame)
             else:
                 raise RuntimeError("Invalid channel selected")
 
@@ -181,7 +181,7 @@ class Scan(ConfocalImage):
         else:
             return data
 
-    def _plot(self, channel, axes, frame=0, image_handle=None, **kwargs):
+    def _plot(self, channel, axes, frame=0, image_handle=None, adjustment=None, **kwargs):
         """Plot a scan frame for requested color channel(s).
 
         Parameters
@@ -192,19 +192,20 @@ class Scan(ConfocalImage):
             The axes instance in which to plot.
         frame : int
             Frame index.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         image_handle : `matplotlib.image.AxesImage` or None
-            Optional image handle which is used to update plots with new data rather than reconstruct them (better for
-            performance).
+            Optional image handle which is used to update plots with new data rather than
+            reconstruct them (better for performance).
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`
         """
         if frame < 0:
             raise IndexError("negative indexing is not supported.")
 
-        image = self._get_plot_data(channel)
-
-        if self.num_frames != 1:
-            image = image[frame]
+        image = self._get_plot_data(
+            channel, adjustment, frame=frame if self.num_frames != 1 else None
+        )
 
         x_um, y_um = self.size_um
         default_kwargs = dict(
@@ -217,8 +218,12 @@ class Scan(ConfocalImage):
         if not image_handle:
             image_handle = axes.imshow(image, **{**default_kwargs, **kwargs})
         else:
-            # Updating the image data in an existing plot is a lot faster than re-plotting with `imshow`.
+            # Updating the image data in an existing plot is a lot faster than re-plotting with
+            # `imshow`.
             image_handle.set_data(image)
+
+        if adjustment:
+            adjustment._update_limits(image_handle, image, channel)
 
         scan_axes = self._ordered_axes()
         axes.set_xlabel(rf"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
@@ -227,7 +232,9 @@ class Scan(ConfocalImage):
 
         return image_handle
 
-    def _export_video(self, plot_type, file_name, start_frame, end_frame, fps, **kwargs):
+    def _export_video(
+        self, plot_type, file_name, start_frame, end_frame, fps, adjustment=None, **kwargs
+    ):
         """Export a video of a particular scan plot
 
         Parameters
@@ -242,6 +249,8 @@ class Scan(ConfocalImage):
             Last frame in exported video.
         fps : int
             Frame rate.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`."""
         from matplotlib import animation, rcParams
@@ -259,9 +268,9 @@ class Scan(ConfocalImage):
         start_frame = start_frame if start_frame else 0
         end_frame = end_frame if end_frame else self.num_frames - 1
 
-        # On some notebook backends, figures render with a transparent background by default. This leads to very
-        # poor image quality, since it prevents font anti-aliasing (at the cost of not having transparent regions
-        # outside the axes part of figures).
+        # On some notebook backends, figures render with a transparent background by default. This
+        # leads to very poor image quality, since it prevents font anti-aliasing (at the cost of
+        # not having transparent regions outside the axes part of figures).
         face_color = rcParams["figure.facecolor"]
         face_color_rgba = to_rgba(face_color)
         if face_color_rgba[3] < 1.0:
@@ -270,7 +279,11 @@ class Scan(ConfocalImage):
             face_color = None
 
         plot_func = lambda frame, image_handle: self.plot(
-            channel=plot_type, frame=frame, image_handle=image_handle, **kwargs
+            channel=plot_type,
+            frame=frame,
+            image_handle=image_handle,
+            adjustment=adjustment,
+            **kwargs,
         )
         image_handle = None
 
@@ -289,7 +302,9 @@ class Scan(ConfocalImage):
         if face_color:
             rcParams["figure.facecolor"] = face_color
 
-    def export_video_rgb(self, file_name, start_frame=None, end_frame=None, fps=15, **kwargs):
+    def export_video_rgb(
+        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+    ):
         """Export multi-frame scan as video.
 
         Parameters
@@ -302,12 +317,18 @@ class Scan(ConfocalImage):
             Last frame.
         fps : int
             Frames per second.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video("rgb", file_name, start_frame, end_frame, fps, **kwargs)
+        self._export_video(
+            "rgb", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+        )
 
-    def export_video_red(self, file_name, start_frame=None, end_frame=None, fps=15, **kwargs):
+    def export_video_red(
+        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+    ):
         """Export multi-frame scan as video.
 
         Parameters
@@ -320,12 +341,18 @@ class Scan(ConfocalImage):
             Last frame.
         fps : int
             Frames per second.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video("red", file_name, start_frame, end_frame, fps, **kwargs)
+        self._export_video(
+            "red", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+        )
 
-    def export_video_green(self, file_name, start_frame=None, end_frame=None, fps=15, **kwargs):
+    def export_video_green(
+        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+    ):
         """Export multi-frame scan as video.
 
         Parameters
@@ -338,12 +365,18 @@ class Scan(ConfocalImage):
             Last frame.
         fps : int
             Frames per second.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video("green", file_name, start_frame, end_frame, fps, **kwargs)
+        self._export_video(
+            "green", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+        )
 
-    def export_video_blue(self, file_name, start_frame=None, end_frame=None, fps=15, **kwargs):
+    def export_video_blue(
+        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+    ):
         """Export multi-frame scan as video.
 
         Parameters
@@ -356,7 +389,11 @@ class Scan(ConfocalImage):
             Last frame.
         fps : int
             Frames per second.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video("blue", file_name, start_frame, end_frame, fps, **kwargs)
+        self._export_video(
+            "blue", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+        )

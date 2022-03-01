@@ -151,7 +151,7 @@ class Kymo(ConfocalImage):
         pixelsize[0] = self._calibration.from_um(pixelsize[0])
         return pixelsize
 
-    def _plot(self, channel, axes, **kwargs):
+    def _plot(self, channel, axes, adjustment=None, **kwargs):
         """Plot a kymo for requested color channel(s).
 
         Parameters
@@ -160,10 +160,13 @@ class Kymo(ConfocalImage):
             Color channel to plot.
         axes : mpl.axes.Axes
             The axes instance in which to plot.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
+
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`
         """
-        image = self._get_plot_data(channel)
+        image = self._get_plot_data(channel, adjustment)
         size_calibrated = self._calibration.from_um(self.size_um[0])
         duration = self.line_time_seconds * image.shape[1]
         linetime = self.line_time_seconds
@@ -176,10 +179,12 @@ class Kymo(ConfocalImage):
             cmap=linear_colormaps[channel],
         )
 
-        axes.imshow(image, **{**default_kwargs, **kwargs})
+        image_handle = axes.imshow(image, **{**default_kwargs, **kwargs})
         axes.set_xlabel("time (s)")
         axes.set_ylabel(f"position ({self._calibration.unit_label})")
         axes.set_title(self.name)
+        if adjustment:
+            adjustment._update_limits(image_handle, image, channel)
 
     def _downsample_channel(self, channel, reduce=np.mean):
         # downsample exactly over the scanline time range
@@ -200,6 +205,7 @@ class Kymo(ConfocalImage):
         aspect_ratio=0.25,
         reduce=np.mean,
         kymo_args={},
+        adjustment=None,
         **kwargs,
     ):
         """Plot kymo with force channel downsampled over scan lines
@@ -219,6 +225,8 @@ class Kymo(ConfocalImage):
             Forwarded to :func:`Slice.downsampled_over`
         kymo_args : dict
             Forwarded to :func:`matplotlib.pyplot.imshow`
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`Slice.plot`.
         """
@@ -232,7 +240,7 @@ class Kymo(ConfocalImage):
         _, (ax1, ax2) = plt.subplots(2, 1, sharex="all")
 
         # plot kymo
-        self.plot(channel=color_channel, axes=ax1, **kymo_args)
+        self.plot(channel=color_channel, axes=ax1, adjustment=adjustment, **kymo_args)
         ax1.set_xlabel(None)
         xlim_kymo = ax1.get_xlim()  # Stored since plotting the force channel will change the limits
 
@@ -257,7 +265,7 @@ class Kymo(ConfocalImage):
         set_aspect_ratio(ax2, aspect_ratio)
 
     def plot_with_position_histogram(
-        self, color_channel, pixels_per_bin=1, hist_ratio=0.25, **kwargs
+        self, color_channel, pixels_per_bin=1, hist_ratio=0.25, adjustment=None, **kwargs
     ):
         """Plot kymo with histogram along position axis
 
@@ -269,6 +277,8 @@ class Kymo(ConfocalImage):
             number of pixels along position axis to bin together.
         hist_ratio: float
             width of the histogram with respect to the kymo image.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to histogram bar plot.
         """
@@ -281,7 +291,7 @@ class Kymo(ConfocalImage):
 
         gs = GridSpec(1, 2, width_ratios=(1, hist_ratio))
         ax_kymo = plt.subplot(gs[0])
-        self.plot(channel=color_channel, axes=ax_kymo, aspect="auto")
+        self.plot(channel=color_channel, axes=ax_kymo, adjustment=adjustment, aspect="auto")
 
         ax_hist = plt.subplot(gs[1])
         ax_hist.barh(edges, counts, bin_widths, align="edge", **kwargs)
@@ -289,7 +299,9 @@ class Kymo(ConfocalImage):
         ax_hist.set_ylim(ax_kymo.get_ylim())
         ax_hist.set_xlabel("counts")
 
-    def plot_with_time_histogram(self, color_channel, pixels_per_bin=1, hist_ratio=0.25, **kwargs):
+    def plot_with_time_histogram(
+        self, color_channel, pixels_per_bin=1, hist_ratio=0.25, adjustment=None, **kwargs
+    ):
         """Plot kymo with histogram along time axis
 
         Parameters
@@ -300,6 +312,8 @@ class Kymo(ConfocalImage):
             number of pixels along time axis to bin together.
         hist_ratio: float
             height of the histogram with respect to the kymo image.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
         **kwargs
             Forwarded to histogram bar plot.
         """
@@ -314,7 +328,7 @@ class Kymo(ConfocalImage):
 
         gs = GridSpec(2, 1, height_ratios=(hist_ratio, 1))
         ax_kymo = plt.subplot(gs[1])
-        self.plot(channel=color_channel, axes=ax_kymo, aspect="auto")
+        self.plot(channel=color_channel, axes=ax_kymo, aspect="auto", adjustment=adjustment)
         ax_kymo.set_title("")
 
         ax_hist = plt.subplot(gs[0])

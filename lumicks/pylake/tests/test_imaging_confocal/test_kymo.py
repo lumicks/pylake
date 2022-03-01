@@ -5,6 +5,7 @@ import pytest
 from lumicks.pylake.channel import Slice, TimeSeries, empty_slice
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymo import EmptyKymo
+from lumicks.pylake.adjustments import ColorAdjustment
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
 from ..data.mock_confocal import generate_kymo
@@ -972,3 +973,60 @@ def test_plot_with_lf_force():
 
     with pytest.raises(RuntimeError, match="Desired force channel 1x not available in h5 file"):
         kymo.plot_with_force("1x", "red")
+
+
+@cleanup
+def test_kymo_plot_rgb_absolute_color_adjustment(test_kymos):
+    """Tests whether we can set an absolute color range for the RGB plot."""
+    kymo = test_kymos["Kymo1"]
+
+    fig = plt.figure()
+    lb, ub = np.array([1, 2, 3]), np.array([2, 3, 4])
+    kymo.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(image.get_array(), np.clip((kymo.rgb_image - lb) / (ub - lb), 0, 1))
+    plt.close(fig)
+
+
+@cleanup
+def test_kymo_plot_rgb_percentile_color_adjustment(test_kymos):
+    """Tests whether we can set a percentile color range for the RGB plot."""
+    kymo = test_kymos["Kymo1"]
+
+    fig = plt.figure()
+    lb, ub = np.array([10, 10, 10]), np.array([80, 80, 80])
+    kymo.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="percentile"))
+    image = plt.gca().get_images()[0]
+    bounds = np.array(
+        [
+            np.percentile(img, [mini, maxi])
+            for img, mini, maxi in zip(np.moveaxis(kymo.rgb_image, 2, 0), lb, ub)
+        ]
+    )
+    lb, ub = (b for b in np.moveaxis(bounds, 1, 0))
+    np.testing.assert_allclose(image.get_array(), np.clip((kymo.rgb_image - lb) / (ub - lb), 0, 1))
+    plt.close(fig)
+
+
+@cleanup
+def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
+    """Tests whether we can set an absolute color range for a single channel plot."""
+    kymo = test_kymos["Kymo1"]
+
+    lbs, ubs = np.array([1, 2, 3]), np.array([2, 3, 4])
+    for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
+        # Test whether setting RGB values and then sampling one of them works correctly.
+        fig = plt.figure()
+        kymo.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), getattr(kymo, f"{channel}_image"))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+        # Test whether setting a single color works correctly (should use the same for R G and B).
+        fig = plt.figure()
+        kymo.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), getattr(kymo, f"{channel}_image"))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)

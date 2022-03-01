@@ -310,12 +310,27 @@ class ConfocalImage(BaseScan):
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 
-    def _get_plot_data(self, channel):
-        """Get image data for plotting requested channel."""
+    def _get_plot_data(self, channel, adjustment=None, frame=None):
+        """Get image data for plotting requested channel.
+
+        Parameters
+        ----------
+        channel : str
+            Which channel to return. Options are: "red", "green", "blue" or "rgb".
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image if channel is set to "rgb".
+        """
         image = getattr(self, f"{channel}_image")
+        frame_image = image if frame is None else image[frame]
+
         if channel == "rgb":
-            image = image / np.max(image)
-        return image
+            frame_image = (
+                frame_image / np.max(image)
+                if adjustment is None
+                else adjustment._get_data_rgb(frame_image)
+            )
+
+        return frame_image
 
     def save_tiff(self, filename, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image
