@@ -1,7 +1,7 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
-from lumicks import pylake
+from lumicks.pylake.adjustments import ColorAdjustment
 from matplotlib.testing.decorators import cleanup
 from ..data.mock_confocal import generate_scan
 
@@ -332,3 +332,81 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
     assert frame_times_inclusive[-1][1] == frame_times[-1][0] + (
         frame_times[1][0] - frame_times[0][0]
     )
+
+
+@cleanup
+def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
+    """Tests whether we can set an absolute color range for an RGB plot."""
+    scan = test_scans["fast Y slow X"]
+
+    fig = plt.figure()
+    lb, ub = np.array([1, 2, 3]), np.array([2, 3, 4])
+    scan.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(image.get_array(), np.clip((scan.rgb_image - lb) / (ub - lb), 0, 1))
+    plt.close(fig)
+
+
+@cleanup
+def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
+    """Tests whether we can set an absolute color range for a single channel plot."""
+    scan = test_scans["fast Y slow X"]
+
+    lbs, ubs = np.array([1, 2, 3]), np.array([2, 3, 4])
+    for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
+        # Test whether setting RGB values and then sampling one of them works correctly.
+        fig = plt.figure()
+        scan.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), getattr(scan, f"{channel}_image"))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+        # Test whether setting a single color works correctly (should use the same for R G and B).
+        fig = plt.figure()
+        scan.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), getattr(scan, f"{channel}_image"))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+
+@cleanup
+def test_plot_rgb_percentile_color_adjustment(test_scans):
+    """Tests whether we can set a percentile color range for an RGB plot."""
+    scan = test_scans["fast Y slow X multiframe"]
+
+    fig = plt.figure()
+    lb, ub = np.array([1, 5, 10]), np.array([80, 90, 80])
+    scan.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="percentile"))
+    bounds = np.array(
+        [
+            np.percentile(img, [mini, maxi])
+            for img, mini, maxi in zip(np.moveaxis(scan.rgb_image[0], 2, 0), lb, ub)
+        ]
+    )
+    lb, ub = (b for b in np.moveaxis(bounds, 1, 0))
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(image.get_array(), np.clip((scan.rgb_image[0] - lb) / (ub - lb), 0, 1))
+    plt.close(fig)
+
+
+@cleanup
+def test_plot_single_channel_percentile_color_adjustment(test_scans):
+    """Tests whether we can set a percentile color range for separate channel plots."""
+    scan = test_scans["fast Y slow X multiframe"]
+
+    lbs, ubs = np.array([1, 5, 10]), np.array([80, 90, 80])
+    for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
+        # We need to test both specifying all bounds at once and specifying just one bound
+        for used_lb, used_ub in ((lb, ub), (lbs, ubs)):
+            fig = plt.figure()
+            scan.plot(
+                channel=channel, adjustment=ColorAdjustment(used_lb, used_ub, mode="percentile")
+            )
+            image = getattr(scan, f"{channel}_image")
+            lb_abs, ub_abs = np.percentile(image[0], [lb, ub])
+            plotted_image = plt.gca().get_images()[0]
+            np.testing.assert_allclose(plotted_image.get_array(), image[0])
+            np.testing.assert_allclose(plotted_image.get_clim(), [lb_abs, ub_abs])
+            plt.close(fig)

@@ -152,7 +152,7 @@ class CorrelatedStack:
 
         return np.stack([frame.data[slc] for frame in self], axis=0).squeeze()
 
-    def plot(self, frame=0, channel="rgb", show_title=True, axes=None, **kwargs):
+    def plot(self, frame=0, channel="rgb", show_title=True, axes=None, adjustment=None, **kwargs):
         """Plot image from image stack
 
         Parameters
@@ -177,8 +177,13 @@ class CorrelatedStack:
         default_kwargs = dict(cmap="gray", vmax=None)
         kwargs = {**default_kwargs, **kwargs}
 
-        image = self._get_frame(frame)._get_plot_data(channel, vmax=kwargs["vmax"])
-        axes.imshow(image, **kwargs)
+        image = self._get_frame(frame)._get_plot_data(
+            channel, vmax=kwargs["vmax"], adjustment=adjustment
+        )
+        image_handle = axes.imshow(image, **kwargs)
+
+        if adjustment:
+            adjustment._update_limits(image_handle, image, channel)
 
         if show_title:
             axes.set_title(make_image_title(self, frame))
