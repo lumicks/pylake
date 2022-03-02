@@ -2,6 +2,9 @@
 
 ## v0.12.0 | t.b.d.
 
+#### Bug fixes
+* Fixed a minor bug in `KymoLineGroup.fit_binding_times()`. Previously, the binding time for all lines in the group were used for the analysis. However, lines which start in the first frame of the kymo or end in the last frame have ambiguous dwelltimes as the start or end of the line is not known definitively. Now, the default behavior is to exclude these lines from the analysis. This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`. In general, this bug would lead to only very minor biases in the results unless the number of dwells to be excluded is large relative to the total number.
+
 #### Breaking changes
 * Changed the frame indexing convention for plotting confocal scans to match `CorrelatedStack.plot()`. Previously, `Scan.plot(frame=1)` referred to the first frame in the stack. Now, indexing starts at `0`.
 * Requesting a frame outside of the available range for `Scan.plot()` now throws an `IndexError`.

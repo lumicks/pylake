@@ -134,6 +134,10 @@ class KymoLine:
     def position(self):
         return self._image.to_position(self.coordinate_idx)
 
+    def _check_ends_are_defined(self):
+        """Checks if beginning and end of the line are not in the first/last frame."""
+        return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.data.shape[1] - 1
+
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
 
@@ -418,7 +422,7 @@ class KymoLineGroup:
         """
         export_kymolinegroup_to_csv(filename, self._src, delimiter, sampling_width)
 
-    def fit_binding_times(self, n_components):
+    def fit_binding_times(self, n_components, *, exclude_ambiguous_dwells=True):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
         Parameters
@@ -433,7 +437,8 @@ class KymoLineGroup:
             )
 
         image = self[0]._image
-        dwelltimes_sec = np.hstack([line.seconds[-1] - line.seconds[0] for line in self])
+        lines = filter(KymoLine._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
+        dwelltimes_sec = np.hstack([line.seconds[-1] - line.seconds[0] for line in lines])
 
         min_observation_time = np.min(dwelltimes_sec)
         max_observation_time = image.data.shape[1] * image.line_time_seconds
