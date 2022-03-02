@@ -76,9 +76,18 @@ def f_test(sse_restricted, sse_unrestricted, num_data, num_pars_difference, num_
     """Determine p-value whether the bigger model describes the variance significantly better"""
     nominator = (sse_restricted - sse_unrestricted) / num_pars_difference
     denominator = sse_unrestricted / (num_data - num_pars_unrestricted)
-    f_statistic = nominator / denominator
-    p_value = 1.0 - stats.f.cdf(f_statistic, num_pars_difference, num_pars_unrestricted)
-    return p_value
+    if denominator == 0:
+        warnings.warn(
+            RuntimeWarning(
+                "Denominator in F-Test is zero. "
+                "This may be caused by using noise-free data or fewer than 4 data points."
+            )
+        )
+        return 0.0
+    else:
+        f_statistic = nominator / denominator
+        p_value = 1.0 - stats.f.cdf(f_statistic, num_pars_difference, num_pars_unrestricted)
+        return p_value
 
 
 def fit_piecewise_linear(x, y):
