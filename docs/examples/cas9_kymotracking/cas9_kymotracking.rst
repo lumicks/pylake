@@ -49,7 +49,7 @@ data looks like::
     ax1 = plt.subplot(2, 1, 1)
 
     # We use aspect="auto" because otherwise the kymograph would be very long and thin
-    kymo.plot("green", vmax=4, aspect="auto")
+    kymo.plot("green", adjustment=lk.ColorAdjustment(0, 4), aspect="auto")
 
     # Plot the force
     ax2 = plt.subplot(2, 1, 2, sharex = ax1)
@@ -61,8 +61,7 @@ data looks like::
 
 .. image:: kymo_force.png
 
-Note how we specified a `vmax` for the image. This argument reflects the photon count that corresponds to the maximum
-of the colormap. Any photon count higher than that will be clipped to the maximal color.
+Note how color adjustment is specified for the kymograph. Any photon count outside the range provided to :class:`~lumicks.pylake.ColorAdjustment` will be clipped to the nearest color.
 
 What we can observe in this data is that as more force is applied, we get an increased binding activity. Let’s see
 if we can put the kymotracker to some good use and quantify these.

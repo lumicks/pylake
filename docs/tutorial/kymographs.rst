@@ -23,7 +23,7 @@ Once again, `.kymos` is a regular Python dictionary so we can easily iterate ove
 Or just pick a single one::
 
     kymo = file.kymos["cas9"]
-    kymo.plot(channel="green", aspect="auto", vmax=5)
+    kymo.plot(channel="green", aspect="auto", adjustment=lk.ColorAdjustment(0, 5))
 
 .. image:: figures/kymographs/kymo_intro.png
 
@@ -44,7 +44,7 @@ We can access the raw image data as `numpy` arrays::
     blue = kymo.blue_image  # single color so `shape == (h, w)`
 
     # Plot manually
-    plt.imshow(kymo.green_image, aspect="auto", vmax=5)
+    plt.imshow(kymo.green_image, aspect="auto", adjustment=lk.ColorAdjustment(0, 5))
 
 .. image:: figures/kymographs/kymo_manual_plotting.png
 
@@ -176,8 +176,8 @@ This will average the forces over each Kymograph line and plot them in a correla
 The function can also take a dictionary of extra arguments to customize the kymograph plot.
 These parameter values get forwarded to :func:`matplotlib.pyplot.imshow`.
 For instance, if a few pixels dominate the image, it might be preferable to set the scale by hand.
-This can be accomplished by setting `vmax`::
+This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment`::
 
-    kymo.plot_with_force("1x", "green", kymo_args={"vmax": 3})
+    kymo.plot_with_force("1x", "green", adjustment=lk.ColorAdjustment(0, 3))
 
 .. image:: ./figures/kymographs/kymo_correlated.png
