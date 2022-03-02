@@ -11,6 +11,7 @@ def plot_correlated(
     reduce=np.mean,
     colormap="gray",
     figure_scale=0.75,
+    post_update=None,
 ):
     """Downsample channel on a frame by frame basis and plot the results.
 
@@ -35,6 +36,9 @@ def plot_correlated(
     figure_scale : float
         Scaling of the figure width and height. Values greater than one increase the size of the
         figure.
+    post_update : callable
+        Function that will be called with the imshow handle and image data after the image data has
+        been updated.
     """
     import matplotlib.pyplot as plt
 
@@ -60,6 +64,8 @@ def plot_correlated(
         axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
     )
     image_object = ax2.imshow(plot_data, cmap=colormap)
+    if post_update:
+        post_update(image_object, plot_data)
     ax2.set_title(title_factory(frame))
 
     # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
@@ -91,7 +97,10 @@ def plot_correlated(
                 if start <= time < stop:
                     ax2.set_title(title_factory(img_idx))
                     poly.remove()
-                    image_object.set_data(get_plot_data(img_idx))
+                    img_data = get_plot_data(img_idx)
+                    image_object.set_data(img_data)
+                    if post_update:
+                        post_update(image_object, img_data)
                     poly = update_position(*frame_timestamps[img_idx])
                     fig.canvas.draw()
                     return

@@ -90,7 +90,13 @@ class Scan(ConfocalImage):
                 return [(t, t + frame_time) for t in ts_min[:, 0, 0]]
 
     def plot_correlated(
-        self, channel_slice, frame=0, reduce=np.mean, channel="rgb", figure_scale=0.75
+        self,
+        channel_slice,
+        frame=0,
+        reduce=np.mean,
+        channel="rgb",
+        figure_scale=0.75,
+        adjustment=None,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
@@ -113,6 +119,8 @@ class Scan(ConfocalImage):
         figure_scale : float
             Scaling of the figure width and height. Values greater than one increase the size of the
             figure.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
 
 
         Examples
@@ -130,7 +138,7 @@ class Scan(ConfocalImage):
 
         def plot_channel(frame):
             if channel in ("red", "green", "blue", "rgb"):
-                return self._get_plot_data(channel, frame=frame)
+                return self._get_plot_data(channel, frame=frame, adjustment=adjustment)
             else:
                 raise RuntimeError("Invalid channel selected")
 
@@ -146,6 +154,11 @@ class Scan(ConfocalImage):
             reduce,
             colormap=linear_colormaps[channel],
             figure_scale=figure_scale,
+            post_update=None
+            if adjustment is None
+            else lambda image_handle, image: adjustment._update_limits(
+                image_handle, image, channel
+            ),
         )
 
     @property

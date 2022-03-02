@@ -257,7 +257,13 @@ class CorrelatedStack:
         return self.src.get_frame(self.start_idx + frame)
 
     def plot_correlated(
-        self, channel_slice, frame=0, reduce=np.mean, channel="rgb", figure_scale=0.75
+        self,
+        channel_slice,
+        frame=0,
+        reduce=np.mean,
+        channel="rgb",
+        figure_scale=0.75,
+        adjustment=None,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling function (e.g. np.mean)
         is evaluated for the time between a start and end time of a frame. Note: In environments which support
@@ -279,6 +285,8 @@ class CorrelatedStack:
         figure_scale : float
             Scaling of the figure width and height. Values greater than one increase the size of the
             figure.
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
 
 
         Examples
@@ -299,11 +307,18 @@ class CorrelatedStack:
         plot_correlated(
             channel_slice,
             frame_timestamps,
-            lambda frame_idx: self._get_frame(frame_idx)._get_plot_data(channel),
+            lambda frame_idx: self._get_frame(frame_idx)._get_plot_data(
+                channel, adjustment=adjustment
+            ),
             title_factory,
             frame,
             reduce,
             figure_scale=figure_scale,
+            post_update=None
+            if adjustment is None
+            else lambda image_handle, image: adjustment._update_limits(
+                image_handle, image, channel
+            ),
         )
 
     def export_tiff(self, file_name, roi=None):
