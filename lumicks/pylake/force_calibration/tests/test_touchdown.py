@@ -19,6 +19,7 @@ from lumicks.pylake.force_calibration.touchdown import (
         [0.1, 7.5, 0.0, 5.0, -7.0, 0.0],
     ],
 )
+@pytest.mark.filterwarnings("ignore:Denominator in F-Test is zero")
 def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset, p_value):
     def y_func(x):
         return (
@@ -29,6 +30,7 @@ def test_piecewise_linear_fit(direction, surface, slope1, slope2, offset, p_valu
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")
+        warnings.filterwarnings("ignore", "Denominator in F-Test is zero")
         independent = np.arange(5.0, 10.0, 0.1)
         pars, p_value = fit_piecewise_linear(independent, y_func(independent))
         np.testing.assert_allclose(pars, [surface, offset, slope1, slope2], atol=1e-12)
@@ -80,6 +82,8 @@ def test_touchdown(mack_parameters):
 def test_plot():
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")
+        warnings.filterwarnings("ignore", "Denominator in F-Test is zero")
+        warnings.filterwarnings("ignore", "Insufficient data available to reliably fit touchdown")
         touchdown_result = touchdown(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]))
         touchdown_result.plot()
 
