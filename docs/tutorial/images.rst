@@ -76,10 +76,8 @@ Plotting and Exporting
 ----------------------
 
 As shown above, there are convenience functions for plotting either the full RGB image or a single color channel.
-If a few pixels dominate the image, one might want to set the scale by hand. We can pass an extra argument to `plot_red`
-named `vmax` to accomplish this. This parameter gets forwarded to :func:`matplotlib.pyplot.imshow`::
 
-    scan.plot(channel="red", vmax=5)
+    scan.plot(channel="red")
 
 Multi-frame scans are also supported::
 
@@ -90,6 +88,16 @@ Multi-frame scans are also supported::
     # plot frame at index 3 (first frame is index 0)
     # defaults to the first frame if no argument is given
     scan.plot("green", frame=3)
+
+Sometimes a few bright pixels can dominate the colormap of a scan.
+When this is the case, it may be beneficial to manually set the color limits for each of the channels.
+This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment` to plotting or export functions::
+
+    scan.plot(channel="red", adjustment=lk.ColorAdjustment([50, 50, 50], [100, 250, 196]))
+
+The limits can also be specified in percentiles when this is more practical::
+
+    scan.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))
 
 The images can also be exported in the TIFF format::
 

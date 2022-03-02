@@ -16,6 +16,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     scan.Scan
     point_scan.PointScan
     correlated_stack.CorrelatedStack
+    ColorAdjustment
 
 
 Force calibration

@@ -17,6 +17,19 @@ You can quickly plot an individual frame using the `plot()` method::
 
 .. image:: correlatedstack_aligned.png
 
+Sometimes a few bright pixels can dominate the image.
+When this is the case, it may be beneficial to manually set the color limits for each of the channels.
+This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment` to plotting or export functions::
+
+    stack.plot(channel="red", adjustment=lk.ColorAdjustment([50, 50, 50], [100, 250, 196]))
+
+
+By default the limits should be provided in absolute values, although percentiles can be used instead for convenience::
+
+    stack.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))
+
+
+
 To define the location of the tether between beads, supply the `(x, y)` pixel coordinates of the end points
 to the `define_tether()` method::
 
@@ -43,7 +56,7 @@ can become corrupted due to interpolation artifacts.
 You can also plot only a single color channel. Note that here we pass some additional formatting arguments, which are
 forwarded to `plt.imshow()`::
 
-    stack_roi.plot(channel="red", cmap="magma", vmin=550, vmax=800)
+    stack_roi.plot(channel="red", cmap="magma", adjustment=lk.ColorAdjustment(550, 800))
 
 .. image:: correlatedstack_red.png
 
