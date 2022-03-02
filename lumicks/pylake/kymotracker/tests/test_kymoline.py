@@ -307,3 +307,20 @@ def test_binding_profile_histogram():
     # no bins requested
     with pytest.raises(ValueError, match="Number of time bins must be > 0."):
         lines._histogram_binding_profile(0, 0.2, 4)
+
+
+def test_fit_binding_times():
+    channel = CalibratedKymographChannel("test_data", np.ones((10, 10)), 1e9, 1)
+
+    k1 = KymoLine(np.array([0, 1, 2]), np.zeros(3), channel)
+    k2 = KymoLine(np.array([2, 3, 4, 5, 6]), np.zeros(5), channel)
+    k3 = KymoLine(np.array([3, 4, 5]), np.zeros(3), channel)
+    k4 = KymoLine(np.array([8, 9]), np.zeros(2), channel)
+
+    lines = KymoLineGroup([k1, k2, k3, k4])
+
+    dwells = lines.fit_binding_times(1)
+    np.testing.assert_allclose(dwells.lifetimes, [1.002547])
+
+    dwells = lines.fit_binding_times(1, exclude_ambiguous_dwells=False)
+    np.testing.assert_allclose(dwells.lifetimes, [1.25710457])

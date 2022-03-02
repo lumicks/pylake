@@ -449,7 +449,7 @@ It's not hard to see from this graph why taking too many lags results in unaccep
 
 
 Dwelltime analysis
-------------------------
+------------------
 
 The lifetime of the bound state(s) can be determined using `KymoLineGroup.fit_binding_times()`. This method defines
 the bound dwelltime as the length of each tracked line (in seconds). The lifetimes are then determined using
@@ -480,6 +480,11 @@ a track. Note that when :math:`t_{min}=0` and :math:`t_{max}=\infty`, :math:`N=1
 there are physical limitations on the measurement times (such as pixel integration time). Additionally, the minimum length of tracked lines
 here is dependent on the specific input parameters used for the tracking algorithm. Therefore, in order to estimate these bounds,
 the method uses the shortest track time and the length of the experiment, respectively.
+
+Note: tracks which start in the first frame of the kymograph or end in the last frame are excluded from the analysis. This is because, such tracks have
+ambiguous binding times as the start or end of the track is not known definitively. If these tracks were included in the analysis, this could lead to minor
+biases in the results, especially if the number of tracks that meet this criteriion is large relative to the total number.
+This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`.
 
 
 First let's try to fit the dwelltime distribution to a single exponential (the simplest case). To do this we
