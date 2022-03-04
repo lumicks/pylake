@@ -2,6 +2,10 @@
 
 ## v0.12.0 | t.b.d.
 
+#### New features
+
+* Support negating channels (e.g. `neg_force = - file.force1x`). See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#exporting-h5-files) for more information.
+
 #### Bug fixes
 * Fixed a minor bug in `KymoLineGroup.fit_binding_times()`. Previously, the binding time for all lines in the group were used for the analysis. However, lines which start in the first frame of the kymo or end in the last frame have ambiguous dwelltimes as the start or end of the line is not known definitively. Now, the default behavior is to exclude these lines from the analysis. This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`. In general, this bug would lead to only very minor biases in the results unless the number of dwells to be excluded is large relative to the total number.
 

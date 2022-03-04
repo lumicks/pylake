@@ -146,3 +146,15 @@ def test_timetags_not_implemented(data1, data2):
     for operator in operators:
         with pytest.raises(NotImplementedError):
             getattr(data1, operator)(data2)
+
+
+@pytest.mark.parametrize("channel_slice", [(slice_continuous_1), (slice_timeseries_1)])
+def test_negation(channel_slice):
+    neg_slice = -channel_slice
+    np.testing.assert_allclose(neg_slice.data, -channel_slice.data)
+    np.testing.assert_allclose(neg_slice.timestamps, channel_slice.timestamps)
+
+
+def test_negation_timetags_not_implemented():
+    with pytest.raises(NotImplementedError):
+        negated_timetags = -timetags
