@@ -6,7 +6,8 @@ import tifffile
 import warnings
 import enum
 from copy import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from ..adjustments import ColorAdjustment
 
 
 class TiffFrame:
@@ -68,7 +69,7 @@ class TiffFrame:
     def is_rgb(self):
         return self._description.is_rgb
 
-    def _get_plot_data(self, channel="rgb", adjustment=None, vmax=None):
+    def _get_plot_data(self, channel="rgb", adjustment=ColorAdjustment.nothing(), vmax=None):
         """Return data as a numpy array, appropriate for use by `imshow`.
 
         Parameters
@@ -96,7 +97,7 @@ class TiffFrame:
         if channel.lower() == "rgb":
             if vmax is None:
                 data = self.data.astype(float)
-                return data / data.max() if adjustment is None else adjustment._get_data_rgb(data)
+                return adjustment._get_data_rgb(data)
             else:
                 data = (self.data / (2**self.bit_depth - 1)).astype(float)
                 return data / vmax

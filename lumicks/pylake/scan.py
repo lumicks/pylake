@@ -1,6 +1,7 @@
 import numpy as np
 from copy import copy
 
+from .adjustments import ColorAdjustment
 from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import reconstruct_num_frames, make_image_title
 
@@ -96,7 +97,7 @@ class Scan(ConfocalImage):
         reduce=np.mean,
         channel="rgb",
         figure_scale=0.75,
-        adjustment=None,
+        adjustment=ColorAdjustment.nothing(),
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
@@ -142,6 +143,9 @@ class Scan(ConfocalImage):
             else:
                 raise RuntimeError("Invalid channel selected")
 
+        def post_update(image_handle, image):
+            return adjustment._update_limits(image_handle, image, channel)
+
         title_factory = lambda frame: make_image_title(self, frame, show_name=False)
         frame_timestamps = self.frame_timestamp_ranges()
 
@@ -154,11 +158,7 @@ class Scan(ConfocalImage):
             reduce,
             colormap=linear_colormaps[channel],
             figure_scale=figure_scale,
-            post_update=None
-            if adjustment is None
-            else lambda image_handle, image: adjustment._update_limits(
-                image_handle, image, channel
-            ),
+            post_update=post_update,
         )
 
     @property
@@ -194,7 +194,15 @@ class Scan(ConfocalImage):
         else:
             return data
 
-    def _plot(self, channel, axes, frame=0, image_handle=None, adjustment=None, **kwargs):
+    def _plot(
+        self,
+        channel,
+        axes,
+        frame=0,
+        image_handle=None,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
+    ):
         """Plot a scan frame for requested color channel(s).
 
         Parameters
@@ -235,8 +243,7 @@ class Scan(ConfocalImage):
             # `imshow`.
             image_handle.set_data(image)
 
-        if adjustment:
-            adjustment._update_limits(image_handle, image, channel)
+        adjustment._update_limits(image_handle, image, channel)
 
         scan_axes = self._ordered_axes()
         axes.set_xlabel(rf"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
@@ -246,7 +253,14 @@ class Scan(ConfocalImage):
         return image_handle
 
     def _export_video(
-        self, plot_type, file_name, start_frame, end_frame, fps, adjustment=None, **kwargs
+        self,
+        plot_type,
+        file_name,
+        start_frame,
+        end_frame,
+        fps,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Export a video of a particular scan plot
 
@@ -316,7 +330,13 @@ class Scan(ConfocalImage):
             rcParams["figure.facecolor"] = face_color
 
     def export_video_rgb(
-        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+        self,
+        file_name,
+        start_frame=None,
+        end_frame=None,
+        fps=15,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Export multi-frame scan as video.
 
@@ -340,7 +360,13 @@ class Scan(ConfocalImage):
         )
 
     def export_video_red(
-        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+        self,
+        file_name,
+        start_frame=None,
+        end_frame=None,
+        fps=15,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Export multi-frame scan as video.
 
@@ -364,7 +390,13 @@ class Scan(ConfocalImage):
         )
 
     def export_video_green(
-        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+        self,
+        file_name,
+        start_frame=None,
+        end_frame=None,
+        fps=15,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Export multi-frame scan as video.
 
@@ -388,7 +420,13 @@ class Scan(ConfocalImage):
         )
 
     def export_video_blue(
-        self, file_name, start_frame=None, end_frame=None, fps=15, adjustment=None, **kwargs
+        self,
+        file_name,
+        start_frame=None,
+        end_frame=None,
+        fps=15,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Export multi-frame scan as video.
 

@@ -4,6 +4,7 @@ import cachetools
 from dataclasses import dataclass
 from copy import copy
 from skimage.measure import block_reduce
+from .adjustments import ColorAdjustment
 from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import (
     line_timestamps_image,
@@ -151,7 +152,7 @@ class Kymo(ConfocalImage):
         pixelsize[0] = self._calibration.from_um(pixelsize[0])
         return pixelsize
 
-    def _plot(self, channel, axes, adjustment=None, **kwargs):
+    def _plot(self, channel, axes, adjustment=ColorAdjustment.nothing(), **kwargs):
         """Plot a kymo for requested color channel(s).
 
         Parameters
@@ -183,8 +184,7 @@ class Kymo(ConfocalImage):
         axes.set_xlabel("time (s)")
         axes.set_ylabel(f"position ({self._calibration.unit_label})")
         axes.set_title(self.name)
-        if adjustment:
-            adjustment._update_limits(image_handle, image, channel)
+        adjustment._update_limits(image_handle, image, channel)
 
     def _downsample_channel(self, channel, reduce=np.mean):
         # downsample exactly over the scanline time range
@@ -205,7 +205,7 @@ class Kymo(ConfocalImage):
         aspect_ratio=0.25,
         reduce=np.mean,
         kymo_args={},
-        adjustment=None,
+        adjustment=ColorAdjustment.nothing(),
         **kwargs,
     ):
         """Plot kymo with force channel downsampled over scan lines
@@ -265,7 +265,12 @@ class Kymo(ConfocalImage):
         set_aspect_ratio(ax2, aspect_ratio)
 
     def plot_with_position_histogram(
-        self, color_channel, pixels_per_bin=1, hist_ratio=0.25, adjustment=None, **kwargs
+        self,
+        color_channel,
+        pixels_per_bin=1,
+        hist_ratio=0.25,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Plot kymo with histogram along position axis
 
@@ -300,7 +305,12 @@ class Kymo(ConfocalImage):
         ax_hist.set_xlabel("counts")
 
     def plot_with_time_histogram(
-        self, color_channel, pixels_per_bin=1, hist_ratio=0.25, adjustment=None, **kwargs
+        self,
+        color_channel,
+        pixels_per_bin=1,
+        hist_ratio=0.25,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
     ):
         """Plot kymo with histogram along time axis
 

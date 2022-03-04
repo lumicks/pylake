@@ -255,3 +255,10 @@ def test_invalid_range():
 
     with pytest.raises(ValueError, match="Mode nust be percentile or absolute"):
         ColorAdjustment(1.0, 1.0, mode="spaghetti")
+
+
+def test_no_adjust():
+    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+
+    ca = ColorAdjustment.nothing()
+    np.testing.assert_allclose(ca._get_data_rgb(ref_img), ref_img / ref_img.max())
