@@ -3,6 +3,7 @@ import os
 import tifffile
 import warnings
 from deprecated.sphinx import deprecated
+from .adjustments import ColorAdjustment
 from .detail.widefield import TiffStack
 from .detail.image import make_image_title
 
@@ -15,7 +16,6 @@ class CorrelatedStack:
     ----------
     image_name : str
         Filename for the image stack. Typically a TIFF file recorded from a camera in Bluelake.
-
     align : bool
         If enabled, multi-channel images will be reconstructed from the image alignment metadata
         from Bluelake. The default value is `True`.
@@ -152,7 +152,15 @@ class CorrelatedStack:
 
         return np.stack([frame.data[slc] for frame in self], axis=0).squeeze()
 
-    def plot(self, frame=0, channel="rgb", show_title=True, axes=None, adjustment=None, **kwargs):
+    def plot(
+        self,
+        frame=0,
+        channel="rgb",
+        show_title=True,
+        axes=None,
+        adjustment=ColorAdjustment.nothing(),
+        **kwargs,
+    ):
         """Plot image from image stack
 
         Parameters
@@ -181,9 +189,7 @@ class CorrelatedStack:
             channel, vmax=kwargs["vmax"], adjustment=adjustment
         )
         image_handle = axes.imshow(image, **kwargs)
-
-        if adjustment:
-            adjustment._update_limits(image_handle, image, channel)
+        adjustment._update_limits(image_handle, image, channel)
 
         if show_title:
             axes.set_title(make_image_title(self, frame))
@@ -263,7 +269,7 @@ class CorrelatedStack:
         reduce=np.mean,
         channel="rgb",
         figure_scale=0.75,
-        adjustment=None,
+        adjustment=ColorAdjustment.nothing(),
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling function (e.g. np.mean)
         is evaluated for the time between a start and end time of a frame. Note: In environments which support
@@ -304,21 +310,21 @@ class CorrelatedStack:
         title_factory = lambda frame: make_image_title(self, frame, show_name=False)
         frame_timestamps = self.frame_timestamp_ranges
 
+        def frame_grabber(frame_idx):
+            return self._get_frame(frame_idx)._get_plot_data(channel, adjustment=adjustment)
+
+        def post_update(image_handle, image):
+            return adjustment._update_limits(image_handle, image, channel)
+
         plot_correlated(
             channel_slice,
             frame_timestamps,
-            lambda frame_idx: self._get_frame(frame_idx)._get_plot_data(
-                channel, adjustment=adjustment
-            ),
+            frame_grabber,
             title_factory,
             frame,
             reduce,
             figure_scale=figure_scale,
-            post_update=None
-            if adjustment is None
-            else lambda image_handle, image: adjustment._update_limits(
-                image_handle, image, channel
-            ),
+            post_update=post_update,
         )
 
     def export_tiff(self, file_name, roi=None):

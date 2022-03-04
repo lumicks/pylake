@@ -7,6 +7,7 @@ from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
 from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
 from .utilities import could_sum_overflow
+from ..adjustments import ColorAdjustment
 from matplotlib.colors import LinearSegmentedColormap
 
 linear_colormaps = {
@@ -310,7 +311,7 @@ class ConfocalImage(BaseScan):
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 
-    def _get_plot_data(self, channel, adjustment=None, frame=None):
+    def _get_plot_data(self, channel, adjustment=ColorAdjustment.nothing(), frame=None):
         """Get image data for plotting requested channel.
 
         Parameters
@@ -324,11 +325,7 @@ class ConfocalImage(BaseScan):
         frame_image = image if frame is None else image[frame]
 
         if channel == "rgb":
-            frame_image = (
-                frame_image / np.max(image)
-                if adjustment is None
-                else adjustment._get_data_rgb(frame_image)
-            )
+            frame_image = adjustment._get_data_rgb(frame_image)
 
         return frame_image
 

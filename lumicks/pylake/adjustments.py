@@ -47,7 +47,10 @@ class ColorAdjustment:
             stack.plot_correlated(file.force1x, channel="rgb", adjustment=absolute_adjustment)
         """
         minimum, maximum = np.atleast_1d(minimum), np.atleast_1d(maximum)
-        self.mode = mode
+        self.mode = None if mode == "nothing" else mode
+        if not self.mode:
+            return
+
         for bound in (minimum, maximum):
             if len(bound) not in (1, 3):
                 raise ValueError("Color value bounds should be of length 1 or 3")
@@ -65,7 +68,9 @@ class ColorAdjustment:
         image : array_like
             Raw image data.
         """
-        if self.mode == "absolute":
+        if not self.mode:
+            return image / np.max(image)
+        elif self.mode == "absolute":
             minimum, maximum = self.minimum, self.maximum
         else:
             bounds = np.array(
@@ -92,8 +97,15 @@ class ColorAdjustment:
         channel : str
             Channel that's being plotted (e.g. "red" or "rgb").
         """
+        if not self.mode:
+            return
+
         idx = {"red": 0, "green": 1, "blue": 2, "rgb": 0}[channel]
         limits = (self.minimum[idx], self.maximum[idx])
         if self.mode == "percentile":
             limits = np.percentile(image, limits)
         image_handle.set_clim(*limits)
+
+    @classmethod
+    def nothing(cls):
+        return cls(None, None, "nothing")
