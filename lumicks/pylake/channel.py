@@ -69,6 +69,11 @@ class Slice:
 
         return other.data
 
+    def __neg__(self):
+        if isinstance(self._src, TimeTags):
+            raise NotImplementedError("This operation is not supported for TimeTag data")
+        return Slice(self._src._with_data(-self.data))
+
     def __add__(self, other):
         return Slice(self._src._with_data(self.data + self._unpack_other(other)))
 
