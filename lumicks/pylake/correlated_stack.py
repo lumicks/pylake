@@ -182,12 +182,10 @@ class CorrelatedStack:
         if axes is None:
             axes = plt.gca()
 
-        default_kwargs = dict(cmap="gray", vmax=None)
+        default_kwargs = dict(cmap="gray")
         kwargs = {**default_kwargs, **kwargs}
 
-        image = self._get_frame(frame)._get_plot_data(
-            channel, vmax=kwargs["vmax"], adjustment=adjustment
-        )
+        image = self._get_frame(frame)._get_plot_data(channel, adjustment=adjustment)
         image_handle = axes.imshow(image, **kwargs)
         adjustment._update_limits(image_handle, image, channel)
 
