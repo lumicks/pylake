@@ -69,7 +69,7 @@ class TiffFrame:
     def is_rgb(self):
         return self._description.is_rgb
 
-    def _get_plot_data(self, channel="rgb", adjustment=ColorAdjustment.nothing(), vmax=None):
+    def _get_plot_data(self, channel="rgb", adjustment=ColorAdjustment.nothing()):
         """Return data as a numpy array, appropriate for use by `imshow`.
 
         Parameters
@@ -78,29 +78,20 @@ class TiffFrame:
             Which channel to return. Options are: "red", "green", "blue" or "rgb".
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-        vmax : float
-            Maximum photon count to map to 1.0 (only used if adjustment is not specified).
 
         Returns
         -------
         if data is grayscale or channel in ('red', 'green', 'blue')
             return data as is
-        if channel is 'rgb',  converted to float in range [0,1] and correct for optional vmax
-        argument:
-            None  : normalize data to max signal of all channels
-            float : normalize data to vmax value
+        if channel is 'rgb',  converted to float in range [0,1]
         """
 
         if not self.is_rgb:
             return self.data
 
         if channel.lower() == "rgb":
-            if vmax is None:
-                data = self.data.astype(float)
-                return adjustment._get_data_rgb(data)
-            else:
-                data = (self.data / (2**self.bit_depth - 1)).astype(float)
-                return data / vmax
+            data = self.data.astype(float)
+            return adjustment._get_data_rgb(data)
         else:
             try:
                 return self.data[:, :, ("red", "green", "blue").index(channel.lower())]

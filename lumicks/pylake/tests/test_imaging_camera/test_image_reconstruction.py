@@ -52,7 +52,6 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
 
     original_data = (reference_image / (2 ** bit_depth - 1)).astype(float)
     np.testing.assert_allclose(original_data, fr._get_plot_data(), atol=0.05)
-    np.testing.assert_allclose(original_data / 0.5, fr._get_plot_data(vmax=0.5), atol=0.10)
     max_signal = np.max(np.hstack([reference_image[:, :, 0], fr._get_plot_data("red")]))
     diff = np.abs(reference_image[:, :, 0].astype(float) - fr._get_plot_data("red").astype(float))
     assert np.all(diff / max_signal < 0.05)
