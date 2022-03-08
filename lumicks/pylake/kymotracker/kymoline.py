@@ -2,7 +2,7 @@ from copy import copy
 from sklearn.neighbors import KernelDensity
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
-from lumicks.pylake.kymotracker.detail.binding_times import _kinetic_mle_optimize
+from lumicks.pylake.population.dwelltime import _kinetic_mle_optimize
 
 
 def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):

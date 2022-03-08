@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from pathlib import Path
+from .data.generate_exponential_data import read_dataset as read_dataset_exponential
 
 
 def extract_param(data, n_states):
@@ -37,3 +38,8 @@ def trace_simple(request):
     sp = data[f"sp_{n_states}"]
 
     return y, sp, param
+
+
+@pytest.fixture
+def exponential_data():
+    return read_dataset_exponential("exponential_data.npz")

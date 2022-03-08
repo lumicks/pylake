@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from lumicks.pylake.kymotracker.detail.binding_times import _kinetic_mle_optimize
+from lumicks.pylake.population.dwelltime import _kinetic_mle_optimize
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
