@@ -132,7 +132,13 @@ class GaussianMixtureModel:
         return self._aic
 
     def pdf(self, x):
-        """Probability Distribution Function (states as rows)."""
+        """Probability Distribution Function (states as rows).
+
+        Parameters
+        ----------
+        x : np.array
+            array of independent variable values at which to calculate the PDF.
+        """
         components = np.vstack([stats.norm(m, s).pdf(x) for m, s in zip(self.means, self.std)])
         return self.weights.reshape((-1, 1)) * components
 

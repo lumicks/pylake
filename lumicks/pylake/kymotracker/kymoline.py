@@ -422,13 +422,23 @@ class KymoLineGroup:
         """
         export_kymolinegroup_to_csv(filename, self._src, delimiter, sampling_width)
 
-    def fit_binding_times(self, n_components, *, exclude_ambiguous_dwells=True):
+    def fit_binding_times(self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
         Parameters
         ----------
         n_components : int
-            number of components in the model. Currently only values of {1, 2} are supported.
+            Number of components in the model. Currently only values of {1, 2} are supported.
+        exclude_ambiguous_dwells : bool
+            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, tracks which
+            start in the first frame or end in the last frame of the kymograph are not used in the analysis,
+            since the exact start/stop times of the binding event are not definitively known.
+        tol : float
+            The tolerance for optimization convergence. This parameter is forwarded as the `ftol` argument
+            to `scipy.minimize(method="L-BFGS-B")`.
+        max_iter : int
+            The maximum number of iterations to perform. This parameter is forwarded as the `maxiter` argument
+            to `scipy.minimize(method="L-BFGS-B")`.
         """
 
         if n_components not in (1, 2):
@@ -444,7 +454,12 @@ class KymoLineGroup:
         max_observation_time = image.data.shape[1] * image.line_time_seconds
 
         return DwelltimeModel(
-            dwelltimes_sec, n_components, min_observation_time, max_observation_time
+            dwelltimes_sec,
+            n_components,
+            min_observation_time=min_observation_time,
+            max_observation_time=max_observation_time,
+            tol=tol,
+            max_iter=max_iter,
         )
 
     def _histogram_binding_events(self, kind, bins=10):

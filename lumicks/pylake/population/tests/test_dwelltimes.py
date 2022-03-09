@@ -22,6 +22,17 @@ def test_likelihood(exponential_data):
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+def test_optim_options(exponential_data):
+    dataset = exponential_data["dataset_1exp"]
+
+    fit = DwelltimeModel(dataset["data"], 1, *dataset["parameters"].observation_limits, tol=1e-1)
+    np.testing.assert_allclose(fit.lifetimes, [1.442235], rtol=1e-5)
+
+    fit = DwelltimeModel(dataset["data"], 1, *dataset["parameters"].observation_limits, max_iter=2)
+    np.testing.assert_allclose(fit.lifetimes, [1.382336], rtol=1e-5)
+
+
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_fit_parameters(exponential_data):
     # single exponential data
     dataset = exponential_data["dataset_1exp"]
