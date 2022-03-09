@@ -38,15 +38,17 @@ class BindingDwelltimesBootstrap:
         """
         n_data = optimized.dwelltimes_sec.size
         self._samples = np.empty((optimized._parameters.size, iterations))
+        min_observation_time, max_observation_time = optimized._observation_limits
         for itr in range(iterations):
             sample = np.random.choice(optimized.dwelltimes_sec, size=n_data, replace=True)
-            result = _kinetic_mle_optimize(
+            result, _ = _exponential_mle_optimize(
                 optimized.n_components,
                 sample,
-                *optimized.observation_limits,
+                min_observation_time,
+                max_observation_time,
                 initial_guess=optimized._parameters,
             )
-            self._samples[:, itr] = result._parameters
+            self._samples[:, itr] = result
 
     @property
     def n_samples(self):
@@ -145,37 +147,31 @@ class BindingDwelltimesBootstrap:
         plt.tight_layout()
 
 
-@dataclass(frozen=True)
 class BindingDwelltimes:
-    """Results of exponential mixture model optimization for binding dwelltimes.
+    def __init__(
+        self, dwelltimes_sec, n_components=1, min_observation_time=0, max_observation_time=np.inf
+    ):
+        """Exponential mixture model optimization for dwelltime analysis.
 
-    This class is returned from `_kinetic_mle_optimize()` and should not be
-    constructed manually.
+        Parameters
+        ----------
+        dwelltimes_sec : np.ndarray
+            observations on which the model was trained.
+        n_components : int
+            number of components in the model.
+        min_observation_time : float
+            minimum experimental observation time
+        max_observation_time : float
+            maximum experimental observation time.
+        """
 
-    Attributes
-    ----------
-    n_components : int
-        number of components in the model.
-    dwelltimes_sec : np.ndarray
-        observations on which the model was trained.
-    observations_limits : tuple
-        tuple of (`min`, `max`) values of the experimental observation time.
-    _parameters : np.ndarray
-        optimized parameters in the order [amplitudes, lifetimes]
-    log_likelihood : float
-        log likelihood of the trained model
-    bootstrap : BindingDwelltimesBootstrap
-        object containing information about the bootstrapping analysis.
-    """
-
-    n_components: int
-    dwelltimes_sec: np.ndarray = field(repr=False)
-    observation_limits: list = field(repr=False)
-    _parameters: np.ndarray = field(repr=False)
-    log_likelihood: float
-    bootstrap: BindingDwelltimesBootstrap = field(
-        default_factory=BindingDwelltimesBootstrap, init=False, repr=False
-    )
+        self.n_components = n_components
+        self.dwelltimes_sec = dwelltimes_sec
+        self._observation_limits = (min_observation_time, max_observation_time)
+        self._parameters, self._log_likelihood = _exponential_mle_optimize(
+            n_components, dwelltimes_sec, min_observation_time, max_observation_time
+        )
+        self.bootstrap = BindingDwelltimesBootstrap()
 
     @property
     def amplitudes(self):
@@ -186,6 +182,10 @@ class BindingDwelltimes:
     def lifetimes(self):
         """Lifetime parameter (in seconds) of each model component."""
         return self._parameters[self.n_components :]
+
+    @property
+    def log_likelihood(self):
+        return self._log_likelihood
 
     @property
     def aic(self):
@@ -254,7 +254,7 @@ class BindingDwelltimes:
 
         components = np.exp(
             exponential_mixture_log_likelihood_components(
-                self.amplitudes, self.lifetimes, centers, *self.observation_limits
+                self.amplitudes, self.lifetimes, centers, *self._observation_limits
             )
         )
 
@@ -365,7 +365,7 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
     return -np.sum(log_likelihood)
 
 
-def _kinetic_mle_optimize(
+def _exponential_mle_optimize(
     n_components, t, min_observation_time, max_observation_time, initial_guess=None
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
@@ -411,6 +411,4 @@ def _kinetic_mle_optimize(
         cost_fun, initial_guess, method="SLSQP", bounds=bounds, constraints=constraints
     )
 
-    return BindingDwelltimes(
-        n_components, t, (min_observation_time, max_observation_time), result.x, -result.fun
-    )
+    return result.x, -result.fun  # [amplitudes, lifetimes], -log_likelihood
