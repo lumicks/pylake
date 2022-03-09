@@ -4,6 +4,7 @@ from scipy.optimize import minimize
 from functools import partial
 from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
+from deprecated.sphinx import deprecated
 
 
 @dataclass
@@ -203,7 +204,27 @@ class DwelltimeModel:
     def calculate_bootstrap(self, iterations=500):
         self.bootstrap._sample_distributions(self, iterations)
 
+    @deprecated(
+        reason=(
+            "This method has been renamed to more closely match its behavior. "
+            "Use `DwelltimeModel.hist()` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def plot(
+        self,
+        n_bins=25,
+        bin_spacing="linear",
+        hist_kwargs={},
+        component_kwargs={},
+        fit_kwargs={},
+        xscale=None,
+        yscale=None,
+    ):
+        self.hist(n_bins, bin_spacing, hist_kwargs, component_kwargs, fit_kwargs, xscale, yscale)
+
+    def hist(
         self,
         n_bins=25,
         bin_spacing="linear",
