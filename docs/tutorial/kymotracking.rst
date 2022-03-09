@@ -452,34 +452,7 @@ Dwelltime analysis
 ------------------
 
 The lifetime of the bound state(s) can be determined using `KymoLineGroup.fit_binding_times()`. This method defines
-the bound dwelltime as the length of each tracked line (in seconds). The lifetimes are then determined using
-Maximum Likelihood Estimation (MLE) :cite:`kaur2019dwell,woody2016memlet`. The number of exponential components
-to be used for the fit is chosen with the `n_components` argument.
-
-The likelihood :math:`\mathcal{L}` is defined for a mixture of exponential distributions as:
-
-.. math::
-
-    \mathcal{L} = \prod_j^T \left[ \frac{1}{N} \sum_i^M \frac{a_i}{\tau_i} \exp{\left( \frac{-t_j}{\tau_i} \right)} \right]
-
-where :math:`T` is the number of observed dwell times, :math:`M` is the number of exponential components, :math:`t` is time,
-:math:`\tau_i` is the lifetime of component :math:`i`, and :math:`a_i` is the fractional contribution of component :math:`i`
-under the constraint of :math:`\sum_i^M a_i = 1`. The normalization constant :math:`N` is defined as:
-
-.. math::
-
-    N = \sum_i^M a_i \left[
-    \exp{ \left( \frac{-t_{min}}{\tau_i} \right)} -
-    \exp{ \left( \frac{-t_{max}}{\tau_i} \right)}
-    \right]
-
-where :math:`t_{min}` and :math:`t_{max}` are the minimum and maximum possible observation times.
-
-The normalization constant takes into account the minimum and maximum possible observation times of
-a track. Note that when :math:`t_{min}=0` and :math:`t_{max}=\infty`, :math:`N=1`. However, for real experimental data,
-there are physical limitations on the measurement times (such as pixel integration time). Additionally, the minimum length of tracked lines
-here is dependent on the specific input parameters used for the tracking algorithm. Therefore, in order to estimate these bounds,
-the method uses the shortest track time and the length of the experiment, respectively.
+the bound dwelltime as the length of each tracked line in seconds.
 
 Note: tracks which start in the first frame of the kymograph or end in the last frame are excluded from the analysis. This is because, such tracks have
 ambiguous binding times as the start or end of the track is not known definitively. If these tracks were included in the analysis, this could lead to minor

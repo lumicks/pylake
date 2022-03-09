@@ -324,3 +324,10 @@ def test_fit_binding_times():
 
     dwells = lines.fit_binding_times(1, exclude_ambiguous_dwells=False)
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
+
+    # test option forwarding
+    dwells = lines.fit_binding_times(1, tol=1e-3)
+    np.testing.assert_allclose(dwells.lifetimes, [1.00599465])
+
+    dwells = lines.fit_binding_times(1, max_iter=1)
+    np.testing.assert_allclose(dwells.lifetimes, [3])

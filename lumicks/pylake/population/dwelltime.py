@@ -37,17 +37,16 @@ class DwelltimeBootstrap:
         iterations : int
             number of iterations (random samples) to use for the bootstrap
         """
-        n_data = optimized.dwelltimes_sec.size
+        n_data = optimized.dwelltimes.size
         self._samples = np.empty((optimized._parameters.size, iterations))
-        min_observation_time, max_observation_time = optimized._observation_limits
         for itr in range(iterations):
-            sample = np.random.choice(optimized.dwelltimes_sec, size=n_data, replace=True)
+            sample = np.random.choice(optimized.dwelltimes, size=n_data, replace=True)
             result, _ = _exponential_mle_optimize(
                 optimized.n_components,
                 sample,
-                min_observation_time,
-                max_observation_time,
+                *optimized._observation_limits,
                 initial_guess=optimized._parameters,
+                options=optimized._optim_options,
             )
             self._samples[:, itr] = result
 
@@ -149,8 +148,37 @@ class DwelltimeBootstrap:
 
 
 class DwelltimeModel:
+    """Exponential mixture model optimization for dwelltime analysis.
+
+    Parameters
+    ----------
+    dwelltimes : np.ndarray
+        observations on which the model was trained. *Note: the units of the optimized lifetime
+        will be in the units of the dwelltime data. If the dwelltimes are calculated as the number
+        of frames, these then need to be multiplied by the frame time in order to obtain the
+        physically relevant parameter.*
+    n_components : int
+        number of components in the model.
+    min_observation_time : float
+        minimum experimental observation time
+    max_observation_time : float
+        maximum experimental observation time.
+    tol : float
+        The tolerance for optimization convergence. This parameter is forwarded as the `ftol` argument
+        to `scipy.minimize(method="SLSQP")`.
+    max_iter : int
+        The maximum number of iterations to perform. This parameter is forwarded as the `maxiter` argument
+        to `scipy.minimize(method="SLSQP")`.
+    """
+
     def __init__(
-        self, dwelltimes_sec, n_components=1, min_observation_time=0, max_observation_time=np.inf
+        self,
+        dwelltimes,
+        n_components=1,
+        min_observation_time=0,
+        max_observation_time=np.inf,
+        tol=None,
+        max_iter=None,
     ):
         """Exponential mixture model optimization for dwelltime analysis.
 
@@ -164,13 +192,28 @@ class DwelltimeModel:
             minimum experimental observation time
         max_observation_time : float
             maximum experimental observation time.
+        tol : float
+            The tolerance for optimization convergence.
+        max_iter : int
+            The maximum number of iterations to perform.
         """
 
         self.n_components = n_components
-        self.dwelltimes_sec = dwelltimes_sec
+        self.dwelltimes = dwelltimes
+
         self._observation_limits = (min_observation_time, max_observation_time)
+        self._optim_options = {
+            key: value
+            for key, value in zip(("ftol", "maxiter"), (tol, max_iter))
+            if value is not None
+        }
+
         self._parameters, self._log_likelihood = _exponential_mle_optimize(
-            n_components, dwelltimes_sec, min_observation_time, max_observation_time
+            n_components,
+            dwelltimes,
+            min_observation_time,
+            max_observation_time,
+            options=self._optim_options,
         )
         self.bootstrap = DwelltimeBootstrap()
 
@@ -198,11 +241,25 @@ class DwelltimeModel:
     def bic(self):
         """Bayesian Information Criterion."""
         k = (2 * self.n_components) - 1  # number of parameters
-        n = self.dwelltimes_sec.size  # number of observations
+        n = self.dwelltimes.size  # number of observations
         return k * np.log(n) - 2 * self.log_likelihood
 
     def calculate_bootstrap(self, iterations=500):
         self.bootstrap._sample_distributions(self, iterations)
+
+    def pdf(self, x):
+        """Probability Distribution Function (states as rows).
+
+        Parameters
+        ----------
+        x : np.array
+            array of independent variable values at which to calculate the PDF.
+        """
+        return np.exp(
+            exponential_mixture_log_likelihood_components(
+                self.amplitudes, self.lifetimes, x, *self._observation_limits
+            )
+        )
 
     @deprecated(
         reason=(
@@ -255,12 +312,12 @@ class DwelltimeModel:
         """
         if bin_spacing == "log":
             scale = np.logspace
-            limits = (np.log10(self.dwelltimes_sec.min()), np.log10(self.dwelltimes_sec.max()))
+            limits = (np.log10(self.dwelltimes.min()), np.log10(self.dwelltimes.max()))
             xscale = "linear" if xscale is None else xscale
             yscale = "log" if yscale is None else yscale
         elif bin_spacing == "linear":
             scale = np.linspace
-            limits = (self.dwelltimes_sec.min(), self.dwelltimes_sec.max())
+            limits = (self.dwelltimes.min(), self.dwelltimes.max())
             xscale = "linear" if xscale is None else xscale
             yscale = "linear" if yscale is None else yscale
         else:
@@ -273,11 +330,7 @@ class DwelltimeModel:
         component_kwargs = {"marker": "o", "ms": 3, **component_kwargs}
         fit_kwargs = {"color": "k", **fit_kwargs}
 
-        components = np.exp(
-            exponential_mixture_log_likelihood_components(
-                self.amplitudes, self.lifetimes, centers, *self._observation_limits
-            )
-        )
+        components = self.pdf(centers)
 
         def label_maker(a, t, n):
             if self.n_components == 1:
@@ -289,7 +342,7 @@ class DwelltimeModel:
             return f"{amplitude}{lifetime_label} = {t:0.2g} sec"
 
         # plot histogram
-        density, _, _ = plt.hist(self.dwelltimes_sec, bins=bins, density=True, **hist_kwargs)
+        density, _, _ = plt.hist(self.dwelltimes, bins=bins, density=True, **hist_kwargs)
         # plot individual components
         for n in range(self.n_components):
             label = label_maker(self.amplitudes[n], self.lifetimes[n], n + 1)
@@ -387,7 +440,7 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
 
 
 def _exponential_mle_optimize(
-    n_components, t, min_observation_time, max_observation_time, initial_guess=None
+    n_components, t, min_observation_time, max_observation_time, initial_guess=None, options={}
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -404,6 +457,8 @@ def _exponential_mle_optimize(
     initial_guess : array_like
         initial guess for the model parameters ordered as
         [amplitude1, amplitude2, ..., lifetime1, lifetime2, ...]
+    options : dict
+        additional optimization parameters passed to `minimize(..., options)`.
     """
     if np.any(np.logical_or(t < min_observation_time, t > max_observation_time)):
         raise ValueError(
@@ -429,7 +484,13 @@ def _exponential_mle_optimize(
     )
     constraints = {"type": "eq", "fun": lambda x, n: 1 - sum(x[:n]), "args": [n_components]}
     result = minimize(
-        cost_fun, initial_guess, method="SLSQP", bounds=bounds, constraints=constraints
+        cost_fun,
+        initial_guess,
+        method="SLSQP",
+        bounds=bounds,
+        constraints=constraints,
+        options=options,
     )
 
-    return result.x, -result.fun  # [amplitudes, lifetimes], -log_likelihood
+    # output parameters as [amplitudes, lifetimes], -log_likelihood
+    return result.x, -result.fun
