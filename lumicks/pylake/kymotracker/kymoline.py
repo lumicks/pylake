@@ -422,7 +422,9 @@ class KymoLineGroup:
         """
         export_kymolinegroup_to_csv(filename, self._src, delimiter, sampling_width)
 
-    def fit_binding_times(self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None):
+    def fit_binding_times(
+        self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
+    ):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
         Parameters

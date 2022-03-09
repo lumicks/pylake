@@ -34,9 +34,6 @@ Care must be taken in downsampling the data so as not to introduce signal artifa
 The goal of the analyses described below is to label each data point in a state in order to extract
 kinetic and thermodynamic information about the underlying system.
 
-Models
-^^^^^^
-
 Gaussian Mixture Models
 -----------------------
 

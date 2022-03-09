@@ -175,29 +175,12 @@ class DwelltimeModel:
         self,
         dwelltimes,
         n_components=1,
+        *,
         min_observation_time=0,
         max_observation_time=np.inf,
         tol=None,
         max_iter=None,
     ):
-        """Exponential mixture model optimization for dwelltime analysis.
-
-        Parameters
-        ----------
-        dwelltimes_sec : np.ndarray
-            observations on which the model was trained.
-        n_components : int
-            number of components in the model.
-        min_observation_time : float
-            minimum experimental observation time
-        max_observation_time : float
-            maximum experimental observation time.
-        tol : float
-            The tolerance for optimization convergence.
-        max_iter : int
-            The maximum number of iterations to perform.
-        """
-
         self.n_components = n_components
         self.dwelltimes = dwelltimes
 
