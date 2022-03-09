@@ -1,4 +1,4 @@
-from lumicks.pylake.population.mixture import GaussianMixtureModel
+from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
 from matplotlib.testing.decorators import cleanup
 import numpy as np

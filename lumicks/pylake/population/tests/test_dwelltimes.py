@@ -1,21 +1,21 @@
 import pytest
 import numpy as np
 
-from lumicks.pylake.population.dwelltime import DwelltimeModel
+from lumicks.pylake import DwelltimeModel
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_likelihood(exponential_data):
     # single exponential data
     dataset = exponential_data["dataset_1exp"]
-    fit = DwelltimeModel(dataset["data"], 1, *dataset["parameters"].observation_limits)
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
     np.testing.assert_allclose(fit.log_likelihood, -1290.2636036948977, rtol=1e-5)
     np.testing.assert_allclose(fit.aic, 2582.5272073897954, rtol=1e-5)
     np.testing.assert_allclose(fit.bic, 2587.3815618920503, rtol=1e-5)
 
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
-    fit = DwelltimeModel(dataset["data"], 2, *dataset["parameters"].observation_limits)
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
     np.testing.assert_allclose(fit.log_likelihood, -2204.2954468395105, rtol=1e-5)
     np.testing.assert_allclose(fit.aic, 4414.590893679021, rtol=1e-5)
     np.testing.assert_allclose(fit.bic, 4429.232045925579, rtol=1e-5)
@@ -25,10 +25,10 @@ def test_likelihood(exponential_data):
 def test_optim_options(exponential_data):
     dataset = exponential_data["dataset_1exp"]
 
-    fit = DwelltimeModel(dataset["data"], 1, *dataset["parameters"].observation_limits, tol=1e-1)
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, tol=1e-1)
     np.testing.assert_allclose(fit.lifetimes, [1.442235], rtol=1e-5)
 
-    fit = DwelltimeModel(dataset["data"], 1, *dataset["parameters"].observation_limits, max_iter=2)
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, max_iter=2)
     np.testing.assert_allclose(fit.lifetimes, [1.382336], rtol=1e-5)
 
 
@@ -36,13 +36,13 @@ def test_optim_options(exponential_data):
 def test_fit_parameters(exponential_data):
     # single exponential data
     dataset = exponential_data["dataset_1exp"]
-    fit = DwelltimeModel(dataset["data"], 1, *dataset["parameters"].observation_limits)
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
     np.testing.assert_allclose(fit.amplitudes, [1])
     np.testing.assert_allclose(fit.lifetimes, [1.43481181], rtol=1e-5)
 
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
-    fit = DwelltimeModel(dataset["data"], 2, *dataset["parameters"].observation_limits)
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
     np.testing.assert_allclose(fit.amplitudes, [0.46513486, 0.53486514], rtol=1e-5)
     np.testing.assert_allclose(fit.lifetimes, [1.50630877, 5.46212603], rtol=1e-5)
 
@@ -52,7 +52,7 @@ def test_fit_parameters(exponential_data):
 def test_bootstrap(exponential_data):
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
-    fit = DwelltimeModel(dataset["data"], 2, *dataset["parameters"].observation_limits)
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
 
     np.random.seed(123)
     fit.calculate_bootstrap(iterations=50)

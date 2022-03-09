@@ -6,6 +6,7 @@
 
 * Support negating channels (e.g. `neg_force = - file.force1x`). See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#exporting-h5-files) for more information.
 * Allow applying color intensity adjustments on images using `lk.ColorAdjustment()`. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html#correlating-scans) and [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
+* Added `DwelltimeModel` to fit dwelltimes to an exponential (mixture) distribution. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html)
 
 #### Bug fixes
 
@@ -21,6 +22,7 @@
 #### Other changes
 
 * Changed titles for all plots of `Scan` and `CorrelatedStack` images to be consistent. First frame is titled as `"[frame 1 / N]"` and last frame is titled as `"[frame N / N]"`.
+* The returned type from `KymoLineGroup.fit_binding_times()` has been changed to `DwelltimeModel`. Note, this class has the same public attributes and methods as the previously returned `BindingDwelltimes` class; however the `plot()` method has been deprecated and renamed to `DwelltimeModel.hist()`. This new method name more closely describes the actual functionality and also unifies the API with `GaussianMixtureModel`.
 
 ## v0.11.1 | 2022-02-22
 

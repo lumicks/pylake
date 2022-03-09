@@ -460,74 +460,23 @@ biases in the results, especially if the number of tracks that meet this criteri
 This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`.
 
 
-First let's try to fit the dwelltime distribution to a single exponential (the simplest case). To do this we
-simply call::
+To fit the bound dwelltime distribution to a single exponential (the simplest case) simply call::
 
-    dwell_1 = traces.fit_binding_times(n_components=1)
+    dwell = traces.fit_binding_times(n_components=1)
 
-This returns a `BindingDwelltimes` object which contains information about the optimized model.
-We can visually inspect the result with::
+This returns a `DwelltimeModel` object which contains information about the optimized model, such as the lifetime of the state in seconds::
 
-    dwell_1.plot(bin_spacing="log")
+    print(dwell.lifetimes)
 
-.. image:: kymo_bind_dwell_1.png
+We can also try a double exponential fit::
 
-The `bin_spacing` argument can be either `"log"` or `"linear"` and controls the spacing of the bin edges.
-The scale of the x- and y-axes can be controlled with the optional `xscale` and `yscale` arguments; if they are not specified
-the default visualization is `lin-lin` for `bin_spacing="linear"` and `lin-log` for `bin_spacing="log"`.
+    dwell2 = traces.fit_binding_times(n_components=2)
+    print(dwell2.lifetimes)  # list of bound lifetimes
+    print(dwell2.amplitudes)  # list of fractional amplitudes for each component
 
-You can optionally pass the number of bins to be plotted as `n_bins`. Note that the number of bins
-is purely for visualization purposes; the model is optimized directly on the unbinned dwelltimes. This is the main
-advantage of the MLE method over analyses that use a least squares fitting to binned data, where the bin widths and number
-of bins can drastically affect the optimized parameters.
+For a detailed description of the optimization method and available attributes/methods see the Dwelltime Analysis section
+in :doc:`Population Dynamics </tutorial/population_dynamics>`.
 
-We can clearly see that this distribution is not fit well by a single exponential decay.
-Let's now see what a double exponential distribution looks like::
-
-    dwell_2 = traces.fit_binding_times(n_components=2)
-    dwell_2.plot(bin_spacing="log")
-
-.. image:: kymo_bind_dwell_2.png
-
-Here we see that the double exponential fit visually looks better and the log likelihood is also higher than that
-for the single exponential fit. However, the log likelihood does not take into account model complexity, and will
-always increase for a model with more degrees of freedom. Instead, we can look at the Bayesian Information Criterion
-or Akaike Information Criterion to determine which model is better::
-
-    >>> print(dwell_1.bic, dwell_1.aic)
-    532.3299315589168  529.0366267341923
-
-    >>> print(dwell_2.bic, dwell_2.aic)
-    520.4562630650156  510.5763485908421
-
-These information criterion values weight the log likelihood with the model complexity, and as such are more useful for
-model selection. In general, the model with the lowest value is optimal. We can see that both values are lower for the double exponential model,
-indicating that it is a better fit to the data.
-
-We can see this effect if we purposely overfit the data. The following plot shows the result of fitting simulated data (randomly sampled
-from a single exponential distribution) with either a one- or two-component model. In the figure legends we see that the log likelihood
-decreases slightly for the two-component model because of the larger degrees of freedom. However, the BIC for the one-component model is
-indeed lower, as expected:
-
-.. image:: kymo_bic_compare.png
-
-Going back to our experimental data, we can next attempt to estimate confidence intervals (CI) for the parameters using bootstrapping.
-Here, a random dataset with the same size as the original is sampled (with replacement) from the original dataset. This sampled dataset
-is then fit using the MLE method, just as for the original dataset. The fit results in a new estimate for the model parameters.
-This process is repeated many times, and the distribution of the resulting parameters can be analyzed to estimate certain statistics about the them::
-
-    dwell_2.calculate_bootstrap(iterations=1000)
-    dwell_2.bootstrap.plot(alpha=0.05)
-
-.. image:: kymo_bind_bootstrap_2.png
-
-Here we see the distributions of the bootstrapped parameters. The vertical lines indicate the
-means of the distributions, while the red area indicates the estimated confidence intervals. The `alpha` argument determines
-the CI that is estimated as `100*(1-alpha)` % CI; in this case we're showing the estimate for the 95% CI. The values for the
-lower and upper bounds are the `100*(alpha/2)` and `100*(1-alpha/2)` percentiles of the distributions.
-
-Note, however, that while the means correspond well with the optimized model parameters, the distributions are not symmetric.
-In such a case, the simple method of using percentiles as CI values may not be appropriate. For more advanced analysis,
-the distribution values are directly available through the properties `BindingDwelltimes.bootstrap.amplitude_distributions` and
-`BindingDwelltimes.bootstrap.lifetime_distributions` which return the data as a `numpy` array with
-shape `[# components, # bootstrap samples]`.
+Note: the `min_observation_time` and `max_observation_time` arguments to the underlying `DwelltimeModel` are set automatically by this method.
+The minimum length of tracked lines depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
+Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.

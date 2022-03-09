@@ -11,7 +11,14 @@ save_path = Path(__file__).parent
 class ExponentialParameters:
     amplitudes: np.ndarray
     lifetimes: np.ndarray
-    observation_limits: tuple
+    _observation_limits: tuple
+
+    @property
+    def observation_limits(self):
+        return {
+            "min_observation_time": self._observation_limits[0],
+            "max_observation_time": self._observation_limits[1],
+        }
 
 
 def make_dataset(parameters, n_samples=1000):
@@ -20,7 +27,8 @@ def make_dataset(parameters, n_samples=1000):
         n = int(np.floor(n_samples * amplitude))
         tmp = np.random.exponential(lifetime, n)
         idx = np.logical_and(
-            tmp >= parameters.observation_limits[0], tmp <= parameters.observation_limits[1]
+            tmp >= parameters.observation_limits["min_observation_time"],
+            tmp <= parameters.observation_limits["max_observation_time"],
         )
         dwells.append(tmp[idx])
     dwells = np.hstack(dwells)
