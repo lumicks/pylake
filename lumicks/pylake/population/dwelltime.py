@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 
 
 @dataclass
-class BindingDwelltimesBootstrap:
-    """Bootstrap distributions for a binding dwelltime model.
+class DwelltimeBootstrap:
+    """Bootstrap distributions for a dwelltime model.
 
-    This class is stored in the `BindingDwelltime.bootstrap` attribute
+    This class is stored in the `DwelltimeModel.bootstrap` attribute
     and should not be constructed manually.
 
     Attributes
@@ -147,7 +147,7 @@ class BindingDwelltimesBootstrap:
         plt.tight_layout()
 
 
-class BindingDwelltimes:
+class DwelltimeModel:
     def __init__(
         self, dwelltimes_sec, n_components=1, min_observation_time=0, max_observation_time=np.inf
     ):
@@ -171,7 +171,7 @@ class BindingDwelltimes:
         self._parameters, self._log_likelihood = _exponential_mle_optimize(
             n_components, dwelltimes_sec, min_observation_time, max_observation_time
         )
-        self.bootstrap = BindingDwelltimesBootstrap()
+        self.bootstrap = DwelltimeBootstrap()
 
     @property
     def amplitudes(self):

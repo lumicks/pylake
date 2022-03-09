@@ -2,7 +2,7 @@ from copy import copy
 from sklearn.neighbors import KernelDensity
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
-from lumicks.pylake.population.dwelltime import _exponential_mle_optimize
+from lumicks.pylake.population.dwelltime import DwelltimeModel
 
 
 def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):
@@ -443,8 +443,8 @@ class KymoLineGroup:
         min_observation_time = np.min(dwelltimes_sec)
         max_observation_time = image.data.shape[1] * image.line_time_seconds
 
-        return _exponential_mle_optimize(
-            n_components, dwelltimes_sec, min_observation_time, max_observation_time
+        return DwelltimeModel(
+            dwelltimes_sec, n_components, min_observation_time, max_observation_time
         )
 
     def _histogram_binding_events(self, kind, bins=10):
