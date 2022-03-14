@@ -11,6 +11,7 @@
 
 * Fixed a minor bug in `KymoLineGroup.fit_binding_times()`. Previously, the binding time for all lines in the group were used for the analysis. However, lines which start in the first frame of the kymo or end in the last frame have ambiguous dwelltimes as the start or end of the line is not known definitively. Now, the default behavior is to exclude these lines from the analysis. This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`. In general, this bug would lead to only very minor biases in the results unless the number of dwells to be excluded is large relative to the total number.
 * Fixed bug in `vmax` handling for `CorrelatedStack`. Before `vmax` values were scaled to the maximally possible range of values for the image instead of the actual intensity value. Note that use of `vmax` and `vmin` is deprecated and one should use `adjustment=lk.ColorAdjustment(min, max)` for color adjustments. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
+* Fixed a bug in the kymotracker in which the plotted aspect ratio did not match the requested `axis_aspect_ratio` argument.
 
 #### Breaking changes
 

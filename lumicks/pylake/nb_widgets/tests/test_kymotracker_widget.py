@@ -46,6 +46,22 @@ def test_invalid_algorithm_parameter(kymograph):
 
 
 @cleanup
+def test_aspect_ratio(kymograph, region_select):
+    for requested_aspect in (2, 3, 5):
+        kymo_widget = KymoWidgetGreedy(
+            kymograph, "red", use_widgets=False, axis_aspect_ratio=requested_aspect
+        )
+        ax = kymo_widget._axes
+        aspect = ax.get_xlim()[1] / ax.get_ylim()[0]
+        np.testing.assert_allclose(
+            aspect,
+            requested_aspect,
+            rtol=0.05,
+            err_msg=f"aspect ratio = {requested_aspect} failed.",
+        )
+
+
+@cleanup
 def test_track_kymo(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     assert len(kymo_widget.lines) == 0
