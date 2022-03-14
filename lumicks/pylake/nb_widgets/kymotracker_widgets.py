@@ -35,7 +35,8 @@ class KymoWidget:
             Kymograph channel to use.
         axis_aspect_ratio : float
             Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
-            This helps you visualize them.
+            This helps you visualize them. The aspect ratio is defined in physical spatial and
+            temporal units (rather than pixels).
         min_length : int
             Minimum length of a trace. Traces shorter than this are discarded.
         use_widgets : bool
@@ -57,8 +58,8 @@ class KymoWidget:
         self.axis_aspect_ratio = (
             min(
                 axis_aspect_ratio,
-                calibrated_image.to_position(calibrated_image.data.shape[1])
-                / calibrated_image.to_seconds(calibrated_image.data.shape[0]),
+                calibrated_image.to_seconds(calibrated_image.data.shape[1])
+                / calibrated_image.to_position(calibrated_image.data.shape[0]),
             )
             if axis_aspect_ratio
             else None
@@ -477,7 +478,7 @@ class KymoWidget:
                 [
                     0,
                     self.axis_aspect_ratio
-                    * calibrated_image.to_seconds(calibrated_image.data.shape[0]),
+                    * calibrated_image.to_position(calibrated_image.data.shape[0]),
                 ]
             )
 
@@ -529,8 +530,9 @@ class KymoWidgetGreedy(KymoWidget):
         channel : str
             Kymograph channel to use.
         axis_aspect_ratio : float, optional
-            Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin. This helps you
-            visualize them anyway.
+            Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
+            This helps you visualize them. The aspect ratio is defined in physical spatial and
+            temporal units (rather than pixels).
         line_width : float, optional
             Expected width of the particles in physical units. Defaults to 4 * pixel size.
         pixel_threshold : float, optional
