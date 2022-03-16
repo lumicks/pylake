@@ -78,19 +78,24 @@ def test_scans(h5_file):
     if f.format_version == 2:
         scan = f.scans["fast Y slow X"]
         assert scan.pixels_per_line == 4  # Fast axis
-        np.testing.assert_allclose(scan.red_image, np.transpose([[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0], [1, 1, 1, 0]]))
+        np.testing.assert_allclose(
+            scan.get_image("red"),
+            np.transpose([[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0], [1, 1, 1, 0]]),
+        )
 
         scan2 = f.scans["fast Y slow X multiframe"]
-        reference = np.array([[[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0]], [[0, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]])
+        reference = np.array(
+            [[[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 1, 0]], [[0, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]]
+        )
         reference = np.transpose(reference, [0, 2, 1])
-        np.testing.assert_allclose(scan2.red_image, reference)
+        np.testing.assert_allclose(scan2.get_image("red"), reference)
 
         scan2 = f.scans["fast Y slow X multiframe"]
         rgb = np.zeros((2, 4, 3, 3))
         rgb[:, :, :, 0] = reference
         rgb[:, :, :, 1] = reference
         rgb[:, :, :, 2] = reference
-        np.testing.assert_allclose(scan2.rgb_image, rgb)
+        np.testing.assert_allclose(scan2.get_image("rgb"), rgb)
 
 
 def test_kymos(h5_file):
@@ -98,4 +103,7 @@ def test_kymos(h5_file):
     if f.format_version == 2:
         kymo = f.kymos["Kymo1"]
         assert kymo.pixels_per_line == 5
-        np.testing.assert_allclose(kymo.red_image, np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]))
+        np.testing.assert_allclose(
+            kymo.get_image("red"),
+            np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]),
+        )

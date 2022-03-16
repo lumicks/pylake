@@ -46,7 +46,7 @@ class CalibratedKymographChannel:
         position_unit = (kymo._calibration.unit, kymo._calibration.unit_label)
         return cls(
             kymo.name,
-            getattr(kymo, f"{channel}_image"),
+            kymo.get_image(channel),
             kymo.line_time_seconds * int(1e9),
             kymo.pixelsize[0],
             position_unit,

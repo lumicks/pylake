@@ -29,10 +29,20 @@ def test_scans(test_scans):
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 5
     assert len(scan.infowave) == 64
-    assert scan.rgb_image.shape == (4, 5, 3)
-    assert scan.red_image.shape == (4, 5)
-    assert scan.blue_image.shape == (4, 5)
-    assert scan.green_image.shape == (4, 5)
+    assert scan.get_image("rgb").shape == (4, 5, 3)
+    assert scan.get_image("red").shape == (4, 5)
+    assert scan.get_image("blue").shape == (4, 5)
+    assert scan.get_image("green").shape == (4, 5)
+
+    with pytest.deprecated_call():
+        assert scan.rgb_image.shape == (4, 5, 3)
+    with pytest.deprecated_call():
+        assert scan.red_image.shape == (4, 5)
+    with pytest.deprecated_call():
+        assert scan.blue_image.shape == (4, 5)
+    with pytest.deprecated_call():
+        assert scan.green_image.shape == (4, 5)
+
     assert scan.fast_axis == "Y"
     np.testing.assert_allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
     np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
@@ -58,10 +68,10 @@ def test_scans(test_scans):
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
     assert len(scan.infowave) == 64
-    assert scan.rgb_image.shape == (2, 4, 3, 3)
-    assert scan.red_image.shape == (2, 4, 3)
-    assert scan.blue_image.shape == (2, 4, 3)
-    assert scan.green_image.shape == (2, 4, 3)
+    assert scan.get_image("rgb").shape == (2, 4, 3, 3)
+    assert scan.get_image("red").shape == (2, 4, 3)
+    assert scan.get_image("blue").shape == (2, 4, 3)
+    assert scan.get_image("green").shape == (2, 4, 3)
     assert scan.fast_axis == "Y"
     np.testing.assert_allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
     np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
@@ -86,10 +96,10 @@ def test_scans(test_scans):
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
     assert len(scan.infowave) == 64
-    assert scan.rgb_image.shape == (2, 3, 4, 3)
-    assert scan.red_image.shape == (2, 3, 4)
-    assert scan.blue_image.shape == (2, 3, 4)
-    assert scan.green_image.shape == (2, 3, 4)
+    assert scan.get_image("rgb").shape == (2, 3, 4, 3)
+    assert scan.get_image("red").shape == (2, 3, 4)
+    assert scan.get_image("blue").shape == (2, 3, 4)
+    assert scan.get_image("green").shape == (2, 3, 4)
     assert scan.fast_axis == "X"
     np.testing.assert_allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
     np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
@@ -114,10 +124,10 @@ def test_scans(test_scans):
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
     assert len(scan.infowave) == 64
-    assert scan.rgb_image.shape == (2, 3, 4, 3)
-    assert scan.red_image.shape == (2, 3, 4)
-    assert scan.blue_image.shape == (2, 3, 4)
-    assert scan.green_image.shape == (2, 3, 4)
+    assert scan.get_image("rgb").shape == (2, 3, 4, 3)
+    assert scan.get_image("red").shape == (2, 3, 4)
+    assert scan.get_image("blue").shape == (2, 3, 4)
+    assert scan.get_image("green").shape == (2, 3, 4)
     assert scan.fast_axis == "Y"
     np.testing.assert_allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
     np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
@@ -133,11 +143,11 @@ def test_slicing(test_scans):
     def compare_frames(original_frames, new_scan):
         assert new_scan.num_frames == len(original_frames)
         for new_frame_index, index in enumerate(original_frames):
-            frame = scan0.red_image[index]
+            frame = scan0.get_image("red")[index]
             new_frame = (
-                new_scan.red_image[new_frame_index]
+                new_scan.get_image("red")[new_frame_index]
                 if new_scan.num_frames > 1
-                else new_scan.red_image
+                else new_scan.get_image("red")
             )
             np.testing.assert_equal(frame, new_frame)
 
@@ -174,13 +184,13 @@ def test_damaged_scan(test_scans):
     # Assume the user incorrectly exported only a partial scan (62500000 is the time step)
     scan = test_scans["truncated_scan"]
     with pytest.raises(RuntimeError):
-        scan.red_image.shape
+        scan.get_image("red").shape
 
     # Test for workaround for a bug in the STED delay mechanism which could result in scan start times ending up
     # within the sample time.
     scan = test_scans["sted bug"]
     middle = test_scans["fast Y slow X"].red_photon_count.timestamps[5]
-    scan.red_image.shape  # should not raise, but change the start appropriately to work around sted bug
+    scan.get_image("red").shape  # should not raise, but change the start appropriately to work around sted bug
     np.testing.assert_allclose(scan.start, middle)
 
 
@@ -189,21 +199,21 @@ def test_plotting(test_scans):
     scan = test_scans["fast Y slow X multiframe"]
     scan.plot(channel="blue")
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), scan.blue_image[0])
+    np.testing.assert_allclose(image.get_array(), scan.get_image("blue")[0])
     np.testing.assert_allclose(image.get_extent(), [0, 0.197 * 3, 0.191 * 4, 0])
     plt.close()
 
     scan = test_scans["fast X slow Z multiframe"]
     scan.plot(channel="rgb")
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), scan.rgb_image[0] / np.max(scan.rgb_image[0]))
+    np.testing.assert_allclose(image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0]))
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
 
     scan = test_scans["fast Y slow Z multiframe"]
     scan.plot(channel="rgb")
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), scan.rgb_image[0] / np.max(scan.rgb_image[0]))
+    np.testing.assert_allclose(image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0]))
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
 
@@ -343,7 +353,7 @@ def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
     lb, ub = np.array([1, 2, 3]), np.array([2, 3, 4])
     scan.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="absolute"))
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), np.clip((scan.rgb_image - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(image.get_array(), np.clip((scan.get_image("rgb") - lb) / (ub - lb), 0, 1))
     plt.close(fig)
 
 
@@ -358,7 +368,7 @@ def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
         fig = plt.figure()
         scan.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), getattr(scan, f"{channel}_image"))
+        np.testing.assert_allclose(image.get_array(), scan.get_image(channel)) #getattr(scan, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -366,7 +376,7 @@ def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
         fig = plt.figure()
         scan.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), getattr(scan, f"{channel}_image"))
+        np.testing.assert_allclose(image.get_array(), scan.get_image(channel)) #getattr(scan, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -382,12 +392,12 @@ def test_plot_rgb_percentile_color_adjustment(test_scans):
     bounds = np.array(
         [
             np.percentile(img, [mini, maxi])
-            for img, mini, maxi in zip(np.moveaxis(scan.rgb_image[0], 2, 0), lb, ub)
+            for img, mini, maxi in zip(np.moveaxis(scan.get_image("rgb")[0], 2, 0), lb, ub)
         ]
     )
     lb, ub = (b for b in np.moveaxis(bounds, 1, 0))
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), np.clip((scan.rgb_image[0] - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(image.get_array(), np.clip((scan.get_image("rgb")[0] - lb) / (ub - lb), 0, 1))
     plt.close(fig)
 
 
@@ -404,7 +414,7 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans):
             scan.plot(
                 channel=channel, adjustment=ColorAdjustment(used_lb, used_ub, mode="percentile")
             )
-            image = getattr(scan, f"{channel}_image")
+            image = scan.get_image(channel)
             lb_abs, ub_abs = np.percentile(image[0], [lb, ub])
             plotted_image = plt.gca().get_images()[0]
             np.testing.assert_allclose(plotted_image.get_array(), image[0])

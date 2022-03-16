@@ -4,6 +4,7 @@ import cachetools
 from dataclasses import dataclass
 from copy import copy
 from skimage.measure import block_reduce
+from deprecated.sphinx import deprecated
 from .adjustments import ColorAdjustment
 from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import (
@@ -290,7 +291,7 @@ class Kymo(ConfocalImage):
         import matplotlib.pyplot as plt
         from matplotlib.gridspec import GridSpec
 
-        image = getattr(self, f"{color_channel}_image")
+        image = self.get_image(color_channel)
         pixel_width = self.pixelsize[0]
         edges, counts, bin_widths = histogram_rows(image, pixels_per_bin, pixel_width)
 
@@ -330,7 +331,7 @@ class Kymo(ConfocalImage):
         import matplotlib.pyplot as plt
         from matplotlib.gridspec import GridSpec
 
-        image = getattr(self, f"{color_channel}_image").T
+        image = self.get_image(color_channel).T
         pixel_width = self.line_time_seconds
         edges, counts, bin_widths = histogram_rows(image, pixels_per_bin, pixel_width)
         # time points are defined at center of pixel
@@ -524,15 +525,39 @@ class EmptyKymo(Kymo):
     def _image(self):
         return np.empty((self.pixels_per_line, 0))
 
+    def get_image(self, channel="rgb"):
+        return self._image()
+
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('red')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def red_image(self):
         return self._image()
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('green')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def green_image(self):
         return self._image()
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('blue')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def blue_image(self):
         return self._image()
 
