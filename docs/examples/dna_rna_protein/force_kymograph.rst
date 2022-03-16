@@ -49,9 +49,9 @@ This is not so straightforward, here we just show a very simple way of doing it.
 
 Get the raw data out of the kymographs::
 
-    blue_date = kymo.blue_image
-    green_date = kymo.green_image
-    red_date = kymo.red_image
+    blue_date = kymo.get_image("blue")
+    green_date = kymo.get_image("green")
+    red_date = kymo.get_image("red")
 
     # this gives you the timestamps if you want to produce the kymos yourself
     timestamps = kymo.timestamps

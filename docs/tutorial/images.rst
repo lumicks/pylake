@@ -31,8 +31,8 @@ Scan data and details
 
 You can access the raw image data directly. For a `Scan` with only a single frame::
 
-    rgb = scan.rgb_image  # matrix with `shape == (h, w, 3)`
-    blue = scan.blue_image  # single color so `shape == (h, w)`
+    rgb = scan.get_image("rgb")  # matrix with `shape == (h, w, 3)`
+    blue = scan.get_image("blue")  # single color so `shape == (h, w)`
 
     # Plot manually
     plt.imshow(rgb)
@@ -40,9 +40,9 @@ You can access the raw image data directly. For a `Scan` with only a single fram
 For scans with multiple frames::
 
     # returned data has `shape == (n_frames, h, w, 3)`
-    rgb = multiframe_scan.rgb_image
+    rgb = multiframe_scan.get_image("rgb")
     # returned data has `shape == (n_frames, h, w)`
-    blue = multiframe_scan.blue_image
+    blue = multiframe_scan.get_image("blue")
 
     # Manually plot the RGB image of the first frame.
     plt.imshow(rgb[0, :, :, :])
@@ -53,7 +53,7 @@ We can also slice out a subset of frames from an image stack::
 
 This will return a new `Scan` containing data equivalent to::
 
-    multiframe_scan.rgb_image[5:10, :, :, :]
+    multiframe_scan.get_image("rgb")[5:10, :, :, :]
 
 The images contain pixel data where each pixel represents summed photon counts.
 For an even lower-level look at data, the raw photon count samples can be accessed::
@@ -82,8 +82,8 @@ As shown above, there are convenience functions for plotting either the full RGB
 Multi-frame scans are also supported::
 
     print(scan.num_frames)
-    print(scan.blue_image.shape)  # (self.num_frames, h, w) -> single color channel
-    print(scan.rgb_image.shape)  # (self.num_frames, h, w, 3) -> three color channels
+    print(scan.get_image("blue").shape)  # (self.num_frames, h, w) -> single color channel
+    print(scan.get_image("rgb").shape)  # (self.num_frames, h, w, 3) -> three color channels
 
     # plot frame at index 3 (first frame is index 0)
     # defaults to the first frame if no argument is given

@@ -83,11 +83,11 @@ def test_from_kymo(test_img):
     kymo_bp = kymo.calibrate_to_kbp(12.000)
 
     channel = CalibratedKymographChannel.from_kymo(kymo, "red")
-    np.testing.assert_allclose(kymo.red_image, channel.data)
+    np.testing.assert_allclose(kymo.get_image("red"), channel.data)
     assert channel._position_unit == ("um", r"$\mu$m")
 
     channel = CalibratedKymographChannel.from_kymo(kymo_bp, "red")
-    np.testing.assert_allclose(kymo_bp.red_image, channel.data)
+    np.testing.assert_allclose(kymo_bp.get_image("red"), channel.data)
     assert channel._position_unit == ("kbp", "kbp")
 
 

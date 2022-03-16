@@ -40,11 +40,11 @@ Kymo data and details
 
 We can access the raw image data as `numpy` arrays::
 
-    rgb = kymo.rgb_image  # matrix with `shape == (h, w, 3)`
-    blue = kymo.blue_image  # single color so `shape == (h, w)`
+    rgb = kymo.get_image("rgb")  # matrix with `shape == (h, w, 3)`
+    blue = kymo.get_image("blue")  # single color so `shape == (h, w)`
 
     # Plot manually
-    plt.imshow(kymo.green_image, aspect="auto", adjustment=lk.ColorAdjustment(0, 5))
+    plt.imshow(kymo.get_image("green"), aspect="auto", adjustment=lk.ColorAdjustment(0, 5))
 
 .. image:: figures/kymographs/kymo_manual_plotting.png
 

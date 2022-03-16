@@ -71,7 +71,7 @@ Computing the background
 First, we select a small region without traces to determine the background signal::
 
     background = kymo["100s":"200s"].crop_by_distance(28, 31)
-    green_background_per_pixel = np.mean(background.green_image)
+    green_background_per_pixel = np.mean(background.get_image("green"))
 
 Downsampling the kymograph
 --------------------------
@@ -160,7 +160,7 @@ The line coordinates can be used to sample the photon counts in the image. The e
 
     window = 3
     bg_corrected = longest_line.sample_from_image(window) - (2 * window + 1) * 2 * green_background_per_pixel
-    
+
     plt.figure()
     plt.plot(longest_line.seconds, bg_corrected)
     plt.ylabel('Photon count')

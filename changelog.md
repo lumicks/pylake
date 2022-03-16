@@ -19,6 +19,9 @@
 * Fixed bug in `vmax` handling for `CorrelatedStack`. Before `vmax` values were scaled to the maximally possible range of values for the image instead of the actual intensity value. Note that use of `vmax` and `vmin` is deprecated and one should use `adjustment=lk.ColorAdjustment(min, max)` for color adjustments. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 * Fixed a bug in the kymotracker in which the plotted aspect ratio did not match the requested `axis_aspect_ratio` argument.
 
+#### Deprecations
+* Deprecated `red_image`, `green_image`, `blue_image`, and `rgb_image` properties for `Scan` and `Kymo`. These data should now be accessed using the `get_image(channel="{color}")` method (where `"{color}"` can be `"red"`, `"green"`, `"blue"`, or `"rgb"`).
+
 #### Breaking changes
 
 * Changed the frame indexing convention for plotting confocal scans to match `CorrelatedStack.plot()`. Previously, `Scan.plot(frame=1)` referred to the first frame in the stack. Now, indexing starts at `0`.

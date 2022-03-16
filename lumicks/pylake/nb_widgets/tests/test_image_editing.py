@@ -116,7 +116,7 @@ def test_kymo_cropping_clicks(kymograph, region_select):
 
     new_kymo = w.kymo
     assert new_kymo._calibration.unit == "um"
-    np.testing.assert_equal(new_kymo.red_image.shape, (16, 12))
+    np.testing.assert_equal(new_kymo.get_image("red").shape, (16, 12))
 
     # with calibration
     w = KymoEditorWidget(kymograph, "red", tether_length_kbp=0.3)
@@ -129,4 +129,4 @@ def test_kymo_cropping_clicks(kymograph, region_select):
 
     new_kymo = w.kymo
     assert new_kymo._calibration.unit == "kbp"
-    np.testing.assert_equal(new_kymo.red_image.shape, (16, 12))
+    np.testing.assert_equal(new_kymo.get_image("red").shape, (16, 12))

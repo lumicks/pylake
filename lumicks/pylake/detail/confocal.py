@@ -321,7 +321,7 @@ class ConfocalImage(BaseScan):
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image if channel is set to "rgb".
         """
-        image = getattr(self, f"{channel}_image")
+        image = self.get_image(channel)
         frame_image = image if frame is None else image[frame]
 
         if channel == "rgb":
@@ -342,8 +342,10 @@ class ConfocalImage(BaseScan):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
-        if self.rgb_image.size > 0:
-            save_tiff(self.rgb_image, filename, dtype, clip, ImageMetadata.from_dataset(self._json))
+        if self.get_image("rgb").size > 0:
+            save_tiff(
+                self.get_image("rgb"), filename, dtype, clip, ImageMetadata.from_dataset(self._json)
+            )
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
 
@@ -412,18 +414,58 @@ class ConfocalImage(BaseScan):
         return [axes["scan width (um)"] for axes in self._ordered_axes()]
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('red')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def red_image(self):
-        return self._image("red")
+        return self.get_image("red")
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('green')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def green_image(self):
-        return self._image("green")
+        return self.get_image("green")
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('blue')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def blue_image(self):
-        return self._image("blue")
+        return self.get_image("blue")
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `get_image('rgb')` instead."
+        ),
+        action="always",
+        version="0.12.0",
+    )
     def rgb_image(self):
-        color_channels = [getattr(self, f"{color}_image").T for color in ("red", "green", "blue")]
-        return np.stack(color_channels).T
+        return self.get_image("rgb")
+
+    def get_image(self, channel="rgb"):
+        """Get image data for the full stack as an `np.ndarray`.
+
+        Parameters
+        ----------
+        channel : {'red', 'green', 'blue', 'rgb'}
+            The color channel of the requested data.
+        """
+        if channel == "rgb":
+            return np.stack([self.get_image(color).T for color in ("red", "green", "blue")]).T
+        else:
+            return self._image(channel)
