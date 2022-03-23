@@ -267,6 +267,11 @@ We can find the start and stop time with ``.start`` and ``.stop``.
     >>> print(file.markers["FRAP 3"].stop)
     1573136602571107585
 
+Note that you can slice channel data directly using markers (or any other item that has a ``.start`` and ``.stop`` property::
+
+    >>> file.force1x[file.markers["FRAP 3"]]
+    <lumicks.pylake.channel.Slice at 0x1f262a27220>
+
 Exporting h5 files
 ------------------
 

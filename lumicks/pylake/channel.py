@@ -1,4 +1,5 @@
 import numpy as np
+import numbers
 
 from .detail.utilities import downsample
 from .detail.timeindex import to_timestamp
@@ -33,10 +34,10 @@ class Slice:
 
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
-        if not isinstance(item, slice):
-            raise IndexError("Scalar indexing is not supported, only slicing")
-        if item.step is not None:
+        if isinstance(item, slice) and item.step is not None:
             raise IndexError("Slice steps are not supported")
+        if not hasattr(item, "start") or not hasattr(item, "stop"):
+            raise IndexError("Scalar indexing is not supported, only slicing")
 
         if len(self) == 0:
             return self
@@ -47,6 +48,11 @@ class Slice:
         start = src_start if item.start is None else item.start
         stop = src_stop if item.stop is None else item.stop
         start, stop = (to_timestamp(v, src_start, src_stop) for v in (start, stop))
+
+        if not (isinstance(start, numbers.Number) and isinstance(stop, numbers.Number)):
+            raise TypeError(
+                "Could not evaluate [start:stop] interval. Start and stop values should be valid timestamps or time strings"
+            )
 
         return self._with_data_source(self._src.slice(start, stop))
 

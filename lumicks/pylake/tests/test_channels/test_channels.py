@@ -1,6 +1,8 @@
+import re
 import h5py
 import pytest
 import numpy as np
+from dataclasses import dataclass
 from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
 import matplotlib as mpl
@@ -629,3 +631,71 @@ def test_with_data(data, new_data):
     np.testing.assert_allclose(data._with_data(new_data).data, new_data)
     old_timestamps = data.timestamps
     np.testing.assert_allclose(data._with_data(new_data).timestamps, old_timestamps)
+
+
+def test_slice_by_object():
+    @dataclass
+    class PylakeObject:
+        start: float
+        stop: float
+
+    s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]))
+
+    np.testing.assert_equal(s[PylakeObject(0, 5)].data, [14])
+    np.testing.assert_equal(s[PylakeObject(0, 5)].timestamps, [4])
+    np.testing.assert_equal(s[PylakeObject(4, 5)].data, [14])
+    np.testing.assert_equal(s[PylakeObject(4, 5)].timestamps, [4])
+    np.testing.assert_equal(s[PylakeObject(4, 6)].data, [14, 15])
+    np.testing.assert_equal(s[PylakeObject(4, 6)].timestamps, [4, 5])
+    np.testing.assert_equal(s[PylakeObject(4, 10)].data, [14, 15, 16, 17])
+    np.testing.assert_equal(s[PylakeObject(4, 10)].timestamps, [4, 5, 6, 7])
+
+    s = channel.Slice(channel.TimeSeries([], []))
+    assert len(s[PylakeObject(1, 2)].data) == 0
+    assert len(s[PylakeObject(1, 2)].timestamps) == 0
+
+
+def test_slice_by_invalid_object():
+    s = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]))
+    invalid_range = re.escape(
+        "Could not evaluate [start:stop] interval. "
+        "Start and stop values should be valid timestamps or time strings"
+    )
+
+    @dataclass
+    class PylakeObject:
+        start: float
+        stop: float
+
+    with pytest.raises(TypeError, match=invalid_range):
+        s[PylakeObject(1, 2) : PylakeObject(3, 4)]
+    with pytest.raises(TypeError, match=invalid_range):
+        s[PylakeObject(np.array([3, 6]), 4)]
+    with pytest.raises(TypeError, match=invalid_range):
+        s[PylakeObject(6, np.array([4, 8]))]
+
+    @dataclass
+    class Bad1:
+        start: float
+        # missing stop
+
+    with pytest.raises(IndexError, match="Scalar indexing is not supported, only slicing"):
+        s[Bad1(0)]
+
+    @dataclass
+    class Bad2:
+        # missing start
+        stop: float
+
+    with pytest.raises(IndexError, match="Scalar indexing is not supported, only slicing"):
+        s[Bad2(0)]
+
+    @dataclass
+    class BadType:
+        stop: float
+
+        def start(self):
+            return 1
+
+    with pytest.raises(TypeError, match=invalid_range):
+        s[BadType(0)]
