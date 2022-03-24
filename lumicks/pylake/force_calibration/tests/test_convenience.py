@@ -107,6 +107,11 @@ def test_invalid_options_calibration():
         calibrate_force([1], 1, 20, fast_sensor=True, fixed_diode=150)
 
     with pytest.raises(
+            ValueError, match="When using fast_sensor=True, there is no diode model to fix"
+    ):
+        calibrate_force([1], 1, 20, fast_sensor=True, fixed_alpha=0.4)
+
+    with pytest.raises(
         ValueError, match="Active calibration requires the driving_data to be defined"
     ):
         calibrate_force([1], 1, 20, active_calibration=True)
@@ -115,3 +120,18 @@ def test_invalid_options_calibration():
 def test_mandatory_keyworded_arguments():
     with pytest.raises(TypeError, match="takes 3 positional arguments but 5 were given"):
         calibrate_force([], 1, 2, 3, 4)
+
+
+def test_diode_fixing(reference_models):
+    data, f_sample = reference_models.lorentzian_td(4000, 1, 0.4, 14000, 78125)
+    fit = calibrate_force(data, 1, 20, fixed_diode=1000)
+    assert "f_diode" in fit.params
+    assert "alpha" not in fit.params
+
+    fit = calibrate_force(data, 1, 20, fixed_alpha=0.5)
+    assert "f_diode" not in fit.params
+    assert "alpha" in fit.params
+
+    fit = calibrate_force(data, 1, 20, fixed_diode=14000, fixed_alpha=0.5)
+    assert "f_diode" in fit.params
+    assert "alpha" in fit.params
