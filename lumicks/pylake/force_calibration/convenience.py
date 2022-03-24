@@ -30,6 +30,7 @@ def calibrate_force(
     fit_range=(1e2, 23e3),
     excluded_ranges=[],
     fixed_diode=None,
+    fixed_alpha=None,
     drag=None,
 ):
     """Determine force calibration factors.
@@ -102,6 +103,8 @@ def calibrate_force(
         Overrides the drag coefficient to this particular value.
     fixed_diode : float, optional
         Fix diode frequency to a particular frequency.
+    fixed_alpha : float, optional
+        Fix diode relaxation factor to particular value.
     """
     if active_calibration:
         if axial:
@@ -109,7 +112,7 @@ def calibrate_force(
         if drag:
             raise ValueError("Drag coefficient cannot be carried over to active calibration.")
 
-    if fixed_diode and fast_sensor:
+    if (fixed_diode or fixed_alpha) and fast_sensor:
         raise ValueError("When using fast_sensor=True, there is no diode model to fix.")
 
     if active_calibration and driving_data.size == 0:
@@ -141,8 +144,8 @@ def calibrate_force(
     if drag:
         model._set_drag(drag)
 
-    if fixed_diode:
-        model._filter = FixedDiodeModel(fixed_diode)
+    if fixed_diode or fixed_alpha:
+        model._filter = FixedDiodeModel(fixed_diode, fixed_alpha)
 
     ps = calculate_power_spectrum(
         force_voltage_data,
