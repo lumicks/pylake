@@ -124,31 +124,35 @@ class DiodeModel(FilterBase):
 
 
 class FixedDiodeModel(FilterBase):
-    """Model with fixed diode frequency"""
+    """Model with fixed diode parameters"""
 
-    def __init__(self, diode_frequency):
+    def __init__(self, diode_frequency=None, diode_alpha=None):
         self.diode_frequency = diode_frequency
+        self.diode_alpha = diode_alpha
+
+        diode_params = DiodeModel().fitted_params
+        fixed_params = np.asarray([diode_frequency, diode_alpha])
+
         self.fitted_params = [
-            Param(
-                name="alpha",
-                description="Diode 'relaxation factor'",
-                unit="",
-                initial=0.3,
-                lower_bound=0.0,
-                upper_bound=lambda _: 1.0,
-            )
+            parameter for fixed, parameter in zip(fixed_params, diode_params) if fixed is None
         ]
+        self._fixed_params = {
+            parameter.name: CalibrationParameter(
+                parameter.description + " (fixed)", fixed, parameter.unit
+            )
+            for fixed, parameter in zip(fixed_params, diode_params)
+            if fixed is not None
+        }
+        self._fitted_idx = [idx for idx, parameter in enumerate(fixed_params) if parameter is None]
+        self._parameters = fixed_params
 
     def params(self):
         """Parameters that were fixed during the fitting"""
-        return {
-            "f_diode": CalibrationParameter(
-                "Diode low-pass filtering roll-off frequency (fixed)", self.diode_frequency, "Hz"
-            )
-        }
+        return self._fixed_params
 
-    def __call__(self, f, alpha):
-        return g_diode(f, self.diode_frequency, alpha)
+    def __call__(self, f, *pars):
+        self._parameters[self._fitted_idx] = pars
+        return g_diode(f, *self._parameters)
 
 
 class PassiveCalibrationModel:
