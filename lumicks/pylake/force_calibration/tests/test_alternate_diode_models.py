@@ -1,3 +1,4 @@
+import re
 import pytest
 import numpy as np
 from copy import deepcopy
@@ -82,3 +83,13 @@ def test_fixed_f_diode(model_params, fixed_params, free_params, reference_models
         fit = fit_power_spectrum(power_spectrum, model=model, bias_correction=False)
         assert abs(fit.results["fc"].value - 4000) > 1.0
         assert abs(fit.results["D"].value - 1.14632) > 1e-2
+
+
+def test_alpha_validity():
+    # Alpha should be between 0 and 1
+    for good_alpha in (0.0, 0.5, 1.0):
+        FixedDiodeModel(diode_alpha=good_alpha)
+
+    for bad_alpha in (1.000001, -0.000001):
+        with pytest.raises(ValueError, match=re.escape("Diode relaxation factor should be between 0 and 1 (inclusive).")):
+            FixedDiodeModel(diode_alpha=bad_alpha)

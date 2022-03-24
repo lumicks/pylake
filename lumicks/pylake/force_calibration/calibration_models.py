@@ -127,6 +127,9 @@ class FixedDiodeModel(FilterBase):
     """Model with fixed diode parameters"""
 
     def __init__(self, diode_frequency=None, diode_alpha=None):
+        if diode_alpha is not None and not 0 <= diode_alpha <= 1.0:
+            raise ValueError("Diode relaxation factor should be between 0 and 1 (inclusive).")
+
         self.diode_frequency = diode_frequency
         self.diode_alpha = diode_alpha
 
