@@ -4,9 +4,9 @@ nbconvert
 nbformat
 numpy
 numpydoc
-recommonmark
 scipy
 sphinx==4.5.0
 sphinx_rtd_theme
 sphinxcontrib-bibtex==2.4.1
 docutils<0.18
+myst-parser
