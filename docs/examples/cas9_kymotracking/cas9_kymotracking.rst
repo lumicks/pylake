@@ -67,7 +67,7 @@ What we can observe in this data is that as more force is applied, we get an inc
 if we can put the kymotracker to some good use and quantify these.
 
 Computing the background
-------------------
+------------------------
 First, we select a small region without traces to determine the background signal::
 
     background = kymo["100s":"200s"].crop_by_distance(28, 31)
