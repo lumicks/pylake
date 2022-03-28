@@ -28,5 +28,5 @@ jobs:
         python pylake_test.py
     - name: Black
       run: |
-        pip install black==22.1.0
+        pip install black==22.3.0
         black --check --diff --color .
