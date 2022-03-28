@@ -15,7 +15,6 @@ import os
 import shutil
 import filecmp
 import sphinx_rtd_theme
-from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath("./_ext"))
 sys.path.insert(0, os.path.abspath(".."))
@@ -54,6 +53,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "nbexport",
     "sphinx_lfs_content",
+    "myst_parser",
 ]
 
 autodoc_member_order = "groupwise"
@@ -98,11 +98,13 @@ templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-source_suffix = [".rst", ".md"]
-
-source_parsers = {
-    ".md": CommonMarkParser,
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
 }
+
+# Suppress non-consecutive header level increase warnings
+suppress_warnings = ["myst.header"]
 
 # The master toctree document.
 master_doc = "index"
