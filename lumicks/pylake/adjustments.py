@@ -21,6 +21,7 @@ class ColorAdjustment:
             - "percentile" : color limits are given as percentiles of the image in question.
               Percentiles are calculated for each color channel separately
             - "absolute" : color limits are given as absolute values.
+
             Note: When providing bounds in percentiles, limits will change depending on which image
             you are looking at. When scrolling through a stack of images, the limits will not remain
             constant.

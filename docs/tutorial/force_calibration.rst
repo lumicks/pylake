@@ -359,7 +359,7 @@ This fits the thermal part with the hydrodynamically correct power spectrum and 
 
 We can also include a distance to the surface like before.
 This results in the expression for `\gamma` becoming dependent on the distance to the surface.
-This uses the same expression as listed in the section on the :ref:`hydrodynamically correct model<Hydrodynamically correct model>`.
+This uses the same expression as listed in the section on the hydrodynamically correct model.
 
 One thing to note is that when using the hydrodynamically correct model, the equation for the drag _does_ include the viscosity and bead diameter.
 However, they now appear in a term which already amounts to a small correction therefore the impact of any errors in these is reduced :cite:`tolic2006calibration`.
