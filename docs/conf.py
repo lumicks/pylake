@@ -233,6 +233,8 @@ htmlhelp_basename = project + "doc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
+bibtex_bibfiles = ["refs.bib"]
+
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     "papersize": "a4paper",
