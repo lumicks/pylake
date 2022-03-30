@@ -9,6 +9,7 @@
 * Added `DwelltimeModel` to fit dwelltimes to an exponential (mixture) distribution. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html)
 * Allow slicing directly with an object with a `.start` and `.stop` property. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#markers) for more information.
 * Allow boolean array indexing on `Slice` (e.g. `file.force1x[file.force1x.data > 5]`. See [files and channels](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#boolean-array-indexing) for more information.
+* When doing arithmetic on `Slice`, propagate the calibration if it is still valid.
 
 #### Bug fixes
 
