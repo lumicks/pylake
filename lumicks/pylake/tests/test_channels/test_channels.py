@@ -200,7 +200,35 @@ def test_timeseries_indexing():
     assert len(s[1:2].timestamps) == 0
 
 
-def test_continuous_idexing():
+def test_timeseries_mask():
+    """Test masking operation"""
+    calibration = ForceCalibration(
+        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
+    )
+    s = channel.Slice(
+        channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]),
+        calibration=calibration,
+        labels={"title": "title", "y": "variable"},
+    )
+
+    mask = np.asarray([False, True, False, True])
+    masked = s._apply_mask(mask)
+    np.testing.assert_equal(masked.data, s.data[mask])
+    np.testing.assert_equal(masked.timestamps, s.timestamps[mask])
+    assert masked.calibration == s.calibration
+    assert masked.labels == s.labels
+
+    masked = s._apply_mask([False, False, False, False])
+    np.testing.assert_equal(masked.data, [])
+    np.testing.assert_equal(masked.timestamps, [])
+
+    with pytest.raises(
+            IndexError, match="Length of the logical mask did not match length of the data"
+    ):
+        s._apply_mask([False, False, False])
+
+
+def test_continuous_indexing():
     s = channel.Slice(channel.Continuous([14, 15, 16, 17], 4, 1))
     np.testing.assert_equal(s[0:5].data, [14])
     np.testing.assert_equal(s[0:5].timestamps, [4])
@@ -249,6 +277,34 @@ def test_continuous_idexing():
     assert s[6:13].timestamps[-1] == 10
 
 
+def test_continuous_mask():
+    """Test masking operation"""
+    calibration = ForceCalibration(
+        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
+    )
+    s = channel.Slice(
+        channel.Continuous([14, 15, 16, 17], 4, 1),
+        calibration=calibration,
+        labels={"title": "title", "y": "variable"},
+    )
+
+    mask = np.asarray([False, True, False, True])
+    masked = s._apply_mask(mask)
+    np.testing.assert_equal(masked.data, s.data[mask])
+    np.testing.assert_equal(masked.timestamps, s.timestamps[mask])
+    assert masked.calibration == s.calibration
+    assert masked.labels == s.labels
+
+    masked = s._apply_mask([False, False, False, False])
+    np.testing.assert_equal(masked.data, [])
+    np.testing.assert_equal(masked.timestamps, [])
+
+    with pytest.raises(
+            IndexError, match="Length of the logical mask did not match length of the data"
+    ):
+        s._apply_mask([False, False, False])
+
+
 def test_timetags_indexing():
     s = channel.Slice(channel.TimeTags([10, 20, 30, 40, 50, 60]))
     np.testing.assert_equal(s[0:100].data, [10, 20, 30, 40, 50, 60])
@@ -269,6 +325,12 @@ def test_timetags_indexing():
 
     s = channel.Slice(channel.TimeTags([]))
     assert len(s[10:30].data) == 0
+
+
+def test_timetags_mask():
+    s = channel.Slice(channel.TimeTags([10, 20, 30, 40, 50, 60]))
+    with pytest.raises(NotImplementedError):
+        s._apply_mask([True, False])
 
 
 def test_time_indexing():
