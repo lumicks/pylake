@@ -84,13 +84,19 @@ class Slice:
     def __neg__(self):
         if isinstance(self._src, TimeTags):
             raise NotImplementedError("This operation is not supported for TimeTag data")
-        return Slice(self._src._with_data(-self.data))
+        return Slice(self._src._with_data(-self.data), calibration=self._calibration)
 
     def __add__(self, other):
-        return Slice(self._src._with_data(self.data + self._unpack_other(other)))
+        return Slice(
+            self._src._with_data(self.data + self._unpack_other(other)),
+            calibration=self._calibration if np.isscalar(other) else None,
+        )
 
     def __sub__(self, other):
-        return Slice(self._src._with_data(self.data - self._unpack_other(other)))
+        return Slice(
+            self._src._with_data(self.data - self._unpack_other(other)),
+            calibration=self._calibration if np.isscalar(other) else None,
+        )
 
     def __truediv__(self, other):
         return Slice(self._src._with_data(self.data / self._unpack_other(other)))
