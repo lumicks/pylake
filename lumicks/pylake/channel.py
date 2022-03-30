@@ -34,6 +34,8 @@ class Slice:
 
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
+        if isinstance(item, np.ndarray) and (item.dtype == bool):
+            return self._apply_mask(item)
         if isinstance(item, slice) and item.step is not None:
             raise IndexError("Slice steps are not supported")
         if not hasattr(item, "start") or not hasattr(item, "stop"):
