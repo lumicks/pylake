@@ -20,6 +20,8 @@ def test_baseline_downsampled(poly_baseline_data):
     np.testing.assert_allclose(
         baseline.correct_data(force, trap).data, np.zeros(force.data.shape), atol=1e-4
     )
+    np.testing.assert_allclose(baseline._trap_data, trap.downsampled_by(500))
+    np.testing.assert_allclose(baseline._force, force.downsampled_by(500))
 
 
 @cleanup

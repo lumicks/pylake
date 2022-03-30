@@ -2,7 +2,11 @@ import pytest
 import numpy as np
 from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
-from lumicks.pylake.piezo_tracking.piezo_tracking import DistanceCalibration
+from lumicks.pylake.piezo_tracking.piezo_tracking import (
+    DistanceCalibration,
+    PiezoTrackingCalibration,
+)
+from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
 
 
 def trap_pos_camera_distance():
@@ -81,3 +85,40 @@ def test_plots():
     distance_calibration = DistanceCalibration(*trap_pos_camera_distance(), 1)
     distance_calibration.plot()
     distance_calibration.plot_residual()
+
+
+def test_piezo_invalid_signs():
+    with pytest.raises(
+        ValueError,
+        match="Argument `signs` should be a tuple of two floats reflecting the sign for each "
+        "channel.",
+    ):
+        PiezoTrackingCalibration(None, None, None, (1, 1, 1))
+
+    with pytest.raises(ValueError, match="Each sign should be either -1 or 1."):
+        PiezoTrackingCalibration(None, None, None, (1, 2))
+
+
+def test_piezotracking(piezo_tracking_test_data):
+    data = piezo_tracking_test_data
+
+    # Calibrate using the trap position
+    distance_calibration = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+
+    # Estimate the baselines
+    baseline_1 = ForceBaseLine.polynomial_baseline(
+        data["baseline_trap_position"], data["baseline_force"], degree=2
+    )
+    baseline_2 = ForceBaseLine.polynomial_baseline(
+        data["baseline_trap_position"], data["baseline_force"], degree=2
+    )
+
+    # Perform the piezo tracking
+    piezo_calibration = PiezoTrackingCalibration(distance_calibration, baseline_1, baseline_2)
+
+    piezo_distance, corrected_force1, corrected_force2 = piezo_calibration.piezo_track(
+        data["trap_position"], data["force_1x"], data["force_2x"], trim=False
+    )
+
+    np.testing.assert_allclose(corrected_force1.data, data["force_without_baseline"], rtol=1e-6)
+    np.testing.assert_allclose(piezo_distance.data, data["correct_distance"], rtol=1e-6)
