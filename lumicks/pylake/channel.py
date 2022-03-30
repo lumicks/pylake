@@ -60,6 +60,10 @@ class Slice:
         """Return a copy of this slice with a different data source, but keep other properties"""
         return self.__class__(data_source, self.labels, self._calibration)
 
+    def _apply_mask(self, mask):
+        """Apply a logical mask to the data"""
+        return self._with_data_source(self._src._apply_mask(mask))
+
     def _unpack_other(self, other):
         if np.isscalar(other):
             return other
@@ -419,6 +423,11 @@ class Continuous:
     def _with_data(self, data):
         return self.__class__(data, self.start, self.dt)
 
+    def _apply_mask(self, mask):
+        if len(mask) != len(self.data):
+            raise IndexError("Length of the logical mask did not match length of the data.")
+        return TimeSeries(self.data[mask], self.timestamps[mask])
+
     def __len__(self):
         return len(self._src_data)
 
@@ -493,6 +502,11 @@ class TimeSeries:
     def _with_data(self, data):
         return self.__class__(data, self.timestamps)
 
+    def _apply_mask(self, mask):
+        if len(mask) != len(self.data):
+            raise IndexError("Length of the logical mask did not match length of the data.")
+        return TimeSeries(self.data[mask], self.timestamps[mask])
+
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
         return Slice(
@@ -549,6 +563,9 @@ class TimeTags:
         return self.data.size
 
     def _with_data(self, data):
+        raise NotImplementedError("Time tags do not currently support this operation")
+
+    def _apply_mask(self, mask):
         raise NotImplementedError("Time tags do not currently support this operation")
 
     @staticmethod
