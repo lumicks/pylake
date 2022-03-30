@@ -212,11 +212,12 @@ def test_timeseries_mask():
     )
 
     mask = np.asarray([False, True, False, True])
-    masked = s._apply_mask(mask)
-    np.testing.assert_equal(masked.data, s.data[mask])
-    np.testing.assert_equal(masked.timestamps, s.timestamps[mask])
-    assert masked.calibration == s.calibration
-    assert masked.labels == s.labels
+    masked_raw, masked_slice = s._apply_mask(mask), s[mask]
+    for masked in (masked_raw, masked_slice):
+        np.testing.assert_equal(masked.data, s.data[mask])
+        np.testing.assert_equal(masked.timestamps, s.timestamps[mask])
+        assert masked.calibration == s.calibration
+        assert masked.labels == s.labels
 
     masked = s._apply_mask([False, False, False, False])
     np.testing.assert_equal(masked.data, [])
@@ -289,11 +290,12 @@ def test_continuous_mask():
     )
 
     mask = np.asarray([False, True, False, True])
-    masked = s._apply_mask(mask)
-    np.testing.assert_equal(masked.data, s.data[mask])
-    np.testing.assert_equal(masked.timestamps, s.timestamps[mask])
-    assert masked.calibration == s.calibration
-    assert masked.labels == s.labels
+    masked_raw, masked_slice = s._apply_mask(mask), s[mask]
+    for masked in (masked_raw, masked_slice):
+        np.testing.assert_equal(masked.data, s.data[mask])
+        np.testing.assert_equal(masked.timestamps, s.timestamps[mask])
+        assert masked.calibration == s.calibration
+        assert masked.labels == s.labels
 
     masked = s._apply_mask([False, False, False, False])
     np.testing.assert_equal(masked.data, [])

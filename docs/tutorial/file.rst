@@ -166,6 +166,21 @@ Plotting is typically performed with the origin of the plot set to the timestamp
     first_slice.plot()
     second_slice.plot(start=first_slice.start)  # we want to use the start of first_slice as time point "zero"
 
+Boolean array indexing
+^^^^^^^^^^^^^^^^^^^^^^
+
+Similarly, a subset of the data can be selected using boolean array indexing.
+For example, forces above 5 pN can be excluded as follows::
+
+    mask = file.force1x.data <= 5
+    masked = file.force1x[mask]
+
+Multiple criteria can be combined by using `numpy`'s logic operators.
+For example, restricting the forces between 2 and 5 can be accomplished as follows::
+
+    mask = np.logical_and(file.force1x.data > 2, file.force1x.data < 5)
+    masked = file.force1x[mask]
+
 Arithmetic
 ^^^^^^^^^^
 
