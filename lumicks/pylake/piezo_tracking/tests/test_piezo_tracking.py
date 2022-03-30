@@ -2,7 +2,13 @@ import pytest
 import numpy as np
 from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
-from lumicks.pylake.piezo_tracking.piezo_tracking import DistanceCalibration
+from lumicks.pylake.piezo_tracking.piezo_tracking import (
+    DistanceCalibration,
+    PiezoTrackingCalibration,
+    PiezoForceDistance,
+)
+from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
+from lumicks.pylake.detail.utilities import downsample
 
 
 def trap_pos_camera_distance():
@@ -23,7 +29,6 @@ def trap_pos_camera_distance():
 )
 def test_distance_calibration(sampled_positions):
     distance_calibration = DistanceCalibration(*trap_pos_camera_distance(), 1)
-    np.testing.assert_allclose(distance_calibration.valid_range(), (3.4995, 7.4995))
     assert str(distance_calibration) == "+ 2.0000 x + 1.0000"
     assert repr(distance_calibration) == "DistanceCalibration(+ 2.0000 x + 1.0000)"
 
@@ -81,3 +86,131 @@ def test_plots():
     distance_calibration = DistanceCalibration(*trap_pos_camera_distance(), 1)
     distance_calibration.plot()
     distance_calibration.plot_residual()
+
+
+def test_piezo_invalid_signs(poly_baseline_data, camera_calibration_data):
+    baseline_trap_position, baseline_force = poly_baseline_data
+    camera_dist, _ = camera_calibration_data
+    baseline = ForceBaseLine.polynomial_baseline(baseline_trap_position, baseline_force, 1)
+    distance = DistanceCalibration(baseline_trap_position, camera_dist)
+
+    with pytest.raises(
+        ValueError,
+        match="Argument `signs` should be a tuple of two floats reflecting the sign for each "
+        "channel.",
+    ):
+        PiezoTrackingCalibration(distance, (1, 1, 1))
+
+    with pytest.raises(ValueError, match="Each sign should be either -1 or 1."):
+        PiezoTrackingCalibration(distance, (1, 2))
+
+
+def test_piezotracking(piezo_tracking_test_data):
+    data = piezo_tracking_test_data
+
+    # Calibrate using the trap position
+    distance_calibration = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+
+    # Estimate the baselines
+    baseline_1 = ForceBaseLine.polynomial_baseline(
+        data["baseline_trap_position"], data["baseline_force"], degree=2
+    )
+    baseline_2 = ForceBaseLine.polynomial_baseline(
+        data["baseline_trap_position"], data["baseline_force"], degree=2
+    )
+
+    # Perform the piezo tracking only
+    piezo_calibration = PiezoTrackingCalibration(distance_calibration)
+
+    piezo_distance = piezo_calibration.piezo_track(
+        data["trap_position"], data["force_1x"], data["force_2x"]
+    )
+    np.testing.assert_allclose(piezo_distance.data, data["correct_distance"], rtol=1e-6)
+
+    # Test the full workflow
+    fd_generator = PiezoForceDistance(distance_calibration, baseline_1, baseline_2)
+    piezo_distance, corrected_force1, corrected_force2 = fd_generator.force_distance(
+        data["trap_position"], data["force_1x"], data["force_2x"], trim=False
+    )
+    np.testing.assert_allclose(corrected_force1.data, data["force_without_baseline"], rtol=1e-6)
+
+
+def test_piezo_trimming(piezo_tracking_test_data):
+    data = piezo_tracking_test_data
+
+    # Calibrate using the trap position
+    distance_calibration = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+
+    # Baseline range
+    min_trap, max_trap = (func(data["baseline_trap_position"].data) for func in (np.min, np.max))
+
+    # Estimate the baselines
+    baseline = ForceBaseLine.polynomial_baseline(
+        data["baseline_trap_position"], data["baseline_force"], degree=2
+    )
+
+    fd_generator = PiezoForceDistance(distance_calibration, baseline, baseline)
+    piezo_distance, corrected_force1, corrected_force2 = fd_generator.force_distance(
+        data["trap_position"], data["force_1x"], data["force_2x"], trim=True
+    )
+
+    mask = np.logical_and(
+        min_trap < data["trap_position"].data, data["trap_position"].data < max_trap
+    )
+
+    assert np.sum(mask) < len(data["correct_distance"])
+    np.testing.assert_allclose(piezo_distance.data, data["correct_distance"][mask], rtol=1e-6)
+    np.testing.assert_allclose(
+        corrected_force1.data, data["force_without_baseline"][mask], rtol=1e-6
+    )
+
+
+def test_piezo_tracking_type_validation(poly_baseline_data, camera_calibration_data):
+    baseline_trap_position, baseline_force = poly_baseline_data
+    camera_dist, _ = camera_calibration_data
+    baseline = ForceBaseLine.polynomial_baseline(baseline_trap_position, baseline_force, 1)
+    distance = DistanceCalibration(baseline_trap_position, camera_dist)
+
+    with pytest.raises(
+        TypeError,
+        match="Expected DistanceCalibration for the first argument, got ForceBaseLine",
+    ):
+        PiezoForceDistance(baseline, distance, baseline)
+
+    with pytest.raises(
+        TypeError,
+        match="Expected ForceBaseLine for the second argument, got DistanceCalibration",
+    ):
+        PiezoForceDistance(distance, distance, baseline)
+
+    with pytest.raises(
+        TypeError,
+        match="Expected ForceBaseLine for the second argument, got int",
+    ):
+        PiezoForceDistance(distance, 5, baseline)
+
+
+def test_downsampling_tracking(piezo_tracking_test_data):
+    data = piezo_tracking_test_data
+
+    # Calibrate using the trap position
+    distance_calibration = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+    baseline = ForceBaseLine.polynomial_baseline(
+        data["baseline_trap_position"], data["baseline_force"], degree=2
+    )
+
+    fd_generator = PiezoForceDistance(distance_calibration, baseline, baseline)
+    piezo_distance, corrected_force1, corrected_force2 = fd_generator.force_distance(
+        data["trap_position"],
+        data["force_1x"],
+        data["force_2x"],
+        trim=False,
+        downsampling_factor=10,
+    )
+
+    np.testing.assert_allclose(
+        piezo_distance.data, downsample(data["correct_distance"], 10, np.mean), rtol=1e-6
+    )
+    np.testing.assert_allclose(
+        corrected_force1.data, downsample(data["force_without_baseline"], 10, np.mean), rtol=1e-3
+    )
