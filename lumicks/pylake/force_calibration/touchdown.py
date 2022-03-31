@@ -123,10 +123,14 @@ def fit_piecewise_linear(x, y):
     return pars, p_value
 
 
-def fit_sine_with_polynomial(
-    independent, dependent, freq_bounds, background_degree, search_resolution=50
+def fit_damped_sine_with_polynomial(
+    independent,
+    dependent,
+    freq_bounds,
+    background_degree,
+    search_resolution=50,
 ):
-    """Fit a sine wave plus polynomial background.
+    """Fit a damped sine wave plus polynomial background.
 
     We wish to fit a sine wave (with phase shift) plus a polynomial. By using a trick we can rewrite
     this equation such that we only have to optimize over 1 variable:
@@ -162,19 +166,20 @@ def fit_sine_with_polynomial(
         for the optimizer.
     """
 
-    def sine_with_polynomial(frequency):
+    def exp_sine_with_polynomial(x, frequency, decay):
+        exponential_term = np.exp(-decay * x)
         design_matrix = np.vstack(
             (
-                np.sin(2.0 * np.pi * frequency * independent),
-                np.cos(2.0 * np.pi * frequency * independent),
-                independent[np.newaxis, :] ** np.arange(0, background_degree + 1)[:, np.newaxis],
+                exponential_term * np.sin(2.0 * np.pi * frequency * x),
+                exponential_term * np.cos(2.0 * np.pi * frequency * x),
+                x[np.newaxis, :] ** np.arange(0, background_degree + 1)[:, np.newaxis],
             ),
         )
         ests, _, _, _ = np.linalg.lstsq(design_matrix.T, dependent, rcond=None)
         return np.sum(design_matrix.T * ests, axis=1)
 
     def cost(freq):
-        return np.sum((sine_with_polynomial(freq) - dependent) ** 2)
+        return np.sum((exp_sine_with_polynomial(independent, freq, 0) - dependent) ** 2)
 
     # A poor initial estimate of the focal shift can lead to getting stuck in local optima. The
     # optimum is typically very narrow, which makes most optimizers fail, so we try a range of
@@ -186,10 +191,18 @@ def fit_sine_with_polynomial(
         guesses[max(0, min_error_index - 1)],
         guesses[min(min_error_index + 1, guesses.size - 1)],
     ]
-    result = minimize_scalar(cost, method="bounded", bounds=search_range)
+    result = minimize_scalar(cost, method="bounded", bounds=search_range).x
 
-    par = result.x
-    return par, sine_with_polynomial(par)
+    # After obtaining the amplitude, we can fit the decay parameter reliably
+    result, _ = curve_fit(
+        exp_sine_with_polynomial,
+        independent,
+        dependent,
+        [result, 0],
+        bounds=((0, 0), (2 * result, np.inf)),
+    )
+
+    return result[0], exp_sine_with_polynomial(independent, *result)
 
 
 @dataclass
@@ -269,7 +282,7 @@ def touchdown(
     expected_wavelength = wavelength_nm * 1e-3 / 2 / refractive_index_medium
 
     bounds = np.array([0.7, 1.0001]) / expected_wavelength
-    par, simulation = fit_sine_with_polynomial(
+    par, simulation = fit_damped_sine_with_polynomial(
         surface_position - stage_trimmed,
         force_trimmed,
         bounds,

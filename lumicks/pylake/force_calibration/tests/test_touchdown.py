@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.force_calibration.touchdown import (
     fit_piecewise_linear,
-    fit_sine_with_polynomial,
+    fit_damped_sine_with_polynomial,
     touchdown,
     mack_model,
 )
@@ -64,7 +64,7 @@ def test_sine_with_polynomial(amplitude, frequency, phase_shift, poly_coeffs):
         [-1.26749, 8.06], h
     )
 
-    par, sim = fit_sine_with_polynomial(h, test_data, [0.0, 5.0], background_degree=2)
+    par, sim = fit_damped_sine_with_polynomial(h, test_data, [0.0, 5.0], background_degree=2)
     np.testing.assert_allclose(frequency, par, atol=1e-5)
     np.testing.assert_allclose(np.sum((sim - test_data) ** 2), 0, atol=1e-8)
 
@@ -75,7 +75,7 @@ def test_touchdown(mack_parameters):
 
     touchdown_result = touchdown(stage_positions, simulation)
     np.testing.assert_allclose(touchdown_result.surface_position, 101.65991692918496)
-    np.testing.assert_allclose(touchdown_result.focal_shift, 0.921414653794264)
+    np.testing.assert_allclose(touchdown_result.focal_shift, 0.9212834464971152)
 
 
 @cleanup
@@ -101,7 +101,24 @@ def test_plot():
 def test_sine_fits(amplitude, frequency, phase_shift):
     x = np.arange(1, 10, 0.01)
     y = np.sin(2 * np.pi * frequency * x + phase_shift)
-    par, sim = fit_sine_with_polynomial(x, y, [0.0, 20.0], background_degree=0)
+    par, sim = fit_damped_sine_with_polynomial(x, y, [0.0, 20.0], background_degree=0)
+    np.testing.assert_allclose(par, frequency, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "decay, amplitude, frequency, phase_shift",
+    [
+        [2, 0.478463, 5.23242, 1.51936],
+        [2, 1.478463, 5.23242, 0.51936],
+        [1, 1.478463, 3.83242, 0.51936],
+        [3, 1.478463, 3.43242, 0.51936],
+        [0.5, 1.478463, 10.0, 0.51936],
+    ],
+)
+def test_exp_sine_fits(decay, amplitude, frequency, phase_shift):
+    x = np.arange(1, 10, 0.01)
+    y = np.exp(-decay * x) * np.sin(2 * np.pi * frequency * x + phase_shift)
+    par, sim = fit_damped_sine_with_polynomial(x, y, [0.0, 20.0], background_degree=0)
     np.testing.assert_allclose(par, frequency, rtol=1e-6)
 
 
@@ -124,7 +141,7 @@ def test_fail_touchdown_too_little_data(mack_parameters):
         match="Surface detection failed [(]piecewise linear fit not better than linear fit[)]",
     ):
         touchdown_result = touchdown(
-            stage_positions, stage_positions ** 2 + 100 * np.sin(10 * stage_positions)
+            stage_positions, stage_positions**2 + 100 * np.sin(10 * stage_positions)
         )
         assert touchdown_result.surface_position is None
 
