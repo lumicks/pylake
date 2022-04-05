@@ -259,6 +259,51 @@ def odijk(name):
     )
 
 
+def dsdna_odijk(name, dna_length_kbp, um_per_kbp=0.34, temperature=24.53608821):
+    """Odijk's Extensible Worm-Like Chain model with distance as the dependent variable, using user-specified kilobase-pairs (useful for 10 pN < F < 30 pN).
+
+    References:
+      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
+         28, 7016-7018 (1995).
+      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+      3. Manning, G. S. (2006). The persistence length of DNA is reached from
+         the persistence length of its null isomer through an internal
+         electrostatic stretching force. Biophysical journal, 91(10),
+         3607-3616.
+      4. Liu, J. H., Xi, K., Zhang, X., Bao, L., Zhang, X., & Tan, Z. J.
+         (2019). Structural flexibility of DNA-RNA hybrid duplex: stretching
+         and twist-stretch coupling. Biophysical journal, 117(1), 74-86.
+      5. Herrero-Galán, E., Fuentes-Perez, M. E., Carrasco, C., Valpuesta,
+         J. M., Carrascosa, J. L., Moreno-Herrero, F., & Arias-Gonzalez, J. R.
+         (2013). Mechanical identities of RNA and DNA double helices unveiled
+         at the single-molecule level. Journal of the American Chemical Society,
+         135(1), 122-131.
+     6.  Saenger, W. (1984). Principles of Nucleic Acid Structure. Springer. New York, Berlin, Heidelberg.
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    dna_length_kbp: integer
+        The length of the dna in tether/construct measured in kilobase-pairs
+    um_per_kbp: float
+        The number of kilobase pairs evaluating to 1 um. This is used to convert the length in kbp to um as applied in the fit function [6].
+    temperature: float
+        The temperature in celsius. This is used to calculate the boltzmann * temperature (kT) value
+    """
+    from scipy import constants
+
+    model = odijk(name)
+    model.defaults[f"{name}/Lc"].value = dna_length_kbp * um_per_kbp
+    model.defaults[f"{name}/Lp"].value = 50.0  # [3]
+    model.defaults[f"{name}/St"].value = 1200.0  # [4, 5]
+    model.defaults["kT"].value = (
+        1e21 * constants.k * constants.convert_temperature(temperature, "C", "K")
+    )
+    return model
+
+
 def inverted_odijk(name):
     """Odijk's Extensible Worm-Like Chain model with force as dependent variable (useful for 10 pN < F < 30 pN).
 
@@ -336,6 +381,46 @@ def freely_jointed_chain(name):
         Lc=Defaults.Lc,
         St=Defaults.St,
     )
+
+
+def ssdna_fjc(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
+    """Freely-Jointed Chain with distance as dependent parameter, using user-specified kilobases.
+
+    References:
+        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
+           Elastic Response of Individual Double-Stranded and Single-Stranded
+           DNA Molecules, Science 271, 795-799 (1996).
+        2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
+           DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+        3. Bosco, A., Camunas-Soler, J., & Ritort, F. (2014). Elastic
+           properties and secondary structure formation of single-stranded
+           DNA at monovalent and divalent salt conditions. Nucleic acids
+           research, 42(3), 2064-2074.
+
+    Parameters
+    ----------
+    name : str
+        Name for the model. This name will be prefixed to the model parameter names.
+    dna_length_kb: integer
+        The length of the dna in the sample measured in kilobases
+    um_per_kb: float
+        The number of kilobases evaluating to 1 um. This is used to convert the
+        length in kb to um as applied in the fit function.
+    temperature: float
+        The temperature in celsius. This is used to calculate the
+        Boltzmann's constant * temperature value
+    """
+    from scipy import constants
+
+    model = freely_jointed_chain(name)
+    model.defaults[f"{name}/Lc"].value = dna_length_kb * um_per_kb
+    model.defaults[f"{name}/Lp"].value = 0.70  # [3]
+    model.defaults[f"{name}/St"].value = 750.0  # [3]
+    model.defaults["kT"].value = (
+        1e21 * constants.k * constants.convert_temperature(temperature, "C", "K")
+    )
+
+    return model
 
 
 def inverted_freely_jointed_chain(name):
