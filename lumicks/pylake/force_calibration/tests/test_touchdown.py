@@ -69,13 +69,34 @@ def test_sine_with_polynomial(amplitude, frequency, phase_shift, poly_coeffs):
     np.testing.assert_allclose(np.sum((sim - test_data) ** 2), 0, atol=1e-8)
 
 
-def test_touchdown(mack_parameters):
-    stage_positions = np.arange(99.5, 103.5, 0.01)
-    simulation = mack_model(nanostage_z_position=stage_positions, **mack_parameters)
+def simulate_touchdown(
+    start_z, end_z, analysis_stepsize, mack_parameters, sample_rate=78125, analysis_rate=52
+):
+    """Simulate a touchdown curve
 
+    start_z : float
+        Starting nanostage z position.
+    end_z : float
+        End nanostage z position.
+    analysis_stepsize : float
+        Stage step-size we want to have after downsampling for analysis.
+    mack_parameters : dict
+        Model parameters for the mack model.
+    sample_rate : int
+        Sample rate for `nanostage` and `axial_force` signal.
+    analysis_rate : int
+        Sample rate used in the actual analysis.
+    """
+    oversampling = sample_rate // analysis_rate
+    stage_positions = np.arange(start_z, end_z, analysis_stepsize / oversampling)
+    return stage_positions, mack_model(nanostage_z_position=stage_positions, **mack_parameters)
+
+
+def test_touchdown(mack_parameters):
+    stage_positions, simulation = simulate_touchdown(99.5, 103.5, 0.01, mack_parameters)
     touchdown_result = touchdown(stage_positions, simulation)
-    np.testing.assert_allclose(touchdown_result.surface_position, 101.65991692918496)
-    np.testing.assert_allclose(touchdown_result.focal_shift, 0.9212834464971152)
+    np.testing.assert_allclose(touchdown_result.surface_position, 101.65989249166964)
+    np.testing.assert_allclose(touchdown_result.focal_shift, 0.9212834464971221)
 
 
 @cleanup
@@ -84,7 +105,9 @@ def test_plot():
         warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")
         warnings.filterwarnings("ignore", "Denominator in F-Test is zero")
         warnings.filterwarnings("ignore", "Insufficient data available to reliably fit touchdown")
-        touchdown_result = touchdown(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]))
+        touchdown_result = touchdown(
+            np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4]), sample_rate=1, analysis_rate=1
+        )
         touchdown_result.plot()
 
 
@@ -123,8 +146,7 @@ def test_exp_sine_fits(decay, amplitude, frequency, phase_shift):
 
 
 def test_insufficient_data(mack_parameters):
-    stage_positions = np.arange(102.5, 103.5, 0.01)
-    simulation = mack_model(nanostage_z_position=stage_positions, **mack_parameters)
+    stage_positions, simulation = simulate_touchdown(102.5, 103.5, 0.01, mack_parameters)
 
     with pytest.warns(
         RuntimeWarning, match="Insufficient data available to reliably fit touchdown curve"
@@ -133,8 +155,8 @@ def test_insufficient_data(mack_parameters):
         assert touchdown_result.focal_shift is None
 
 
-def test_fail_touchdown_too_little_data(mack_parameters):
-    stage_positions = np.arange(25.0, 40.0, 0.1)
+def test_fail_touchdown_too_little_data():
+    stage_positions = np.arange(25.0, 40.0, 0.1 / 1502)
 
     with pytest.warns(
         RuntimeWarning,

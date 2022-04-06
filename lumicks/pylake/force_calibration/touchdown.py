@@ -1,3 +1,4 @@
+from lumicks.pylake.detail.utilities import downsample
 import numpy as np
 from scipy.optimize import curve_fit, minimize_scalar
 from scipy import stats
@@ -242,6 +243,8 @@ def touchdown(
     omit_microns=0.5,
     background_degree=3,
     maximum_p_value=0.0001,
+    sample_rate=78125,
+    analysis_rate=52,
 ):
     """This function determines the surface and focal shift from an approach curve.
 
@@ -268,7 +271,15 @@ def touchdown(
         Maximum p-value of F-test that compares the fit of a linear model to the piecewise linear
         model. If the fit is not significantly better, it means that the procedure likely did
         not find the surface.
+    sample_rate : int
+        Sample rate of the given `nanostage` and `axial_force` data in Hz.
+    analysis_rate : int
+        Sampling rate at which the data is analyzed in Hz.
     """
+    nanostage, axial_force = (
+        downsample(x, sample_rate // analysis_rate, np.mean) for x in (nanostage, axial_force)
+    )
+
     if len(nanostage) != len(axial_force):
         min_length = min(len(nanostage), len(axial_force))
         nanostage, axial_force = nanostage[:min_length], axial_force[:min_length]
