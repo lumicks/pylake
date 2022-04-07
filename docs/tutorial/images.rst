@@ -95,6 +95,11 @@ This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment`
 
     scan.plot(channel="red", adjustment=lk.ColorAdjustment([50, 50, 50], [100, 250, 196]))
 
+Gamma adjustments can be applied in addition to the bounds by supplying an extra argument named `gamma`.
+For example, a gamma adjustment of `2` to the red channel can be applied as follows::
+
+    scan.plot(channel="red", adjustment=lk.ColorAdjustment([50, 50, 50], [100, 250, 196], gamma=[2, 1, 1]))
+
 The limits can also be specified in percentiles when this is more practical::
 
     scan.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))

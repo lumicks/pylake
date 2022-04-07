@@ -28,7 +28,10 @@ By default the limits should be provided in absolute values, although percentile
 
     stack.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))
 
+Gamma adjustments can be applied in addition to the bounds by supplying an extra argument named `gamma`.
+For example, a gamma adjustment of `2` to the red channel can be applied as follows::
 
+    stack.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile", gamma=[2, 1, 1]))
 
 To define the location of the tether between beads, supply the `(x, y)` pixel coordinates of the end points
 to the `define_tether()` method::
