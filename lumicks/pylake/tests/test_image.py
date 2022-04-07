@@ -219,6 +219,29 @@ def test_absolute_ranges(minimum, maximum, ref_minimum, ref_maximum):
 
 
 @pytest.mark.parametrize(
+    "minimum, maximum, gamma, ref_minimum, ref_maximum, ref_gamma",
+    [
+        (1.0, 5.0, [0.5, 2.0, 3.0], [1.0, 1.0, 1.0], [5.0, 5.0, 5.0], [0.5, 2.0, 3.0]),
+        ([1.0, 2.0, 3.0], [3.0, 4.0, 5.0], 0.5, [1.0, 2.0, 3.0], [3.0, 4.0, 5.0], [0.5, 0.5, 0.5]),
+        ([1.0], [3.0, 4.0, 5.0], [0.2, 1.0, 2.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0], [0.2, 1.0, 2.0]),
+        ([1.0, 2.0, 3.0], [5.0], None, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0], [1, 1, 1]),  # none passed
+        ([1.0, 2.0, 3.0], 5.0, 1, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0], [1, 1, 1]),
+    ],
+)
+def test_gamma(minimum, maximum, gamma, ref_minimum, ref_maximum, ref_gamma):
+    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+
+    gamma_arg = {"gamma": gamma} if gamma is not None else {}  # Only pass gamma if we have one
+    ca = ColorAdjustment(minimum, maximum, mode="absolute", **gamma_arg)
+    np.testing.assert_allclose(ca.minimum, ref_minimum)
+    np.testing.assert_allclose(ca.maximum, ref_maximum)
+    np.testing.assert_allclose(ca.gamma, ref_gamma)
+
+    expected = np.clip((ref_img - ca.minimum) / (ca.maximum - ca.minimum), 0, 1) ** ca.gamma
+    np.testing.assert_allclose(ca._get_data_rgb(ref_img), expected)
+
+
+@pytest.mark.parametrize(
     "minimum, maximum, ref_minimum, ref_maximum",
     [
         (25.0, 75.0, [25.0, 25.0, 25.0], [75.0, 75.0, 75.0]),
@@ -250,7 +273,7 @@ def test_percentile_ranges(minimum, maximum, ref_minimum, ref_maximum):
 
 
 def test_invalid_range():
-    with pytest.raises(ValueError, match="Color value bounds should be of length 1 or 3"):
+    with pytest.raises(ValueError, match="Color value bounds and gamma should be of length 1 or 3"):
         ColorAdjustment([2.0, 3.0], [1.0, 2.0, 3.0], mode="absolute")
 
     with pytest.raises(ValueError, match="Mode nust be percentile or absolute"):
