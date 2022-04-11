@@ -93,12 +93,21 @@ Channels
 --------
 
 Just like the Bluelake timeline, exported HDF5 files contain multiple channels of data.
-They can be easily accessed as shown below::
+They can be easily accessed as `file[group name][channel name]`, where the group and channel name can be found in Bluelake, or using the `print(file)` statement, for example::
+
+    file['Force HF']['Force 1x']
+
+All channel data can be accessed using the above method. High frequency force data can also be accessed as::
+
+    file.force1x
+
+The only difference between the two above methods for accessing channel data, is that `file.force1x` allows you to access the force calibration data, as described below. 
+The channels have a few convenient methods, like `.plot()` which make it easy to preview the contents::
 
     file.force1x.plot()
     plt.savefig("force1x.png")
 
-The channels have a few convenient methods, like `.plot()` which make it easy to preview the contents, but you can also always access the raw data directly::
+You can also always access the raw data directly::
 
     f1x_data = file.force1x.data
     f1x_timestamps = file.force1x.timestamps
