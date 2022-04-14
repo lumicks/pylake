@@ -104,9 +104,9 @@ def test_power_model():
     f_diode_coeffs = [4.33262833e03, 1.23960400e00, 1.41995232e04]
     alpha_coeffs = [0.05406556, 0.90222653, 0.56367068]
 
-    trap_voltages = np.arange(0, 2.6, 0.75)
-    f_diodes = [9866.89490862, 12489.56087698, 13524.65084027, 13933.1707376]
-    alphas = [0.50960512, 0.53618879, 0.54970144, 0.55657002]
+    trap_voltages = np.arange(-0.75, 2.6, 0.75)
+    f_diodes = [9866.89490862, 9866.89490862, 12489.56087698, 13524.65084027, 13933.1707376]
+    alphas = [0.50960512, 0.50960512, 0.53618879, 0.54970144, 0.55657002]
 
     for trap_voltage, ref_f_diode, ref_alpha in zip(trap_voltages, f_diodes, alphas):
         f_diode, alpha, power = diode_params_from_voltage(
@@ -114,4 +114,4 @@ def test_power_model():
         )
         np.testing.assert_allclose(f_diode, ref_f_diode)
         np.testing.assert_allclose(alpha, ref_alpha)
-        np.testing.assert_allclose(power, trap_voltage, atol=1e-15)
+        np.testing.assert_allclose(power, trap_voltage if trap_voltage > 0 else 0, atol=1e-15)
