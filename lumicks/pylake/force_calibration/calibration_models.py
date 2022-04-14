@@ -22,6 +22,45 @@ from dataclasses import dataclass
 from typing import Callable
 
 
+def diode_params_from_voltage(
+    trap_voltage, delta_f_diode, rate_f_diode, max_f_diode, delta_alpha, rate_alpha, max_alpha
+):
+    """Function to look up the current f_diode and alpha at a given trap power.
+
+    Parameters
+    ----------
+    trap_voltage : np.array
+        Array of trap voltages [V].
+    delta_f_diode : float
+        Range over which the diode frequency varies [Hz].
+    rate_f_diode : float
+        Constant which characterizes how quickly the diode frequency changes with power [1/V].
+    max_f_diode : float
+        Final value for the diode frequency at high powers [Hz].
+    delta_alpha : float
+        Range over which the diode relaxation factor varies [-].
+    rate_alpha : float
+        Constant which characterizes how quickly the relaxation factor changes with power [1/V].
+    max_alpha : float
+        Range over which the diode relaxation factor varies [-].
+
+    Returns
+    -------
+    f_diode : float
+        Diode frequency at this trap power [Hz].
+    alpha : float
+        Relaxation factor at this trap power [-].
+    voltage : float
+        Trap voltage [V].
+    """
+    voltage = np.mean(trap_voltage)
+    return (
+        max_f_diode - delta_f_diode * np.exp(-rate_f_diode * voltage),
+        max_alpha - delta_alpha * np.exp(-rate_alpha * voltage),
+        voltage,
+    )
+
+
 def viscosity_of_water(temperature):
     """Computes the viscosity of water in [Pa*s] at a particular temperature.
 

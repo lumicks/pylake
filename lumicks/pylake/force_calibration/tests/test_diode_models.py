@@ -6,6 +6,7 @@ from lumicks.pylake.force_calibration.calibration_models import (
     FixedDiodeModel,
     PassiveCalibrationModel,
     ActiveCalibrationModel,
+    diode_params_from_voltage,
 )
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
     calculate_power_spectrum,
@@ -91,5 +92,26 @@ def test_alpha_validity():
         FixedDiodeModel(diode_alpha=good_alpha)
 
     for bad_alpha in (1.000001, -0.000001):
-        with pytest.raises(ValueError, match=re.escape("Diode relaxation factor should be between 0 and 1 (inclusive).")):
+        with pytest.raises(
+            ValueError,
+            match=re.escape("Diode relaxation factor should be between 0 and 1 (inclusive)."),
+        ):
             FixedDiodeModel(diode_alpha=bad_alpha)
+
+
+def test_power_model():
+    """Tests the model used to look up diode parameters"""
+    f_diode_coeffs = [4.33262833e03, 1.23960400e00, 1.41995232e04]
+    alpha_coeffs = [0.05406556, 0.90222653, 0.56367068]
+
+    trap_voltages = np.arange(0, 2.6, 0.75)
+    f_diodes = [9866.89490862, 12489.56087698, 13524.65084027, 13933.1707376]
+    alphas = [0.50960512, 0.53618879, 0.54970144, 0.55657002]
+
+    for trap_voltage, ref_f_diode, ref_alpha in zip(trap_voltages, f_diodes, alphas):
+        f_diode, alpha, power = diode_params_from_voltage(
+            np.sin(0.2 * np.pi * np.arange(10)) + trap_voltage, *f_diode_coeffs, *alpha_coeffs
+        )
+        np.testing.assert_allclose(f_diode, ref_f_diode)
+        np.testing.assert_allclose(alpha, ref_alpha)
+        np.testing.assert_allclose(power, trap_voltage, atol=1e-15)
