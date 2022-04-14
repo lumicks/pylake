@@ -53,7 +53,7 @@ def diode_params_from_voltage(
     voltage : float
         Trap voltage [V].
     """
-    voltage = np.mean(trap_voltage)
+    voltage = np.clip(np.mean(trap_voltage), 0, np.inf)
     return (
         max_f_diode - delta_f_diode * np.exp(-rate_f_diode * voltage),
         max_alpha - delta_alpha * np.exp(-rate_alpha * voltage),
