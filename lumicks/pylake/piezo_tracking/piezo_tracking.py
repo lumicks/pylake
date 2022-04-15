@@ -121,7 +121,7 @@ class PiezoTrackingCalibration:
         calibration_items = (self.trap_calibration, self.baseline_force1, self.baseline_force2)
         return np.min(np.stack([r.valid_range() for r in calibration_items]), axis=0)
 
-    def piezo_track(self, trap_position, force1, force2, trim=True):
+    def piezo_track(self, trap_position, force1, force2, trim=True, downsampling_factor=None):
         """Obtain piezo distance and baseline corrected forces
 
         Parameters
@@ -134,12 +134,20 @@ class PiezoTrackingCalibration:
             Second force channel to use for piezo tracking.
         trim : bool
             Trim regions outside the calibration range.
+        downsampling_factor : Optional[int]
+            Downsampling factor.
         """
+        if downsampling_factor:
+            trap_position, force1, force2 = (
+                x.downsampled_by(downsampling_factor) for x in (trap_position, force1, force2)
+            )
+
         trap_trap_dist = self.trap_calibration(trap_position)
         bead_displacements = 1e-3 * sum(
             sign * force / force.calibration[0]["kappa (pN/nm)"]
             for force, sign in zip((force1, force2), self._signs)
         )
+
         piezo_distance = trap_trap_dist - bead_displacements
         corrected_force1 = self.baseline_force1.correct_data(force1, trap_position)
         corrected_force2 = self.baseline_force2.correct_data(force2, trap_position)
