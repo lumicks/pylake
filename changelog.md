@@ -26,6 +26,7 @@
 
 * Changed the frame indexing convention for plotting confocal scans to match `CorrelatedStack.plot()`. Previously, `Scan.plot(frame=1)` referred to the first frame in the stack. Now, indexing starts at `0`.
 * Requesting a frame outside of the available range for `Scan.plot()` now throws an `IndexError`.
+* Removed deprecated properties `scan_width_um`, `json`, `has_force`, `has_fluorescence` from confocal classes.
 
 #### Other changes
 

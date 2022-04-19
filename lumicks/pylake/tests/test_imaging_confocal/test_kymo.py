@@ -27,12 +27,6 @@ def test_kymo_properties(test_kymos):
     # fmt: on
 
     assert repr(kymo) == "Kymo(pixels=5)"
-    with pytest.deprecated_call():
-        kymo.json
-    with pytest.deprecated_call():
-        assert kymo.has_fluorescence
-    with pytest.deprecated_call():
-        assert not kymo.has_force
     assert kymo.pixels_per_line == 5
     assert len(kymo.infowave) == 64
     assert kymo.get_image("rgb").shape == (5, 4, 3)
@@ -122,13 +116,7 @@ def test_kymo_slicing(test_kymos):
     with pytest.raises(RuntimeError):
         empty_kymograph.plot_rgb()
 
-    assert empty_kymograph.get_image("red").shape == (5, 0)
-    with pytest.deprecated_call():
-        empty_kymograph.json
-    with pytest.deprecated_call():
-        assert empty_kymograph.has_fluorescence
-    with pytest.deprecated_call():
-        assert not empty_kymograph.has_force
+    assert empty_kymograph.red_image.shape == (5, 0)
     assert empty_kymograph.infowave.data.size == 0
     assert empty_kymograph.pixels_per_line == 5
     assert empty_kymograph.get_image("red").size == 0
