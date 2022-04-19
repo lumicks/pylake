@@ -32,6 +32,7 @@
 * Changed titles for all plots of `Scan` and `CorrelatedStack` images to be consistent. First frame is titled as `"[frame 1 / N]"` and last frame is titled as `"[frame N / N]"`.
 * The returned type from `KymoLineGroup.fit_binding_times()` has been changed to `DwelltimeModel`. Note, this class has the same public attributes and methods as the previously returned `BindingDwelltimes` class; however the `plot()` method has been deprecated and renamed to `DwelltimeModel.hist()`. This new method name more closely describes the actual functionality and also unifies the API with `GaussianMixtureModel`.
 * `KymoLine` is now immutable.
+* Removed `examples` directory. Application examples can be found in the [online documentation](https://lumicks-pylake.readthedocs.io/en/stable/examples/index.html).
 
 ## v0.11.1 | 2022-02-22
 
