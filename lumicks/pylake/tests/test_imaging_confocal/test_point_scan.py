@@ -14,13 +14,6 @@ def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
     np.testing.assert_allclose(ps_red.timestamps, reference_timestamps)
     np.testing.assert_allclose(ps_red.data, reference_counts)
 
-    with pytest.deprecated_call():
-        ps.json
-    with pytest.deprecated_call():
-        assert ps.has_fluorescence
-    with pytest.deprecated_call():
-        assert not ps.has_force
-
 
 @cleanup
 def test_plotting(test_point_scans):

@@ -20,12 +20,6 @@ def test_scans(test_scans):
 
     np.testing.assert_allclose(scan.timestamps, np.transpose(reference_timestamps))
     assert scan.num_frames == 1
-    with pytest.deprecated_call():
-        scan.json
-    with pytest.deprecated_call():
-        assert scan.has_fluorescence
-    with pytest.deprecated_call():
-        assert not scan.has_force
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 5
     assert len(scan.infowave) == 64
@@ -49,8 +43,6 @@ def test_scans(test_scans):
     np.testing.assert_allclose(scan.center_point_um["y"], 31.978375270573267)
     np.testing.assert_allclose(scan.center_point_um["z"], 0)
     np.testing.assert_allclose(scan.size_um, [0.197 * 5, 0.191 * 4])
-    with pytest.warns(DeprecationWarning):
-        np.testing.assert_allclose(scan.scan_width_um, [0.197 * 5 + 0.5, 0.191 * 4 + 0.5])
 
     scan = test_scans["fast Y slow X multiframe"]
     reference_timestamps2 = np.zeros((2, 4, 3))
@@ -59,12 +51,6 @@ def test_scans(test_scans):
 
     np.testing.assert_allclose(scan.timestamps, reference_timestamps2)
     assert scan.num_frames == 2
-    with pytest.deprecated_call():
-        scan.json
-    with pytest.deprecated_call():
-        assert scan.has_fluorescence
-    with pytest.deprecated_call():
-        assert not scan.has_force
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
     assert len(scan.infowave) == 64
@@ -87,12 +73,6 @@ def test_scans(test_scans):
 
     np.testing.assert_allclose(scan.timestamps, reference_timestamps2)
     assert scan.num_frames == 2
-    with pytest.deprecated_call():
-        scan.json
-    with pytest.deprecated_call():
-        assert scan.has_fluorescence
-    with pytest.deprecated_call():
-        assert not scan.has_force
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
     assert len(scan.infowave) == 64
@@ -115,12 +95,6 @@ def test_scans(test_scans):
 
     np.testing.assert_allclose(scan.timestamps, reference_timestamps2)
     assert scan.num_frames == 2
-    with pytest.deprecated_call():
-        scan.json
-    with pytest.deprecated_call():
-        assert scan.has_fluorescence
-    with pytest.deprecated_call():
-        assert not scan.has_force
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
     assert len(scan.infowave) == 64

@@ -137,18 +137,6 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
             json=self._json,
         )
 
-    @property
-    @deprecated(
-        reason=(
-            "Access to raw metadata will be removed in a future release. "
-            "Use accessor properties instead. (see docs)"
-        ),
-        action="always",
-        version="0.8.0",
-    )
-    def json(self):
-        return self._json
-
     def _get_photon_count(self, name):
         """Grab the portion of the photon count that overlaps with the scan."""
         photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start : self.stop]
@@ -260,24 +248,6 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         if axes is None:
             axes = plt.gca()
         return self._plot(channel, axes=axes, **kwargs)
-
-    @property
-    @deprecated(
-        reason="By definition, confocal images always have fluorescence data.",
-        version="0.8.0",
-        action="always",
-    )
-    def has_fluorescence(self) -> bool:
-        return True
-
-    @property
-    @deprecated(
-        reason="This property is always False and therefore not needed.",
-        version="0.8.0",
-        action="always",
-    )
-    def has_force(self) -> bool:
-        return False
 
     @property
     def center_point_um(self):
@@ -395,23 +365,6 @@ class ConfocalImage(BaseScan):
                 self._num_pixels,
             )
         )
-
-    @property
-    @deprecated(
-        reason=(
-            "The property `scan_width_um` has been deprecated. Use `size_um` to get the actual "
-            "size of the scan. When performing a scan, Bluelake determines an appropriate scan "
-            "width based on the desired pixel size and the desired scan width. This means that the "
-            "size of the performed scan could deviate from the width provided in this property."
-        ),
-        action="always",
-        version="0.8.2",
-    )
-    def scan_width_um(self):
-        """Returns a `List` of scan widths as configured in the Bluelake UI. The length of the list
-        corresponds to the number of scan axes. Note that these widths can deviate from the actual
-        scan widths performed in practice"""
-        return [axes["scan width (um)"] for axes in self._ordered_axes()]
 
     @property
     @deprecated(
