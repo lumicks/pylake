@@ -1,4 +1,3 @@
-from .detail.calibrated_images import CalibratedKymographChannel
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
 from .kymoline import KymoLine
@@ -21,6 +20,26 @@ __all__ = [
     "refine_lines_centroid",
     "refine_lines_gaussian",
 ]
+
+
+def _to_pixel_rect(rect, pixelsize, line_time_seconds):
+    """Convert (time, position) coordinates from physical units to pixels.
+
+    Note: return values are rounded to integer pixel.
+
+    Parameters
+    ----------
+    rect: array-like
+        Array of (time, position) tuples in physical units; length 2.
+    pixelsize: float
+        Size of spatial pixel dimension in physical units.
+    line_time_seconds: float
+        Size of temporal pixel dimension in seconds.
+    """
+    return [
+        [int(seconds / line_time_seconds), int(position / pixelsize)]
+        for (seconds, position) in rect
+    ]
 
 
 def track_greedy(
@@ -99,23 +118,25 @@ def track_greedy(
     tools for the automated quantitative analysis of molecular and cellular dynamics using
     kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
-    kymograph_channel = CalibratedKymographChannel.from_kymo(kymograph, channel)
+    kymograph_data = kymograph.get_image(channel)
 
-    position_scale = kymograph_channel._pixel_size
+    position_scale = kymograph.pixelsize[0]
     line_width_pixels = line_width / position_scale
 
     coordinates, time_points = peak_estimate(
-        kymograph_channel.data, np.ceil(0.5 * line_width_pixels), pixel_threshold
+        kymograph_data, np.ceil(0.5 * line_width_pixels), pixel_threshold
     )
     if len(coordinates) == 0:
         return []
 
     position, time, m0 = refine_peak_based_on_moment(
-        kymograph_channel.data, coordinates, time_points, np.ceil(0.5 * line_width_pixels)
+        kymograph_data, coordinates, time_points, np.ceil(0.5 * line_width_pixels)
     )
 
     if rect:
-        (t0, p0), (t1, p1) = kymograph_channel._to_pixel_rect(rect)
+        (t0, p0), (t1, p1) = _to_pixel_rect(
+            rect, kymograph.pixelsize[0], kymograph.line_time_seconds
+        )
         mask = (position >= p0) & (position < p1) & (time >= t0) & (time < t1)
         position, time, m0 = position[mask], time[mask], m0[mask]
 
@@ -123,8 +144,8 @@ def track_greedy(
     peaks = merge_close_peaks(peaks, np.ceil(0.5 * line_width_pixels))
 
     # Convert algorithm parameters to pixel units
-    velocity_pixels = vel * kymograph_channel.line_time_seconds / position_scale
-    diffusion_pixels = diffusion / (position_scale**2 / kymograph_channel.line_time_seconds)
+    velocity_pixels = vel * kymograph.line_time_seconds / position_scale
+    diffusion_pixels = diffusion / (position_scale**2 / kymograph.line_time_seconds)
     sigma_pixels = sigma / position_scale if sigma else 0.5 * line_width_pixels
 
     lines = points_to_line_segments(
@@ -138,7 +159,7 @@ def track_greedy(
         sigma_cutoff=sigma_cutoff,
     )
 
-    lines = [KymoLine(line.time_idx, line.coordinate_idx, kymograph_channel) for line in lines]
+    lines = [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
 
     return KymoLineGroup(lines)
 
@@ -201,21 +222,24 @@ def track_lines(
     [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on
     pattern analysis and machine intelligence, 20(2), 113-125.
     """
-    kymograph_channel = CalibratedKymographChannel.from_kymo(kymograph, channel)
+    kymograph_data = kymograph.get_image(channel)
+    roi = (
+        _to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds) if rect else None
+    )
 
     lines = detect_lines(
-        kymograph_channel.data,
-        line_width / kymograph_channel._pixel_size,
+        kymograph_data,
+        line_width / kymograph.pixelsize[0],
         max_lines=max_lines,
         start_threshold=start_threshold,
         continuation_threshold=continuation_threshold,
         angle_weight=angle_weight,
         force_dir=1,
-        roi=kymograph_channel._to_pixel_rect(rect) if rect else None,
+        roi=roi,
     )
 
     return KymoLineGroup(
-        [KymoLine(line.time_idx, line.coordinate_idx, kymograph_channel) for line in lines]
+        [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
     )
 
 
@@ -267,7 +291,7 @@ def refine_lines_centroid(lines, line_width):
         [np.full(len(line.time_idx), j) for j, line in enumerate(interpolated_lines)]
     )
     new_lines = [
-        KymoLine(time_idx[line_ids == j], coordinate_idx[line_ids == j], line._image)
+        line.with_coordinates(time_idx[line_ids == j], coordinate_idx[line_ids == j])
         for j, line in enumerate(interpolated_lines)
     ]
     return KymoLineGroup(new_lines)
@@ -307,15 +331,18 @@ def refine_lines_gaussian(
     if refine_missing_frames:
         lines = [line.interpolate() for line in lines]
 
-    image = lines[0]._image
-    initial_sigma = image._pixel_size * 1.1 if initial_sigma is None else initial_sigma
+    kymo = lines[0]._kymo
+    channel = lines[0]._channel
+    image_data = kymo.get_image(channel)
 
-    full_position = image.to_position(np.arange(image.data.shape[0]))
+    initial_sigma = kymo.pixelsize[0] * 1.1 if initial_sigma is None else initial_sigma
+
+    full_position = np.arange(image_data.shape[0]) * kymo.pixelsize[0]
     overlap_count = 0
 
     # Generate a structure in which we can look up which lines contribute to which frame
     # 3 groups: (spatial) pixel coordinate, spatial position, line index
-    lines_per_frame = [[[] for _ in range(lines[0]._image.data.shape[1])] for _ in range(3)]
+    lines_per_frame = [[[] for _ in range(image_data.shape[1])] for _ in range(3)]
     for line_index, line in enumerate(lines):
         for idx, frame_index in enumerate(line.time_idx):
             lines_per_frame[0][int(frame_index)].append(int(line.coordinate_idx[idx]))
@@ -348,12 +375,12 @@ def refine_lines_gaussian(
                 max(pixel_coordinates[group[0]] - window, 0),
                 pixel_coordinates[group[-1]] + window + 1,
             )
-            photon_counts = image.data[limits, frame_index]
+            photon_counts = image_data[limits, frame_index]
 
             result = gaussian_mle_1d(
                 full_position[limits],
                 photon_counts,
-                image._pixel_size,
+                kymo.pixelsize[0],
                 initial_position=initial_positions,
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
@@ -372,7 +399,7 @@ def refine_lines_gaussian(
 
     return KymoLineGroup(
         [
-            KymoLine(t, GaussianLocalizationModel(*np.vstack(p).T), image)
+            KymoLine(t, GaussianLocalizationModel(*np.vstack(p).T), kymo, channel)
             for t, p in zip(refined_lines_time_idx, refined_lines_parameters)
             if len(t) > 0
         ]
