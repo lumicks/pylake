@@ -25,7 +25,7 @@ __all__ = [
 def _to_pixel_rect(rect, pixelsize, line_time_seconds):
     """Convert (time, position) coordinates from physical units to pixels.
 
-    Note: return values are rounded to integer pixel.
+    Note: return values are rounded (toward zero) to integer pixel.
 
     Parameters
     ----------
@@ -291,7 +291,7 @@ def refine_lines_centroid(lines, line_width):
         [np.full(len(line.time_idx), j) for j, line in enumerate(interpolated_lines)]
     )
     new_lines = [
-        line.with_coordinates(time_idx[line_ids == j], coordinate_idx[line_ids == j])
+        line._with_coordinates(time_idx[line_ids == j], coordinate_idx[line_ids == j])
         for j, line in enumerate(interpolated_lines)
     ]
     return KymoLineGroup(new_lines)
