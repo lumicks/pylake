@@ -1,7 +1,6 @@
 from copy import copy
 from sklearn.neighbors import KernelDensity
 from .detail.msd_estimation import *
-from .detail.calibrated_images import CalibratedKymographChannel
 from .detail.localization_models import LocalizationModel
 from lumicks.pylake.population.dwelltime import DwelltimeModel
 
@@ -25,7 +24,7 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_wi
         raise RuntimeError("No kymograph traces to export")
 
     time_units = "seconds"
-    position_units = kymoline_group[0]._image._position_unit[0]
+    position_units = kymoline_group[0]._kymo._calibration.unit
 
     idx = np.hstack([np.full(len(line), idx) for idx, line in enumerate(kymoline_group)])
     coords_idx = np.hstack([line.coordinate_idx for line in kymoline_group])
@@ -82,9 +81,8 @@ def import_kymolinegroup_from_csv(filename, kymo, channel, delimiter=";"):
     indices = data[:, 0]
     lines = np.unique(indices)
 
-    image = CalibratedKymographChannel.from_kymo(kymo, channel)
     return KymoLineGroup(
-        [KymoLine(data[indices == k, 1], data[indices == k, 2], image) for k in lines]
+        [KymoLine(data[indices == k, 1], data[indices == k, 2], kymo, channel) for k in lines]
     )
 
 
@@ -99,43 +97,52 @@ class KymoLine:
         LocalizationModel instance containing localization parameters
         or list of (sub)pixel coordinates to be converted to spatial
         position via calibration with pixel size.
-    image : CalibratedKymographChannel
-        Image data from kymograph.
+    kymo : lk.kymo.Kymo
+        Kymograph instance.
+    channel : {"red", "green", "blue"}
+        Color channel to analyze
     """
 
-    __slots__ = ["_time_idx", "_localization", "_image"]
+    __slots__ = ["_time_idx", "_localization", "_kymo", "_channel"]
 
-    def __init__(self, time_idx, localization, image):
+    def __init__(self, time_idx, localization, kymo, channel):
+        self._kymo = kymo
+        self._channel = channel
         self._time_idx = np.asarray(time_idx)
         self._localization = (
             localization
             if isinstance(localization, LocalizationModel)
-            else LocalizationModel(np.array(localization) * image._pixel_size)
+            else LocalizationModel(np.array(localization) * self.pixelsize)
         )
-        self._image = image
 
-    @classmethod
-    def _from_kymolinedata(cls, kymolinedata, image):
-        return cls(kymolinedata.time_idx, kymolinedata.coordinate_idx, image)
+    @property
+    def _image(self):
+        return self._kymo.get_image(self._channel)
+
+    def with_coordinates(self, time_idx, localization):
+        return KymoLine(
+            time_idx,
+            localization,
+            self._kymo,
+            self._channel,
+        )
 
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoLine"""
         # Convert from image units to pixels
-        time_pixel_offset = self._image.from_seconds(time_offset)
-        coordinate_pixel_offset = self._image.from_position(coordinate_offset)
+        time_pixel_offset = self._from_seconds(time_offset)
+        coordinate_pixel_offset = self._from_position(coordinate_offset)
 
-        return KymoLine(
+        return self.with_coordinates(
             self.time_idx + time_pixel_offset,
             self.coordinate_idx + coordinate_pixel_offset,
-            self._image,
         )
 
     def __add__(self, other):
         """Concatenate two KymoLines"""
-        return KymoLine(
+        return self.with_coordinates(
             np.hstack((self.time_idx, other.time_idx)),
             np.hstack((self.coordinate_idx, other.coordinate_idx)),
-            self._image,
         )
 
     def __getitem__(self, item):
@@ -150,19 +157,48 @@ class KymoLine:
     @property
     def coordinate_idx(self):
         """Return spatial coordinates in units of pixels."""
-        return self._localization.position / self._image._pixel_size
+        return self._localization.position / self._kymo.pixelsize[0]
 
     @property
     def seconds(self):
-        return self._image.to_seconds(self.time_idx)
+        return self._to_seconds(self.time_idx)
 
     @property
     def position(self):
         return self._localization.position
 
+    @property
+    def line_time_seconds(self):
+        return self._kymo.line_time_seconds
+
+    @property
+    def pixelsize(self):
+        return self._kymo.pixelsize[0]
+
+    def _from_position(self, position):
+        """Convert from physical spatial coordinates to pixels.
+
+        Note this rounds the pixel position.
+        """
+        return int(position / self.pixelsize)
+
+    def _from_seconds(self, seconds):
+        """Convert from seconds to pixels.
+
+        Note this rounds the pixel position."""
+        return int(seconds / self.line_time_seconds)
+
+    def _to_position(self, pixels):
+        """Convert from pixels to position"""
+        return self.pixelsize * pixels
+
+    def _to_seconds(self, pixels):
+        """Convert from pixels to time in seconds"""
+        return self.line_time_seconds * pixels
+
     def _check_ends_are_defined(self):
         """Checks if beginning and end of the line are not in the first/last frame."""
-        return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.data.shape[1] - 1
+        return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.shape[1] - 1
 
     def in_rect(self, rect):
         """Check whether any point of this KymoLine falls in the rect given in rect.
@@ -180,7 +216,7 @@ class KymoLine:
         """Interpolate Kymoline to whole pixel values"""
         interpolated_time = np.arange(int(np.min(self.time_idx)), int(np.max(self.time_idx)) + 1, 1)
         interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
-        return KymoLine(interpolated_time, interpolated_coord, self._image)
+        return self.with_coordinates(interpolated_time, interpolated_coord)
 
     def sample_from_image(self, num_pixels, reduce=np.sum):
         """Sample from image using coordinates from this KymoLine.
@@ -197,7 +233,7 @@ class KymoLine:
         """
         # Time and coordinates are being cast to an integer since we use them to index into a data array.
         return [
-            reduce(self._image.data[max(int(c) - num_pixels, 0) : int(c) + num_pixels + 1, int(t)])
+            reduce(self._image[max(int(c) - num_pixels, 0) : int(c) + num_pixels + 1, int(t)])
             for t, c in zip(self.time_idx, self.coordinate_idx)
         ]
 
@@ -270,7 +306,7 @@ class KymoLine:
             max_lag if max_lag else len(self.time_idx),
         )
 
-        return frame_lag * self._image.line_time_seconds, msd
+        return frame_lag * self.line_time_seconds, msd
 
     def plot_msd(self, max_lag=None, **kwargs):
         """Plot Mean Squared Differences of this trace
@@ -299,7 +335,7 @@ class KymoLine:
         lag_time, msd = self.msd(max_lag)
         plt.plot(lag_time, msd, **kwargs)
         plt.xlabel("Lag time [s]")
-        plt.ylabel(f"Mean Squared Displacement [{self._image._position_unit[1]}$^2$]")
+        plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}$^2$]")
 
     def estimate_diffusion_ols(self, max_lag=None):
         """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
@@ -337,7 +373,7 @@ class KymoLine:
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
         max_lag = max_lag if max_lag else determine_optimal_points(frame_idx, positions)[0]
         return estimate_diffusion_constant_simple(
-            frame_idx, positions, self._image.line_time_seconds, max_lag
+            frame_idx, positions, self.line_time_seconds, max_lag
         )
 
 
@@ -384,16 +420,14 @@ class KymoLineGroup:
         starting_node = int(starting_node) + 1
         ending_node = int(ending_node)
 
-        first_half = KymoLine(
+        first_half = starting_line.with_coordinates(
             starting_line.time_idx[:starting_node],
             starting_line.coordinate_idx[:starting_node],
-            starting_line._image,
         )
 
-        last_half = KymoLine(
+        last_half = ending_line.with_coordinates(
             ending_line.time_idx[ending_node:],
             ending_line.coordinate_idx[ending_node:],
-            ending_line._image,
         )
 
         self._src[self._src.index(starting_line)] = first_half + last_half
@@ -474,12 +508,12 @@ class KymoLineGroup:
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
-        image = self[0]._image
         lines = filter(KymoLine._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
         dwelltimes_sec = np.hstack([line.seconds[-1] - line.seconds[0] for line in lines])
 
         min_observation_time = np.min(dwelltimes_sec)
-        max_observation_time = image.data.shape[1] * image.line_time_seconds
+        max_observation_time = self[0]._image.shape[1] * self[0].line_time_seconds
+
 
         return DwelltimeModel(
             dwelltimes_sec,
@@ -511,7 +545,7 @@ class KymoLineGroup:
         events = np.hstack([track.position[slc] for track in self])
 
         image = self[0]._image
-        pos_range = (0, image._pixel_size * image.data.shape[0])
+        pos_range = (0, self[0].pixelsize * self[0]._image.shape[0])
         return np.histogram(events, bins=bins, range=pos_range)
 
     def plot_binding_histogram(self, kind, bins=10, **kwargs):
@@ -536,7 +570,7 @@ class KymoLineGroup:
         widths = np.diff(edges)
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
-        plt.xlabel(f"Position ({self[0]._image._position_unit[1]})")
+        plt.xlabel(f"Position ({self[0]._kymo._calibration.unit_label})")
 
     def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points):
         """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.
@@ -558,8 +592,8 @@ class KymoLineGroup:
         if n_position_points < 2:
             raise ValueError("Number of spatial bins must be >= 2.")
 
-        n_rows, n_frames = self[0]._image.data.shape
-        position_max = n_rows * self[0]._image._pixel_size
+        n_rows, n_frames = self[0]._image.shape
+        position_max = n_rows * self[0].pixelsize
         try:
             bin_size = n_frames // n_time_bins
             bin_edges = np.arange(n_frames, step=bin_size)
