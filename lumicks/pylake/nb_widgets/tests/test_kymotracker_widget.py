@@ -1,4 +1,3 @@
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 from matplotlib.testing.decorators import cleanup
@@ -149,12 +148,14 @@ def test_stitch(kymograph, mockevent):
     k1 = KymoLine(
         np.array([1, 2, 3]),
         np.array([1, 1, 1]),
-        CalibratedKymographChannel.from_kymo(kymograph, "red"),
+        kymograph,
+        "red",
     )
     k2 = KymoLine(
         np.array([6, 7, 8]),
         np.array([3, 3, 3]),
-        CalibratedKymographChannel.from_kymo(kymograph, "red"),
+        kymograph,
+        "red",
     )
     kymo_widget.lines = KymoLineGroup([k1, k2])
 
@@ -193,12 +194,14 @@ def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
     k1 = KymoLine(
         np.array([1, 2, 3, 4, 5]),
         np.array([1, 1, 1, 3, 3]),
-        CalibratedKymographChannel.from_kymo(kymograph, "red"),
+        kymograph,
+        "red",
     )
     k2 = KymoLine(
         np.array([6, 7, 8]),
         np.array([3, 3, 3]),
-        CalibratedKymographChannel.from_kymo(kymograph, "red"),
+        kymograph,
+        "red",
     )
     kymo_widget.lines = KymoLineGroup([k1, k2])
 

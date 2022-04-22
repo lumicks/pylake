@@ -2,80 +2,75 @@ import pytest
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
 from lumicks.pylake.kymotracker.kymoline import *
-from lumicks.pylake.kymotracker.detail.trace_line_2d import KymoLineData
 from lumicks.pylake.kymotracker.detail.localization_models import *
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
-def test_kymo_line():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
-
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
+def test_kymo_line(blank_kymo):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     np.testing.assert_allclose(k1[1], [2, 3])
     np.testing.assert_allclose(k1[-1], [3, 4])
     np.testing.assert_allclose(k1[0:2], [[1, 2], [2, 3]])
     np.testing.assert_allclose(k1[0:2][:, 1], [2, 3])
 
-    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
+    k2 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
     np.testing.assert_allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
     np.testing.assert_allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
     # Need at least 2 points for linear extrapolation
     with pytest.raises(AssertionError):
-        KymoLine([1], [1], channel).extrapolate(True, 5, 2.0)
+        KymoLine([1], [1], blank_kymo, "red").extrapolate(True, 5, 2.0)
 
     with pytest.raises(AssertionError):
-        KymoLine([1, 2, 3], [1, 2, 3], channel).extrapolate(True, 1, 2.0)
+        KymoLine([1, 2, 3], [1, 2, 3], blank_kymo, "red").extrapolate(True, 1, 2.0)
 
-    k1 = KymoLine([1, 2, 3], [1, 2, 3], channel)
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], blank_kymo, "red")
     k2 = k1.with_offset(2, 2)
     assert id(k2) != id(k1)
 
     np.testing.assert_allclose(k2.coordinate_idx, [3, 4, 5])
-    assert k1._image == channel
-    assert k2._image == channel
+    assert k1._kymo == blank_kymo
+    assert k2._kymo == blank_kymo
+    assert k1._channel == "red"
+    assert k2._channel == "red"
 
 
-def test_kymoline_selection():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
-
+def test_kymoline_selection(blank_kymo):
     t = np.array([4, 5, 6])
     y = np.array([7, 7, 7])
-    assert not KymoLine(t, y, channel).in_rect(((4, 6), (6, 7)))
-    assert KymoLine(t, y, channel).in_rect(((4, 6), (6, 8)))
-    assert not KymoLine(t, y, channel).in_rect(((3, 6), (4, 8)))
-    assert KymoLine(t, y, channel).in_rect(((3, 6), (5, 8)))
+    assert not KymoLine(t, y, blank_kymo, "red").in_rect(((4, 6), (6, 7)))
+    assert KymoLine(t, y, blank_kymo, "red").in_rect(((4, 6), (6, 8)))
+    assert not KymoLine(t, y, blank_kymo, "red").in_rect(((3, 6), (4, 8)))
+    assert KymoLine(t, y, blank_kymo, "red").in_rect(((3, 6), (5, 8)))
 
-    assert KymoLine([2], [6], channel).in_rect(((2, 5), (3, 8)))
-    assert KymoLine([2], [5], channel).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([4], [6], channel).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([1], [6], channel).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [4], channel).in_rect(((2, 5), (3, 8)))
-    assert not KymoLine([2], [8], channel).in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [6], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
+    assert KymoLine([2], [5], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([4], [6], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([1], [6], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [4], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
+    assert not KymoLine([2], [8], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
 
 
 def test_kymoline_selection_non_unit_calibration():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
+    kymo = generate_kymo(
+        "",
+        np.ones((1, 3)),
+        pixel_size_nm=5000,
+        start=np.int64(20e9),
+        dt=np.int64(1e9),
+        samples_per_pixel=1,
+        line_padding=0
+    )
 
     time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
-    assert not KymoLine(time, pos, channel).in_rect(((4, 6 * 5), (6, 7 * 5)))
-    assert KymoLine(time, pos, channel).in_rect(((4, 6 * 5), (6, 8 * 5)))
+    assert not KymoLine(time, pos, kymo, "red").in_rect(((4, 6 * 5), (6, 7 * 5)))
+    assert KymoLine(time, pos, kymo, "red").in_rect(((4, 6 * 5), (6, 8 * 5)))
 
 
-def test_kymoline_from_kymolinedata():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 5)
-    time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
-    kl = KymoLine._from_kymolinedata(KymoLineData(time, pos), channel)
-    np.testing.assert_allclose(kl.time_idx, time)
-    np.testing.assert_allclose(kl.coordinate_idx, pos)
-    assert id(kl._image) == id(channel)
-
-
-def test_kymolines_removal():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
-
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), channel)
-    k2 = KymoLine(np.array([2, 3, 4]), np.array([2, 2, 2]), channel)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), channel)
+def test_kymolines_removal(blank_kymo):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([2, 2, 2]), blank_kymo, "red")
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), blank_kymo, "red")
 
     def verify(rect, resulting_lines):
         k = KymoLineGroup([k1, k2, k3])
@@ -90,13 +85,11 @@ def test_kymolines_removal():
     verify([[15, 3], [16, 4]], [k1, k2, k3])
 
 
-def test_kymolinegroup():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
-
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
-    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), channel)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), channel)
-    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
+def test_kymolinegroup(blank_kymo):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
 
     lines = KymoLineGroup([k1, k2, k3, k4])
     assert [k for k in lines] == [k1, k2, k3, k4]
@@ -124,13 +117,11 @@ def test_kymolinegroup():
         lines.extend(5)
 
 
-def test_kymoline_concat():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
-
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), channel)
-    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), channel)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), channel)
-    k4 = KymoLine(np.array([8, 9, 10]), np.array([3, 3, 3]), channel)
+def test_kymoline_concat(blank_kymo):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
+    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([3, 3, 3]), blank_kymo, "red")
+    k4 = KymoLine(np.array([8, 9, 10]), np.array([3, 3, 3]), blank_kymo, "red")
     group = KymoLineGroup([k1, k2, k3])
 
     # Test whether overlapping time raises.
@@ -177,10 +168,16 @@ def test_msd_api(time_scale, position_scale):
 
     # What we do is we apply the scaling to the indices used in the KymoLine construction. If we
     # define the calibration as exactly the opposite of this, we should get no change.
-    image = CalibratedKymographChannel(
-        "test", np.array([[]]), int(1e9 / time_scale), 1.0 / position_scale
+    kymo = generate_kymo(
+        "",
+        np.ones((1, 3)),
+        pixel_size_nm=1000 / position_scale,
+        start=np.int64(20e9),
+        dt=np.int64(1e9 / time_scale),
+        samples_per_pixel=1,
+        line_padding=0
     )
-    k = KymoLine(time_scale * time_idx, position_scale * position_idx, image=image)
+    k = KymoLine(time_scale * time_idx, position_scale * position_idx, kymo, "red")
 
     lags, msd = k.msd()
     np.testing.assert_allclose(lags, time_idx[1:])
@@ -205,8 +202,16 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
 
     # What we do is we apply the scaling to the indices used in the KymoLine construction. If we
     # define the calibration as exactly the opposite of this, we should get no change.
-    image = CalibratedKymographChannel("test", np.array([[]]), time_step, pixel_size)
-    k = KymoLine(time_idx, coordinate / pixel_size, image=image)
+    kymo = generate_kymo(
+        "",
+        np.ones((1, 3)),
+        pixel_size_nm=1000 * pixel_size,
+        start=np.int64(20e9),
+        dt=np.int64(time_step),
+        samples_per_pixel=1,
+        line_padding=0
+    )
+    k = KymoLine(time_idx, coordinate / pixel_size, kymo, "red")
 
     np.testing.assert_allclose(k.estimate_diffusion_ols(max_lag=max_lag), diffusion_const)
 
@@ -222,22 +227,38 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
 @cleanup
 def test_kymoline_msd_plot(max_lag, x_data, y_data):
     # See whether the plot spins up
-    image = CalibratedKymographChannel("test", np.array([[]]), int(2e9), 3.0)
+    kymo = generate_kymo(
+        "",
+        np.ones((1, 3)),
+        pixel_size_nm=3000,
+        start=np.int64(20e9),
+        dt=np.int64(2e9),
+        samples_per_pixel=1,
+        line_padding=0
+    )
 
     plt.figure()
-    k = KymoLine(np.arange(1, 6), np.arange(1, 6), image=image)
+    k = KymoLine(np.arange(1, 6), np.arange(1, 6), kymo, "red")
     k.plot_msd(max_lag=max_lag)
     np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), x_data)
     np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), y_data)
 
 
 def test_binding_histograms():
-    channel = CalibratedKymographChannel("test_data", np.zeros((10, 10)), 1e9, 1)
+    kymo = generate_kymo(
+        "",
+        np.zeros((10, 10)),
+        pixel_size_nm=1000,
+        start=np.int64(20e9),
+        dt=np.int64(1e9),
+        samples_per_pixel=1,
+        line_padding=0
+    )
 
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2.5, 3.5, 4.5]), channel)
-    k2 = KymoLine(np.array([2, 3, 4]), np.array([3.5, 4.5, 5.5]), channel)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([4.5, 5.5, 6.5]), channel)
-    k4 = KymoLine(np.array([4, 5, 6]), np.array([5.5, 6.5, 7.5]), channel)
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2.5, 3.5, 4.5]), kymo, "red")
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3.5, 4.5, 5.5]), kymo, "red")
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4.5, 5.5, 6.5]), kymo, "red")
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5.5, 6.5, 7.5]), kymo, "red")
 
     lines = KymoLineGroup([k1, k2, k3, k4])
 
@@ -262,21 +283,22 @@ def test_binding_histograms():
     np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
 
 
-def test_kymolinegroup_copy(blank_channel):
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_channel)
-    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_channel)
+def test_kymolinegroup_copy(blank_kymo):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
+    k2 = KymoLine(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
     group = KymoLineGroup([k1, k2])
     assert id(group._src) != id(copy(group)._src)
 
 
-def test_kymoline_concat_gaussians(blank_channel):
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_channel)
+def test_kymoline_concat_gaussians(blank_kymo):
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
     k2 = KymoLine(
         np.array([6, 7, 8]),
         GaussianLocalizationModel(
             np.full(3, 2), np.full(3, 7), np.full(3, 0.5), np.ones(3), np.full(3, False)
         ),
-        blank_channel,
+        blank_kymo,
+        "red"
     )
     group = KymoLineGroup([k1, k2])
 
@@ -290,12 +312,20 @@ def test_kymoline_concat_gaussians(blank_channel):
 
 
 def test_binding_profile_histogram():
-    channel = CalibratedKymographChannel("test_data", np.ones((10, 10)), 1e9, 1)
+    kymo = generate_kymo(
+        "",
+        np.ones((10, 10)),
+        pixel_size_nm=1000,
+        start=np.int64(20e9),
+        dt=np.int64(1e9),
+        samples_per_pixel=1,
+        line_padding=0
+    )
 
-    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), channel)
-    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), channel)
-    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), channel)
-    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), channel)
+    k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), kymo, "red")
+    k2 = KymoLine(np.array([2, 3, 4]), np.array([3, 4, 5]), kymo, "red")
+    k3 = KymoLine(np.array([3, 4, 5]), np.array([4, 5, 6]), kymo, "red")
+    k4 = KymoLine(np.array([4, 5, 6]), np.array([5, 6, 7]), kymo, "red")
 
     lines = KymoLineGroup([k1, k2, k3, k4])
     x, densities = lines._histogram_binding_profile(3, 0.2, 4)
@@ -330,13 +360,11 @@ def test_binding_profile_histogram():
         lines._histogram_binding_profile(0, 0.2, 4)
 
 
-def test_fit_binding_times():
-    channel = CalibratedKymographChannel("test_data", np.ones((10, 10)), 1e9, 1)
-
-    k1 = KymoLine(np.array([0, 1, 2]), np.zeros(3), channel)
-    k2 = KymoLine(np.array([2, 3, 4, 5, 6]), np.zeros(5), channel)
-    k3 = KymoLine(np.array([3, 4, 5]), np.zeros(3), channel)
-    k4 = KymoLine(np.array([8, 9]), np.zeros(2), channel)
+def test_fit_binding_times(blank_kymo):
+    k1 = KymoLine(np.array([0, 1, 2]), np.zeros(3), blank_kymo, "red")
+    k2 = KymoLine(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red")
+    k3 = KymoLine(np.array([3, 4, 5]), np.zeros(3), blank_kymo, "red")
+    k4 = KymoLine(np.array([8, 9]), np.zeros(2), blank_kymo, "red")
 
     lines = KymoLineGroup([k1, k2, k3, k4])
 
@@ -345,10 +373,3 @@ def test_fit_binding_times():
 
     dwells = lines.fit_binding_times(1, exclude_ambiguous_dwells=False)
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
-
-    # test option forwarding
-    dwells = lines.fit_binding_times(1, tol=1e-3)
-    np.testing.assert_allclose(dwells.lifetimes, [1.00599465])
-
-    dwells = lines.fit_binding_times(1, max_iter=1)
-    np.testing.assert_allclose(dwells.lifetimes, [3])

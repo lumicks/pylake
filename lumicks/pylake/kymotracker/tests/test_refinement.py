@@ -1,18 +1,18 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymotracker import (
     refine_lines_centroid,
     refine_lines_gaussian,
     filter_lines,
 )
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
-def test_kymoline_interpolation(blank_channel):
+def test_kymoline_interpolation(blank_kymo):
     time_idx = np.array([1.0, 3.0, 5.0])
     coordinate_idx = np.array([1.0, 3.0, 3.0])
-    kymoline = KymoLine(time_idx, coordinate_idx, blank_channel)
+    kymoline = KymoLine(time_idx, coordinate_idx, blank_kymo, "red")
     interpolated = kymoline.interpolate()
     np.testing.assert_allclose(interpolated.time_idx, [1.0, 2.0, 3.0, 4.0, 5.0])
     np.testing.assert_allclose(interpolated.coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0])
@@ -36,15 +36,21 @@ def test_refinement_2d():
     data[coordinate_idx + offset, time_idx] = 5
     data[coordinate_idx - 1 + offset, time_idx] = 1
     data[coordinate_idx + 1 + offset, time_idx] = 1
-    image = CalibratedKymographChannel.from_array(data)
 
-    line = KymoLine(time_idx[::2], coordinate_idx[::2], image=image)
+    kymo = generate_kymo(
+        "",
+        data,
+        pixel_size_nm=1000,
+        start=np.int64(20e9),
+        dt=np.int64(1e9),
+        samples_per_pixel=1,
+        line_padding=0
+    )
+
+    line = KymoLine(time_idx[::2], coordinate_idx[::2], kymo, "red")
     refined_line = refine_lines_centroid([line], 5)[0]
     np.testing.assert_allclose(refined_line.time_idx, time_idx)
     np.testing.assert_allclose(refined_line.coordinate_idx, coordinate_idx + offset)
-
-    # Test line group not modified in place
-    assert id(line) != id(refined_line)
 
     # Test whether concatenation still works after refinement
     np.testing.assert_allclose((refined_line + line).time_idx, np.hstack((time_idx, time_idx[::2])))
@@ -58,8 +64,21 @@ def test_refinement_2d():
 def test_refinement_line(loc, inv_sigma=0.3):
     xx = np.arange(0, 50) - loc
     image = np.exp(-inv_sigma * xx * xx)
-    calibrated_image = CalibratedKymographChannel.from_array(np.expand_dims(image, 1))
-    line = refine_lines_centroid([KymoLine([0], [25], image=calibrated_image)], 5)[0]
+    # real kymo pixel values are integer photon counts
+    # multiply by some value and convert to int, otherwise kymo.red_image is zeros
+    image = np.array(image * 10).astype(int)
+
+    kymo = generate_kymo(
+        "",
+        np.expand_dims(image, 1),
+        pixel_size_nm=1000,
+        start=np.int64(20e9),
+        dt=np.int64(1e9),
+        samples_per_pixel=1,
+        line_padding=0
+    )
+
+    line = refine_lines_centroid([KymoLine([0], [25], kymo, "red")], 5)[0]
     np.testing.assert_allclose(line.coordinate_idx, loc, rtol=1e-2)
 
 
@@ -179,10 +198,10 @@ def test_gaussian_refinement_overlap(kymogroups_close_lines):
     )
 
 
-def test_filter_lines(blank_channel):
-    k1 = KymoLine([1, 2, 3], [1, 2, 3], blank_channel)
-    k2 = KymoLine([2, 3], [1, 2], blank_channel)
-    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], blank_channel)
+def test_filter_lines(blank_kymo):
+    k1 = KymoLine([1, 2, 3], [1, 2, 3], blank_kymo, "red")
+    k2 = KymoLine([2, 3], [1, 2], blank_kymo, "red")
+    k3 = KymoLine([2, 3, 4, 5], [1, 2, 4, 5], blank_kymo, "red")
     lines = KymoLineGroup([k1, k2, k3])
     assert len(filter_lines(lines, 5)) == 0
     assert all([line1 == line2 for line1, line2 in zip(filter_lines(lines, 5), [k1, k3])])

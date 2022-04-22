@@ -1,30 +1,11 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import (
     KymoLine,
     KymoLineGroup,
     import_kymolinegroup_from_csv,
 )
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
-
-
-@pytest.fixture(scope="session")
-def kymolinegroup_io_data():
-    test_data = np.zeros((8, 8))
-
-    test_img = CalibratedKymographChannel("test", data=test_data, time_step_ns=100e9, pixel_size=2)
-    k1 = KymoLine([1, 2, 3], np.array([2, 3, 4]), test_img)
-    k2 = KymoLine([2, 3, 4], np.array([3, 4, 5]), test_img)
-    k3 = KymoLine([3, 4, 5], np.array([4, 5, 6]), test_img)
-    k4 = KymoLine([4, 5, 6], np.array([5, 6, 7]), test_img)
-    lines = KymoLineGroup([k1, k2, k3, k4])
-
-    for k in lines:
-        test_data[np.array(k.coordinate_idx).astype(int), k.time_idx] = 2
-        test_data[np.array(k.coordinate_idx).astype(int) - 1, k.time_idx] = 1
-
-    return test_img, lines
 
 
 def read_txt(testfile, delimiter):
@@ -51,12 +32,40 @@ def read_txt(testfile, delimiter):
     ],
 )
 def test_kymolinegroup_io(
-    tmpdir_factory, kymolinegroup_io_data, dt, dx, delimiter, sampling_width, sampling_outcome
+    tmpdir_factory, dt, dx, delimiter, sampling_width, sampling_outcome
 ):
-    test_img, lines = kymolinegroup_io_data
+
+    line_coordinates = [
+        ((1, 2, 3), (2, 3, 4)),
+        ((2, 3, 4), (3, 4, 5)),
+        ((3, 4, 5), (4, 5, 6)),
+        ((4, 5, 6), (5, 6, 7)),
+    ]
+    test_data = np.zeros((8, 8))
+    for time_idx, position_idx in line_coordinates:
+        test_data[np.array(position_idx).astype(int), np.array(time_idx).astype(int)] = 2
+        test_data[np.array(position_idx).astype(int) - 1, np.array(time_idx).astype(int)] = 1
 
     kymo = generate_kymo(
-        "test", test_img.data, dx * 1000, start=4, dt=dt, samples_per_pixel=5, line_padding=3
+        "test",
+        test_data,
+        pixel_size_nm=dx * 1000,
+        start=np.int64(20e9),
+        dt=dt,
+        samples_per_pixel=5,
+        line_padding=3
+    )
+
+    lines = KymoLineGroup(
+        [
+            KymoLine(
+                np.array(time_idx),
+                np.array(position_idx),
+                kymo,
+                "red"
+            )
+            for time_idx, position_idx in line_coordinates
+        ]
     )
 
     # Test round trip through the API
@@ -75,7 +84,7 @@ def test_kymolinegroup_io(
     for line1, time in zip(lines, data["time (seconds)"]):
         np.testing.assert_allclose(line1.seconds, time)
 
-    for line1, coord in zip(lines, data["position ()"]):
+    for line1, coord in zip(lines, data["position (um)"]):
         np.testing.assert_allclose(line1.position, coord)
 
     if sampling_width is None:

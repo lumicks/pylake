@@ -3,7 +3,6 @@ import numpy as np
 from lumicks import pylake
 import pytest
 from lumicks.pylake.channel import Slice, TimeSeries, empty_slice
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymo import EmptyKymo
 from lumicks.pylake.adjustments import ColorAdjustment
 import matplotlib.pyplot as plt
@@ -116,7 +115,7 @@ def test_kymo_slicing(test_kymos):
     with pytest.raises(RuntimeError):
         empty_kymograph.plot_rgb()
 
-    assert empty_kymograph.red_image.shape == (5, 0)
+    assert empty_kymograph.get_image("red").shape == (5, 0)
     assert empty_kymograph.infowave.data.size == 0
     assert empty_kymograph.pixels_per_line == 5
     assert empty_kymograph.get_image("red").size == 0
@@ -468,33 +467,6 @@ def test_side_no_side_effects_downsampling():
     np.testing.assert_allclose(kymo.pixelsize_um, 1 / 1000)
     np.testing.assert_allclose(kymo.line_time_seconds, 5 * (5 * 5 + 2 + 2) / 1e9)
     np.testing.assert_equal(kymo.timestamps, timestamps)
-
-
-def test_calibrated_channels():
-    image = np.array(
-        [
-            [0, 12, 0, 12, 0],
-            [0, 0, 0, 0, 0],
-            [12, 0, 0, 0, 12],
-            [0, 12, 12, 12, 0],
-        ],
-        dtype=np.uint8,
-    )
-
-    kymo = generate_kymo(
-        "Mock",
-        image,
-        pixel_size_nm=7e3,
-        start=int(4e9),
-        dt=int(3e9),
-        samples_per_pixel=5,
-        line_padding=2
-    )
-
-    calibrated_channel = CalibratedKymographChannel.from_kymo(kymo, "red")
-    np.testing.assert_allclose(calibrated_channel.data, image)
-    np.testing.assert_allclose(calibrated_channel.time_step_ns, kymo.line_time_seconds * int(1e9))
-    np.testing.assert_allclose(calibrated_channel._pixel_size, kymo.pixelsize_um[0])
 
 
 def test_downsampled_slice():

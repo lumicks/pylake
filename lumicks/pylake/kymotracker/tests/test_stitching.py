@@ -1,7 +1,6 @@
 import numpy as np
 from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymoline import KymoLine
 
 
@@ -14,17 +13,16 @@ def test_distance_line_to_point():
     assert distance_line_to_point(np.array([0, 0]), np.array([1, 0]), np.array([0, 1])) == 1.0
 
 
-def test_stitching():
-    channel = CalibratedKymographChannel("test_data", np.array([[]]), 1e9, 1)
+def test_stitching(blank_kymo):
 
-    segment_1 = KymoLine([0, 1], [0, 1], channel)
-    segment_2 = KymoLine([2, 3], [2, 3], channel)
-    segment_3 = KymoLine([2, 3], [0, 0], channel)
-    segment_1b = KymoLine([0, 1], [0, 0], channel)
-    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1], channel)
+    segment_1 = KymoLine([0, 1], [0, 1], blank_kymo, "red")
+    segment_2 = KymoLine([2, 3], [2, 3], blank_kymo, "red")
+    segment_3 = KymoLine([2, 3], [0, 0], blank_kymo, "red")
+    segment_1b = KymoLine([0, 1], [0, 0], blank_kymo, "red")
+    segment_1c = KymoLine([-1, 0, 1], [0, 0, 1], blank_kymo, "red")
 
     radius = 0.05
-    segment_1d = KymoLine([0.0, 1.0], [radius + 0.01, radius + 0.01], channel)
+    segment_1d = KymoLine([0.0, 1.0], [radius + 0.01, radius + 0.01], blank_kymo, "red")
 
     # Out of stitch range (maximum extension = 1)
     assert len(stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 1, 2)) == 3
@@ -52,9 +50,9 @@ def test_stitching():
 
     # Check whether the alignment has to work in both directions
     # - and - should connect
-    l1, l2 = KymoLine([0, 1], [0, 0], channel), KymoLine([2, 2.01], [0, 0], channel)
+    l1, l2 = KymoLine([0, 1], [0, 0], blank_kymo, "red"), KymoLine([2, 2.01], [0, 0], blank_kymo, "red")
     assert len(stitch_kymo_lines([l1, l2], radius, 1, 2)) == 1
 
     # - and | should not connect.
-    l1, l2 = KymoLine([0, 1], [0, 0], channel), KymoLine([2, 2.01], [0, 1], channel)
+    l1, l2 = KymoLine([0, 1], [0, 0], blank_kymo, "red"), KymoLine([2, 2.01], [0, 1], blank_kymo, "red")
     assert len(stitch_kymo_lines([l1, l2], radius, 1, 2)) == 2
