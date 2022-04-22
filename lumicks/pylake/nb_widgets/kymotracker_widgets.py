@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
 from matplotlib.widgets import RectangleSelector
-from lumicks.pylake.kymotracker.detail.calibrated_images import CalibratedKymographChannel
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_lines, refine_lines_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
@@ -52,14 +51,13 @@ class KymoWidget:
         **kwargs
             Extra arguments forwarded to imshow.
         """
-        calibrated_image = CalibratedKymographChannel.from_kymo(kymo, channel)
+        data = kymo.get_image(channel)
 
         # Forcing the aspect ratio only makes sense when the time axis is longer.
         self.axis_aspect_ratio = (
             min(
                 axis_aspect_ratio,
-                calibrated_image.to_seconds(calibrated_image.data.shape[1])
-                / calibrated_image.to_position(calibrated_image.data.shape[0]),
+                (kymo.line_time_seconds * data.shape[1]) / (kymo.pixelsize[0] * data.shape[0]),
             )
             if axis_aspect_ratio
             else None
@@ -97,8 +95,7 @@ class KymoWidget:
 
     @property
     def _line_width_pixels(self):
-        calibrated_image = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
-        return np.ceil(self.algorithm_parameters["line_width"] / calibrated_image._pixel_size)
+        return np.ceil(self.algorithm_parameters["line_width"] / self._kymo.pixelsize[0])
 
     def track_kymo(self, click, release):
         """Handle mouse release event.
@@ -470,15 +467,14 @@ class KymoWidget:
 
         self._dx = 0
         self._last_update = time.time()
-        calibrated_image = CalibratedKymographChannel.from_kymo(self._kymo, self._channel)
-        calibrated_image.plot(interpolation="nearest", **kwargs)
+        self._kymo.plot(channel=self._channel, interpolation="nearest", **kwargs)
 
         if self.axis_aspect_ratio:
             self._axes.set_xlim(
                 [
                     0,
                     self.axis_aspect_ratio
-                    * calibrated_image.to_position(calibrated_image.data.shape[0]),
+                    * (self._kymo.pixelsize[0] * self._kymo.get_image(self._channel).shape[0]),
                 ]
             )
 
@@ -570,12 +566,12 @@ class KymoWidgetGreedy(KymoWidget):
             "vel".
         """
         algorithm = track_greedy
-        calibrated_kymo_channel = CalibratedKymographChannel.from_kymo(kymo, channel)
-        position_scale = calibrated_kymo_channel._pixel_size
+        data = kymo.get_image(channel)
+        position_scale = kymo.pixelsize[0]
         line_width = 4 * position_scale if line_width is None else line_width
         algorithm_parameters = {
             "line_width": line_width,
-            "pixel_threshold": np.percentile(calibrated_kymo_channel.data.flatten(), 98)
+            "pixel_threshold": np.percentile(data.flatten(), 98)
             if pixel_threshold is None
             else pixel_threshold,
             "window": window,
@@ -585,12 +581,12 @@ class KymoWidgetGreedy(KymoWidget):
             "sigma_cutoff": sigma_cutoff,
         }
 
-        position_scale = calibrated_kymo_channel._pixel_size
-        vel_calibration = position_scale / calibrated_kymo_channel.line_time_seconds
+        position_scale = kymo.pixelsize[0]
+        vel_calibration = position_scale / kymo.line_time_seconds
 
         self._slider_ranges = {
             "window": (1, 15),
-            "pixel_threshold": (1, np.max(calibrated_kymo_channel.data)),
+            "pixel_threshold": (1, np.max(data)),
             "line_width": (0.0, 15.0 * position_scale),
             "sigma": (1.0 * position_scale, 5.0 * position_scale),
             "vel": (-5.0 * vel_calibration, 5.0 * vel_calibration),
