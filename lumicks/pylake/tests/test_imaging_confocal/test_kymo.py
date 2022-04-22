@@ -145,7 +145,7 @@ def test_plotting(test_kymos):
 
     image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), kymo.get_image("red"))
-    np.testing.assert_allclose(image.get_extent(), [-0.515625, 3.609375, 0.05, 0])
+    np.testing.assert_allclose(image.get_extent(), [-0.515625, 3.609375, 0.045, -0.005])
 
     # test original kymo is labeled with microns and
     # that kymo calibrated with base pairs has appropriate label
