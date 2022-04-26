@@ -14,13 +14,7 @@ def unique_sorted(trap_position, force):
         Trap mirror position
     force : lumicks.pylake.Slice
         Force data
-
-    Returns
-    --------
-    x : np.array
-        sorted trap position data
-    force : np.array
-        sorted force data"""
+    """
 
     x = trap_position.data
     u, c = np.unique(x, return_counts=True)
@@ -62,8 +56,8 @@ def optimize_smoothing_factor(
             x_train, x_test = x_sorted[train_index], x_sorted[test_index]
             y_train, y_test = y_sorted[train_index], y_sorted[test_index]
 
-            smoothing_result_train_1x = csaps(x_train, y_train, smooth=smooth)
-            f_test = smoothing_result_train_1x(x_test)
+            smoothing_result_train = csaps(x_train, y_train, smooth=smooth)
+            f_test = smoothing_result_train(x_test)
             mse_test_array[k] = mean_squared_error(y_test, f_test)
 
         mse_test_vals[i] = np.mean(mse_test_array)
