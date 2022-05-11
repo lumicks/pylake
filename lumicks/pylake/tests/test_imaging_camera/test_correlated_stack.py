@@ -220,6 +220,19 @@ def test_stack_roi():
         stack_5 = stack_0.with_roi([0, 11, 1, 2])
 
 
+def test_roi_defaults():
+    first_page = np.arange(60).reshape((6, 10))
+    data = np.stack([first_page + (j * 60) for j in range(3)], axis=2)
+    stack_0 = TiffStack(MockTiffFile([data], times=make_frame_times(1)), align_requested=False)
+
+    np.testing.assert_equal(stack_0.with_roi([None, 7, 3, 6]).get_frame(0).data, data[3:6, :7])
+    np.testing.assert_equal(stack_0.with_roi([1, None, 3, 6]).get_frame(0).data, data[3:6, 1:])
+    np.testing.assert_equal(stack_0.with_roi([1, 7, None, 6]).get_frame(0).data, data[:6, 1:7])
+    np.testing.assert_equal(stack_0.with_roi([1, 7, 3, None]).get_frame(0).data, data[3:, 1:7])
+    np.testing.assert_equal(stack_0.with_roi([None, None, 3, 6]).get_frame(0).data, data[3:6, :])
+    np.testing.assert_equal(stack_0.with_roi([1, 7, None, None]).get_frame(0).data, data[:, 1:7])
+
+
 def test_deprecate_raw():
     fake_tiff = TiffStack(
         MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1)), align_requested=False

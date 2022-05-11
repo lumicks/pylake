@@ -110,13 +110,13 @@ class CorrelatedStack:
         Parameters
         ----------
         x_min : int
-            minimum x pixel (inclusive)
+            minimum x pixel (inclusive, optional)
         x_max : int
-            maximum x pixel (exclusive)
+            maximum x pixel (exclusive, optional)
         y_min : int
-            minimum y pixel (inclusive)
+            minimum y pixel (inclusive, optional)
         y_max : int
-            maximum y pixel (exclusive)
+            maximum y pixel (exclusive, optional)
         """
         data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
         return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
