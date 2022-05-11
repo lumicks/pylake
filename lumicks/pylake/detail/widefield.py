@@ -349,8 +349,15 @@ class Roi:
 
     def crop(self, roi):
         """Crop again, taking into account origin of current ROI."""
-        if roi[1] > self.shape[1] or roi[3] > self.shape[0]:
-            raise ValueError("Pixel indices cannot exceed image size.")
+        roi = [
+            pos if pos is not None else default
+            for pos, default in zip(roi, (0, self.shape[1], 0, self.shape[0]))
+        ]
+
+        # Clip to image
+        roi[1] = min(roi[1], self.shape[1])
+        roi[3] = min(roi[3], self.shape[0])
+
         roi = np.array(roi) + [self.x_min, self.x_min, self.y_min, self.y_min]
         return Roi(*roi)
 
