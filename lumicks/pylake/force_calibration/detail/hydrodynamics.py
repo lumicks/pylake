@@ -146,7 +146,8 @@ def passive_power_spectrum_model_hydro(
         f, gamma0, rho_sample, bead_radius, distance_to_surface
     )
     frequency_m = calculate_dissipation_frequency(gamma0, bead_radius, rho_bead)
-    denominator = (fc + f * im_drag - f**2 / frequency_m) ** 2 + (f * re_drag) ** 2
+    denominator = (fc + f * (im_drag - f / frequency_m)) ** 2 + (f * re_drag) ** 2
+
     power_spectrum = diffusion_constant / (np.pi**2) * re_drag / denominator  # Equation D2 [6]
     return power_spectrum
 
