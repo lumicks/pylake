@@ -54,7 +54,7 @@ def calculate_complex_drag(f, gamma0, rho_sample, bead_radius, distance_to_surfa
 
     Parameters
     ----------
-    f : float
+    f : array_like
         Frequency [Hz]
     gamma0 : float
         Drag coefficient [mPas]
@@ -83,13 +83,14 @@ def calculate_complex_drag(f, gamma0, rho_sample, bead_radius, distance_to_surfa
     nu = gamma0 / (6.0 * np.pi * rho_sample * bead_radius)
     frequency_nu = nu / (np.pi * bead_radius**2)
 
-    freq_ratio = f / frequency_nu
+    freq_ratio = np.asarray(f / frequency_nu, dtype=complex)
     sqrt_freq_ratio = np.sqrt(freq_ratio)
 
     # Stokes contribution to the drag coefficient (gamma / gamma0 from the paper)
     # Equation D4 from [6]
-    real_stokes = 1 + sqrt_freq_ratio
-    imag_stokes = -sqrt_freq_ratio - 2 / 9 * freq_ratio
+    stokes_complex = 1 + (1 - 1j) * sqrt_freq_ratio - (2j / 9) * freq_ratio
+    real_stokes = stokes_complex.real
+    imag_stokes = stokes_complex.imag
 
     # If we have no distance specified, we assume we are very far from the surface, in which case
     # Stokes drag applies.
@@ -99,19 +100,15 @@ def calculate_complex_drag(f, gamma0, rho_sample, bead_radius, distance_to_surfa
     epsilon = (2 * distance_to_surface - bead_radius) * sqrt_freq_ratio / bead_radius
     r_over_l = bead_radius / distance_to_surface
 
-    # Effect of the surface (depends on depth) e.g. denominator from Eq D6 in [6] which has been
-    # re-written with Euler's formula to resemble the form used in [1].
+    # Effect of the surface (depends on depth) e.g. denominator from Eq D6 in [6].
     # fmt: off
-    real_surf = 1 - 9 / 16 * r_over_l * (1 - sqrt_freq_ratio / 3 - 4 / 3 * (1 - np.exp(-epsilon) * np.cos(epsilon)))
-    imag_surf = - 9 / 16 * r_over_l * (sqrt_freq_ratio / 3 + 2 / 9 * freq_ratio + 4 / 3 * np.exp(-epsilon) * np.sin(epsilon))
+    denominator = 1 - (9 / 16) * r_over_l * (1 - ((1 - 1j) / 3) * sqrt_freq_ratio + (2j / 9) * freq_ratio - (4 / 3) * (1 - np.exp(-(1 - 1j) * epsilon)))
     # fmt: on
 
     # Perform the complex division in Eq. D6 [6] producing gamma / gamma0
-    norm = real_surf * real_surf + imag_surf * imag_surf
-    real_drag = (real_stokes * real_surf + imag_stokes * imag_surf) / norm
-    imag_drag = (imag_stokes * real_surf - real_stokes * imag_surf) / norm
+    drag = stokes_complex / denominator
 
-    return real_drag, imag_drag
+    return drag.real, drag.imag
 
 
 def passive_power_spectrum_model_hydro(
