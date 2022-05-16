@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
     calculate_power_spectrum,
     fit_power_spectrum,
@@ -213,6 +212,15 @@ def test_hydro_spectra(
     ) * g_diode(f, f_diode, alpha)
 
     np.testing.assert_allclose(power_spectrum, ref_power_spectrum)
+
+
+def test_hydro_precision_loss():
+    """For very high frequency precision losses could occur, this test specifically guards against
+    these"""
+    frequency_range = np.arange(10000, 800000, 200000)
+    pars = [frequency_range, 187, 0.000464748 * 100, 4.09335e-08, 4.88e-6, 997, 997, None]
+    reference_psd = np.array([9.82828137e-12, 8.11392808e-16, 8.63496544e-17, 2.24961617e-17])
+    np.testing.assert_allclose(passive_power_spectrum_model_hydro(*pars), reference_psd)
 
 
 @pytest.mark.parametrize(
