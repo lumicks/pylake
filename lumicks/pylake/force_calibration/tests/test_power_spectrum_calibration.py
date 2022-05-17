@@ -1,7 +1,10 @@
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
 from lumicks.pylake.force_calibration.calibration_models import (
-    PassiveCalibrationModel, sphere_friction_coefficient, viscosity_of_water
+    PassiveCalibrationModel,
+    sphere_friction_coefficient,
+    viscosity_of_water,
+    NoFilter,
 )
 from matplotlib.testing.decorators import cleanup
 from textwrap import dedent
@@ -27,7 +30,9 @@ def test_input_validation_power_spectrum_calibration():
 
     # Wrong dimensions
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([[1, 2, 3], [1, 2, 3]]), sample_rate=78125, model=model)
+        psc.fit_power_spectrum(
+            data=np.array([[1, 2, 3], [1, 2, 3]]), sample_rate=78125, model=model
+        )
 
     # Wrong type
     with pytest.raises(TypeError):
@@ -37,7 +42,9 @@ def test_input_validation_power_spectrum_calibration():
         psc.fit_power_spectrum(data=np.array([1, 2, 3]), sample_rate=78125, model="invalid")
 
     with pytest.raises(TypeError):
-        psc.fit_power_spectrum(data=np.array([1, 2, 3]), sample_rate=78125, model=model, settings="invalid")
+        psc.fit_power_spectrum(
+            data=np.array([1, 2, 3]), sample_rate=78125, model=model, settings="invalid"
+        )
 
 
 def test_calibration_result():
@@ -46,8 +53,9 @@ def test_calibration_result():
 
 
 @pytest.mark.parametrize(
-    "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,temperature,err_fc,err_d,"
-    "err_f_diode,err_alpha,",
+    "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,"
+    "temperature,err_fc,err_d,err_f_diode,err_alpha,",
+    # fmt: off
     [
         [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
         [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.049903, 0.05856517],
@@ -58,6 +66,7 @@ def test_calibration_result():
         [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
         [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
     ],
+    # fmt: on
 )
 def test_good_fit_integration_test(
     reference_models,
@@ -74,10 +83,16 @@ def test_good_fit_integration_test(
     err_f_diode,
     err_alpha,
 ):
-    data, f_sample = reference_models.lorentzian_td(corner_frequency, diffusion_constant, alpha, f_diode, num_samples)
+    data, f_sample = reference_models.lorentzian_td(
+        corner_frequency, diffusion_constant, alpha, f_diode, num_samples
+    )
     model = PassiveCalibrationModel(bead_diameter, temperature=temperature, viscosity=viscosity)
-    power_spectrum = psc.calculate_power_spectrum(data, f_sample, fit_range=(0, 15000), num_points_per_block=20)
-    ps_calibration = psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, bias_correction=False)
+    power_spectrum = psc.calculate_power_spectrum(
+        data, f_sample, fit_range=(0, 15000), num_points_per_block=20
+    )
+    ps_calibration = psc.fit_power_spectrum(
+        power_spectrum=power_spectrum, model=model, bias_correction=False
+    )
 
     np.testing.assert_allclose(ps_calibration["fc"].value, corner_frequency, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["D"].value, diffusion_constant, rtol=1e-4, atol=0)
@@ -86,14 +101,14 @@ def test_good_fit_integration_test(
 
     gamma = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
-    rd_true = (
-        np.sqrt(sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K") / gamma / diffusion_constant)
-        * 1e6
-    )
+    boltzmann_temperature = sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K")
+    rd_true = np.sqrt(boltzmann_temperature / gamma / diffusion_constant) * 1e6
     np.testing.assert_allclose(ps_calibration["kappa"].value, kappa_true, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["Rd"].value, rd_true, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["Rf"].value, rd_true * kappa_true * 1e3, rtol=1e-4)
-    np.testing.assert_allclose(ps_calibration["chi_squared_per_deg"].value, 0, atol=1e-9)  # Noise free
+    np.testing.assert_allclose(
+        ps_calibration["chi_squared_per_deg"].value, 0, atol=1e-9
+    )  # Noise free
 
     np.testing.assert_allclose(ps_calibration["err_fc"].value, err_fc)
     np.testing.assert_allclose(ps_calibration["err_D"].value, err_d, rtol=1e-4, atol=0)
@@ -118,12 +133,18 @@ def test_fit_settings(reference_models):
     )
 
     # Won't converge with so few maximum function evaluations
-    with pytest.raises(RuntimeError, match="The maximum number of function evaluations is exceeded"):
+    with pytest.raises(
+        RuntimeError, match="The maximum number of function evaluations is exceeded"
+    ):
         psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, max_function_evals=1)
 
     # Make the analytical fit fail
-    with pytest.raises(RuntimeError, match="An empty power spectrum was passed to fit_analytical_lorentzian"):
-        psc.fit_power_spectrum(power_spectrum=power_spectrum, model=model, analytical_fit_range=(10, 100))
+    with pytest.raises(
+        RuntimeError, match="An empty power spectrum was passed to fit_analytical_lorentzian"
+    ):
+        psc.fit_power_spectrum(
+            power_spectrum=power_spectrum, model=model, analytical_fit_range=(10, 100)
+        )
 
 
 def test_bad_calibration_result_arg():
@@ -153,12 +174,12 @@ def reference_calibration_result():
     data = np.load(os.path.join(os.path.dirname(__file__), "reference_spectrum.npz"))
     reference_spectrum = data["arr_0"]
     model = PassiveCalibrationModel(4.4, temperature=20, viscosity=0.001002)
-    reference_spectrum = psc.calculate_power_spectrum(reference_spectrum, sample_rate=78125,
-                                                      num_points_per_block=100,
-                                                      fit_range=(100.0, 23000.0))
-    ps_calibration = psc.fit_power_spectrum(power_spectrum=reference_spectrum,
-                                            model=model,
-                                            bias_correction=False)
+    reference_spectrum = psc.calculate_power_spectrum(
+        reference_spectrum, sample_rate=78125, num_points_per_block=100, fit_range=(100.0, 23000.0)
+    )
+    ps_calibration = psc.fit_power_spectrum(
+        power_spectrum=reference_spectrum, model=model, bias_correction=False
+    )
 
     return ps_calibration, model, reference_spectrum
 
@@ -190,7 +211,7 @@ def test_actual_spectrum(reference_calibration_result):
         "Max iterations": {"desired": 10000},
         "Fit tolerance": {"desired": 1e-07},
         "Points per block": {"desired": 100},
-        "Sample rate": {"desired": 78125}
+        "Sample rate": {"desired": 78125},
     }
 
     for name, expected_result in params.items():
@@ -220,11 +241,9 @@ def test_attributes_ps_calibration(reference_calibration_result):
     assert id(ps_calibration.ps_data) == id(reference_spectrum)
 
     with pytest.raises(RuntimeError):
-        psc.CalibrationResults(model=None,
-                               ps_model=None,
-                               ps_data=None,
-                               params={"test": 5},
-                               results={"test2": 5})
+        psc.CalibrationResults(
+            model=None, ps_model=None, ps_data=None, params={"test": 5}, results={"test2": 5}
+        )
 
 
 def test_calibration_results_params():
@@ -245,7 +264,8 @@ def test_calibration_results_params():
 
 def test_repr(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
-    assert str(ps_calibration) == dedent("""\
+    assert str(ps_calibration) == dedent(
+        """\
         Name                 Description                                               Value
         -------------------  --------------------------------------------------------  -----------
         Bead diameter        Bead diameter (um)                                        4.4
@@ -270,7 +290,8 @@ def test_repr(reference_calibration_result):
         err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.715
         err_alpha            Diode 'relaxation factor' Std Err                         0.0131406
         chi_squared_per_deg  Chi squared per degree of freedom                         1.06378
-        backing              Statistical backing (%)                                   66.4331""")
+        backing              Statistical backing (%)                                   66.4331"""
+    )
 
 
 def test_invalid_bead_diameter():
@@ -364,18 +385,18 @@ def test_viscosity_calculation():
 def test_invalid_densities():
     """Densities lower than aerogel should not be accepted."""
     with pytest.raises(
-            ValueError, match=re.escape("Density of the sample cannot be below 100 kg/m^3")
+        ValueError, match=re.escape("Density of the sample cannot be below 100 kg/m^3")
     ):
         PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_sample=99.9)
 
     # Make sure 0 also fires (since it's falsy)
     with pytest.raises(
-            ValueError, match=re.escape("Density of the sample cannot be below 100 kg/m^3")
+        ValueError, match=re.escape("Density of the sample cannot be below 100 kg/m^3")
     ):
         PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_sample=0)
 
     with pytest.raises(
-            ValueError, match=re.escape("Density of the bead cannot be below 100 kg/m^3")
+        ValueError, match=re.escape("Density of the bead cannot be below 100 kg/m^3")
     ):
         PassiveCalibrationModel(4.1, hydrodynamically_correct=True, rho_bead=99.9)
 
@@ -388,28 +409,20 @@ def test_invalid_densities():
 
 
 def test_invalid_viscosity():
-    with pytest.raises(
-            ValueError, match=re.escape("Viscosity must be higher than 0.0003 Pa*s")
-    ):
+    with pytest.raises(ValueError, match=re.escape("Viscosity must be higher than 0.0003 Pa*s")):
         PassiveCalibrationModel(4.1, viscosity=0.0003)
 
-    with pytest.raises(
-            ValueError, match=re.escape("Viscosity must be higher than 0.0003 Pa*s")
-    ):
+    with pytest.raises(ValueError, match=re.escape("Viscosity must be higher than 0.0003 Pa*s")):
         PassiveCalibrationModel(4.1, viscosity=0)
 
     PassiveCalibrationModel(4.1, viscosity=0.00031)
 
 
 def test_invalid_temperature():
-    with pytest.raises(
-            ValueError, match=re.escape("Temperature must be between 5 and 90 Celsius")
-    ):
+    with pytest.raises(ValueError, match=re.escape("Temperature must be between 5 and 90 Celsius")):
         PassiveCalibrationModel(4.1, temperature=90.0)
 
-    with pytest.raises(
-            ValueError, match=re.escape("Temperature must be between 5 and 90 Celsius")
-    ):
+    with pytest.raises(ValueError, match=re.escape("Temperature must be between 5 and 90 Celsius")):
         PassiveCalibrationModel(4.1, temperature=5.0)
 
     PassiveCalibrationModel(4.1, temperature=89.9)
@@ -423,3 +436,43 @@ def test_invalid_distance_to_surface():
         match="Distance from bead center to surface is smaller than the bead radius",
     ):
         PassiveCalibrationModel(4.11, distance_to_surface=0, hydrodynamically_correct=False)
+
+
+@pytest.mark.slow
+def test_aliasing(integration_test_parameters):
+    """Test whether the private API for taking into account aliasing works"""
+    shared_pars, simulation_pars = integration_test_parameters
+
+    np.random.seed(10071985)
+    decimation_factor = 10
+    shared_pars["hydrodynamically_correct"] = False
+    simulation_pars["sample_rate"] = decimation_factor * simulation_pars["sample_rate"]
+    volts, _ = generate_active_calibration_test_data(5, **simulation_pars, **shared_pars)
+
+    # Drop the sample rate by a factor without taking it into account -> results in aliasing
+    aliased_samplerate = simulation_pars["sample_rate"] // decimation_factor
+    aliased_volts = volts[::decimation_factor]
+    power_spectrum = psc.calculate_power_spectrum(
+        aliased_volts, aliased_samplerate, fit_range=(100, aliased_samplerate / 2)
+    )
+
+    model = PassiveCalibrationModel(**shared_pars)
+    sim_args = [np.arange(22050), 500, 1e-3, 1400, 0.4]
+    ref_sim = model(*sim_args)
+    aliased_model = model._alias_model(sample_rate=aliased_samplerate, num_aliases=10)
+
+    # Make sure basic model did not change
+    np.testing.assert_allclose(ref_sim, model(*sim_args))
+
+    fit = psc.fit_power_spectrum(power_spectrum, model, bias_correction=False)
+
+    # Check whether modification of the base model does not affect the aliased model
+    model._filter = NoFilter()
+    model._set_drag(5)
+
+    correct_fit = psc.fit_power_spectrum(power_spectrum, aliased_model, bias_correction=False)
+
+    expected_results = {"fc": 1504.4416105821158, "D": 1.0090151317063}
+
+    for key, value in expected_results.items():
+        assert abs(fit.results[key].value - value) > abs(correct_fit.results[key].value - value)
