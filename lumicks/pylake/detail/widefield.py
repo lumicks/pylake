@@ -137,6 +137,10 @@ class TiffStack:
 
         self._tether = Tether(self._roi.origin) if tether is None else tether
 
+    @property
+    def is_rgb(self):
+        return self._description.is_rgb
+
     def get_frame(self, frame):
         return TiffFrame(
             self._tiff_file.pages[frame],
