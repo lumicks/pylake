@@ -1,3 +1,4 @@
+import re
 import pytest
 from lumicks.pylake.force_calibration.detail.power_models import *
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
@@ -98,3 +99,23 @@ def test_fit_analytic_curve():
     fit = fit_analytical_lorentzian(ps)
     np.testing.assert_allclose(fit.ps_fit.frequency, np.arange(0, 60, 10))
     np.testing.assert_allclose(fit.ps_fit.power, ref, rtol=1e-5)
+
+
+def test_aliasing():
+    """Test the little wrapper function that can be used to simulate aliasing"""
+    def psd(freq, a, b, *, c):
+        return a + (b + c / freq) / freq
+
+    f = np.array([0.1, 2.0, 4.0])
+    aliased = alias_spectrum(psd, 10)
+
+    # Verify kwargs get passed correctly
+    with pytest.raises(
+            TypeError, match=re.escape("psd() takes 3 positional arguments but 4 were given")
+    ):
+        aliased(f, 5, 3, 4)
+
+    np.testing.assert_allclose(aliased(f, 5, 3, c=4), [535.114708, 107.443689, 105.757919])
+
+    aliased = alias_spectrum(psd, 8, num_alias=2)
+    np.testing.assert_allclose(aliased(f, 5, 3, c=4), [455.144592,  27.436246,  25.715556])
