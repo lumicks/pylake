@@ -109,7 +109,7 @@ def test_invalid_options_calibration():
         calibrate_force([1], 1, 20, fast_sensor=True, fixed_diode=150, sample_rate=78125)
 
     with pytest.raises(
-            ValueError, match="When using fast_sensor=True, there is no diode model to fix"
+        ValueError, match="When using fast_sensor=True, there is no diode model to fix"
     ):
         calibrate_force([1], 1, 20, fast_sensor=True, fixed_alpha=0.4, sample_rate=78125)
 

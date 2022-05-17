@@ -167,6 +167,7 @@ def alias_spectrum(psd, sample_rate, num_alias=10):
     num_alias : int
         Number of aliases to simulate. The default of 10 typically gives less than 1% error.
     """
+
     def aliased(freq, *args, **kwargs):
         """Aliased PSD
 
@@ -178,8 +179,7 @@ def alias_spectrum(psd, sample_rate, num_alias=10):
             Forwarded to the power spectral density function being wrapped.
         """
         return sum(
-            psd(freq + i * sample_rate, *args, **kwargs)
-            for i in range(-num_alias, num_alias + 1)
+            psd(freq + i * sample_rate, *args, **kwargs) for i in range(-num_alias, num_alias + 1)
         )
 
     return aliased

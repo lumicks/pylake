@@ -11,6 +11,7 @@ from .detail.power_models import (
     passive_power_spectrum_model,
     sphere_friction_coefficient,
     theoretical_driving_power_lorentzian,
+    alias_spectrum,
 )
 from .detail.hydrodynamics import (
     passive_power_spectrum_model_hydro,
@@ -20,6 +21,7 @@ from .power_spectrum_calibration import CalibrationParameter
 
 from dataclasses import dataclass
 from typing import Callable
+from copy import copy
 
 
 def diode_params_from_voltage(
@@ -345,9 +347,29 @@ class PassiveCalibrationModel:
 
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
-    def __call__(self, f, fc, diffusion_constant, *filter_params):
+    def _calculate_power_spectral_density(self, f, fc, diffusion_constant, *filter_params):
         physical_spectrum = self._passive_power_spectrum_model(f, fc, diffusion_constant)
         return physical_spectrum * self._filter(f, *filter_params)
+
+    def __call__(self, f, fc, diffusion_constant, *filter_params):
+        return self._calculate_power_spectral_density(f, fc, diffusion_constant, *filter_params)
+
+    def _alias_model(self, sample_rate, num_aliases):
+        """Include effects of aliasing into the model
+
+        Parameters
+        ----------
+        sample_rate : int
+            Sample rate in Hz
+        num_aliases : int
+            Number of aliases to take into account.
+        """
+        new_model = copy(self)
+        new_model._calculate_power_spectral_density = alias_spectrum(
+            new_model._calculate_power_spectral_density, sample_rate, num_aliases
+        )
+
+        return new_model
 
     @property
     def _drag(self):

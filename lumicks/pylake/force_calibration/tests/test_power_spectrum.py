@@ -25,24 +25,34 @@ def test_power_spectrum_attrs(frequency, num_data, sample_rate):
 
     # Functional test
     determined_frequency = power_spectrum.frequency[np.argmax(power_spectrum.power)]
-    np.testing.assert_allclose(determined_frequency, frequency)  # Is the frequency at the right position?
+    np.testing.assert_allclose(
+        determined_frequency, frequency
+    )  # Is the frequency at the right position?
 
     # Is all the power at this frequency? (Valid when dealing with multiples of the sample rate)
-    np.testing.assert_allclose(power_spectrum.power[np.argmax(power_spectrum.power)], np.sum(power_spectrum.power), atol=1e-16)
+    np.testing.assert_allclose(
+        power_spectrum.power[np.argmax(power_spectrum.power)],
+        np.sum(power_spectrum.power),
+        atol=1e-16,
+    )
     np.testing.assert_allclose(power_spectrum.total_duration, num_data / sample_rate)
 
 
 @pytest.mark.parametrize(
     "frequency, num_data, sample_rate, num_blocks, f_blocked, p_blocked",
     [
+        # fmt: off
         [200, 50, 2000, 4, [100, 340, 580, 820], [1.04166667e-3, 0, 0, 0]],
         [400, 50, 2000, 4, [100, 340, 580, 820], [0, 1.04166667e-3, 0, 0]],
         [400, 50, 4000, 4, [200, 680, 1160, 1640], [5.20833333e-04, 0, 0, 0]],
         [400, 50, 4000, 8, [80, 320, 560, 800, 1040, 1280, 1520, 1760], [0, 1.04166667e-03, 0, 0, 0, 0, 0, 0]],
         [400, 50, 4000, 7, [80, 320, 560, 800, 1040, 1280, 1520, 1760], [0, 1.04166667e-03, 0, 0, 0, 0, 0, 0]],
+        # fmt: on
     ],
 )
-def test_power_spectrum_blocking(frequency, num_data, sample_rate, num_blocks, f_blocked, p_blocked):
+def test_power_spectrum_blocking(
+    frequency, num_data, sample_rate, num_blocks, f_blocked, p_blocked
+):
     """Functional test whether the results of blocking the power spectrum are correct"""
     data = np.sin(2.0 * np.pi * frequency / sample_rate * np.arange(num_data)) / np.sqrt(2)
     power_spectrum = PowerSpectrum(data, sample_rate)
@@ -53,7 +63,9 @@ def test_power_spectrum_blocking(frequency, num_data, sample_rate, num_blocks, f
     np.testing.assert_allclose(blocked.power, p_blocked, atol=1e-16)
     np.testing.assert_allclose(blocked.num_samples(), len(f_blocked))
     np.testing.assert_allclose(len(power_spectrum.power), num_data // 2 + 1)
-    np.testing.assert_allclose(blocked.num_points_per_block, np.floor(len(power_spectrum.power) / num_blocks))
+    np.testing.assert_allclose(
+        blocked.num_points_per_block, np.floor(len(power_spectrum.power) / num_blocks)
+    )
 
     # Downsample again and make sure the num_points_per_block is correct
     dual_blocked = blocked.downsampled_by(2)
@@ -87,7 +99,7 @@ def test_windowing_sine_wave(amp, frequency, data_duration, sample_rate, multipl
     max_idx = np.argmax(power_spectrum_windowed.power)
     power, freq = power_spectrum_windowed.power[max_idx], power_spectrum_windowed.frequency[max_idx]
     np.testing.assert_allclose(freq, frequency, atol=delta_freq)
-    np.testing.assert_allclose(power * delta_freq, amp ** 2 / 2, rtol=1e-4)
+    np.testing.assert_allclose(power * delta_freq, amp**2 / 2, rtol=1e-4)
 
     # Check whether we report the correct amount of averaging
     num_points_per_window = int(np.round((window_duration * sample_rate)))
