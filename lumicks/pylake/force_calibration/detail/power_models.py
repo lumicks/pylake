@@ -152,3 +152,34 @@ def theoretical_driving_power_lorentzian(fc, driving_frequency, driving_amplitud
         Driving amplitude [m]
     """
     return driving_amplitude**2 / (2 * (1 + (fc / driving_frequency) ** 2))
+
+
+def alias_spectrum(psd, sample_rate, num_alias=10):
+    """
+    Produce an aliased version of the input PSD function.
+
+    Parameters
+    ----------
+    psd : callable
+        Function which takes a numpy array of frequencies and returns a power spectral density.
+    sample_rate : float
+        Sampling frequency.
+    num_alias : int
+        Number of aliases to simulate. The default of 10 typically gives less than 1% error.
+    """
+    def aliased(freq, *args, **kwargs):
+        """Aliased PSD
+
+        Parameters
+        ----------
+        freq : numpy.ndarray
+            Frequency values.
+        *args, **kwargs
+            Forwarded to the power spectral density function being wrapped.
+        """
+        return sum(
+            psd(freq + i * sample_rate, *args, **kwargs)
+            for i in range(-num_alias, num_alias + 1)
+        )
+
+    return aliased
