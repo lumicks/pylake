@@ -53,7 +53,14 @@ You can also spatially crop to select a smaller region of interest::
 
 .. image:: correlatedstack_cropped.png
 
-This can be useful, for instance, after applying color alignment to RGB images as the edges
+Alternatively, you can crop directly by slicing the stack::
+
+    stack_roi = stack[:, 150:245, 45:420]
+
+Here the first index can be used to select a subset of frames and the second and third indices perform a cropping operation.
+Note how the axes are switched when compared to `crop_by_pixels` to follow the numpy convention (rows and then columns).
+
+Cropping can be useful, for instance, after applying color alignment to RGB images as the edges
 can become corrupted due to interpolation artifacts.
 
 You can also plot only a single color channel. Note that here we pass some additional formatting arguments, which are

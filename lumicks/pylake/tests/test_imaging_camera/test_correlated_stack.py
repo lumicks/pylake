@@ -216,8 +216,8 @@ def test_stack_roi():
         stack_4 = stack_0.with_roi([-5, 4, 1, 2])
 
     # out of bounds
-    with pytest.raises(ValueError):
-        stack_5 = stack_0.with_roi([0, 11, 1, 2])
+    stack_5 = stack_0.with_roi([0, 11, 1, 2])
+    np.testing.assert_equal(stack_5.get_frame(0).data, data[1:2, 0:11, :])
 
 
 def test_roi_defaults():
@@ -660,3 +660,72 @@ def test_correlated_stack_plot_single_channel_percentile_color_adjustment(rgb_al
         np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
+
+
+def test_invalid_slicing():
+    n_frames = 3
+    data = [np.random.rand(5, 4) for j in range(n_frames)]
+    stack = CorrelatedStack.from_dataset(TiffStack(MockTiffFile(data, times=make_frame_times(n_frames)), align_requested=False))
+    with pytest.raises(IndexError, match="Only three indices are accepted when slicing CorrelatedStacks"):
+        stack[1:3, :, :, 2]
+
+    with pytest.raises(IndexError, match="Slice steps are not supported when indexing"):
+        stack[1:3, ::3, ::3]
+
+
+@pytest.mark.parametrize(
+    "frame_slice,axis1_slice,axis2_slice, dims",
+    (
+        (slice(1, 3), slice(3, 6), slice(3, 5), (8, 9)),
+        (slice(None, 3), slice(3, 6), slice(3, 5), (8, 9)),
+        (slice(1, None), slice(3, 6), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(None, 6), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, None), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, 6), slice(None, 5), (8, 9)),
+        (slice(1, 3), slice(3, 6), slice(3, None), (8, 9)),
+        (slice(1, 3), slice(3, 6), slice(3, 5), (8, 9, 3)),
+        (slice(None, 3), slice(3, 6), slice(3, 5), (8, 9, 3)),
+        (slice(1, None), slice(3, 6), slice(3, 5), (8, 9, 3)),
+        (slice(1, 3), slice(None, 6), slice(3, 5), (8, 9, 3)),
+        (slice(1, 3), slice(3, None), slice(3, 5), (8, 9, 3)),
+        (slice(1, 3), slice(3, 6), slice(None, 5), (8, 9, 3)),
+        (slice(1, 3), slice(3, 6), slice(3, None), (8, 9, 3)),
+        (slice(1, 13), slice(3, 6), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, 16), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, 6), slice(3, 15), (8, 9)),
+    ),
+)
+def test_multidim_slicing(frame_slice, axis1_slice, axis2_slice, dims):
+    n_frames = 6
+    data = [np.random.rand(*dims) for _ in range(n_frames)]
+    stack = CorrelatedStack.from_dataset(
+        TiffStack(MockTiffFile(data, times=make_frame_times(n_frames)), align_requested=False)
+    )
+
+    def validate_img_and_shape(stack, img):
+        np.testing.assert_allclose(stack.get_image(), img)
+        np.testing.assert_allclose(stack.shape, img.shape)
+
+    # Frame stack
+    validate_img_and_shape(
+        stack[frame_slice, axis1_slice, axis2_slice],
+        stack[frame_slice].get_image()[:, axis1_slice, axis2_slice],
+    )
+
+    # All frames
+    validate_img_and_shape(
+        stack[:, axis1_slice, axis2_slice],
+        stack[:].get_image()[:, axis1_slice, axis2_slice],
+    )
+
+    # Only first axis
+    validate_img_and_shape(
+        stack[frame_slice, axis1_slice],
+        stack[frame_slice].get_image()[:, axis1_slice],
+    )
+
+    # Only second axis
+    validate_img_and_shape(
+        stack[frame_slice, :, axis2_slice],
+        stack[frame_slice].get_image()[:, :, axis2_slice],
+    )

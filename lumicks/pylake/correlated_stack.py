@@ -43,8 +43,28 @@ class CorrelatedStack:
         self.start_idx = 0
         self.stop_idx = self.src.num_frames
 
+    def _handle_cropping(self, item):
+        """Crop the stack based on tuple of slices"""
+
+        def interpret_crop(item):
+            if isinstance(item, slice):
+                if item.step is not None:
+                    raise IndexError("Slice steps are not supported when indexing")
+                return item.start, item.stop
+            else:
+                return item, item + 1
+
+        if len(item) > 3:
+            raise IndexError("Only three indices are accepted when slicing CorrelatedStacks.")
+
+        rows = interpret_crop(item[1])
+        columns = interpret_crop(item[2]) if len(item) >= 3 else [None, None]
+        return self.src.with_roi(np.array([columns, rows]).flatten()), item[0]
+
     def __getitem__(self, item):
         """All indexing is in frames"""
+        src, item = self._handle_cropping(item) if isinstance(item, tuple) else (self.src, item)
+
         if isinstance(item, slice):
             if item.step is not None:
                 raise IndexError("Slice steps are not supported")
@@ -58,12 +78,12 @@ class CorrelatedStack:
             if new_stop == new_start:
                 raise NotImplementedError("Slice is empty")
 
-            return CorrelatedStack.from_dataset(self.src, self.name, new_start, new_stop)
+            return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop)
         else:
             item = self.start_idx + item if item >= 0 else self.stop_idx + item
             if item >= self.stop_idx or item < self.start_idx:
                 raise IndexError("Index out of bounds")
-            return CorrelatedStack.from_dataset(self.src, self.name, item, item + 1)
+            return CorrelatedStack.from_dataset(src, self.name, item, item + 1)
 
     def __iter__(self):
         idx = 0
@@ -79,6 +99,11 @@ class CorrelatedStack:
     )
     def from_data(cls, data, name=None, start_idx=0, stop_idx=None):
         return cls.from_dataset(data, name, start_idx, stop_idx)
+
+    @property
+    def shape(self):
+        base_shape = (self.num_frames, *self.src._shape)
+        return (*base_shape, 3) if self.src.is_rgb else base_shape
 
     @classmethod
     def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None):
