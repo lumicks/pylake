@@ -353,14 +353,20 @@ class Roi:
 
     def crop(self, roi):
         """Crop again, taking into account origin of current ROI."""
-        roi = [
-            pos if pos is not None else default
-            for pos, default in zip(roi, (0, self.shape[1], 0, self.shape[0]))
-        ]
+        roi = np.array(
+            [
+                pos if pos is not None else default
+                for pos, default in zip(roi, (0, self.shape[1], 0, self.shape[0]))
+            ]
+        )
+
+        # Support negative indexing
+        roi_max = np.asarray([self.shape[x] for x in (1, 1, 0, 0)])
+        negative_indices = roi < 0
+        roi[negative_indices] += roi_max[negative_indices]
 
         # Clip to image
-        roi[1] = min(roi[1], self.shape[1])
-        roi[3] = min(roi[3], self.shape[0])
+        roi = [np.clip(x, 0, dim_max) for (x, dim_max) in zip(roi, roi_max)]
 
         roi = np.array(roi) + [self.x_min, self.x_min, self.y_min, self.y_min]
         return Roi(*roi)

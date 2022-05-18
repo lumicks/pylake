@@ -677,6 +677,7 @@ def test_invalid_slicing():
     "frame_slice,axis1_slice,axis2_slice, dims",
     (
         (slice(1, 3), slice(3, 6), slice(3, 5), (8, 9)),
+        # Test open ranges
         (slice(None, 3), slice(3, 6), slice(3, 5), (8, 9)),
         (slice(1, None), slice(3, 6), slice(3, 5), (8, 9)),
         (slice(1, 3), slice(None, 6), slice(3, 5), (8, 9)),
@@ -684,15 +685,25 @@ def test_invalid_slicing():
         (slice(1, 3), slice(3, 6), slice(None, 5), (8, 9)),
         (slice(1, 3), slice(3, 6), slice(3, None), (8, 9)),
         (slice(1, 3), slice(3, 6), slice(3, 5), (8, 9, 3)),
+        # Test three color images
         (slice(None, 3), slice(3, 6), slice(3, 5), (8, 9, 3)),
         (slice(1, None), slice(3, 6), slice(3, 5), (8, 9, 3)),
         (slice(1, 3), slice(None, 6), slice(3, 5), (8, 9, 3)),
         (slice(1, 3), slice(3, None), slice(3, 5), (8, 9, 3)),
         (slice(1, 3), slice(3, 6), slice(None, 5), (8, 9, 3)),
         (slice(1, 3), slice(3, 6), slice(3, None), (8, 9, 3)),
+        # Test ranges over the end
         (slice(1, 13), slice(3, 6), slice(3, 5), (8, 9)),
         (slice(1, 3), slice(3, 16), slice(3, 5), (8, 9)),
         (slice(1, 3), slice(3, 6), slice(3, 15), (8, 9)),
+        # Test negative indices
+        (slice(1, -1), slice(3, 6), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, -2), slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, 6), slice(3, -2), (8, 9)),
+        # Test negative indices beyond the start
+        (slice(-100, 3), slice(-100, 6), slice(3, 15), (8, 9)),
+        (slice(-100, -1), slice(-100, 6), slice(3, 5), (8, 9)),
+        (slice(-100, -1), slice(3, 6), slice(-100, 5), (8, 9)),
     ),
 )
 def test_multidim_slicing(frame_slice, axis1_slice, axis2_slice, dims):
