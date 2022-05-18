@@ -677,6 +677,9 @@ def test_invalid_slicing():
     "frame_slice,axis1_slice,axis2_slice, dims",
     (
         (slice(1, 3), slice(3, 6), slice(3, 5), (8, 9)),
+        # Test single element access
+        (slice(1, 3), 3, slice(3, 5), (8, 9)),
+        (slice(1, 3), slice(3, 6), 3, (8, 9)),
         # Test open ranges
         (slice(None, 3), slice(3, 6), slice(3, 5), (8, 9)),
         (slice(1, None), slice(3, 6), slice(3, 5), (8, 9)),
@@ -715,7 +718,11 @@ def test_multidim_slicing(frame_slice, axis1_slice, axis2_slice, dims):
 
     def validate_img_and_shape(stack, img):
         np.testing.assert_allclose(stack.get_image(), img)
-        np.testing.assert_allclose(stack.shape, img.shape)
+
+        # Note that when indexing the numpy array, all dimensions with length one get dropped when
+        # slicing the raw image.
+        stack_shape = np.array(stack.shape)
+        np.testing.assert_allclose(stack_shape[stack_shape > 1], img.shape)
 
     # Frame stack
     validate_img_and_shape(
