@@ -132,9 +132,10 @@ Hydrodynamically correct model
 
 While the idealized Lorentzian model discussed in the previous section is often sufficiently accurate, there are scenarios where more detailed models are necessary.
 
-The idealized model is based on the assumption that the drag force is only proportional to the bead's velocity.
-This assumption is realistic when the bead moves at a constant speed with respect to the fluid.
-When oscillating a bead however, this frictional force becomes frequency dependent.
+The idealized model is based on the assumption that the frictional force is only proportional to the bead's velocity.
+This model is derived from Stokes' law for linear motion with constant velocity (assuming the bead moves at a constant speed with respect to the fluid).
+In reality, the frictional force on the bead depends on past motion since the beads' past motion determines the fluid's present motion.
+Because of this inertial effect of the fluid, the frictional force is actually frequency dependent.
 
 The following equation accounts for a frequency dependent drag coefficient :cite:`tolic2006calibration`:
 
