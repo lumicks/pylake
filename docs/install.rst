@@ -58,7 +58,6 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
     jupyter notebook
 
 Note that if you are used to starting Jupyter notebook from the Anaconda Navigator, you will have to set the environment to `pylake` for it to have access to the environment where you just installed Pylake.
-
 You can do this in the drop down menu that normally defaults to the environment `base`.
 
 If you are used to starting Jupyter from the Anaconda prompt, then remember to activate the correct environment (pylake) prior to starting the notebook.
@@ -67,6 +66,7 @@ You can activate this environment by calling::
     conda activate pylake
 
 That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 
 .. rubric:: Linux
@@ -109,6 +109,7 @@ You can do this in the drop down menu that normally defaults to the environment 
 If you are used to starting Jupyter notebook from the terminal, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
 That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 
 .. rubric:: macOS
@@ -142,6 +143,7 @@ You can do this in the drop down menu that normally defaults to the environment 
 If you are used to starting Jupyter from `Terminal`, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
 That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 
 Updating
@@ -279,6 +281,69 @@ If you have already activated the correct environment, but you still do not see 
 Frequently asked questions
 --------------------------
 
+**I tried the installation instructions, but I cannot import Pylake inside a Jupyter notebook**
+
+If Python claims there is no package with the name `lumicks.pylake` or it fails with a `DLL load failed` error, even after you're followed the above installation instructions, then please check the following:
+
+* You should be launching the Jupyter Notebook from within the same environment where you installed `pylake`.
+
+* If you already had an installation of Anaconda, and you installed `pylake` into a new environment alongside existing environments, it may be that you have a conflict between multiple Jupyter installations.
+
+In this case, try running the following command from an Anaconda Prompt::
+
+    jupyter kernelspec list
+
+This lists all the kernels that have been installed (thereby making them available to Jupyter).
+
+If the output of this command lists any paths containing `AppData\\Roaming\\jupyter\\kernels` or `C:\\ProgramData\\jupyter\\kernels` (Windows); `.local/share/jupyter/kernels` or `/usr/share/jupyter/kernels` or `/usr/local/share/jupyter/kernels` (Mac/Linux); or `/Library/Jupyter/kernels` (Mac); then invoke::
+
+    python -m ipykernel install --user --name=envname
+
+Where `envname` should be replaced with the name of the environment you are using.
+
+Now restart the Jupyter Notebook, and make sure you open your Notebook using the `pylake` kernel that's now available in the list.
+
+*Why does this work?*
+
+Jupyter notebooks work by sending code that you run in a notebook to a separate "computational engine" which executes this code.
+This computational engine is called a kernel.
+To do this, Jupyter has to first identify which kernel to use.
+Jupyter searches for kernels based on a list specified in the `kernelspec`.
+
+When using Anaconda, Jupyter will by default use the Python kernel that corresponds to that environment.
+By default, this `kernelspec` will be called `python3`.
+However, if an explicit `kernelspec` with that name has been created in the all-users or per-user kernel registry, Jupyter no longer performs auto-detection of the IPython kernel in the current conda environment.
+That means you are no longer able to start a Jupyter kernel from the currently active environment without explicitly installing it.
+
+*Can I just revert back to detecting which kernel to use based on the environment instead?*
+
+Yes. Alternatively, one can remove the kernelspec that is causing the issue, resulting in `Anaconda` reverting back to the default behaviour of using the kernel for the active environment::
+
+    jupyter kernelspec uninstall envname
+
+Where `envname` needs to be the name of the registered kernel that is being loaded. Usually this will be `python3`.
+
+**(Windows/Anaconda only) When I try to import pylake, I receive an ImportError: DLL load failed while importing win32api**
+
+In some cases, we've seen that the Anaconda installation instructions above result in an exception when importing `pylake`:
+
+`ImportError: DLL load failed while importing win32api: The specified procedure could not be found.`
+
+If this happens, please try the following:
+
+* Open an Anaconda Prompt.
+
+* Activate the environment in which you installed `pylake`. For instance::
+
+    conda activate pylake
+
+* Run the following command::
+
+    python %CONDA_PREFIX%\Scripts\pywin32_postinstall.py -install
+
+* Restart the Jupyter Notebook and try again.
+
+
 **Why are the plots in my notebook not interactive?**
 
 To enable interactive plots, you have to invoke the correct `magic commands <https://ipython.readthedocs.io/en/stable/interactive/magics.html>`_
@@ -336,46 +401,6 @@ If creating a new environment does not work then it may be best to uninstall and
 *Note that this means you will lose all the environments you have created!*
 Please follow these `uninstall instructions`_ to uninstall conda.
 After uninstalling, you should be able to reinstall using the regular installation instructions.
-
-
-**I tried the installation instructions, but I cannot import pylake**
-
-If Python claims there is no package with the name `lumicks.pylake`, even after you're followed the above installation instructions, then please check the following:
-
-* You should be launching the Jupyter Notebook from within the same environment where you installed `pylake`.
-
-* If you already had an installation of Anaconda, and you installed `pylake` into a new environment alongside existing environments, it may be that you have a conflict between multiple Jupyter installations. In this case, try running the following command from an Anaconda Prompt::
-
-    jupyter kernelspec list
-
-If the output of this command lists any paths containing `AppData\\Roaming\\jupyter\\kernels` or `C:\\ProgramData\\jupyter\\kernels` (Windows); `.local/share/jupyter/kernels` or `/usr/share/jupyter/kernels` or `/usr/local/share/jupyter/kernels` (Mac/Linux); or `/Library/Jupyter/kernels` (Mac); then invoke::
-
-    python -m ipykernel install --user
-
-Now restart the Jupyter Notebook, and make sure you open your Notebook using the "pylake" kernel that's now available in the list.
-
-Background: if an explicit kernelspec has been created in the all-users or per-user kernel registry, Jupyter no longer performs auto-detection of the IPython kernel in the current conda environment. That means you are no longer able to start a Jupyter kernel from the `pylake` environment. Explicitly registering a kernelspec for the IPython kernel installation in the `pylake` environment resolves this issue.
-
-
-**(Windows/Anaconda only) When I try to import pylake, I receive an ImportError: DLL load failed**
-
-In some cases, we've seen that the Anaconda installation instructions above result in an exception when importing `pylake`:
-
-`ImportError: DLL load failed while importing win32api: The specified procedure could not be found.`
-
-If this happens, please try the following:
-
-* Open an Anaconda Prompt.
-
-* Activate the environment in which you installed `pylake`. For instance::
-
-    conda activate pylake
-
-* Run the following command::
-
-    python %CONDA_PREFIX%\Scripts\pywin32_postinstall.py -install
-
-* Restart the Jupyter Notebook and try again.
 
 
 **Conda-forge is very slow in China, what can I do?**
