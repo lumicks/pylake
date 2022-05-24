@@ -11,6 +11,7 @@
 * Changed the internal calculation of the `extent` argument in `Kymo.plot()` such that the spatial limits are now defined at the center of the pixel (same functionality that is used for the temporal axis). Previously the limits were defined at the edge of the pixel and caused a subtle misalignment between the coordinates of the tracked lines and the actual image.
 * Changed the internal calculation of the hydrodynamically correct force spectrum. Before this change, the computation of the power spectral density relied on the frequencies always being positive. While this change does not affect any results, it allows evaluating the power spectral density for negative frequencies.
 * Fixed an issue where evaluating the hydrodynamically correct spectrum up to very high frequencies could lead to precision losses. These precision losses typically occur at frequencies upwards of 30 kHz and manifest themselves as visible discontinuities.
+* Fixed an issue where the pixel dwell time stored in TIFFs exported from Pylake could be incorrect. Prior to this fix, Pylake exported the value entered in the Bluelake UI as pixel dwell time. In reality, the true pixel dwell time is a multiple of the acquisition sample rate. After the fix, TIFF files correctly report the achieved pixel dwell time. 
 
 ## v0.12.0 | 2022-04-21
 
@@ -32,6 +33,7 @@
 * Fixed a bug in the kymotracker in which the plotted aspect ratio did not match the requested `axis_aspect_ratio` argument.
 
 #### Deprecations
+
 * Deprecated `red_image`, `green_image`, `blue_image`, and `rgb_image` properties for `Scan` and `Kymo`. These data should now be accessed using the `get_image(channel="{color}")` method (where `"{color}"` can be `"red"`, `"green"`, `"blue"`, or `"rgb"`).
 
 #### Breaking changes

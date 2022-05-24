@@ -1,6 +1,7 @@
 import numpy as np
 import json
 from .mock_json import mock_json
+from lumicks.pylake.detail.confocal import ScanMetaData
 from lumicks.pylake.detail.image import InfowaveCode
 from lumicks.pylake.channel import Continuous, Slice
 from lumicks.pylake.kymo import Kymo
@@ -138,7 +139,7 @@ class MockConfocalFile:
                 Slice(Continuous(infowave, start=start, dt=dt)),
                 Slice(Continuous(photon_counts, start=start, dt=dt)),
             ),
-            json.loads(json_string)["value0"],
+            ScanMetaData.from_json(json_string),
             start + len(infowave) * dt,
         )
 
@@ -176,13 +177,13 @@ class MockConfocalFile:
                 blue_channel=make_slice(blue_photon_counts),
                 green_channel=make_slice(green_photon_counts),
             ),
-            json.loads(json_string)["value0"],
+            ScanMetaData.from_json(json_string),
             start + len(infowave) * dt,
         )
 
 
 def generate_kymo(name, image, pixel_size_nm, start=4, dt=7, samples_per_pixel=5, line_padding=3):
-    confocal_file, json, stop = MockConfocalFile.from_image(
+    confocal_file, metadata, stop = MockConfocalFile.from_image(
         image,
         pixel_sizes_nm=[pixel_size_nm],
         axes=[0],
@@ -192,13 +193,13 @@ def generate_kymo(name, image, pixel_size_nm, start=4, dt=7, samples_per_pixel=5
         line_padding=line_padding,
     )
 
-    return Kymo(name, confocal_file, start, stop, json)
+    return Kymo(name, confocal_file, start, stop, metadata)
 
 
 def generate_scan(
     name, scan_data, pixel_sizes_nm, start=4, dt=7, samples_per_pixel=5, line_padding=3
 ):
-    confocal_file, json, stop = MockConfocalFile.from_image(
+    confocal_file, metadata, stop = MockConfocalFile.from_image(
         np.swapaxes(scan_data, -1, -2),
         pixel_sizes_nm=pixel_sizes_nm,
         axes=np.arange(scan_data.ndim),
@@ -208,4 +209,4 @@ def generate_scan(
         line_padding=line_padding,
     )
 
-    return Scan(name, confocal_file, start, stop, json)
+    return Scan(name, confocal_file, start, stop, metadata)

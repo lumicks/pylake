@@ -26,23 +26,6 @@ class ImageMetadata:
         else:
             self._pixel_size_y = pixel_size_x
 
-    @staticmethod
-    def from_dataset(json):
-        """
-        Fetch metadata from json structure
-
-        Parameters
-        ----------
-        json : dict
-            json structure containing kymograph metadata
-        """
-        if json:
-            pixel_size = json["scan volume"]["scan axes"][0]["pixel size (nm)"]
-            pixel_time = json["scan volume"]["pixel time (ms)"]
-            return ImageMetadata(pixel_size_x=pixel_size, pixel_time=pixel_time)
-        else:
-            return ImageMetadata()
-
     @property
     def resolution(self):
         """X, Y resolution in pixels per cm followed by unit specification accepted by Tifffile"""

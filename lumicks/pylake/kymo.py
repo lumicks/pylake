@@ -6,7 +6,7 @@ from copy import copy
 from skimage.measure import block_reduce
 from deprecated.sphinx import deprecated
 from .adjustments import ColorAdjustment
-from .detail.confocal import ConfocalImage, linear_colormaps
+from .detail.confocal import ConfocalImage, linear_colormaps, ScanMetaData
 from .detail.image import (
     line_timestamps_image,
     seek_timestamp_next_line,
@@ -41,16 +41,16 @@ class Kymo(ConfocalImage):
         Start point in the relevant info wave.
     stop : int
         End point in the relevant info wave.
-    json : dict
-        Dictionary containing kymograph-specific metadata.
+    metadata : ScanMetaData
+        Metadata for this Kymo.
     position_offset : float
         Coordinate position offset with respect to the original raw data.
     calibration : PositionCalibration
         Class defining calibration from microns to desired position units.
     """
 
-    def __init__(self, name, file, start, stop, json, position_offset=0, calibration=None):
-        super().__init__(name, file, start, stop, json)
+    def __init__(self, name, file, start, stop, metadata, position_offset=0, calibration=None):
+        super().__init__(name, file, start, stop, metadata)
         self._line_time_factory = _default_line_time_factory
         self._position_offset = position_offset
         self._calibration = PositionCalibration() if calibration is None else calibration
@@ -93,12 +93,12 @@ class Kymo(ConfocalImage):
 
         if i_min >= len(line_timestamps):
             return EmptyKymo(
-                self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._json
+                self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._metadata
             )
 
         if i_min >= i_max:
             return EmptyKymo(
-                self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._json
+                self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._metadata
             )
 
         if i_max < len(line_timestamps):

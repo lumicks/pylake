@@ -2,6 +2,8 @@ import json
 import numpy as np
 import cachetools
 from deprecated.sphinx import deprecated
+from dataclasses import dataclass
+from typing import List
 
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
@@ -64,11 +66,74 @@ def _default_timestamp_factory(self: "ConfocalImage", reduce=timestamp_mean):
 
 
 def _default_pixelsize_factory(self: "ConfocalImage"):
-    return [axes["pixel size (nm)"] / 1000 for axes in self._ordered_axes()]
+    return [axes.pixel_size_um for axes in self._metadata.ordered_axes]
 
 
 def _default_pixelcount_factory(self: "ConfocalImage"):
-    return [axes["num of pixels"] for axes in self._ordered_axes()]
+    return [axes.num_pixels for axes in self._metadata.ordered_axes]
+
+
+@dataclass
+class ScanAxis:
+    axis: int
+    num_pixels: int
+    pixel_size_um: float
+
+    @property
+    def axis_label(self):
+        return ("X", "Y", "Z")[self.axis]
+
+
+@dataclass
+class ScanMetaData:
+    """Scan metadata
+
+    Parameters
+    ----------
+    scan_axes : list[ScanAxis]
+        Scan axes ordered by scanning speed (first axis being the fast axis).
+    center_point_um : np.ndarray
+        Center point of the scan.
+    num_frames : int
+        Number of frames in the scan.
+    """
+
+    scan_axes: List[ScanAxis]
+    center_point_um: np.ndarray
+    num_frames: int
+
+    @property
+    def num_axes(self):
+        return len(self.scan_axes)
+
+    @property
+    def ordered_axes(self):
+        """Axis ordered by spatial axis"""
+        return sorted(self.scan_axes, key=lambda x: x.axis)
+
+    @property
+    def fast_axis(self):
+        return self.scan_axes[0].axis_label
+
+    @property
+    def scan_order(self):
+        """Order in which the axes are scanned.
+
+        Assume we have an Y, X scan, then the physical axis order is X, Y. In that case, this
+        function would return [1, 0]. For an X, Z scan physical axes order would be X, Z, so in
+        that case this function would return [0, 1]."""
+        return np.argsort([x.axis for x in self.scan_axes])
+
+    @classmethod
+    def from_json(cls, json_string):
+        json_dict = json.loads(json_string)["value0"]
+
+        axes = [
+            ScanAxis(ax["axis"], ax["num of pixels"], ax["pixel size (nm)"] / 1000)
+            for ax in json_dict["scan volume"]["scan axes"]
+        ]
+
+        return cls(axes, json_dict["scan volume"]["center point (um)"], json_dict["scan count"])
 
 
 class BaseScan(PhotonCounts, ExcitationLaserPower):
@@ -84,15 +149,15 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         Start point in the relevant info wave.
     stop : int
         End point in the relevant info wave.
-    json : dict
-        Dictionary containing metadata.
+    metadata : ScanMetaData
+        Metadata.
     """
 
-    def __init__(self, name, file, start, stop, json):
+    def __init__(self, name, file, start, stop, metadata):
         self.start = start
         self.stop = stop
         self.name = name
-        self._json = json
+        self._metadata = metadata
         self.file = file
         self._image_factory = _default_image_factory
         self._timestamp_factory = _default_timestamp_factory
@@ -122,11 +187,11 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         stop = h5py_dset.attrs["Stop time (ns)"]
         name = h5py_dset.name.split("/")[-1]
         try:
-            json_data = json.loads(h5py_dset[()])["value0"]
+            metadata = ScanMetaData.from_json(h5py_dset[()])
         except KeyError:
             raise KeyError(f"{cls.__name__} '{name}' is missing metadata and cannot be loaded")
 
-        return cls(name, file, start, stop, json_data)
+        return cls(name, file, start, stop, metadata)
 
     @property
     def pixel_time_seconds(self):
@@ -139,7 +204,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
             file=self.file,
             start=self.start,
             stop=self.stop,
-            json=self._json,
+            metadata=self._metadata,
         )
 
     def _get_photon_count(self, name):
@@ -256,22 +321,12 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
     @property
     def center_point_um(self):
-        """Returns a dictionary of the x/y/z center coordinates of the scan (w.r.t. brightfield field of view)"""
-        return self._json["scan volume"]["center point (um)"]
+        """Returns a dictionary of the x/y/z center coordinates of the scan (w.r.t. brightfield
+        field of view)"""
+        return self._metadata.center_point_um
 
 
 class ConfocalImage(BaseScan):
-    def _ordered_axes(self):
-        """Returns axis indices in spatial order"""
-        return sorted(self._json["scan volume"]["scan axes"], key=lambda x: x["axis"])
-
-    @property
-    def _scan_order(self):
-        """Order in which the axes are scanned. Assume we have an Y, X scan, then the physical
-        axis order is X, Y. In that case, this function would return [1, 0]. For an X, Z scan
-        physical axes order would be X, Z, so in that case this function would return [0, 1]."""
-        return np.argsort([x["axis"] for x in self._json["scan volume"]["scan axes"]])
-
     def _to_spatial(self, data):
         """Implements any necessary post-processing actions after image reconstruction from infowave"""
         raise NotImplementedError
@@ -319,7 +374,17 @@ class ConfocalImage(BaseScan):
         """
         if self.get_image("rgb").size > 0:
             save_tiff(
-                self.get_image("rgb"), filename, dtype, clip, ImageMetadata.from_dataset(self._json)
+                self.get_image("rgb"),
+                filename,
+                dtype,
+                clip,
+                ImageMetadata(
+                    pixel_size_x=self.pixelsize_um[0] * 1000,  # um => nm
+                    pixel_size_y=self.pixelsize_um[1] * 1000
+                    if len(self.pixelsize_um) > 1
+                    else None,
+                    pixel_time=self.pixel_time_seconds,
+                ),
             )
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")
@@ -335,7 +400,7 @@ class ConfocalImage(BaseScan):
 
     @property
     def pixels_per_line(self):
-        return self._num_pixels[self._scan_order[0]]
+        return self._num_pixels[self._metadata.scan_order[0]]
 
     @property
     def _num_pixels(self):
@@ -343,7 +408,7 @@ class ConfocalImage(BaseScan):
 
     @property
     def fast_axis(self):
-        return "X" if self._json["scan volume"]["scan axes"][0]["axis"] == 0 else "Y"
+        return self._metadata.fast_axis
 
     @property
     def timestamps(self) -> np.ndarray:

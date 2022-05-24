@@ -5,34 +5,6 @@ from lumicks.pylake.detail.image import reconstruct_image, reconstruct_image_sum
     ImageMetadata, line_timestamps_image, histogram_rows
 
 
-def test_metadata_from_json():
-    json = { 'cereal_class_version': 1,
-             'fluorescence': True,
-             'force': False,
-             'scan count': 0,
-             'scan volume': {'center point (um)': {'x': 58.075877109272604,
-                                                   'y': 31.978375270573267,
-                                                   'z': 0},
-                             'cereal_class_version': 1,
-                             'pixel time (ms)': 0.5,
-                             'scan axes': [{'axis': 0,
-                                            'cereal_class_version': 1,
-                                            'num of pixels': 240,
-                                            'pixel size (nm)': 150,
-                                            'scan time (ms)': 0,
-                                            'scan width (um)': 36.07468112612217}]}}
-
-    image_metadata = ImageMetadata.from_dataset(json)
-
-    res = image_metadata.resolution
-    assert np.isclose(res[0], 1e7 / 150)
-    assert np.isclose(res[1], 1e7 / 150)
-    assert res[2] == 'CENTIMETER'
-
-    assert np.isclose(image_metadata.metadata['PixelTime'], .0005)
-    assert image_metadata.metadata['PixelTimeUnit'] == 's'
-
-
 @pytest.mark.parametrize("num_lines, pixels_per_line, pad_size", [(5, 3, 3), (5, 4, 2), (4, 7, 5)])
 def test_timestamps_image(num_lines, pixels_per_line, pad_size):
     line_info_wave = np.tile(np.array([1, 1, 2], dtype=np.int32), (pixels_per_line, ))

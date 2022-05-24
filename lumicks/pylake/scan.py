@@ -6,10 +6,6 @@ from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import reconstruct_num_frames, make_image_title
 
 
-"""Axis label used for plotting"""
-axis_label = ("x", "y", "z")
-
-
 class Scan(ConfocalImage):
     """A confocal scan exported from Bluelake
 
@@ -23,14 +19,14 @@ class Scan(ConfocalImage):
         Start point in the relevant info wave.
     stop : int
         End point in the relevant info wave.
-    json : dict
-        Dictionary containing scan-specific metadata.
+    metadata : ScanMetaData
+        Metadata.
     """
 
-    def __init__(self, name, file, start, stop, json):
-        super().__init__(name, file, start, stop, json)
-        self._num_frames = self._json["scan count"]
-        if len(self._json["scan volume"]["scan axes"]) > 2:
+    def __init__(self, name, file, start, stop, metadata):
+        super().__init__(name, file, start, stop, metadata)
+        self._num_frames = self._metadata.num_frames
+        if self._metadata.num_axes > 2:
             raise RuntimeError("3D scans are not supported")
 
     def __repr__(self):
@@ -67,10 +63,9 @@ class Scan(ConfocalImage):
         """Pixel dwell time in seconds"""
         indices = np.zeros(self.timestamps.ndim, dtype=int)
 
-        # The dimensions of the timestamp array are ordered according to physical axis rather than
-        # fast-axis / slow axis. If the fast axis is not the first one, then we must swap them back.
-        physical_axis = [axis["axis"] for axis in self._json["scan volume"]["scan axes"]]
-        indices[-2 if physical_axis[0] > physical_axis[1] else -1] = 1
+        # We want the difference along the fast axis. The first (optional) index corresponds to the
+        # frame. The last two indices correspond to the imaging axes.
+        indices[-2 if self._metadata.scan_order[0] > self._metadata.scan_order[1] else -1] = 1
         return (self.timestamps.item(tuple(indices)) - self.timestamps.item(0)) / 1e9
 
     @property
@@ -174,7 +169,7 @@ class Scan(ConfocalImage):
 
     @property
     def lines_per_frame(self):
-        return self._num_pixels[self._scan_order[1]]
+        return self._num_pixels[self._metadata.scan_order[1]]
 
     @property
     def _shape(self):
@@ -197,8 +192,7 @@ class Scan(ConfocalImage):
         Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis."""
         data = data.squeeze()
 
-        physical_axis = [axis["axis"] for axis in self._json["scan volume"]["scan axes"]]
-        if physical_axis[0] > physical_axis[1]:
+        if self._metadata.scan_order[0] > self._metadata.scan_order[1]:
             new_axis_order = np.arange(len(data.shape), dtype=int)
             new_axis_order[-1], new_axis_order[-2] = new_axis_order[-2], new_axis_order[-1]
             return np.transpose(data, new_axis_order)
@@ -256,9 +250,9 @@ class Scan(ConfocalImage):
 
         adjustment._update_limits(image_handle, image, channel)
 
-        scan_axes = self._ordered_axes()
-        axes.set_xlabel(rf"{axis_label[scan_axes[0]['axis']]} ($\mu$m)")
-        axes.set_ylabel(rf"{axis_label[scan_axes[1]['axis']]} ($\mu$m)")
+        scan_axes = self._metadata.ordered_axes
+        axes.set_xlabel(rf"{scan_axes[0].axis_label.lower()} ($\mu$m)")
+        axes.set_ylabel(rf"{scan_axes[1].axis_label.lower()} ($\mu$m)")
         axes.set_title(make_image_title(self, frame))
 
         return image_handle
