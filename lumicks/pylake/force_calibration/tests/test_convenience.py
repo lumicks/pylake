@@ -135,3 +135,10 @@ def test_diode_fixing(reference_models):
     fit = calibrate_force(data, 1, 20, fixed_diode=14000, fixed_alpha=0.5)
     assert "f_diode" in fit.params
     assert "alpha" in fit.params
+
+    fit = calibrate_force(data, 1, 20, fixed_alpha=0)
+    assert "f_diode" not in fit.params
+    assert "alpha" in fit.params
+
+    with pytest.raises(ValueError, match="Fixed diode frequency must be larger than zero."):
+        calibrate_force(data, 1, 20, fixed_diode=0)

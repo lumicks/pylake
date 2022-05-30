@@ -14,6 +14,7 @@
 * Fixed an issue where the pixel dwell time stored in TIFFs exported from Pylake could be incorrect. Prior to this fix, Pylake exported the value entered in the Bluelake UI as pixel dwell time. In reality, the true pixel dwell time is a multiple of the acquisition sample rate. After the fix, TIFF files correctly report the achieved pixel dwell time. 
 * Perform better input validation on the kymotracking functions `track_greedy` and `track_lines`. The line width and pixel threshold must be larger than zero. The diffusion parameter must be positive. Previously, failure to provide values respecting these limits would produce cryptic error messages.
 * Perform better input validation on `refine_lines_centroid`. Line width must now be at least one pixel. Previously, negative values produced a cryptic error message, while a line width smaller than one pixel would silently result in no refinement taking place.
+* Fixed bug in force calibration convenience function where setting `fixed_alpha` or `fixed_diode` to zero resulted in those parameters still being fitted.  After this change, setting `fixed_alpha` to zero will result in the diode model having a fixed `alpha` of zero, whereas setting `f_diode` to zero raises an exception.
 
 ## v0.12.0 | 2022-04-21
 

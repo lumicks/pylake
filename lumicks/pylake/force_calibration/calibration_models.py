@@ -169,6 +169,9 @@ class FixedDiodeModel(FilterBase):
         if diode_alpha is not None and not 0 <= diode_alpha <= 1.0:
             raise ValueError("Diode relaxation factor should be between 0 and 1 (inclusive).")
 
+        if diode_frequency is not None and diode_frequency <= 0:
+            raise ValueError("Fixed diode frequency must be larger than zero.")
+
         self.diode_frequency = diode_frequency
         self.diode_alpha = diode_alpha
 
