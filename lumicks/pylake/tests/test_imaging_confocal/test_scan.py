@@ -394,3 +394,16 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans):
             np.testing.assert_allclose(plotted_image.get_array(), image[0])
             np.testing.assert_allclose(plotted_image.get_clim(), [lb_abs, ub_abs])
             plt.close(fig)
+
+
+@pytest.mark.parametrize("scan, pixel_time",
+                         [
+                             ("fast Y slow X", 0.1875),
+                             ("fast X slow Z multiframe", 0.1875),
+                             ("fast Y slow X multiframe", 0.1875),
+                             ("fast Y slow Z multiframe", 0.1875),
+                             ("fast Y slow X", 0.1875),
+                         ]
+                         )
+def test_scan_pixel_time(test_scans, scan, pixel_time):
+    np.testing.assert_allclose(test_scans[scan].pixel_time_seconds, pixel_time)

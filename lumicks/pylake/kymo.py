@@ -112,6 +112,11 @@ class Kymo(ConfocalImage):
 
         return sliced_kymo
 
+    @property
+    def pixel_time_seconds(self):
+        """Pixel dwell time in seconds"""
+        return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
+
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
         """Compute starting timestamp of each line (first DAQ sample corresponding to that line),

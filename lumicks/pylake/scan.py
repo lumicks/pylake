@@ -63,6 +63,17 @@ class Scan(ConfocalImage):
         return new_scan
 
     @property
+    def pixel_time_seconds(self):
+        """Pixel dwell time in seconds"""
+        indices = np.zeros(self.timestamps.ndim, dtype=int)
+
+        # The dimensions of the timestamp array are ordered according to physical axis rather than
+        # fast-axis / slow axis. If the fast axis is not the first one, then we must swap them back.
+        physical_axis = [axis["axis"] for axis in self._json["scan volume"]["scan axes"]]
+        indices[-2 if physical_axis[0] > physical_axis[1] else -1] = 1
+        return (self.timestamps.item(tuple(indices)) - self.timestamps.item(0)) / 1e9
+
+    @property
     def num_frames(self):
         if self._num_frames == 0:
             self._num_frames = reconstruct_num_frames(

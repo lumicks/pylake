@@ -2,6 +2,10 @@
 
 ## v0.12.1 | t.b.d.
 
+#### New features
+
+* Added `Scan.pixel_time_seconds` and `Kymo.pixel_time_seconds` to obtain the pixel dwell time. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html).
+
 #### Bug fixes
 
 * Changed the internal calculation of the `extent` argument in `Kymo.plot()` such that the spatial limits are now defined at the center of the pixel (same functionality that is used for the temporal axis). Previously the limits were defined at the edge of the pixel and caused a subtle misalignment between the coordinates of the tracked lines and the actual image.

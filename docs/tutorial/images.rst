@@ -70,6 +70,7 @@ There are also several properties available for convenient access to the scan me
 * `scan.pixels_per_line` provides the number of pixels in each line of the scan (number of columns in the raw data array)
 * `scan.fast_axis` provides the fastest axis that was scanned (x or y)
 * `scan.num_frames` provides the number of frames available
+* `kymo.pixel_time_seconds` provides the pixel dwell time.
 
 
 Plotting and Exporting
