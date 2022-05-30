@@ -40,6 +40,7 @@ def test_kymo_properties(test_kymos):
     np.testing.assert_allclose(kymo.center_point_um["y"], 31.978375270573267)
     np.testing.assert_allclose(kymo.center_point_um["z"], 0)
     np.testing.assert_allclose(kymo.size_um, [0.050])
+    np.testing.assert_allclose(kymo.pixel_time_seconds, 0.1875)
 
     with pytest.deprecated_call():
         assert kymo.rgb_image.shape == (5, 4, 3)
@@ -356,6 +357,12 @@ def test_downsampled_kymo():
     # Verify that we can pass a different reduce function
     np.testing.assert_allclose(kymo.downsampled_by(time_factor=2, reduce=np.mean).get_image("red"), ds / 2)
 
+    with pytest.raises(
+            AttributeError,
+            match="Per-pixel timestamps are no longer available after downsampling",
+    ):
+        kymo_ds.pixel_time_seconds
+
 
 def test_downsampled_kymo_position():
     """Test downsampling over the spatial axis"""
@@ -398,6 +405,8 @@ def test_downsampled_kymo_position():
 
     # We lost one line while downsampling
     np.testing.assert_allclose(kymo_ds.size_um[0], kymo.size_um[0] - kymo.pixelsize_um[0])
+
+    np.testing.assert_allclose(kymo_ds.pixel_time_seconds, kymo.pixel_time_seconds * 2)
 
 
 def test_downsampled_kymo_both_axes():

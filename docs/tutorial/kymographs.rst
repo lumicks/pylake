@@ -56,6 +56,8 @@ There are also several properties available for convenient access to the kymogra
 * `kymo.pixels_per_line` provides the number of pixels in each line of the kymograph
 * `kymo.fast_axis` provides the axis that was scanned (x or y)
 * `kymo.line_time_seconds` provides the time between successive lines
+* `kymo.pixel_time_seconds` provides the pixel dwell time.
+
 
 Cropping and slicing
 --------------------

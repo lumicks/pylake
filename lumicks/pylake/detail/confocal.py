@@ -128,6 +128,11 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
         return cls(name, file, start, stop, json_data)
 
+    @property
+    def pixel_time_seconds(self):
+        """Pixel dwell time in seconds"""
+        raise NotImplementedError("Pixel dwell times have not been implemented for this class.")
+
     def __copy__(self):
         return self.__class__(
             name=self.name,
