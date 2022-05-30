@@ -112,7 +112,7 @@ def calibrate_force(
         if drag:
             raise ValueError("Drag coefficient cannot be carried over to active calibration.")
 
-    if (fixed_diode or fixed_alpha) and fast_sensor:
+    if (fixed_diode is not None or fixed_alpha is not None) and fast_sensor:
         raise ValueError("When using fast_sensor=True, there is no diode model to fix.")
 
     if active_calibration and driving_data.size == 0:
@@ -144,7 +144,7 @@ def calibrate_force(
     if drag:
         model._set_drag(drag)
 
-    if fixed_diode or fixed_alpha:
+    if fixed_diode is not None or fixed_alpha is not None:
         model._filter = FixedDiodeModel(fixed_diode, fixed_alpha)
 
     ps = calculate_power_spectrum(
