@@ -153,6 +153,10 @@ def test_slicing(test_scans):
     with pytest.raises(NotImplementedError, match="Slice is empty."):
         scan0[5:5]
 
+    # Verify no side effects
+    scan0[0]
+    assert scan0.num_frames == 10
+
 
 def test_damaged_scan(test_scans):
     # Assume the user incorrectly exported only a partial scan (62500000 is the time step)

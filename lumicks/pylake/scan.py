@@ -25,7 +25,6 @@ class Scan(ConfocalImage):
 
     def __init__(self, name, file, start, stop, metadata):
         super().__init__(name, file, start, stop, metadata)
-        self._num_frames = self._metadata.num_frames
         if self._metadata.num_axes > 2:
             raise RuntimeError("3D scans are not supported")
 
@@ -54,7 +53,7 @@ class Scan(ConfocalImage):
         new_scan = copy(self)
         new_scan.start = start
         new_scan.stop = stop
-        new_scan._num_frames = num_frames
+        new_scan._metadata = self._metadata.with_num_frames(num_frames)
 
         return new_scan
 
@@ -70,11 +69,13 @@ class Scan(ConfocalImage):
 
     @property
     def num_frames(self):
-        if self._num_frames == 0:
-            self._num_frames = reconstruct_num_frames(
-                self.infowave.data, self.pixels_per_line, self.lines_per_frame
+        if self._metadata.num_frames == 0:
+            self._metadata = self._metadata.with_num_frames(
+                reconstruct_num_frames(
+                    self.infowave.data, self.pixels_per_line, self.lines_per_frame
+                )
             )
-        return self._num_frames
+        return self._metadata.num_frames
 
     def frame_timestamp_ranges(self, exclude=True):
         """Get start and stop timestamp of each frame in the scan.

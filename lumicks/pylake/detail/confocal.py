@@ -73,7 +73,7 @@ def _default_pixelcount_factory(self: "ConfocalImage"):
     return [axes.num_pixels for axes in self._metadata.ordered_axes]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScanAxis:
     axis: int
     num_pixels: int
@@ -84,7 +84,7 @@ class ScanAxis:
         return ("X", "Y", "Z")[self.axis]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScanMetaData:
     """Scan metadata
 
@@ -100,7 +100,11 @@ class ScanMetaData:
 
     scan_axes: List[ScanAxis]
     center_point_um: np.ndarray
-    num_frames: int
+    num_frames: int  # can be 0 for Scan, in which case it needs to be reconstructed from infowave
+
+    def with_num_frames(self, num_frames):
+        """Returns new scan metadata with different number of frames"""
+        return ScanMetaData(self.scan_axes, self.center_point_um, num_frames)
 
     @property
     def num_axes(self):
