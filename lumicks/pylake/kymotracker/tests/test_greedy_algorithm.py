@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -58,3 +59,21 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     lines = track_greedy(test_data, "red", 3 * pixel_size, 4, rect=rect)
     np.testing.assert_allclose(lines[0].coordinate_idx, [21] * np.ones(10))
     np.testing.assert_allclose(lines[0].time_idx, np.arange(15, 25))
+
+
+def test_greedy_algorithm_input_validation(kymo_integration_test_data):
+    test_data = kymo_integration_test_data
+
+    for line_width in (-1, 0):
+        with pytest.raises(ValueError, match="should be larger than zero"):
+            track_greedy(test_data, "red", line_width=line_width, pixel_threshold=10)
+
+    # Any positive value will do
+    track_greedy(test_data, "red", line_width=0.00001, pixel_threshold=10)
+
+    with pytest.raises(ValueError, match="should be positive"):
+        track_greedy(test_data, "red", line_width=10, diffusion=-1, pixel_threshold=10)
+
+    for pixel_threshold in (-1, 0):
+        with pytest.raises(ValueError, match="should be larger than zero"):
+            track_greedy(test_data, "red", line_width=10, pixel_threshold=pixel_threshold)

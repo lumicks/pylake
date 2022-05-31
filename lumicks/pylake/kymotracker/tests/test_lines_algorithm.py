@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from copy import deepcopy
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
@@ -132,3 +133,9 @@ def test_kymotracker_lines_algorithm_integration_tests(kymo_integration_test_dat
     lines = track_lines(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
     np.testing.assert_allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
     np.testing.assert_allclose(lines[0].time_idx, np.arange(14, 26))
+
+
+def test_lines_algorithm_input_validation(kymo_integration_test_data):
+    for line_width in (-1, 0):
+        with pytest.raises(ValueError, match="should be larger than zero"):
+            track_lines(kymo_integration_test_data, "red", line_width=line_width, max_lines=1000)

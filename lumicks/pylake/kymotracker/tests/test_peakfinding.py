@@ -22,6 +22,17 @@ def test_peak_estimation(location):
     assert np.abs(peaks.frames[0].coordinates[0] - location) < 1e-3
 
 
+def test_peak_refinement_input_validation():
+    """When the kernel size is zero, then centroid refinement simply does nothing. Since this could
+    lead to unexpected results (i.e. no subpixel accuracy), we throw."""
+    data = np.tile(np.exp(-((np.arange(25) - 12.3) ** 2)), (1, 1)).T
+    position, time = np.array([12]), np.array([0])
+    with pytest.raises(ValueError, match="half_kernel_size may not be smaller than 1"):
+        KymoPeaks(*refine_peak_based_on_moment(data, position, time, half_kernel_size=0))
+
+    KymoPeaks(*refine_peak_based_on_moment(data, position, time, half_kernel_size=1))  # should work
+
+
 def test_regression_peak_estimation():
     # This test tests a regression where a peak could be found adjacent to a very bright structure.
     # The error originated from the blurring used to get rid of pixelation noise being applied

@@ -99,6 +99,9 @@ def refine_peak_based_on_moment(
         We add a little offset to the normalization to prevent divisions by zeros on pixels that did not have any photon
         counts. Eps sets this offset.
     """
+    if half_kernel_size < 1:
+        raise ValueError("half_kernel_size may not be smaller than 1")
+
     half_kernel_size = int(math.ceil(half_kernel_size))
     dir_kernel = np.expand_dims(np.arange(half_kernel_size, -(half_kernel_size + 1), -1), 1)
     mean_kernel = np.ones((2 * half_kernel_size + 1, 1))

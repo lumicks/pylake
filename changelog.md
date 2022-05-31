@@ -12,6 +12,8 @@
 * Changed the internal calculation of the hydrodynamically correct force spectrum. Before this change, the computation of the power spectral density relied on the frequencies always being positive. While this change does not affect any results, it allows evaluating the power spectral density for negative frequencies.
 * Fixed an issue where evaluating the hydrodynamically correct spectrum up to very high frequencies could lead to precision losses. These precision losses typically occur at frequencies upwards of 30 kHz and manifest themselves as visible discontinuities.
 * Fixed an issue where the pixel dwell time stored in TIFFs exported from Pylake could be incorrect. Prior to this fix, Pylake exported the value entered in the Bluelake UI as pixel dwell time. In reality, the true pixel dwell time is a multiple of the acquisition sample rate. After the fix, TIFF files correctly report the achieved pixel dwell time. 
+* Perform better input validation on the kymotracking functions `track_greedy` and `track_lines`. The line width and pixel threshold must be larger than zero. The diffusion parameter must be positive. Previously, failure to provide values respecting these limits would produce cryptic error messages.
+* Perform better input validation on `refine_lines_centroid`. Line width must now be at least one pixel. Previously, negative values produced a cryptic error message, while a line width smaller than one pixel would silently result in no refinement taking place.
 
 ## v0.12.0 | 2022-04-21
 
