@@ -79,10 +79,10 @@ def track_greedy(
     channel : str
         Kymograph channel.
     line_width : float
-        Expected line width in physical units.
+        Expected line width in physical units. Must be larger than zero.
     pixel_threshold : float
         Intensity threshold for the pixels. Local maxima above this intensity level will be
-        designated as a line origin.
+        designated as a line origin. Must be larger than zero.
     window : int
         Number of kymograph lines in which the particle is allowed to disappear (and still be part
         of the same line).
@@ -99,7 +99,8 @@ def track_greedy(
         whether a peak in the next frame will be connected to this one. Increasing this value will
         make the algorithm allow more positional variation over time. If a particle disappears for
         a few frames and then reappears, points before and after the interval where the particle
-        was not visible are more likely to be connected with a higher diffusion setting.
+        was not visible are more likely to be connected with a higher diffusion setting. Must be
+        equal to or greater than zero.
     sigma_cutoff : float
         Sets at how many standard deviations from the expected trajectory a particle no longer
         belongs to this trace. Lower values result in traces being more stringent in terms of
@@ -118,6 +119,16 @@ def track_greedy(
     tools for the automated quantitative analysis of molecular and cellular dynamics using
     kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
+    if line_width <= 0:
+        # Must be positive otherwise refinement fails
+        raise ValueError(f"line_width should be larger than zero")
+
+    if pixel_threshold <= 0:
+        raise ValueError(f"pixel_threshold should be larger than zero")
+
+    if diffusion < 0:
+        raise ValueError(f"diffusion should be positive")  # Must be positive or score model fails
+
     kymograph_data = kymograph.get_image(channel)
 
     position_scale = kymograph.pixelsize[0]
@@ -202,7 +213,7 @@ def track_lines(
     channel : str
         Kymograph channel.
     line_width : float
-        Expected line width in physical units.
+        Expected line width in physical units. Must be larger than zero.
     max_lines : int
         Maximum number of lines to trace.
     start_threshold : float
@@ -222,6 +233,9 @@ def track_lines(
     [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on
     pattern analysis and machine intelligence, 20(2), 113-125.
     """
+    if line_width <= 0:
+        raise ValueError("line_width should be larger than zero")
+
     kymograph_data = kymograph.get_image(channel)
     roi = (
         _to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds) if rect else None
@@ -269,12 +283,14 @@ def refine_lines_centroid(lines, line_width):
     Parameters
     ----------
     lines : List[pylake.KymoLine]
-        Detected traces on a kymograph.
+        Detected traces on a kymograph
     line_width : int
-        Line width
-    max_iter : int
-        Maximum number of iterations
+        Line width in pixels (may not be smaller than 1)
     """
+    if line_width < 1:
+        # Refinement only does something when line_width in pixels is larger than 1
+        raise ValueError("line_width may not be smaller than 1")
+
     interpolated_lines = [line.interpolate() for line in lines]
     time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(
         int

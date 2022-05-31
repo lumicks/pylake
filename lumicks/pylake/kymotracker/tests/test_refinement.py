@@ -82,6 +82,11 @@ def test_refinement_line(loc, inv_sigma=0.3):
     np.testing.assert_allclose(line.coordinate_idx, loc, rtol=1e-2)
 
 
+def test_refinement_line(kymo_integration_test_data):
+    with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
+        refine_lines_centroid([KymoLine([0], [25], kymo_integration_test_data, "red")], 0)[0]
+
+
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
 def test_gaussian_refinement(kymogroups_2lines, fit_mode):
     lines, gapped_lines, mixed_lines = kymogroups_2lines
