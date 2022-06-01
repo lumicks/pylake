@@ -1,13 +1,19 @@
 import pytest
 import numpy as np
 from lumicks.pylake.adjustments import ColorAdjustment
-from lumicks.pylake.detail.image import reconstruct_image, reconstruct_image_sum, \
-    reconstruct_num_frames, save_tiff, line_timestamps_image, histogram_rows
+from lumicks.pylake.detail.image import (
+    reconstruct_image,
+    reconstruct_image_sum,
+    reconstruct_num_frames,
+    save_tiff,
+    line_timestamps_image,
+    histogram_rows,
+)
 
 
 @pytest.mark.parametrize("num_lines, pixels_per_line, pad_size", [(5, 3, 3), (5, 4, 2), (4, 7, 5)])
 def test_timestamps_image(num_lines, pixels_per_line, pad_size):
-    line_info_wave = np.tile(np.array([1, 1, 2], dtype=np.int32), (pixels_per_line, ))
+    line_info_wave = np.tile(np.array([1, 1, 2], dtype=np.int32), (pixels_per_line,))
     line_selector = np.zeros(line_info_wave.shape)
     line_selector[0] = True
     pad = np.zeros(pad_size, dtype=np.int32)
@@ -20,7 +26,7 @@ def test_timestamps_image(num_lines, pixels_per_line, pad_size):
     time = np.arange(len(infowave), dtype=np.int64) * int(700e9) + 1623965975045144000
 
     line_stamps = line_timestamps_image(time, infowave, pixels_per_line)
-    assert line_stamps.shape == (sum(start_indices), )
+    assert line_stamps.shape == (sum(start_indices),)
     np.testing.assert_equal(line_stamps, time[start_indices == 1])
 
 
@@ -28,19 +34,19 @@ def test_reconstruct():
     infowave = np.array([0, 1, 0, 1, 1, 0, 2, 1, 0, 1, 0, 0, 1, 2, 1, 1, 1, 2])
     the_data = np.array([1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3])
 
-    image = reconstruct_image(the_data, infowave, (5, ))
+    image = reconstruct_image(the_data, infowave, (5,))
     assert image.shape == (1, 5)
     assert np.all(image == [4, 8, 12, 0, 0])
 
-    image = reconstruct_image(the_data, infowave, (2, ))
+    image = reconstruct_image(the_data, infowave, (2,))
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
 
-    image = reconstruct_image_sum(the_data, infowave, (5, ))
+    image = reconstruct_image_sum(the_data, infowave, (5,))
     assert image.shape == (1, 5)
     assert np.all(image == [4, 8, 12, 0, 0])
 
-    image = reconstruct_image_sum(the_data, infowave, (2, ))
+    image = reconstruct_image_sum(the_data, infowave, (2,))
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
 
@@ -51,16 +57,16 @@ def test_reconstruct_multiframe():
     infowave[9::10] = 2
     the_data = np.arange(size)
 
-    assert reconstruct_image(the_data, infowave, (5, )).shape == (2, 5)
-    assert reconstruct_image(the_data, infowave, (2, )).shape == (5, 2)
-    assert reconstruct_image(the_data, infowave, (1, )).shape == (10, 1)
+    assert reconstruct_image(the_data, infowave, (5,)).shape == (2, 5)
+    assert reconstruct_image(the_data, infowave, (2,)).shape == (5, 2)
+    assert reconstruct_image(the_data, infowave, (1,)).shape == (10, 1)
     assert reconstruct_image(the_data, infowave, (2, 2)).shape == (3, 2, 2)
     assert reconstruct_image(the_data, infowave, (3, 2)).shape == (2, 3, 2)
     assert reconstruct_image(the_data, infowave, (5, 2)).shape == (1, 5, 2)
 
-    assert reconstruct_image_sum(the_data, infowave, (5, )).shape == (2, 5)
-    assert reconstruct_image_sum(the_data, infowave, (2, )).shape == (5, 2)
-    assert reconstruct_image_sum(the_data, infowave, (1, )).shape == (10, 1)
+    assert reconstruct_image_sum(the_data, infowave, (5,)).shape == (2, 5)
+    assert reconstruct_image_sum(the_data, infowave, (2,)).shape == (5, 2)
+    assert reconstruct_image_sum(the_data, infowave, (1,)).shape == (10, 1)
     assert reconstruct_image_sum(the_data, infowave, (2, 2)).shape == (3, 2, 2)
     assert reconstruct_image_sum(the_data, infowave, (3, 2)).shape == (2, 3, 2)
     assert reconstruct_image_sum(the_data, infowave, (5, 2)).shape == (1, 5, 2)
@@ -146,7 +152,7 @@ def test_float_tiff(tmpdir):
 
 
 def test_histogram_rows():
-    data = np.arange(36).reshape((6,6))
+    data = np.arange(36).reshape((6, 6))
 
     e, h, w = histogram_rows(data, 1, 0.1)
     np.testing.assert_allclose(e, [0.0, 0.1, 0.2, 0.3, 0.4, 0.5])
@@ -173,6 +179,7 @@ def test_partial_pixel_image_reconstruction():
     from the timestamps prior to summing is smaller. This means that the timestamps more quickly
     get into the range where they are at risk of overflow (and therefore have to be summed in
     smaller blocks). This in turn can lead to unnecessarily long reconstruction times."""
+
     def size_test(x, axis):
         assert len(x) == 4, "The last pixel should have been dropped since it was partial"
         return np.array([1, 1, 1, 1])
@@ -208,11 +215,13 @@ def test_absolute_ranges(minimum, maximum, ref_minimum, ref_maximum):
 @pytest.mark.parametrize(
     "minimum, maximum, gamma, ref_minimum, ref_maximum, ref_gamma",
     [
+        # fmt: off
         (1.0, 5.0, [0.5, 2.0, 3.0], [1.0, 1.0, 1.0], [5.0, 5.0, 5.0], [0.5, 2.0, 3.0]),
         ([1.0, 2.0, 3.0], [3.0, 4.0, 5.0], 0.5, [1.0, 2.0, 3.0], [3.0, 4.0, 5.0], [0.5, 0.5, 0.5]),
         ([1.0], [3.0, 4.0, 5.0], [0.2, 1.0, 2.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0], [0.2, 1.0, 2.0]),
         ([1.0, 2.0, 3.0], [5.0], None, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0], [1, 1, 1]),  # none passed
         ([1.0, 2.0, 3.0], 5.0, 1, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0], [1, 1, 1]),
+        # fmt: on
     ],
 )
 def test_gamma(minimum, maximum, gamma, ref_minimum, ref_maximum, ref_gamma):
