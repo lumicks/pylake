@@ -7,7 +7,7 @@ from typing import List
 
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
-from .image import reconstruct_image_sum, reconstruct_image, save_tiff, ImageMetadata
+from .image import reconstruct_image_sum, reconstruct_image, save_tiff
 from .utilities import could_sum_overflow
 from ..adjustments import ColorAdjustment
 from matplotlib.colors import LinearSegmentedColormap
@@ -382,13 +382,8 @@ class ConfocalImage(BaseScan):
                 filename,
                 dtype,
                 clip,
-                ImageMetadata(
-                    pixel_size_x=self.pixelsize_um[0] * 1000,  # um => nm
-                    pixel_size_y=self.pixelsize_um[1] * 1000
-                    if len(self.pixelsize_um) > 1
-                    else None,
-                    pixel_time=self.pixel_time_seconds,
-                ),
+                pixel_sizes_um=self.pixelsize_um,
+                pixel_time_seconds=self.pixel_time_seconds,
             )
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")

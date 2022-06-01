@@ -4,41 +4,6 @@ import numpy as np
 import warnings
 
 
-class ImageMetadata:
-    """Image metadata
-
-    Parameters
-    ----------
-    pixel_size_x : float
-        Horizontal pixel size [nm]
-    pixel_size_y : float
-        Vertical pixel size [nm]
-        When omitted, assumed to be identical to pixel_size_x
-    pixel_time : float
-        How long does pixel acquisition take [ms]
-    """
-
-    def __init__(self, pixel_size_x=1.0, pixel_size_y=None, pixel_time=1.0):
-        self._pixel_time = pixel_time
-        self._pixel_size_x = pixel_size_x
-        if pixel_size_y:
-            self._pixel_size_y = pixel_size_y
-        else:
-            self._pixel_size_y = pixel_size_x
-
-    @property
-    def resolution(self):
-        """X, Y resolution in pixels per cm followed by unit specification accepted by Tifffile"""
-        # TIFF only supports centimeters and inches as valid units, hence we convert from nm => cm
-        return 1e7 / self._pixel_size_x, 1e7 / self._pixel_size_y, "CENTIMETER"
-
-    @property
-    def metadata(self):
-        """Dictionary with metadata"""
-        pixel_time = self._pixel_time * 1e-3  # ms => s
-        return {"PixelTime": pixel_time, "PixelTimeUnit": "s"}
-
-
 class InfowaveCode(enum.IntEnum):
     discard = 0  # this data sample does not contain useful information
     use = 1  # useful data to be used to form a pixel
@@ -210,7 +175,9 @@ def reconstruct_image(data, infowave, shape, reduce=np.sum):
     return reshape_reconstructed_image(pixels, shape)
 
 
-def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
+def save_tiff(
+    image, filename, dtype, clip=False, pixel_sizes_um=(1e-3, 1e-3), pixel_time_seconds=1.0
+):
     """Save an RGB `image` to TIFF
 
     This is a thin wrapper around `tifffile` with additional safety checks
@@ -226,7 +193,10 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
     clip : bool
         If enabled, the photon count data will be clipped to fit into the desired `dtype`.
         This option is disabled by default: an error will be raise if the data does not fit.
-    metadata : ImageMetadata
+    pixel_sizes_um : array_like
+        Pixel sizes in [um]
+    pixel_time_seconds : float
+        Pixel acquisition time [s]
     """
     import tifffile
 
@@ -238,11 +208,16 @@ def save_tiff(image, filename, dtype, clip=False, metadata=ImageMetadata()):
             f" or pass `force=True` to clip the data."
         )
 
+    pixel_size_x, pixel_size_y = (
+        pixel_sizes_um[0],
+        pixel_sizes_um[1] if len(pixel_sizes_um) == 2 else pixel_sizes_um[0],
+    )
+
     tifffile.imwrite(
         filename,
         image.astype(dtype),
-        resolution=metadata.resolution,
-        metadata=metadata.metadata,
+        resolution=(1e4 / pixel_size_x, 1e4 / pixel_size_y, "CENTIMETER"),
+        metadata={"PixelTime": pixel_time_seconds, "PixelTimeUnit": "s"},
         photometric="rgb",
     )
 
