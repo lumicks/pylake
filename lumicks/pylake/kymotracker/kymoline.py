@@ -525,7 +525,6 @@ class KymoLineGroup:
             raise ValueError(f"`kind` argument '{kind}' must be 'all' or 'binding'.")
         events = np.hstack([track.position[slc] for track in self])
 
-        image = self[0]._image
         pos_range = (0, self[0]._pixelsize * self[0]._image.shape[0])
         return np.histogram(events, bins=bins, range=pos_range)
 
