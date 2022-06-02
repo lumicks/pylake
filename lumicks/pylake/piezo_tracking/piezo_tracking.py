@@ -150,9 +150,9 @@ class PiezoForceDistance:
         trap_calibration : pylake.DistanceCalibration
             Calibration from trap position to trap to trap distance.
         baseline_force1 : pylake.ForceBaseline
-            Baseline for force1
+            Baseline for force1 (optional)
         baseline_force2 : pylake.ForceBaseline
-            Baseline for force2
+            Baseline for force2 (optional)
         signs : tuple(float, float)
             Sign convention for forces (e.g. (1, -1) indicates that force2 is negative).
         """
@@ -161,7 +161,7 @@ class PiezoForceDistance:
             (trap_calibration, baseline_force1, baseline_force2),
             (DistanceCalibration, ForceBaseLine, ForceBaseLine),
         ):
-            if not isinstance(variable, instance_type):
+            if variable is not None and not isinstance(variable, instance_type):
                 raise TypeError(
                     f"Expected {instance_type.__name__} for the {argument} argument, "
                     f"got {type(variable).__name__}"
@@ -175,7 +175,12 @@ class PiezoForceDistance:
     def valid_range(self):
         """Returns the mirror position range in which the piezo tracking is valid"""
         calibration_items = (self.baseline_force1, self.baseline_force2)
-        return np.min(np.stack([r.valid_range() for r in calibration_items if r]), axis=0)
+        ranges = [r.valid_range() for r in calibration_items if r]
+        if not ranges:
+            return -np.inf, np.inf
+
+        stacked_ranges = np.stack(ranges)
+        return np.max(stacked_ranges[:, 0]), np.min(stacked_ranges[:, 1])
 
     def force_distance(self, trap_position, force1, force2, trim=True, downsampling_factor=None):
         """Obtain piezo distance and baseline corrected forces
@@ -203,7 +208,7 @@ class PiezoForceDistance:
             )
 
         corrected_forces = [
-            baseline.correct_data(force, trap_position)
+            baseline.correct_data(force, trap_position) if baseline else force
             for baseline, force in zip(
                 (self.baseline_force1, self.baseline_force2), (force1, force2)
             )

@@ -116,7 +116,7 @@ def test_piezotracking(piezo_tracking_test_data):
         data["baseline_trap_position"], data["baseline_force"], degree=2
     )
     baseline_2 = ForceBaseLine.polynomial_baseline(
-        data["baseline_trap_position"], data["baseline_force"], degree=2
+        data["baseline_trap_position"], -data["baseline_force"], degree=2
     )
 
     # Perform the piezo tracking only
@@ -163,6 +163,69 @@ def test_piezo_trimming(piezo_tracking_test_data):
     np.testing.assert_allclose(
         corrected_force1.data, data["force_without_baseline"][mask], rtol=1e-6
     )
+
+
+@pytest.mark.parametrize(
+    "correct_baseline1, correct_baseline2",
+    [(True, False), (False, False), (False, True)],
+)
+def test_piezo_force_distance_missing_baselines(
+    piezo_tracking_test_data,
+    correct_baseline1,
+    correct_baseline2,
+):
+    """Test if baseline correction can indeed be omitted"""
+    data = piezo_tracking_test_data
+
+    # Calibrate using the trap position
+    distance_calibration = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+
+    # Estimate the baselines
+    baseline1, baseline2 = (
+        ForceBaseLine.polynomial_baseline(
+            data["baseline_trap_position"], sign * data["baseline_force"], degree=2
+        )
+        for sign in (1, -1)
+    )
+
+    fd_generator = PiezoForceDistance(
+        distance_calibration,
+        baseline1 if correct_baseline1 else None,
+        baseline2 if correct_baseline2 else None,
+    )
+
+    piezo_distance, corrected_force1, corrected_force2 = fd_generator.force_distance(
+        data["trap_position"], data["force_1x"], data["force_2x"], trim=False
+    )
+
+    np.testing.assert_allclose(piezo_distance.data, data["correct_distance"], rtol=1e-6)
+
+    ref_force1 = data["force_without_baseline"] if correct_baseline1 else data["force_1x"].data
+    np.testing.assert_allclose(corrected_force1.data, ref_force1, rtol=1e-6)
+    ref_force2 = -data["force_without_baseline"] if correct_baseline2 else data["force_2x"].data
+    np.testing.assert_allclose(corrected_force2.data, ref_force2, rtol=1e-6)
+
+
+def test_baseline_range(piezo_tracking_test_data):
+    def make_slice(start, stop):
+        return Slice(Continuous(np.arange(start, stop), 10000, 10))
+
+    def check_range(calibration, baseline1, baseline2, reference):
+        np.testing.assert_allclose(
+            PiezoForceDistance(calibration, baseline1, baseline2).valid_range(), reference
+        )
+
+    data = piezo_tracking_test_data
+    dist_calib = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+    slice1, slice2 = make_slice(0, 8), make_slice(5, 10)
+    b1 = ForceBaseLine.polynomial_baseline(slice1, slice1, degree=1)
+    b2 = ForceBaseLine.polynomial_baseline(slice2, slice2, degree=1)
+
+    check_range(dist_calib, b1, None, [0, 7])
+    check_range(dist_calib, None, b2, [5, 9])
+    check_range(dist_calib, None, None, [-np.inf, np.inf])
+    check_range(dist_calib, b1, b2, [5, 7])
+    check_range(dist_calib, b2, b1, [5, 7])
 
 
 def test_piezo_tracking_type_validation(poly_baseline_data, camera_calibration_data):
