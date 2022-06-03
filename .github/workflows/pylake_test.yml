@@ -26,6 +26,8 @@ jobs:
       run: |
         cd .github/workflows
         python pylake_test.py
+    - name: Benchmark
+      run: python -c "import lumicks.pylake as lk; lk.benchmark(repeat=1)"
     - name: Black
       run: |
         pip install black==22.3.0
