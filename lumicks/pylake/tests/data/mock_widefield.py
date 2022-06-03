@@ -176,12 +176,10 @@ def make_alignment_image_data(
     return reference_image, warped_image, description, bit_depth
 
 
-def write_tiff_file(image_args, n_frames, filename):
-    _, warped_image, description, _ = image_args
-
+def write_tiff_file(image, description, n_frames, filename):
     # We use the dimension of image data to evaluate the number of color channels
-    channels = 1 if warped_image.ndim == 2 else 3
-    movie = np.stack([warped_image for n in range(n_frames)], axis=0)
+    channels = 1 if image.ndim == 2 else 3
+    movie = np.stack([image for n in range(n_frames)], axis=0)
 
     # Orientation = ORIENTATION.TOPLEFT
     tag_orientation = (274, "H", 1, 1, False)

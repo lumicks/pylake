@@ -49,26 +49,30 @@ def rgb_alignment_image_data_offset(spot_coordinates, warp_parameters, request):
 @pytest.fixture(scope="module")
 def rgb_tiff_file(tiff_dir, rgb_alignment_image_data):
     mock_filename = tiff_dir.join("rgb_single.tiff")
-    write_tiff_file(rgb_alignment_image_data, n_frames=1, filename=str(mock_filename))
+    _, warped_image, description, _ = rgb_alignment_image_data
+    write_tiff_file(warped_image, description, n_frames=1, filename=str(mock_filename))
     return mock_filename
 
 
 @pytest.fixture(scope="module")
 def rgb_tiff_file_multi(tiff_dir, rgb_alignment_image_data):
     mock_filename = tiff_dir.join("rgb_multi.tiff")
-    write_tiff_file(rgb_alignment_image_data, n_frames=2, filename=str(mock_filename))
+    _, warped_image, description, _ = rgb_alignment_image_data
+    write_tiff_file(warped_image, description, n_frames=2, filename=str(mock_filename))
     return mock_filename
 
 
 @pytest.fixture(scope="module")
 def gray_tiff_file(tiff_dir, gray_alignment_image_data):
     mock_filename = tiff_dir.join("gray_single.tiff")
-    write_tiff_file(gray_alignment_image_data, n_frames=1, filename=str(mock_filename))
+    _, warped_image, description, _ = gray_alignment_image_data
+    write_tiff_file(warped_image, description, n_frames=1, filename=str(mock_filename))
     return mock_filename
 
 
 @pytest.fixture(scope="module")
 def gray_tiff_file_multi(tiff_dir, gray_alignment_image_data):
     mock_filename = tiff_dir.join("gray_multi.tiff")
-    write_tiff_file(gray_alignment_image_data, n_frames=2, filename=str(mock_filename))
+    _, warped_image, description, _ = gray_alignment_image_data
+    write_tiff_file(warped_image, description, n_frames=2, filename=str(mock_filename))
     return mock_filename
