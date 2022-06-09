@@ -268,7 +268,7 @@ def test_single_frame_times(dim_x, dim_y, line_padding, start, dt, samples_per_p
     assert len(frame_times) == 1
     assert frame_times[0][0] == start + line_padding * dt
     line_time = dt * (img.shape[1] * samples_per_pixel + 2 * line_padding) * img.shape[0]
-    assert frame_times[0][1] == start + line_time - line_padding * dt - dt
+    assert frame_times[0][1] == start + line_time - line_padding * dt
 
     # For the single frame case, there is no dead time, so these are identical
     frame_times_inclusive = scan.frame_timestamp_ranges(exclude=False)
@@ -301,11 +301,11 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
     line_time = dt * (img.shape[2] * samples_per_pixel + 2 * line_padding) * img.shape[1]
     assert len(frame_times) == scan.num_frames
     assert frame_times[0][0] == start + line_padding * dt
-    assert frame_times[0][1] == start + line_time - line_padding * dt - dt
+    assert frame_times[0][1] == start + line_time - line_padding * dt
     assert frame_times[1][0] == start + line_padding * dt + line_time
-    assert frame_times[1][1] == start + 2 * line_time - line_padding * dt - dt
+    assert frame_times[1][1] == start + 2 * line_time - line_padding * dt
     assert frame_times[-1][0] == start + line_padding * dt + (len(frame_times) - 1) * line_time
-    assert frame_times[-1][1] == start + len(frame_times) * line_time - line_padding * dt - dt
+    assert frame_times[-1][1] == start + len(frame_times) * line_time - line_padding * dt
 
     frame_times_inclusive = scan.frame_timestamp_ranges(exclude=False)
 
