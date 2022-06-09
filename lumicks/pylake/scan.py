@@ -80,19 +80,39 @@ class Scan(ConfocalImage):
     def frame_timestamp_ranges(self, exclude=True):
         """Get start and stop timestamp of each frame in the scan.
 
+        Note: The stop timestamp for each frame is defined as the first sample past the end of the
+        relevant data such that the timestamps can be used for slicing directly.
+
         Parameters
         ----------
         exclude : bool
             Exclude dead time at the end of each frame.
+
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            file = pylake.File("example.h5")
+            scan = file.scans["my scan"]
+
+            # Grab start and stop timestamp of the first scan.
+            start, stop = scan.frame_timestamp_ranges()[0]
+
+            # Plot the force data corresponding to the first scan.
+            file.force1x[start:stop].plot()
         """
         ts_min = self._timestamps("timestamps", reduce=np.min)
         ts_max = self._timestamps("timestamps", reduce=np.max)
+        delta_ts = int(1e9 / self.infowave.sample_rate)  # We want the sample beyond the end
         if ts_min.ndim == 2:
-            return [(np.min(ts_min), np.max(ts_max))]
+            return [(np.min(ts_min), np.max(ts_max) + delta_ts)]
         else:
             if exclude:
-                maximum_timestamp = [np.max(ts) for ts in ts_max]
-                return [(t1, t2) for t1, t2 in zip(ts_min[:, 0, 0], maximum_timestamp)]
+                maximum_timestamp = np.max(ts_max, axis=tuple(range(1, ts_max.ndim)))
+                return [(t1, t2) for t1, t2 in zip(ts_min[:, 0, 0], maximum_timestamp + delta_ts)]
             else:
                 frame_time = ts_min[1, 0, 0] - ts_min[0, 0, 0]
                 return [(t, t + frame_time) for t in ts_min[:, 0, 0]]
