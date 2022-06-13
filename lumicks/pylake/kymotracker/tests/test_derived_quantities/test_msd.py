@@ -1,6 +1,7 @@
 import pytest
 import contextlib
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
+from lumicks.pylake.kymotracker.detail.msd_estimation import _msd_diffusion_covariance, _diffusion_ols
 
 
 @contextlib.contextmanager
@@ -147,3 +148,48 @@ def test_integer_frame_indices():
 def test_max_iterations():
     with pytest.warns(RuntimeWarning):
         determine_optimal_points(np.arange(0, 5, 1), np.arange(0.0, 5.0, 1.0), max_iterations=0)
+
+
+@pytest.mark.parametrize(
+    "n, intercept, slope, ref_matrix",
+    [
+        (2, 1.5, 2.5, [[16.5625, 21.125], [21.125, 84.5]]),
+        (3, 2.5, 3.5, [[25.38888889, 31.125, 38.25], [31.125, 102.5, 136.125], [38.25, 136.125, 338.0]]),
+        (2, 0.2, 0.5, [[0.5, 0.72], [0.72, 2.88]]),
+    ]
+)
+def test_covariance_matrix(n, intercept, slope, ref_matrix):
+    cov = np.zeros((n, n))
+    for i, j in product(np.arange(1, n + 1), np.arange(1, n + 1)):
+        cov[i - 1, j - 1] = _msd_diffusion_covariance(n, i, j, intercept, slope)
+
+    np.testing.assert_allclose(cov, ref_matrix)
+
+
+@pytest.mark.parametrize(
+    "msd, num_points, ref_values",
+    [
+        (
+            [29.41107065, 49.10010613, 50.82447159, 60.589703],
+            10,
+            [23.666272215, 9.526026251, 160.12828532251723]
+        ),
+        (
+            [63.76387668, 113.59294396, 159.35299198, 199.92392186],
+            50,
+            [20.598387729999924, 45.42401835600003, 390.3951873987407],
+        ),
+        (
+            [63.76387668, 113.59294396, 159.35299198, 199.92392186, 190.05758296],
+            50,
+            [43.66274634999994, 33.89183904600002, 276.2572452069317]
+        ),
+        (
+            [86.95265981, 108.194084, 128.47057056, 146.25592639, 170.09528357, 185.86762662],
+            100,
+            [67.83297963266669, 19.94467967399999, 61.06172869734946],
+        )
+    ]
+)
+def test_ols_results(msd, num_points, ref_values):
+    np.testing.assert_allclose(_diffusion_ols(msd, num_points), ref_values)

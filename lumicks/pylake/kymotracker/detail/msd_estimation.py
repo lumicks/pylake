@@ -1,3 +1,4 @@
+from itertools import product
 import numpy as np
 import warnings
 
@@ -35,6 +36,101 @@ def calculate_msd(frame_idx, position, max_lag):
     msd = np.array([np.mean(summand[frame_diff == delta_frame]) for delta_frame in frame_lags])
 
     return frame_lags, msd
+
+
+def _msd_diffusion_base_covariance(n, i, j, slope):
+    """Covariance matrix for the mean squared displacements assuming no localization uncertainty.
+
+    Covariance matrix for localization uncertainty = 0 (Equation 8b from [2]).
+
+    Parameters
+    ----------
+    n : int
+        number of points
+    i, j : int
+        element index
+    slope : float
+        estimate for the slope
+
+    [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
+    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
+    024116.
+    """
+    # Intercept corresponds to a^2 in the paper, slope refers to sigma^2 in the paper
+    term1 = 2.0 * min(i, j) * (1.0 + 3.0 * i * j - min(i, j) ** 2) / (n - min(i, j) + 1)
+    denominator = (n - i + 1.0) * (n - j + 1.0)
+    term2 = (min(i, j) ** 2 - min(i, j) ** 4) / denominator
+    heaviside = (i + j - n - 2) >= 0
+    term3 = heaviside * ((n + 1.0 - i - j) ** 4 - (n + 1.0 - i - j) ** 2) / denominator
+
+    return (slope**2 / 3) * (term1 + term2 + term3)
+
+
+def _msd_diffusion_covariance(n, i, j, intercept, slope):
+    """Covariance matrix for mean squared displacements for pure diffusion.
+
+    Equation 8a from [2].
+
+    Parameters
+    ----------
+    n : int
+        number of points
+    i, j : int
+        element index
+    intercept : float
+        estimated localization uncertainty
+    slope : float
+        MSD slope
+
+    [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
+    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
+    024116.
+    """
+    # Intercept corresponds to a^2 in the paper, slope refers to sigma^2 in the paper
+    term1_nominator = intercept**2 * (1.0 + (i == j)) + 4 * intercept * slope * min(i, j)
+    term1_denominator = n - min(i, j) + 1.0
+    term2_nominator = intercept**2 * max(0.0, n - i - j + 1.0)
+    term2_denominator = (n - i + 1.0) * (n - j + 1.0)
+
+    return (
+        _msd_diffusion_base_covariance(n, i, j, slope)
+        + term1_nominator / term1_denominator
+        + term2_nominator / term2_denominator
+    )
+
+
+def _diffusion_ols(mean_squared_displacements, num_points):
+    """Estimate the diffusion constant and standard deviation based on msd
+
+    mean_squared_displacements : arraylike
+        mean squared displacements to fit
+    num_points : int
+        number of points used to compute the lags
+
+    [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
+    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
+    024116.
+    """
+    num_lags = len(mean_squared_displacements)
+    alpha = num_lags * (num_lags + 1.0) * 0.5
+    beta = alpha * (2.0 * num_lags + 1.0) / 3.0
+
+    # Estimate intercept and slope (Eq 5 from [2])
+    gamma = np.sum(mean_squared_displacements)
+    delta = np.sum(np.arange(1, num_lags + 1) * mean_squared_displacements)
+    inv_denominator = 1.0 / (num_lags * beta - alpha**2)
+    intercept = (beta * gamma - alpha * delta) * inv_denominator
+    slope = (num_lags * delta - alpha * gamma) * inv_denominator
+
+    # Determine variance on slope estimator (Eq. A1a from Appendix A of [2]).
+    var_slope = 0
+    for i, j in product(np.arange(1, num_lags + 1), np.arange(1, num_lags + 1)):
+        covariance_element = _msd_diffusion_covariance(num_points, i, j, intercept, slope)
+        nominator = (i * num_lags - alpha) * (j * num_lags - alpha) * covariance_element
+        denominator = (num_lags * beta - alpha**2) ** 2
+        var_slope += nominator / denominator
+
+    return intercept, slope, var_slope
 
 
 def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag):
