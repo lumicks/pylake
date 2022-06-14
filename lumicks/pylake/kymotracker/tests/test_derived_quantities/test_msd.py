@@ -1,7 +1,10 @@
 import pytest
 import contextlib
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
-from lumicks.pylake.kymotracker.detail.msd_estimation import _msd_diffusion_covariance, _diffusion_ols
+from lumicks.pylake.kymotracker.detail.msd_estimation import (
+    _msd_diffusion_covariance,
+    _diffusion_ols,
+)
 
 
 @contextlib.contextmanager
@@ -111,8 +114,8 @@ def test_localization_eq():
 )
 def test_optimal_points(N, ref_slopes, ref_intercepts):
     test_values = np.hstack((np.arange(-2, 7, 0.5), np.inf))
-    np.testing.assert_allclose(ref_slopes, [optimal_points(10 ** x, N)[0] for x in test_values])
-    np.testing.assert_allclose(ref_intercepts, [optimal_points(10 ** x, N)[1] for x in test_values])
+    np.testing.assert_allclose(ref_slopes, [optimal_points(10**x, N)[0] for x in test_values])
+    np.testing.assert_allclose(ref_intercepts, [optimal_points(10**x, N)[1] for x in test_values])
 
 
 @pytest.mark.parametrize(
@@ -151,18 +154,22 @@ def test_max_iterations():
 
 
 @pytest.mark.parametrize(
-    "n, intercept, slope, ref_matrix",
+    "lags, num_points, intercept, slope, ref_matrix",
     [
-        (2, 1.5, 2.5, [[16.5625, 21.125], [21.125, 84.5]]),
-        (3, 2.5, 3.5, [[25.38888889, 31.125, 38.25], [31.125, 102.5, 136.125], [38.25, 136.125, 338.0]]),
-        (2, 0.2, 0.5, [[0.5, 0.72], [0.72, 2.88]]),
-    ]
+        (2, 2, 1.5, 2.5, [[16.5625, 21.125], [21.125, 84.5]]),
+        (
+            3,
+            3,
+            2.5,
+            3.5,
+            [[25.38888889, 31.125, 38.25], [31.125, 102.5, 136.125], [38.25, 136.125, 338.0]],
+        ),
+        (2, 2, 0.2, 0.5, [[0.5, 0.72], [0.72, 2.88]]),
+        (2, 10, 0.2, 0.5, [[0.1016, 0.14755556], [0.14755556, 0.42222222]]),
+    ],
 )
-def test_covariance_matrix(n, intercept, slope, ref_matrix):
-    cov = np.zeros((n, n))
-    for i, j in product(np.arange(1, n + 1), np.arange(1, n + 1)):
-        cov[i - 1, j - 1] = _msd_diffusion_covariance(n, i, j, intercept, slope)
-
+def test_covariance_matrix(lags, num_points, intercept, slope, ref_matrix):
+    cov = _msd_diffusion_covariance(lags, num_points, intercept, slope)
     np.testing.assert_allclose(cov, ref_matrix)
 
 
@@ -172,7 +179,7 @@ def test_covariance_matrix(n, intercept, slope, ref_matrix):
         (
             [29.41107065, 49.10010613, 50.82447159, 60.589703],
             10,
-            [23.666272215, 9.526026251, 160.12828532251723]
+            [23.666272215, 9.526026251, 160.12828532251723],
         ),
         (
             [63.76387668, 113.59294396, 159.35299198, 199.92392186],
@@ -182,14 +189,14 @@ def test_covariance_matrix(n, intercept, slope, ref_matrix):
         (
             [63.76387668, 113.59294396, 159.35299198, 199.92392186, 190.05758296],
             50,
-            [43.66274634999994, 33.89183904600002, 276.2572452069317]
+            [43.66274634999994, 33.89183904600002, 276.2572452069317],
         ),
         (
             [86.95265981, 108.194084, 128.47057056, 146.25592639, 170.09528357, 185.86762662],
             100,
             [67.83297963266669, 19.94467967399999, 61.06172869734946],
-        )
-    ]
+        ),
+    ],
 )
 def test_ols_results(msd, num_points, ref_values):
     np.testing.assert_allclose(_diffusion_ols(msd, num_points), ref_values)
