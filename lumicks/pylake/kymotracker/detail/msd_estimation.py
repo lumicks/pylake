@@ -1,6 +1,34 @@
-from itertools import product
 import numpy as np
 import warnings
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class DiffusionEstimate:
+    """Diffusion estimate
+
+    Attributes
+    ----------
+    value : float
+        Estimate for the diffusion constant.
+    std_err : float
+        Standard error,
+    num_lags : int
+        Number of lags used to compute this estimate.
+    num_points : int
+        Number of points used to compute this estimate.
+    method : str
+        String identifying which method was used to estimate the parameters.
+    """
+
+    value: float
+    std_err: float
+    num_lags: int
+    num_points: int
+    method: str
+
+    def __float__(self):
+        return float(self.value)
 
 
 def calculate_msd(frame_idx, position, max_lag):
@@ -122,7 +150,7 @@ def _diffusion_ols(mean_squared_displacements, num_points):
     return intercept, slope, var_slope
 
 
-def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag):
+def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag, method):
     """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
 
     The estimator for the MSD (rho) is defined as:
@@ -144,11 +172,17 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
     worse. It is therefore a good idea to estimate an appropriate number of MSD estimates to use.
     See [1] for more information on this.
 
+    The standard deviation of the diffusion estimate is obtained using the equations for the OLS
+    estimator from [2].
+
     Note that this estimation procedure should only be used for Brownian motion in isotropic
     media (meaning no cellular or structured environments) in the absence of drift.
 
     1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
     single-particle tracking. Physical Review E, 85(6), 061916.
+    2) Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
+    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
+    024116.
 
     Parameters
     ----------
@@ -160,6 +194,8 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
         Time step between each frame.
     max_lag : int
         Maximum delay to include in the estimate (must be larger than 1).
+    method : str
+        Should be "ols".
     """
     if not np.issubdtype(frame_idx.dtype, np.integer):
         raise TypeError("Frame indices need to be integer")
@@ -168,8 +204,11 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
         raise ValueError("You need at least two lags to estimate a diffusion constant")
 
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
-    coefficients = np.polyfit(frame_lags, msd, 1)
-    return coefficients[0] / (2.0 * time_step)
+    _, slope, var_slope = _diffusion_ols(msd, len(coordinate))
+    to_time = 1.0 / (2.0 * time_step)
+    return DiffusionEstimate(
+        slope * to_time, np.sqrt(var_slope) * to_time, max_lag, len(coordinate), method
+    )
 
 
 def calculate_localization_error(frame_lags, msd):

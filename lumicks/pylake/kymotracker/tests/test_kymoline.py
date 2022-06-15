@@ -214,6 +214,7 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
     k = KymoLine(time_idx, coordinate / pixel_size, kymo, "red")
 
     np.testing.assert_allclose(k.estimate_diffusion_ols(max_lag=max_lag), diffusion_const)
+    np.testing.assert_allclose(k.estimate_diffusion("ols", max_lag=max_lag).value, diffusion_const)
 
 
 @pytest.mark.parametrize(

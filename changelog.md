@@ -8,6 +8,7 @@
 * Added a few performance benchmarks.
 * Added offline piezo tracking functionality (documentation pending).
 * Allow cropping `CorrelatedStack` using multidimensional indexing, i.e. `stack[start_frame : end_frame, start_row : end_row, start_column : end_column]`. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
+* Added `KymoLine.estimate_diffusion()` which provides additional information regarding the diffusion constant estimation. This dataclass can be converted to floating point to get just the estimate, but also contains the number of points used to compute the estimate, and the number of lags used in the analysis. In addition to that, it provides a `std_err` field which reports the standard error for the estimate.
 
 #### Bug fixes
 
@@ -19,6 +20,10 @@
 * Perform better input validation on `refine_lines_centroid`. Line width must now be at least one pixel. Previously, negative values produced a cryptic error message, while a line width smaller than one pixel would silently result in no refinement taking place.
 * Fixed bug in force calibration convenience function where setting `fixed_alpha` or `fixed_diode` to zero resulted in those parameters still being fitted.  After this change, setting `fixed_alpha` to zero will result in the diode model having a fixed `alpha` of zero, whereas setting `f_diode` to zero raises an exception.
 * Include one extra sample when requesting frame timestamp ranges from a scan (`Scan.frame_timestamp_ranges(exclude=True)`). Previously, when slicing using these timestamps, you would omit the last sample of the scan. Now this sample will be included.
+
+#### Deprecations
+
+* `KymoLine.estimate_diffusion_ols()` is now deprecated; use `KymoLine.estimate_diffusion(method="ols")` instead. This new method returns the same estimate of the diffusion coefficient as before but includes additional information about the fit.
 
 ## v0.12.0 | 2022-04-21
 

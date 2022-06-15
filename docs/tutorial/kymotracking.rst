@@ -389,7 +389,7 @@ With Pylake, we can calculate the MSD from a :class:`~lumicks.pylake.kymotracker
 This returns a tuple of lags and MSD estimates. If we only wish MSDs up to a certain lag, we can provide a `max_lag` argument::
 
     >>> kymolines[0].msd(max_lag = 5)
-    (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([12.48593965, 16.34844311, 17.21359513, 27.25210869, 32.34473104]))
+    (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([ 3.63439512,  6.13181603,  9.08823918, 11.43574189, 12.61152129]))
 
 MSDs are typically used to calculate diffusion constants.
 With pure diffusive motion (a complete absence of drift) in an isotropic medium, 1-dimensional MSDs can be fitted by the following relation:
@@ -418,21 +418,28 @@ When localization is infinitely accurate, the optimal number of points is two :c
 At the optimal number of lags, it doesn't matter whether we use a weighted or unweighted least squares algorithm to fit the curve :cite:`michalet2010mean`, and therefore we opt for the latter, analogously to :cite:`michalet2012optimal`.
 With Pylake, you can obtain an estimated diffusion constant by invoking::
 
-    >>> kymolines[0].estimate_diffusion_ols()
-    7.386961688211464
+    >>> kymolines[0].estimate_diffusion(method="ols")
+    DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols')
+
+Note that Pylake gives you both an estimate for the diffusion constant, as well as its expected uncertainty and the number of lags used in the computation.
+The uncertainty estimate in this case is based on equation A1b in :cite:`bullerjahn2020optimal`.
 
 Let's get diffusion constants for all three :class:`~lumicks.pylake.kymotracker.kymoline.KymoLine` instances::
 
-    >>> [kymoline.estimate_diffusion_ols() for kymoline in kymolines]
-    [7.386961688211464, 9.052904296390873, 11.551531668363802]
+    >>> [kymoline.estimate_diffusion(method="ols").value for kymoline in kymolines]
+    [DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols'),
+    DiffusionEstimate(value=3.8728160788405055, std_err=1.5207837420729884, num_lags=3, num_points=80, method='ols'),
+    DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols')]
 
 We can see that there is considerable variation in the estimates, which is unfortunately typical for diffusion coefficient estimates.
-By default, `estimate_diffusion_ols` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
+By default, `estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
 
-    >>> [kymoline.estimate_diffusion_ols(max_lag=30) for kymoline in kymolines]
-    [3.064522711727202, 1.7564518650402365, 1.9175754533226452]
+    >>> [kymoline.estimate_diffusion(method="ols", max_lag=30) for kymoline in kymolines]
+    [DiffusionEstimate(value=11.949917925662831, std_err=10.394298104056345, num_lags=30, num_points=80, method='ols'),
+    DiffusionEstimate(value=4.904422868492953, std_err=4.3237670165379045, num_lags=30, num_points=80, method='ols'),
+    DiffusionEstimate(value=8.00626507619601, std_err=6.976860180814361, num_lags=30, num_points=80, method='ols')]
 
-Note however, that this will likely degrade your estimate.
+Note however, that this will likely degrade your estimate (which you also see reflected in the estimated standard error).
 We can also plot the MSD estimates::
 
     [kymoline.plot_msd(marker='.') for kymoline in kymolines]
@@ -445,7 +452,7 @@ By default, this will use the optimal number of lags (which in this case seems t
 
 .. image:: msdplot_100_lags.png
 
-It's not hard to see from this graph why taking too many lags results in unacceptably large variances.
+It's not hard to see from this graph why taking too many lags results in unacceptably large variances (note how the traces diverge).
 
 
 Dwelltime analysis
