@@ -66,17 +66,19 @@ def test_msd_estimation(time, position, max_lag, lag, msd):
     ],
 )
 def test_estimate(frame_idx, coordinate, time_step, max_lag, diffusion_const):
-    diffusion_est = estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag)
-    np.testing.assert_allclose(diffusion_est, diffusion_const)
+    diffusion_est = estimate_diffusion_constant_simple(
+        frame_idx, coordinate, time_step, max_lag, "ols"
+    )
+    np.testing.assert_allclose(float(diffusion_est), diffusion_const)
 
 
 def test_maxlag_asserts():
     # Max_lag has to be bigger than 2
     with pytest.raises(ValueError):
-        estimate_diffusion_constant_simple(np.array([1]), None, None, 1)
+        estimate_diffusion_constant_simple(np.array([1]), None, None, 1, "ols")
 
     with pytest.raises(ValueError):
-        estimate_diffusion_constant_simple(np.array([1]), None, None, -1)
+        estimate_diffusion_constant_simple(np.array([1]), None, None, -1, "ols")
 
 
 @pytest.mark.parametrize(
@@ -200,3 +202,29 @@ def test_covariance_matrix(lags, num_points, intercept, slope, ref_matrix):
 )
 def test_ols_results(msd, num_points, ref_values):
     np.testing.assert_allclose(_diffusion_ols(msd, num_points), ref_values)
+
+
+@pytest.mark.parametrize(
+    "diffusion,num_points,max_lag,time_step,obs_noise,diff_est,std_err_est",
+    [
+        (0, 30, 3, 3, 0.0, 0.0, 0.0),
+        (2, 500, 5, 0.01, 1.0, 1.9971773659882501, 1.545715391995203),
+        (1.5, 30, 3, 3, 1.0, 2.2169635763968656, 1.0967721686794563),
+        (1.5, 30, 3, 3, 0.0, 2.3305086928094925, 1.1330532354550331),
+        (0, 30, 3, 3, 1.0, 0.0667054748976413, 0.05257289344744834),
+        (0.1, 30, 2, 3, 0.0, 0.15107861079551288, 0.06602813821039434),  # No noise is very off
+        (0.1, 30, 2, 3, 1.0, 0.10575410549731264, 0.11092540144986164),
+    ],
+)
+def test_estimate(diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est):
+    with temp_seed(0):
+        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        diffusion_est = estimate_diffusion_constant_simple(
+            np.arange(num_points), trace, time_step, max_lag, "ols"
+        )
+
+        np.testing.assert_allclose(float(diffusion_est), diff_est)
+        np.testing.assert_allclose(diffusion_est.value, diff_est)
+        np.testing.assert_allclose(diffusion_est.num_lags, max_lag)
+        np.testing.assert_allclose(diffusion_est.num_points, num_points)
+        np.testing.assert_allclose(diffusion_est.std_err, std_err_est)

@@ -1,4 +1,5 @@
 from copy import copy
+from deprecated import deprecated
 from sklearn.neighbors import KernelDensity
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel
@@ -319,8 +320,8 @@ class KymoLine:
         plt.xlabel("Lag time [s]")
         plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}$^2$]")
 
-    def estimate_diffusion_ols(self, max_lag=None):
-        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
+    def estimate_diffusion(self, method, max_lag=None):
+        """Estimate diffusion constant
 
         The estimator for the MSD (rho) is defined as:
 
@@ -345,6 +346,41 @@ class KymoLine:
 
         1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
         single-particle tracking. Physical Review E, 85(6), 061916.
+        2) Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+        self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+        Physics, 153(2), 024116.
+
+        Parameters
+        ----------
+        method : str
+            Must be "ols".
+            - "ols" : Ordinary least squares [1]. Includes standard error estimate based on [2].
+        max_lag : int (optional)
+            Number of lags to include. When omitted, the method calculates an appropriate number of
+            lags.
+        """
+        if method != "ols":
+            raise ValueError('Invalid method selected. Method must be "ols"')
+
+        frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
+        max_lag = max_lag if max_lag else determine_optimal_points(frame_idx, positions)[0]
+        return estimate_diffusion_constant_simple(
+            frame_idx, positions, self._line_time_seconds, max_lag, method
+        )
+
+    @deprecated(
+        reason=(
+            'This method is replaced by `KymoLine.estimate_diffusion(method="ols")` to allow more '
+            "flexibility in the choice of algorithms and provide additional metadata."
+        ),
+        action="always",
+        version="0.12.1",
+    )
+    def estimate_diffusion_ols(self, max_lag=None):
+        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
+
+        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+        single-particle tracking. Physical Review E, 85(6), 061916.
 
         Parameters
         ----------
@@ -352,11 +388,7 @@ class KymoLine:
             Number of lags to include. When omitted, the method uses an optimal number of lags
             as determined by [1].
         """
-        frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
-        max_lag = max_lag if max_lag else determine_optimal_points(frame_idx, positions)[0]
-        return estimate_diffusion_constant_simple(
-            frame_idx, positions, self._line_time_seconds, max_lag
-        )
+        return self.estimate_diffusion("ols", max_lag).value
 
 
 class KymoLineGroup:
