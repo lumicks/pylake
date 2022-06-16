@@ -82,9 +82,11 @@ def _msd_diffusion_covariance(max_lags, n, intercept, slope):
     slope : float
         estimate for the slope
 
-    2) Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
-    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
-    024116.
+    References
+    ----------
+    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+    self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+    Physics, 153(2), 024116.
     """
     # Intercept corresponds to a^2 in the paper, slope refers to sigma^2 in the paper
     i = np.tile(np.arange(max_lags) + 1, (max_lags, 1))
@@ -122,9 +124,11 @@ def _diffusion_ols(mean_squared_displacements, num_points):
     num_points : int
         number of points used to compute the lags
 
-    2) Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
-    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
-    024116.
+    References
+    ----------
+    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+    self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+    Physics, 153(2), 024116.
     """
     num_lags = len(mean_squared_displacements)
     alpha = num_lags * (num_lags + 1.0) * 0.5
@@ -150,8 +154,104 @@ def _diffusion_ols(mean_squared_displacements, num_points):
     return intercept, slope, var_slope
 
 
+def _update_gls_estimate(inverse_cov, mean_squared_displacements, intercept, slope):
+    """Update the GLS estimates based on the inverted covariance matrix, current estimates and
+    mean squared displacements.
+
+    Parameters
+    ----------
+    inverse_cov : np.ndarray
+        Inverted covariance matrix.
+    mean_squared_displacements : array_like
+        Mean squared displacements
+    intercept : float
+        Current estimate for the intercept
+    slope : float
+        Current estimate for the slope
+    """
+    num_lags = len(mean_squared_displacements)
+    lag_idx = np.arange(num_lags) + 1
+    j = np.tile(lag_idx, (num_lags, 1))
+    i = j.T
+
+    kappa = np.sum(inverse_cov)
+    lam = np.sum(i * inverse_cov)
+    mu = np.sum(i * j * inverse_cov)
+    nu = np.sum(mean_squared_displacements * inverse_cov)
+    xi = np.sum(i * mean_squared_displacements * inverse_cov)
+
+    inv_denominator = 1.0 / (kappa * mu - lam**2)
+    new_intercept = (mu * nu - lam * xi) * inv_denominator
+    new_slope = (kappa * xi - lam * nu) * inv_denominator
+    change = abs(new_intercept - intercept) + abs(new_slope - slope)
+
+    var_slope = kappa / (kappa * mu - lam**2)
+
+    return change, new_slope, new_intercept, var_slope
+
+
+def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_iter=100):
+    """Estimate the intercept, slope and standard deviation of the slope based on the msd
+
+    This method takes into account the covariance matrix and thereby does not suffer from including
+    more lags than the optimal number of lags.
+
+    Parameters
+    ----------
+    mean_squared_displacements : array_like
+        mean squared displacements to fit
+    num_points : int
+        number of points used to compute the lags
+    tolerance : float
+        termination tolerance for the iterative estimation
+    max_iter : int
+        maximum number of iterations
+
+    References
+    ----------
+    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+    self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+    Physics, 153(2), 024116.
+    """
+    # Eq. A1a from Appendix A of [2].
+    num_lags = len(mean_squared_displacements)
+
+    # Fetch initial guess for the iterative refinement (Appendix C from [2]).
+    intercept = 2.0 * mean_squared_displacements[0] - mean_squared_displacements[1]
+    slope = mean_squared_displacements[1] - mean_squared_displacements[0]
+
+    # Since the covariance matrix depends on the parameters for the intercept and slope, we obtain
+    # an implicit formulation. We use fixed point iteration to determine the parameters. If the
+    # fixed point iteration fails to converge we fall back to the OLS solution for two points.
+    for _ in range(max_iter):
+        covariance_matrix = _msd_diffusion_covariance(num_lags, num_points, intercept, slope)
+
+        # Solve generalized least squares problem using the current estimate for the covariance
+        # matrix (Equation 10 from [2]).
+        try:
+            inverse_cov = np.linalg.inv(covariance_matrix)
+        except np.linalg.LinAlgError:
+            # Singular matrix, return OLS estimate
+            warnings.warn(
+                RuntimeWarning("Covariance matrix is singular. Reverting to two-point OLS.")
+            )
+            return _diffusion_ols(mean_squared_displacements[:2], num_points)
+
+        change, slope, intercept, var_slope = _update_gls_estimate(
+            inverse_cov, mean_squared_displacements, intercept, slope
+        )
+
+        if change < tolerance:
+            break
+    else:
+        warnings.warn(RuntimeWarning("Maximum iterations reached! Reverting to two-point OLS."))
+        return _diffusion_ols(mean_squared_displacements[:2], num_points)
+
+    return intercept, slope, var_slope
+
+
 def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag, method):
-    """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
+    """Estimate diffusion constant
 
     The estimator for the MSD (rho) is defined as:
 
@@ -162,27 +262,20 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
         intercept = 2 * d * (sigma**2 - 2 * R * D * delta_t)
         slope = 2 * d * D * delta_t
 
-    Here d is the dimensionality of the problem (in this case, d is set to 1). D is the diffusion
-    constant. R is a motion blur constant. delta_t is the time step and sigma represents the dynamic
-    localization error (which is not necessarily the same as the static localization error).
+    Here d is the dimensionality of the problem. D is the diffusion constant. R is a motion blur
+    constant. delta_t is the time step and sigma represents the dynamic localization error.
 
     One aspect that is import to consider is that this estimator uses every data point multiple
-    times. As a consequence the elements of rho_n are highly correlated. This means that including
-    more points doesn't necessarily make the estimates better and can actually make the estimate
-    worse. It is therefore a good idea to estimate an appropriate number of MSD estimates to use.
-    See [1] for more information on this.
+    times. As a consequence the elements of rho_n are highly correlated. This means that
+    including more points doesn't necessarily make the estimates better and can actually make
+    the estimate worse.
 
-    The standard deviation of the diffusion estimate is obtained using the equations for the OLS
-    estimator from [2].
+    There are two ways around this. Either you determine an optimal number of points to use
+    in the estimation procedure (ols) [1] or you take into account the covariances present in
+    the mean squared difference estimates (gls) [2].
 
-    Note that this estimation procedure should only be used for Brownian motion in isotropic
-    media (meaning no cellular or structured environments) in the absence of drift.
-
-    1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-    single-particle tracking. Physical Review E, 85(6), 061916.
-    2) Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of self-diffusion
-    coefficients from molecular dynamics simulations. The Journal of Chemical Physics, 153(2),
-    024116.
+    Note that this estimation procedure should only be used for pure diffusion in the absence
+    of drift.
 
     Parameters
     ----------
@@ -192,11 +285,28 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
         Positional coordinates.
     time_step : float
         Time step between each frame.
-    max_lag : int
-        Maximum delay to include in the estimate (must be larger than 1).
+    max_lag : int (optional)
+        Number of lags to include. When omitted, the method will choose an appropriate number
+        of lags to use.
+        When the method chosen is "ols" an optimal number of lags is estimated as determined by
+        [1]. When the method is set to "gls" all lags are included.
     method : str
-        Should be "ols".
+        Valid options are "ols" and "gls'.
+
+        - "ols" : Ordinary least squares [1]. Determines optimal number of lags.
+        - "gls" : Generalized least squares [2]. Takes into account covariance matrix (slower).
+
+    References
+    ----------
+    .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+           single-particle tracking. Physical Review E, 85(6), 061916.
+    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+           self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+           Physics, 153(2), 024116.
     """
+    if method not in ("gls", "ols"):
+        raise ValueError('Invalid method selected. Method must be "gls" or "ols"')
+
     if not np.issubdtype(frame_idx.dtype, np.integer):
         raise TypeError("Frame indices need to be integer")
 
@@ -204,10 +314,17 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
         raise ValueError("You need at least two lags to estimate a diffusion constant")
 
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
-    _, slope, var_slope = _diffusion_ols(msd, len(coordinate))
+
+    method_fun = _diffusion_gls if method == "gls" else _diffusion_ols
+    _, slope, var_slope = method_fun(msd, len(coordinate))
+
     to_time = 1.0 / (2.0 * time_step)
     return DiffusionEstimate(
-        slope * to_time, np.sqrt(var_slope) * to_time, max_lag, len(coordinate), method
+        slope * to_time,
+        np.sqrt(var_slope) * to_time,
+        max_lag,
+        len(coordinate),
+        method,
     )
 
 
