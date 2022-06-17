@@ -28,6 +28,12 @@ The line algorithm was based on sections 1, 2 and 3 from :cite:`steger1998unbias
 geometric considerations. The greedy algorithm was based on two papers. It initially detects feature points based on
 :cite:`sbalzarini2005feature`, followed by line tracing inspired by :cite:`mangeol2016kymographclear`.
 
+Diffusion constant estimation
+-----------------------------
+
+The unweighted ordinary least squares estimation method (including the optimal number of lag computation) is implemented from :cite:`michalet2012optimal`.
+The generalized least squares method was based on :cite:`bullerjahn2020optimal`
+
 References
 ----------
 
