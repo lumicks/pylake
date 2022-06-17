@@ -62,7 +62,7 @@ class ColorAdjustment:
                 raise ValueError("Color value bounds and gamma should be of length 1 or 3")
 
         if mode not in ("percentile", "absolute"):
-            raise ValueError("Mode nust be percentile or absolute")
+            raise ValueError("Mode must be percentile or absolute")
 
         self.minimum, self.maximum = minimum * np.ones((3,)), maximum * np.ones((3,))
         self.gamma = gamma * np.ones((3,))
