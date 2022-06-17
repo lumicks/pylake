@@ -432,7 +432,7 @@ Let's get diffusion constants for all three :class:`~lumicks.pylake.kymotracker.
     DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols')]
 
 We can see that there is considerable variation in the estimates, which is unfortunately typical for diffusion coefficient estimates.
-By default, `estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
+By default, :func:`~lumicks.pylake.kymotracker.kymoline.KymoLine.estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
 
     >>> [kymoline.estimate_diffusion(method="ols", max_lag=30) for kymoline in kymolines]
     [DiffusionEstimate(value=11.949917925662831, std_err=10.394298104056345, num_lags=30, num_points=80, method='ols'),

@@ -72,6 +72,7 @@ Kymotracking
     :toctree: _api
 
     kymotracker.kymoline.KymoLine
+    kymotracker.kymoline.KymoLine.estimate_diffusion
     track_greedy
     track_lines
     filter_lines
