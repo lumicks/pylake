@@ -436,10 +436,11 @@ By default, `estimate_diffusion` will use the optimal number of lags as specifie
 
     >>> [kymoline.estimate_diffusion(method="ols", max_lag=30) for kymoline in kymolines]
     [DiffusionEstimate(value=11.949917925662831, std_err=10.394298104056345, num_lags=30, num_points=80, method='ols'),
-    DiffusionEstimate(value=4.904422868492953, std_err=4.3237670165379045, num_lags=30, num_points=80, method='ols'),
-    DiffusionEstimate(value=8.00626507619601, std_err=6.976860180814361, num_lags=30, num_points=80, method='ols')]
+     DiffusionEstimate(value=4.904422868492953, std_err=4.3237670165379045, num_lags=30, num_points=80, method='ols'),
+     DiffusionEstimate(value=8.00626507619601, std_err=6.976860180814361, num_lags=30, num_points=80, method='ols')]
 
 Note however, that this will likely degrade your estimate (which you also see reflected in the estimated standard error).
+
 We can also plot the MSD estimates::
 
     [kymoline.plot_msd(marker='.') for kymoline in kymolines]
@@ -453,6 +454,13 @@ By default, this will use the optimal number of lags (which in this case seems t
 .. image:: msdplot_100_lags.png
 
 It's not hard to see from this graph why taking too many lags results in unacceptably large variances (note how the traces diverge).
+Another option is to use generalized least squares :cite:`bullerjahn2020optimal`.
+This method is slower, since it has to solve some implicit equations, but it does not suffer from the large variance when including more lags (since it takes into account the covariance matrix of the MSD)::
+
+    >>> [kymoline.estimate_diffusion(method="gls", max_lag=30) for kymoline in kymolines]
+    [DiffusionEstimate(value=8.044121097305448, std_err=2.4705039542680427, num_lags=30, num_points=80, method='gls'),
+     DiffusionEstimate(value=4.432955288469379, std_err=1.565056974828146, num_lags=30, num_points=80, method='gls'),
+     DiffusionEstimate(value=5.378609478528924, std_err=1.7771064499907185, num_lags=30, num_points=80, method='gls')]
 
 
 Dwelltime analysis

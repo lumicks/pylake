@@ -9,6 +9,7 @@
 * Added offline piezo tracking functionality (documentation pending).
 * Allow cropping `CorrelatedStack` using multidimensional indexing, i.e. `stack[start_frame : end_frame, start_row : end_row, start_column : end_column]`. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 * Added `KymoLine.estimate_diffusion()` which provides additional information regarding the diffusion constant estimation. This dataclass can be converted to floating point to get just the estimate, but also contains the number of points used to compute the estimate, and the number of lags used in the analysis. In addition to that, it provides a `std_err` field which reports the standard error for the estimate.
+* Added generalized least squares method as `method` option for `KymoLine.estimate_diffusion()`. Please refer to the [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more information.
 
 #### Bug fixes
 
