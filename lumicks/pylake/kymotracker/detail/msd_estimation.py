@@ -85,8 +85,8 @@ def _msd_diffusion_covariance(max_lags, n, intercept, slope):
     References
     ----------
     .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
-    self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
-    Physics, 153(2), 024116.
+           self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+           Physics, 153(2), 024116.
     """
     # Intercept corresponds to a^2 in the paper, slope refers to sigma^2 in the paper
     i = np.tile(np.arange(max_lags) + 1, (max_lags, 1))
@@ -127,8 +127,8 @@ def _diffusion_ols(mean_squared_displacements, num_points):
     References
     ----------
     .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
-    self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
-    Physics, 153(2), 024116.
+           self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+           Physics, 153(2), 024116.
     """
     num_lags = len(mean_squared_displacements)
     alpha = num_lags * (num_lags + 1.0) * 0.5
@@ -210,8 +210,8 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
     References
     ----------
     .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
-    self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
-    Physics, 153(2), 024116.
+           self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+           Physics, 153(2), 024116.
     """
     # Eq. A1a from Appendix A of [2].
     num_lags = len(mean_squared_displacements)
@@ -219,6 +219,11 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
     # Fetch initial guess for the iterative refinement (Appendix C from [2]).
     intercept = 2.0 * mean_squared_displacements[0] - mean_squared_displacements[1]
     slope = mean_squared_displacements[1] - mean_squared_displacements[0]
+
+    def fallback(warning_message):
+        """Fallback method if the GLS fails"""
+        warnings.warn(RuntimeWarning(f"{warning_message} Reverting to two-point OLS."))
+        return _diffusion_ols(mean_squared_displacements[:2], num_points)
 
     # Since the covariance matrix depends on the parameters for the intercept and slope, we obtain
     # an implicit formulation. We use fixed point iteration to determine the parameters. If the
@@ -232,10 +237,7 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
             inverse_cov = np.linalg.inv(covariance_matrix)
         except np.linalg.LinAlgError:
             # Singular matrix, return OLS estimate
-            warnings.warn(
-                RuntimeWarning("Covariance matrix is singular. Reverting to two-point OLS.")
-            )
-            return _diffusion_ols(mean_squared_displacements[:2], num_points)
+            return fallback("Covariance matrix is singular.")
 
         change, slope, intercept, var_slope = _update_gls_estimate(
             inverse_cov, mean_squared_displacements, intercept, slope
@@ -244,8 +246,7 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
         if change < tolerance:
             break
     else:
-        warnings.warn(RuntimeWarning("Maximum iterations reached! Reverting to two-point OLS."))
-        return _diffusion_ols(mean_squared_displacements[:2], num_points)
+        return fallback("Maximum iterations reached!")
 
     return intercept, slope, var_slope
 
