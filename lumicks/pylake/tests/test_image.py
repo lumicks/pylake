@@ -272,7 +272,7 @@ def test_invalid_range():
     with pytest.raises(ValueError, match="Color value bounds and gamma should be of length 1 or 3"):
         ColorAdjustment([2.0, 3.0], [1.0, 2.0, 3.0], mode="absolute")
 
-    with pytest.raises(ValueError, match="Mode nust be percentile or absolute"):
+    with pytest.raises(ValueError, match="Mode must be percentile or absolute"):
         ColorAdjustment(1.0, 1.0, mode="spaghetti")
 
 
