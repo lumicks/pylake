@@ -59,7 +59,7 @@ def test_kymoline_selection_non_unit_calibration():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
@@ -175,7 +175,7 @@ def test_msd_api(time_scale, position_scale):
         start=np.int64(20e9),
         dt=np.int64(1e9 / time_scale),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
     k = KymoLine(time_scale * time_idx, position_scale * position_idx, kymo, "red")
 
@@ -209,12 +209,59 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
         start=np.int64(20e9),
         dt=np.int64(time_step),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
     k = KymoLine(time_idx, coordinate / pixel_size, kymo, "red")
 
     np.testing.assert_allclose(k.estimate_diffusion_ols(max_lag=max_lag), diffusion_const)
-    np.testing.assert_allclose(k.estimate_diffusion("ols", max_lag=max_lag).value, diffusion_const)
+    np.testing.assert_allclose(
+        k.estimate_diffusion("ols", max_lag=max_lag).value, diffusion_const
+    )
+
+
+@pytest.mark.parametrize(
+    "time_idx, coordinate, pixel_size, time_step, max_lag, diffusion_const",
+    [
+        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 2, 0.5e9, 50, 5.609315381569765),
+        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 3, 1.0e9, 50, 2.8046576907848824),
+        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 5, 1.0e9, 2, 3.33333333333332),
+    ],
+)
+def test_diffusion_gls(time_idx, coordinate, pixel_size, time_step, max_lag, diffusion_const):
+    """Tests whether the calibrations from the image are picked up correctly through the API.
+    The actual tests of the diffusion estimation can be found in test_msd."""
+
+    # What we do is we apply the scaling to the indices used in the KymoLine construction. If we
+    # define the calibration as exactly the opposite of this, we should get no change.
+    kymo = generate_kymo(
+        "",
+        np.ones((1, 3)),
+        pixel_size_nm=1000 * pixel_size,
+        start=np.int64(20e9),
+        dt=np.int64(time_step),
+        samples_per_pixel=1,
+        line_padding=0,
+    )
+    k = KymoLine(time_idx, coordinate / pixel_size, kymo, "red")
+
+    np.testing.assert_allclose(
+        k.estimate_diffusion("gls", max_lag=max_lag).value, diffusion_const
+    )
+
+
+def test_invalid_method(blank_kymo):
+    k = KymoLine(np.arange(5), np.arange(5), blank_kymo, "red")
+    with pytest.raises(ValueError, match="Invalid method selected"):
+        k.estimate_diffusion(max_lag=5, method="BAD")
+
+
+def test_lag_default(blank_kymo):
+    """Checks whether the max_lag argument is correctly set by default"""
+    k = KymoLine(np.arange(5), np.arange(5), blank_kymo, "red")
+    assert k.estimate_diffusion(method="gls").num_lags == 5  # Uses all lags by default
+    assert k.estimate_diffusion(method="ols").num_lags == 2  # Should estimate lags itself (2)
+    assert k.estimate_diffusion(method="ols", max_lag=4).num_lags == 4
+    assert k.estimate_diffusion(method="gls", max_lag=4).num_lags == 4
 
 
 @pytest.mark.parametrize(
@@ -235,7 +282,7 @@ def test_kymoline_msd_plot(max_lag, x_data, y_data):
         start=np.int64(20e9),
         dt=np.int64(2e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     plt.figure()
@@ -253,7 +300,7 @@ def test_binding_histograms():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     k1 = KymoLine(np.array([1, 2, 3]), np.array([2.5, 3.5, 4.5]), kymo, "red")
@@ -299,7 +346,7 @@ def test_kymoline_concat_gaussians(blank_kymo):
             np.full(3, 2), np.full(3, 7), np.full(3, 0.5), np.ones(3), np.full(3, False)
         ),
         blank_kymo,
-        "red"
+        "red",
     )
     group = KymoLineGroup([k1, k2])
 
@@ -320,7 +367,7 @@ def test_binding_profile_histogram():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     k1 = KymoLine(np.array([1, 2, 3]), np.array([2, 3, 4]), kymo, "red")

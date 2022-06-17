@@ -325,7 +325,7 @@ class KymoLine:
 
         The estimator for the MSD (rho) is defined as:
 
-          rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+          rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i}) ** 2
 
         In a diffusion problem, the MSD can be fitted to a linear curve.
 
@@ -338,32 +338,52 @@ class KymoLine:
         One aspect that is import to consider is that this estimator uses every data point multiple
         times. As a consequence the elements of rho_n are highly correlated. This means that
         including more points doesn't necessarily make the estimates better and can actually make
-        the estimate worse. It is therefore a good idea to estimate an appropriate number of MSD
-        estimates to use. See [1] for more information on this.
+        the estimate worse.
+
+        There are two ways around this. Either you determine an optimal number of points to use
+        in the estimation procedure (ols) [1] or you take into account the covariances present in
+        the mean squared difference estimates (gls) [2].
+
+        The standard error returned by this method is based on [2].
 
         Note that this estimation procedure should only be used for pure diffusion in the absence
         of drift.
 
-        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-        single-particle tracking. Physical Review E, 85(6), 061916.
-        2) Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
-        self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
-        Physics, 153(2), 024116.
-
         Parameters
         ----------
         method : str
-            Must be "ols".
-            - "ols" : Ordinary least squares [1]. Includes standard error estimate based on [2].
+            Valid options are "ols" and "gls".
+
+            - "ols" : Ordinary least squares [1]. Determines optimal number of lags.
+            - "gls" : Generalized least squares [2]. Takes into account covariance matrix (slower).
         max_lag : int (optional)
-            Number of lags to include. When omitted, the method calculates an appropriate number of
-            lags.
+            Number of lags to include. When omitted, the method will choose an appropriate number
+            of lags to use.
+            When the method chosen is "ols" an optimal number of lags is estimated as determined by
+            [1]. When the method is set to "gls" all lags are included.
+
+        References
+        ----------
+        .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+               single-particle tracking. Physical Review E, 85(6), 061916.
+        .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+               self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
+               Physics, 153(2), 024116.
         """
-        if method != "ols":
-            raise ValueError('Invalid method selected. Method must be "ols"')
+        if method not in ("gls", "ols"):
+            raise ValueError('Invalid method selected. Method must be "gls" or "ols"')
 
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
-        max_lag = max_lag if max_lag else determine_optimal_points(frame_idx, positions)[0]
+        max_lag = (
+            max_lag
+            if max_lag
+            else (
+                determine_optimal_points(frame_idx, positions)[0]
+                if method == "ols"
+                else len(frame_idx)
+            )
+        )
+
         return estimate_diffusion_constant_simple(
             frame_idx, positions, self._line_time_seconds, max_lag, method
         )
@@ -377,16 +397,18 @@ class KymoLine:
         version="0.12.1",
     )
     def estimate_diffusion_ols(self, max_lag=None):
-        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant.
-
-        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-        single-particle tracking. Physical Review E, 85(6), 061916.
+        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant [1].
 
         Parameters
         ----------
         max_lag : int (optional)
             Number of lags to include. When omitted, the method uses an optimal number of lags
             as determined by [1].
+
+        References
+        ----------
+        .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+               single-particle tracking. Physical Review E, 85(6), 061916.
         """
         return self.estimate_diffusion("ols", max_lag).value
 
