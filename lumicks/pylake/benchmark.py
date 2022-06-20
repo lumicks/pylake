@@ -160,7 +160,7 @@ class _ReadTIFF(_Benchmark):
             def read_correlated_stack():
                 stack = lk.CorrelatedStack(filename)
                 stack.get_image()
-                stack.src._tiff_file.close()  # Explicitly close, otherwise cleanup will fail
+                stack.src.close()  # Explicitly close, otherwise cleanup will fail
 
             yield read_correlated_stack
 
@@ -175,7 +175,7 @@ class _ProcessTIFF(_Benchmark):
             _generate_test_stack(tiff_fn, pixel_size=0.23)
             stack = lk.CorrelatedStack(tiff_fn)
             yield lambda: stack.define_tether((10, 10), (50, 50)).get_image()
-            stack.src._tiff_file.close()  # Explicitly close, otherwise cleanup will fail
+            stack.src.close()  # Explicitly close, otherwise cleanup will fail
 
 
 def benchmark(repeat=5):

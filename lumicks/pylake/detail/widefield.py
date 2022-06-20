@@ -114,15 +114,19 @@ class TiffStack:
 
     Parameters
     ----------
-    tiff_file : tifffile.TiffFile
-        TIFF file recorded from a camera in Bluelake.
+    tiff_files : list of tifffile.TiffFile
+        List of TIFF files recorded from a camera in Bluelake.
     align_requested : bool
         Whether color channel alignment is requested.
     """
 
-    def __init__(self, tiff_file, align_requested, roi=None, tether=None):
-        self._tiff_file = tiff_file
-        self._description = ImageDescription(tiff_file, align_requested)
+    def __init__(self, tiff_files, align_requested, roi=None, tether=None):
+        self._tiff_files = tiff_files
+
+        # TODO: verify descriptions are identical and no error codes
+        descriptions = [ImageDescription(tiff_file, align_requested) for tiff_file in tiff_files]
+
+        self._description = descriptions[0]
 
         # warn on file open if alignment is requested, but not possible
         # stacklevel=4 corresponds to CorrelatedStack.__init__()
@@ -140,17 +144,37 @@ class TiffStack:
     def is_rgb(self):
         return self._description.is_rgb
 
+    @property
+    def _num_frames_per_tiff(self):
+        return [len(tiff_file.pages) for tiff_file in self._tiff_files]
+
     def get_frame(self, frame):
+        cumulative_len = np.cumsum(np.hstack((0, self._num_frames_per_tiff)))
+        file_idx = np.argmax(frame < cumulative_len) - 1
+        frame_within_tiff = frame - cumulative_len[file_idx]
+
         return TiffFrame(
-            self._tiff_file.pages[frame],
+            self._tiff_files[file_idx].pages[frame_within_tiff],
             description=self._description,
             roi=self._roi,
             tether=self._tether,
         )
 
     @staticmethod
-    def from_file(image_file, align_requested):
-        return TiffStack(tifffile.TiffFile(image_file), align_requested=align_requested)
+    def from_file(image_files, align_requested):
+        """Construct TiffStack from file(s)
+
+        Parameters
+        ----------
+        image_files : list of str or str
+            Tiff file(s) to read
+        align_requested : bool
+            Does the user request these images to be aligned?
+        """
+        file_names = image_files if isinstance(image_files, (list, tuple)) else [image_files]
+        return TiffStack(
+            [tifffile.TiffFile(fn) for fn in file_names], align_requested=align_requested
+        )
 
     def with_roi(self, roi):
         """Define a region of interest (ROI) to crop from raw image.
@@ -165,7 +189,7 @@ class TiffStack:
         tether = self._tether.with_new_offsets(roi.origin)
 
         return TiffStack(
-            self._tiff_file,
+            self._tiff_files,
             self._description._alignment.requested,
             roi=roi,
             tether=tether,
@@ -192,7 +216,7 @@ class TiffStack:
             points = mat.warp_coordinates(points)
 
         return TiffStack(
-            self._tiff_file,
+            self._tiff_files,
             self._description._alignment.requested,
             roi=self._roi,
             tether=Tether(self._roi.origin, points),
@@ -205,11 +229,15 @@ class TiffStack:
 
     @property
     def _tags(self):
-        return self._tiff_file.pages[0].tags
+        return self._tiff_files[0].pages[0].tags
 
     @property
     def num_frames(self):
-        return len(self._tiff_file.pages)
+        return np.sum(self._num_frames_per_tiff)
+
+    def close(self):
+        for file in self._tiff_files:
+            file.close()
 
 
 class ImageDescription:
