@@ -22,12 +22,14 @@ def make_mock_stack():
     )
 
     tiff = TiffStack(
-        MockTiffFile(
-            data=[image, image, image],
-            times=[["10", "18"], ["20", "28"], ["30", "38"]],
-            description=json.dumps(description),
-            bit_depth=bit_depth,
-        ),
+        [
+            MockTiffFile(
+                data=[image, image, image],
+                times=[["10", "18"], ["20", "28"], ["30", "38"]],
+                description=json.dumps(description),
+                bit_depth=bit_depth,
+            )
+        ],
         align_requested=True,
     )
 

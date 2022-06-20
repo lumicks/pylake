@@ -16,7 +16,7 @@ from ..data.mock_widefield import MockTiffFile, make_alignment_image_data, make_
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
 def test_correlated_stack(shape):
     fake_tiff = TiffStack(
-        MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6)), align_requested=False
+        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6))], align_requested=False
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
 
@@ -65,7 +65,7 @@ def test_correlated_stack(shape):
 def test_slicing(shape):
     image = [np.random.poisson(10, size=shape) for _ in range(10)]
     times = make_frame_times(10)
-    fake_tiff = TiffStack(MockTiffFile(data=image, times=times), align_requested=False)
+    fake_tiff = TiffStack([MockTiffFile(data=image, times=times)], align_requested=False)
     stack0 = CorrelatedStack.from_dataset(fake_tiff)
 
     def compare_frames(original_frames, new_stack):
@@ -107,7 +107,7 @@ def test_slicing(shape):
 
 def test_deprecated_timestamps():
     fake_tiff = TiffStack(
-        MockTiffFile(data=[np.ones((5, 4, 3))] * 6, times=make_frame_times(6)),
+        [MockTiffFile(data=[np.ones((5, 4, 3))] * 6, times=make_frame_times(6))],
         align_requested=False,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -121,7 +121,7 @@ def test_correlation(shape):
 
     # Test image stack without dead time
     fake_tiff = TiffStack(
-        MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6, step=10)),
+        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6, step=10))],
         align_requested=False,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -131,7 +131,7 @@ def test_correlation(shape):
 
     # Test image stack with dead time
     fake_tiff = TiffStack(
-        MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6)), align_requested=False
+        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6))], align_requested=False
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
 
@@ -190,7 +190,7 @@ def test_correlation(shape):
 
 def test_name_change_from_data():
     fake_tiff = TiffStack(
-        MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1)), align_requested=False
+        [MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1))], align_requested=False
     )
     with pytest.deprecated_call():
         CorrelatedStack.from_data(fake_tiff)
@@ -199,7 +199,7 @@ def test_name_change_from_data():
 def test_stack_roi():
     first_page = np.arange(60).reshape((6, 10))
     data = np.stack([first_page + (j * 60) for j in range(3)], axis=2)
-    stack_0 = TiffStack(MockTiffFile([data], times=make_frame_times(1)), align_requested=False)
+    stack_0 = TiffStack([MockTiffFile([data], times=make_frame_times(1))], align_requested=False)
 
     # recursive cropping
     stack_1 = stack_0.with_roi([1, 7, 3, 6])
@@ -223,7 +223,7 @@ def test_stack_roi():
 def test_roi_defaults():
     first_page = np.arange(60).reshape((6, 10))
     data = np.stack([first_page + (j * 60) for j in range(3)], axis=2)
-    stack_0 = TiffStack(MockTiffFile([data], times=make_frame_times(1)), align_requested=False)
+    stack_0 = TiffStack([MockTiffFile([data], times=make_frame_times(1))], align_requested=False)
 
     np.testing.assert_equal(stack_0.with_roi([None, 7, 3, 6]).get_frame(0).data, data[3:6, :7])
     np.testing.assert_equal(stack_0.with_roi([1, None, 3, 6]).get_frame(0).data, data[3:6, 1:])
@@ -235,7 +235,7 @@ def test_roi_defaults():
 
 def test_deprecate_raw():
     fake_tiff = TiffStack(
-        MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1)), align_requested=False
+        [MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1))], align_requested=False
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
 
@@ -247,12 +247,14 @@ def test_deprecate_raw():
 def test_plotting(rgb_alignment_image_data):
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[warped_image] * 2,
-            times=make_frame_times(2),
-            description=json.dumps(description),
-            bit_depth=16,
-        ),
+        [
+            MockTiffFile(
+                data=[warped_image] * 2,
+                times=make_frame_times(2),
+                description=json.dumps(description),
+                bit_depth=16,
+            )
+        ],
         align_requested=True,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -285,17 +287,19 @@ def test_plot_correlated():
     # Regression test for a bug where the start index was added twice. In the regression, this lead to an out of range
     # error.
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[
-                np.zeros((3, 3)),
-                np.ones((3, 3)),
-                np.ones((3, 3)) * 2,
-                np.ones((3, 3)) * 3,
-                np.ones((3, 3)) * 4,
-                np.ones((3, 3)) * 5,
-            ],
-            times=make_frame_times(7, step=10),
-        ),
+        [
+            MockTiffFile(
+                data=[
+                    np.zeros((3, 3)),
+                    np.ones((3, 3)),
+                    np.ones((3, 3)) * 2,
+                    np.ones((3, 3)) * 3,
+                    np.ones((3, 3)) * 4,
+                    np.ones((3, 3)) * 5,
+                ],
+                times=make_frame_times(7, step=10),
+            )
+        ],
         align_requested=False,
     )
 
@@ -316,17 +320,19 @@ def test_plot_correlated_smaller_channel():
     # Regression test for a bug where the start index was added twice. In the regression, this lead to an out of range
     # error.
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[
-                np.zeros((3, 3)),
-                np.ones((3, 3)),
-                np.ones((3, 3)) * 2,
-                np.ones((3, 3)) * 3,
-                np.ones((3, 3)) * 4,
-                np.ones((3, 3)) * 5,
-            ],
-            times=make_frame_times(7, step=10),
-        ),
+        [
+            MockTiffFile(
+                data=[
+                    np.zeros((3, 3)),
+                    np.ones((3, 3)),
+                    np.ones((3, 3)) * 2,
+                    np.ones((3, 3)) * 3,
+                    np.ones((3, 3)) * 4,
+                    np.ones((3, 3)) * 5,
+                ],
+                times=make_frame_times(7, step=10),
+            )
+        ],
         align_requested=False,
     )
 
@@ -370,7 +376,7 @@ def test_cropping(rgb_tiff_file, gray_tiff_file):
                 stack._get_frame(0).raw_data[25:50, 25:50],
                 err_msg=f"failed on {Path(filename).name}, align={align}, frame.raw_data",
             )
-            stack.src._tiff_file.close()
+            stack.src.close()
 
 
 def test_cropping_then_export(
@@ -389,7 +395,7 @@ def test_cropping_then_export(
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
-        stack.src._tiff_file.close()
+        stack.src.close()
 
 
 def test_get_image():
@@ -397,12 +403,12 @@ def test_get_image():
     data = [np.full((2, 2), j) for j in range(3)]
     times = make_frame_times(3)
 
-    fake_tiff = TiffStack(MockTiffFile(data, times), align_requested=False)
+    fake_tiff = TiffStack([MockTiffFile(data, times)], align_requested=False)
     stack = CorrelatedStack.from_dataset(fake_tiff)
     np.testing.assert_array_equal(np.stack(data, axis=0), stack.get_image())
 
     # grayscale image - single frame
-    fake_tiff = TiffStack(MockTiffFile([data[0]], [times[0]]), align_requested=False)
+    fake_tiff = TiffStack([MockTiffFile([data[0]], [times[0]])], align_requested=False)
     stack = CorrelatedStack.from_dataset(fake_tiff)
     np.testing.assert_array_equal(data[0], stack.get_image())
 
@@ -410,7 +416,7 @@ def test_get_image():
     rgb_data = np.stack([np.full((2, 2), j) for j in range(3)], axis=2)
     data = [rgb_data] * 3
 
-    fake_tiff = TiffStack(MockTiffFile(data, times), align_requested=False)
+    fake_tiff = TiffStack([MockTiffFile(data, times)], align_requested=False)
     stack = CorrelatedStack.from_dataset(fake_tiff)
 
     for j, color in enumerate(("red", "green", "blue")):
@@ -421,7 +427,7 @@ def test_get_image():
     np.testing.assert_array_equal(np.stack(data, axis=0), stack.get_image(channel="rgb"))
 
     # RGB image - multiple frames
-    fake_tiff = TiffStack(MockTiffFile([data[0]], [times[0]]), align_requested=False)
+    fake_tiff = TiffStack([MockTiffFile([data[0]], [times[0]])], align_requested=False)
     stack = CorrelatedStack.from_dataset(fake_tiff)
 
     for j, color in enumerate(("red", "green", "blue")):
@@ -437,12 +443,14 @@ def test_define_tether():
 
     def make_stack(data, description, bit_depth):
         tiff = TiffStack(
-            MockTiffFile(
-                data=[data],
-                times=make_frame_times(1),
-                description=json.dumps(description),
-                bit_depth=bit_depth,
-            ),
+            [
+                MockTiffFile(
+                    data=[data],
+                    times=make_frame_times(1),
+                    description=json.dumps(description),
+                    bit_depth=bit_depth,
+                )
+            ],
             align_requested=True,
         )
         return CorrelatedStack.from_dataset(tiff)
@@ -477,7 +485,7 @@ def test_define_tether():
         # as fraction of bit depth, allow some room for interpolation error
         frame = np.atleast_3d(stack._get_frame(0).data)[:, :, 0].astype(float)
         ref = np.atleast_3d(ref_stack._get_frame(0).data)[:, :, 0].astype(float)
-        assert np.max(np.abs(frame - ref)) / (2 ** bit_depth - 1) < 0.055
+        assert np.max(np.abs(frame - ref)) / (2**bit_depth - 1) < 0.055
 
     # IRM - grayscale
     stack, ref_stack = make_test_data(1, 8, "irm")
@@ -552,12 +560,14 @@ def test_correlated_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image
     """Tests whether we can set an absolute color range for RGB plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[warped_image] * 2,
-            times=make_frame_times(2),
-            description=json.dumps(description),
-            bit_depth=16,
-        ),
+        [
+            MockTiffFile(
+                data=[warped_image] * 2,
+                times=make_frame_times(2),
+                description=json.dumps(description),
+                bit_depth=16,
+            )
+        ],
         align_requested=False,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -567,7 +577,9 @@ def test_correlated_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image
     ub = np.array([30000.0, 40000.0, 50000.0])
     stack.plot(channel="rgb", frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), np.clip((warped_image.astype(float) - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(
+        image.get_array(), np.clip((warped_image.astype(float) - lb) / (ub - lb), 0, 1)
+    )
     plt.close(fig)
 
 
@@ -576,12 +588,14 @@ def test_correlated_stack_plot_channels_absolute_color_adjustment(rgb_alignment_
     """Tests whether we can set an absolute color range for separate channel plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[warped_image] * 2,
-            times=make_frame_times(2),
-            description=json.dumps(description),
-            bit_depth=16,
-        ),
+        [
+            MockTiffFile(
+                data=[warped_image] * 2,
+                times=make_frame_times(2),
+                description=json.dumps(description),
+                bit_depth=16,
+            )
+        ],
         align_requested=False,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -602,12 +616,14 @@ def test_correlated_stack_plot_rgb_percentile_color_adjustment(rgb_alignment_ima
     """Tests whether we can set a percentile color range for RGB plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[warped_image] * 2,
-            times=make_frame_times(2),
-            description=json.dumps(description),
-            bit_depth=16,
-        ),
+        [
+            MockTiffFile(
+                data=[warped_image] * 2,
+                times=make_frame_times(2),
+                description=json.dumps(description),
+                bit_depth=16,
+            )
+        ],
         align_requested=True,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -633,12 +649,14 @@ def test_correlated_stack_plot_single_channel_percentile_color_adjustment(rgb_al
     """Tests whether we can set a percentile color range for separate channel plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
-        MockTiffFile(
-            data=[warped_image] * 2,
-            times=make_frame_times(2),
-            description=json.dumps(description),
-            bit_depth=16,
-        ),
+        [
+            MockTiffFile(
+                data=[warped_image] * 2,
+                times=make_frame_times(2),
+                description=json.dumps(description),
+                bit_depth=16,
+            )
+        ],
         align_requested=True,
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
@@ -665,8 +683,12 @@ def test_correlated_stack_plot_single_channel_percentile_color_adjustment(rgb_al
 def test_invalid_slicing():
     n_frames = 3
     data = [np.random.rand(5, 4) for j in range(n_frames)]
-    stack = CorrelatedStack.from_dataset(TiffStack(MockTiffFile(data, times=make_frame_times(n_frames)), align_requested=False))
-    with pytest.raises(IndexError, match="Only three indices are accepted when slicing CorrelatedStacks"):
+    stack = CorrelatedStack.from_dataset(
+        TiffStack([MockTiffFile(data, times=make_frame_times(n_frames))], align_requested=False)
+    )
+    with pytest.raises(
+        IndexError, match="Only three indices are accepted when slicing CorrelatedStacks"
+    ):
         stack[1:3, :, :, 2]
 
     with pytest.raises(IndexError, match="Slice steps are not supported when indexing"):
@@ -713,7 +735,7 @@ def test_multidim_slicing(frame_slice, axis1_slice, axis2_slice, dims):
     n_frames = 6
     data = [np.random.rand(*dims) for _ in range(n_frames)]
     stack = CorrelatedStack.from_dataset(
-        TiffStack(MockTiffFile(data, times=make_frame_times(n_frames)), align_requested=False)
+        TiffStack([MockTiffFile(data, times=make_frame_times(n_frames))], align_requested=False)
     )
 
     def validate_img_and_shape(stack, img):
