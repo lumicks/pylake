@@ -130,8 +130,7 @@ class TiffStack:
             warnings.warn(self._description._alignment.status.value, stacklevel=4)
 
         if roi is None:
-            height, width = self._src_shape
-            self._roi = Roi(0, width, 0, height)
+            self._roi = Roi(0, self._tags["ImageWidth"].value, 0, self._tags["ImageLength"].value)
         else:
             self._roi = roi
 
@@ -198,13 +197,6 @@ class TiffStack:
             roi=self._roi,
             tether=Tether(self._roi.origin, points),
         )
-
-    @property
-    def _src_shape(self):
-        """Return source image shape as (n_rows, n_columns)."""
-        width = self._tags["ImageWidth"].value
-        height = self._tags["ImageLength"].value
-        return (height, width)
 
     @property
     def _shape(self):
