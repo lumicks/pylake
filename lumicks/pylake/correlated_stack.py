@@ -408,7 +408,7 @@ class CorrelatedStack:
         description = to_save.src._description.for_export
 
         # add pylake to Software tag
-        software = to_save.src._tags["Software"].value
+        software = to_save.src._description.software
         if "pylake" not in software:
             software += f", pylake v{version}"
 

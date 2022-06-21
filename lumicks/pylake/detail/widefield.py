@@ -134,7 +134,7 @@ class TiffStack:
             warnings.warn(self._description._alignment.status.value, stacklevel=4)
 
         if roi is None:
-            self._roi = Roi(0, self._tags["ImageWidth"].value, 0, self._tags["ImageLength"].value)
+            self._roi = Roi(0, self._description.width, 0, self._description.height)
         else:
             self._roi = roi
 
@@ -228,10 +228,6 @@ class TiffStack:
         return self._roi.shape
 
     @property
-    def _tags(self):
-        return self._tiff_files[0].pages[0].tags
-
-    @property
     def num_frames(self):
         return np.sum(self._num_frames_per_tiff)
 
@@ -262,7 +258,11 @@ class ImageDescription:
 
     def __init__(self, tiff_file, align_requested):
         first_page = tiff_file.pages[0]
-        self.is_rgb = first_page.tags["SamplesPerPixel"].value == 3
+        tags = first_page.tags
+        self.is_rgb = tags["SamplesPerPixel"].value == 3
+        self.width = tags["ImageWidth"].value
+        self.height = tags["ImageLength"].value
+        self.software = tags["Software"].value if "Software" in tags else ""
 
         # parse json string stored in ImageDescription tag
         try:
@@ -300,6 +300,16 @@ class ImageDescription:
             self._alignment = Alignment(align_requested, AlignmentStatus.applied, True)
         else:
             self._alignment = Alignment(align_requested, AlignmentStatus.missing, False)
+
+    def verify_stack_similarity(self, other):
+        """Verifies that the metadata for these images reflects a compatible image"""
+        if self.is_rgb != other.is_rgb:
+            raise ValueError("Incompatible images: cannot mix RGB and non-RGB images")#
+
+        if self.width != other.width or self.height != other.height:
+            raise ValueError(
+                "Incompatible images: cannot mix differently sized tiffs into a single stack"
+            )
 
     @property
     def alignment_roi(self):
