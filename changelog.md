@@ -1,22 +1,22 @@
 # Changelog
 
-## v0.12.1 | t.b.d.
+## v0.12.1 | 2022-06-21
 
 #### New features
 
-* Added `Scan.pixel_time_seconds` and `Kymo.pixel_time_seconds` to obtain the pixel dwell time. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html).
-* Added a few performance benchmarks.
-* Added offline piezo tracking functionality (documentation pending).
+* Added `Scan.pixel_time_seconds` and `Kymo.pixel_time_seconds` to obtain the pixel dwell time. See [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/images.html) for more information.
 * Allow cropping `CorrelatedStack` using multidimensional indexing, i.e. `stack[start_frame : end_frame, start_row : end_row, start_column : end_column]`. See [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 * Added `KymoLine.estimate_diffusion()` which provides additional information regarding the diffusion constant estimation. This dataclass can be converted to floating point to get just the estimate, but also contains the number of points used to compute the estimate, and the number of lags used in the analysis. In addition to that, it provides a `std_err` field which reports the standard error for the estimate.
 * Added generalized least squares method as `method` option for `KymoLine.estimate_diffusion()`. Please refer to the [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more information.
+* Added offline piezo tracking functionality (documentation pending).
+* Added `lk.benchmark()` that can be used to estimate the performance of your computer with various pylake tasks.
 
 #### Bug fixes
 
-* Changed the internal calculation of the `extent` argument in `Kymo.plot()` such that the spatial limits are now defined at the center of the pixel (same functionality that is used for the temporal axis). Previously the limits were defined at the edge of the pixel and caused a subtle misalignment between the coordinates of the tracked lines and the actual image.
+* Changed the internal calculation of the `extent` argument in `Kymo.plot()` such that the spatial limits are now defined at the center of the pixel (same functionality that is used for the temporal axis). Previously the limits were defined at the edge of the pixel resulting in a subtle misalignment between the coordinates of the tracked lines and the actual image.
+* Fixed an issue where the pixel dwell time stored in TIFFs exported from Pylake could be incorrect. Prior to this fix, Pylake exported the value entered in the Bluelake UI as pixel dwell time. In reality, the true pixel dwell time is a multiple of the acquisition sample rate. After the fix, TIFF files correctly report the achieved pixel dwell time.
 * Changed the internal calculation of the hydrodynamically correct force spectrum. Before this change, the computation of the power spectral density relied on the frequencies always being positive. While this change does not affect any results, it allows evaluating the power spectral density for negative frequencies.
 * Fixed an issue where evaluating the hydrodynamically correct spectrum up to very high frequencies could lead to precision losses. These precision losses typically occur at frequencies upwards of 30 kHz and manifest themselves as visible discontinuities.
-* Fixed an issue where the pixel dwell time stored in TIFFs exported from Pylake could be incorrect. Prior to this fix, Pylake exported the value entered in the Bluelake UI as pixel dwell time. In reality, the true pixel dwell time is a multiple of the acquisition sample rate. After the fix, TIFF files correctly report the achieved pixel dwell time. 
 * Perform better input validation on the kymotracking functions `track_greedy` and `track_lines`. The line width and pixel threshold must be larger than zero. The diffusion parameter must be positive. Previously, failure to provide values respecting these limits would produce cryptic error messages.
 * Perform better input validation on `refine_lines_centroid`. Line width must now be at least one pixel. Previously, negative values produced a cryptic error message, while a line width smaller than one pixel would silently result in no refinement taking place.
 * Fixed bug in force calibration convenience function where setting `fixed_alpha` or `fixed_diode` to zero resulted in those parameters still being fitted.  After this change, setting `fixed_alpha` to zero will result in the diode model having a fixed `alpha` of zero, whereas setting `f_diode` to zero raises an exception.
