@@ -88,12 +88,17 @@ def plot_correlated(
     ax1.set_title(downsampled.labels["title"])
     ax1.set_xlim([np.min(t), np.max(t)])
 
+    # For clicking, we want the region between the start of this frame and the start of the next
+    # rather than the actual frame ranges.
+    frame_change_positions = np.hstack((np.asarray(frame_timestamps)[:, 0], np.inf))
+    frame_change_ranges = np.stack((frame_change_positions[:-1], frame_change_positions[1:])).T
+
     def select_frame(event):
         nonlocal poly
 
         if not event.canvas.widgetlock.locked() and event.inaxes == ax1:
             time = event.xdata * 1e9 + t0
-            for img_idx, (start, stop) in enumerate(frame_timestamps):
+            for img_idx, (start, stop) in enumerate(frame_change_ranges):
                 if start <= time < stop:
                     ax2.set_title(title_factory(img_idx))
                     poly.remove()
