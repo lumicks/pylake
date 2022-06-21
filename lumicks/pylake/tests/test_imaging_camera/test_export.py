@@ -10,7 +10,7 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
     filenames = (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi)
     for filename, align in itertools.product(filenames, (True, False)):
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
-        stack = CorrelatedStack(str(filename), align)
+        stack = CorrelatedStack(str(filename), align=align)
         stack.export_tiff(savename)
         stack.src.close()
         assert stat(savename).st_size > 0

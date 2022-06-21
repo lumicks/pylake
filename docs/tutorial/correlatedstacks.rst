@@ -8,8 +8,12 @@ Correlated stacks
 Bluelake has the ability to export videos from the camera's.
 These videos can be opened and sliced using `CorrelatedStack`::
 
-    stack = lk.CorrelatedStack("cas9_wf.tiff")  # Loading a stack.
+    stack = lk.CorrelatedStack("wf.tiff")  # Loading a stack.
     stack_slice = stack[2:10]  # Grab frame 2 to 9
+
+You can easily load multiple TIFF files by simply listing them consecutively::
+
+    stack = lk.CorrelatedStack("wf.tiff", "wf2.tiff")  # Loading two tiff files in a single stack.
 
 You can quickly plot an individual frame using the `plot()` method::
 
@@ -72,9 +76,9 @@ forwarded to `plt.imshow()`::
 
 Full color RGB images are automatically reconstructed using the alignment matrices
 from Bluelake if available. This functionality can be turned off with the optional
-`align` keyword::
+`align` keyword. Note that the align parameter has to be provided as a keyworded argument (i.e. `align=False`)::
 
-    stack2 = lk.CorrelatedStack("cas9_wf.tiff", align=False)
+    stack2 = lk.CorrelatedStack("wf.tiff", align=False)
     stack2.plot()
 
 .. image:: correlatedstack_raw.png

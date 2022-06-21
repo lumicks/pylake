@@ -9,13 +9,13 @@ from .detail.image import make_image_title
 
 
 class CorrelatedStack:
-    """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various formats. These can be
-    opened and correlated to timeline data using CorrelatedStack.
+    """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various
+    formats. These can be opened and correlated to timeline data using CorrelatedStack.
 
     Parameters
     ----------
-    image_name : str
-        Filename for the image stack. Typically a TIFF file recorded from a camera in Bluelake.
+    *image_names : str
+        Filenames for the image stack. Typically a TIFF file recorded from a camera in Bluelake.
     align : bool
         If enabled, multi-channel images will be reconstructed from the image alignment metadata
         from Bluelake. The default value is `True`.
@@ -35,11 +35,18 @@ class CorrelatedStack:
 
         # Determine the force trace averaged over frame 2...9.
         file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges)
+
+        # Loading multiple TIFFs into a stack.
+        stack = pylake.CorrelatedStack("example.tiff", "example2.tiff", "example3.tiff")
     """
 
-    def __init__(self, image_name, align=True):
-        self.src = TiffStack.from_file(image_name, align_requested=align)
-        self.name = os.path.splitext(os.path.basename(image_name))[0]
+    def __init__(self, *image_names, align=True):
+        self.src = TiffStack.from_file(list(image_names), align_requested=align)
+        self.name = (
+            os.path.splitext(os.path.basename(str(image_names)))[0]
+            if len(image_names) == 1
+            else "Multi-file stack"
+        )
         self.start_idx = 0
         self.stop_idx = self.src.num_frames
 

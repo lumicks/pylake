@@ -1,6 +1,10 @@
 # Changelog
 
-## v0.13.0 | t.b.d.
+## v0.13.0 t.b.d.
+
+#### New features
+
+* Allow reading multiple files with `lk.CorrelatedStack` (e.g. `lk.CorrelatedStack("image1.tiff", "image2.tiff")`).
 
 #### New features
 
@@ -10,6 +14,7 @@
 #### Breaking changes
 
 * Changed default in `lk.calibrate_force()` to 38 Hz.
+* To disable image alignment for `lk.CorrelatedStack`, the alignment argument has to be provided as a keyword argument (e.g. `lk.CorrelatedStack("filename.tiff", align=False)` rather than `lk.CorrelatedStack("filename.tiff", False)`).
 
 ## v0.12.1 | 2022-06-21
 
