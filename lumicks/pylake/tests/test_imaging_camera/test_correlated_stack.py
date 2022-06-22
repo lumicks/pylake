@@ -796,9 +796,7 @@ def test_alignment_multistack_failure_modes(
         "Alignment matrices must be the same",
     )
     check_error(
-        rgb_alignment_image_data,
-        gray_alignment_image_data,
-        "Cannot mix RGB and non-RGB stacks"
+        rgb_alignment_image_data, gray_alignment_image_data, "Cannot mix RGB and non-RGB stacks"
     )
 
     # Drop the metadata entirely
@@ -810,3 +808,47 @@ def test_alignment_multistack_failure_modes(
         rgb_alignment_image_data_no_metadata,
         "Alignment matrices must be the same",
     )
+
+
+def test_time_ordering_stack(rgb_alignment_image_data):
+    """Check whether we enforce a correct time order when setting up a stack from multiple files."""
+
+    def to_tiff(warped_image, description, bit_depth, time):
+        return MockTiffFile(
+            data=[warped_image],
+            times=make_frame_times(1, start=time),
+            description=json.dumps(description),
+            bit_depth=bit_depth,
+        )
+
+    timestamps = range(0, 40, 10)
+    t1, t2, t3, t4 = (to_tiff(*rgb_alignment_image_data[1:], time=t) for t in timestamps)
+    stack = TiffStack([t3, t2, t1, t4], align_requested=True)
+
+    for idx, (frame, ts) in enumerate(zip((t1, t2, t3, t4), timestamps)):
+        assert stack.get_frame(idx).start == ts
+
+
+def test_malformed_timestamps_correlated_stack(rgb_alignment_image_data):
+    """We need good timestamps for correlated stack functionalities, so we should validate that
+    we have those"""
+    def to_tiff(warped_image, description, bit_depth, time):
+        return MockTiffFile(
+            data=[warped_image],
+            times=make_frame_times(1, start=time),
+            description=json.dumps(description),
+            bit_depth=bit_depth,
+        )
+
+    class MockProperty:
+        @property
+        def value(self):
+            return "okay"
+
+    t1, t2, t3 = (to_tiff(*rgb_alignment_image_data[1:], time=t) for t in range(0, 30, 10))
+    t2.pages[0].tags.pop("DateTime")
+    t3.pages[0].tags["DateTime"] = MockProperty()
+
+    for test_frame in (t2, t3):
+        with pytest.raises(RuntimeError, match="The timestamp data was incorrectly formatted"):
+            TiffStack([t1, test_frame], align_requested=True)

@@ -46,8 +46,8 @@ class MockTiffFile:
         return len(self._src.pages)
 
 
-def make_frame_times(n_frames, step=8):
-    return [[f"{j}", f"{j+step}"] for j in range(10, (n_frames + 1) * 100, 10)]
+def make_frame_times(n_frames, step=8, start=10):
+    return [[f"{j}", f"{j+step}"] for j in range(start, start + (n_frames + 1) * 100, 10)]
 
 
 def apply_transform(spots, Tx, Ty, theta, offsets=None):
