@@ -10,6 +10,16 @@ from dataclasses import dataclass
 from ..adjustments import ColorAdjustment
 
 
+def _get_page_timestamp(page, start=True):
+    """Get the starting timestamp from a TIFF page"""
+    regex = r"^(\d+):\d+$" if start else r"^\d+:(\d+)$"
+    timestamp_string = re.search(regex, page.tags["DateTime"].value)
+    if timestamp_string:
+        return np.int64(timestamp_string.group(1))
+    else:
+        raise ValueError("Incorrectly formatted timestamp metadata")
+
+
 class TiffFrame:
     """Thin wrapper around a TIFF frame stack. For camera videos timestamps are stored in the DateTime tag in
     the format start:end.
@@ -100,13 +110,11 @@ class TiffFrame:
 
     @property
     def start(self):
-        timestamp_string = re.search(r"^(\d+):\d+$", self._page.tags["DateTime"].value)
-        return np.int64(timestamp_string.group(1)) if timestamp_string else None
+        return _get_page_timestamp(self._page, start=True)
 
     @property
     def stop(self):
-        timestamp_string = re.search(r"^\d+:(\d+)$", self._page.tags["DateTime"].value)
-        return np.int64(timestamp_string.group(1)) if timestamp_string else None
+        return _get_page_timestamp(self._page, start=False)
 
 
 class TiffStack:
@@ -121,7 +129,14 @@ class TiffStack:
     """
 
     def __init__(self, tiff_files, align_requested, roi=None, tether=None):
-        self._tiff_files = tiff_files
+        # Make sure the timestamps are in order (since downstream functionality depends on this)
+        try:
+            timestamps = [_get_page_timestamp(file.pages[0]) for file in tiff_files]
+        except (KeyError, ValueError):  # Missing (KeyError) or incorrectly formatted (ValueError)
+            raise RuntimeError("The timestamp data was incorrectly formatted")
+
+        order = np.argsort(timestamps)
+        self._tiff_files = [tiff_files[idx] for idx in order]
 
         descriptions = [ImageDescription(tiff_file, align_requested) for tiff_file in tiff_files]
 
