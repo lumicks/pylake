@@ -769,3 +769,44 @@ def test_multidim_slicing(frame_slice, axis1_slice, axis2_slice, dims):
         stack[frame_slice, :, axis2_slice],
         stack[frame_slice].get_image()[:, :, axis2_slice],
     )
+
+
+def test_alignment_multistack_failure_modes(
+    rgb_alignment_image_data,
+    rgb_alignment_image_data_offset,
+    gray_alignment_image_data,
+):
+    """Check whether we enforce that the metadata agrees."""
+
+    def to_tiff(warped_image, description, bit_depth):
+        return MockTiffFile(
+            data=[warped_image] * 2,
+            times=make_frame_times(2),
+            description=json.dumps(description),
+            bit_depth=bit_depth,
+        )
+
+    def check_error(dataset1, dataset2, error_message):
+        with pytest.raises(ValueError, match=error_message):
+            TiffStack([to_tiff(*dataset1[1:]), to_tiff(*dataset2[1:])], align_requested=False)
+
+    check_error(
+        rgb_alignment_image_data,
+        rgb_alignment_image_data_offset,
+        "Alignment matrices must be the same",
+    )
+    check_error(
+        rgb_alignment_image_data,
+        gray_alignment_image_data,
+        "Cannot mix RGB and non-RGB stacks"
+    )
+
+    # Drop the metadata entirely
+    reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
+    rgb_alignment_image_data_no_metadata = reference_image, warped_image, "", bit_depth
+
+    check_error(
+        rgb_alignment_image_data,
+        rgb_alignment_image_data_no_metadata,
+        "Alignment matrices must be the same",
+    )
