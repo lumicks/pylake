@@ -123,8 +123,12 @@ class TiffStack:
     def __init__(self, tiff_files, align_requested, roi=None, tether=None):
         self._tiff_files = tiff_files
 
-        # TODO: verify descriptions are identical and no error codes
         descriptions = [ImageDescription(tiff_file, align_requested) for tiff_file in tiff_files]
+
+        # Verify that the images in the stack are compatible accepting it as one stack,
+        # this means that they need to have the same transform, number of pixels and channels.
+        for description in descriptions:
+            descriptions[0].verify_stack_similarity(description)
 
         self._description = descriptions[0]
 
@@ -263,6 +267,7 @@ class ImageDescription:
         self.width = tags["ImageWidth"].value
         self.height = tags["ImageLength"].value
         self.software = tags["Software"].value if "Software" in tags else ""
+        self._alignment_matrices = {}
 
         # parse json string stored in ImageDescription tag
         try:
@@ -288,8 +293,6 @@ class ImageDescription:
                 ).invert()
                 for channel in range(3)
             }
-        else:
-            self._alignment_matrices = {}
 
         # check alignment status
         if not self.is_rgb:
@@ -303,13 +306,25 @@ class ImageDescription:
 
     def verify_stack_similarity(self, other):
         """Verifies that the metadata for these images reflects a compatible image"""
+
         if self.is_rgb != other.is_rgb:
-            raise ValueError("Incompatible images: cannot mix RGB and non-RGB images")#
+            raise ValueError("Cannot mix RGB and non-RGB stacks.")
 
         if self.width != other.width or self.height != other.height:
-            raise ValueError(
-                "Incompatible images: cannot mix differently sized tiffs into a single stack"
-            )
+            raise ValueError("Cannot mix differently sized tiffs into a single stack.")
+
+        # We only allow merging stacks with the exact same alignment settings
+        if self._alignment_matrices or other._alignment_matrices:
+            # Checks whether they both have alignment matrices and whether they are the same
+            try:
+                assert self._alignment.do_alignment == other._alignment.do_alignment
+
+                # Check the actual matrices we have here
+                for channel, mat in self._alignment_matrices.items():
+                    assert mat == other._alignment_matrices[channel]
+
+            except (AssertionError, KeyError):  # Check different (assert) or missing (KeyError)
+                raise ValueError("Alignment matrices must be the same for the two stacks.")
 
     @property
     def alignment_roi(self):
@@ -419,6 +434,9 @@ class TransformMatrix:
         """Perform matrix multiplication such that `self * mat == np.matmul(self, mat)`."""
         assert isinstance(mat, TransformMatrix), "Operands must be of type `TransformMatrix`."
         return TransformMatrix(np.matmul(self.matrix, mat.matrix)[:2])
+
+    def __eq__(self, other):
+        return np.all(self.matrix == other.matrix)
 
     def invert(self):
         return TransformMatrix(np.linalg.inv(self.matrix)[:2])
