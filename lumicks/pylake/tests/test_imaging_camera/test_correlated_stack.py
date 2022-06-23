@@ -13,6 +13,15 @@ from matplotlib.testing.decorators import cleanup
 from ..data.mock_widefield import MockTiffFile, make_alignment_image_data, make_frame_times
 
 
+def to_tiff(image, description, bit_depth, start_time=1, num_images=2):
+    return MockTiffFile(
+        data=[image] * num_images,
+        times=make_frame_times(num_images, start=start_time),
+        description=json.dumps(description),
+        bit_depth=bit_depth,
+    )
+
+
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
 def test_correlated_stack(shape):
     fake_tiff = TiffStack(
@@ -778,14 +787,6 @@ def test_alignment_multistack_failure_modes(
 ):
     """Check whether we enforce that the metadata agrees."""
 
-    def to_tiff(warped_image, description, bit_depth):
-        return MockTiffFile(
-            data=[warped_image] * 2,
-            times=make_frame_times(2),
-            description=json.dumps(description),
-            bit_depth=bit_depth,
-        )
-
     def check_error(dataset1, dataset2, error_message):
         with pytest.raises(ValueError, match=error_message):
             TiffStack([to_tiff(*dataset1[1:]), to_tiff(*dataset2[1:])], align_requested=False)
@@ -813,16 +814,8 @@ def test_alignment_multistack_failure_modes(
 def test_time_ordering_stack(rgb_alignment_image_data):
     """Check whether we enforce a correct time order when setting up a stack from multiple files."""
 
-    def to_tiff(warped_image, description, bit_depth, time):
-        return MockTiffFile(
-            data=[warped_image],
-            times=make_frame_times(1, start=time),
-            description=json.dumps(description),
-            bit_depth=bit_depth,
-        )
-
     timestamps = range(0, 40, 10)
-    t1, t2, t3, t4 = (to_tiff(*rgb_alignment_image_data[1:], time=t) for t in timestamps)
+    t1, t2, t3, t4 = (to_tiff(*rgb_alignment_image_data[1:], t, 1) for t in timestamps)
     stack = TiffStack([t3, t2, t1, t4], align_requested=True)
 
     for idx, (frame, ts) in enumerate(zip((t1, t2, t3, t4), timestamps)):
@@ -832,20 +825,13 @@ def test_time_ordering_stack(rgb_alignment_image_data):
 def test_malformed_timestamps_correlated_stack(rgb_alignment_image_data):
     """We need good timestamps for correlated stack functionalities, so we should validate that
     we have those"""
-    def to_tiff(warped_image, description, bit_depth, time):
-        return MockTiffFile(
-            data=[warped_image],
-            times=make_frame_times(1, start=time),
-            description=json.dumps(description),
-            bit_depth=bit_depth,
-        )
 
     class MockProperty:
         @property
         def value(self):
             return "okay"
 
-    t1, t2, t3 = (to_tiff(*rgb_alignment_image_data[1:], time=t) for t in range(0, 30, 10))
+    t1, t2, t3 = (to_tiff(*rgb_alignment_image_data[1:], t) for t in range(0, 30, 10))
     t2.pages[0].tags.pop("DateTime")
     t3.pages[0].tags["DateTime"] = MockProperty()
 
