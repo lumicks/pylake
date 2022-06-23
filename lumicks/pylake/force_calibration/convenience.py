@@ -18,7 +18,7 @@ def calibrate_force(
     viscosity=None,
     active_calibration=False,
     driving_data=np.asarray([]),
-    driving_frequency_guess=37,
+    driving_frequency_guess=38,
     axial=False,
     hydrodynamically_correct=False,
     rho_sample=None,
