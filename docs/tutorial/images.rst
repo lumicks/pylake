@@ -126,7 +126,7 @@ For other video formats such as `.mp4` or `.avi`, ffmpeg must be installed. See
 Correlating scans
 -----------------
 
-We can downsample a scan according to the frames in a scan. We can use :func:`~lumicks.pylake.scan.Scan.frame_timestamp_ranges()` for this::
+We can downsample channel data according to the frames in a scan. We can use :func:`~lumicks.pylake.scan.Scan.frame_timestamp_ranges()` for this::
 
     frame_timestamp_ranges = scan.frame_timestamp_ranges()
 

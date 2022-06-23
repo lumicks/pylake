@@ -28,6 +28,22 @@ def _default_line_time_factory(self: "Kymo"):
         )
 
 
+def _default_line_timestamp_ranges_factory(self: "Kymo", exclude: bool):
+    """Get start and stop timestamp of each line in the kymo."""
+
+    ts_min = self._timestamps("timestamps", reduce=np.min)[0]
+
+    if exclude:
+        # Take the max value of each line to account for unfinished final line
+        # and add one sample to have proper slicing
+        delta_ts = int(1e9 / self.infowave.sample_rate)
+        ts_max = self._timestamps("timestamps", reduce=np.max).max(axis=0) + delta_ts
+    else:
+        line_time = ts_min[1] - ts_min[0]
+        ts_max = ts_min + line_time
+    return [(t1, t2) for t1, t2 in zip(ts_min, ts_max)]
+
+
 class Kymo(ConfocalImage):
     """A Kymograph exported from Bluelake
 
@@ -52,6 +68,7 @@ class Kymo(ConfocalImage):
     def __init__(self, name, file, start, stop, metadata, position_offset=0, calibration=None):
         super().__init__(name, file, start, stop, metadata)
         self._line_time_factory = _default_line_time_factory
+        self._line_timestamp_ranges_factory = _default_line_timestamp_ranges_factory
         self._position_offset = position_offset
         self._calibration = PositionCalibration() if calibration is None else calibration
 
@@ -116,6 +133,19 @@ class Kymo(ConfocalImage):
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
         return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
+
+    def line_timestamp_ranges(self, exclude=True):
+        """Get start and stop timestamp of each line in the kymo.
+
+        Note: The stop timestamp for each line is defined as the first sample past the end of the
+        relevant data such that the timestamps can be used for slicing directly.
+
+        Parameters
+        ----------
+        exclude : bool
+            Exclude dead time at the end of each line.
+        """
+        return self._line_timestamp_ranges_factory(self, exclude)
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
@@ -196,18 +226,6 @@ class Kymo(ConfocalImage):
         axes.set_title(self.name)
         adjustment._update_limits(image_handle, image, channel)
 
-    def _downsample_channel(self, channel, reduce=np.mean):
-        # downsample exactly over the scanline time range
-        min_times = self._timestamps("timestamps", reduce=np.min)[0, :].astype(np.int64)
-        max_times = (
-            # + 1 since we want inclusive end
-            np.max(self._timestamps("timestamps", reduce=np.max).astype(np.int64), axis=0)
-            + 1
-        )
-
-        time_ranges = [(mini, maxi) for mini, maxi in zip(min_times, max_times)]
-        return channel.downsampled_over(time_ranges, reduce=reduce, where="center")
-
     def plot_with_force(
         self,
         force_channel,
@@ -267,7 +285,10 @@ class Kymo(ConfocalImage):
             warnings.warn(
                 RuntimeWarning("Using downsampled force since high frequency force is unavailable.")
             )
-        force = self._downsample_channel(channel, reduce=reduce)
+
+        time_ranges = self.line_timestamp_ranges(exclude=True)
+        force = channel.downsampled_over(time_ranges, reduce=reduce, where="center")
+
         force.plot(**kwargs)
         ax2.set_xlim(xlim_kymo)
 
