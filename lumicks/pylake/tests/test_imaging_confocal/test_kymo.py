@@ -172,20 +172,59 @@ def test_deprecated_plotting(test_kymos):
         kymo.plot_rgb()
 
 
+def test_line_timestamp_ranges(test_kymos):
+    kymo = test_kymos["Kymo1"]
 
-@cleanup
-def test_plotting_with_force(kymo_h5_file):
+    expected_ranges = (
+        [
+            (20000000000, 21000000000),
+            (21062500000, 22000000000),
+            (22000000000, 23000000000),
+            (23062500000, 24000000000)
+        ],
+        [
+            (20000000000, 21062500000),
+            (21062500000, 22125000000),
+            (22000000000, 23062500000),
+            (23062500000, 24125000000)]
+    )
+    expected_iw_chunks = (
+        [
+            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2],
+            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2],
+            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2],
+            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
+        ],
+        [
+            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2, 0],
+            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2, 1, 0],
+            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2, 0],
+            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
+        ]
+    )
+
+    for exclude, ref_ranges, ref_iw_chunks in zip(
+        (True, False),
+        expected_ranges,
+        expected_iw_chunks
+    ):
+        ranges = kymo.line_timestamp_ranges(exclude=exclude)
+        np.testing.assert_equal(ranges, ref_ranges)
+
+        iw_chunks = [kymo.infowave[slice(*rng)].data for rng in ranges]
+        np.testing.assert_equal(iw_chunks, ref_iw_chunks)
+
+
+def test_plotting_with_force_downsampling(kymo_h5_file):
     f = pylake.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["Kymo1"]
+    ranges = kymo.line_timestamp_ranges(exclude=True)
 
-    ds = kymo._downsample_channel(f.force2x, reduce=np.mean)
-    np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
-    kymo.plot_with_force(force_channel="2x", color_channel="red")
-
-    # Check timestamps
+    # Check timestamps for downsampled channel
     # Note that if the kymo would have the same samples per pixel, a simple:
     #    np.testing.assert_allclose(np.mean(kymo.timestamps, axis=0)[:-1], ds.timestamps[:-1])
     # would have sufficed. However, in this case we need the following solution:
+    ds = f.force2x.downsampled_over(ranges)
     min_ts, max_ts = (
         reduce(kymo._timestamps("timestamps", reduce), axis=0) for reduce in (np.min, np.max)
     )
@@ -196,6 +235,16 @@ def test_plotting_with_force(kymo_h5_file):
         ]
     )
     np.testing.assert_allclose(ds.timestamps, target_timestamps)
+    np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+
+
+@cleanup
+def test_plotting_with_force(kymo_h5_file):
+    f = pylake.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["Kymo1"]
+
+    kymo.plot_with_force(force_channel="2x", color_channel="red")
+    np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), [30, 30, 10, 10])
 
     # The following assertion fails because of unequal line times in the test data. These
     # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
@@ -211,7 +260,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
     kymo = f.kymos["Kymo1"]
     kymo_ds = kymo.downsampled_by(position_factor=2)
 
-    ds = kymo_ds._downsample_channel(f.force2x, reduce=np.mean)
+    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(exclude=True))
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
     # Downsampling by a factor of two in position means that the last pixel will be dropped
@@ -223,7 +272,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
 
     # Downsampling by a factor of five in position means no pixel will be dropped.
     kymo_ds = kymo.downsampled_by(position_factor=5)
-    ds = kymo_ds._downsample_channel(f.force2x, reduce=np.mean)
+    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(exclude=True))
     mins = kymo._timestamp_factory(kymo, np.min)[0, :]
     maxs = kymo._timestamp_factory(kymo, np.max)[-1, :]
     np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
@@ -247,14 +296,14 @@ def test_regression_plot_with_force(kymo_h5_file):
     kymo = f.kymos["Kymo1"]
     kymo.stop = int(kymo.stop - 2 * 1e9 / 16)
     kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = kymo._downsample_channel(f.force2x, reduce=np.mean)
+    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(exclude=True))
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
     # Kymo ends on a partial last line. Multiple timestamps are zero now.
     kymo = f.kymos["Kymo1"]
     kymo.stop = int(kymo.stop - 10 * 1e9 / 16)
     kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = kymo._downsample_channel(f.force2x, reduce=np.mean)
+    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(exclude=True))
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
 

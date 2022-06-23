@@ -170,7 +170,16 @@ The images can also be exported in the TIFF format::
 Correlating with force
 ----------------------
 
-We can plot a kymograph along its force trace using::
+We can downsample channel data according to the lines in a kymo. We can use :func:`~lumicks.pylake.scan.Kymo.line_timestamp_ranges()` for this::
+
+    line_timestamp_ranges = kymo.line_timestamp_ranges()
+
+This returns a list of start and stop timestamps that can be passed directly to :func:`~lumicks.pylake.channel.Slice.downsampled_to`,
+which will then return a :class:`~lumicks.pylake.channel.Slice` with a datapoint per line::
+
+    downsampled = f.force1x.downsampled_over(line_timestamp_ranges)
+
+There is also a convenience function to plot a kymograph along with a downsampled force trace::
 
     kymo.plot_with_force("1x", "green")
 

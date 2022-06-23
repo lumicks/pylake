@@ -2,6 +2,10 @@
 
 ## v0.13.0 | t.b.d.
 
+#### New features
+
+* Added function `Kymo.line_timestamp_ranges()` to obtain the start and stop timestamp of each scan line in a `Kymo`. Please refer to [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
+
 #### Breaking changes
 
 * Changed default in `lk.calibrate_force()` to 38 Hz.
