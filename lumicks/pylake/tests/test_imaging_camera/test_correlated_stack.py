@@ -838,3 +838,27 @@ def test_malformed_timestamps_correlated_stack(rgb_alignment_image_data):
     for test_frame in (t2, t3):
         with pytest.raises(RuntimeError, match="The timestamp data was incorrectly formatted"):
             TiffStack([t1, test_frame], align_requested=True)
+
+
+def test_alignment_multistack(rgb_alignment_image_data, gray_alignment_image_data):
+    t_starts = np.arange(10) * 100
+    files = [
+        to_tiff(*rgb_alignment_image_data[1:], start_time=t_start, num_images=5)
+        for t_start in t_starts
+    ]
+    full_stack = TiffStack(files, align_requested=True)
+
+    ref_ts = np.hstack([start + np.arange(0, 50, 10) for start in np.arange(10) * 100])
+    for idx, timestamp in enumerate(ref_ts):
+        assert full_stack.get_frame(idx).start == timestamp
+
+    full_stack_idx = 0
+    for file in files:
+        current_stack = TiffStack([file], align_requested=True)
+        for idx in range(current_stack.num_frames):
+            np.testing.assert_allclose(
+                full_stack.get_frame(full_stack_idx).data, current_stack.get_frame(idx).data
+            )
+            full_stack_idx += 1
+
+    assert full_stack.num_frames == len(ref_ts)
