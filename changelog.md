@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.13.0 | t.b.d.
+
+#### Breaking changes
+
+* Changed default in `lk.calibrate_force()` to 38 Hz.
+
 ## v0.12.1 | 2022-06-21
 
 #### New features
