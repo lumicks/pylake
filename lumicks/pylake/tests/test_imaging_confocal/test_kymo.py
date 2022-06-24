@@ -1057,3 +1057,20 @@ def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
         np.testing.assert_allclose(image.get_array(), kymo.get_image(channel)) #getattr(kymo, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
+
+
+@pytest.mark.parametrize("crop", [False, True])
+def test_flip_kymo(test_kymos, crop):
+    kymo = test_kymos["Kymo1"]
+    if crop:
+        kymo = kymo.crop_by_distance(0.01, 0.03)
+    kymo_flipped = kymo.flip()
+    for channel in ("red", "green", "blue", "rgb"):
+        np.testing.assert_allclose(
+            kymo_flipped.get_image(channel=channel),
+            np.flip(kymo.get_image(channel=channel), axis=0),
+        )
+        np.testing.assert_allclose(
+            kymo_flipped.flip().get_image(channel=channel),
+            kymo.get_image(channel=channel),
+        )
