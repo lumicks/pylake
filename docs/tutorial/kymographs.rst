@@ -123,6 +123,7 @@ If the optional `tether_length_kbp` argument is supplied, the kymograph is autom
 length in kilobase pairs. If this argument is missing (the default value `None`) the edited kymograph is only
 sliced and cropped.
 
+Note that you can also flip a kymograph along its positional axis using `kymo.flip()`. This returns a new (but flipped) `Kymo`.
 
 Downsampling
 ------------

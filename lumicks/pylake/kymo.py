@@ -483,6 +483,16 @@ class Kymo(ConfocalImage):
         result._pixelcount_factory = pixelcount_factory
         return result
 
+    def flip(self):
+        result = copy(self)
+
+        def image_factory(_, channel):
+            return np.flip(self._image(channel), axis=0)
+
+        result._image_factory = image_factory
+
+        return result
+
     def calibrate_to_kbp(self, length_kbp):
         """Calibrate from microns to other units.
 
