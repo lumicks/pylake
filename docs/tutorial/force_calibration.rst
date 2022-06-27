@@ -132,12 +132,13 @@ Hydrodynamically correct model
 
 While the idealized Lorentzian model discussed in the previous section is often sufficiently accurate, there are scenarios where more detailed models are necessary.
 
-The idealized model is based on the assumption that the frictional force is only proportional to the bead's velocity.
-This model is derived from Stokes' law for linear motion with constant velocity (assuming the bead moves at a constant speed with respect to the fluid).
-In reality, the frictional force on the bead depends on past motion since the beads' past motion determines the fluid's present motion.
-Because of this inertial effect of the fluid, the frictional force is actually frequency dependent.
+The frictional forces applied by the viscous environment to the bead are proportional to the bead's velocity.
+The idealized model is based on the assumption that the bead's velocity is constant, which, for a stochastic process such as Brownian motion, is not an accurate assumption.
+In addition, the bead and the surrounding fluid have their own mass and inertia, which are also neglected in the idealized model.
+Together, the non-constant speed and the inertial effects result in frequency-dependent frictional forces that this hydrodynamic model takes into account.
+These effects are strongest at higher frequencies, and for larger bead diameters.
 
-The following equation accounts for a frequency dependent drag coefficient :cite:`tolic2006calibration`:
+The following equation accounts for a frequency dependent drag :cite:`tolic2006calibration`:
 
 .. math::
 
@@ -156,7 +157,7 @@ and :math:`f_{m, 0}` parameterizes the time it takes for friction to dissipate t
     f_{m, 0} = \frac{\gamma_0}{2 \pi m} \quad \mathrm{[Hz]}
 
 with :math:`m` the mass of the bead.
-Finally, :math:`\gamma` corresponds to the frequency dependent drag coefficient.
+Finally, :math:`\gamma` corresponds to the frequency dependent drag.
 For measurements in bulk, far away from a surface, :math:`\gamma` = :math:`\gamma_\mathrm{stokes}`, where :math:`\gamma_\mathrm{stokes}` is given by:
 
 .. math::
@@ -168,7 +169,7 @@ Where :math:`f_{\nu}` is the frequency at which the penetration depth equals the
 This approximation is reasonable, when the bead is far from the surface.
 
 When approaching the surface, the drag experienced by the bead depends on the distance between the bead and the surface of the flow cell.
-An approximate expression for the frequency dependent drag coefficient is then given by :cite:`tolic2006calibration`:
+An approximate expression for the frequency dependent drag is then given by :cite:`tolic2006calibration`:
 
 .. math::
 
