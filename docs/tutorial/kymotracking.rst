@@ -431,10 +431,17 @@ Let's get diffusion constants for all three :class:`~lumicks.pylake.kymotracker.
     DiffusionEstimate(value=3.8728160788405055, std_err=1.5207837420729884, num_lags=3, num_points=80, method='ols'),
     DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols')]
 
+We can also directly determine them for an entire group by just invoking::
+
+    >>> kymolines.estimate_diffusion(method="ols")
+    [DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols'),
+    DiffusionEstimate(value=3.8728160788405055, std_err=1.5207837420729884, num_lags=3, num_points=80, method='ols'),
+    DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols')]
+
 We can see that there is considerable variation in the estimates, which is unfortunately typical for diffusion coefficient estimates.
 By default, :func:`~lumicks.pylake.kymotracker.kymoline.KymoLine.estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
 
-    >>> [kymoline.estimate_diffusion(method="ols", max_lag=30) for kymoline in kymolines]
+    >>> kymolines.estimate_diffusion(method="ols", max_lag=30)
     [DiffusionEstimate(value=11.949917925662831, std_err=10.394298104056345, num_lags=30, num_points=80, method='ols'),
      DiffusionEstimate(value=4.904422868492953, std_err=4.3237670165379045, num_lags=30, num_points=80, method='ols'),
      DiffusionEstimate(value=8.00626507619601, std_err=6.976860180814361, num_lags=30, num_points=80, method='ols')]
@@ -457,7 +464,7 @@ It's not hard to see from this graph why taking too many lags results in unaccep
 Another option is to use generalized least squares :cite:`bullerjahn2020optimal`.
 This method is slower, since it has to solve some implicit equations, but it does not suffer from the large variance when including more lags (since it takes into account the covariance matrix of the MSD)::
 
-    >>> [kymoline.estimate_diffusion(method="gls", max_lag=30) for kymoline in kymolines]
+    >>> kymolines.estimate_diffusion(method="gls", max_lag=30)
     [DiffusionEstimate(value=8.044121097305448, std_err=2.4705039542680427, num_lags=30, num_points=80, method='gls'),
      DiffusionEstimate(value=4.432955288469379, std_err=1.565056974828146, num_lags=30, num_points=80, method='gls'),
      DiffusionEstimate(value=5.378609478528924, std_err=1.7771064499907185, num_lags=30, num_points=80, method='gls')]
