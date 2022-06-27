@@ -4,6 +4,7 @@ import cachetools
 from deprecated.sphinx import deprecated
 from dataclasses import dataclass
 from typing import List
+import warnings
 
 from .mixin import PhotonCounts
 from .mixin import ExcitationLaserPower
@@ -162,7 +163,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         self.stop = stop
         self.name = name
         self._metadata = metadata
-        self.file = file
+        self._file = file
         self._image_factory = _default_image_factory
         self._timestamp_factory = _default_timestamp_factory
         self._pixelsize_factory = _default_pixelsize_factory
@@ -198,6 +199,13 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return cls(name, file, start, stop, metadata)
 
     @property
+    def file(self):
+        if self._file is None:
+            raise ValueError(f"There is no .h5 file associated with this {self.__class__.__name__}")
+        else:
+            return self._file
+
+    @property
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
         raise NotImplementedError("Pixel dwell times have not been implemented for this class.")
@@ -205,7 +213,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
     def __copy__(self):
         return self.__class__(
             name=self.name,
-            file=self.file,
+            file=self._file,
             start=self.start,
             stop=self.stop,
             metadata=self._metadata,
@@ -376,6 +384,14 @@ class ConfocalImage(BaseScan):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
+        try:
+            pixel_time_seconds = self.pixel_time_seconds
+        except AttributeError:
+            warnings.warn(
+                f"Pixel times are not defined for this {self.__class__.__name__}. "
+                "The corresponding metadata in the output file is set to `None`."
+            )
+            pixel_time_seconds = None
         if self.get_image("rgb").size > 0:
             save_tiff(
                 self.get_image("rgb"),
@@ -383,7 +399,7 @@ class ConfocalImage(BaseScan):
                 dtype,
                 clip,
                 pixel_sizes_um=self.pixelsize_um,
-                pixel_time_seconds=self.pixel_time_seconds,
+                pixel_time_seconds=pixel_time_seconds,
             )
         else:
             raise RuntimeError("Can't export TIFF if there are no pixels")

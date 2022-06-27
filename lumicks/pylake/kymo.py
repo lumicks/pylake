@@ -6,7 +6,7 @@ from copy import copy
 from skimage.measure import block_reduce
 from deprecated.sphinx import deprecated
 from .adjustments import ColorAdjustment
-from .detail.confocal import ConfocalImage, linear_colormaps, ScanMetaData
+from .detail.confocal import ConfocalImage, linear_colormaps, ScanMetaData, ScanAxis
 from .detail.image import (
     line_timestamps_image,
     seek_timestamp_next_line,
@@ -97,17 +97,24 @@ class Kymo(ConfocalImage):
         kymo_copy._calibration = self._calibration
         return kymo_copy
 
+    def _check_is_sliceable(self):
+        if self._file is None:
+            raise NotImplementedError(
+                "Slicing is not implemented for kymographs derived from image stacks."
+            )
+        if not self._has_default_factories():
+            raise NotImplementedError(
+                "Slicing is not implemented for processed kymographs. Please slice prior to "
+                "processing the data."
+            )
+
     def __getitem__(self, item):
         """All indexing is in timestamp units (ns)"""
         if not isinstance(item, slice):
             raise IndexError("Scalar indexing is not supported, only slicing")
         if item.step is not None:
             raise IndexError("Slice steps are not supported")
-        if not self._has_default_factories():
-            raise NotImplementedError(
-                "Slicing is not implemented for processed kymographs. Please slice prior to "
-                "processing the data."
-            )
+        self._check_is_sliceable()
 
         start = self.start if item.start is None else item.start
         stop = self.stop if item.stop is None else item.stop
@@ -281,7 +288,12 @@ class Kymo(ConfocalImage):
 
         # plot force channel
         plt.sca(ax2)
-        channel = getattr(self.file, f"force{force_channel}")
+        try:
+            channel = getattr(self.file, f"force{force_channel}")
+        except ValueError:
+            raise ValueError(
+                f"There is no force data associated with this {self.__class__.__name__}"
+            )
         if not channel:
             channel = getattr(self.file, f"downsampled_force{force_channel}")
             if not channel:
@@ -622,3 +634,98 @@ class PositionCalibration:
             if self.unit == "pixel"
             else PositionCalibration(self.unit, self.value * factor, self.unit_label)
         )
+
+
+def _kymo_from_array(
+    image,
+    color_format,
+    line_time_seconds,
+    exposure_time_seconds=None,
+    start=0,
+    pixel_size_um=None,
+    name="",
+):
+    """Generate a `Kymo` instance from an image array.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Image data.
+    color_format : str
+        String indicating the order of the color channels in the image; combination of
+        'r', 'g', 'b'. For example 'r' for red channel only, 'bg' for blue, green data.
+    line_time_seconds : float
+        Line time in seconds.
+    exposure_time_seconds : float
+        Line exposure time in seconds. If `None`, the exposure time is set equal to
+        the line time.
+    start : int
+        Start timestamp of the kymo.
+    pixel_size_um : float
+        Pixel spatial size in microns. If `None`, the kymo will be calibrated in pixel units.
+    name : string
+        Kymo name.
+    """
+
+    image = np.atleast_3d(image)
+    n_pixels, n_lines = image.shape[:2]
+
+    line_delta = np.int64(line_time_seconds * 1e9)
+    exposure_delta = (
+        line_delta if exposure_time_seconds is None else np.int64(exposure_time_seconds * 1e9)
+    )
+
+    metadata = ScanMetaData(
+        scan_axes=[ScanAxis(axis=0, num_pixels=image.shape[0], pixel_size_um=pixel_size_um)],
+        center_point_um={"x": None, "y": None, "z": None},
+        num_frames=0,
+    )
+
+    if not all([char in ["r", "g", "b"] for char in list(color_format)]):
+        raise ValueError(
+            f"Invalid color format '{color_format}'. Only 'r', 'g', and 'b' are valid components."
+        )
+    if len(color_format) != image.shape[-1]:
+        sizes = (len(color_format), image.shape[-1])
+        raise ValueError(
+            f"Color format '{color_format}' specifies {sizes[0]} "
+            f"channel{'s' if sizes[0] > 1 else ''} for a {sizes[1]} channel image."
+        )
+    rgb_image = np.zeros([n_pixels, n_lines, 3])
+    for j, char in enumerate(color_format):
+        channel = "rgb".find(char)
+        rgb_image[:, :, channel] = image[:, :, j]
+
+    kymo = Kymo(
+        name,
+        file=None,
+        start=np.int64(start),
+        stop=start + (n_lines * line_delta),
+        metadata=metadata,
+        position_offset=0,
+    )
+
+    def image_factory(_, channel):
+        if channel == "rgb":
+            return rgb_image
+        else:
+            index = ("red", "green", "blue").index(channel)
+            return rgb_image[:, :, index]
+
+    def timestamp_factory_ill_defined(_, reduce_timestamps=np.mean):
+        raise AttributeError(
+            "Per-pixel timestamps are not implemented. Line timestamps are "
+            "still available, however. See: `Kymo.line_time_seconds`."
+        )
+
+    def line_timestamp_ranges_factory(_, exclude=bool):
+        starts = kymo.start + np.arange(n_lines, dtype=np.int64) * line_delta
+        stops = starts + (exposure_delta if exclude else line_delta)
+        return [(start, stop) for start, stop in zip(starts, stops)]
+
+    kymo._image_factory = image_factory
+    kymo._timestamp_factory = timestamp_factory_ill_defined
+    kymo._line_time_factory = lambda _: line_time_seconds
+    kymo._line_timestamp_ranges_factory = line_timestamp_ranges_factory
+
+    return kymo
