@@ -4,6 +4,14 @@ import matplotlib as mpl
 import math
 
 
+def use_docstring_from(copy_func):
+    def wrapper(func):
+        func.__doc__ = copy_func.__doc__
+        return func
+
+    return wrapper
+
+
 def first(iterable, condition=lambda x: True):
     """Return the first item in the `iterable` that satisfies the `condition`.
 

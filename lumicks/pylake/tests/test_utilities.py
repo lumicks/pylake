@@ -152,3 +152,14 @@ def test_timestamp_mean_2d():
 
     np.testing.assert_equal(timestamp_mean(ts, 1), np.tile(n * 7 // 2, (6,)))
     np.testing.assert_equal(timestamp_mean(ts.T, 0), np.tile(n * 7 // 2, (6,)))
+
+
+def test_docstring_wrapper():
+    def func1():
+        """This one has a docstring"""
+
+    @use_docstring_from(func1)
+    def func2():
+        """This one should use the other one's docstring"""
+
+    assert func1.__doc__ == func2.__doc__
