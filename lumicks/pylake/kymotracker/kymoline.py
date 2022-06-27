@@ -1,6 +1,7 @@
 from copy import copy
 from deprecated import deprecated
 from sklearn.neighbors import KernelDensity
+from ..detail.utilities import use_docstring_from
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel
 from lumicks.pylake.population.dwelltime import DwelltimeModel
@@ -652,3 +653,7 @@ class KymoLineGroup:
                     raise err
 
         return x.squeeze(), densities
+
+    @use_docstring_from(KymoLine.estimate_diffusion)
+    def estimate_diffusion(self, *args, **kwargs):
+        return [k.estimate_diffusion(*args, **kwargs) for k in self._src]

@@ -222,7 +222,14 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
     "time_idx, coordinate, pixel_size, time_step, max_lag, diffusion_const",
     [
         (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 2, 0.5e9, 50, 5.609315381569765),
-        (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 3, 1.0e9, 50, 2.8046576907848824),
+        (
+            np.arange(1, 6),
+            np.array([-1.0, 1.0, -1.0, -3.0, -5.0]),
+            3,
+            1.0e9,
+            50,
+            2.8046576907848824,
+        ),
         (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]), 5, 1.0e9, 2, 3.33333333333332),
     ],
 )
@@ -243,9 +250,7 @@ def test_diffusion_gls(time_idx, coordinate, pixel_size, time_step, max_lag, dif
     )
     k = KymoLine(time_idx, coordinate / pixel_size, kymo, "red")
 
-    np.testing.assert_allclose(
-        k.estimate_diffusion("gls", max_lag=max_lag).value, diffusion_const
-    )
+    np.testing.assert_allclose(k.estimate_diffusion("gls", max_lag=max_lag).value, diffusion_const)
 
 
 def test_invalid_method(blank_kymo):
@@ -420,3 +425,25 @@ def test_fit_binding_times(blank_kymo):
 
     dwells = lines.fit_binding_times(1, exclude_ambiguous_dwells=False)
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
+
+
+@pytest.mark.parametrize("method,max_lags", [("ols", 2), ("ols", None), ("gls", 2), ("gls", None)])
+def test_kymoline_group_diffusion(blank_kymo, method, max_lags):
+    """Tests whether we can call this function at the diffusion level"""
+    kymolines = KymoLineGroup(
+        [
+            KymoLine(time_idx, coordinate, blank_kymo, "red")
+            for (time_idx, coordinate) in (
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 5),
+            )
+        ]
+    )
+
+    for est, kymoline in zip(kymolines.estimate_diffusion(method="ols"), kymolines):
+        diff_result = kymoline.estimate_diffusion(method="ols")
+        assert est.method == diff_result.method
+        np.testing.assert_allclose(float(est), float(diff_result.value))
+        for attr in ("value", "std_err", "num_lags", "num_points"):
+            np.testing.assert_allclose(getattr(est, attr), getattr(diff_result, attr))
