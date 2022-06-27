@@ -4,7 +4,7 @@ from lumicks.pylake.point_scan import PointScan
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
 from ..data.mock_file import MockDataFile_v2
-from ..data.mock_confocal import MockConfocalFile, generate_scan_json
+from ..data.mock_confocal import MockConfocalFile, generate_scan_json, generate_image_data
 
 
 start = np.int64(20e9)
@@ -80,6 +80,26 @@ def test_kymos(reference_counts):
         blue_photon_counts=reference_counts,
     )
     kymos["truncated_kymo"] = Kymo("truncated", mock_file, start - 62500000, stop, metadata)
+
+
+    # RGB Kymo with infowave as expected from BL
+    image = np.random.poisson(5, size=(5, 10, 3))
+    infowave, red_photon_count = generate_image_data(image[:, :, 0], 4, 50)
+    _, green_photon_count = generate_image_data(image[:, :, 1], 4, 50)
+    _, blue_photon_count = generate_image_data(image[:, :, 2], 4, 50)
+
+    mock_file, metadata, stop = MockConfocalFile.from_streams(
+        start,
+        dt,
+        [0],
+        [5],
+        [100],
+        infowave=infowave,
+        red_photon_counts=red_photon_count,
+        green_photon_counts=green_photon_count,
+        blue_photon_counts=blue_photon_count,
+    )
+    kymos["noise"] = Kymo("noise", mock_file, start, stop, metadata)
 
     return kymos
 

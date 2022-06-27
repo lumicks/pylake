@@ -285,12 +285,7 @@ class KymoEditorWidget:
             If provided, the kymo returned from the `image` property will be automatically
             calibrated to this tether length.
         """
-        # check if kymo has already been processed
-        if not kymo._has_default_factories():
-            raise NotImplementedError(
-                "Slicing is not implemented for processed kymographs. Please slice prior to "
-                "processing the data."
-            )
+        kymo._check_is_sliceable()
 
         plt.figure()
         self._ax = plt.subplot(1, 1, 1, projection=KymoEditorProjection(kymo, channel, kwargs))

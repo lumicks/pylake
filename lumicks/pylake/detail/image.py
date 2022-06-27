@@ -213,13 +213,14 @@ def save_tiff(
         pixel_sizes_um[1] if len(pixel_sizes_um) == 2 else pixel_sizes_um[0],
     )
 
-    tifffile.imwrite(
-        filename,
-        image.astype(dtype),
-        resolution=(1e4 / pixel_size_x, 1e4 / pixel_size_y, "CENTIMETER"),
-        metadata={"PixelTime": pixel_time_seconds, "PixelTimeUnit": "s"},
-        photometric="rgb",
-    )
+    tiff_kwargs = {
+        "metadata": {"PixelTime": pixel_time_seconds, "PixelTimeUnit": "s"},
+        "photometric": "rgb",
+    }
+    if pixel_size_x:
+        tiff_kwargs["resolution"] = (1e4 / pixel_size_x, 1e4 / pixel_size_y, "CENTIMETER")
+
+    tifffile.imwrite(filename, image.astype(dtype), **tiff_kwargs)
 
 
 def histogram_rows(image, pixels_per_bin, pixel_width):
