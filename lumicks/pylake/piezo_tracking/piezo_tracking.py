@@ -6,6 +6,8 @@ from ..channel import Slice
 
 
 class DistanceCalibration:
+    """Class to calibrate trap position to camera distance"""
+
     def __init__(self, trap_position, camera_distance, degree=1):
         """Map the trap position to the camera tracking distance using a linear fit.
 
@@ -83,6 +85,10 @@ class DistanceCalibration:
 
 
 class PiezoTrackingCalibration:
+    """Class to handle piezo tracking calibration
+
+    Allows calculating piezo distance from trap position and correlated force data"""
+
     def __init__(
         self,
         trap_calibration,
@@ -138,6 +144,8 @@ class PiezoTrackingCalibration:
 
 
 class PiezoForceDistance:
+    """Class to determine both piezo distance and baseline corrected force"""
+
     def __init__(
         self,
         trap_calibration,
