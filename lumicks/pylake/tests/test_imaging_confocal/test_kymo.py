@@ -395,6 +395,7 @@ def test_downsampled_kymo():
     np.testing.assert_allclose(kymo_ds.get_image("red"), ds)
     np.testing.assert_allclose(kymo_ds.start, with_offset(0))
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 1 / 1000)
+    np.testing.assert_allclose(kymo_ds.pixelsize, 1 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 7 * (5 * 4 + 2 + 2) / 1e9)
 
     with pytest.raises(
@@ -450,6 +451,7 @@ def test_downsampled_kymo_position():
     np.testing.assert_equal(kymo_ds.timestamps, ds_ts)
     np.testing.assert_allclose(kymo_ds.start, with_offset(100))
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
+    np.testing.assert_allclose(kymo_ds.pixelsize, 2 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, kymo.line_time_seconds)
 
     # We lost one line while downsampling
@@ -487,6 +489,7 @@ def test_downsampled_kymo_both_axes():
         np.testing.assert_allclose(kymo_ds.get_image("red"), ds)
         np.testing.assert_allclose(kymo_ds.start, 100)
         np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
+        np.testing.assert_allclose(kymo_ds.pixelsize, 2 / 1000)
         np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 5 * (5 * 5 + 2 + 2) / 1e9)
         with pytest.raises(
                 AttributeError,
@@ -894,16 +897,16 @@ def test_calibrate_to_kbp():
 
     # test that default calibration is in microns
     assert kymo._calibration.unit == "um"
-    assert kymo._calibration.calibration_per_um == 1.0
+    assert kymo._calibration.value == 0.1
 
     # test that calibration is stored as kilobase-pairs
     assert kymo_bp._calibration.unit == "kbp"
-    np.testing.assert_allclose(kymo_bp._calibration.calibration_per_um, 20.0)
+    np.testing.assert_allclose(kymo_bp._calibration.value, 2.0)
 
     # test conversion from microns to calibration units
-    np.testing.assert_allclose(kymo._calibration.from_um(kymo.size_um[0]), 0.6)
+    np.testing.assert_allclose(kymo._calibration.value * kymo._num_pixels[0], 0.6)
     np.testing.assert_allclose(kymo.pixelsize, 0.1)
-    np.testing.assert_allclose(kymo_bp._calibration.from_um(kymo_bp.size_um[0]), 12.0)
+    np.testing.assert_allclose(kymo_bp._calibration.value * kymo._num_pixels[0], 12.0)
     np.testing.assert_allclose(kymo_bp.pixelsize, 2.0)
 
     # test that all factories were forwarded from original instance
@@ -941,8 +944,8 @@ def test_calibrate_to_kbp():
     # if properly calibrated, cropping should not change pixel size
     np.testing.assert_allclose(kymo_bp.pixelsize[0], cropped_kymo_bp.pixelsize[0])
     # but will change total length
-    np.testing.assert_allclose(kymo_bp._calibration.from_um(kymo_bp.size_um[0] * 5/6),
-                               cropped_kymo_bp._calibration.from_um(cropped_kymo_bp.size_um[0]))
+    np.testing.assert_allclose(kymo_bp._calibration.value * kymo._num_pixels[0] * 5/6,
+                               cropped_kymo_bp._calibration.value * cropped_kymo_bp._num_pixels[0])
 
 
 def test_partial_pixel_kymo():
