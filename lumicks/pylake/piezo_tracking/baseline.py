@@ -68,7 +68,7 @@ class ForceBaseLine:
         plt.scatter(self._trap_data.data, self._force.data, s=2, **kwargs)
         plt.plot(self._trap_data.data, self._model(self._trap_data.data), "k")
         plt.xlabel("Mirror position")
-        plt.ylabel(self._force.labels["y"])
+        plt.ylabel(self._force.labels.get("y", "y"))
         plt.title("Force baseline")
 
     def plot_residual(self, **kwargs):
@@ -86,7 +86,7 @@ class ForceBaseLine:
             **kwargs,
         )
         plt.xlabel("Mirror position")
-        plt.ylabel(f"Residual {self._force.labels['y']}")
+        plt.ylabel(f"Residual {self._force.labels.get('y', 'y')}")
         plt.title("Fit residual")
 
     @classmethod
