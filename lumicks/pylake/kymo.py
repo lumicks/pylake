@@ -70,7 +70,16 @@ class Kymo(ConfocalImage):
         self._line_time_factory = _default_line_time_factory
         self._line_timestamp_ranges_factory = _default_line_timestamp_ranges_factory
         self._position_offset = position_offset
-        self._calibration = PositionCalibration() if calibration is None else calibration
+
+        self._calibration = (
+            calibration
+            if calibration is not None
+            else (
+                PositionCalibration()
+                if self.pixelsize_um[0] is None
+                else PositionCalibration("um", self.pixelsize_um[0], r"$\mu$m")
+            )
+        )
 
     def _has_default_factories(self):
         return (
@@ -184,9 +193,7 @@ class Kymo(ConfocalImage):
     def pixelsize(self):
         """Returns a `List` of axes dimensions in calibrated units. The length of the
         list corresponds to the number of scan axes."""
-        pixelsize = self.pixelsize_um
-        pixelsize[0] = self._calibration.from_um(pixelsize[0])
-        return pixelsize
+        return [self._calibration.value]
 
     def _plot(self, channel, axes, adjustment=ColorAdjustment.nothing(), **kwargs):
         """Plot a kymo for requested color channel(s).
@@ -204,7 +211,7 @@ class Kymo(ConfocalImage):
             Forwarded to :func:`matplotlib.pyplot.imshow`
         """
         image = self._get_plot_data(channel, adjustment)
-        size_calibrated = self._calibration.from_um(self.size_um[0])
+        size_calibrated = self._calibration.value * self._num_pixels[0]
         duration = self.line_time_seconds * image.shape[1]
 
         default_kwargs = dict(
@@ -481,6 +488,7 @@ class Kymo(ConfocalImage):
         result._line_time_factory = line_time_factory
         result._pixelsize_factory = pixelsize_factory
         result._pixelcount_factory = pixelcount_factory
+        result._calibration = self._calibration.downsample(position_factor)
         return result
 
     def flip(self):
@@ -505,7 +513,7 @@ class Kymo(ConfocalImage):
             raise RuntimeError("kymo is already calibrated in base pairs.")
 
         result = copy(self)
-        result._calibration = PositionCalibration("kbp", length_kbp / self.size_um[0], "kbp")
+        result._calibration = PositionCalibration("kbp", length_kbp / self._num_pixels[0], "kbp")
         result._image_factory = self._image_factory
         result._timestamp_factory = self._timestamp_factory
         result._line_time_factory = self._line_time_factory
@@ -604,9 +612,13 @@ class EmptyKymo(Kymo):
 
 @dataclass(frozen=True)
 class PositionCalibration:
-    unit: str = "um"
-    calibration_per_um: float = 1.0
-    unit_label: str = r"$\mu$m"
+    unit: str = "pixel"
+    value: float = 1.0
+    unit_label: str = "pixels"
 
-    def from_um(self, um):
-        return um * self.calibration_per_um
+    def downsample(self, factor):
+        return (
+            self
+            if self.unit == "pixel"
+            else PositionCalibration(self.unit, self.value * factor, self.unit_label)
+        )
