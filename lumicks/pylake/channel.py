@@ -81,44 +81,89 @@ class Slice:
 
         return other.data
 
+    def _generate_labels(self, lhs, operator, rhs, keep_unit):
+        def get_label(item, key):
+            return item.labels.get(key, "") if not np.isscalar(item) else str(item)
+
+        labels = {"title": f"({get_label(lhs, 'title')} {operator} {get_label(rhs, 'title')})"}
+        if keep_unit:
+            labels["y"] = self.labels.get("y", "y")
+        return labels
+
     def __neg__(self):
         if isinstance(self._src, TimeTags):
             raise NotImplementedError("This operation is not supported for TimeTag data")
-        return Slice(self._src._with_data(-self.data), calibration=self._calibration)
+        return Slice(
+            self._src._with_data(-self.data),
+            calibration=self._calibration,
+            labels={
+                "title": f"-{self.labels.get('title', 'title')}",
+                "y": self.labels.get("y", "y"),
+            },
+        )
 
     def __add__(self, other):
         return Slice(
             self._src._with_data(self.data + self._unpack_other(other)),
             calibration=self._calibration if np.isscalar(other) else None,
+            labels=self._generate_labels(self, "+", other, keep_unit=True),
         )
 
     def __sub__(self, other):
         return Slice(
             self._src._with_data(self.data - self._unpack_other(other)),
             calibration=self._calibration if np.isscalar(other) else None,
+            labels=self._generate_labels(self, "-", other, keep_unit=True),
         )
 
     def __truediv__(self, other):
-        return Slice(self._src._with_data(self.data / self._unpack_other(other)))
+        return Slice(
+            self._src._with_data(self.data / self._unpack_other(other)),
+            labels=self._generate_labels(self, "/", other, keep_unit=False),
+        )
 
     def __mul__(self, other):
-        return Slice(self._src._with_data(self.data * self._unpack_other(other)))
+        return Slice(
+            self._src._with_data(self.data * self._unpack_other(other)),
+            labels=self._generate_labels(self, "*", other, keep_unit=False),
+        )
 
     def __pow__(self, other):
-        return Slice(self._src._with_data(self.data ** self._unpack_other(other)))
+        return Slice(
+            self._src._with_data(self.data ** self._unpack_other(other)),
+            labels=self._generate_labels(self, "**", other, keep_unit=False),
+        )
 
     def __rtruediv__(self, other):
-        return Slice(self._src._with_data(self._unpack_other(other) / self.data))
+        return Slice(
+            self._src._with_data(self._unpack_other(other) / self.data),
+            labels=self._generate_labels(other, "/", self, keep_unit=False),
+        )
 
     def __rsub__(self, other):
-        return Slice(self._src._with_data(self._unpack_other(other) - self.data))
+        return Slice(
+            self._src._with_data(self._unpack_other(other) - self.data),
+            labels=self._generate_labels(other, "-", self, keep_unit=True),
+        )
 
     def __rpow__(self, other):
-        return Slice(self._src._with_data(self._unpack_other(other) ** self.data))
+        return Slice(
+            self._src._with_data(self._unpack_other(other) ** self.data),
+            labels=self._generate_labels(other, "**", self, keep_unit=False),
+        )
 
-    # These commute
-    __rmul__ = __mul__
-    __radd__ = __add__
+    def __radd__(self, other):
+        return Slice(
+            self._src._with_data(self.data + self._unpack_other(other)),
+            calibration=self._calibration if np.isscalar(other) else None,
+            labels=self._generate_labels(other, "+", self, keep_unit=True),
+        )
+
+    def __rmul__(self, other):
+        return Slice(
+            self._src._with_data(self.data * self._unpack_other(other)),
+            labels=self._generate_labels(other, "*", self, keep_unit=False),
+        )
 
     @property
     def start(self):
