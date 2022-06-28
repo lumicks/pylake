@@ -4,6 +4,8 @@ from lumicks.pylake.channel import Slice, Continuous
 
 
 class ForceBaseLine:
+    """A force baseline as a function of trap position"""
+
     def __init__(self, model, trap_data, force):
         """Force baseline
 
@@ -55,15 +57,34 @@ class ForceBaseLine:
             calibration=force._calibration,
         )
 
-    def plot(self):
-        plt.scatter(self._trap_data.data, self._force.data, s=2)
+    def plot(self, **kwargs):
+        """Plot baseline fit
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.scatter`.
+        """
+        plt.scatter(self._trap_data.data, self._force.data, s=2, **kwargs)
         plt.plot(self._trap_data.data, self._model(self._trap_data.data), "k")
         plt.xlabel("Mirror position")
         plt.ylabel(self._force.labels["y"])
         plt.title("Force baseline")
 
-    def plot_residual(self):
-        plt.scatter(self._trap_data.data, self._force.data - self._model(self._trap_data.data), s=2)
+    def plot_residual(self, **kwargs):
+        """Plot residual
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.scatter`.
+        """
+        plt.scatter(
+            self._trap_data.data,
+            self._force.data - self._model(self._trap_data.data),
+            s=2,
+            **kwargs,
+        )
         plt.xlabel("Mirror position")
         plt.ylabel(f"Residual {self._force.labels['y']}")
         plt.title("Fit residual")

@@ -32,3 +32,4 @@ These import conventions are used consistently in the tutorial.
     kymotracking
     force_calibration
     population_dynamics
+    piezotracking
