@@ -314,8 +314,8 @@ class PassiveCalibrationModel:
             ):
                 raise ValueError(
                     "The hydrodynamically correct model is only valid for distances to the surface "
-                    "larger than 1.5 times the bead radius. For distances closer to the surface, "
-                    "turn off the hydrodynamically correct model."
+                    "larger than 0.75 times the bead diameter. For distances closer to the "
+                    "surface, turn off the hydrodynamically correct model."
                 )
 
             if rho_sample is not None and rho_sample < 100.0:
