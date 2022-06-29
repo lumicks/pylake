@@ -241,7 +241,6 @@ def test_diffusion_estimate_ols(
 @pytest.mark.parametrize(
     "diffusion,num_points,max_lag,time_step,obs_noise,diff_est,std_err_est",
     [
-        (0, 30, 3, 3, 0.0, 0.0, 0.0),
         (2, 500, 5, 0.01, 1.0, 1.9834877726431195, 1.5462259288408835),
         (1.5, 30, 3, 3, 1.0, 2.0372156730720934, 0.9522810729354054),
         (1.5, 30, 3, 3, 0.0, 2.248704975395052, 0.9790286899037831),
