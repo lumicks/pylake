@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,10 @@ class DiffusionEstimate:
         Number of points used to compute this estimate.
     method : str
         String identifying which method was used to estimate the parameters.
+    unit : str
+        Unit that the diffusion constant is specified in.
+    _unit_label : str
+        Unit in TeX format used for plotting labels.
     """
 
     value: float
@@ -26,6 +30,8 @@ class DiffusionEstimate:
     num_lags: int
     num_points: int
     method: str
+    unit: str
+    _unit_label: str = field(repr=False)
 
     def __float__(self):
         return float(self.value)
@@ -251,7 +257,15 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
     return intercept, slope, var_slope
 
 
-def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag, method):
+def estimate_diffusion_constant_simple(
+    frame_idx,
+    coordinate,
+    time_step,
+    max_lag,
+    method,
+    unit="au",
+    unit_label="au",
+):
     """Estimate diffusion constant
 
     The estimator for the MSD (rho) is defined as:
@@ -285,7 +299,7 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
     coordinate : array_like
         Positional coordinates.
     time_step : float
-        Time step between each frame.
+        Time step between each frame [s].
     max_lag : int (optional)
         Number of lags to include. When omitted, the method will choose an appropriate number
         of lags to use.
@@ -296,6 +310,10 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
 
         - "ols" : Ordinary least squares [1]. Determines optimal number of lags.
         - "gls" : Generalized least squares [2]. Takes into account covariance matrix (slower).
+    unit : str
+        Unit of the diffusion constant.
+    unit_label : str
+        Tex label for the unit of the diffusion constant.
 
     References
     ----------
@@ -326,6 +344,8 @@ def estimate_diffusion_constant_simple(frame_idx, coordinate, time_step, max_lag
         max_lag,
         len(coordinate),
         method,
+        unit,
+        unit_label,
     )
 
 

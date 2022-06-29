@@ -218,6 +218,27 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
     )
 
 
+@pytest.mark.parametrize("calibration_coeff", [0.5, 2.0])
+def test_diffusion_units(blank_kymo, calibration_coeff):
+    kymoline, kymoline_kbp = [
+        KymoLine(
+            np.arange(1, 6),
+            np.array([-1.0, 1.0, -1.0, -3.0, -5.0]),
+            kymo,
+            "red",
+        ) for kymo in (blank_kymo, blank_kymo.calibrate_to_kbp(calibration_coeff))]
+
+    ref_constant = 3.33333333333
+    diffusion_estimate = kymoline_kbp.estimate_diffusion("ols", max_lag=2)
+    np.testing.assert_allclose(diffusion_estimate.value, ref_constant * calibration_coeff**2)
+    assert diffusion_estimate.unit == "kbp^2 / s"
+
+    diffusion_estimate = kymoline.estimate_diffusion("ols", max_lag=2)
+    np.testing.assert_allclose(diffusion_estimate.value, ref_constant)
+    assert diffusion_estimate.unit == "um^2 / s"
+    assert diffusion_estimate._unit_label == "$\\mu$m$^2$/s"
+
+
 @pytest.mark.parametrize(
     "time_idx, coordinate, pixel_size, time_step, max_lag, diffusion_const",
     [
@@ -444,6 +465,7 @@ def test_kymoline_group_diffusion(blank_kymo, method, max_lags):
     for est, kymoline in zip(kymolines.estimate_diffusion(method="ols"), kymolines):
         diff_result = kymoline.estimate_diffusion(method="ols")
         assert est.method == diff_result.method
+        assert est.unit == diff_result.unit
         np.testing.assert_allclose(float(est), float(diff_result.value))
         for attr in ("value", "std_err", "num_lags", "num_points"):
             np.testing.assert_allclose(getattr(est, attr), getattr(diff_result, attr))
