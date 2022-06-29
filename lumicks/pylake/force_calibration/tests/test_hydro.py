@@ -429,7 +429,7 @@ def test_distance_to_surface_input(integration_test_parameters):
     with pytest.raises(
         ValueError,
         match="The hydrodynamically correct model is only valid for distances to the surface "
-        "larger than 1.5 times the bead radius. For distances closer to the surface, "
+        "larger than 0.75 times the bead diameter. For distances closer to the surface, "
         "turn off the hydrodynamically correct model.",
     ):
         ActiveCalibrationModel(distance_to_surface=0.51, hydrodynamically_correct=True, **pars)
