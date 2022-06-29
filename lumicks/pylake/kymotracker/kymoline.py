@@ -386,7 +386,13 @@ class KymoLine:
         )
 
         return estimate_diffusion_constant_simple(
-            frame_idx, positions, self._line_time_seconds, max_lag, method
+            frame_idx,
+            positions,
+            self._line_time_seconds,
+            max_lag,
+            method,
+            f"{self._kymo._calibration.unit}^2 / s",
+            f"{self._kymo._calibration.unit_label}$^2$/s",
         )
 
     @deprecated(
