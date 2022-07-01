@@ -42,8 +42,8 @@ class Fit:
     """
 
     def __init__(self, *models):
-        self.models = {id(m): m for m in models}
-        self.datasets = {id(m): self._dataset(m) for m in models}
+        self.models = {m.uuid: m for m in models}
+        self.datasets = {m.uuid: self._dataset(m) for m in models}
         self._params = Params()
         self._invalidate_build()
 
@@ -66,7 +66,7 @@ class Fit:
 
     def __getitem__(self, item):
         if isinstance(item, Model):
-            return self.datasets[id(item)]
+            return self.datasets[item.uuid]
         elif len(self.datasets) == 1 and item in front(self.datasets.values()).names:
             return self.params[front(self.datasets.values()).data[item]]
         else:
@@ -346,7 +346,9 @@ class Fit:
         residual_idx = 0
         residual = np.zeros(self.n_residuals)
         for model in self.models.values():
-            current_residual = model._calculate_residual(self.datasets[id(model)], parameter_values)
+            current_residual = model._calculate_residual(
+                self.datasets[model.uuid], parameter_values
+            )
             current_n = len(current_residual)
             residual[residual_idx : residual_idx + current_n] = current_residual
             residual_idx += current_n
@@ -361,7 +363,9 @@ class Fit:
         residual_idx = 0
         jacobian = np.zeros((self.n_residuals, len(parameter_values)))
         for model in self.models.values():
-            current_jacobian = model._calculate_jacobian(self.datasets[id(model)], parameter_values)
+            current_jacobian = model._calculate_jacobian(
+                self.datasets[model.uuid], parameter_values
+            )
             current_n = current_jacobian.shape[0]
             jacobian[residual_idx : residual_idx + current_n, :] = current_jacobian
             residual_idx += current_n
@@ -476,7 +480,7 @@ class Fit:
         self._rebuild()
 
         params, _ = self._override_params(overrides)
-        dataset = self.datasets[id(model)]
+        dataset = self.datasets[model.uuid]
 
         def plot(fit_data):
             x_values = fit_data.x if independent is None else independent
@@ -640,7 +644,7 @@ class Fit:
         out_string = "<h4>Fit</h4>\n"
 
         for model in self.models.values():
-            datasets = "".join(f"{self.datasets[id(model)]._repr_html_()}<br>\n")
+            datasets = "".join(f"{self.datasets[model.uuid]._repr_html_()}<br>\n")
             out_string += f"<h5>Model: {model.name}</h5>\n"
             eqn = model.get_formatted_equation_string(tex=True)
             if eqn:
@@ -661,7 +665,7 @@ class Fit:
         out_string = "Fit\n"
 
         for model in self.models.values():
-            datasets = (" " * indent + "- " + self.datasets[id(model)].__str__()).splitlines(True)
+            datasets = (" " * indent + "- " + self.datasets[model.uuid].__str__()).splitlines(True)
             datasets = (" " * (2 * indent)).join(datasets)
 
             out_string += f"{' ' * indent}- Model: {model.name}\n"

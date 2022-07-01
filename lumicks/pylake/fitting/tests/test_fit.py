@@ -93,14 +93,14 @@ def test_model_fit_object_linking():
 
     # Check the parameters included in the model
     np.testing.assert_allclose(
-        fit.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[m.uuid]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        fit.datasets[id(m)]._conditions[0].p_local
+        fit.datasets[m.uuid]._conditions[0].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
     params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
-    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[0]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m.uuid]._conditions[0]._p_global_indices) == params
 
     # Loading data should make it dirty again
     fit[m]._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/e": "M/e_new"})
@@ -109,24 +109,24 @@ def test_model_fit_object_linking():
     # Check the parameters included in the model
     fit._rebuild()
     np.testing.assert_allclose(
-        fit.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[m.uuid]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        fit.datasets[id(m)]._conditions[0].p_local
+        fit.datasets[m.uuid]._conditions[0].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
     params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
-    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[0]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m.uuid]._conditions[0]._p_global_indices) == params
 
     np.testing.assert_allclose(
-        fit.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[m.uuid]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        fit.datasets[id(m)]._conditions[1].p_local
+        fit.datasets[m.uuid]._conditions[1].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
     params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
-    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[1]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m.uuid]._conditions[1]._p_global_indices) == params
 
     # Load data into model 2
     fit[m2]._add_data("test", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/r": 6})
@@ -140,32 +140,32 @@ def test_model_fit_object_linking():
     fit[m2]._add_data("test2", [1, 2, 3], [2, 3, 4], {"M/c": 4, "M/e": 5})
     assert set(fit.params.keys()) == set(all_params)
     np.testing.assert_allclose(
-        fit.datasets[id(m)]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[m.uuid]._conditions[0].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        fit.datasets[id(m)]._conditions[0].p_local
+        fit.datasets[m.uuid]._conditions[0].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
     params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e", "M/f", "M/q"]
-    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[0]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m.uuid]._conditions[0]._p_global_indices) == params
 
     np.testing.assert_allclose(
-        fit.datasets[id(m)]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
+        fit.datasets[m.uuid]._conditions[1].p_external, [0, 1, 2, 3, 5, 6, 7, 8]
     )
     assert np.all(
-        fit.datasets[id(m)]._conditions[1].p_local
+        fit.datasets[m.uuid]._conditions[1].p_local
         == [None, None, None, None, 4, None, None, None, None]
     )
     params = ["M/mu", "M/sig", "M/a", "M/b", None, "M/d", "M/e_new", "M/f", "M/q"]
-    assert fetch_params(fit.params, fit.datasets[id(m)]._conditions[1]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m.uuid]._conditions[1]._p_global_indices) == params
 
-    np.testing.assert_allclose(fit.datasets[id(m2)]._conditions[0].p_external, [0, 1, 2])
-    assert np.all(fit.datasets[id(m2)]._conditions[0].p_local == [None, None, None, 4, 6])
+    np.testing.assert_allclose(fit.datasets[m2.uuid]._conditions[0].p_external, [0, 1, 2])
+    assert np.all(fit.datasets[m2.uuid]._conditions[0].p_local == [None, None, None, 4, 6])
     params = ["M/mu", "M/e", "M/q", None, None]
-    assert fetch_params(fit.params, fit.datasets[id(m2)]._conditions[0]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m2.uuid]._conditions[0]._p_global_indices) == params
 
     params = ["M/mu", None, "M/q", None, "M/r"]
-    assert fetch_params(fit.params, fit.datasets[id(m2)]._conditions[1]._p_global_indices) == params
+    assert fetch_params(fit.params, fit.datasets[m2.uuid]._conditions[1]._p_global_indices) == params
 
     fit.update_params(Params(**{"M/mu": 4, "M/sig": 6}))
     assert fit["M/mu"].value == 4

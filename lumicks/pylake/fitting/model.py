@@ -17,6 +17,7 @@ from .detail.derivative_manipulation import (
 from collections import OrderedDict
 from copy import deepcopy
 
+import uuid
 import inspect
 import types
 import numpy as np
@@ -99,6 +100,7 @@ class Model:
             return f"{name}/{x}"
 
         self.name = name
+        self.uuid = uuid.uuid1()
         (self.eqn, self.eqn_tex) = (eqn, eqn_tex)
         self.model_function = model_function
 
@@ -462,6 +464,7 @@ class CompositeModel(Model):
         ), f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
 
         self.name = self.lhs.name + "_with_" + self.rhs.name
+        self.uuid = uuid.uuid1()
         self._params = OrderedDict()
         for i, v in self.lhs._params.items():
             self._params[i] = v
@@ -561,6 +564,7 @@ class InverseModel(Model):
         """
         self.model = model
         self.name = "inv(" + model.name + ")"
+        self.uuid = uuid.uuid1()
         self.interpolate = interpolate
         self.independent_min = independent_min
         self.independent_max = independent_max
@@ -660,6 +664,7 @@ class SubtractIndependentOffset(Model):
         offset_name = parameter_name
 
         self.name = self.model.name + "(x-d)"
+        self.uuid = uuid.uuid1()
         self._params = OrderedDict()
         self._params[offset_name] = Parameter(
             value=0.01, lower_bound=-0.1, upper_bound=0.1, unit=unit
