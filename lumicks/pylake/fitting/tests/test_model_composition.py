@@ -1,4 +1,9 @@
-from lumicks.pylake.fitting.model import Model, InverseModel
+from lumicks.pylake.fitting.model import (
+    Model,
+    InverseModel,
+    CompositeModel,
+    SubtractIndependentOffset,
+)
 from lumicks.pylake.fitting.models import inverted_odijk, distance_offset, force_offset, odijk
 import pytest
 import numpy as np
@@ -120,3 +125,13 @@ def test_interpolation_inversion():
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
     np.testing.assert_allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
+
+
+def test_uuids():
+    m1, m2 = (Model(name, lambda x: x, dependent="x") for name in ("M1", "M2"))
+    m3 = CompositeModel(m1, m2)
+    m4 = InverseModel(m1)
+    m5 = SubtractIndependentOffset(m1, "x")
+
+    # Verify that all are unique
+    assert len(set([m1.uuid, m2.uuid, m3.uuid, m4.uuid, m5.uuid])) == 5

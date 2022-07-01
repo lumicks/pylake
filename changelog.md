@@ -11,6 +11,7 @@
 * Added function `Kymo.line_timestamp_ranges()` to obtain the start and stop timestamp of each scan line in a `Kymo`. Please refer to [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 * Added `Kymo.flip()` to flip a Kymograph along its positional axis.
 * Propagate `Slice` axis labels when performing arithmetic (when possible).
+* It is now possible to pickle `FdFit` objects. Prior to this change, unpickling an `FdFit` would fail since model identification relied on a stored `id` for each of the models used. The `id` of a variable changes whenever a new variable is created however. After this change, each model is associated with a universally unique identifier (uuid) that is used for identification instead. This uuid is serialized with the `Model` and used by `FdFit` thereby preserving their relationship when pickled/unpickled.
 
 #### Breaking changes
 
