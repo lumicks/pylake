@@ -17,6 +17,7 @@
 
 * Changed default in `lk.calibrate_force()` to 38 Hz.
 * To disable image alignment for `lk.CorrelatedStack`, the alignment argument has to be provided as a keyword argument (e.g. `lk.CorrelatedStack("filename.tiff", align=False)` rather than `lk.CorrelatedStack("filename.tiff", False)`).
+* Changed the error type when attempting to access undefined per-pixel timestamps in `Kymo` from `AttributeError` to `NotImplementedError`.
 
 ## v0.12.1 | 2022-06-21
 

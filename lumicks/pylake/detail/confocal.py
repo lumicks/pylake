@@ -386,7 +386,7 @@ class ConfocalImage(BaseScan):
         """
         try:
             pixel_time_seconds = self.pixel_time_seconds
-        except AttributeError:
+        except NotImplementedError:
             warnings.warn(
                 f"Pixel times are not defined for this {self.__class__.__name__}. "
                 "The corresponding metadata in the output file is set to `None`."

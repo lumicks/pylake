@@ -467,7 +467,7 @@ class Kymo(ConfocalImage):
             ]
 
         def timestamp_factory_ill_defined(_, reduce_timestamps=np.mean):
-            raise AttributeError(
+            raise NotImplementedError(
                 "Per-pixel timestamps are no longer available after downsampling a kymograph in "
                 "time since they are not well defined (the downsampling occurs over a "
                 "non-contiguous time window). Line timestamps are still available, however. See: "
@@ -713,7 +713,7 @@ def _kymo_from_array(
             return rgb_image[:, :, index]
 
     def timestamp_factory_ill_defined(_, reduce_timestamps=np.mean):
-        raise AttributeError(
+        raise NotImplementedError(
             "Per-pixel timestamps are not implemented. Line timestamps are "
             "still available, however. See: `Kymo.line_time_seconds`."
         )
