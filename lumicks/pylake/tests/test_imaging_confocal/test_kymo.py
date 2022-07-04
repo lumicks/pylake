@@ -279,7 +279,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
 
     # Down-sampling by time should invalidate plot_with_force as it would correspond to
     # non-contiguous sampling
-    with pytest.raises(AttributeError, match="Per-pixel timestamps are no longer available"):
+    with pytest.raises(NotImplementedError, match="Per-pixel timestamps are no longer available"):
         kymo.downsampled_by(time_factor=2).plot_with_force("1x", "red")
 
 
@@ -399,7 +399,7 @@ def test_downsampled_kymo():
     np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 7 * (5 * 4 + 2 + 2) / 1e9)
 
     with pytest.raises(
-            AttributeError,
+            NotImplementedError,
             match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
     ):
         kymo_ds.timestamps
@@ -408,7 +408,7 @@ def test_downsampled_kymo():
     np.testing.assert_allclose(kymo.downsampled_by(time_factor=2, reduce=np.mean).get_image("red"), ds / 2)
 
     with pytest.raises(
-            AttributeError,
+            NotImplementedError,
             match="Per-pixel timestamps are no longer available after downsampling",
     ):
         kymo_ds.pixel_time_seconds
@@ -492,7 +492,7 @@ def test_downsampled_kymo_both_axes():
         np.testing.assert_allclose(kymo_ds.pixelsize, 2 / 1000)
         np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 5 * (5 * 5 + 2 + 2) / 1e9)
         with pytest.raises(
-                AttributeError,
+                NotImplementedError,
                 match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
         ):
             kymo_ds.timestamps
