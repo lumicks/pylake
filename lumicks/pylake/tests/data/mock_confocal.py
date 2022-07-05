@@ -1,9 +1,8 @@
 import numpy as np
-import json
 from .mock_json import mock_json
 from lumicks.pylake.detail.confocal import ScanMetaData
 from lumicks.pylake.detail.image import InfowaveCode
-from lumicks.pylake.channel import Continuous, Slice
+from lumicks.pylake.channel import Continuous, Slice, empty_slice
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
 
@@ -155,7 +154,12 @@ class MockConfocalFile:
         blue_photon_counts=None,
         green_photon_counts=None,
     ):
-        make_slice = lambda data: None if data is None else Slice(Continuous(data, start, dt))
+        def make_slice(data):
+            if data is None:
+                return empty_slice
+            else:
+                return Slice(Continuous(data, start, dt))
+
         if axes == [] and num_pixels == [] and pixel_sizes_nm == []:
             json_string = generate_scan_json([])
         else:

@@ -48,8 +48,10 @@ def timestamp_mean(a, axis=None):
 
 
 def _default_image_factory(self: "ConfocalImage", color):
-    channel_data = getattr(self, f"{color}_photon_count").data
-    raw_image = reconstruct_image_sum(channel_data.astype(float), self.infowave.data, self._shape)
+    channel = getattr(self, f"{color}_photon_count")
+    if not channel:
+        return np.empty(0)
+    raw_image = reconstruct_image_sum(channel.data.astype(float), self.infowave.data, self._shape)
     return self._to_spatial(raw_image)
 
 
@@ -222,6 +224,11 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
     def _get_photon_count(self, name):
         """Grab the portion of the photon count that overlaps with the scan."""
         photon_count = getattr(self.file, f"{name}_photon_count".lower())[self.start : self.stop]
+
+        # Channel `name` does not exist
+        if not photon_count:
+            return photon_count
+
         timeline_start = photon_count._src.start
         timeline_dt = photon_count._src.dt
 
@@ -495,7 +502,7 @@ class ConfocalImage(BaseScan):
     def rgb_image(self):
         return self.get_image("rgb")
 
-    def get_image(self, channel="rgb"):
+    def get_image(self, channel="rgb") -> np.ndarray:
         """Get image data for the full stack as an `np.ndarray`.
 
         Parameters
@@ -504,6 +511,15 @@ class ConfocalImage(BaseScan):
             The color channel of the requested data.
         """
         if channel == "rgb":
-            return np.stack([self.get_image(color).T for color in ("red", "green", "blue")]).T
+            images = [self.get_image(color) for color in ("red", "green", "blue")]
+            try:
+                # Get first non-zero shape
+                image_shape = next(image.shape for image in images if image.size)
+                return np.stack(
+                    [image if image.size else np.zeros(image_shape) for image in images],
+                    axis=-1,
+                )
+            except StopIteration:
+                raise ValueError("No image data available")
         else:
             return self._image(channel)
