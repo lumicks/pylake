@@ -53,6 +53,7 @@ def track_greedy(
     diffusion=0.0,
     sigma_cutoff=2.0,
     rect=None,
+    min_length=None,
 ):
     """Track particles on an image using a greedy algorithm.
 
@@ -110,6 +111,8 @@ def track_greedy(
         detection and refinement is performed over the full image, but the results are then filtered
         to omit the peaks that fall outside of the rect. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
+    min_length : int
+        If supplied, the minimum length (in data points) of the resulting tracked lines.
 
     References
     ----------
@@ -170,9 +173,11 @@ def track_greedy(
         sigma_cutoff=sigma_cutoff,
     )
 
-    lines = [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
+    lines = KymoLineGroup(
+        [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
+    )
 
-    return KymoLineGroup(lines)
+    return lines if min_length is None else filter_lines(lines, min_length)
 
 
 def track_lines(
@@ -184,6 +189,7 @@ def track_lines(
     continuation_threshold=0.005,
     angle_weight=10.0,
     rect=None,
+    min_length=None,
 ):
     """Track particles on an image using an algorithm that looks for line-like structures.
 
@@ -227,6 +233,8 @@ def track_lines(
     rect : tuple of two coordinates
         Only perform tracking over a subset of the image. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
+    min_length : int
+        If supplied, the minimum length (in data points) of the resulting tracked lines.
 
     References
     ----------
@@ -252,9 +260,10 @@ def track_lines(
         roi=roi,
     )
 
-    return KymoLineGroup(
+    lines = KymoLineGroup(
         [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
     )
+    return lines if min_length is None else filter_lines(lines, min_length)
 
 
 def filter_lines(lines, minimum_length):

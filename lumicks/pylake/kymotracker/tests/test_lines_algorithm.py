@@ -109,19 +109,21 @@ def test_kymotracker_subset_test_lines(kymo_integration_test_data):
     """If this test fires, it likely means that either the coordinates are not coordinates w.r.t.
     the original image, or that the reference to the image held by KymoLine is a reference to a
     subset of the image, while the coordinates are still in the global coordinate system."""
-    line_time = kymo_integration_test_data.line_time_seconds
-    pixel_size = kymo_integration_test_data.pixelsize_um[0]
+    kymo = kymo_integration_test_data["standard"]
+    line_time = kymo.line_time_seconds
+    pixel_size = kymo.pixelsize_um[0]
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
-    lines = track_lines(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
+    lines = track_lines(kymo, "red", 3 * pixel_size, 4, rect=rect)
     np.testing.assert_allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
 
 
 def test_kymotracker_lines_algorithm_integration_tests(kymo_integration_test_data):
-    line_time = kymo_integration_test_data.line_time_seconds
-    pixel_size = kymo_integration_test_data.pixelsize_um[0]
+    kymo = kymo_integration_test_data["standard"]
+    line_time = kymo.line_time_seconds
+    pixel_size = kymo.pixelsize_um[0]
 
-    lines = track_lines(kymo_integration_test_data, "red", 3 * pixel_size, 4)
+    lines = track_lines(kymo, "red", 3 * pixel_size, 4)
     np.testing.assert_allclose(lines[0].coordinate_idx, [11] * len(lines[0].coordinate_idx))
     np.testing.assert_allclose(lines[1].coordinate_idx, [21] * len(lines[1].coordinate_idx))
     np.testing.assert_allclose(lines[0].time_idx, np.arange(9, 21))
@@ -130,7 +132,7 @@ def test_kymotracker_lines_algorithm_integration_tests(kymo_integration_test_dat
     np.testing.assert_allclose(np.sum(lines[1].sample_from_image(1)), 40 * 10 + 6)
 
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
-    lines = track_lines(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
+    lines = track_lines(kymo, "red", 3 * pixel_size, 4, rect=rect)
     np.testing.assert_allclose(lines[0].coordinate_idx, [21] * len(lines[0].coordinate_idx))
     np.testing.assert_allclose(lines[0].time_idx, np.arange(14, 26))
 
@@ -138,4 +140,21 @@ def test_kymotracker_lines_algorithm_integration_tests(kymo_integration_test_dat
 def test_lines_algorithm_input_validation(kymo_integration_test_data):
     for line_width in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
-            track_lines(kymo_integration_test_data, "red", line_width=line_width, max_lines=1000)
+            track_lines(
+                kymo_integration_test_data["standard"], "red", line_width=line_width, max_lines=1000
+            )
+
+
+def test_kymotracker_lines_min_length(kymo_integration_test_data):
+    test_data = kymo_integration_test_data["diff_len"]
+    pixel_size = test_data.pixelsize_um[0]
+
+    # no minimum
+    lines = track_lines(test_data, "red", 3 * pixel_size, 4)
+    assert len(lines) == 5
+
+    lines = track_lines(test_data, "red", 3 * pixel_size, 4, min_length=15)
+    assert len(lines) == 1
+
+    lines = track_lines(test_data, "red", 3 * pixel_size, 4, min_length=25)
+    assert len(lines) == 0

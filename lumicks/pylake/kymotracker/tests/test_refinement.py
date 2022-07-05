@@ -44,7 +44,7 @@ def test_refinement_2d():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     line = KymoLine(time_idx[::2], coordinate_idx[::2], kymo, "red")
@@ -75,7 +75,7 @@ def test_refinement_line(loc, inv_sigma=0.3):
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     line = refine_lines_centroid([KymoLine([0], [25], kymo, "red")], 5)[0]
@@ -84,7 +84,9 @@ def test_refinement_line(loc, inv_sigma=0.3):
 
 def test_refinement_line(kymo_integration_test_data):
     with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
-        refine_lines_centroid([KymoLine([0], [25], kymo_integration_test_data, "red")], 0)[0]
+        refine_lines_centroid(
+            [KymoLine([0], [25], kymo_integration_test_data["standard"], "red")], 0
+        )[0]
 
 
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])

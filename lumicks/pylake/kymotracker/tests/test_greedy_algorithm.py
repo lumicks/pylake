@@ -30,16 +30,17 @@ def test_kymotracker_subset_test_greedy(kymo_integration_test_data):
     """If this test fires, it likely means that either the coordinates are not coordinates w.r.t.
     the original image, or that the reference to the image held by KymoLine is a reference to a
     subset of the image, while the coordinates are still in the global coordinate system."""
-    line_time = kymo_integration_test_data.line_time_seconds
-    pixel_size = kymo_integration_test_data.pixelsize_um[0]
+    kymo = kymo_integration_test_data["standard"]
+    line_time = kymo.line_time_seconds
+    pixel_size = kymo.pixelsize_um[0]
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
-    lines = track_greedy(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
+    lines = track_greedy(kymo, "red", 3 * pixel_size, 4, rect=rect)
     np.testing.assert_allclose(lines[0].sample_from_image(1), [40] * np.ones(10))
 
 
 def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_data):
-    test_data = kymo_integration_test_data
+    test_data = kymo_integration_test_data["standard"]
     line_time = test_data.line_time_seconds
     pixel_size = test_data.pixelsize_um[0]
 
@@ -62,7 +63,7 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
 
 
 def test_greedy_algorithm_input_validation(kymo_integration_test_data):
-    test_data = kymo_integration_test_data
+    test_data = kymo_integration_test_data["standard"]
 
     for line_width in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
@@ -77,3 +78,18 @@ def test_greedy_algorithm_input_validation(kymo_integration_test_data):
     for pixel_threshold in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
             track_greedy(test_data, "red", line_width=10, pixel_threshold=pixel_threshold)
+
+
+def test_kymotracker_greedy_min_length(kymo_integration_test_data):
+    test_data = kymo_integration_test_data["diff_len"]
+    pixel_size = test_data.pixelsize_um[0]
+
+    # no minimum
+    lines = track_greedy(test_data, "red", 3 * pixel_size, 4)
+    assert len(lines) == 2
+
+    lines = track_greedy(test_data, "red", 3 * pixel_size, 4, min_length=12)
+    assert len(lines) == 1
+
+    lines = track_greedy(test_data, "red", 3 * pixel_size, 4, min_length=25)
+    assert len(lines) == 0

@@ -17,17 +17,32 @@ def raw_test_data():
     return test_data
 
 
+def raw_test_data_lengths():
+    test_data = np.ones((30, 30))
+    test_data[10, 5:20] = 10
+    test_data[11, 5:20] = 30
+    test_data[12, 5:20] = 10
+
+    test_data[20, 15:25] = 10
+    test_data[21, 15:25] = 20
+    test_data[22, 15:25] = 10
+    return test_data
+
+
 @pytest.fixture
 def kymo_integration_test_data():
-    return generate_kymo(
-        "test",
-        raw_test_data(),
-        pixel_size_nm=5000,
-        start=int(4e9),
-        dt=int(5e9 / 100),
-        samples_per_pixel=3,
-        line_padding=5,
-    )
+    def make_kymo(data):
+        return generate_kymo(
+            "test",
+            data,
+            pixel_size_nm=5000,
+            start=int(4e9),
+            dt=int(5e9 / 100),
+            samples_per_pixel=3,
+            line_padding=5,
+        )
+
+    return {"standard": make_kymo(raw_test_data()), "diff_len": make_kymo(raw_test_data_lengths())}
 
 
 @pytest.fixture

@@ -6,6 +6,7 @@
 
 * Added function `Kymo.line_timestamp_ranges()` to obtain the start and stop timestamp of each scan line in a `Kymo`. Please refer to [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
 * Added `Kymo.flip()` to flip a Kymograph along its positional axis.
+* Added a `min_length` argument to `lk.track_greedy()` to automatically filter out tracked lines shorter than a minimum length.
 
 #### Breaking changes
 

@@ -65,9 +65,13 @@ The result of tracking is a list of kymograph traces::
     >>> print(len(traces))  # the number of traces found in the kymo
     7417
 
-Sometimes, we can have very short spurious traces. To remove these from the list of detected traces we can use
-:func:`~lumicks.pylake.filter_lines`. To omit all traces with fewer than 4 detected points, we
+Sometimes, we can have very short spurious traces. To remove these from the list of detected traces we can pass the `min_length` argument to the
+tracking algorithm. To omit all traces with fewer than 4 detected points, we
 can invoke::
+
+    long_traces = lk.track_greedy(kymo, "green", line_width=0.3, pixel_threshold=3, min_length=4)
+
+The default value is `None` in which case no filtering will be performed. We can still filter after tracking by invoking::
 
     >>> traces = lk.filter_lines(traces, 4)
 
