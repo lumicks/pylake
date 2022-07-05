@@ -603,59 +603,32 @@ class KymoWidgetGreedy(KymoWidget):
     def create_algorithm_sliders(self):
         import ipywidgets
 
-        window_slider = self._add_slider(
-            "Window",
-            "window",
-            "How many frames can a line disappear.",
-            *self._slider_ranges["window"],
-            slider_type=ipywidgets.IntSlider,
+        def make_slider(description, name, tooltip, is_integer):
+            rng = self._slider_ranges[name]
+            step_size = 1 if is_integer else (1e-3 * (rng[1] - rng[0]))
+            slider_type = ipywidgets.IntSlider if is_integer else ipywidgets.FloatSlider
+
+            return self._add_slider(
+                description,
+                name,
+                tooltip,
+                *rng,
+                step_size=step_size,
+                slider_type=slider_type,
+            )
+
+        slider_args = (
+            ("Threshold", "pixel_threshold", "Set the pixel threshold.", True),
+            ("Window", "window", "How many frames can a line disappear.", True),
+            ("Line width", "line_width", "Estimated spot width.", False),
+            ("Sigma", "sigma", "How much does the line fluctuate?", False),
+            ("Velocity", "vel", "How fast does the particle move?", False),
+            (
+                "Min length",
+                "min_length",
+                "Minimum number of frames a spot has to be detected in to be considered.",
+                True,
+            ),
         )
-        thresh_slider = self._add_slider(
-            "Threshold",
-            "pixel_threshold",
-            "Set the pixel threshold.",
-            *self._slider_ranges["pixel_threshold"],
-            step_size=1,
-            slider_type=ipywidgets.IntSlider,
-        )
-        line_width_slider = self._add_slider(
-            "Line width",
-            "line_width",
-            "Estimated spot width.",
-            *self._slider_ranges["line_width"],
-            step_size=1e-3 * self._slider_ranges["line_width"][1],
-            slider_type=ipywidgets.FloatSlider,
-        )
-        sigma_slider = self._add_slider(
-            "Sigma",
-            "sigma",
-            "How much does the line fluctuate?",
-            *self._slider_ranges["sigma"],
-            step_size=1e-3 * (self._slider_ranges["sigma"][1] - self._slider_ranges["sigma"][0]),
-            slider_type=ipywidgets.FloatSlider,
-        )
-        vel_slider = self._add_slider(
-            "Velocity",
-            "vel",
-            "How fast does the particle move?",
-            *self._slider_ranges["vel"],
-            step_size=1e-3 * (self._slider_ranges["vel"][1] - self._slider_ranges["vel"][0]),
-            slider_type=ipywidgets.FloatSlider,
-        )
-        min_len_slider = self._add_slider(
-            "Min length",
-            "min_length",
-            "Minimum number of frames a spot has to be detected in to be considered.",
-            *self._slider_ranges["min_length"],
-            slider_type=ipywidgets.IntSlider,
-        )
-        return ipywidgets.VBox(
-            [
-                thresh_slider,
-                line_width_slider,
-                window_slider,
-                sigma_slider,
-                vel_slider,
-                min_len_slider,
-            ]
-        )
+
+        return ipywidgets.VBox([make_slider(*args) for args in slider_args])
