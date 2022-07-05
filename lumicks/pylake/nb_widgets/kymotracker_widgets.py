@@ -482,12 +482,12 @@ class KymoWidgetGreedy(KymoWidget):
         axis_aspect_ratio=None,
         line_width=None,
         pixel_threshold=None,
-        window=4,
+        window=None,
         sigma=None,
-        vel=0.0,
-        diffusion=0.0,
-        sigma_cutoff=2.0,
-        min_length=3,
+        vel=None,
+        diffusion=None,
+        sigma_cutoff=None,
+        min_length=None,
         use_widgets=True,
         output_filename="kymotracks.txt",
         slider_ranges={},
@@ -542,33 +542,21 @@ class KymoWidgetGreedy(KymoWidget):
             "vel".
         """
         algorithm = track_greedy
-        data = kymo.get_image(channel)
-        position_scale = kymo.pixelsize[0]
-        line_width = 4 * position_scale if line_width is None else line_width
-        algorithm_parameters = {
-            "line_width": line_width,
-            "pixel_threshold": np.percentile(data.flatten(), 98)
-            if pixel_threshold is None
-            else pixel_threshold,
-            "window": window,
-            "sigma": 0.5 * line_width if sigma is None else sigma,
-            "vel": vel,
-            "diffusion": diffusion,
-            "sigma_cutoff": sigma_cutoff,
-            "min_length": min_length,
-        }
 
-        position_scale = kymo.pixelsize[0]
-        vel_calibration = position_scale / kymo.line_time_seconds
+        algorithm_parameters, self._slider_ranges = _default_greedy_parameters(kymo, channel)
+        for key, value in (
+            ("line_width", line_width),
+            ("pixel_threshold", pixel_threshold),
+            ("window", window),
+            ("sigma", sigma),
+            ("vel", vel),
+            ("diffusion", diffusion),
+            ("sigma_cutoff", sigma_cutoff),
+            ("min_length", min_length),
+        ):
+            if value is not None:
+                algorithm_parameters[key] = value
 
-        self._slider_ranges = {
-            "window": (1, 15),
-            "pixel_threshold": (1, np.max(data)),
-            "line_width": (0.0, 15.0 * position_scale),
-            "sigma": (1.0 * position_scale, 5.0 * position_scale),
-            "vel": (-5.0 * vel_calibration, 5.0 * vel_calibration),
-            "min_length": (1, 10),
-        }
         for key, slider_range in slider_ranges.items():
             if key not in self._slider_ranges:
                 raise KeyError(
@@ -659,3 +647,32 @@ class KymoWidgetGreedy(KymoWidget):
                 min_len_slider,
             ]
         )
+
+
+def _default_greedy_parameters(kymo, channel):
+    data = kymo.get_image(channel)
+    position_scale = kymo.pixelsize[0]
+    line_width = 4 * position_scale
+
+    algorithm_parameters = {
+        "line_width": line_width,
+        "pixel_threshold": np.percentile(data.flatten(), 98),
+        "window": 4,
+        "sigma": 0.5 * line_width,
+        "vel": 0.0,
+        "diffusion": 0.0,
+        "sigma_cutoff": 2.0,
+        "min_length": 3,
+    }
+
+    vel_calibration = position_scale / kymo.line_time_seconds
+    slider_ranges = {
+        "window": (1, 15),
+        "pixel_threshold": (1, np.max(data)),
+        "line_width": (0.0, 15.0 * position_scale),
+        "sigma": (1.0 * position_scale, 5.0 * position_scale),
+        "vel": (-5.0 * vel_calibration, 5.0 * vel_calibration),
+        "min_length": (1, 10),
+    }
+
+    return algorithm_parameters, slider_ranges
