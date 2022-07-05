@@ -16,12 +16,10 @@ class KymoWidget:
         kymo,
         channel,
         axis_aspect_ratio,
-        min_length,
         use_widgets,
         output_filename,
         algorithm,
         algorithm_parameters,
-        min_length_range,
         **kwargs,
     ):
         """Create a widget for performing kymotracking.
@@ -36,8 +34,6 @@ class KymoWidget:
             Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
             This helps you visualize them. The aspect ratio is defined in physical spatial and
             temporal units (rather than pixels).
-        min_length : int
-            Minimum length of a trace. Traces shorter than this are discarded.
         use_widgets : bool
             Add interactive widgets for interacting with algorithm parameters.
         output_filename : str
@@ -46,8 +42,6 @@ class KymoWidget:
             Kymotracking algorithm used
         algorithm_parameters : dict
             Parameters for the kymotracking algorithm.
-        minimum_length_range : tuple of int
-            Range of the minimum length parameter. Should be of the form (lower bound, upper bound).
         **kwargs
             Extra arguments forwarded to imshow.
         """
@@ -64,8 +58,6 @@ class KymoWidget:
         )
         self._lines_history = UndoStack(KymoLineGroup([]))
         self.plotted_lines = []
-        self.min_length = min_length
-        self._min_length_range = min_length_range
         self._kymo = kymo
         self._channel = channel
         self._label = None
@@ -121,14 +113,11 @@ class KymoWidget:
         self.update_lines()
 
     def _track(self, rect=None):
-        return filter_lines(
-            self._algorithm(
-                self._kymo,
-                self._channel,
-                **self.algorithm_parameters,
-                rect=rect,
-            ),
-            self.min_length,
+        return self._algorithm(
+            self._kymo,
+            self._channel,
+            **self.algorithm_parameters,
+            rect=rect,
         )
 
     def _connect_drag_callback(self):
@@ -376,18 +365,6 @@ class KymoWidget:
         redo_button = ipywidgets.Button(description="Redo", tooltip="Redo")
         redo_button.on_click(redo)
 
-        minimum_length = ipywidgets.interactive(
-            lambda min_length: setattr(self, "min_length", min_length),
-            min_length=ipywidgets.IntSlider(
-                description="Min length",
-                value=self.min_length,
-                disabled=False,
-                min=self._min_length_range[0],
-                max=self._min_length_range[1],
-                tooltip="Minimum number of frames a spot has to be detected in to be considered",
-            ),
-        )
-
         load_button = ipywidgets.Button(description="Load")
         load_button.on_click(lambda button: self._load_from_ui())
 
@@ -417,7 +394,6 @@ class KymoWidget:
                     [
                         all_button,
                         algorithm_sliders,
-                        minimum_length,
                         ipywidgets.HBox([refine_button, show_lines_toggle]),
                         fn_widget,
                         ipywidgets.HBox([undo_button, redo_button]),
@@ -579,6 +555,7 @@ class KymoWidgetGreedy(KymoWidget):
             "vel": vel,
             "diffusion": diffusion,
             "sigma_cutoff": sigma_cutoff,
+            "min_length": min_length,
         }
 
         position_scale = kymo.pixelsize[0]
@@ -616,12 +593,10 @@ class KymoWidgetGreedy(KymoWidget):
             kymo,
             channel,
             axis_aspect_ratio,
-            min_length,
             use_widgets,
             output_filename,
             algorithm,
             algorithm_parameters,
-            min_length_range=self._slider_ranges["min_length"],
             **kwargs,
         )
 
@@ -667,6 +642,20 @@ class KymoWidgetGreedy(KymoWidget):
             step_size=1e-3 * (self._slider_ranges["vel"][1] - self._slider_ranges["vel"][0]),
             slider_type=ipywidgets.FloatSlider,
         )
+        min_len_slider = self._add_slider(
+            "Min length",
+            "min_length",
+            "Minimum number of frames a spot has to be detected in to be considered.",
+            *self._slider_ranges["min_length"],
+            slider_type=ipywidgets.IntSlider,
+        )
         return ipywidgets.VBox(
-            [thresh_slider, line_width_slider, window_slider, sigma_slider, vel_slider]
+            [
+                thresh_slider,
+                line_width_slider,
+                window_slider,
+                sigma_slider,
+                vel_slider,
+                min_len_slider,
+            ]
         )
