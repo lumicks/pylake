@@ -205,6 +205,45 @@ def test_scans(reference_counts):
     )
     scans["multiframe_poisson"] = Scan("multiframe_poisson", mock_file, start, stop, metadata)
 
+    mock_file, metadata, stop = MockConfocalFile.from_streams(
+        start,
+        dt,
+        [1, 0],
+        [4, 5],
+        [191.0, 197.0],
+        infowave=reference_infowave,
+        red_photon_counts=None,
+        green_photon_counts=reference_counts,
+        blue_photon_counts=reference_counts,
+    )
+    scans["red channel missing"] = Scan("red channel missing", mock_file, start, stop, metadata)
+
+    mock_file, metadata, stop = MockConfocalFile.from_streams(
+        start,
+        dt,
+        [1, 0],
+        [4, 5],
+        [191.0, 197.0],
+        infowave=reference_infowave,
+        red_photon_counts=None,
+        green_photon_counts=reference_counts,
+        blue_photon_counts=None,
+    )
+    scans["rb channels missing"] = Scan("rb channels missing", mock_file, start, stop, metadata)
+
+    mock_file, metadata, stop = MockConfocalFile.from_streams(
+        start,
+        dt,
+        [1, 0],
+        [4, 5],
+        [191.0, 197.0],
+        infowave=reference_infowave,
+        red_photon_counts=None,
+        green_photon_counts=None,
+        blue_photon_counts=None,
+    )
+    scans["all channels missing"] = Scan("all channels missing", mock_file, start, stop, metadata)
+
     return scans
 
 

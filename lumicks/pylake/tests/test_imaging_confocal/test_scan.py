@@ -109,6 +109,30 @@ def test_scans(test_scans):
     np.testing.assert_allclose(scan.center_point_um["z"], 0)
     np.testing.assert_allclose(scan.size_um, [0.191 * 4, 0.197 * 3])
 
+    scan = test_scans["red channel missing"]
+    rgb = scan.get_image("rgb")
+    assert rgb.shape == (4, 5, 3)
+    assert not np.any(rgb[:, :, 0])
+    assert scan.get_image("red").shape == (0,)
+    assert scan.get_image("blue").shape == (4, 5)
+    assert scan.get_image("green").shape == (4, 5)
+
+    scan = test_scans["rb channels missing"]
+    rgb = scan.get_image("rgb")
+    assert rgb.shape == (4, 5, 3)
+    assert not np.any(rgb[:, :, 0])
+    assert not np.any(rgb[:, :, 2])
+    assert scan.get_image("red").shape == (0,)
+    assert scan.get_image("blue").shape == (0,)
+    assert scan.get_image("green").shape == (4, 5)
+
+    scan = test_scans["all channels missing"]
+    with pytest.raises(ValueError, match="No image data available"):
+        scan.get_image("rgb")
+    assert scan.get_image("red").shape == (0,)
+    assert scan.get_image("blue").shape == (0,)
+    assert scan.get_image("green").shape == (0,)
+
 
 def test_slicing(test_scans):
     scan0 = test_scans["multiframe_poisson"]
@@ -168,7 +192,9 @@ def test_damaged_scan(test_scans):
     # within the sample time.
     scan = test_scans["sted bug"]
     middle = test_scans["fast Y slow X"].red_photon_count.timestamps[5]
-    scan.get_image("red").shape  # should not raise, but change the start appropriately to work around sted bug
+    scan.get_image(
+        "red"
+    ).shape  # should not raise, but change the start appropriately to work around sted bug
     np.testing.assert_allclose(scan.start, middle)
 
 
@@ -184,14 +210,18 @@ def test_plotting(test_scans):
     scan = test_scans["fast X slow Z multiframe"]
     scan.plot(channel="rgb")
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0]))
+    np.testing.assert_allclose(
+        image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0])
+    )
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
 
     scan = test_scans["fast Y slow Z multiframe"]
     scan.plot(channel="rgb")
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0]))
+    np.testing.assert_allclose(
+        image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0])
+    )
     np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
     plt.close()
 
@@ -331,7 +361,9 @@ def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
     lb, ub = np.array([1, 2, 3]), np.array([2, 3, 4])
     scan.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="absolute"))
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), np.clip((scan.get_image("rgb") - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(
+        image.get_array(), np.clip((scan.get_image("rgb") - lb) / (ub - lb), 0, 1)
+    )
     plt.close(fig)
 
 
@@ -346,7 +378,9 @@ def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
         fig = plt.figure()
         scan.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), scan.get_image(channel)) #getattr(scan, f"{channel}_image"))
+        np.testing.assert_allclose(
+            image.get_array(), scan.get_image(channel)
+        )  # getattr(scan, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -354,7 +388,9 @@ def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
         fig = plt.figure()
         scan.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), scan.get_image(channel)) #getattr(scan, f"{channel}_image"))
+        np.testing.assert_allclose(
+            image.get_array(), scan.get_image(channel)
+        )  # getattr(scan, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -375,7 +411,9 @@ def test_plot_rgb_percentile_color_adjustment(test_scans):
     )
     lb, ub = (b for b in np.moveaxis(bounds, 1, 0))
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), np.clip((scan.get_image("rgb")[0] - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(
+        image.get_array(), np.clip((scan.get_image("rgb")[0] - lb) / (ub - lb), 0, 1)
+    )
     plt.close(fig)
 
 
@@ -400,14 +438,15 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans):
             plt.close(fig)
 
 
-@pytest.mark.parametrize("scan, pixel_time",
-                         [
-                             ("fast Y slow X", 0.1875),
-                             ("fast X slow Z multiframe", 0.1875),
-                             ("fast Y slow X multiframe", 0.1875),
-                             ("fast Y slow Z multiframe", 0.1875),
-                             ("fast Y slow X", 0.1875),
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "scan, pixel_time",
+    [
+        ("fast Y slow X", 0.1875),
+        ("fast X slow Z multiframe", 0.1875),
+        ("fast Y slow X multiframe", 0.1875),
+        ("fast Y slow Z multiframe", 0.1875),
+        ("fast Y slow X", 0.1875),
+    ],
+)
 def test_scan_pixel_time(test_scans, scan, pixel_time):
     np.testing.assert_allclose(test_scans[scan].pixel_time_seconds, pixel_time)
