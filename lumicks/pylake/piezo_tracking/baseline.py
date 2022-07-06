@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from lumicks.pylake.channel import Slice, Continuous
 
 
+__all__ = ["ForceBaseLine"]
+
+
 class ForceBaseLine:
     """A force baseline as a function of trap position"""
 
