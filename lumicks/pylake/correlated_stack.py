@@ -472,7 +472,4 @@ class CorrelatedStack:
     @property
     def frame_timestamp_ranges(self):
         """List of time stamps."""
-        return [
-            (self._get_frame(idx).start, self._get_frame(idx).stop)
-            for idx in range(self.num_frames)
-        ]
+        return [self._get_frame(idx).frame_timestamp_range for idx in range(self.num_frames)]
