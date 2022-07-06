@@ -76,7 +76,7 @@ class KymoWidget:
         self._line_connector = None
 
         self._algorithm = algorithm
-        self.algorithm_parameters = algorithm_parameters
+        self._algorithm_parameters = algorithm_parameters
 
         self.show(use_widgets=use_widgets, **kwargs)
 
@@ -90,7 +90,7 @@ class KymoWidget:
 
     @property
     def _line_width_pixels(self):
-        return np.ceil(self.algorithm_parameters["line_width"].value / self._kymo.pixelsize[0])
+        return np.ceil(self._algorithm_parameters["line_width"].value / self._kymo.pixelsize[0])
 
     def track_kymo(self, click, release):
         """Handle mouse release event.
@@ -119,7 +119,7 @@ class KymoWidget:
         return self._algorithm(
             self._kymo,
             self._channel,
-            **{key: item.value for key, item in self.algorithm_parameters.items()},
+            **{key: item.value for key, item in self._algorithm_parameters.items()},
             rect=rect,
         )
 
@@ -280,7 +280,7 @@ class KymoWidget:
         import ipywidgets
 
         def set_value(value):
-            self.algorithm_parameters[name].value = value
+            self._algorithm_parameters[name].value = value
 
         slider_types = {"int": ipywidgets.IntSlider, "float": ipywidgets.FloatSlider}
 
@@ -292,7 +292,7 @@ class KymoWidget:
                 min=parameter.lower_bound,
                 max=parameter.upper_bound,
                 step=parameter.step_size,
-                value=self.algorithm_parameters[name].value,
+                value=self._algorithm_parameters[name].value,
             ),
         )
 
