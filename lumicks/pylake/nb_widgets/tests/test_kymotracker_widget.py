@@ -23,15 +23,15 @@ def test_parameters_kymo(kymograph):
     """Test whether the parameter setting is passed correctly to the algorithm. By setting the threshold to different
     values we can check which lines are detected and use that to verify that the parameter is used."""
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 30
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 30
     kymo_widget.track_all()
     assert len(kymo_widget.lines) == 0
 
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 7
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 7
     kymo_widget.track_all()
     assert len(kymo_widget.lines) == 1
 
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 2
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 2
     kymo_widget.track_all()
     assert len(kymo_widget.lines) == 3
 
@@ -40,15 +40,15 @@ def test_parameters_kymo(kymograph):
 def test_invalid_algorithm_parameter(kymograph):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     with pytest.raises(KeyError):
-        kymo_widget.algorithm_parameters["bob"].value = 5
+        kymo_widget._algorithm_parameters["bob"].value = 5
         kymo_widget.track_all()
 
     with pytest.raises(AttributeError):
-        kymo_widget.algorithm_parameters["bob"] = 5
+        kymo_widget._algorithm_parameters["bob"] = 5
         kymo_widget.track_all()
 
     with pytest.raises(TypeError):
-        kymo_widget.algorithm_parameters["bob"] = KymotrackerParameter(
+        kymo_widget._algorithm_parameters["bob"] = KymotrackerParameter(
             "bob", "nonsense", "int", 5, (1, 10)
         )
         kymo_widget.track_all()
@@ -78,7 +78,7 @@ def test_track_kymo(kymograph, region_select):
     in_um, in_s = calibrate_to_kymo(kymograph)
 
     # Track a line in a particular region. Only a single line exists in this region.
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 4
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
     kymo_widget.track_kymo(*region_select(in_s(10), in_um(8), in_s(20), in_um(9)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(10, 20))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [8] * 10)
@@ -106,7 +106,7 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
     testfile = f"{tmpdir_factory.mktemp('pylake')}/kymo.csv"
 
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 4
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
     kymo_widget.track_all()
     kymo_widget.output_filename = testfile
     kymo_widget._save_from_ui()
@@ -140,7 +140,7 @@ def test_refine_from_widget(kymograph, region_select):
         "refine them"
     )
 
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 4
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
     kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 13)
@@ -243,7 +243,7 @@ def test_refine_line_width_units(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, line_width=2, use_widgets=False)
     in_um, in_s = calibrate_to_kymo(kymograph)
 
-    kymo_widget.algorithm_parameters["pixel_threshold"].value = 4
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
     kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
     kymo_widget.refine()
 
@@ -258,17 +258,17 @@ def test_refine_line_width_units(kymograph, region_select):
 def test_widget_with_calibration(kymograph):
     widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
     np.testing.assert_allclose(
-        widget.algorithm_parameters["line_width"].value, kymograph.pixelsize[0] * 4
+        widget._algorithm_parameters["line_width"].value, kymograph.pixelsize[0] * 4
     )
-    np.testing.assert_allclose(widget.algorithm_parameters["line_width"].value, 1.6)
+    np.testing.assert_allclose(widget._algorithm_parameters["line_width"].value, 1.6)
     assert widget._axes.get_ylabel() == r"position ($\mu$m)"
 
     kymo_bp = kymograph.calibrate_to_kbp(10.000)
     widget = KymoWidgetGreedy(kymo_bp, "red", 1, use_widgets=False)
     np.testing.assert_allclose(
-        widget.algorithm_parameters["line_width"].value, kymo_bp.pixelsize[0] * 4
+        widget._algorithm_parameters["line_width"].value, kymo_bp.pixelsize[0] * 4
     )
-    np.testing.assert_allclose(widget.algorithm_parameters["line_width"].value, 2.0)
+    np.testing.assert_allclose(widget._algorithm_parameters["line_width"].value, 2.0)
     assert widget._axes.get_ylabel() == "position (kbp)"
 
 
