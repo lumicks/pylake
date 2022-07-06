@@ -1,4 +1,6 @@
 import time
+from dataclasses import dataclass
+import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
@@ -16,12 +18,10 @@ class KymoWidget:
         kymo,
         channel,
         axis_aspect_ratio,
-        min_length,
         use_widgets,
         output_filename,
         algorithm,
         algorithm_parameters,
-        min_length_range,
         **kwargs,
     ):
         """Create a widget for performing kymotracking.
@@ -36,8 +36,6 @@ class KymoWidget:
             Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
             This helps you visualize them. The aspect ratio is defined in physical spatial and
             temporal units (rather than pixels).
-        min_length : int
-            Minimum length of a trace. Traces shorter than this are discarded.
         use_widgets : bool
             Add interactive widgets for interacting with algorithm parameters.
         output_filename : str
@@ -45,9 +43,8 @@ class KymoWidget:
         algorithm : callable
             Kymotracking algorithm used
         algorithm_parameters : dict
-            Parameters for the kymotracking algorithm.
-        minimum_length_range : tuple of int
-            Range of the minimum length parameter. Should be of the form (lower bound, upper bound).
+            Dictionary of `KymotrackerParameter` instances holding the slider attributes
+            and values for the tracking algorithm parameters
         **kwargs
             Extra arguments forwarded to imshow.
         """
@@ -64,8 +61,6 @@ class KymoWidget:
         )
         self._lines_history = UndoStack(KymoLineGroup([]))
         self.plotted_lines = []
-        self.min_length = min_length
-        self._min_length_range = min_length_range
         self._kymo = kymo
         self._channel = channel
         self._label = None
@@ -95,7 +90,7 @@ class KymoWidget:
 
     @property
     def _line_width_pixels(self):
-        return np.ceil(self.algorithm_parameters["line_width"] / self._kymo.pixelsize[0])
+        return np.ceil(self.algorithm_parameters["line_width"].value / self._kymo.pixelsize[0])
 
     def track_kymo(self, click, release):
         """Handle mouse release event.
@@ -121,14 +116,11 @@ class KymoWidget:
         self.update_lines()
 
     def _track(self, rect=None):
-        return filter_lines(
-            self._algorithm(
-                self._kymo,
-                self._channel,
-                **self.algorithm_parameters,
-                rect=rect,
-            ),
-            self.min_length,
+        return self._algorithm(
+            self._kymo,
+            self._channel,
+            **{key: item.value for key, item in self.algorithm_parameters.items()},
+            rect=rect,
         )
 
     def _connect_drag_callback(self):
@@ -284,23 +276,23 @@ class KymoWidget:
         except (RuntimeError, IOError) as exception:
             self._set_label(str(exception))
 
-    def _add_slider(
-        self, description, name, tooltip, minimum, maximum, step_size=None, slider_type=None
-    ):
+    def _add_slider(self, name, parameter):
         import ipywidgets
 
         def set_value(value):
-            self.algorithm_parameters[name] = value
+            self.algorithm_parameters[name].value = value
+
+        slider_types = {"int": ipywidgets.IntSlider, "float": ipywidgets.FloatSlider}
 
         return ipywidgets.interactive(
             set_value,
-            value=slider_type(
-                description=description,
-                description_tooltip=tooltip,
-                min=minimum,
-                max=maximum,
-                step=step_size,
-                value=self.algorithm_parameters[name],
+            value=slider_types[parameter.type](
+                description=parameter.name,
+                description_tooltip=parameter.description,
+                min=parameter.lower_bound,
+                max=parameter.upper_bound,
+                step=parameter.step_size,
+                value=self.algorithm_parameters[name].value,
             ),
         )
 
@@ -376,18 +368,6 @@ class KymoWidget:
         redo_button = ipywidgets.Button(description="Redo", tooltip="Redo")
         redo_button.on_click(redo)
 
-        minimum_length = ipywidgets.interactive(
-            lambda min_length: setattr(self, "min_length", min_length),
-            min_length=ipywidgets.IntSlider(
-                description="Min length",
-                value=self.min_length,
-                disabled=False,
-                min=self._min_length_range[0],
-                max=self._min_length_range[1],
-                tooltip="Minimum number of frames a spot has to be detected in to be considered",
-            ),
-        )
-
         load_button = ipywidgets.Button(description="Load")
         load_button.on_click(lambda button: self._load_from_ui())
 
@@ -417,7 +397,6 @@ class KymoWidget:
                     [
                         all_button,
                         algorithm_sliders,
-                        minimum_length,
                         ipywidgets.HBox([refine_button, show_lines_toggle]),
                         fn_widget,
                         ipywidgets.HBox([undo_button, redo_button]),
@@ -506,12 +485,12 @@ class KymoWidgetGreedy(KymoWidget):
         axis_aspect_ratio=None,
         line_width=None,
         pixel_threshold=None,
-        window=4,
+        window=None,
         sigma=None,
-        vel=0.0,
-        diffusion=0.0,
-        sigma_cutoff=2.0,
-        min_length=3,
+        vel=None,
+        diffusion=None,
+        sigma_cutoff=None,
+        min_length=None,
         use_widgets=True,
         output_filename="kymotracks.txt",
         slider_ranges={},
@@ -565,38 +544,23 @@ class KymoWidgetGreedy(KymoWidget):
             Valid options are: "window", "pixel_threshold", "line_width", "sigma", "min_length" and
             "vel".
         """
-        algorithm = track_greedy
-        data = kymo.get_image(channel)
-        position_scale = kymo.pixelsize[0]
-        line_width = 4 * position_scale if line_width is None else line_width
-        algorithm_parameters = {
-            "line_width": line_width,
-            "pixel_threshold": np.percentile(data.flatten(), 98)
-            if pixel_threshold is None
-            else pixel_threshold,
-            "window": window,
-            "sigma": 0.5 * line_width if sigma is None else sigma,
-            "vel": vel,
-            "diffusion": diffusion,
-            "sigma_cutoff": sigma_cutoff,
-        }
 
-        position_scale = kymo.pixelsize[0]
-        vel_calibration = position_scale / kymo.line_time_seconds
+        def wrapped_track_greedy(kymo, channel, min_length, **kwargs):
+            return filter_lines(
+                track_greedy(kymo, channel, **kwargs),
+                min_length,
+            )
 
-        self._slider_ranges = {
-            "window": (1, 15),
-            "pixel_threshold": (1, np.max(data)),
-            "line_width": (0.0, 15.0 * position_scale),
-            "sigma": (1.0 * position_scale, 5.0 * position_scale),
-            "vel": (-5.0 * vel_calibration, 5.0 * vel_calibration),
-            "min_length": (1, 10),
-        }
+        algorithm = wrapped_track_greedy
+        algorithm_parameters = _get_default_parameters(kymo, channel)
+
+        # check slider_ranges entries are valid
+        keys = tuple(algorithm_parameters.keys())
         for key, slider_range in slider_ranges.items():
-            if key not in self._slider_ranges:
+            if key not in keys:
                 raise KeyError(
                     f"Slider range provided for parameter that does not exist ({key}) "
-                    f"Valid parameters are: {list(self._slider_ranges.keys())}"
+                    f"Valid parameters are: {', '.join(keys)}"
                 )
 
             if len(slider_range) != 2:
@@ -610,63 +574,120 @@ class KymoWidgetGreedy(KymoWidget):
                     f"Lower bound should be lower than upper bound for parameter {key}"
                 )
 
-            self._slider_ranges[key] = slider_range
+        # update defaults to user-supplied parameters
+        arg_names, _, _, values = inspect.getargvalues(inspect.currentframe())
+        parameters = {name: values[name] for name in arg_names if name != "self"}
+        for key in keys:
+            if parameters[key] is not None:
+                algorithm_parameters[key].value = parameters[key]
+            if key in slider_ranges:
+                algorithm_parameters[key].lower_bound = slider_ranges[key][0]
+                algorithm_parameters[key].upper_bound = slider_ranges[key][1]
 
         super().__init__(
             kymo,
             channel,
             axis_aspect_ratio,
-            min_length,
             use_widgets,
             output_filename,
             algorithm,
             algorithm_parameters,
-            min_length_range=self._slider_ranges["min_length"],
             **kwargs,
         )
 
     def create_algorithm_sliders(self):
         import ipywidgets
 
-        window_slider = self._add_slider(
-            "Window",
-            "window",
-            "How many frames can a line disappear.",
-            *self._slider_ranges["window"],
-            slider_type=ipywidgets.IntSlider,
-        )
-        thresh_slider = self._add_slider(
-            "Threshold",
-            "pixel_threshold",
-            "Set the pixel threshold.",
-            *self._slider_ranges["pixel_threshold"],
-            step_size=1,
-            slider_type=ipywidgets.IntSlider,
-        )
-        line_width_slider = self._add_slider(
-            "Line width",
-            "line_width",
-            "Estimated spot width.",
-            *self._slider_ranges["line_width"],
-            step_size=1e-3 * self._slider_ranges["line_width"][1],
-            slider_type=ipywidgets.FloatSlider,
-        )
-        sigma_slider = self._add_slider(
-            "Sigma",
-            "sigma",
-            "How much does the line fluctuate?",
-            *self._slider_ranges["sigma"],
-            step_size=1e-3 * (self._slider_ranges["sigma"][1] - self._slider_ranges["sigma"][0]),
-            slider_type=ipywidgets.FloatSlider,
-        )
-        vel_slider = self._add_slider(
-            "Velocity",
-            "vel",
-            "How fast does the particle move?",
-            *self._slider_ranges["vel"],
-            step_size=1e-3 * (self._slider_ranges["vel"][1] - self._slider_ranges["vel"][0]),
-            slider_type=ipywidgets.FloatSlider,
-        )
         return ipywidgets.VBox(
-            [thresh_slider, line_width_slider, window_slider, sigma_slider, vel_slider]
+            [
+                self._add_slider(key, parameter)
+                for key, parameter in self._algorithm_parameters.items()
+                if parameter.ui_visible
+            ]
         )
+
+
+@dataclass
+class KymotrackerParameter:
+    from numbers import Number
+
+    name: str
+    description: str
+    type: str
+    value: Number
+    lower_bound: Number
+    upper_bound: Number
+    ui_visible: bool
+
+    def __post_init__(self):
+        if self.ui_visible and (self.lower_bound is None or self.upper_bound is None):
+            raise ValueError(
+                "Lower and upper bounds must be supplied for widget to be set as visible."
+            )
+
+    @property
+    def step_size(self):
+        return 1 if self.type == "int" else (1e-3 * (self.upper_bound - self.lower_bound))
+
+
+def _get_default_parameters(kymo, channel):
+    data = kymo.get_image(channel)
+    position_scale = kymo.pixelsize[0]
+    vel_calibration = position_scale / kymo.line_time_seconds
+
+    return {
+        "pixel_threshold": KymotrackerParameter(
+            "Threshold",
+            "Set the pixel threshold.",
+            "int",
+            np.percentile(data.flatten(), 98),
+            *(1, np.max(data)),
+            True,
+        ),
+        "line_width": KymotrackerParameter(
+            "Line width",
+            "Estimated spot width.",
+            "float",
+            4 * position_scale,
+            *(0.0, 15.0 * position_scale),
+            True,
+        ),
+        "window": KymotrackerParameter(
+            "Window", "How many frames can a line disappear.", "int", 4, *(1, 15), True
+        ),
+        "sigma": KymotrackerParameter(
+            "Sigma",
+            "How much does the line fluctuate?",
+            "float",
+            2 * position_scale,
+            *(1.0 * position_scale, 5.0 * position_scale),
+            True,
+        ),
+        "vel": KymotrackerParameter(
+            "Velocity",
+            "How fast does the particle move?",
+            "float",
+            0.0,
+            *(-5.0 * vel_calibration, 5.0 * vel_calibration),
+            True,
+        ),
+        "diffusion": KymotrackerParameter(
+            "Diffusion", "Expected diffusion constant.", "float", 0.0, *(None, None), False
+        ),
+        "sigma_cutoff": KymotrackerParameter(
+            "Sigma cutoff",
+            "Number of standard deviations from the expected trajectory a particle no longer belongs to a trace.",
+            "float",
+            2.0,
+            *(None, None),
+            False,
+        ),
+        "min_length": KymotrackerParameter(
+            "Min length",
+            "Minimum number of frames a spot has to be detected in to be considered.",
+            "int",
+            3,
+            *(1, 10),
+            True,
+        ),
+    }
