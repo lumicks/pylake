@@ -63,6 +63,7 @@ setup(
         "deprecated>=1.2.8",
         "scikit-learn>=0.18.0",
         "scikit-image>=0.17.2",
+        "tqdm>=4.27.0",  # 4.27.0 introduced tqdm.auto which auto-selects notebook or console
     ],
     zip_safe=False,
 )
