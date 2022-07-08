@@ -10,6 +10,7 @@ from .__about__ import (
     __version__,
 )
 
+from .file_download import *
 from .benchmark import benchmark
 from .adjustments import ColorAdjustment
 from .correlated_stack import CorrelatedStack
