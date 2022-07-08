@@ -11,6 +11,7 @@
 * It is now possible to pickle `FdFit` objects. Prior to this change, unpickling an `FdFit` would fail since model identification relied on a stored `id` for each of the models used. The `id` of a variable changes whenever a new variable is created however. After this change, each model is associated with a universally unique identifier (uuid) that is used for identification instead. This uuid is serialized with the `Model` and used by `FdFit` thereby preserving their relationship when pickled/unpickled.
 * Added `KymoLineGroup.estimate_diffusion()` to estimate diffusion constants for a group of kymograph traces.
 * Include unit in `DiffusionEstimate` dataclass.
+* Allow downloading files directly from Zenodo using `lk.download_from_doi()`. See the [example on Cas9 binding](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) for an example of its use.
 
 #### Bug fixes
 
