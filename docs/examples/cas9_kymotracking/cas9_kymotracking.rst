@@ -31,13 +31,23 @@ required Python modules and choosing an interactive backend for `matplotlib`::
     # Use widget (depends on ipympl) if you're using Jupyter lab
     %matplotlib widget
 
+Download the kymograph data
+---------------------------
+
+The kymograph data is stored on Zenodo, a general-purpose open-access repository developed under the European OpenAIRE program and operated by CERN.
+Zenodo allows researchers to deposit data sets, research software, reports, and any other research related digital artifacts and allows them to be referenced by a Digital Object Identifier (DOI).
+We can download the kymograph we need directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.4247279", "test_data")
+
 Plotting the kymograph
 ----------------------
 
 Let’s load our Bluelake data and have a look at what the kymograph looks like. We can easily grab the kymo by calling
 `popitem()` on the list of kymos, which returns the first kymograph::
 
-    file = lk.File('test_data/cas9_kymo_compressed.h5')
+    file = lk.File(filenames[0])
     _, kymo = file.kymos.popitem()
 
 In this experiment, force was measured alongside the kymograph. Let’s plot them together to get a feel for what the
