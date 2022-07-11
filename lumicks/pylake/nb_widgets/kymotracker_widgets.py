@@ -124,6 +124,8 @@ class KymoWidget:
         )
 
     def _connect_drag_callback(self):
+        canvas = self._axes.figure.canvas
+
         def set_xlim(drag_event):
             # Callback for dragging the field of view
             old_xlims = np.array(self._axes.get_xlim())
@@ -134,6 +136,7 @@ class KymoWidget:
                 self._axes.set_xlim(old_xlims - self._dx)
                 self._dx = 0
                 self._last_update = time.time()
+                canvas.draw_idle()
 
         MouseDragCallback(self._axes, 1, set_xlim)
 
@@ -142,6 +145,7 @@ class KymoWidget:
         return tuple(lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim()))
 
     def _connect_line_callback(self):
+        canvas = self._axes.figure.canvas
         cutoff_radius = 0.05  # We use a connection cutoff of 5% of the axis ranges
         clicked_line_info = None
         plotted_line = None
@@ -193,6 +197,7 @@ class KymoWidget:
                 [line.position[int(node_index)], event.y],
                 "r",
             )
+            canvas.draw_idle()
 
         def finalize_line(event):
             nonlocal clicked_line_info, plotted_line

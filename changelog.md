@@ -13,6 +13,7 @@
 #### Bug fixes
 
 * Improved `scan.get_image("rgb")` to handle missing channel data. Missing channels are now handled gracefully. Missing channels are zero filled matching the dimensions of the remaining channels.
+* Added calls to manually redraw the axes in kymotracker widget during horizontal pan and line connection callbacks. Without this, plot did not update correctly when using newer versions of `ipywidgets` and `matplotlib`.
 
 #### Breaking changes
 
@@ -20,6 +21,7 @@
 * To disable image alignment for `lk.CorrelatedStack`, the alignment argument has to be provided as a keyword argument (e.g. `lk.CorrelatedStack("filename.tiff", align=False)` rather than `lk.CorrelatedStack("filename.tiff", False)`).
 * Changed the error type when attempting to access undefined per-pixel timestamps in `Kymo` from `AttributeError` to `NotImplementedError`.
 * Made `KymoWidget.algorithm_parameters` a private attribute.
+
 
 ## v0.12.1 | 2022-06-21
 
