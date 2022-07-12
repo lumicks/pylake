@@ -729,3 +729,81 @@ def _kymo_from_array(
     kymo._line_timestamp_ranges_factory = line_timestamp_ranges_factory
 
     return kymo
+
+
+def _kymo_from_correlated_stack(
+    corrstack, width=1, pixel_size_um=None, name="", reduce=np.mean
+) -> Kymo:
+    """Generate a `Kymo` instance from a correlated stack.
+
+    Parameters
+    ----------
+    corrstack : CorrelatedStack
+        An instance of a CorrelatedStack. The frame rate and the exposure time of the images need
+        to be constant and `corrstack` needs to have a tether. The data for the kymograph will be
+        taken along the line of the tether, including the pixels of the ends of the tether.
+    width : int
+        The width of the line in pixels the data for the kymograph will be taken. The width will
+        be rounded to the next biggest non negative odd number of pixels. The pixel values will be
+        reduced to a one pixel line given by :func:`reduce`.
+    pixel_size_um : float
+        Pixel spatial size in microns. If `None`, the kymo will be calibrated in pixel units.
+    name : str
+        Kymo name.
+    reduce : callable
+        The function which is going to reduce multiple pixels into one. The default is
+        :func:`numpy.mean`, but :func:`numpy.max` could also be appropriate for some cases.
+    """
+    # Ensure constant frame rate of the whole stack
+    ts_ranges = np.array(corrstack.frame_timestamp_ranges)
+    line_times = np.diff(ts_ranges[:, 0])
+    line_time = line_times[0]
+    if not np.all(line_times == line_time):
+        raise ValueError("The frame rate of the images of the correlated stack is not constant.")
+    line_time_s = line_time * 1e-9
+
+    # Ensure constant exposure time of the whole stack
+    # TODO: One could correct for different exposure times by weighting the pixel values with the
+    # reciprocal of the exposure time
+    exp_times = ts_ranges[:, 1] - ts_ranges[:, 0]
+    exp_time = exp_times[0]
+    if not np.all(exp_times == exp_time):
+        raise ValueError("The exposure time of the images of the correlated stack is not constant.")
+    exp_time_s = exp_time * 1e-9
+
+    # Start timestamp of the kymo is start timestamp of first image
+    start = ts_ranges[0, 0]
+
+    # Ensure correlated stack has proper tether
+    if not corrstack.src._tether:
+        raise ValueError("The correlated stack does not have a tether.")
+    (x1, y1), (x2, y2) = corrstack.src._tether.ends
+    if np.floor(y1) != np.floor(y2):
+        raise ValueError("The correlated stack is not aligned along the tether axis.")
+
+    # Extract the kymograph data along the line of the tether
+    # Determine next rounded odd width minus 1 -> halfwidth = 0, 1, 2, ...
+    halfwidth = max(0, int(width // 2))
+    xmin = int(np.floor(x1))
+    xmax = int(np.ceil(x2)) + 1
+    ymin = int(np.floor(y1)) - halfwidth
+    ymax = int(np.floor(y2)) + halfwidth + 1
+    if ymax > corrstack.shape[1]:
+        raise ValueError(
+            "The requested `width` of the line exceeds the size of the correlated stack images."
+        )
+    kymostack = corrstack.crop_by_pixels(xmin, xmax, ymin, ymax)
+    image = kymostack.get_image(channel="rgb")  # time, (y,) x, c
+    if halfwidth > 0:
+        image = reduce(image, axis=1)  # time, x, c
+    image = image.transpose(1, 0, 2)  # x, time, c
+
+    return _kymo_from_array(
+        image=image,
+        color_format="rgb",
+        line_time_seconds=line_time_s,
+        exposure_time_seconds=exp_time_s,
+        start=start,
+        pixel_size_um=pixel_size_um,
+        name=name,
+    )
