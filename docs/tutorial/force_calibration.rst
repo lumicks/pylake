@@ -28,11 +28,11 @@ We can do this using the previous calibration performed in Bluelake (in this cas
 
     offset = f.force1x.calibration[0]["Offset (pN)"]
     response = f.force1x.calibration[0]["Rf (pN/V)"]
-    volts = (force_slice.data - offset) / response
+    volts = (force_slice - offset) / response
 
 Force calibration models are fit to power spectra. To compute a power spectrum from our data::
 
-    power_spectrum = lk.calculate_power_spectrum(volts, sample_rate=force_slice.sample_rate)
+    power_spectrum = lk.calculate_power_spectrum(volts.data, sample_rate=volts.sample_rate)
 
 This function returns a power_spectrum which we can plot::
 
@@ -44,7 +44,7 @@ Note that the computation of the power spectrum involves some downsampling.
 
 Additional parameters can be specified to change the amount of downsampling applied (`num_points_per_block`), the range over which to compute the spectrum (`fit_range`) or to exclude specific frequency ranges from the spectrum (`excluded_ranges`)::
 
-    power_spectrum = lk.calculate_power_spectrum(volts, sample_rate=force_slice.sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=[(700, 800), (14500, 14600)])
+    power_spectrum = lk.calculate_power_spectrum(volts.data, sample_rate=volts.sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=[(700, 800), (14500, 14600)])
 
 To fit the passive calibration data, we will use a model based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2006power`.
 Passive calibration is also often referred to as thermal calibration.
@@ -338,7 +338,7 @@ In this tutorial, we're going to assume the nanostage was used as driving input:
 We also need to provide the sample rate at which the data was acquired, and a rough guess for the driving frequency.
 `pylake` will find an accurate estimate of the driving frequency based on this initial estimate (provided that it is close enough)::
 
-    active_model = lk.ActiveCalibrationModel(driving_data.data, volts, driving_data.sample_rate, bead_diameter, driving_frequency_guess=37)
+    active_model = lk.ActiveCalibrationModel(driving_data.data, volts.data, driving_data.sample_rate, bead_diameter, driving_frequency_guess=37)
 
 To check the determined frequency, we can look at the determined driving frequency::
 
@@ -371,10 +371,10 @@ More convenient calibration
 
 For convenience, we also provide a function named :func:`~lumicks.pylake.calibrate_force` which executes the entire calibration procedure::
 
-    fit = lk.calibrate_force(volts, bead_diameter, temperature)
+    fit = lk.calibrate_force(volts.data, bead_diameter, temperature, sample_rate=volts.sample_rate)
 
 It takes the same arguments as the aforementioned methods to calibrate.
 This function can help quickly compare the effect of varying calibration parameters or switching between active and passive calibration.
 Note that most arguments have to be provided as keyworded arguments to prevent errors. For example::
 
-    fit = lk.calibrate_force(volts, bead_diameter, temperature, active_calibration=True, hydrodynamically_correct=True, fit_range=(10e2, 20e3))
+    fit = lk.calibrate_force(volts.data, bead_diameter, temperature, sample_rate=volts.sample_rate, active_calibration=True, hydrodynamically_correct=True, fit_range=(10e2, 20e3))

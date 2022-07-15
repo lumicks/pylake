@@ -7,6 +7,7 @@ from lumicks.pylake.force_calibration.calibration_models import (
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
     fit_power_spectrum,
     calculate_power_spectrum,
+    CalibrationResults,
 )
 
 
@@ -15,6 +16,7 @@ def calibrate_force(
     bead_diameter,
     temperature,
     *,
+    sample_rate,
     viscosity=None,
     active_calibration=False,
     driving_data=np.asarray([]),
@@ -25,14 +27,13 @@ def calibrate_force(
     rho_bead=1060.0,
     distance_to_surface=None,
     fast_sensor=False,
-    sample_rate=78125,
     num_points_per_block=2000,
     fit_range=(1e2, 23e3),
     excluded_ranges=[],
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
-):
+) -> CalibrationResults:
     """Determine force calibration factors.
 
     The power spectrum calibration algorithm implemented here is based on [1]_, [2]_, [3]_, [4]_,
@@ -65,6 +66,8 @@ def calibrate_force(
         Bead diameter [um].
     temperature : float
         Liquid temperature [Celsius].
+    sample_rate : float
+        Sample rate at which the signals were acquired.
     viscosity : float, optional
         Liquid viscosity [Pa*s].
         When omitted, the temperature will be used to look up the viscosity of water at that
@@ -89,8 +92,6 @@ def calibrate_force(
         measurements performed deep in bulk.
     fast_sensor : bool, optional
          Fast sensor? Fast sensors do not have the diode effect included in the model.
-    sample_rate : float, optional
-         Sample rate at which the signals were acquired.
     fit_range : tuple of float, optional
         Tuple of two floats (f_min, f_max), indicating the frequency range to use for the full model
         fit. [Hz]

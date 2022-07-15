@@ -15,6 +15,7 @@ def test_passive_force_calibration_active(reference_models):
         data,
         2,
         9,
+        sample_rate=78125,
         viscosity=6,
         active_calibration=False,
         hydrodynamically_correct=True,
@@ -60,6 +61,7 @@ def test_active_force_calibration_active(reference_models):
         data,
         2,
         9,
+        sample_rate=78125,
         driving_data=oscillation,
         driving_frequency_guess=77,
         viscosity=6,
@@ -94,27 +96,27 @@ def test_active_force_calibration_active(reference_models):
 
 def test_invalid_options_calibration():
     with pytest.raises(ValueError, match="Active calibration is not supported for axial force"):
-        calibrate_force([1], 1, 20, axial=True, active_calibration=True)
+        calibrate_force([1], 1, 20, axial=True, active_calibration=True, sample_rate=78125)
 
     with pytest.raises(
         ValueError, match="Drag coefficient cannot be carried over to active calibration"
     ):
-        calibrate_force([1], 1, 20, drag=5, active_calibration=True)
+        calibrate_force([1], 1, 20, drag=5, active_calibration=True, sample_rate=78125)
 
     with pytest.raises(
         ValueError, match="When using fast_sensor=True, there is no diode model to fix"
     ):
-        calibrate_force([1], 1, 20, fast_sensor=True, fixed_diode=150)
+        calibrate_force([1], 1, 20, fast_sensor=True, fixed_diode=150, sample_rate=78125)
 
     with pytest.raises(
             ValueError, match="When using fast_sensor=True, there is no diode model to fix"
     ):
-        calibrate_force([1], 1, 20, fast_sensor=True, fixed_alpha=0.4)
+        calibrate_force([1], 1, 20, fast_sensor=True, fixed_alpha=0.4, sample_rate=78125)
 
     with pytest.raises(
         ValueError, match="Active calibration requires the driving_data to be defined"
     ):
-        calibrate_force([1], 1, 20, active_calibration=True)
+        calibrate_force([1], 1, 20, active_calibration=True, sample_rate=78125)
 
 
 def test_mandatory_keyworded_arguments():
@@ -124,21 +126,21 @@ def test_mandatory_keyworded_arguments():
 
 def test_diode_fixing(reference_models):
     data, f_sample = reference_models.lorentzian_td(4000, 1, 0.4, 14000, 78125)
-    fit = calibrate_force(data, 1, 20, fixed_diode=1000)
+    fit = calibrate_force(data, 1, 20, fixed_diode=1000, sample_rate=78125)
     assert "f_diode" in fit.params
     assert "alpha" not in fit.params
 
-    fit = calibrate_force(data, 1, 20, fixed_alpha=0.5)
+    fit = calibrate_force(data, 1, 20, fixed_alpha=0.5, sample_rate=78125)
     assert "f_diode" not in fit.params
     assert "alpha" in fit.params
 
-    fit = calibrate_force(data, 1, 20, fixed_diode=14000, fixed_alpha=0.5)
+    fit = calibrate_force(data, 1, 20, fixed_diode=14000, fixed_alpha=0.5, sample_rate=78125)
     assert "f_diode" in fit.params
     assert "alpha" in fit.params
 
-    fit = calibrate_force(data, 1, 20, fixed_alpha=0)
+    fit = calibrate_force(data, 1, 20, fixed_alpha=0, sample_rate=78125)
     assert "f_diode" not in fit.params
     assert "alpha" in fit.params
 
     with pytest.raises(ValueError, match="Fixed diode frequency must be larger than zero."):
-        calibrate_force(data, 1, 20, fixed_diode=0)
+        calibrate_force(data, 1, 20, fixed_diode=0, sample_rate=78125)
