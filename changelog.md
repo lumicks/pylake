@@ -26,7 +26,7 @@
 * Changed the error type when attempting to access undefined per-pixel timestamps in `Kymo` from `AttributeError` to `NotImplementedError`.
 * Made `KymoWidget.algorithm_parameters` a private attribute.
 * It is now mandatory to supply a `sample_rate` when calling `lk.calibrate_force()`.
-
+* It is now mandatory to supply a `sample_rate` when calling `lumicks.pylake.force_calibration.touchdown.touchdown()`.
 
 ## v0.12.1 | 2022-06-21
 
