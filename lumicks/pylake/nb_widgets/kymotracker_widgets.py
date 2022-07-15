@@ -140,49 +140,25 @@ class KymoWidget:
 
         MouseDragCallback(self._axes, 1, set_xlim)
 
-    def _get_scale(self):
-        """Get scaling of the image axes"""
-        return tuple(lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim()))
-
     def _connect_line_callback(self):
         canvas = self._axes.figure.canvas
+        scale = tuple(lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim()))
         cutoff_radius = 0.05  # We use a connection cutoff of 5% of the axis ranges
         clicked_line_info = None
         plotted_line = None
         nodes = None
-
-        def get_node_info():
-            nodes = [
-                np.vstack(
-                    (
-                        np.full(len(track), j),  # track index
-                        np.arange(len(track)),  # node index within track
-                        track.seconds,  # x-coordinate
-                        track.position,  # y-coordinate
-                    )
-                )
-                for j, track in enumerate(self.lines)
-            ]
-            return np.hstack(nodes).T
-
-        def get_nearest(x, y):
-            nonlocal nodes
-            ref_position = np.array([x, y])
-            squared_dist = np.sum(((ref_position - nodes[:, -2:]) / self._get_scale()) ** 2, 1)
-            idx = np.argmin(squared_dist)
-            return np.sqrt(squared_dist[idx]), idx
 
         def initiate_line(event):
             nonlocal nodes, clicked_line_info
             if len(self.lines) == 0:
                 return
 
-            nodes = get_node_info()
-            distance, idx = get_nearest(event.x, event.y)
-
-            if distance < cutoff_radius:
-                line_index, *line_info = nodes[idx]
-                clicked_line_info = [self.lines[int(line_index)], *line_info]
+            nodes = _get_node_info(self.lines)
+            is_hit, line_info = _get_nearest(
+                self.lines, nodes, event.x, event.y, scale, cutoff_radius
+            )
+            if is_hit:
+                clicked_line_info = line_info
                 return True
 
         def drag_line(event):
@@ -205,14 +181,15 @@ class KymoWidget:
                 plotted_line.remove()
                 plotted_line = None
 
-            distance, idx = get_nearest(event.x, event.y)
-            if distance < cutoff_radius:
+            is_hit, line_info = _get_nearest(
+                self.lines, nodes, event.x, event.y, scale, cutoff_radius
+            )
+            if is_hit:
+                released_line_info = line_info
+
                 # Explicit copy to make modifications. Current state pushed to undo stack on
                 # assignment.
                 lines = copy(self.lines)
-
-                line_index, *line_info = nodes[idx]
-                released_line_info = [self.lines[int(line_index)], *line_info]
 
                 clicked = [clicked_line_info, released_line_info]
                 clicked.sort(key=lambda x: x[2])  # by time
@@ -480,6 +457,76 @@ class KymoWidget:
         self._connect_drag_callback()
         self._connect_line_callback()
         self._select_state({"value": "mode", "old": "", "new": "Track lines"})
+
+
+def _get_node_info(lines):
+    """Build an array of information on all nodes in all tracked lines.
+
+    Parameters
+    ----------
+    lines: KymoLineGroup
+        Tracked lines.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape [n, 4] with each row representing information about
+        a node in a tracked line corresponding to:
+        (track index, node index within track, x-coordinate, y-coordinate)
+    """
+
+    nodes = [
+        np.vstack(
+            (
+                np.full(len(track), j),
+                np.arange(len(track)),
+                track.seconds,
+                track.position,
+            )
+        )
+        for j, track in enumerate(lines)
+    ]
+    return np.hstack(nodes).T
+
+
+def _get_nearest(lines, nodes, x, y, scale, cutoff_radius=0.05):
+    """Get nearest line to mouse click/release.
+
+    Parameters
+    ----------
+    lines: KymoLineGroup
+        Tracked lines.
+    nodes: np.ndarray
+        Array of (track index, node index within track, x-coordinate, y-coordinate)
+        for each node in each tracked line. Returned from _get_node_info().
+    x: float
+        Clicked x-coordinate.
+    y: float
+        Clicked y-coorindate.
+    scale: tuple
+        Scaling of the image axes (x_max-x_min, y_max-y_min).
+    cutoff_radius: float
+        Maximum distance for a node to be considered clicked, defined as a fraction
+        of the axes ranges.
+
+    Returns
+    -------
+    bool
+        Whether a node was selected
+    list
+        [clicked KymoLine, (track index, node index within track, x-coordinate, y-coordinate)]
+    """
+    ref_position = np.array([x, y])
+    squared_dist = np.sum(((ref_position - nodes[:, -2:]) / scale) ** 2, 1)
+    idx = np.argmin(squared_dist)
+    distance = np.sqrt(squared_dist[idx])
+
+    if distance < cutoff_radius:
+        line_index, *line_info = nodes[idx]
+        clicked_line_info = [lines[int(line_index)], *line_info]
+        return True, clicked_line_info
+    else:
+        return False, []
 
 
 class KymoWidgetGreedy(KymoWidget):
