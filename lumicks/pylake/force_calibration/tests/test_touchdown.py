@@ -94,7 +94,7 @@ def simulate_touchdown(
 
 def test_touchdown(mack_parameters):
     stage_positions, simulation = simulate_touchdown(99.5, 103.5, 0.01, mack_parameters)
-    touchdown_result = touchdown(stage_positions, simulation)
+    touchdown_result = touchdown(stage_positions, simulation, 78125)
     np.testing.assert_allclose(touchdown_result.surface_position, 101.65989249166964)
     np.testing.assert_allclose(touchdown_result.focal_shift, 0.9212834464971221)
 
@@ -151,7 +151,7 @@ def test_insufficient_data(mack_parameters):
     with pytest.warns(
         RuntimeWarning, match="Insufficient data available to reliably fit touchdown curve"
     ):
-        touchdown_result = touchdown(stage_positions, simulation)
+        touchdown_result = touchdown(stage_positions, simulation, 78125)
         assert touchdown_result.focal_shift is None
 
 
@@ -163,7 +163,7 @@ def test_fail_touchdown_too_little_data():
         match="Surface detection failed [(]piecewise linear fit not better than linear fit[)]",
     ):
         touchdown_result = touchdown(
-            stage_positions, stage_positions**2 + 100 * np.sin(10 * stage_positions)
+            stage_positions, stage_positions**2 + 100 * np.sin(10 * stage_positions), 78125
         )
         assert touchdown_result.surface_position is None
 
@@ -171,5 +171,5 @@ def test_fail_touchdown_too_little_data():
         RuntimeWarning,
         match="Surface detection failed [(]piecewise linear fit not better than linear fit[)]",
     ):
-        touchdown_result = touchdown(stage_positions, 100 * np.sin(10 * stage_positions))
+        touchdown_result = touchdown(stage_positions, 100 * np.sin(10 * stage_positions), 78125)
         assert touchdown_result.surface_position is None

@@ -238,12 +238,12 @@ class TouchdownResult:
 def touchdown(
     nanostage,
     axial_force,
+    sample_rate,
     wavelength_nm=1064,
     refractive_index_medium=1.333,
     omit_microns=0.5,
     background_degree=3,
     maximum_p_value=0.0001,
-    sample_rate=78125,
     analysis_rate=52,
 ):
     """This function determines the surface and focal shift from an approach curve.
@@ -257,6 +257,8 @@ def touchdown(
         Nanostage Z position.
     axial_force : np.ndarray
         Axial force.
+    sample_rate : int
+        Sample rate of the given `nanostage` and `axial_force` data in Hz.
     wavelength_nm : float
         Wavelength of the trapping laser in nanometers.
     refractive_index_medium : float
@@ -271,8 +273,6 @@ def touchdown(
         Maximum p-value of F-test that compares the fit of a linear model to the piecewise linear
         model. If the fit is not significantly better, it means that the procedure likely did
         not find the surface.
-    sample_rate : int
-        Sample rate of the given `nanostage` and `axial_force` data in Hz.
     analysis_rate : int
         Sampling rate at which the data is analyzed in Hz.
     """
