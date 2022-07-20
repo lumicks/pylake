@@ -49,6 +49,7 @@ class CorrelatedStack:
         )
         self.start_idx = 0
         self.stop_idx = self.src.num_frames
+        self._step = 1
 
     def _handle_cropping(self, item):
         """Crop the stack based on tuple of slices"""
@@ -64,33 +65,38 @@ class CorrelatedStack:
         if len(item) > 3:
             raise IndexError("Only three indices are accepted when slicing CorrelatedStacks.")
 
-        rows = interpret_crop(item[1])
-        columns = interpret_crop(item[2]) if len(item) >= 3 else [None, None]
+        rows = interpret_crop(item[1]) if len(item) >= 2 else (None, None)
+        columns = interpret_crop(item[2]) if len(item) >= 3 else (None, None)
         return self.src.with_roi(np.array([columns, rows]).flatten()), item[0]
 
     def __getitem__(self, item):
         """All indexing is in frames"""
+
         src, item = self._handle_cropping(item) if isinstance(item, tuple) else (self.src, item)
 
         if isinstance(item, slice):
-            if item.step is not None:
-                raise IndexError("Slice steps are not supported")
+            start, stop, step = item.indices(self.num_frames)
+            new_start = self.start_idx + self._step * start
+            new_stop = self.start_idx + self._step * stop
+            new_step = self._step * step
 
-            start, stop, _ = item.indices(self.num_frames)
-            new_start = self.start_idx + start
-            new_stop = self.start_idx + stop
-
-            if new_stop - new_start < 0:
-                raise NotImplementedError("Reverse slicing is not supported")
-            if new_stop == new_start:
+            # To have analogous behaviour to indexing of numpy arrays, first check if slice would be
+            # empty and then check if slice would be reversed
+            if new_stop == new_start or np.sign(new_stop - new_start) != np.sign(new_step):
                 raise NotImplementedError("Slice is empty")
+            if new_step < 0:
+                raise NotImplementedError("Reverse slicing is not supported")
 
-            return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop)
+            return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop, new_step)
         else:
-            item = self.start_idx + item if item >= 0 else self.stop_idx + item
-            if item >= self.stop_idx or item < self.start_idx:
+            idx = item if item >= 0 else item + self.num_frames
+            new_start = self.start_idx + self._step * idx
+            new_stop = new_start + self._step
+            new_step = self._step
+
+            if new_start < self.start_idx or new_start >= self.stop_idx:
                 raise IndexError("Index out of bounds")
-            return CorrelatedStack.from_dataset(src, self.name, item, item + 1)
+            return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop, new_step)
 
     def __iter__(self):
         idx = 0
@@ -113,7 +119,7 @@ class CorrelatedStack:
         return (*base_shape, 3) if self.src.is_rgb else base_shape
 
     @classmethod
-    def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None):
+    def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None, step=1) -> "CorrelatedStack":
         """Construct CorrelatedStack from image stack object
 
         Parameters
@@ -124,8 +130,10 @@ class CorrelatedStack:
             Plot label of the correlated stack
         start_idx : int
             Index at the first frame.
-        stop_idx: int
+        stop_idx : int
             Index beyond the last frame.
+        step : int
+            Step value for slicing frames.
         """
         new_correlated_stack = cls.__new__(cls)
         new_correlated_stack.src = data
@@ -134,6 +142,7 @@ class CorrelatedStack:
         new_correlated_stack.stop_idx = (
             new_correlated_stack.src.num_frames if stop_idx is None else stop_idx
         )
+        new_correlated_stack._step = step
         return new_correlated_stack
 
     def crop_by_pixels(self, x_min, x_max, y_min, y_max):
@@ -290,7 +299,7 @@ class CorrelatedStack:
     def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:
             raise IndexError("Frame index out of range")
-        return self.src.get_frame(self.start_idx + frame)
+        return self.src.get_frame(self.start_idx + frame * self._step)
 
     def plot_correlated(
         self,
@@ -428,7 +437,7 @@ class CorrelatedStack:
     @property
     def num_frames(self):
         """Number of frames in the stack."""
-        return self.stop_idx - self.start_idx
+        return max(-1, (self.stop_idx - self.start_idx - 1)) // self._step + 1
 
     @property
     @deprecated(
@@ -472,4 +481,4 @@ class CorrelatedStack:
     @property
     def frame_timestamp_ranges(self):
         """List of time stamps."""
-        return [self._get_frame(idx).frame_timestamp_range for idx in range(self.num_frames)]
+        return [frame.frame_timestamp_range for frame in self]
