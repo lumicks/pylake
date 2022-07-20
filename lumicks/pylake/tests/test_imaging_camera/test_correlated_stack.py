@@ -37,6 +37,12 @@ def test_correlated_stack(shape):
     assert stack[0].stop == 18
     assert stack[-1].stop == 68
 
+    # Test if tuple of size one is correctly interpreted
+    assert stack[0, ].start == 10
+    assert stack[1, ].start == 20
+    assert stack[-1, ].start == 60
+    assert stack[0, ].num_frames == 1
+
     assert stack[1:2].stop == 28
     assert stack[1:3].stop == 38
     assert stack[1:2].num_frames == 1
@@ -52,8 +58,43 @@ def test_correlated_stack(shape):
     assert stack[2:5][1:2].start == 40
     assert stack[2:5][1:3]._get_frame(1).start == 50
 
-    with pytest.raises(IndexError):
-        stack[::2]
+    # Test slicing with steps (slice & int)
+    assert stack[::2][0].start == 10
+    assert stack[::2][1].start == 30
+    assert stack[::3][1].start == 40
+    assert stack[::4][1].start == 50
+    assert stack[::2][-1].start == 50
+    assert stack[::3][-1].start == 40
+    assert stack[::4][-1].start == 50
+    assert stack[-10::2][1].start == 30
+    assert stack[-10::3][1].start == 40
+    assert stack[-10::4][1].start == 50
+    assert stack[:10:2][-1].start == 50
+    assert stack[:10:3][-1].start == 40
+    assert stack[:10:4][-1].start == 50
+    assert stack[3:5:2][0].start == 40
+    assert stack[3:6:2][0].start == 40
+    assert stack[3:6:2][1].start == 60
+    # Test slicing with steps (slice & slice)
+    assert stack[::2][0::].start == 10
+    assert stack[::2][1::].start == 30
+    assert stack[::3][1::].start == 40
+    assert stack[::4][1::].start == 50
+    assert stack[::2][-1::].start == 50
+    assert stack[::3][-1::].start == 40
+    assert stack[::4][-1::].start == 50
+    # Test slicing with steps (correct number of frames)
+    assert stack[::2].num_frames == 3
+    assert stack[::3].num_frames == 2
+    assert stack[::4].num_frames == 2
+    assert stack[-10::2].num_frames == 3
+    assert stack[-10::3].num_frames == 2
+    assert stack[-10::4].num_frames == 2
+    assert stack[:10:2].num_frames == 3
+    assert stack[:10:3].num_frames == 2
+    assert stack[:10:4].num_frames == 2
+    assert stack[3:5:2].num_frames == 1
+    assert stack[3:6:2].num_frames == 2
 
     with pytest.raises(IndexError):
         stack[1:2]._get_frame(1).stop
@@ -94,24 +135,33 @@ def test_slicing(shape):
     compare_frames([0, 1, 2, 3, 4, 5], stack0[:-4])  # until negative index
     compare_frames([5, 6, 7], stack0[5:-2])  # mixed sign indices
     compare_frames([6, 7], stack0[-4:-2])  # negative indices slice
-
+    compare_frames([0, 2, 4, 6, 8], stack0[::2])  # all frames with steps
+    compare_frames([0, 3, 6, 9], stack0[::3])  # all frames with steps
+    compare_frames([3, 5], stack0[3:6:2])  # normal slice with steps
+    compare_frames([0, 2], stack0[:3:2])  # from beginning with steps
+    compare_frames([1, 5, 9], stack0[1::2][::2])  # recursive slice with steps
     compare_frames([3, 4], stack0[2:6][1:3])  # iterative slicing
 
     compare_frames([1, 2, 3, 4, 5, 6, 7, 8, 9], stack0[1:100])  # test clamping past the end
     compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], stack0[-100:9])  # test clamping past the beginning
     compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], stack0[-100:100])  # test clamping both dirs
 
-    # reverse slice
-    with pytest.raises(NotImplementedError, match="Reverse slicing is not supported"):
-        stack0[5:2]
+    # empty slices
+    for s in [
+        slice(5, 2),
+        slice(-3, 0),
+        slice(-1, -3),
+        slice(5, 5),
+        slice(5, 5, -1),
+        slice(-5, -3, -1),
+    ]:
+        with pytest.raises(NotImplementedError, match="Slice is empty"):
+            stack0[s]
 
-    # reverse slice, negative indices
-    with pytest.raises(NotImplementedError, match="Reverse slicing is not supported"):
-        stack0[-1:-3]
-
-    # empty slice
-    with pytest.raises(NotImplementedError, match="Slice is empty"):
-        stack0[5:5]
+    # reverse slices
+    for s in [slice(5, 2, -1), slice(-3, 0, -1), slice(-1, -3, -1), slice(-3, -5, -1)]:
+        with pytest.raises(NotImplementedError, match="Reverse slicing is not supported"):
+            stack0[s]
 
 
 def test_deprecated_timestamps():
