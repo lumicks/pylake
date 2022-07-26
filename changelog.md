@@ -28,6 +28,7 @@
 * Made `KymoWidget.algorithm_parameters` a private attribute.
 * It is now mandatory to supply a `sample_rate` when calling `lk.calibrate_force()`.
 * It is now mandatory to supply a `sample_rate` when calling `lumicks.pylake.force_calibration.touchdown.touchdown()`.
+* Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
 
 ## v0.12.1 | 2022-06-21
 
