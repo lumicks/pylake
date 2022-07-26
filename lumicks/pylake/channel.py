@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 import numbers
 
 from .detail.utilities import downsample
@@ -210,8 +211,24 @@ class Slice:
             return None
 
     @property
+    def sample_rates(self) -> npt.NDArray[np.float64]:
+        """The unique data frequencies for `Continuous` and `TimeSeries` data sources"""
+        try:
+            return 1e9 / self._timesteps
+        except NotImplementedError:
+            raise NotImplementedError(
+                f"`sample_rates` are not available for {self._src.__class__.__name__} data"
+            )
+
+    @property
     def _timesteps(self):
-        return self._src._timesteps
+        """The unique timesteps for `Continuous` and `TimeSeries` data sources"""
+        try:
+            return self._src._timesteps
+        except AttributeError:
+            raise NotImplementedError(
+                f"`_timesteps` are not available for {self._src.__class__.__name__} data"
+            )
 
     def downsampled_over(self, range_list, reduce=np.mean, where="center"):
         """Downsample channel data based on timestamp ranges. The downsampling function (e.g. np.mean) is evaluated for
@@ -629,10 +646,6 @@ class TimeTags:
         # For time tag data, the data is the timestamps!
         return self.data
 
-    @property
-    def _timesteps(self):
-        raise NotImplementedError("_timesteps is currently not available for time series data")
-
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.data, self.data < stop)
         return self.__class__(self.data[idx], min(start, stop), max(start, stop))
@@ -658,10 +671,6 @@ class Empty:
     @property
     def timestamps(self):
         return np.empty(0)
-
-    @property
-    def _timesteps(self):
-        raise NotImplementedError("_timesteps is currently not available for time series data")
 
 
 empty_slice = Slice(Empty())
