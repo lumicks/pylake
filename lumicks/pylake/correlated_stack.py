@@ -47,8 +47,8 @@ class CorrelatedStack:
             if len(image_names) == 1
             else "Multi-file stack"
         )
-        self.start_idx = 0
-        self.stop_idx = self.src.num_frames
+        self._start_idx = 0
+        self._stop_idx = self.src.num_frames
         self._step = 1
 
     def _handle_cropping(self, item):
@@ -76,8 +76,8 @@ class CorrelatedStack:
 
         if isinstance(item, slice):
             start, stop, step = item.indices(self.num_frames)
-            new_start = self.start_idx + self._step * start
-            new_stop = self.start_idx + self._step * stop
+            new_start = self._start_idx + self._step * start
+            new_stop = self._start_idx + self._step * stop
             new_step = self._step * step
 
             # To have analogous behaviour to indexing of numpy arrays, first check if slice would be
@@ -90,11 +90,11 @@ class CorrelatedStack:
             return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop, new_step)
         else:
             idx = item if item >= 0 else item + self.num_frames
-            new_start = self.start_idx + self._step * idx
+            new_start = self._start_idx + self._step * idx
             new_stop = new_start + self._step
             new_step = self._step
 
-            if new_start < self.start_idx or new_start >= self.stop_idx:
+            if new_start < self._start_idx or new_start >= self._stop_idx:
                 raise IndexError("Index out of bounds")
             return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop, new_step)
 
@@ -138,8 +138,8 @@ class CorrelatedStack:
         new_correlated_stack = cls.__new__(cls)
         new_correlated_stack.src = data
         new_correlated_stack.name = name
-        new_correlated_stack.start_idx = start_idx
-        new_correlated_stack.stop_idx = (
+        new_correlated_stack._start_idx = start_idx
+        new_correlated_stack._stop_idx = (
             new_correlated_stack.src.num_frames if stop_idx is None else stop_idx
         )
         new_correlated_stack._step = step
@@ -160,7 +160,7 @@ class CorrelatedStack:
             maximum y pixel (exclusive, optional)
         """
         data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
-        return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
+        return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
 
     def define_tether(self, point1, point2):
         """Returns a copy of the stack rotated such that the tether defined by `point_1` and
@@ -174,7 +174,7 @@ class CorrelatedStack:
             (x, y) coordinates of the tether end point
         """
         data = self.src.with_tether((point1, point2))
-        return self.from_dataset(data, self.name, self.start_idx, self.stop_idx)
+        return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
 
     def get_image(self, channel="rgb"):
         """Get image data for the full stack as an `np.ndarray`.
@@ -299,7 +299,7 @@ class CorrelatedStack:
     def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:
             raise IndexError("Frame index out of range")
-        return self.src.get_frame(self.start_idx + frame * self._step)
+        return self.src.get_frame(self._start_idx + frame * self._step)
 
     def plot_correlated(
         self,
@@ -437,7 +437,7 @@ class CorrelatedStack:
     @property
     def num_frames(self):
         """Number of frames in the stack."""
-        return max(-1, (self.stop_idx - self.start_idx - 1)) // self._step + 1
+        return max(-1, (self._stop_idx - self._start_idx - 1)) // self._step + 1
 
     @property
     @deprecated(
