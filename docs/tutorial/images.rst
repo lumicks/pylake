@@ -112,12 +112,12 @@ The images can also be exported in the TIFF format::
 Scans can also be exported to video formats.
 Exporting the red channel of a multi-scan GIF can be done as follows for example::
 
-    scan.export_video_red("test_red.gif")
+    scan.export_video("red", "test_red.gif")
 
 Or if we want to export a subset of frames (the first frame being 10, and the last frame being 40) of all three channels
 at a frame rate of 40 frames per second, we can do this::
 
-    scan.export_video_rgb("test_rgb.gif", start_frame=10, end_frame=40, fps=40)
+    scan.export_video("rgb", "test_rgb.gif", start_frame=10, end_frame=40, fps=40)
 
 For other video formats such as `.mp4` or `.avi`, ffmpeg must be installed. See
 :ref:`installation instructions <ffmpeg_installation>` for more information on this.

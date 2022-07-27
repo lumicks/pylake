@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+from deprecated import deprecated
 
 from .adjustments import ColorAdjustment
 from .detail.confocal import ConfocalImage, linear_colormaps
@@ -278,13 +279,13 @@ class Scan(ConfocalImage):
 
         return image_handle
 
-    def _export_video(
+    def export_video(
         self,
-        plot_type,
+        channel,
         file_name,
-        start_frame,
-        end_frame,
-        fps,
+        start_frame=None,
+        end_frame=None,
+        fps=15,
         adjustment=ColorAdjustment.nothing(),
         **kwargs,
     ):
@@ -292,8 +293,8 @@ class Scan(ConfocalImage):
 
         Parameters
         ----------
-        plot_type : str
-            One of the plot types "red", "green", "blue" or "rgb".
+        channel : str
+            Color channel(s) to use "red", "green", "blue" or "rgb".
         file_name : str
             File name to export to.
         start_frame : int
@@ -309,6 +310,10 @@ class Scan(ConfocalImage):
         from matplotlib import animation, rcParams
         from matplotlib.colors import to_rgba
         import matplotlib.pyplot as plt
+
+        channels = ("red", "green", "blue", "rgb")
+        if channel not in channels:
+            raise ValueError(f"Channel should be {', '.join(channels[:-1])} or {channels[-1]}")
 
         metadata = dict(title=self.name)
         if "ffmpeg" in animation.writers:
@@ -332,7 +337,7 @@ class Scan(ConfocalImage):
             face_color = None
 
         plot_func = lambda frame, image_handle: self.plot(
-            channel=plot_type,
+            channel=channel,
             frame=frame,
             image_handle=image_handle,
             adjustment=adjustment,
@@ -355,6 +360,13 @@ class Scan(ConfocalImage):
         if face_color:
             rcParams["figure.facecolor"] = face_color
 
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `export_video('rgb')` instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def export_video_rgb(
         self,
         file_name,
@@ -381,10 +393,17 @@ class Scan(ConfocalImage):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video(
+        self.export_video(
             "rgb", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
         )
 
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `export_video('red')` instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def export_video_red(
         self,
         file_name,
@@ -411,10 +430,17 @@ class Scan(ConfocalImage):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video(
+        self.export_video(
             "red", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
         )
 
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `export_video('green')` instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def export_video_green(
         self,
         file_name,
@@ -441,10 +467,17 @@ class Scan(ConfocalImage):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video(
+        self.export_video(
             "green", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
         )
 
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use `export_video('blue')` instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def export_video_blue(
         self,
         file_name,
@@ -471,6 +504,6 @@ class Scan(ConfocalImage):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
-        self._export_video(
+        self.export_video(
             "blue", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
         )

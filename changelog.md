@@ -30,6 +30,10 @@
 * It is now mandatory to supply a `sample_rate` when calling `lumicks.pylake.force_calibration.touchdown.touchdown()`.
 * Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
 
+#### Deprecations
+
+* Deprecated `export_video_red()`, `export_video_green()`, `export_video_blue()`, and `export_video_rgb()` methods for `Scan`. These methods have been replaced with a single `export_video(channel=color)` method.
+
 ## v0.12.1 | 2022-06-21
 
 #### New features
