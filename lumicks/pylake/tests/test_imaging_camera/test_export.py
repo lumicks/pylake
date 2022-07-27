@@ -52,3 +52,22 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
             with pytest.warns(DeprecationWarning):
                 stack.export_tiff(savename, roi=[190, 10, 20, 80])
         stack.src.close()
+
+
+def test_stack_movie_export(
+    tmpdir_factory, rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi
+):
+    from os import stat
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+
+    for idx, filename in enumerate((rgb_tiff_file_multi, gray_tiff_file_multi)):
+        stack = CorrelatedStack(str(filename))
+        fn = f"{tmpdir}/cstack{idx}.gif"
+        stack.export_video("red", fn, 0, 2)
+        assert stat(fn).st_size > 0
+
+        with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):
+            stack.export_video("gray", "dummy.gif")  # Gray is not a color!
+
+        stack.src.close()
