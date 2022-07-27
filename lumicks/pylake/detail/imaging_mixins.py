@@ -30,8 +30,7 @@ class VideoExport:
             Color adjustments to apply to the output image.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`."""
-        from matplotlib import animation, rcParams
-        from matplotlib.colors import to_rgba
+        from matplotlib import animation
         import matplotlib.pyplot as plt
 
         channels = ("red", "green", "blue", "rgb")
@@ -49,16 +48,6 @@ class VideoExport:
         start_frame = start_frame if start_frame else 0
         end_frame = end_frame if end_frame else self.num_frames
 
-        # On some notebook backends, figures render with a transparent background by default. This
-        # leads to very poor image quality, since it prevents font anti-aliasing (at the cost of
-        # not having transparent regions outside the axes part of figures).
-        face_color = rcParams["figure.facecolor"]
-        face_color_rgba = to_rgba(face_color)
-        if face_color_rgba[3] < 1.0:
-            rcParams["figure.facecolor"] = face_color_rgba[:3] + (1.0,)
-        else:
-            face_color = None
-
         plot_func = lambda frame, image_handle: self.plot(
             channel=channel,
             frame=frame,
@@ -74,11 +63,9 @@ class VideoExport:
             return plt.gca().get_children()
 
         fig = plt.gcf()
+        fig.patch.set_alpha(1.0)
         line_ani = animation.FuncAnimation(
             fig, plot, end_frame - start_frame, interval=1, blit=True
         )
         line_ani.save(file_name, writer=writer)
         plt.close(fig)
-
-        if face_color:
-            rcParams["figure.facecolor"] = face_color
