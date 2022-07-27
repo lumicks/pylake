@@ -3,12 +3,13 @@ import os
 import tifffile
 import warnings
 from deprecated.sphinx import deprecated
+from .detail.imaging_mixins import VideoExport
 from .adjustments import ColorAdjustment
 from .detail.widefield import TiffStack
 from .detail.image import make_image_title
 
 
-class CorrelatedStack:
+class CorrelatedStack(VideoExport):
     """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various
     formats. These can be opened and correlated to timeline data using CorrelatedStack.
 

@@ -14,6 +14,7 @@
 * Allow downloading files directly from Zenodo using `lk.download_from_doi()`. See the [example on Cas9 binding](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) for an example of its use.
 * Made piezo tracking functionality public and added [piezo tracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/piezotracking.html).
 * Added support for steps when slicing frames from `CorrelatedStack`s.
+* Added `CorrelatedStack.export_video()` to export videos to export multi-frame videos to video formats or GIFs.
 
 #### Bug fixes
 
