@@ -116,23 +116,51 @@ def test_calibration_continuous_channels():
 
 
 def test_slice_properties():
-    size = 5
-    s = channel.Slice(channel.TimeSeries(np.random.rand(size), np.random.rand(size)))
-    assert len(s) == size
-    assert s.sample_rate is None
+    size = 10
 
     s = channel.Slice(channel.Continuous(np.random.rand(size), start=0, dt=1))
     assert len(s) == size
     assert s.sample_rate == 1e9
+    timesteps = np.asarray([1], dtype=int)
+    np.testing.assert_equal(s._timesteps, timesteps)
+    np.testing.assert_equal(s.sample_rates, 1e9 / timesteps)
 
-    size = 10
+    rng = np.random.default_rng()
+    timestamps = np.unique(np.sort(rng.integers(1e9, 10e9, size=size)))
+    s = channel.Slice(channel.TimeSeries(rng.random(len(timestamps)), timestamps))
+    assert len(s) == len(timestamps)
+    assert s.sample_rate is None
+    timesteps = np.unique(np.diff(timestamps)).astype(int)
+    np.testing.assert_equal(s._timesteps, timesteps)
+    np.testing.assert_equal(s.sample_rates, 1e9 / timesteps)
+
     s = channel.Slice(channel.TimeTags(np.arange(0, size, dtype=np.int64)))
     assert len(s) == size
     assert s.sample_rate is None
+    with pytest.raises(
+        NotImplementedError,
+        match=f"`_timesteps` are not available for {s._src.__class__.__name__} data",
+    ):
+        s._timesteps
+    with pytest.raises(
+        NotImplementedError,
+        match=f"`sample_rates` are not available for {s._src.__class__.__name__} data",
+    ):
+        s.sample_rates
 
     s = channel.empty_slice
     assert len(s) == 0
     assert s.sample_rate is None
+    with pytest.raises(
+        NotImplementedError,
+        match=f"`_timesteps` are not available for {s._src.__class__.__name__} data",
+    ):
+        s._timesteps
+    with pytest.raises(
+        NotImplementedError,
+        match=f"`sample_rates` are not available for {s._src.__class__.__name__} data",
+    ):
+        s.sample_rates
 
 
 def test_labels():
