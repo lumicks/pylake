@@ -200,6 +200,8 @@ class CorrelatedStack:
         show_title=True,
         axes=None,
         adjustment=ColorAdjustment.nothing(),
+        *,
+        image_handle=None,
         **kwargs,
     ):
         """Plot image from image stack
@@ -215,23 +217,37 @@ class CorrelatedStack:
             Controls display of auto-generated plot title
         axes : mpl.axes.Axes or None
             If supplied, the axes instance in which to plot.
+        image_handle : `matplotlib.image.AxesImage` or None
+            Optional image handle which is used to update plots with new data rather than
+            reconstruct them (better for performance).
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         import matplotlib.pyplot as plt
 
         if axes is None:
-            axes = plt.gca()
+            axes = plt.gca() if image_handle is None else image_handle.axes
+        elif image_handle is not None and id(axes) != id(image_handle.axes):
+            raise ValueError("Supplied image_handle with a different axes than the provided axes")
 
         default_kwargs = dict(cmap="gray")
         kwargs = {**default_kwargs, **kwargs}
 
         image = self._get_frame(frame)._get_plot_data(channel, adjustment=adjustment)
-        image_handle = axes.imshow(image, **kwargs)
+
+        if not image_handle:
+            image_handle = axes.imshow(image, **kwargs)
+        else:
+            # Updating the image data in an existing plot is a lot faster than re-plotting with
+            # `imshow`.
+            image_handle.set_data(image)
+
         adjustment._update_limits(image_handle, image, channel)
 
         if show_title:
             axes.set_title(make_image_title(self, frame))
+
+        return image_handle
 
     def plot_tether(self, axes=None, **kwargs):
         """Plot a line at the tether position.
