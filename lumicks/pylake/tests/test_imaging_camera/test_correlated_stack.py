@@ -303,7 +303,7 @@ def test_deprecate_raw():
 
 
 @cleanup
-def test_plotting(rgb_alignment_image_data):
+def test_correlated_stack_plotting(rgb_alignment_image_data):
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
         [
@@ -318,21 +318,36 @@ def test_plotting(rgb_alignment_image_data):
     )
     stack = CorrelatedStack.from_dataset(fake_tiff)
 
-    stack.plot(channel="blue", frame=0)
+    image = stack.plot(channel="blue", frame=0)
+    assert id(image) == id(plt.gca().get_images()[0])
     ref_image = stack._get_frame(0)._get_plot_data(channel="blue")
-    image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), ref_image)
     plt.close()
 
-    stack.plot(channel="rgb", frame=0)
+    image = stack.plot(channel="rgb", frame=0)
+    assert id(image) == id(plt.gca().get_images()[0])
     ref_image = stack._get_frame(0)._get_plot_data(channel="rgb")
-    image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), ref_image)
     plt.close()
+
+    image = stack.plot(channel="blue", frame=0)
+
+    # Update existing image handle (should be ok)
+    image = stack.plot(channel="blue", frame=0, image_handle=image)
+    assert id(image) == id(plt.gca().get_images()[0])
+
+    with pytest.raises(
+            ValueError, match="Supplied image_handle with a different axes than the provided axes"
+    ):
+        stack.plot(channel="blue", frame=0, image_handle=image, axes=plt.axes(label="a new axes"))
+    # Plot to a new axis
+    axes = plt.axes([0, 0, 1, 1], label="axes")
+    not_the_right_axes = plt.axes([0, 0, 1, 1], label="newer axes")  # We shouldn't draw to this one
+    assert id(plt.gca()) == id(not_the_right_axes)
+    assert id(stack.plot(channel="blue", frame=0, axes=axes).axes) == id(axes)
 
     with pytest.raises(IndexError, match="Frame index out of range"):
         stack.plot(channel="blue", frame=4)
-
     with pytest.raises(IndexError, match="Frame index out of range"):
         stack.plot(channel="blue", frame=-1)
 
