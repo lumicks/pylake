@@ -47,7 +47,7 @@ class VideoExport:
             raise RuntimeError("You need either ffmpeg or pillow installed to export videos.")
 
         start_frame = start_frame if start_frame else 0
-        end_frame = end_frame if end_frame else self.num_frames - 1
+        end_frame = end_frame if end_frame else self.num_frames
 
         # On some notebook backends, figures render with a transparent background by default. This
         # leads to very poor image quality, since it prevents font anti-aliasing (at the cost of
