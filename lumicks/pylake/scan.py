@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from copy import copy
+from itertools import zip_longest
 from deprecated import deprecated
 
 from .detail.imaging_mixins import VideoExport
@@ -31,7 +32,7 @@ class Scan(ConfocalImage, VideoExport):
         if self._metadata.num_axes > 2:
             raise RuntimeError("3D scans are not supported")
 
-    def crop_by_pixels(self, x_min, x_max, y_min, y_max):
+    def crop_by_pixels(self, x_min, x_max, y_min, y_max) -> "Scan":
         """Crop the image stack by pixel values.
 
         Parameters
@@ -45,6 +46,52 @@ class Scan(ConfocalImage, VideoExport):
         y_max : int
             maximum y pixel (exclusive, optional)
         """
+        spatial_axes = (slice(y_min, y_max), slice(x_min, x_max))
+        return self._scan_with_sliced_factories(frame_axis=slice(None), spatial_axes=spatial_axes)
+
+    def _scan_with_sliced_factories(self, frame_axis, spatial_axes) -> "Scan":
+        """Return a scan with sliced factories
+
+        Parameters
+        ----------
+        frame_axis : slice or int
+            How to slice the frame axis
+        spatial_axes : () or (slice) or (slice, slice)
+            Slices with which to slice the Scan. The order should be the order in which the numpy
+            array is sliced, with an optional first dimension reflecting frame slices if we are
+            dealing with a multi-frame scan.
+        """
+        if isinstance(frame_axis, int):
+            num_frames = 1
+            frame_axis = frame_axis if frame_axis >= 0 else self.num_frames + frame_axis
+            if not 0 <= frame_axis < self.num_frames:
+                raise IndexError("Frame index out of range")
+        else:
+            frame_indices = range(*frame_axis.indices(self.num_frames))
+            num_frames = len(frame_indices)
+
+            if not frame_indices:
+                raise NotImplementedError("Slice is empty.")
+            elif num_frames == 1:
+                # Convert single frame to direct index (amounts to squeezing that dimension)
+                frame_axis = frame_indices[0]
+
+        slices = (frame_axis, *spatial_axes) if self.num_frames > 1 else spatial_axes
+
+        def pixelcount_factory(_):
+            # We need to make sure we have all spatial axes as we need to correct each axis since
+            # they appear in reverse order in `_num_pixels`.
+            full_spatial_axes = [
+                ax if ax is not None else slice(None)
+                for _, ax in zip_longest(range(2), spatial_axes)
+            ]
+
+            return tuple(
+                [
+                    np.arange(n_pixels)[s].size
+                    for n_pixels, s in zip(self._num_pixels, reversed(full_spatial_axes))
+                ]
+            )
 
         def image_factory(_, channel):
             img = self._image(channel)
@@ -54,21 +101,11 @@ class Scan(ConfocalImage, VideoExport):
             if not img.size:
                 return img
 
-            slice_array = [slice(None) for _ in range(img.ndim)]
-            slice_array[-1] = slice(x_min, x_max)
-            slice_array[-2] = slice(y_min, y_max)
-            return img[tuple(slice_array)]
+            return img[slices]
 
         def timestamp_factory(_, reduce_timestamps):
-            return self._timestamps("timestamps", reduce_timestamps)[y_min:y_max, x_min:x_max]
-
-        def pixelcount_factory(_):
-            return [
-                np.arange(n_pixels)[start:stop].size
-                for n_pixels, (start, stop) in zip(
-                    self._num_pixels, ((x_min, x_max), (y_min, y_max))
-                )
-            ]
+            ts = self._timestamps("timestamps", reduce_timestamps)
+            return ts[slices]
 
         result = copy(self)
         result._image_factory = image_factory
@@ -76,7 +113,18 @@ class Scan(ConfocalImage, VideoExport):
         result._pixelcount_factory = pixelcount_factory
 
         # Force reconstruction number of frames now
-        result._metadata = self._metadata.with_num_frames(self.num_frames)
+        result._metadata = self._metadata.with_num_frames(num_frames)
+
+        # The metadata has an ugly hack when the number of frames metadata is missing
+        # this means that zero cannot be expressed correctly at this time since it
+        # would trigger a reconstruction. For now, we raise on an empty scan.
+        if result._metadata.num_frames == 0:
+            raise NotImplementedError("Slice is empty.")
+
+        # Verify that none of the axis end up empty
+        resulting_shape = pixelcount_factory(None)
+        if np.any(np.asarray(resulting_shape) == 0):
+            raise NotImplementedError("Slice is empty.")
 
         return result
 
@@ -85,27 +133,64 @@ class Scan(ConfocalImage, VideoExport):
         return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
 
     def __getitem__(self, item):
-        """All indexing is in frames"""
-        ts_ranges = self.frame_timestamp_ranges(include_dead_time=True)
+        """Returns specific scan frame(s) and/or cropped scans.
 
-        if isinstance(item, slice):
-            if item.step is not None:
-                raise IndexError("Slice steps are not supported")
+        The first item refers to the scan frames; both indexing (by integer) and slicing are
+        allowed, but using steps or slicing by list is not.
+        The last two items refer to the spatial dimensions in pixel rows and columns. Only full
+        slices (without steps) are allowed. All values should be given in pixels.
 
-            sliced_ts_ranges = ts_ranges[item]
-            if not sliced_ts_ranges:
-                raise NotImplementedError("Slice is empty.")
+        Examples
+        --------
+        ::
 
-            start, stop = sliced_ts_ranges[0][0], sliced_ts_ranges[-1][-1]
-            num_frames = len(sliced_ts_ranges)
-        else:
-            start, stop = ts_ranges[item]
-            num_frames = 1
+            import lumicks.pylake as lk
 
-        new_scan = copy(self)
+            file = lk.File("example.h5")
+            scan = file.scans["my_scan"]
+
+            scan[5]  # Gets the 6th frame of the scan (0 is the first).
+            scan[1:5]  # Get scan frames 1, 2, 3 and 4.
+            scan[:, 10:50, 20:50]  # Gets all frames cropped from row 11 to 50 and column 21 to 50.
+            scan[:, 10:50]  # Gets all frames and all columns but crops from row 11 to 50.
+            scan[5, 10:20, 10:20]  # Obtains the 6th frame and crops it.
+
+            scan[[1, 3, 4]]  # Produces an error, lists are not allowed.
+            scan[1:5:2]  # Produces an error, steps are not allowed.
+            scan[1, 3, 5]   # Error, integer indices are not allowed for the spatial dimensions.
+            scan[1, 3:5:2]  # Produces an error, steps are not allowed when slicing.
+        """
+
+        def check_item(item, allow_int):
+            """We don't allow slice steps, and we don't allow slicing with lists. Slicing with
+            single integer value is only allowed for frames."""
+            if isinstance(item, slice):
+                if item.step is not None:
+                    raise IndexError("Slice steps are not supported when indexing")
+                return item
+
+            if isinstance(item, int):
+                if not allow_int:
+                    raise IndexError("Scalar indexing is not supported for spatial coordinates")
+                return item
+
+            raise IndexError(f"Slicing by {type(item).__name__} is not allowed.")
+
+        try:
+            frame_slice, *spatial_slices = item
+        except TypeError:  # Unpack fails if not iterable => only single axis is sliced
+            frame_slice, spatial_slices = item, []
+
+        new_scan = self._scan_with_sliced_factories(
+            check_item(frame_slice, True),
+            tuple([check_item(item, False) for item in spatial_slices]),
+        )
+
+        # Excluding the dead time between frames only makes sense if we have more than one frame
+        ts_ranges = new_scan.frame_timestamp_ranges(include_dead_time=new_scan.num_frames > 1)
+        start, stop = ts_ranges[0][0], ts_ranges[-1][-1]
         new_scan.start = start
         new_scan.stop = stop
-        new_scan._metadata = self._metadata.with_num_frames(num_frames)
 
         return new_scan
 

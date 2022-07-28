@@ -160,7 +160,7 @@ def test_slicing(test_scans):
     compare_frames([0, 1, 2, 3], scan0[:-6])  # until negative index
     compare_frames([5, 6, 7], scan0[5:-2])  # mixed sign indices
     compare_frames([6, 7], scan0[-4:-2])  # full negative slice
-
+    compare_frames([2], scan0[2:3])  # slice to single frame
     compare_frames([3, 4], scan0[2:6][1:3])  # iterative slicing
 
     compare_frames([1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[1:100])  # test clamping past the end
@@ -176,6 +176,8 @@ def test_slicing(test_scans):
     # empty slice
     with pytest.raises(NotImplementedError, match="Slice is empty."):
         scan0[5:5]
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        scan0[15:16]
 
     # Verify no side effects
     scan0[0]
@@ -364,7 +366,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
         assert frame_times_inclusive[0][1] == frame_times[1][0]
         assert frame_times_inclusive[1][1] == frame_times[2][0]
         assert frame_times_inclusive[-1][1] == frame_times[-1][0] + (
-                frame_times[1][0] - frame_times[0][0]
+            frame_times[1][0] - frame_times[0][0]
         )
 
     with pytest.deprecated_call():
@@ -376,7 +378,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
     compare_inclusive(scan.frame_timestamp_ranges(include_dead_time=True))
 
     with pytest.raises(
-            ValueError, match="Do not specify both exclude and include_dead_time parameters"
+        ValueError, match="Do not specify both exclude and include_dead_time parameters"
     ):
         scan.frame_timestamp_ranges(False, include_dead_time=True)
 
@@ -507,19 +509,161 @@ def test_scan_cropping(x_min, x_max, y_min, y_max, test_scans):
 
     for key in valid_scans:
         scan = test_scans[key]
-        np.testing.assert_allclose(
-            scan.crop_by_pixels(x_min, x_max, y_min, y_max).timestamps,
-            scan.timestamps[y_min:y_max, x_min:x_max],
-        )
 
-        slices = [slice(y_min, y_max), slice(x_min, x_max)]
-        if scan.num_frames > 1:
-            slices.insert(0, slice(None))
+        # Slice how we would with numpy
+        all_slices = tuple([slice(None), slice(y_min, y_max), slice(x_min, x_max)])
+        numpy_slice = all_slices[1:] if scan.num_frames == 1 else all_slices
+
+        cropped_scan = scan.crop_by_pixels(x_min, x_max, y_min, y_max)
+        np.testing.assert_allclose(cropped_scan.timestamps, scan.timestamps[numpy_slice])
+        np.testing.assert_allclose(scan[all_slices].timestamps, scan.timestamps[numpy_slice])
+
         for channel in ("rgb", "green"):
-            ref_img = scan.get_image(channel)[tuple(slices)]
-            np.testing.assert_allclose(
-                scan.crop_by_pixels(x_min, x_max, y_min, y_max).get_image(channel), ref_img
-            )
+            ref_img = scan.get_image(channel)[numpy_slice]
+            np.testing.assert_allclose(cropped_scan.get_image(channel), ref_img)
         # Numpy array is given as Y, X, while number of pixels is given sorted by spatial axis
         # i.e. X, Y
-        np.testing.assert_allclose(np.flip(scan._num_pixels), scan.get_image("green").shape[-2:])
+        np.testing.assert_allclose(
+            np.flip(cropped_scan._num_pixels), cropped_scan.get_image("green").shape[-2:]
+        )
+
+
+@pytest.mark.parametrize(
+    "all_slices",
+    [
+        [slice(None), slice(None), slice(None)],
+        [slice(None), slice(None, 3), slice(None, 2)],
+        [slice(None), slice(0, None), slice(1, None)],
+        [slice(None), slice(1, 4), slice(1, 5)],
+        [slice(None), slice(1, 3), slice(None)],
+        [slice(None), slice(None), slice(1, 3)],
+        [slice(None), slice(1, 2), slice(1, 2)],  # Single pixel
+        [slice(None), slice(1, 2), slice(None)],
+        [slice(None), slice(None), slice(1, 2)],
+        [0],  # Only indexing scans
+        [0, slice(1, 2), slice(1, 2)],
+        [-1, slice(1, 3), slice(None)],
+        [0, slice(None), slice(1, 2)],
+        [0, slice(1, 3)],  # This tests a very specific corner case where _num_pixels could fail
+    ],
+)
+def test_scan_get_item_slicing(all_slices, test_scans):
+    """Test slicing, slicing is given as image, y, x"""
+
+    valid_scans = [
+        "fast Y slow X multiframe",
+        "fast Y slow X",
+        "fast X slow Z multiframe",
+        "fast Y slow Z multiframe",
+        "red channel missing",
+        "rb channels missing",
+    ]
+
+    for key in valid_scans:
+        scan = test_scans[key]
+
+        # Slice how we would with numpy
+        slices = tuple(all_slices if scan.num_frames > 1 else all_slices[1:])
+        cropped_scan = scan[all_slices]
+        np.testing.assert_allclose(cropped_scan.timestamps, scan.timestamps[slices])
+
+        for channel in ("rgb", "green"):
+            ref_img = scan.get_image(channel)[slices]
+            np.testing.assert_allclose(cropped_scan.get_image(channel), ref_img)
+        # Numpy array is given as Y, X, while number of pixels is given sorted by spatial axis
+        # i.e. X, Y
+        np.testing.assert_allclose(
+            np.flip(cropped_scan._num_pixels), cropped_scan.get_image("green").shape[-2:]
+        )
+
+
+def test_slicing_cropping_separate_actions(test_scans):
+    """Test whether cropping works in a sequential fashion"""
+    multi_frame, single_frame = (
+        generate_scan(
+            "test",
+            np.random.rand(num_frames, 5, 7),
+            [1, 1],
+            start=0,
+            dt=100,
+            samples_per_pixel=1,
+            line_padding=1,
+        )
+        for num_frames in (8, 1)
+    )
+
+    def assert_equal(first, second):
+        np.testing.assert_allclose(first.get_image("red"), second.get_image("red"))
+        np.testing.assert_allclose(first.get_image("rgb"), second.get_image("rgb"))
+        assert first.num_frames == second.num_frames
+        assert first._num_pixels == second._num_pixels
+
+    assert_equal(multi_frame[1:3][:, 1:3, 2:3], multi_frame[1:3, 1:3, 2:3])
+    assert_equal(multi_frame[1][:, 1:3, 2:3], multi_frame[1, 1:3, 2:3])
+    assert_equal(multi_frame[:, 1:3, 2:3][3], multi_frame[3, 1:3, 2:3])
+    assert_equal(multi_frame[:, 1:, 2:][3], multi_frame[3, 1:, 2:])
+    assert_equal(multi_frame[:, :3, :3][3], multi_frame[3, :3, :3])
+    assert_equal(single_frame[0][:, 1:5, 2:6][:, 1:3, 2:8], single_frame[0, 2:4, 4:6])
+
+
+def test_error_handling_multidim_indexing():
+    multi_frame, single_frame = (
+        generate_scan(
+            "test",
+            np.random.rand(num_frames, 5, 7),
+            [1, 1],
+            start=0,
+            dt=100,
+            samples_per_pixel=1,
+            line_padding=1,
+        )
+        for num_frames in (8, 1)
+    )
+
+    with pytest.raises(IndexError, match="Frame index out of range"):
+        multi_frame[8]
+    with pytest.raises(IndexError, match="Frame index out of range"):
+        multi_frame[-9]
+    with pytest.raises(IndexError, match="Frame index out of range"):
+        single_frame[1]
+    with pytest.raises(
+        IndexError, match="Scalar indexing is not supported for spatial coordinates"
+    ):
+        multi_frame[0, 4, 3]
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "fast Y slow X multiframe",
+        "fast Y slow X",
+        "fast X slow Z multiframe",
+        "fast Y slow Z multiframe",
+        "red channel missing",
+        "rb channels missing",
+    ],
+)
+def test_empty_slices_due_to_out_of_bounds(name, test_scans):
+    shape = test_scans[name][0].get_image("green").shape
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        test_scans[name][0][0, shape[0] : shape[0] + 10, 0:2]
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        test_scans[name][0][0, shape[0] : shape[0] + 10]
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        test_scans[name][0][0, :, shape[1] : shape[1] + 10]
+    with pytest.raises(NotImplementedError, match="Slice is empty."):
+        test_scans[name][0][0, :, -10:0]
+
+
+def test_slice_by_list_disallowed(test_scans):
+    with pytest.raises(IndexError, match="Slicing by list is not allowed"):
+        test_scans["fast Y slow X multiframe"][[0, 1], :, :]
+
+    with pytest.raises(IndexError, match="Slicing by list is not allowed"):
+        test_scans["fast Y slow X multiframe"][:, [0, 1], :]
+
+    class Dummy:
+        pass
+
+    with pytest.raises(IndexError, match="Slicing by Dummy is not allowed"):
+        test_scans["fast Y slow X multiframe"][Dummy(), :, :]

@@ -213,13 +213,20 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         raise NotImplementedError("Pixel dwell times have not been implemented for this class.")
 
     def __copy__(self):
-        return self.__class__(
+        instance = self.__class__(
             name=self.name,
             file=self._file,
             start=self.start,
             stop=self.stop,
             metadata=self._metadata,
         )
+
+        # Preserve custom factories
+        instance._image_factory = self._image_factory
+        instance._timestamp_factory = self._timestamp_factory
+        instance._pixelsize_factory = self._pixelsize_factory
+        instance._pixelcount_factory = self._pixelcount_factory
+        return instance
 
     def _get_photon_count(self, name):
         """Grab the portion of the photon count that overlaps with the scan."""
