@@ -31,6 +31,55 @@ class Scan(ConfocalImage, VideoExport):
         if self._metadata.num_axes > 2:
             raise RuntimeError("3D scans are not supported")
 
+    def crop_by_pixels(self, x_min, x_max, y_min, y_max):
+        """Crop the image stack by pixel values.
+
+        Parameters
+        ----------
+        x_min : int
+            minimum x pixel (inclusive, optional)
+        x_max : int
+            maximum x pixel (exclusive, optional)
+        y_min : int
+            minimum y pixel (inclusive, optional)
+        y_max : int
+            maximum y pixel (exclusive, optional)
+        """
+
+        def image_factory(_, channel):
+            img = self._image(channel)
+
+            # Early out if this color channel is missing (slicing will otherwise fail) and
+            # we need to handle this gracefully because of files with missing color channels
+            if not img.size:
+                return img
+
+            slice_array = [slice(None) for _ in range(img.ndim)]
+            slice_array[-1] = slice(x_min, x_max)
+            slice_array[-2] = slice(y_min, y_max)
+            return img[tuple(slice_array)]
+
+        def timestamp_factory(_, reduce_timestamps):
+            return self._timestamps("timestamps", reduce_timestamps)[y_min:y_max, x_min:x_max]
+
+        def pixelcount_factory(_):
+            return [
+                np.arange(n_pixels)[start:stop].size
+                for n_pixels, (start, stop) in zip(
+                    self._num_pixels, ((x_min, x_max), (y_min, y_max))
+                )
+            ]
+
+        result = copy(self)
+        result._image_factory = image_factory
+        result._timestamp_factory = timestamp_factory
+        result._pixelcount_factory = pixelcount_factory
+
+        # Force reconstruction number of frames now
+        result._metadata = self._metadata.with_num_frames(self.num_frames)
+
+        return result
+
     def __repr__(self):
         name = self.__class__.__name__
         return f"{name}(pixels=({self.pixels_per_line}, {self.lines_per_frame}))"
