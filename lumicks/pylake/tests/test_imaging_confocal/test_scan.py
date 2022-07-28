@@ -478,3 +478,42 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans):
 )
 def test_scan_pixel_time(test_scans, scan, pixel_time):
     np.testing.assert_allclose(test_scans[scan].pixel_time_seconds, pixel_time)
+
+
+@pytest.mark.parametrize(
+    "x_min, x_max, y_min, y_max",
+    [
+        (None, None, None, None),
+        (None, 3, None, 2),
+        (0, None, 1, None),
+        (1, 4, 1, 5),
+    ],
+)
+def test_scan_cropping(x_min, x_max, y_min, y_max, test_scans):
+    valid_scans = [
+        "fast Y slow X multiframe",
+        "fast Y slow X",
+        "fast X slow Z multiframe",
+        "fast Y slow Z multiframe",
+        "red channel missing",
+        "rb channels missing",
+    ]
+
+    for key in valid_scans:
+        scan = test_scans[key]
+        np.testing.assert_allclose(
+            scan.crop_by_pixels(x_min, x_max, y_min, y_max).timestamps,
+            scan.timestamps[y_min:y_max, x_min:x_max],
+        )
+
+        slices = [slice(y_min, y_max), slice(x_min, x_max)]
+        if scan.num_frames > 1:
+            slices.insert(0, slice(None))
+        for channel in ("rgb", "green"):
+            ref_img = scan.get_image(channel)[tuple(slices)]
+            np.testing.assert_allclose(
+                scan.crop_by_pixels(x_min, x_max, y_min, y_max).get_image(channel), ref_img
+            )
+        # Numpy array is given as Y, X, while number of pixels is given sorted by spatial axis
+        # i.e. X, Y
+        np.testing.assert_allclose(np.flip(scan._num_pixels), scan.get_image("green").shape[-2:])
