@@ -1,4 +1,9 @@
-from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy, KymotrackerParameter
+from lumicks.pylake.nb_widgets.kymotracker_widgets import (
+    KymoWidgetGreedy,
+    KymotrackerParameter,
+    _get_node_info,
+    _get_nearest,
+)
 from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
 from matplotlib.testing.decorators import cleanup
 import numpy as np
@@ -150,6 +155,69 @@ def test_refine_from_widget(kymograph, region_select):
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(5, 20))
     np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 15)
     assert len(kymo_widget.lines) == 1
+
+
+def test_node_info(kymograph):
+    tracks = KymoLineGroup(
+        [
+            KymoLine(
+                np.array([1, 2]),
+                np.array([1, 1]),
+                kymograph,
+                "red",
+            ),
+            KymoLine(
+                np.array([6, 7, 8]),
+                np.array([3, 3, 3]),
+                kymograph,
+                "red",
+            ),
+        ]
+    )
+
+    info = _get_node_info(tracks)
+    np.testing.assert_allclose(
+        info,
+        [
+            [0.0, 0.0, 5.0, 0.4],
+            [0.0, 1.0, 10.0, 0.4],
+            [1.0, 0.0, 30.0, 1.2],
+            [1.0, 1.0, 35.0, 1.2],
+            [1.0, 2.0, 40.0, 1.2],
+        ],
+    )
+
+
+def test_get_nearest(kymograph):
+    tracks = KymoLineGroup(
+        [
+            KymoLine(
+                np.array([1, 2]),
+                np.array([1, 1]),
+                kymograph,
+                "red",
+            ),
+            KymoLine(
+                np.array([6, 7, 8]),
+                np.array([3, 3, 3]),
+                kymograph,
+                "red",
+            ),
+        ]
+    )
+
+    visible_range = tuple(lims[1] - lims[0] for lims in ([0, 10], [0, 4]))
+
+    clicked = _get_nearest(tracks, 5.1, 0.41, visible_range, cutoff_radius=0.05)
+    assert clicked["line"] == tracks[0]
+    np.testing.assert_allclose(clicked["node_index"], 0)
+    np.testing.assert_allclose(clicked["coordinates"], [5, 0.4])
+
+    clicked = _get_nearest(tracks, 5.5, 0.41, visible_range, cutoff_radius=0.05)
+    assert clicked == {}
+
+    clicked = _get_nearest(tracks, 5.1, 0.61, visible_range, cutoff_radius=0.05)
+    assert clicked == {}
 
 
 def test_stitch(kymograph, mockevent):

@@ -142,7 +142,9 @@ class KymoWidget:
 
     def _connect_line_callback(self):
         canvas = self._axes.figure.canvas
-        scale = tuple(lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim()))
+        visible_range = tuple(
+            lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim())
+        )
         cutoff_radius = 0.05  # We use a connection cutoff of 5% of the axis ranges
         clicked_line_info = None
         plotted_line = None
@@ -152,7 +154,7 @@ class KymoWidget:
             if len(self.lines) == 0:
                 return
 
-            line_info = _get_nearest(self.lines, event.x, event.y, scale, cutoff_radius)
+            line_info = _get_nearest(self.lines, event.x, event.y, visible_range, cutoff_radius)
             if line_info:
                 clicked_line_info = line_info
                 return True
@@ -178,7 +180,7 @@ class KymoWidget:
                 plotted_line.remove()
                 plotted_line = None
 
-            line_info = _get_nearest(self.lines, event.x, event.y, scale, cutoff_radius)
+            line_info = _get_nearest(self.lines, event.x, event.y, visible_range, cutoff_radius)
             if line_info:
                 released_line_info = line_info
 
@@ -486,7 +488,7 @@ def _get_node_info(lines):
     return np.hstack(nodes).T
 
 
-def _get_nearest(lines, x, y, scale, cutoff_radius=0.05):
+def _get_nearest(lines, x, y, visible_range, cutoff_radius=0.05):
     """Get nearest line to mouse click/release.
 
     Parameters
@@ -497,7 +499,7 @@ def _get_nearest(lines, x, y, scale, cutoff_radius=0.05):
         Clicked x-coordinate.
     y: float
         Clicked y-coorindate.
-    scale: tuple
+    visible_range: tuple
         Scaling of the image axes (x_max-x_min, y_max-y_min).
     cutoff_radius: float
         Maximum distance for a node to be considered clicked, defined as a fraction
@@ -510,7 +512,7 @@ def _get_nearest(lines, x, y, scale, cutoff_radius=0.05):
     """
     nodes = _get_node_info(lines)
     ref_position = np.array([x, y])
-    squared_dist = np.sum(((ref_position - nodes[:, -2:]) / scale) ** 2, 1)
+    squared_dist = np.sum(((ref_position - nodes[:, -2:]) / visible_range) ** 2, 1)
     idx = np.argmin(squared_dist)
     distance = np.sqrt(squared_dist[idx])
 
