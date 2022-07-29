@@ -152,10 +152,8 @@ class KymoWidget:
             if len(self.lines) == 0:
                 return
 
-            is_hit, line_info = _get_nearest(
-                self.lines, event.x, event.y, scale, cutoff_radius
-            )
-            if is_hit:
+            line_info = _get_nearest(self.lines, event.x, event.y, scale, cutoff_radius)
+            if line_info:
                 clicked_line_info = line_info
                 return True
 
@@ -165,7 +163,8 @@ class KymoWidget:
                 plotted_line.remove()
                 plotted_line = None
 
-            line, node_index, *_ = clicked_line_info
+            line = clicked_line_info["line"]
+            node_index = clicked_line_info["node_index"]
             plotted_line, *_ = self._axes.plot(
                 [line.seconds[int(node_index)], event.x],
                 [line.position[int(node_index)], event.y],
@@ -179,10 +178,8 @@ class KymoWidget:
                 plotted_line.remove()
                 plotted_line = None
 
-            is_hit, line_info = _get_nearest(
-                self.lines, event.x, event.y, scale, cutoff_radius
-            )
-            if is_hit:
+            line_info = _get_nearest(self.lines, event.x, event.y, scale, cutoff_radius)
+            if line_info:
                 released_line_info = line_info
 
                 # Explicit copy to make modifications. Current state pushed to undo stack on
@@ -190,8 +187,10 @@ class KymoWidget:
                 lines = copy(self.lines)
 
                 clicked = [clicked_line_info, released_line_info]
-                clicked.sort(key=lambda x: x[2])  # by time
-                lines._merge_lines(*clicked[0][:2], *clicked[1][:2])
+                clicked.sort(key=lambda x: x["coordinates"][0])  # by time
+
+                merge_args = [(click["line"], click["node_index"]) for click in clicked]
+                lines._merge_lines(*merge_args[0], *merge_args[1])
 
                 self.lines = lines
                 self.update_lines()
@@ -506,10 +505,8 @@ def _get_nearest(lines, x, y, scale, cutoff_radius=0.05):
 
     Returns
     -------
-    bool
-        Whether a node was selected
-    list
-        [clicked KymoLine, (track index, node index within track, x-coordinate, y-coordinate)]
+    dict
+        line instance, node index, and x-y coordinates for click event
     """
     nodes = _get_node_info(lines)
     ref_position = np.array([x, y])
@@ -518,11 +515,15 @@ def _get_nearest(lines, x, y, scale, cutoff_radius=0.05):
     distance = np.sqrt(squared_dist[idx])
 
     if distance < cutoff_radius:
-        line_index, *line_info = nodes[idx]
-        clicked_line_info = [lines[int(line_index)], *line_info]
-        return True, clicked_line_info
+        line_index, node_index, *coordinates = nodes[idx]
+        clicked_line_info = {
+            "line": lines[int(line_index)],
+            "node_index": node_index,
+            "coordinates": coordinates,
+        }
+        return clicked_line_info
     else:
-        return False, []
+        return {}
 
 
 class KymoWidgetGreedy(KymoWidget):
