@@ -18,6 +18,20 @@ def calibrate_to_kymo(kymo):
     )
 
 
+def make_kymolinegroup(kymo, *args):
+    tracks = []
+    for time_idx, pos_idx in args:
+        tracks.append(
+            KymoLine(
+                np.array(time_idx),
+                np.array(pos_idx),
+                kymo,
+                "red",
+            )
+        )
+    return KymoLineGroup(tracks)
+
+
 @cleanup
 def test_widget_open(kymograph):
     KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
@@ -158,23 +172,7 @@ def test_refine_from_widget(kymograph, region_select):
 
 
 def test_node_info(kymograph):
-    tracks = KymoLineGroup(
-        [
-            KymoLine(
-                np.array([1, 2]),
-                np.array([1, 1]),
-                kymograph,
-                "red",
-            ),
-            KymoLine(
-                np.array([6, 7, 8]),
-                np.array([3, 3, 3]),
-                kymograph,
-                "red",
-            ),
-        ]
-    )
-
+    tracks = make_kymolinegroup(kymograph, ([1, 2], [1, 1]), ([6, 7, 8], [3, 3, 3]))
     info = _get_node_info(tracks)
     np.testing.assert_allclose(
         info,
@@ -189,23 +187,7 @@ def test_node_info(kymograph):
 
 
 def test_get_nearest(kymograph):
-    tracks = KymoLineGroup(
-        [
-            KymoLine(
-                np.array([1, 2]),
-                np.array([1, 1]),
-                kymograph,
-                "red",
-            ),
-            KymoLine(
-                np.array([6, 7, 8]),
-                np.array([3, 3, 3]),
-                kymograph,
-                "red",
-            ),
-        ]
-    )
-
+    tracks = make_kymolinegroup(kymograph, ([1, 2], [1, 1]), ([6, 7, 8], [3, 3, 3]))
     visible_range = tuple(lims[1] - lims[0] for lims in ([0, 10], [0, 4]))
 
     clicked = _get_nearest(tracks, 5.1, 0.41, visible_range, cutoff_radius=0.05)
@@ -222,20 +204,9 @@ def test_get_nearest(kymograph):
 
 def test_stitch(kymograph, mockevent):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
-
-    k1 = KymoLine(
-        np.array([1, 2, 3]),
-        np.array([1, 1, 1]),
-        kymograph,
-        "red",
+    kymo_widget.lines = make_kymolinegroup(
+        kymograph, ([1, 2, 3], [1, 1, 1]), ([6, 7, 8], [3, 3, 3])
     )
-    k2 = KymoLine(
-        np.array([6, 7, 8]),
-        np.array([3, 3, 3]),
-        kymograph,
-        "red",
-    )
-    kymo_widget.lines = KymoLineGroup([k1, k2])
 
     # Go into line connection mode
     kymo_widget._select_state({"new": "Connect Lines"})
@@ -268,20 +239,9 @@ def test_stitch(kymograph, mockevent):
 )
 def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
-
-    k1 = KymoLine(
-        np.array([1, 2, 3, 4, 5]),
-        np.array([1, 1, 1, 3, 3]),
-        kymograph,
-        "red",
+    kymo_widget.lines = make_kymolinegroup(
+        kymograph, ([1, 2, 3, 4, 5], [1, 1, 1, 3, 3]), ([6, 7, 8], [3, 3, 3])
     )
-    k2 = KymoLine(
-        np.array([6, 7, 8]),
-        np.array([3, 3, 3]),
-        kymograph,
-        "red",
-    )
-    kymo_widget.lines = KymoLineGroup([k1, k2])
 
     # Go into line connection mode
     kymo_widget._select_state({"new": "Connect Lines"})
