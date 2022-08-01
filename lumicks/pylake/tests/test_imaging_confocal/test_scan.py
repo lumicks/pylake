@@ -328,11 +328,11 @@ def test_single_frame_times(dim_x, dim_y, line_padding, start, dt, samples_per_p
     [
         (5, 6, 3, 3, 14, 4, 4),
         (3, 4, 4, 60, 1592916040906356300, 12800, 30),
-        (3, 2, 2, 60, 1592916040906356300, 12800, 3000),
+        (3, 2, 3, 60, 1592916040906356300, 12800, 3000),
     ],
 )
 def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, samples_per_pixel):
-    img = np.ones((dim_x, dim_y, frames))
+    img = np.ones((frames, dim_x, dim_y))
     scan = generate_scan(
         "test",
         img,
@@ -345,6 +345,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
     frame_times = scan.frame_timestamp_ranges()
 
     line_time = dt * (img.shape[2] * samples_per_pixel + 2 * line_padding) * img.shape[1]
+    assert scan.num_frames == frames
     assert len(frame_times) == scan.num_frames
     assert frame_times[0][0] == start + line_padding * dt
     assert frame_times[0][1] == start + line_time - line_padding * dt
@@ -487,6 +488,11 @@ def test_scan_pixel_time(test_scans, scan, pixel_time):
         (None, 3, None, 2),
         (0, None, 1, None),
         (1, 4, 1, 5),
+        (1, 3, None, None),
+        (None, None, 1, 3),
+        (1, 2, 1, 2),  # Single pixel
+        (1, 2, None, None),
+        (None, None, 1, 2),
     ],
 )
 def test_scan_cropping(x_min, x_max, y_min, y_max, test_scans):
