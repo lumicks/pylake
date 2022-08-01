@@ -64,7 +64,7 @@ def test_stack_movie_export(
     for idx, filename in enumerate((rgb_tiff_file_multi, gray_tiff_file_multi)):
         stack = CorrelatedStack(str(filename))
         fn = f"{tmpdir}/cstack{idx}.gif"
-        stack.export_video("red", fn, 0, 2)
+        stack.export_video("red", fn, start_frame=0, stop_frame=2)
         assert stat(fn).st_size > 0
 
         with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):

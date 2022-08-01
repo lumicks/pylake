@@ -265,14 +265,14 @@ def test_movie_export(tmpdir_factory, test_scans):
     tmpdir = tmpdir_factory.mktemp("pylake")
 
     scan = test_scans["fast Y slow X multiframe"]
-    scan.export_video("red", f"{tmpdir}/red.gif", 0, 2)
+    scan.export_video("red", f"{tmpdir}/red.gif", start_frame=0, stop_frame=2)
     assert stat(f"{tmpdir}/red.gif").st_size > 0
-    scan.export_video("rgb", f"{tmpdir}/rgb.gif", 0, 2)
+    scan.export_video("rgb", f"{tmpdir}/rgb.gif", start_frame=0, stop_frame=2)
     assert stat(f"{tmpdir}/rgb.gif").st_size > 0
 
-    # test end frame > num frames
+    # test stop frame > num frames
     with pytest.raises(IndexError):
-        scan.export_video("rgb", f"{tmpdir}/rgb.gif", 0, 4)
+        scan.export_video("rgb", f"{tmpdir}/rgb.gif", start_frame=0, stop_frame=4)
 
     with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):
         scan.export_video("gray", "dummy.gif")  # Gray is not a color!
@@ -285,7 +285,9 @@ def test_deprecated_movie_export(tmpdir_factory, test_scans):
     scan = test_scans["fast Y slow X multiframe"]
     for channel in ("red", "green", "blue", "rgb"):
         with pytest.warns(DeprecationWarning):
-            getattr(scan, f"export_video_{channel}")(f"{tmpdir}/dep_{channel}.gif", 0, 2)
+            getattr(scan, f"export_video_{channel}")(
+                f"{tmpdir}/dep_{channel}.gif", start_frame=0, end_frame=2
+            )
             assert stat(f"{tmpdir}/dep_{channel}.gif").st_size > 0
 
 

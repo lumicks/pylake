@@ -314,7 +314,13 @@ class Scan(ConfocalImage, VideoExport):
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self.export_video(
-            "rgb", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+            "rgb",
+            file_name,
+            start_frame=start_frame,
+            stop_frame=end_frame,
+            fps=fps,
+            adjustment=adjustment,
+            **kwargs,
         )
 
     @deprecated(
@@ -351,7 +357,13 @@ class Scan(ConfocalImage, VideoExport):
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self.export_video(
-            "red", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+            "red",
+            file_name,
+            start_frame=start_frame,
+            stop_frame=end_frame,
+            fps=fps,
+            adjustment=adjustment,
+            **kwargs,
         )
 
     @deprecated(
@@ -388,7 +400,13 @@ class Scan(ConfocalImage, VideoExport):
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self.export_video(
-            "green", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+            "green",
+            file_name,
+            start_frame=start_frame,
+            stop_frame=end_frame,
+            fps=fps,
+            adjustment=adjustment,
+            **kwargs,
         )
 
     @deprecated(
@@ -425,5 +443,11 @@ class Scan(ConfocalImage, VideoExport):
             Forwarded to :func:`matplotlib.pyplot.imshow`.
         """
         self.export_video(
-            "blue", file_name, start_frame, end_frame, fps, adjustment=adjustment, **kwargs
+            "blue",
+            file_name,
+            start_frame=start_frame,
+            stop_frame=end_frame,
+            fps=fps,
+            adjustment=adjustment,
+            **kwargs,
         )
