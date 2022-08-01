@@ -6,8 +6,9 @@ class VideoExport:
         self,
         channel,
         file_name,
+        *,
         start_frame=None,
-        end_frame=None,
+        stop_frame=None,
         fps=15,
         adjustment=ColorAdjustment.nothing(),
         **kwargs,
@@ -22,7 +23,7 @@ class VideoExport:
             File name to export to.
         start_frame : int
             First frame in exported video.
-        end_frame : int
+        stop_frame : int
             Last frame in exported video.
         fps : int
             Frame rate.
@@ -46,15 +47,17 @@ class VideoExport:
             raise RuntimeError("You need either ffmpeg or pillow installed to export videos.")
 
         start_frame = start_frame if start_frame else 0
-        end_frame = end_frame if end_frame else self.num_frames
+        stop_frame = stop_frame if stop_frame else self.num_frames
 
-        plot_func = lambda frame, image_handle: self.plot(
-            channel=channel,
-            frame=frame,
-            image_handle=image_handle,
-            adjustment=adjustment,
-            **kwargs,
-        )
+        def plot_func(frame, image_handle):
+            return self.plot(
+                channel=channel,
+                frame=frame,
+                image_handle=image_handle,
+                adjustment=adjustment,
+                **kwargs,
+            )
+
         image_handle = None
 
         def plot(num):
@@ -65,7 +68,7 @@ class VideoExport:
         fig = plt.gcf()
         fig.patch.set_alpha(1.0)
         line_ani = animation.FuncAnimation(
-            fig, plot, end_frame - start_frame, interval=1, blit=True
+            fig, plot, stop_frame - start_frame, interval=1, blit=True
         )
         line_ani.save(file_name, writer=writer)
         plt.close(fig)
