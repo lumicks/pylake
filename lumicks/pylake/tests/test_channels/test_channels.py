@@ -117,6 +117,8 @@ def test_calibration_continuous_channels():
 
 def test_slice_properties():
     size = 10
+    rng = np.random.default_rng()
+    timestamps = np.unique(np.sort(rng.integers(1e9, 10e9, size=size)))
 
     s = channel.Slice(channel.Continuous(np.random.rand(size), start=0, dt=1))
     assert len(s) == size
@@ -125,8 +127,6 @@ def test_slice_properties():
     np.testing.assert_equal(s._timesteps, timesteps)
     np.testing.assert_equal(s.sample_rates, 1e9 / timesteps)
 
-    rng = np.random.default_rng()
-    timestamps = np.unique(np.sort(rng.integers(1e9, 10e9, size=size)))
     s = channel.Slice(channel.TimeSeries(rng.random(len(timestamps)), timestamps))
     assert len(s) == len(timestamps)
     assert s.sample_rate is None
