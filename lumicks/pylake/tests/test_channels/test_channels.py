@@ -139,12 +139,12 @@ def test_slice_properties():
     assert s.sample_rate is None
     with pytest.raises(
         NotImplementedError,
-        match=f"`_timesteps` are not available for {s._src.__class__.__name__} data",
+        match="`_timesteps` are not available for TimeTags data",
     ):
         s._timesteps
     with pytest.raises(
         NotImplementedError,
-        match=f"`sample_rates` are not available for {s._src.__class__.__name__} data",
+        match="`sample_rates` are not available for TimeTags data",
     ):
         s.sample_rates
 
@@ -153,12 +153,12 @@ def test_slice_properties():
     assert s.sample_rate is None
     with pytest.raises(
         NotImplementedError,
-        match=f"`_timesteps` are not available for {s._src.__class__.__name__} data",
+        match="`_timesteps` are not available for Empty data",
     ):
         s._timesteps
     with pytest.raises(
         NotImplementedError,
-        match=f"`sample_rates` are not available for {s._src.__class__.__name__} data",
+        match="`sample_rates` are not available for Empty data",
     ):
         s.sample_rates
 
