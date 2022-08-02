@@ -211,13 +211,13 @@ class Slice:
             return None
 
     @property
-    def sample_rates(self) -> npt.ArrayLike:
-        """The unique data frequencies for `Continuous` and `TimeSeries` data sources"""
+    def sample_intervals(self) -> npt.ArrayLike:
+        """The unique sample intervals for `Continuous` and `TimeSeries` data sources"""
         try:
-            return 1e9 / self._timesteps
+            return self._timesteps * 1e-9
         except NotImplementedError:
             raise NotImplementedError(
-                f"`sample_rates` are not available for {self._src.__class__.__name__} data"
+                f"`sample_intervals` are not available for {self._src.__class__.__name__} data"
             )
 
     @property

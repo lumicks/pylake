@@ -125,14 +125,14 @@ def test_slice_properties():
     assert s.sample_rate == 1e9
     timesteps = np.asarray([1], dtype=int)
     np.testing.assert_equal(s._timesteps, timesteps)
-    np.testing.assert_equal(s.sample_rates, 1e9 / timesteps)
+    np.testing.assert_equal(s.sample_intervals, timesteps * 1e-9)
 
     s = channel.Slice(channel.TimeSeries(rng.random(len(timestamps)), timestamps))
     assert len(s) == len(timestamps)
     assert s.sample_rate is None
     timesteps = np.unique(np.diff(timestamps)).astype(int)
     np.testing.assert_equal(s._timesteps, timesteps)
-    np.testing.assert_equal(s.sample_rates, 1e9 / timesteps)
+    np.testing.assert_equal(s.sample_intervals, timesteps * 1e-9)
 
     s = channel.Slice(channel.TimeTags(np.arange(0, size, dtype=np.int64)))
     assert len(s) == size
@@ -144,9 +144,9 @@ def test_slice_properties():
         s._timesteps
     with pytest.raises(
         NotImplementedError,
-        match="`sample_rates` are not available for TimeTags data",
+        match="`sample_intervals` are not available for TimeTags data",
     ):
-        s.sample_rates
+        s.sample_intervals
 
     s = channel.empty_slice
     assert len(s) == 0
@@ -158,9 +158,9 @@ def test_slice_properties():
         s._timesteps
     with pytest.raises(
         NotImplementedError,
-        match="`sample_rates` are not available for Empty data",
+        match="`sample_intervals` are not available for Empty data",
     ):
-        s.sample_rates
+        s.sample_intervals
 
 
 def test_labels():
