@@ -7,24 +7,29 @@ from .data.mock_fdcurve import generate_fdcurve_with_baseline_offset
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
-    )
+    for option in ("slow", "preflight"):
+        parser.addoption(
+            f"--run{option}", action="store_true", default=False, help=f"run {option} tests"
+        )
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
-        return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
+    for option in ("slow", "preflight"):
+        if config.getoption(f"--run{option}"):
+            continue
+        skip_slow = pytest.mark.skip(reason=f"need --run{option} option to run")
+        for item in items:
+            if option in item.keywords:
+                item.add_marker(skip_slow)
 
 
 def pytest_configure(config):
     # Use a headless backend for testing
     plt.switch_backend('agg')
     config.addinivalue_line("markers", "slow: mark test as slow to run")
+    config.addinivalue_line(
+        "markers", "preflight: mark preflight tests which should only be run manually"
+    )
 
 
 @pytest.fixture(scope="session")
