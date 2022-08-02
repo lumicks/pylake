@@ -6,6 +6,7 @@
 - Review the changelog. Make sure everything is clear and informative for users.
 - Bump the version number in `__about__.py`.
 - Check whether any dependencies have changed.
+- Run `pytest` with `pytest --runpreflight --runslow` and verify that all tests pass (none may be skipped).
 
 ## Releasing
 

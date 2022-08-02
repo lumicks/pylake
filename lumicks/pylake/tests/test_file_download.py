@@ -7,7 +7,7 @@ from lumicks.pylake.file_download import (
 )
 
 
-@pytest.mark.slow
+@pytest.mark.preflight
 def test_grab_record():
     assert get_url_from_doi("10.5281/zenodo.4247279") == "https://zenodo.org/record/4247279"
 
@@ -15,7 +15,7 @@ def test_grab_record():
         assert get_url_from_doi("10.55281/zenodo.4247279")
 
 
-@pytest.mark.slow
+@pytest.mark.preflight
 def test_download_record_metadata():
     record = download_record_metadata("4280789")  # Older version of Pylake
 
@@ -25,13 +25,13 @@ def test_download_record_metadata():
     assert record["files"][0]["links"]["self"].startswith("https://zenodo.org/")  # Link may change
 
 
-@pytest.mark.slow
+@pytest.mark.preflight
 def test_non_zenodo_doi():
     with pytest.raises(RuntimeError, match="Only Zenodo DOIs are supported"):
         assert download_from_doi("https://doi.org/10.1109/5.771073")
 
 
-@pytest.mark.slow
+@pytest.mark.preflight
 def test_download_from_doi(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp("download_testing")
     record = download_record_metadata("4247279")
