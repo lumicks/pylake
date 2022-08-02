@@ -102,9 +102,9 @@ def generate_image_data(image_data, samples_per_pixel, line_padding):
 class MockConfocalFile:
     def __init__(self, infowave, red_channel=None, blue_channel=None, green_channel=None):
         self.infowave = infowave
-        self.red_photon_count = red_channel
-        self.green_photon_count = green_channel
-        self.blue_photon_count = blue_channel
+        self.red_photon_count = red_channel if red_channel is not None else empty_slice
+        self.green_photon_count = green_channel if green_channel is not None else empty_slice
+        self.blue_photon_count = blue_channel if blue_channel is not None else empty_slice
 
     def __getitem__(self, key):
         if key == "Info wave":
