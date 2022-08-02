@@ -211,7 +211,7 @@ class Slice:
             return None
 
     @property
-    def sample_rates(self) -> npt.NDArray:
+    def sample_rates(self) -> npt.ArrayLike:
         """The unique data frequencies for `Continuous` and `TimeSeries` data sources"""
         try:
             return 1e9 / self._timesteps
