@@ -105,7 +105,7 @@ To quickly explore the correlation between images in a `CorrelatedStack` and cha
 you can use the following function::
 
     # Making a plot where force is correlated to images in the stack.
-    stack = lk.CorrelatedStack("example.tiff)
+    stack = lk.CorrelatedStack("example.tiff")
     stack.plot_correlated(file.force1x)
 
 .. image:: correlatedstack.png
