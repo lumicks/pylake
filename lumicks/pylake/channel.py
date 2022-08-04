@@ -242,7 +242,7 @@ class Slice:
 
             file = pylake.File("example.h5")
             stack = pylake.CorrelatedStack("example.tiff")
-            file.force1x.downsampled_over(stack.frame_timestamp_ranges)
+            file.force1x.downsampled_over(stack.frame_timestamp_ranges())
         """
         if not isinstance(range_list, list):
             raise TypeError("Did not pass timestamps to range_list.")

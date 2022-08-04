@@ -201,7 +201,7 @@ def test_correlation(shape):
 
     # Unit test which tests whether we obtain an appropriately downsampled time series when ask for downsampling of a
     # slice based on a stack.
-    ch = cc.downsampled_over(stack[0:3].frame_timestamp_ranges)
+    ch = cc.downsampled_over(stack[0:3].frame_timestamp_ranges())
     np.testing.assert_allclose(
         ch.data,
         [
@@ -212,7 +212,7 @@ def test_correlation(shape):
     )
     np.testing.assert_allclose(ch.timestamps, [(10 + 16) / 2, (20 + 26) / 2, (30 + 36) / 2])
 
-    ch = cc.downsampled_over(stack[1:4].frame_timestamp_ranges)
+    ch = cc.downsampled_over(stack[1:4].frame_timestamp_ranges())
     np.testing.assert_allclose(
         ch.data,
         [
@@ -227,13 +227,13 @@ def test_correlation(shape):
         cc.downsampled_over(stack[1:4])
 
     with pytest.raises(ValueError):
-        cc.downsampled_over(stack[1:4].frame_timestamp_ranges, where="up")
+        cc.downsampled_over(stack[1:4].frame_timestamp_ranges(), where="up")
 
     with pytest.raises(AssertionError):
-        cc["0ns":"20ns"].downsampled_over(stack[3:4].frame_timestamp_ranges)
+        cc["0ns":"20ns"].downsampled_over(stack[3:4].frame_timestamp_ranges())
 
     with pytest.raises(AssertionError):
-        cc["40ns":"70ns"].downsampled_over(stack[0:1].frame_timestamp_ranges)
+        cc["40ns":"70ns"].downsampled_over(stack[0:1].frame_timestamp_ranges())
 
     assert stack[0]._get_frame(0).start == 10
     assert stack[1]._get_frame(0).start == 20
@@ -927,3 +927,30 @@ def test_alignment_multistack(rgb_alignment_image_data, gray_alignment_image_dat
             full_stack_idx += 1
 
     assert full_stack.num_frames == len(ref_ts)
+
+
+def test_frame_timestamp_ranges_exclude_false():
+    stack = CorrelatedStack.from_dataset(
+        TiffStack(
+            [MockTiffFile(data=[np.ones((5, 5))] * 4, times=make_frame_times(4, step=6))],
+            align_requested=False,
+        )
+    )
+
+    for exclude, ranges in zip(
+            [False, True],
+            [[(10, 20), (20, 30), (30, 40), (40, 50)], [(10, 16), (20, 26), (30, 36), (40, 46)]],
+    ):
+        np.testing.assert_allclose(stack.frame_timestamp_ranges(exclude=exclude), ranges)
+
+
+def test_frame_timestamp_ranges_snapshot():
+    stack = CorrelatedStack.from_dataset(
+        TiffStack(
+            [MockTiffFile(data=[np.ones((5, 5))] * 1, times=make_frame_times(1, step=6))],
+            align_requested=False,
+        )
+    )
+
+    for exclude, ranges in zip([False, True], [[(10, 16)], [(10, 16)]]):
+        np.testing.assert_allclose(stack.frame_timestamp_ranges(exclude=exclude), ranges)

@@ -35,7 +35,7 @@ class CorrelatedStack(VideoExport):
         stack.plot_correlated(file.force1x)
 
         # Determine the force trace averaged over frame 2...9.
-        file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges)
+        file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges())
 
         # Loading multiple TIFFs into a stack.
         stack = pylake.CorrelatedStack("example.tiff", "example2.tiff", "example3.tiff")
@@ -364,7 +364,7 @@ class CorrelatedStack(VideoExport):
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
 
         title_factory = lambda frame: make_image_title(self, frame, show_name=False)
-        frame_timestamps = self.frame_timestamp_ranges
+        frame_timestamps = self.frame_timestamp_ranges()
 
         def frame_grabber(frame_idx):
             return self._get_frame(frame_idx)._get_plot_data(channel, adjustment=adjustment)
@@ -487,15 +487,33 @@ class CorrelatedStack(VideoExport):
     @deprecated(
         reason=(
             "For camera based images only the integration start/stop timestamps are defined. "
-            "Use `CorrelatedStack.frame_timestamp_ranges` instead."
+            "Use `CorrelatedStack.frame_timestamp_ranges()` instead."
         ),
         action="always",
         version="0.11.1",
     )
     def timestamps(self):
-        return self.frame_timestamp_ranges
+        return self.frame_timestamp_ranges()
 
-    @property
-    def frame_timestamp_ranges(self):
-        """List of time stamps."""
-        return [frame.frame_timestamp_range for frame in self]
+    def frame_timestamp_ranges(self, exclude=True):
+        """Get start and stop timestamp of each frame in the stack.
+
+        Parameters
+        ----------
+        exclude : bool
+            Exclude dead time at the end of each frame.
+        """
+        ts_ranges = [frame.frame_timestamp_range for frame in self]
+        if exclude:
+            return ts_ranges
+        else:
+            frame_ts = [
+                (leading[0], trailing[0]) for leading, trailing in zip(ts_ranges, ts_ranges[1:])
+            ]
+            if len(ts_ranges) >= 2:
+                dt = ts_ranges[-1][0] - ts_ranges[-2][0]
+                stop = ts_ranges[-1][0] + dt
+            else:
+                stop = ts_ranges[-1][1]
+            frame_ts.append((ts_ranges[-1][0], stop))
+            return frame_ts

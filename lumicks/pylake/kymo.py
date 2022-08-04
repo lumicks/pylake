@@ -755,7 +755,7 @@ def _kymo_from_correlated_stack(
         :func:`numpy.mean`, but :func:`numpy.max` could also be appropriate for some cases.
     """
     # Ensure constant frame rate of the whole stack
-    ts_ranges = np.array(corrstack.frame_timestamp_ranges)
+    ts_ranges = np.array(corrstack.frame_timestamp_ranges())
     line_times = np.diff(ts_ranges[:, 0])
     line_time = line_times[0]
     if not np.all(line_times == line_time):
