@@ -25,7 +25,7 @@
 
 #### Breaking changes
 
-* Changed default in `lk.calibrate_force()` to 38 Hz.
+* Removed default value provided for `driving_frequency_guess` in `lk.calibrate_force()`.
 * `CorrelatedStack.frame_timestamp_ranges()` is now a method rather than a property. This was done for API consistency with the API for `Scan`. Please refer to [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 * To disable image alignment for `lk.CorrelatedStack`, the alignment argument has to be provided as a keyword argument (e.g. `lk.CorrelatedStack("filename.tiff", align=False)` rather than `lk.CorrelatedStack("filename.tiff", False)`).
 * Changed the error type when attempting to access undefined per-pixel timestamps in `Kymo` from `AttributeError` to `NotImplementedError`.
