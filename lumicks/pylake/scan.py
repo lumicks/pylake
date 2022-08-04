@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from copy import copy
 from deprecated import deprecated
@@ -36,7 +37,7 @@ class Scan(ConfocalImage, VideoExport):
 
     def __getitem__(self, item):
         """All indexing is in frames"""
-        ts_ranges = self.frame_timestamp_ranges(exclude=False)
+        ts_ranges = self.frame_timestamp_ranges(include_dead_time=True)
 
         if isinstance(item, slice):
             if item.step is not None:
@@ -79,7 +80,7 @@ class Scan(ConfocalImage, VideoExport):
             )
         return self._metadata.num_frames
 
-    def frame_timestamp_ranges(self, exclude=True):
+    def frame_timestamp_ranges(self, exclude=None, *, include_dead_time=None):
         """Get start and stop timestamp of each frame in the scan.
 
         Note: The stop timestamp for each frame is defined as the first sample past the end of the
@@ -88,7 +89,9 @@ class Scan(ConfocalImage, VideoExport):
         Parameters
         ----------
         exclude : bool
-            Exclude dead time at the end of each frame.
+            Exclude dead time at the end of each frame (deprecated)
+        include_dead_time : bool
+            Include dead time at the end of each frame (default: False).
 
 
         Examples
@@ -106,18 +109,37 @@ class Scan(ConfocalImage, VideoExport):
             # Plot the force data corresponding to the first scan.
             file.force1x[start:stop].plot()
         """
+        if exclude is not None and include_dead_time is not None:
+            raise ValueError("Do not specify both exclude and include_dead_time parameters")
+
+        if exclude is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The argument exclude is deprecated. Please use the keyword argument "
+                    "`include_dead_time` from now on"
+                ),
+                stacklevel=2,
+            )
+
+        if include_dead_time is not None:
+            include = include_dead_time
+        elif exclude is not None:
+            include = not exclude
+        else:
+            include = False  # This will become the new default after full deprecation
+
         ts_min = self._timestamps("timestamps", reduce=np.min)
         ts_max = self._timestamps("timestamps", reduce=np.max)
         delta_ts = int(1e9 / self.infowave.sample_rate)  # We want the sample beyond the end
         if ts_min.ndim == 2:
             return [(np.min(ts_min), np.max(ts_max) + delta_ts)]
         else:
-            if exclude:
-                maximum_timestamp = np.max(ts_max, axis=tuple(range(1, ts_max.ndim)))
-                return [(t1, t2) for t1, t2 in zip(ts_min[:, 0, 0], maximum_timestamp + delta_ts)]
-            else:
+            if include:
                 frame_time = ts_min[1, 0, 0] - ts_min[0, 0, 0]
                 return [(t, t + frame_time) for t in ts_min[:, 0, 0]]
+            else:
+                maximum_timestamp = np.max(ts_max, axis=tuple(range(1, ts_max.ndim)))
+                return [(t1, t2) for t1, t2 in zip(ts_min[:, 0, 0], maximum_timestamp + delta_ts)]
 
     def plot_correlated(
         self,

@@ -203,22 +203,33 @@ def test_line_timestamp_ranges(test_kymos):
         ]
     )
 
-    for exclude, ref_ranges, ref_iw_chunks in zip(
-        (True, False),
+    for include, ref_ranges, ref_iw_chunks in zip(
+        (False, True),
         expected_ranges,
         expected_iw_chunks
     ):
-        ranges = kymo.line_timestamp_ranges(exclude=exclude)
+        ranges = kymo.line_timestamp_ranges(include_dead_time=include)
         np.testing.assert_equal(ranges, ref_ranges)
+
+        with pytest.deprecated_call():
+            np.testing.assert_equal(kymo.line_timestamp_ranges(not include), ref_ranges)
+
+        with pytest.deprecated_call():
+            np.testing.assert_equal(kymo.line_timestamp_ranges(exclude=not include), ref_ranges)
 
         iw_chunks = [kymo.infowave[slice(*rng)].data for rng in ranges]
         np.testing.assert_equal(iw_chunks, ref_iw_chunks)
+
+    with pytest.raises(
+        ValueError, match="Do not specify both exclude and include_dead_time parameters"
+    ):
+        kymo.line_timestamp_ranges(False, include_dead_time=False)
 
 
 def test_plotting_with_force_downsampling(kymo_h5_file):
     f = pylake.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["Kymo1"]
-    ranges = kymo.line_timestamp_ranges(exclude=True)
+    ranges = kymo.line_timestamp_ranges(include_dead_time=False)
 
     # Check timestamps for downsampled channel
     # Note that if the kymo would have the same samples per pixel, a simple:
@@ -260,7 +271,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
     kymo = f.kymos["Kymo1"]
     kymo_ds = kymo.downsampled_by(position_factor=2)
 
-    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(exclude=True))
+    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
     # Downsampling by a factor of two in position means that the last pixel will be dropped
@@ -272,7 +283,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
 
     # Downsampling by a factor of five in position means no pixel will be dropped.
     kymo_ds = kymo.downsampled_by(position_factor=5)
-    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(exclude=True))
+    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
     mins = kymo._timestamp_factory(kymo, np.min)[0, :]
     maxs = kymo._timestamp_factory(kymo, np.max)[-1, :]
     np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
@@ -296,14 +307,14 @@ def test_regression_plot_with_force(kymo_h5_file):
     kymo = f.kymos["Kymo1"]
     kymo.stop = int(kymo.stop - 2 * 1e9 / 16)
     kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(exclude=True))
+    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
     # Kymo ends on a partial last line. Multiple timestamps are zero now.
     kymo = f.kymos["Kymo1"]
     kymo.stop = int(kymo.stop - 10 * 1e9 / 16)
     kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(exclude=True))
+    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
 

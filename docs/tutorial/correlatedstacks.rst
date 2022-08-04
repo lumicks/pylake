@@ -121,6 +121,6 @@ using timestamps obtained from the `CorrelatedStack`::
     file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges())
 
 By default, this averages only over the exposure time of the images in the stack.
-If you wish to average over the full time range from the start of the scan to the next scan, pass the extra parameter `exclude=False`::
+If you wish to average over the full time range from the start of the scan to the next scan, pass the extra parameter `include_dead_time=True`::
 
-    file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges(exclude=False))
+    file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges(include_dead_time=True))

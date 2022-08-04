@@ -317,7 +317,7 @@ def test_single_frame_times(dim_x, dim_y, line_padding, start, dt, samples_per_p
     assert frame_times[0][1] == start + line_time - line_padding * dt
 
     # For the single frame case, there is no dead time, so these are identical
-    frame_times_inclusive = scan.frame_timestamp_ranges(exclude=False)
+    frame_times_inclusive = scan.frame_timestamp_ranges(include_dead_time=True)
     assert len(frame_times_inclusive) == 1
     assert frame_times_inclusive[0][0] == frame_times[0][0]
     assert frame_times_inclusive[0][1] == frame_times[0][1]
@@ -353,19 +353,31 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
     assert frame_times[-1][0] == start + line_padding * dt + (len(frame_times) - 1) * line_time
     assert frame_times[-1][1] == start + len(frame_times) * line_time - line_padding * dt
 
-    frame_times_inclusive = scan.frame_timestamp_ranges(exclude=False)
+    def compare_inclusive(frame_times_inclusive):
+        # Start times should be the same
+        assert len(frame_times_inclusive) == scan.num_frames
+        assert frame_times_inclusive[0][0] == frame_times[0][0]
+        assert frame_times_inclusive[1][0] == frame_times[1][0]
+        assert frame_times_inclusive[-1][0] == frame_times[-1][0]
 
-    # Start times should be the same
-    assert len(frame_times_inclusive) == scan.num_frames
-    assert frame_times_inclusive[0][0] == frame_times[0][0]
-    assert frame_times_inclusive[1][0] == frame_times[1][0]
-    assert frame_times_inclusive[-1][0] == frame_times[-1][0]
+        assert frame_times_inclusive[0][1] == frame_times[1][0]
+        assert frame_times_inclusive[1][1] == frame_times[2][0]
+        assert frame_times_inclusive[-1][1] == frame_times[-1][0] + (
+                frame_times[1][0] - frame_times[0][0]
+        )
 
-    assert frame_times_inclusive[0][1] == frame_times[1][0]
-    assert frame_times_inclusive[1][1] == frame_times[2][0]
-    assert frame_times_inclusive[-1][1] == frame_times[-1][0] + (
-        frame_times[1][0] - frame_times[0][0]
-    )
+    with pytest.deprecated_call():
+        compare_inclusive(scan.frame_timestamp_ranges(False))
+
+    with pytest.deprecated_call():
+        compare_inclusive(scan.frame_timestamp_ranges(exclude=False))
+
+    compare_inclusive(scan.frame_timestamp_ranges(include_dead_time=True))
+
+    with pytest.raises(
+            ValueError, match="Do not specify both exclude and include_dead_time parameters"
+    ):
+        scan.frame_timestamp_ranges(False, include_dead_time=True)
 
 
 @cleanup
