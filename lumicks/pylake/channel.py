@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 import numbers
 
 from .detail.utilities import downsample
@@ -176,12 +177,12 @@ class Slice:
         return self._src.stop
 
     @property
-    def data(self):
+    def data(self) -> npt.ArrayLike:
         """The primary values of this channel slice"""
         return self._src.data
 
     @property
-    def timestamps(self):
+    def timestamps(self) -> npt.ArrayLike:
         """Absolute timestamps (since epoch) which correspond to the channel data"""
         return self._src.timestamps
 
@@ -495,13 +496,13 @@ class Continuous:
         )
 
     @property
-    def data(self):
+    def data(self) -> npt.ArrayLike:
         if self._cached_data is None:
             self._cached_data = np.asarray(self._src_data)
         return self._cached_data
 
     @property
-    def timestamps(self):
+    def timestamps(self) -> npt.ArrayLike:
         return np.arange(self.start, self.stop, self.dt)
 
     @property
@@ -545,9 +546,10 @@ class TimeSeries:
 
     def __init__(self, data, timestamps):
         assert len(data) == len(timestamps)
-        # TODO: should be lazily evaluated
-        self.data = np.asarray(data)
-        self.timestamps = np.asarray(timestamps)
+        self._src_data = data
+        self._cached_data = None
+        self._src_timestamps = timestamps
+        self._cached_timestamps = None
 
     def __len__(self):
         return len(self.data)
@@ -567,6 +569,18 @@ class TimeSeries:
             labels={"title": dset.name.strip("/"), "y": y_label},
             calibration=calibration,
         )
+
+    @property
+    def data(self) -> npt.ArrayLike:
+        if self._cached_data is None:
+            self._cached_data = np.asarray(self._src_data)
+        return self._cached_data
+
+    @property
+    def timestamps(self) -> npt.ArrayLike:
+        if self._cached_timestamps is None:
+            self._cached_timestamps = np.asarray(self._src_timestamps)
+        return self._cached_timestamps
 
     @property
     def start(self):
@@ -626,7 +640,7 @@ class TimeTags:
         return Slice(TimeTags(dset))
 
     @property
-    def timestamps(self):
+    def timestamps(self) -> npt.ArrayLike:
         # For time tag data, the data is the timestamps!
         return self.data
 
@@ -653,11 +667,11 @@ class Empty:
         return 0
 
     @property
-    def data(self):
+    def data(self) -> npt.ArrayLike:
         return np.empty(0)
 
     @property
-    def timestamps(self):
+    def timestamps(self) -> npt.ArrayLike:
         return np.empty(0)
 
     @property

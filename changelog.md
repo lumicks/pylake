@@ -15,6 +15,7 @@
 * Made piezo tracking functionality public and added [piezo tracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/piezotracking.html).
 * Added support for steps when slicing frames from `CorrelatedStack`s.
 * Added `CorrelatedStack.export_video()` to export videos to export multi-frame videos to video formats or GIFs.
+* Lazily load `data` and `timestamps` for `TimeSeries` data
 
 #### Bug fixes
 
