@@ -33,7 +33,7 @@ Note also, the axes are labeled with the appropriate time and position units.
 
 The kymograph can also be exported to TIFF format::
 
-    kymo.save_tiff("image.tiff")
+    kymo.export_tiff("image.tiff")
 
 Kymo data and details
 ---------------------
@@ -166,7 +166,7 @@ There are also convenience functions to plot individual color channels and the f
 
 The images can also be exported in the TIFF format::
 
-    kymo.save_tiff("image.tiff")
+    kymo.export_tiff("image.tiff")
 
 Correlating with force
 ----------------------

@@ -247,18 +247,23 @@ def test_deprecated_plotting(test_scans):
         scan.plot_rgb()
 
 
-def test_save_tiff(tmpdir_factory, test_scans):
+def test_export_tiff(tmpdir_factory, test_scans):
     from os import stat
 
     tmpdir = tmpdir_factory.mktemp("pylake")
 
     scan = test_scans["fast Y slow X"]
-    scan.save_tiff(f"{tmpdir}/single_frame.tiff")
+    scan.export_tiff(f"{tmpdir}/single_frame.tiff")
     assert stat(f"{tmpdir}/single_frame.tiff").st_size > 0
 
     scan = test_scans["fast Y slow X multiframe"]
-    scan.save_tiff(f"{tmpdir}/multi_frame.tiff")
+    scan.export_tiff(f"{tmpdir}/multi_frame.tiff")
     assert stat(f"{tmpdir}/multi_frame.tiff").st_size > 0
+
+    scan = test_scans["fast Y slow X"]
+    with pytest.warns(DeprecationWarning, match="This method has been renamed to `export_tiff`"):
+        scan.save_tiff(f"{tmpdir}/single_frame_dep.tiff")
+        assert stat(f"{tmpdir}/single_frame_dep.tiff").st_size > 0
 
 
 def test_movie_export(tmpdir_factory, test_scans):

@@ -107,7 +107,7 @@ The limits can also be specified in percentiles when this is more practical::
 
 The images can also be exported in the TIFF format::
 
-    scan.save_tiff("image.tiff")
+    scan.export_tiff("image.tiff")
 
 Scans can also be exported to video formats.
 Exporting the red channel of a multi-scan GIF can be done as follows for example::

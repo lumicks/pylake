@@ -39,6 +39,7 @@
 #### Deprecations
 
 * Deprecated `export_video_red()`, `export_video_green()`, `export_video_blue()`, and `export_video_rgb()` methods for `Scan`. These methods have been replaced with a single `export_video(channel=color)` method.
+* `Scan.save_tiff()` and `Kymo.save_tiff()` were deprecated and replaced with `Scan.export_tiff()` and `Kymo.export_tiff()` to more clearly communicate that the data is exported to a different format.
 * In the functions `Scan.frame_timestamp_ranges()` and `Kymo.line_timestamp_ranges()`, the parameter `exclude` was deprecated in favor of `include_dead_time` for clarity.
 
 ## v0.12.1 | 2022-06-21
