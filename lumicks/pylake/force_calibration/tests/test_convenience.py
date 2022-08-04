@@ -95,13 +95,14 @@ def test_active_force_calibration_active(reference_models):
 
 
 def test_invalid_options_calibration():
+    common_args = {"active_calibration": True, "sample_rate": 78125}
     with pytest.raises(ValueError, match="Active calibration is not supported for axial force"):
-        calibrate_force([1], 1, 20, axial=True, active_calibration=True, sample_rate=78125)
+        calibrate_force([1], 1, 20, axial=True, **common_args)
 
     with pytest.raises(
         ValueError, match="Drag coefficient cannot be carried over to active calibration"
     ):
-        calibrate_force([1], 1, 20, drag=5, active_calibration=True, sample_rate=78125)
+        calibrate_force([1], 1, 20, drag=5, **common_args)
 
     with pytest.raises(
         ValueError, match="When using fast_sensor=True, there is no diode model to fix"
@@ -116,7 +117,25 @@ def test_invalid_options_calibration():
     with pytest.raises(
         ValueError, match="Active calibration requires the driving_data to be defined"
     ):
-        calibrate_force([1], 1, 20, active_calibration=True, sample_rate=78125)
+        calibrate_force([1], 1, 20, **common_args)
+
+    with pytest.raises(
+        ValueError, match="Approximate driving frequency must be specified and larger than zero"
+    ):
+        calibrate_force([1], 1, 20, **common_args, driving_data=np.array([1]))
+
+    for driving_freq in (0, -1):
+        with pytest.raises(
+            ValueError, match="Approximate driving frequency must be specified and larger than zero"
+        ):
+            calibrate_force(
+                [1],
+                1,
+                20,
+                **common_args,
+                driving_data=np.array([1]),
+                driving_frequency_guess=driving_freq,
+            )
 
 
 def test_mandatory_keyworded_arguments():

@@ -20,7 +20,7 @@ def calibrate_force(
     viscosity=None,
     active_calibration=False,
     driving_data=np.asarray([]),
-    driving_frequency_guess=38,
+    driving_frequency_guess=None,
     axial=False,
     hydrodynamically_correct=False,
     rho_sample=None,
@@ -77,7 +77,7 @@ def calibrate_force(
     driving_data : array_like, optional
         Array of driving data.
     driving_frequency_guess : float, optional
-         Guess of the driving frequency.
+         Guess of the driving frequency. Required for active calibration.
     axial : bool, optional
         Is this an axial calibration? Only valid for a passive calibration.
     hydrodynamically_correct : bool, optional
@@ -116,8 +116,11 @@ def calibrate_force(
     if (fixed_diode is not None or fixed_alpha is not None) and fast_sensor:
         raise ValueError("When using fast_sensor=True, there is no diode model to fix.")
 
-    if active_calibration and driving_data.size == 0:
-        raise ValueError("Active calibration requires the driving_data to be defined.")
+    if active_calibration:
+        if driving_data.size == 0:
+            raise ValueError("Active calibration requires the driving_data to be defined.")
+        if not driving_frequency_guess or driving_frequency_guess < 0:
+            raise ValueError("Approximate driving frequency must be specified and larger than zero")
 
     model_params = {
         "bead_diameter": bead_diameter,
