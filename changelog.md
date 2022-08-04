@@ -49,6 +49,14 @@
 * Deprecated `export_video_red()`, `export_video_green()`, `export_video_blue()`, and `export_video_rgb()` methods for `Scan`. These methods have been replaced with a single `export_video(channel=color)` method.
 * `Scan.save_tiff()` and `Kymo.save_tiff()` were deprecated and replaced with `Scan.export_tiff()` and `Kymo.export_tiff()` to more clearly communicate that the data is exported to a different format.
 * In the functions `Scan.frame_timestamp_ranges()` and `Kymo.line_timestamp_ranges()`, the parameter `exclude` was deprecated in favor of `include_dead_time` for clarity.
+* Deprecated `KymoTrackGroup.remove_lines_in_rect()`; use `KymoTrackGroup.remove_tracks_in_rect()` instead (see below).
+
+#### Other changes
+* Renamed classes/methods/functions dealing with tracked particles. This change was made to avoid ambiguity with regard to the term *"line"*. Now, a *"line"* refers to a single scan pass of the confocal mirror during imaging. A *"track"* refers to the coordinates of tracked particles from a kymograph. Note: the relevant classes are considered internal API and should not be constructed manually. Any breaking changes or deprecations are noted above. The specific name changes are as follows:
+    * `KymoLine` was renamed to `KymoTrack`
+    * `KymoLineGroup` was renamed to `KymoTrackGroup`
+    * `export_kymolinegroup_to_csv()` was renamed to `export_kymotrackgroup_to_csv()`
+    * `import_kymolinegroup_from_csv()` was renamed to `import_kymotrackgroup_from_csv()`
 
 ## v0.12.1 | 2022-06-21
 

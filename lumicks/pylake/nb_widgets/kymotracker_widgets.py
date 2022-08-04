@@ -7,7 +7,7 @@ from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_lines, refine_lines_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
-from lumicks.pylake.kymotracker.kymoline import KymoLineGroup, import_kymolinegroup_from_csv
+from lumicks.pylake.kymotracker.kymoline import KymoTrackGroup, import_kymotrackgroup_from_csv
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
 
@@ -58,7 +58,7 @@ class KymoWidget:
             if axis_aspect_ratio
             else None
         )
-        self._lines_history = UndoStack(KymoLineGroup([]))
+        self._lines_history = UndoStack(KymoTrackGroup([]))
         self.plotted_lines = []
         self._kymo = kymo
         self._channel = channel
@@ -98,7 +98,7 @@ class KymoWidget:
 
         # Explicit copy to make modifications. Current state pushed to undo stack on assignment.
         lines = copy(self.lines)
-        lines.remove_lines_in_rect([p1, p2])
+        lines.remove_tracks_in_rect([p1, p2])
 
         if self.adding:
             new_lines = self._track(rect=[p1, p2])
@@ -207,7 +207,7 @@ class KymoWidget:
 
                 clicked = [clicked_line_info, released_line_info]
                 clicked.sort(key=lambda x: x[2])  # by time
-                lines._merge_lines(*clicked[0][:2], *clicked[1][:2])
+                lines._merge_tracks(*clicked[0][:2], *clicked[1][:2])
 
                 self.lines = lines
                 self.update_lines()
@@ -247,7 +247,7 @@ class KymoWidget:
             self._set_label("status", str(exception))
 
     def save_lines(self, filename, delimiter=";", sampling_width=None):
-        """Export KymoLineGroup to a csv file.
+        """Export KymoTrackGroup to a csv file.
 
         Parameters
         ----------
@@ -264,7 +264,7 @@ class KymoWidget:
 
     def _load_from_ui(self):
         try:
-            self.lines = import_kymolinegroup_from_csv(
+            self.lines = import_kymotrackgroup_from_csv(
                 self.output_filename, self._kymo, self._channel
             )
             self.update_lines()

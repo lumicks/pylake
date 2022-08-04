@@ -1,5 +1,5 @@
 import numpy as np
-from lumicks.pylake.kymotracker.kymoline import KymoLine
+from lumicks.pylake.kymotracker.kymoline import KymoTrack
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
@@ -25,27 +25,27 @@ def test_sampling():
     )
 
     # Tests the bound handling
-    kymoline = KymoLine([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img, "red")
-    np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
+    kymotrack = KymoTrack([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img, "red")
+    np.testing.assert_allclose(kymotrack.sample_from_image(50), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(2), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(1), [0, 2, 2, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 1, 1, 1, 0])
     np.testing.assert_allclose(
-        KymoLine([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red").sample_from_image(0), [0, 0, 1, 1, 0]
+        KymoTrack([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red").sample_from_image(0), [0, 0, 1, 1, 0]
     )
 
-    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red")
-    np.testing.assert_allclose(kymoline.sample_from_image(50), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(2), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(1), [0, 2, 2, 2, 0])
-    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 1, 1, 1, 0])
-    kymoline = KymoLine([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red")
-    np.testing.assert_allclose(kymoline.sample_from_image(0), [0, 0, 1, 1, 0])
+    kymotrack = KymoTrack([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red")
+    np.testing.assert_allclose(kymotrack.sample_from_image(50), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(2), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(1), [0, 2, 2, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 1, 1, 1, 0])
+    kymotrack = KymoTrack([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red")
+    np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 0, 1, 1, 0])
 
 
-def test_kymoline_regression_sample_from_image_clamp():
+def test_kymotrack_regression_sample_from_image_clamp():
     """This tests for a regression that occurred in sample_from_image. When sampling the image, we
-    sample pixels in a region around the line. This sampling procedure is constrained to stay within
+    sample pixels in a region around the track. This sampling procedure is constrained to stay within
     the image. Previously, we used the incorrect axis to clamp the coordinate.
     """
     # Sampling the bottom row of a three pixel tall image will return [0, 0] instead of [1, 3];
@@ -60,4 +60,4 @@ def test_kymoline_regression_sample_from_image_clamp():
         samples_per_pixel=1,
         line_padding=0
     )
-    assert np.array_equal(KymoLine([0, 1], [2, 2], img, "red").sample_from_image(0), [1, 3])
+    assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red").sample_from_image(0), [1, 3])

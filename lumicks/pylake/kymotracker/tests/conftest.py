@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
+from lumicks.pylake.kymotracker.kymoline import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from .data.generate_gaussian_data import read_dataset as read_dataset_gaussian
 
@@ -54,7 +54,7 @@ def blank_kymo():
 
 
 @pytest.fixture
-def kymogroups_2lines():
+def kymogroups_2tracks():
     _, _, photon_count, parameters = read_dataset_gaussian("kymo_data_2lines.npz")
     pixel_size = parameters[0].pixel_size
     centers = [p.center / pixel_size for p in parameters]
@@ -70,33 +70,33 @@ def kymogroups_2lines():
     )
     _, n_frames = kymo.get_image("red").shape
 
-    lines = KymoLineGroup(
-        [KymoLine(np.arange(0.0, n_frames), np.full(n_frames, c), kymo, "red") for c in centers]
+    tracks = KymoTrackGroup(
+        [KymoTrack(np.arange(0.0, n_frames), np.full(n_frames, c), kymo, "red") for c in centers]
     )
 
-    # introduce gaps into tracked lines
+    # introduce gaps into tracks
     use_frames = np.array([0, 1, -2, -1])
-    gapped_lines = KymoLineGroup(
+    gapped_tracks = KymoTrackGroup(
         [
-            KymoLine(line.time_idx[use_frames], line.coordinate_idx[use_frames], kymo, "red")
-            for line in lines
+            KymoTrack(track.time_idx[use_frames], track.coordinate_idx[use_frames], kymo, "red")
+            for track in tracks
         ]
     )
 
-    # crop the ends of initial lines and make new set of lines with one cropped and the second full
-    truncated_lines = KymoLineGroup(
+    # crop the ends of initial tracks and make new set of tracks with one cropped and the second full
+    truncated_tracks = KymoTrackGroup(
         [
-            KymoLine(np.arange(1.0, n_frames - 2), np.full(n_frames - 3, c), kymo, "red")
+            KymoTrack(np.arange(1.0, n_frames - 2), np.full(n_frames - 3, c), kymo, "red")
             for c in centers
         ]
     )
-    mixed_lines = KymoLineGroup([truncated_lines[0], lines[1]])
+    mixed_tracks = KymoTrackGroup([truncated_tracks[0], tracks[1]])
 
-    return lines, gapped_lines, mixed_lines
+    return tracks, gapped_tracks, mixed_tracks
 
 
 @pytest.fixture
-def kymogroups_close_lines():
+def kymogroups_close_tracks():
     _, _, photon_count, parameters = read_dataset_gaussian("two_gaussians_1d.npz")
     pixel_size = parameters[0].pixel_size
     centers = [p.center / pixel_size for p in parameters]
@@ -112,8 +112,6 @@ def kymogroups_close_lines():
     )
     _, n_frames = kymo.get_image("red").shape
 
-    lines = KymoLineGroup(
-        [KymoLine(np.arange(0.0, n_frames), np.full(n_frames, c), kymo, "red") for c in centers]
+    return KymoTrackGroup(
+        [KymoTrack(np.arange(0.0, n_frames), np.full(n_frames, c), kymo, "red") for c in centers]
     )
-
-    return lines
