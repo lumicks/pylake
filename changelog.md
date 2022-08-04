@@ -35,6 +35,7 @@
 * It is now mandatory to supply a `sample_rate` when calling `lumicks.pylake.force_calibration.touchdown.touchdown()`.
 * Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
 * The property `sample_rate` of `Continuous` data now returns a `float` instead of an `int``
+* Removed deprecated argument `roi` from `CorrelatedStack.export_tiff`. Use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting.
 
 #### Deprecations
 

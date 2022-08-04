@@ -35,22 +35,15 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
 
     for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
         savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
-        stack = CorrelatedStack(str(filename))
-        with pytest.warns(DeprecationWarning):
-            stack.export_tiff(savename, roi=[10, 190, 20, 80])
+        stack = CorrelatedStack(str(filename))[:, 20:80, 10:190]
+
+        stack.export_tiff(savename)
         assert stat(savename).st_size > 0
 
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
 
-        with pytest.raises(ValueError):
-            with pytest.warns(DeprecationWarning):
-                stack.export_tiff(savename, roi=[-10, 190, 20, 80])
-
-        with pytest.raises(ValueError):
-            with pytest.warns(DeprecationWarning):
-                stack.export_tiff(savename, roi=[190, 10, 20, 80])
         stack.src.close()
 
 
