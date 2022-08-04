@@ -407,16 +407,13 @@ class CorrelatedStack(VideoExport):
             post_update=post_update,
         )
 
-    def export_tiff(self, file_name, roi=None):
+    def export_tiff(self, file_name):
         """Export a video of a particular scan plot
 
         Parameters
         ----------
         file_name : str
             File name to export to.
-        roi : list_like
-            region of interest in pixel values [xmin, xmax, ymin, ymax]
-            *Deprecated since v0.10.1* Instead, use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting."
         """
         from . import __version__ as version
 
@@ -440,31 +437,18 @@ class CorrelatedStack(VideoExport):
 
             return (orientation, sample_format, datetime)
 
-        # crop to ROI if applicable
-        if roi is not None:
-            warnings.warn(
-                (
-                    "The `roi` argument is deprecated since v0.10.1 "
-                    "Instead, use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting."
-                ),
-                DeprecationWarning,
-            )
-            to_save = self.crop_by_pixels(*roi)
-        else:
-            to_save = self
-
         # re-name alignment matrices fields in image description
         # to reflect the fact that the image has already been processed
-        description = to_save.src._description.for_export
+        description = self.src._description.for_export
 
         # add pylake to Software tag
-        software = to_save.src._description.software
+        software = self.src._description.software
         if "pylake" not in software:
             software += f", pylake v{version}"
 
         # write frames sequentially
         with tifffile.TiffWriter(file_name) as tif:
-            for frame in to_save:
+            for frame in self:
                 tif.write(
                     frame.data,
                     description=description,
