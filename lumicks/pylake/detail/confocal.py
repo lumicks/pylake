@@ -385,7 +385,7 @@ class ConfocalImage(BaseScan):
 
         return frame_image
 
-    def export_tiff(self, filename, dtype=np.float32, clip=False):
+    def export_tiff(self, filename, *, dtype=np.float32, clip=False):
         """Save the RGB photon counts to a TIFF image
 
         Parameters
@@ -427,7 +427,7 @@ class ConfocalImage(BaseScan):
         version="0.13.0",
     )
     def save_tiff(self, filename, dtype=np.float32, clip=False):
-        return self.export_tiff(filename, dtype, clip)
+        return self.export_tiff(filename, dtype=dtype, clip=clip)
 
     save_tiff.__doc__ = export_tiff.__doc__
 
