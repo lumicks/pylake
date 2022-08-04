@@ -111,7 +111,7 @@ def test_kymo_slicing(test_kymos):
         empty_kymograph.timestamps
 
     with pytest.raises(RuntimeError):
-        empty_kymograph.save_tiff("test")
+        empty_kymograph.export_tiff("test")
 
     with pytest.raises(RuntimeError):
         empty_kymograph.plot_rgb()
@@ -366,8 +366,12 @@ def test_save_tiff(tmpdir_factory, test_kymos):
     tmpdir = tmpdir_factory.mktemp("pylake")
 
     kymo = test_kymos["Kymo1"]
-    kymo.save_tiff(f"{tmpdir}/kymo1.tiff")
+    kymo.export_tiff(f"{tmpdir}/kymo1.tiff")
     assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
+
+    with pytest.warns(DeprecationWarning, match="This method has been renamed to `export_tiff`"):
+        kymo.save_tiff(f"{tmpdir}/kymo2.tiff")
+        assert stat(f"{tmpdir}/kymo2.tiff").st_size > 0
 
 
 def test_downsampled_kymo():

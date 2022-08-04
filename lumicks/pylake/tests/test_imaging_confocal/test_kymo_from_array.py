@@ -78,7 +78,7 @@ def test_save_tiff(tmpdir_factory, test_kymos):
         arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb", no_pxsize=no_pxsize)
 
         with pytest.warns(UserWarning):
-            arr_kymo.save_tiff(f"{tmpdir}/kymo1.tiff")
+            arr_kymo.export_tiff(f"{tmpdir}/kymo1.tiff")
             assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
 
 
