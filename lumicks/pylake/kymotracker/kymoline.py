@@ -1,5 +1,5 @@
 from copy import copy
-from deprecated import deprecated
+from deprecated.sphinx import deprecated
 from sklearn.neighbors import KernelDensity
 from ..detail.utilities import use_docstring_from
 from .detail.msd_estimation import *
@@ -7,33 +7,33 @@ from .detail.localization_models import LocalizationModel
 from lumicks.pylake.population.dwelltime import DwelltimeModel
 
 
-def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_width):
-    """Export KymoLineGroup to a csv file.
+def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_width):
+    """Export KymoTrackGroup to a csv file.
 
     Parameters
     ----------
     filename : str
-        Filename to output KymoLineGroup to.
-    kymoline_group : KymoLineGroup
+        Filename to output KymoTrackGroup to.
+    kymotrack_group : KymoTrackGroup
         Kymograph traces to export.
     delimiter : str
         Which delimiter to use in the csv file.
     sampling_width : int or None
-        When supplied, this will sample the source image around the kymograph line and export the summed intensity with
+        When supplied, this will sample the source image around the kymograph track and export the summed intensity with
         the image. The value indicates the number of pixels in either direction to sum over.
     """
-    if not kymoline_group:
-        raise RuntimeError("No kymograph traces to export")
+    if not kymotrack_group:
+        raise RuntimeError("No kymograph tracks to export")
 
     time_units = "seconds"
-    position_units = kymoline_group[0]._kymo._calibration.unit
+    position_units = kymotrack_group[0]._kymo._calibration.unit
 
-    idx = np.hstack([np.full(len(line), idx) for idx, line in enumerate(kymoline_group)])
-    coords_idx = np.hstack([line.coordinate_idx for line in kymoline_group])
-    times_idx = np.hstack([line.time_idx for line in kymoline_group])
+    idx = np.hstack([np.full(len(track), idx) for idx, track in enumerate(kymotrack_group)])
+    coords_idx = np.hstack([track.coordinate_idx for track in kymotrack_group])
+    times_idx = np.hstack([track.time_idx for track in kymotrack_group])
 
-    position = np.hstack([line.position for line in kymoline_group])
-    seconds = np.hstack([line.seconds for line in kymoline_group])
+    position = np.hstack([track.position for track in kymotrack_group])
+    seconds = np.hstack([track.seconds for track in kymotrack_group])
 
     data, header, fmt = [], [], []
 
@@ -42,7 +42,7 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_wi
         header.append(column_title)
         fmt.append(format_string)
 
-    store_column("line index", "%d", idx)
+    store_column("track index", "%d", idx)
     store_column("time (pixels)", "%.18e", times_idx)
     store_column("coordinate (pixels)", "%.18e", coords_idx)
 
@@ -53,43 +53,43 @@ def export_kymolinegroup_to_csv(filename, kymoline_group, delimiter, sampling_wi
         store_column(
             f"counts (summed over {2 * sampling_width + 1} pixels)",
             "%d",
-            np.hstack([line.sample_from_image(sampling_width) for line in kymoline_group]),
+            np.hstack([track.sample_from_image(sampling_width) for track in kymotrack_group]),
         )
 
     data = np.vstack(data).T
     np.savetxt(filename, data, fmt=fmt, header=delimiter.join(header), delimiter=delimiter)
 
 
-def import_kymolinegroup_from_csv(filename, kymo, channel, delimiter=";"):
-    """Import kymolines from csv
+def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
+    """Import tracked particle coordinates from csv
 
     Parameters
     ----------
     filename : str
         filename to import from.
     kymo : Kymo
-        kymograph instance that these lines were tracked from.
+        kymograph instance that these coordinates were tracked from.
     channel : str
-        color channel that these lines were tracked from.
+        color channel that these coordinates were tracked from.
     delimiter : str
-        A delimiter that delimits the column data.
+        The string used to separate columns.
 
     The file format contains a series of columns as follows:
-    line index, time (pixels), coordinate (pixels), time (optional), coordinate (optional), sampled_counts (optional)"""
+    track index, time (pixels), coordinate (pixels), time (optional), coordinate (optional), sampled_counts (optional)"""
     data = np.loadtxt(filename, delimiter=delimiter)
     assert len(data.shape) == 2, "Invalid file format"
     assert data.shape[0] > 2, "Invalid file format"
 
     indices = data[:, 0]
-    lines = np.unique(indices)
+    tracks = np.unique(indices)
 
-    return KymoLineGroup(
-        [KymoLine(data[indices == k, 1], data[indices == k, 2], kymo, channel) for k in lines]
+    return KymoTrackGroup(
+        [KymoTrack(data[indices == k, 1], data[indices == k, 2], kymo, channel) for k in tracks]
     )
 
 
-class KymoLine:
-    """A line on a kymograph.
+class KymoTrack:
+    """A tracked particle on a kymograph.
 
     Parameters
     ----------
@@ -122,8 +122,8 @@ class KymoLine:
         return self._kymo.get_image(self._channel)
 
     def _with_coordinates(self, time_idx, localization):
-        """Return a copy of the KymoLine with new spatial/temporal coordinates."""
-        return KymoLine(
+        """Return a copy of the KymoTrack with new spatial/temporal coordinates."""
+        return KymoTrack(
             time_idx,
             localization,
             self._kymo,
@@ -131,7 +131,7 @@ class KymoLine:
         )
 
     def with_offset(self, time_offset, coordinate_offset):
-        """Returns an offset version of the KymoLine"""
+        """Returns an offset version of the KymoTrack"""
         # Convert from image units to (integer rounded toward zero) pixels
         time_pixel_offset = int(time_offset / self._line_time_seconds)
         coordinate_pixel_offset = int(coordinate_offset / self._pixelsize)
@@ -142,7 +142,7 @@ class KymoLine:
         )
 
     def __add__(self, other):
-        """Concatenate two KymoLines"""
+        """Concatenate two KymoTracks"""
         return self._with_coordinates(
             np.hstack((self.time_idx, other.time_idx)),
             np.hstack((self.coordinate_idx, other.coordinate_idx)),
@@ -172,7 +172,7 @@ class KymoLine:
 
     @property
     def _line_time_seconds(self):
-        """Kymograph line (frame) time in seconds."""
+        """Source kymograph line time in seconds."""
         return self._kymo.line_time_seconds
 
     @property
@@ -181,11 +181,11 @@ class KymoLine:
         return self._kymo.pixelsize[0]
 
     def _check_ends_are_defined(self):
-        """Checks if beginning and end of the line are not in the first/last frame."""
+        """Checks if beginning and end of the track are not in the first/last frame."""
         return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.shape[1] - 1
 
     def in_rect(self, rect):
-        """Check whether any point of this KymoLine falls in the rect given in rect.
+        """Check whether any point of this KymoTrack falls in the rect given in rect.
 
         Parameters
         ----------
@@ -197,15 +197,15 @@ class KymoLine:
         return np.any(np.logical_and(time_match, position_match))
 
     def interpolate(self):
-        """Interpolate Kymoline to whole pixel values"""
+        """Interpolate KymoTrack to whole pixel values"""
         interpolated_time = np.arange(int(np.min(self.time_idx)), int(np.max(self.time_idx)) + 1, 1)
         interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
         return self._with_coordinates(interpolated_time, interpolated_coord)
 
     def sample_from_image(self, num_pixels, reduce=np.sum):
-        """Sample from image using coordinates from this KymoLine.
+        """Sample from image using coordinates from this KymoTrack.
 
-        This function samples data from the image given in data based on the points in this KymoLine. It samples
+        This function samples data from the image given in data based on the points in this KymoTrack. It samples
         from [time, position - num_pixels : position + num_pixels + 1] and then applies the function sum.
 
         Parameters
@@ -397,7 +397,7 @@ class KymoLine:
 
     @deprecated(
         reason=(
-            'This method is replaced by `KymoLine.estimate_diffusion(method="ols")` to allow more '
+            'This method is replaced by `KymoTrack.estimate_diffusion(method="ols")` to allow more '
             "flexibility in the choice of algorithms and provide additional metadata."
         ),
         action="always",
@@ -420,62 +420,62 @@ class KymoLine:
         return self.estimate_diffusion("ols", max_lag).value
 
 
-class KymoLineGroup:
-    """Kymograph lines"""
+class KymoTrackGroup:
+    """Tracked particles from a kymograph."""
 
-    def __init__(self, kymo_lines):
-        self._src = kymo_lines
+    def __init__(self, kymo_tracks):
+        self._src = kymo_tracks
 
     def __iter__(self):
         return self._src.__iter__()
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return KymoLineGroup(self._src[item])
+            return KymoTrackGroup(self._src[item])
         else:
             return self._src[item]
 
     def __setitem__(self, item, value):
-        raise NotImplementedError("Cannot overwrite KymoLines.")
+        raise NotImplementedError("Cannot overwrite KymoTracks.")
 
     def __copy__(self):
-        return KymoLineGroup(copy(self._src))
+        return KymoTrackGroup(copy(self._src))
 
-    def _concatenate_lines(self, starting_line, ending_line):
-        """Concatenate two lines together.
+    def _concatenate_tracks(self, starting_track, ending_track):
+        """Concatenate two tracks together.
 
         Parameters
         ----------
-        starting_line : KymoLine
-            Note that this line has to start before the second one.
-        ending_line : KymoLine
+        starting_track : KymoTrack
+            Note that this track has to start before the second one.
+        ending_track : KymoTrack
         """
-        if starting_line not in self._src or ending_line not in self._src:
-            raise RuntimeError("Both lines need to be part of this group to be concatenated")
+        if starting_track not in self._src or ending_track not in self._src:
+            raise RuntimeError("Both tracks need to be part of this group to be concatenated")
 
-        if starting_line.seconds[-1] >= ending_line.seconds[0]:
-            raise RuntimeError("First line needs to end before the second starts for concatenation")
+        if starting_track.seconds[-1] >= ending_track.seconds[0]:
+            raise RuntimeError("First track needs to end before the second starts for concatenation")
 
-        self._src[self._src.index(starting_line)] = starting_line + ending_line
-        self._src.remove(ending_line)
+        self._src[self._src.index(starting_track)] = starting_track + ending_track
+        self._src.remove(ending_track)
 
-    def _merge_lines(self, starting_line, starting_node, ending_line, ending_node):
+    def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
         starting_node = int(starting_node) + 1
         ending_node = int(ending_node)
 
-        first_half = starting_line._with_coordinates(
-            starting_line.time_idx[:starting_node],
-            starting_line.coordinate_idx[:starting_node],
+        first_half = starting_track._with_coordinates(
+            starting_track.time_idx[:starting_node],
+            starting_track.coordinate_idx[:starting_node],
         )
 
-        last_half = ending_line._with_coordinates(
-            ending_line.time_idx[ending_node:],
-            ending_line.coordinate_idx[ending_node:],
+        last_half = ending_track._with_coordinates(
+            ending_track.time_idx[ending_node:],
+            ending_track.coordinate_idx[ending_node:],
         )
 
-        self._src[self._src.index(starting_line)] = first_half + last_half
-        if starting_line != ending_line:
-            self._src.remove(ending_line)
+        self._src[self._src.index(starting_track)] = first_half + last_half
+        if starting_track != ending_track:
+            self._src.remove(ending_track)
 
     def __len__(self):
         return len(self._src)
@@ -483,15 +483,26 @@ class KymoLineGroup:
     def extend(self, other):
         if isinstance(other, self.__class__):
             self._src.extend(other._src)
-        elif isinstance(other, KymoLine):
+        elif isinstance(other, KymoTrack):
             self._src.extend([other])
         else:
             raise TypeError(
-                f"You can only extend a {self.__class__} with a {self.__class__} or " f"{KymoLine}"
+                f"You can only extend a {self.__class__} with a {self.__class__} or " f"{KymoTrack}"
             )
 
+    @deprecated(
+        reason=(
+            "This method will be removed in a future release. Use `remove_tracks_in_rect()` instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def remove_lines_in_rect(self, rect):
-        """Removes traces that fall in a particular region. Note that if any point on a line falls
+        self.remove_tracks_in_rect(rect)
+
+
+    def remove_tracks_in_rect(self, rect):
+        """Removes tracks that fall in a particular region. Note that if any point on a track falls
         inside the selected region it will be removed.
 
         Parameters
@@ -505,25 +516,25 @@ class KymoLineGroup:
         if rect[0][1] > rect[1][1]:
             rect[0][1], rect[1][1] = rect[1][1], rect[0][1]
 
-        self._src = [line for line in self._src if not line.in_rect(rect)]
+        self._src = [track for track in self._src if not track.in_rect(rect)]
 
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self._src)})"
 
     def save(self, filename, delimiter=";", sampling_width=None):
-        """Export kymograph lines to a csv file.
+        """Export kymograph tracks to a csv file.
 
         Parameters
         ----------
         filename : str
-            Filename to output kymograph traces to.
+            Filename to output kymograph tracks to.
         delimiter : str
             Which delimiter to use in the csv file.
         sampling_width : int or None
-            When supplied, this will sample the source image around the kymograph line and export the summed intensity
+            When supplied, this will sample the source image around the kymograph track and export the summed intensity
             with the image. The value indicates the number of pixels in either direction to sum over.
         """
-        export_kymolinegroup_to_csv(filename, self._src, delimiter, sampling_width)
+        export_kymotrackgroup_to_csv(filename, self._src, delimiter, sampling_width)
 
     def fit_binding_times(
         self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
@@ -551,8 +562,8 @@ class KymoLineGroup:
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
-        lines = filter(KymoLine._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
-        dwelltimes_sec = np.hstack([line.seconds[-1] - line.seconds[0] for line in lines])
+        tracks = filter(KymoTrack._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
+        dwelltimes_sec = np.hstack([track.seconds[-1] - track.seconds[0] for track in tracks])
 
         min_observation_time = np.min(dwelltimes_sec)
         max_observation_time = self[0]._image.shape[1] * self[0]._line_time_seconds
@@ -641,8 +652,8 @@ class KymoLineGroup:
         except ZeroDivisionError:
             raise ValueError("Number of time bins must be <= number of frames.")
 
-        frames = np.hstack([line.time_idx for line in self])
-        positions = np.hstack([line.position for line in self])
+        frames = np.hstack([track.time_idx for track in self])
+        positions = np.hstack([track.position for track in self])
         bin_labels = np.digitize(frames, bin_edges, right=False)
 
         x = np.linspace(0, position_max, n_position_points)[:, np.newaxis]
@@ -660,6 +671,6 @@ class KymoLineGroup:
 
         return x.squeeze(), densities
 
-    @use_docstring_from(KymoLine.estimate_diffusion)
+    @use_docstring_from(KymoTrack.estimate_diffusion)
     def estimate_diffusion(self, *args, **kwargs):
         return [k.estimate_diffusion(*args, **kwargs) for k in self._src]

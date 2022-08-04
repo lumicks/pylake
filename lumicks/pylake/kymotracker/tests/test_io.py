@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.kymoline import (
-    KymoLine,
-    KymoLineGroup,
-    import_kymolinegroup_from_csv,
+    KymoTrack,
+    KymoTrackGroup,
+    import_kymotrackgroup_from_csv,
 )
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
@@ -13,9 +13,9 @@ def read_txt(testfile, delimiter):
     with open(testfile, "r") as f:
         data = {}
         header = f.readline().rstrip().split(delimiter)
-        line_idx = raw_data[0, :]
+        track_idx = raw_data[0, :]
         for key, col in zip(header, raw_data):
-            data[key] = [col[np.argwhere(line_idx == idx).flatten()] for idx in np.unique(line_idx)]
+            data[key] = [col[np.argwhere(track_idx == idx).flatten()] for idx in np.unique(track_idx)]
 
         return data
 
@@ -31,18 +31,18 @@ def read_txt(testfile, delimiter):
         [int(1e9), 2.0, ";", None, None],
     ],
 )
-def test_kymolinegroup_io(
+def test_kymotrackgroup_io(
     tmpdir_factory, dt, dx, delimiter, sampling_width, sampling_outcome
 ):
 
-    line_coordinates = [
+    track_coordinates = [
         ((1, 2, 3), (2, 3, 4)),
         ((2, 3, 4), (3, 4, 5)),
         ((3, 4, 5), (4, 5, 6)),
         ((4, 5, 6), (5, 6, 7)),
     ]
     test_data = np.zeros((8, 8))
-    for time_idx, position_idx in line_coordinates:
+    for time_idx, position_idx in track_coordinates:
         test_data[np.array(position_idx).astype(int), np.array(time_idx).astype(int)] = 2
         test_data[np.array(position_idx).astype(int) - 1, np.array(time_idx).astype(int)] = 1
 
@@ -56,40 +56,40 @@ def test_kymolinegroup_io(
         line_padding=3
     )
 
-    lines = KymoLineGroup(
+    tracks = KymoTrackGroup(
         [
-            KymoLine(
+            KymoTrack(
                 np.array(time_idx),
                 np.array(position_idx),
                 kymo,
                 "red"
             )
-            for time_idx, position_idx in line_coordinates
+            for time_idx, position_idx in track_coordinates
         ]
     )
 
     # Test round trip through the API
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
-    lines.save(testfile, delimiter, sampling_width)
-    read_file = import_kymolinegroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
+    tracks.save(testfile, delimiter, sampling_width)
+    read_file = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
 
     # Test raw fields
     data = read_txt(testfile, delimiter)
-    assert len(read_file) == len(lines)
+    assert len(read_file) == len(tracks)
 
-    for line1, line2 in zip(lines, read_file):
-        np.testing.assert_allclose(np.array(line1.coordinate_idx), np.array(line2.coordinate_idx))
-        np.testing.assert_allclose(np.array(line1.time_idx), np.array(line2.time_idx))
+    for track1, track2 in zip(tracks, read_file):
+        np.testing.assert_allclose(np.array(track1.coordinate_idx), np.array(track2.coordinate_idx))
+        np.testing.assert_allclose(np.array(track1.time_idx), np.array(track2.time_idx))
 
-    for line1, time in zip(lines, data["time (seconds)"]):
-        np.testing.assert_allclose(line1.seconds, time)
+    for track1, time in zip(tracks, data["time (seconds)"]):
+        np.testing.assert_allclose(track1.seconds, time)
 
-    for line1, coord in zip(lines, data["position (um)"]):
-        np.testing.assert_allclose(line1.position, coord)
+    for track1, coord in zip(tracks, data["position (um)"]):
+        np.testing.assert_allclose(track1.position, coord)
 
     if sampling_width is None:
         assert len([key for key in data.keys() if "counts" in key]) == 0
     else:
         count_field = [key for key in data.keys() if "counts" in key][0]
-        for line1, cnt in zip(lines, data[count_field]):
-            np.testing.assert_allclose([sampling_outcome] * len(line1.coordinate_idx), cnt)
+        for track1, cnt in zip(tracks, data[count_field]):
+            np.testing.assert_allclose([sampling_outcome] * len(track1.coordinate_idx), cnt)

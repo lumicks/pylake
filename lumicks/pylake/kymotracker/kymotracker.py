@@ -1,6 +1,6 @@
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
-from .kymoline import KymoLine
+from .kymoline import KymoTrack
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.peakfinding import (
     peak_estimate,
@@ -9,7 +9,7 @@ from .detail.peakfinding import (
     KymoPeaks,
 )
 from .detail.localization_models import GaussianLocalizationModel
-from .kymoline import KymoLineGroup
+from .kymoline import KymoTrackGroup
 import numpy as np
 import warnings
 
@@ -170,9 +170,9 @@ def track_greedy(
         sigma_cutoff=sigma_cutoff,
     )
 
-    lines = [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
+    lines = [KymoTrack(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
 
-    return KymoLineGroup(lines)
+    return KymoTrackGroup(lines)
 
 
 def track_lines(
@@ -252,8 +252,8 @@ def track_lines(
         roi=roi,
     )
 
-    return KymoLineGroup(
-        [KymoLine(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
+    return KymoTrackGroup(
+        [KymoTrack(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
     )
 
 
@@ -265,12 +265,12 @@ def filter_lines(lines, minimum_length):
 
     Parameters
     ----------
-    lines : List[pylake.KymoLine]
+    lines : List[pylake.KymoTrack]
         Detected traces on a kymograph.
     minimum_length : int
         Minimum length for the line to be accepted.
     """
-    return KymoLineGroup([line for line in lines if len(line) >= minimum_length])
+    return KymoTrackGroup([line for line in lines if len(line) >= minimum_length])
 
 
 def refine_lines_centroid(lines, line_width):
@@ -282,7 +282,7 @@ def refine_lines_centroid(lines, line_width):
 
     Parameters
     ----------
-    lines : List[pylake.KymoLine]
+    lines : List[pylake.KymoTrack]
         Detected traces on a kymograph
     line_width : int
         Line width in pixels (may not be smaller than 1)
@@ -310,7 +310,7 @@ def refine_lines_centroid(lines, line_width):
         line._with_coordinates(time_idx[line_ids == j], coordinate_idx[line_ids == j])
         for j, line in enumerate(interpolated_lines)
     ]
-    return KymoLineGroup(new_lines)
+    return KymoTrackGroup(new_lines)
 
 
 def refine_lines_gaussian(
@@ -325,18 +325,18 @@ def refine_lines_gaussian(
 
     Parameters
     ----------
-    lines : List[pylake.KymoLine] or pylake.KymolineGroup
+    lines : List[pylake.KymoTrack] or pylake.KymolineGroup
         Detected traces on a kymograph.
     window : int
         Number of pixels on either side of the estimated line to include in the optimization data.
     refine_missing_frames : bool
         Whether to estimate location for frames which were missed in initial peak finding.
     overlap_strategy : {'multiple', 'ignore', 'skip'}
-        How to deal with frames in which the fitting window of two `KymoLine`'s overlap.
+        How to deal with frames in which the fitting window of two `KymoTrack`'s overlap.
 
         - 'multiple' : fit the peaks simultaneously.
         - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
-        - 'skip' : skip optimization of the frame; remove from returned `KymoLine`.
+        - 'skip' : skip optimization of the frame; remove from returned `KymoTrack`.
     initial_sigma : float
         Initial guess for the `sigma` parameter.
     fixed_background : float
@@ -413,9 +413,9 @@ def refine_lines_gaussian(
             f"There were {overlap_count} instances of overlapped tracks ignored while fitting."
         )
 
-    return KymoLineGroup(
+    return KymoTrackGroup(
         [
-            KymoLine(t, GaussianLocalizationModel(*np.vstack(p).T), kymo, channel)
+            KymoTrack(t, GaussianLocalizationModel(*np.vstack(p).T), kymo, channel)
             for t, p in zip(refined_lines_time_idx, refined_lines_parameters)
             if len(t) > 0
         ]

@@ -1,5 +1,5 @@
 from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy, KymotrackerParameter
-from lumicks.pylake.kymotracker.kymoline import KymoLine, KymoLineGroup
+from lumicks.pylake.kymotracker.kymoline import KymoTrack, KymoTrackGroup
 from matplotlib.testing.decorators import cleanup
 import numpy as np
 import re
@@ -156,19 +156,19 @@ def test_refine_from_widget(kymograph, region_select):
 def test_stitch(kymograph, mockevent):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
 
-    k1 = KymoLine(
+    k1 = KymoTrack(
         np.array([1, 2, 3]),
         np.array([1, 1, 1]),
         kymograph,
         "red",
     )
-    k2 = KymoLine(
+    k2 = KymoTrack(
         np.array([6, 7, 8]),
         np.array([3, 3, 3]),
         kymograph,
         "red",
     )
-    kymo_widget.lines = KymoLineGroup([k1, k2])
+    kymo_widget.lines = KymoTrackGroup([k1, k2])
 
     # Go into line connection mode
     kymo_widget._select_state({"new": "Connect Lines"})
@@ -202,19 +202,19 @@ def test_stitch(kymograph, mockevent):
 def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
 
-    k1 = KymoLine(
+    k1 = KymoTrack(
         np.array([1, 2, 3, 4, 5]),
         np.array([1, 1, 1, 3, 3]),
         kymograph,
         "red",
     )
-    k2 = KymoLine(
+    k2 = KymoTrack(
         np.array([6, 7, 8]),
         np.array([3, 3, 3]),
         kymograph,
         "red",
     )
-    kymo_widget.lines = KymoLineGroup([k1, k2])
+    kymo_widget.lines = KymoTrackGroup([k1, k2])
 
     # Go into line connection mode
     kymo_widget._select_state({"new": "Connect Lines"})

@@ -6,12 +6,12 @@ from lumicks.pylake.kymotracker.detail.trace_line_2d import (
     points_to_line_segments,
     KymoLineData,
 )
-from lumicks.pylake.kymotracker.kymoline import KymoLine
+from lumicks.pylake.kymotracker.kymoline import KymoTrack
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
 
 
 def test_score_matrix(blank_kymo):
-    lines = [KymoLine([0], [3], blank_kymo, "red")]
+    tracks = [KymoTrack([0], [3], blank_kymo, "red")]
     unique_coordinates = np.arange(0, 7)
     unique_times = np.arange(1, 7)
 
@@ -24,7 +24,7 @@ def test_score_matrix(blank_kymo):
     # No velocity
     matrix = np.reshape(
         build_score_matrix(
-            lines, times, positions, kymo_score(vel=0, sigma=0.5, diffusion=0.125), sigma_cutoff=2
+            tracks, times, positions, kymo_score(vel=0, sigma=0.5, diffusion=0.125), sigma_cutoff=2
         ),
         (len(unique_times), -1),
     )
@@ -43,7 +43,7 @@ def test_score_matrix(blank_kymo):
     # With velocity
     matrix = np.reshape(
         build_score_matrix(
-            lines, times, positions, kymo_score(vel=1, sigma=0.5, diffusion=0.125), sigma_cutoff=2
+            tracks, times, positions, kymo_score(vel=1, sigma=0.5, diffusion=0.125), sigma_cutoff=2
         ),
         (len(unique_times), -1),
     )
