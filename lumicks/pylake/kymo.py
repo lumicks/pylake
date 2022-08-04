@@ -150,7 +150,7 @@ class Kymo(ConfocalImage):
         """Pixel dwell time in seconds"""
         return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
 
-    def line_timestamp_ranges(self, exclude=True):
+    def line_timestamp_ranges(self, exclude=None, *, include_dead_time=None):
         """Get start and stop timestamp of each line in the kymo.
 
         Note: The stop timestamp for each line is defined as the first sample past the end of the
@@ -159,9 +159,30 @@ class Kymo(ConfocalImage):
         Parameters
         ----------
         exclude : bool
-            Exclude dead time at the end of each line.
+            Exclude dead time at the end of each frame (deprecated)
+        include_dead_time : bool
+            Include dead time at the end of each frame (default: False).
         """
-        return self._line_timestamp_ranges_factory(self, exclude)
+        if exclude is not None and include_dead_time is not None:
+            raise ValueError("Do not specify both exclude and include_dead_time parameters")
+
+        if exclude is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The argument exclude is deprecated. Please use the keyword argument "
+                    "`include_dead_time` from now on",
+                ),
+                stacklevel=2,
+            )
+
+        if include_dead_time is not None:
+            include = include_dead_time
+        elif exclude is not None:
+            include = not exclude
+        else:
+            include = False  # This will become the new default after full deprecation
+
+        return self._line_timestamp_ranges_factory(self, not include)
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
@@ -305,7 +326,7 @@ class Kymo(ConfocalImage):
                 RuntimeWarning("Using downsampled force since high frequency force is unavailable.")
             )
 
-        time_ranges = self.line_timestamp_ranges(exclude=True)
+        time_ranges = self.line_timestamp_ranges(include_dead_time=False)
         force = channel.downsampled_over(time_ranges, reduce=reduce, where="center")
 
         force.plot(**kwargs)

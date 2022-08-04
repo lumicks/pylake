@@ -929,7 +929,7 @@ def test_alignment_multistack(rgb_alignment_image_data, gray_alignment_image_dat
     assert full_stack.num_frames == len(ref_ts)
 
 
-def test_frame_timestamp_ranges_exclude_false():
+def test_frame_timestamp_ranges_include_true():
     stack = CorrelatedStack.from_dataset(
         TiffStack(
             [MockTiffFile(data=[np.ones((5, 5))] * 4, times=make_frame_times(4, step=6))],
@@ -937,11 +937,11 @@ def test_frame_timestamp_ranges_exclude_false():
         )
     )
 
-    for exclude, ranges in zip(
-            [False, True],
+    for include, ranges in zip(
+            [True, False],
             [[(10, 20), (20, 30), (30, 40), (40, 50)], [(10, 16), (20, 26), (30, 36), (40, 46)]],
     ):
-        np.testing.assert_allclose(stack.frame_timestamp_ranges(exclude=exclude), ranges)
+        np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)
 
 
 def test_frame_timestamp_ranges_snapshot():
@@ -952,5 +952,5 @@ def test_frame_timestamp_ranges_snapshot():
         )
     )
 
-    for exclude, ranges in zip([False, True], [[(10, 16)], [(10, 16)]]):
-        np.testing.assert_allclose(stack.frame_timestamp_ranges(exclude=exclude), ranges)
+    for include, ranges in zip([True, False], [[(10, 16)], [(10, 16)]]):
+        np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)

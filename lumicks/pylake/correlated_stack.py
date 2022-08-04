@@ -495,18 +495,16 @@ class CorrelatedStack(VideoExport):
     def timestamps(self):
         return self.frame_timestamp_ranges()
 
-    def frame_timestamp_ranges(self, exclude=True):
+    def frame_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each frame in the stack.
 
         Parameters
         ----------
-        exclude : bool
-            Exclude dead time at the end of each frame.
+        include_dead_time : bool
+            Include dead time between frames.
         """
         ts_ranges = [frame.frame_timestamp_range for frame in self]
-        if exclude:
-            return ts_ranges
-        else:
+        if include_dead_time:
             frame_ts = [
                 (leading[0], trailing[0]) for leading, trailing in zip(ts_ranges, ts_ranges[1:])
             ]
@@ -517,3 +515,5 @@ class CorrelatedStack(VideoExport):
                 stop = ts_ranges[-1][1]
             frame_ts.append((ts_ranges[-1][0], stop))
             return frame_ts
+        else:
+            return ts_ranges

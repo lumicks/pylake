@@ -15,7 +15,7 @@ colors = ("red", "green", "blue")
 
 def make_kymo_from_array(kymo, image, color_format, no_pxsize=False):
     start = kymo._timestamps("timestamps", np.min)[0, 0]
-    exposure_time_sec = np.diff(kymo.line_timestamp_ranges(exclude=True)[0])[0] * 1e-9
+    exposure_time_sec = np.diff(kymo.line_timestamp_ranges(include_dead_time=False)[0])[0] * 1e-9
 
     return _kymo_from_array(
         image,
@@ -40,10 +40,12 @@ def test_from_array(test_kymos):
 
     np.testing.assert_equal(kymo.line_time_seconds, arr_kymo.line_time_seconds)
     np.testing.assert_equal(
-        kymo.line_timestamp_ranges(exclude=True), arr_kymo.line_timestamp_ranges(exclude=True)
+        kymo.line_timestamp_ranges(include_dead_time=False),
+        arr_kymo.line_timestamp_ranges(include_dead_time=False)
     )
     np.testing.assert_equal(
-        kymo.line_timestamp_ranges(exclude=False), arr_kymo.line_timestamp_ranges(exclude=False)
+        kymo.line_timestamp_ranges(include_dead_time=True),
+        arr_kymo.line_timestamp_ranges(include_dead_time=True)
     )
 
     np.testing.assert_equal(kymo.pixelsize_um, arr_kymo.pixelsize_um)
@@ -92,10 +94,12 @@ def test_from_array_no_pixelsize(test_kymos):
 
     np.testing.assert_equal(kymo.line_time_seconds, arr_kymo.line_time_seconds)
     np.testing.assert_equal(
-        kymo.line_timestamp_ranges(exclude=True), arr_kymo.line_timestamp_ranges(exclude=True)
+        kymo.line_timestamp_ranges(include_dead_time=False),
+        arr_kymo.line_timestamp_ranges(include_dead_time=False)
     )
     np.testing.assert_equal(
-        kymo.line_timestamp_ranges(exclude=False), arr_kymo.line_timestamp_ranges(exclude=False)
+        kymo.line_timestamp_ranges(include_dead_time=True),
+        arr_kymo.line_timestamp_ranges(include_dead_time=True)
     )
 
     assert arr_kymo.pixelsize_um == [None]
