@@ -266,7 +266,7 @@ def filter_lines(lines, minimum_length):
     Parameters
     ----------
     lines : List[pylake.KymoTrack]
-        Detected traces on a kymograph.
+        Detected tracks on a kymograph.
     minimum_length : int
         Minimum length for the line to be accepted.
     """
@@ -326,7 +326,7 @@ def refine_lines_gaussian(
     Parameters
     ----------
     lines : List[pylake.KymoTrack] or pylake.KymolineGroup
-        Detected traces on a kymograph.
+        Detected tracks on a kymograph.
     window : int
         Number of pixels on either side of the estimated line to include in the optimization data.
     refine_missing_frames : bool
