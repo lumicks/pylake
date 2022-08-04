@@ -15,11 +15,11 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
     filename : str
         Filename to output KymoTrackGroup to.
     kymotrack_group : KymoTrackGroup
-        Kymograph traces to export.
+        Kymograph tracks to export.
     delimiter : str
         Which delimiter to use in the csv file.
     sampling_width : int or None
-        When supplied, this will sample the source image around the kymograph track and export the summed intensity with
+        If, this will sample the source image around the kymograph track and export the summed intensity with
         the image. The value indicates the number of pixels in either direction to sum over.
     """
     if not kymotrack_group:
@@ -61,16 +61,16 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
 
 
 def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
-    """Import tracked particle coordinates from csv
+    """Import a KymoTrackGroup from a csv file.
 
     Parameters
     ----------
     filename : str
         filename to import from.
     kymo : Kymo
-        kymograph instance that these coordinates were tracked from.
+        kymograph instance that the CSV data was tracked from.
     channel : str
-        color channel that these coordinates were tracked from.
+        color channel that was used for tracking.
     delimiter : str
         The string used to separate columns.
 
@@ -421,7 +421,7 @@ class KymoTrack:
 
 
 class KymoTrackGroup:
-    """Tracked particles from a kymograph."""
+    """Tracks on a kymograph."""
 
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
@@ -454,7 +454,9 @@ class KymoTrackGroup:
             raise RuntimeError("Both tracks need to be part of this group to be concatenated")
 
         if starting_track.seconds[-1] >= ending_track.seconds[0]:
-            raise RuntimeError("First track needs to end before the second starts for concatenation")
+            raise RuntimeError(
+                "First track needs to end before the second starts for concatenation"
+            )
 
         self._src[self._src.index(starting_track)] = starting_track + ending_track
         self._src.remove(ending_track)
@@ -499,7 +501,6 @@ class KymoTrackGroup:
     )
     def remove_lines_in_rect(self, rect):
         self.remove_tracks_in_rect(rect)
-
 
     def remove_tracks_in_rect(self, rect):
         """Removes tracks that fall in a particular region. Note that if any point on a track falls
@@ -562,7 +563,9 @@ class KymoTrackGroup:
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
-        tracks = filter(KymoTrack._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
+        tracks = (
+            filter(KymoTrack._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
+        )
         dwelltimes_sec = np.hstack([track.seconds[-1] - track.seconds[0] for track in tracks])
 
         min_observation_time = np.min(dwelltimes_sec)

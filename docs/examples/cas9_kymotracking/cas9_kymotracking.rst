@@ -44,13 +44,13 @@ Since we don't want it in our working folder, we'll put it in a folder called `"
 Plotting the kymograph
 ----------------------
 
-Let’s load our Bluelake data and have a look at what the kymograph looks like. We can easily grab the kymo by calling
+Let's load our Bluelake data and have a look at what the kymograph looks like. We can easily grab the kymo by calling
 `popitem()` on the list of kymos, which returns the first kymograph::
 
     file = lk.File(filenames[0])
     _, kymo = file.kymos.popitem()
 
-In this experiment, force was measured alongside the kymograph. Let’s plot them together to get a feel for what the
+In this experiment, force was measured alongside the kymograph. Let's plot them together to get a feel for what the
 data looks like::
 
     plt.figure(figsize=(7, 4))
@@ -73,12 +73,12 @@ data looks like::
 
 Note how color adjustment is specified for the kymograph. Any photon count outside the range provided to :class:`~lumicks.pylake.ColorAdjustment` will be clipped to the nearest color.
 
-What we can observe in this data is that as more force is applied, we get an increased binding activity. Let’s see
+What we can observe in this data is that as more force is applied, we get an increased binding activity. Let's see
 if we can put the kymotracker to some good use and quantify these.
 
 Computing the background
 ------------------------
-First, we select a small region without traces to determine the background signal::
+First, we select a small region without tracks to determine the background signal::
 
     background = kymo["100s":"200s"].crop_by_distance(28, 31)
     green_background_per_pixel = np.mean(background.get_image("green"))
@@ -95,37 +95,37 @@ We downsample the data by a factor of `2`::
 Performing the kymotracking
 ---------------------------
 
-Now that we’ve loaded some data, we can begin tracing lines on it. For this, we open the widget.
+Now that we've loaded some data, we can begin tracking lines on it. For this, we open the widget.
 This will provide us with a view of the kymograph and some dials to tune in algorithm settings. We open with a
 custom `axis_aspect_ratio` which determines our field of view. This input is not necessary, but provides a better
 view of our data.
 
 We will be using the greedy algorithm. The `threshold` should typically be chosen somewhere between the expected
-baseline photon count and the photon count of a true line (note that you can see the local photon count between square
-brackets while hovering over the kymograph). The `line width` should roughly be set to the expected line width of a
-line. The `window` should be chosen such that small gaps in a trace can be overcome, but not so large that spurious
-points may be strung together as a trace. `Sigma` controls how much the location can fluctuate from one point to the
-next, while the `min length` determines how many peak points should be in a trace for it to be considered a valid
-trace.
+baseline photon count and the photon count of a true track (note that you can see the local photon count between square
+brackets while hovering over the kymograph). The `line width` should roughly be set to the expected line width (in the spatial dimension) of a
+track. The `window` should be chosen such that small gaps in a track can be overcome, but not so large that spurious
+points may be strung together as a track. `Sigma` controls how much the location can fluctuate from one time point to the
+next, while the `min length` determines how many peak points should be in a track for it to be considered a valid track.
 
 Holding down the left mouse button and dragging pans the view, while the right mouse button allows us to drag a region
-where we should trace lines. Any line which overlaps with the selected area will be removed before tracing new ones.
+where we should perform tracking. Any track which overlaps with the selected area will be removed before tracking new ones.
 
 The icon with the little square can be used to toggle zoom mode, which will allow you to zoom in one subsection of the
 kymograph. Clicking it again brings us back out of zoom mode. You can zoom out again by clicking the home button. Quite
 often, it is beneficial to find some adequate settings for track all, and then fine-tune the results using the manual
-rectangle selection. It’s not mandatory to use the same settings throughout the kymograph. For example, if you see a
-particular event where two lines are disconnected that should be connected, temporarily increase the window size and
-just drag a rectangle over that particular line while having the option `Track lines` enabled.
+rectangle selection. It's not mandatory to use the same settings throughout the kymograph. For example, if you see a
+particular event where two tracks are disconnected but should be connected, temporarily increase the window size and
+just drag a rectangle over that particular track while having the option `Track lines` enabled.
 
-Now, let’s track some traces. There are two ways to approach this analysis. The first is to just use the rectangle
-selection, which can be quite time intensive. Alternatively, you can use `Track all` to simply track all lines found
-in the kymograph, and then remove spurious detections by hand. This can be good to get a feel for the parameters as
-well. If we select the `Remove lines` mode we will start removing lines without grabbing new ones. This
+Now, let's do some tracking. There are two ways to approach this analysis. The first is to just use the rectangle
+selection, which can be quite time intensive. Alternatively, you can use `Track all` to simply track the entire kymograph,
+and then remove spurious detections by hand. This can be good to get a feel for the parameters as
+well. If we select the `Remove lines` mode we will start removing tracks without grabbing new ones. This
 functionality can be used to remove spurious detections.
 
-Finally, if you wish to connect two lines in the kymograph manually, you can switch to the `Connect Lines` mode.
-In this mode you can click the end of one kymoline with the right mouse button and connect it to another by dragging to the start of the line you wish to connect it to.
+Finally, if you wish to connect two tracks in the kymograph manually, you can switch to the `Connect Lines` mode.
+In this mode you can click a point in one track with the right mouse button and connect it to another by dragging to a point
+in the track you wish to connect it to.
 
 Note that in this data for example, there are some regions where fluorescence starts building up on the surface of the
 bead. This binding should be omitted from the analysis::
@@ -137,8 +137,8 @@ bead. This binding should be omitted from the analysis::
 One last thing to note is that we assigned the `KymoWidgetGreedy` to the variable `kymowidget`. That means that from
 this point on, we can interact with it through the handle name `kymowidget`.
 
-Exporting from the widget results in a file that contains the line coordinates in pixels and real units.
-If we also want to export the photon counts in a region around the traced line, we can include a `sampling_width`.
+Exporting from the widget results in a file that contains the track coordinates in pixels and real units.
+If we also want to export the photon counts in a region around the track, we can include a `sampling_width`.
 This sums the photon counts from `pixel_position - sampling_width` to (and including) `pixel_position + sampling_width`::
 
     kymowidget.save_lines("kymotracks_calibrated.txt", sampling_width=3)
@@ -146,8 +146,9 @@ This sums the photon counts from `pixel_position - sampling_width` to (and inclu
 Analyzing the results
 ---------------------
 
-Once traced, the lines are available in `kymowidget.lines`. Lines have a `position` list and a `time` list. Let’s grab
-the longest line we found, and have a look at its position over time::
+The tracks are available in `kymowidget.lines`, which returns a `KymoTrackGroup` object. The group is a customized list of `KymoTrack` objects
+which contain lists of position and time coordinates for each tracked particle. These can be accessed with the `KymoTrack.position` and
+`KymoTrack.seconds` properties, respectively. Let's grab the longest track we found, and have a look at its position over time::
 
     lengths = [len(line) for line in kymowidget.lines]
 
@@ -166,7 +167,10 @@ the longest line we found, and have a look at its position over time::
 
 .. image:: kymo_position_over_time.png
 
-The line coordinates can be used to sample the photon counts in the image. The example below demonstrates how to obtain the sum of the photon counts in a pixel region around the line from -3 to 3 (a line with a width of 7 pixels). The background per pixel as computed earlier is subtracted from the photon counts. Since the kymograph was downsampled by a factor 2 after computing the background, the background per pixel is multiplied by 2::
+The track coordinates can be used to sample the photon counts in the image. The example below demonstrates how to obtain the sum
+of the photon counts in a pixel region around the track from -3 to 3 (a track with a width of 7 pixels). The background per pixel as computed
+earlier is subtracted from the photon counts. Since the kymograph was downsampled by a factor 2 after computing the background,
+the background per pixel is multiplied by 2::
 
     window = 3
     bg_corrected = longest_line.sample_from_image(window) - (2 * window + 1) * 2 * green_background_per_pixel
@@ -181,8 +185,8 @@ The line coordinates can be used to sample the photon counts in the image. The e
 
 .. image:: photon_counts_longest.png
 
-Since we are interested in how the binding events are affected by the applied force, let’s have a look how long the line
-segments are when we compare them to the force::
+Since we are interested in how the binding events are affected by the applied force, let's have a look how long the tracks are when we
+compare them to the force::
 
     plt.figure(figsize=(6, 3))
     ax1 = plt.subplot(1, 1, 1)
@@ -207,7 +211,7 @@ However, what we wanted to know was how the force affects initiation. To determi
 at which events were started. To do this, we compare the `line_start_time` we just computed to the time in the force
 channel. What we want is the index with the smallest distance to our line start time. We can use `np.argmin()` for
 this, which will return the index of the minimum value in a list. Once we have the index, we can quickly look up the
-force for each line start position::
+force for each track start position::
 
     force_index = [np.argmin(np.abs(time - line_start_time)) for line_start_time in line_start_times]
     line_forces = force[force_index]
@@ -217,7 +221,7 @@ We can look at the number of events started at each force by making a histogram 
 
     events_started, edges = np.histogram(line_forces, 10, range=(10, 60))
 
-Since we didn’t spend an equal amount of time in each force bin, we should normalize by the time spent in each force
+Since we didn't spend an equal amount of time in each force bin, we should normalize by the time spent in each force
 bin. We can also compute this with a histogram::
 
     samples_spent_at_force, edges = np.histogram(force, 10, range=(10, 60))
