@@ -116,23 +116,66 @@ def test_calibration_continuous_channels():
 
 
 def test_slice_properties():
-    size = 5
-    s = channel.Slice(channel.TimeSeries(np.random.rand(size), np.random.rand(size)))
-    assert len(s) == size
-    assert s.sample_rate is None
+    size = 10
+    rng = np.random.default_rng()
+    timestamps_var = np.unique(np.sort(rng.integers(1e9, 10e9, size=size)))
+    timestamps_cst = np.arange(0, size)
+    timestamps_far = np.arange(0, size * 2**31, 2**31)
 
-    s = channel.Slice(channel.Continuous(np.random.rand(size), start=0, dt=1))
+    # `Continuous`
+    s = channel.Slice(channel.Continuous(rng.random(size), start=0, dt=1))
     assert len(s) == size
     assert s.sample_rate == 1e9
+    timesteps = np.asarray([1])
+    np.testing.assert_equal(s._timesteps, timesteps)
 
-    size = 10
+    # `Continuous` with sample rate < (1e9 / (2**31 - 1)), i.e. timesteps > max(int32)
+    s = channel.Slice(channel.Continuous(rng.random(size), start=0, dt=2**31))
+    assert len(s) == size
+    assert s.sample_rate == 1e9 / 2**31
+    timesteps = np.asarray([2**31])
+    np.testing.assert_equal(s._timesteps, timesteps)
+
+    # `TimeSeries` with constant sample rate
+    s = channel.Slice(channel.TimeSeries(rng.random(size), timestamps_cst))
+    assert len(s) == size
+    assert s.sample_rate == 1e9
+    timesteps = np.unique(np.diff(timestamps_cst))
+    np.testing.assert_equal(s._timesteps, timesteps)
+
+    # `TimeSeries` with variable sample rate
+    s = channel.Slice(channel.TimeSeries(rng.random(len(timestamps_var)), timestamps_var))
+    assert len(s) == len(timestamps_var)
+    assert s.sample_rate is None
+    timesteps = np.unique(np.diff(timestamps_var))
+    np.testing.assert_equal(s._timesteps, timesteps)
+
+    # `TimeSeries` with sample rate < (1e9 / (2**31 - 1)), i.e. timesteps > max(int32)
+    s = channel.Slice(channel.TimeSeries(rng.random(size), timestamps_far))
+    assert len(s) == len(timestamps_far)
+    assert s.sample_rate == 1e9 / 2**31
+    timesteps = np.unique(np.diff(timestamps_far))
+    np.testing.assert_equal(s._timesteps, timesteps)
+
+    # `TimeTags`
     s = channel.Slice(channel.TimeTags(np.arange(0, size, dtype=np.int64)))
     assert len(s) == size
     assert s.sample_rate is None
+    with pytest.raises(
+        NotImplementedError,
+        match="`_timesteps` are not available for TimeTags data",
+    ):
+        s._timesteps
 
+    # `Empty`
     s = channel.empty_slice
     assert len(s) == 0
     assert s.sample_rate is None
+    with pytest.raises(
+        NotImplementedError,
+        match="`_timesteps` are not available for Empty data",
+    ):
+        s._timesteps
 
 
 def test_labels():
@@ -398,28 +441,31 @@ def test_channel(channel_h5_file):
 
 
 def test_downsampling():
-    s = channel.Slice(channel.Continuous([14, 15, 16, 17], start=with_offset(0), dt=10))
-    assert s.sample_rate == 1e8
+    dt = 10  # ns
+    sample_rate = 1e9 / dt  # Hz
+
+    s = channel.Slice(channel.Continuous([14, 15, 16, 17], start=with_offset(0), dt=dt))
+    assert s.sample_rate == sample_rate
 
     s2 = s.downsampled_by(2)
     np.testing.assert_allclose(s2.data, 14.5, 16.5)
     np.testing.assert_equal(s2.timestamps, with_offset([5, 25]))
-    assert s2.sample_rate == 0.5e8
+    assert s2.sample_rate == sample_rate / 2
 
     s4 = s.downsampled_by(4)
     np.testing.assert_allclose(s4.data, 15.5)
     np.testing.assert_equal(s4.timestamps, with_offset([15]))
-    assert s4.sample_rate == 0.25e8
+    assert s4.sample_rate == sample_rate / 4
 
     s3 = s.downsampled_by(3)
     np.testing.assert_allclose(s3.data, 15)
     np.testing.assert_equal(s3.timestamps, with_offset([10]))
-    assert s3.sample_rate == 33333333
+    assert s3.sample_rate == sample_rate / 3
 
     s22 = s2.downsampled_by(2)
     np.testing.assert_allclose(s22.data, 15.5)
     np.testing.assert_equal(s22.timestamps, with_offset([15]))
-    assert s22.sample_rate == 0.25e8
+    assert s22.sample_rate == sample_rate / (2 * 2)
 
     with pytest.raises(ValueError):
         s.downsampled_by(-1)

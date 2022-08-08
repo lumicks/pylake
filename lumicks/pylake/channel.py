@@ -1,10 +1,10 @@
 import numpy as np
 import numpy.typing as npt
 import numbers
+from typing import Union
 
 from .detail.utilities import downsample
 from .detail.timeindex import to_timestamp
-from .calibration import ForceCalibration
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
 
 
@@ -204,16 +204,23 @@ class Slice:
             return []
 
     @property
-    def sample_rate(self) -> int:
-        """The data frequency for continuous data sources or `None` if it's variable"""
+    def sample_rate(self) -> Union[float, None]:
+        """The data frequency for `Continuous` and `TimeSeries` data sources or `None` if it is not
+        available or variable"""
         try:
             return self._src.sample_rate
         except AttributeError:
             return None
 
     @property
-    def _timesteps(self):
-        return self._src._timesteps
+    def _timesteps(self) -> npt.ArrayLike:
+        """The unique timesteps for `Continuous` and `TimeSeries` data sources"""
+        try:
+            return self._src._timesteps
+        except AttributeError:
+            raise NotImplementedError(
+                f"`_timesteps` are not available for {self._src.__class__.__name__} data"
+            )
 
     def downsampled_over(self, range_list, reduce=np.mean, where="center"):
         """Downsample channel data based on timestamp ranges. The downsampling function (e.g. np.mean) is evaluated for
@@ -472,7 +479,7 @@ class Continuous:
         self._cached_data = None
         self.start = start
         self.stop = start + len(data) * dt
-        self.dt = dt
+        self.dt = dt  # ns
 
     def _with_data(self, data):
         return self.__class__(data, self.start, self.dt)
@@ -488,7 +495,7 @@ class Continuous:
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
         start = dset.attrs["Start time (ns)"]
-        dt = int(1e9 / dset.attrs["Sample rate (Hz)"])
+        dt = int(1e9 / dset.attrs["Sample rate (Hz)"])  # ns
         return Slice(
             Continuous(dset, start, dt),
             labels={"title": dset.name.strip("/"), "y": y_label},
@@ -506,12 +513,12 @@ class Continuous:
         return np.arange(self.start, self.stop, self.dt)
 
     @property
-    def sample_rate(self):
-        return int(1e9 / self.dt)
+    def sample_rate(self) -> float:
+        return 1e9 / self.dt  # Hz
 
     @property
-    def _timesteps(self):
-        return np.asarray([self.dt], dtype=int)
+    def _timesteps(self) -> npt.ArrayLike:
+        return np.asarray([self.dt], dtype=np.int64)  # ns
 
     def slice(self, start, stop):
         def to_index(t):
@@ -597,8 +604,15 @@ class TimeSeries:
             raise IndexError("End of empty time series is undefined")
 
     @property
-    def _timesteps(self):
-        return np.unique(np.diff(self.timestamps)).astype(int)
+    def sample_rate(self) -> Union[float, None]:
+        """The data frequency or `None` if it is variable"""
+        timestep = self._timesteps
+        if len(timestep) == 1:
+            return 1e9 / timestep[0]  # Hz
+
+    @property
+    def _timesteps(self) -> npt.ArrayLike:
+        return np.unique(np.diff(self.timestamps))  # ns
 
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
@@ -644,10 +658,6 @@ class TimeTags:
         # For time tag data, the data is the timestamps!
         return self.data
 
-    @property
-    def _timesteps(self):
-        raise NotImplementedError("_timesteps is currently not available for time series data")
-
     def slice(self, start, stop):
         idx = np.logical_and(start <= self.data, self.data < stop)
         return self.__class__(self.data[idx], min(start, stop), max(start, stop))
@@ -673,10 +683,6 @@ class Empty:
     @property
     def timestamps(self) -> npt.ArrayLike:
         return np.empty(0)
-
-    @property
-    def _timesteps(self):
-        raise NotImplementedError("_timesteps is currently not available for time series data")
 
 
 empty_slice = Slice(Empty())
