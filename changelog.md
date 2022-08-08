@@ -16,6 +16,7 @@
 * Added support for steps when slicing frames from `CorrelatedStack`s.
 * Added `CorrelatedStack.export_video()` to export videos to export multi-frame videos to video formats or GIFs.
 * Lazily load `data` and `timestamps` for `TimeSeries` data
+* Added possibility to access property `sample_rate` for `TimeSeries` data with constant sample rate.
 
 #### Bug fixes
 
@@ -33,6 +34,7 @@
 * It is now mandatory to supply a `sample_rate` when calling `lk.calibrate_force()`.
 * It is now mandatory to supply a `sample_rate` when calling `lumicks.pylake.force_calibration.touchdown.touchdown()`.
 * Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
+* The property `sample_rate` of `Continuous` data now returns a `float` instead of an `int``
 
 #### Deprecations
 
