@@ -80,10 +80,10 @@ def test_estimate(frame_idx, coordinate, time_step, max_lag, diffusion_const):
 def test_maxlag_asserts():
     # Max_lag has to be bigger than 2
     with pytest.raises(ValueError):
-        estimate_diffusion_constant_simple(np.array([1]), None, None, 1, "ols", "au")
+        estimate_diffusion_constant_simple(np.array([1]), None, 1.0, 1, "ols", "au")
 
     with pytest.raises(ValueError):
-        estimate_diffusion_constant_simple(np.array([1]), None, None, -1, "ols", "au")
+        estimate_diffusion_constant_simple(np.array([1]), None, 1.0, -1, "ols", "au")
 
 
 @pytest.mark.parametrize(
@@ -100,7 +100,7 @@ def test_localization_eq():
 
 
 @pytest.mark.parametrize(
-    "N, ref_slopes, ref_intercepts",
+    "num_points, ref_slopes, ref_intercepts",
     [
         (
             10,
@@ -119,10 +119,14 @@ def test_localization_eq():
         ),
     ],
 )
-def test_optimal_points(N, ref_slopes, ref_intercepts):
+def test_optimal_points(num_points, ref_slopes, ref_intercepts):
     test_values = np.hstack((np.arange(-2, 7, 0.5), np.inf))
-    np.testing.assert_allclose(ref_slopes, [optimal_points(10**x, N)[0] for x in test_values])
-    np.testing.assert_allclose(ref_intercepts, [optimal_points(10**x, N)[1] for x in test_values])
+    np.testing.assert_allclose(
+        ref_slopes, [optimal_points(10**x, num_points)[0] for x in test_values]
+    )
+    np.testing.assert_allclose(
+        ref_intercepts, [optimal_points(10**x, num_points)[1] for x in test_values]
+    )
 
 
 @pytest.mark.parametrize(
@@ -149,7 +153,7 @@ def test_integer_frame_indices():
     # It is important that these diffusion methods take integers as frame indices, because otherwise
     # round-off errors can occur. This test checks whether this criterion is actively checked.
     with pytest.raises(TypeError):
-        estimate_diffusion_constant_simple(np.array([1.5]), None, None, -1)
+        estimate_diffusion_constant_simple(np.array([1.5]), None, 1.0, -1, method="ols")
 
     with pytest.raises(TypeError):
         determine_optimal_points(np.arange(0.0, 5.0, 1.0), np.arange(0.0, 5.0, 1.0))
@@ -228,7 +232,7 @@ def test_diffusion_estimate_ols(
     with temp_seed(0):
         trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_constant_simple(
-            np.arange(num_points), trace, time_step, max_lag, "ols", "mu^2/s", "$\mu^2/s$"
+            np.arange(num_points), trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
         )
 
         np.testing.assert_allclose(float(diffusion_est), diff_est)
@@ -238,7 +242,7 @@ def test_diffusion_estimate_ols(
         np.testing.assert_allclose(diffusion_est.std_err, std_err_est)
         assert diffusion_est.method == "ols"
         assert diffusion_est.unit == "mu^2/s"
-        assert diffusion_est._unit_label == "$\mu^2/s$"
+        assert diffusion_est._unit_label == r"$\mu^2/s$"
 
 
 @pytest.mark.parametrize(
@@ -259,7 +263,7 @@ def test_diffusion_estimate_gls(
     with temp_seed(0):
         trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_constant_simple(
-            np.arange(num_points), trace, time_step, max_lag, "gls", "mu^2/s", "$\mu^2/s$",
+            np.arange(num_points), trace, time_step, max_lag, "gls", "mu^2/s", r"$\mu^2/s$"
         )
 
         np.testing.assert_allclose(float(diffusion_est), diff_est)
@@ -269,7 +273,7 @@ def test_diffusion_estimate_gls(
         np.testing.assert_allclose(diffusion_est.std_err, std_err_est)
         assert diffusion_est.method == "gls"
         assert diffusion_est.unit == "mu^2/s"
-        assert diffusion_est._unit_label == "$\mu^2/s$"
+        assert diffusion_est._unit_label == r"$\mu^2/s$"
 
 
 def test_bad_input():
