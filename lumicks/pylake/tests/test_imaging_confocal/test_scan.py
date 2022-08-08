@@ -521,6 +521,7 @@ def test_scan_cropping(x_min, x_max, y_min, y_max, test_scans):
 
         cropped_scan = scan.crop_by_pixels(x_min, x_max, y_min, y_max)
         np.testing.assert_allclose(cropped_scan.timestamps, scan.timestamps[numpy_slice])
+        np.testing.assert_allclose(cropped_scan.shape, scan.get_image("rgb")[numpy_slice].shape)
         np.testing.assert_allclose(scan[all_slices].timestamps, scan.timestamps[numpy_slice])
 
         for channel in ("rgb", "green"):
@@ -571,10 +572,12 @@ def test_scan_get_item_slicing(all_slices, test_scans):
         slices = tuple(all_slices if scan.num_frames > 1 else all_slices[1:])
         cropped_scan = scan[all_slices]
         np.testing.assert_allclose(cropped_scan.timestamps, scan.timestamps[slices])
+        np.testing.assert_allclose(cropped_scan.shape, scan.get_image("rgb")[slices].shape)
 
         for channel in ("rgb", "green"):
             ref_img = scan.get_image(channel)[slices]
             np.testing.assert_allclose(cropped_scan.get_image(channel), ref_img)
+
         # Numpy array is given as Y, X, while number of pixels is given sorted by spatial axis
         # i.e. X, Y
         np.testing.assert_allclose(
@@ -600,6 +603,7 @@ def test_slicing_cropping_separate_actions(test_scans):
     def assert_equal(first, second):
         np.testing.assert_allclose(first.get_image("red"), second.get_image("red"))
         np.testing.assert_allclose(first.get_image("rgb"), second.get_image("rgb"))
+        np.testing.assert_allclose(first.get_image("rgb").shape, second.get_image("rgb").shape)
         assert first.num_frames == second.num_frames
         assert first._num_pixels == second._num_pixels
 

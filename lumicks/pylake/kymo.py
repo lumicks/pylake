@@ -213,6 +213,20 @@ class Kymo(ConfocalImage):
         return (self.pixels_per_line,)
 
     @property
+    def shape(self):
+        """Shape of the reconstructed `Kymo` image"""
+        # For a kymo the only way to find the shape is to perform the reconstruction. While one
+        # could traverse the info-wave for this purpose, we may as well just reconstruct the image
+        # since that still has the potential to be useful in the future (since it is cached).
+        for color in ("red", "green", "blue"):
+            img = self.get_image(color)
+            shape = (*img.shape, 3)
+            if img.size:  # Early out if we got one
+                return shape
+        else:
+            return shape
+
+    @property
     def line_time_seconds(self):
         """Line time in seconds"""
         return self._line_time_factory(self)
@@ -483,6 +497,7 @@ class Kymo(ConfocalImage):
 
         def image_factory(_, channel):
             data = self._image(channel)
+
             return block_reduce(data, (position_factor, time_factor), func=reduce)[
                 : data.shape[0] // position_factor, : data.shape[1] // time_factor
             ]
@@ -603,11 +618,13 @@ class EmptyKymo(Kymo):
     def _plot(self, image, **kwargs):
         raise RuntimeError("Cannot plot empty kymograph")
 
-    def _image(self):
-        return np.empty((self.pixels_per_line, 0))
+    def _image(self, channel):
+        shape = (self.pixels_per_line, 0, 3) if channel == "rgb" else (self.pixels_per_line, 0)
+        return np.empty(shape)
 
     def get_image(self, channel="rgb"):
-        return self._image()
+        im = self._image(channel)
+        return self._image(channel)
 
     @property
     @deprecated(

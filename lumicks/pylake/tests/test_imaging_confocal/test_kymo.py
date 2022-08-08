@@ -28,6 +28,7 @@ def test_kymo_properties(test_kymos):
     assert repr(kymo) == "Kymo(pixels=5)"
     assert kymo.pixels_per_line == 5
     assert len(kymo.infowave) == 64
+    assert kymo.shape == (5, 4, 3)
     assert kymo.get_image("rgb").shape == (5, 4, 3)
     assert kymo.get_image("red").shape == (5, 4)
     assert kymo.get_image("blue").shape == (5, 4)
@@ -57,6 +58,7 @@ def test_kymo_slicing(test_kymos):
     kymo_reference = np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
 
     assert kymo.get_image("red").shape == (5, 4)
+    assert kymo.shape == (5, 4, 3)
     np.testing.assert_allclose(kymo.get_image("red").data, kymo_reference)
 
     sliced = kymo[:]
@@ -65,6 +67,7 @@ def test_kymo_slicing(test_kymos):
 
     sliced = kymo["1s":]
     assert sliced.get_image("red").shape == (5, 3)
+    assert sliced.shape == (5, 3, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 1:])
 
     sliced = kymo["0s":]
@@ -73,6 +76,7 @@ def test_kymo_slicing(test_kymos):
 
     sliced = kymo["0s":"2s"]
     assert sliced.get_image("red").shape == (5, 2)
+    assert sliced.shape == (5, 2, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :2])
 
     sliced = kymo["0s":"-1s"]
@@ -89,10 +93,12 @@ def test_kymo_slicing(test_kymos):
 
     sliced = kymo["1s":"2s"]
     assert sliced.get_image("red").shape == (5, 1)
+    assert sliced.shape == (5, 1, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 1:2])
 
     sliced = kymo["0s":"10s"]
     assert sliced.get_image("red").shape == (5, 4)
+    assert sliced.shape == (5, 4, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 0:10])
 
     with pytest.raises(IndexError):
@@ -118,6 +124,7 @@ def test_kymo_slicing(test_kymos):
 
     assert empty_kymograph.get_image("red").shape == (5, 0)
     assert empty_kymograph.infowave.data.size == 0
+    assert empty_kymograph.shape == (5, 0, 3)
     assert empty_kymograph.pixels_per_line == 5
     assert empty_kymograph.get_image("red").size == 0
     assert empty_kymograph.get_image("rgb").size == 0
@@ -408,6 +415,7 @@ def test_downsampled_kymo():
 
     assert kymo_ds.name == "Mock"
     np.testing.assert_allclose(kymo_ds.get_image("red"), ds)
+    np.testing.assert_allclose(kymo_ds.shape, kymo_ds.get_image("rgb").shape)
     np.testing.assert_allclose(kymo_ds.start, with_offset(0))
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 1 / 1000)
     np.testing.assert_allclose(kymo_ds.pixelsize, 1 / 1000)
