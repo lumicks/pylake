@@ -113,7 +113,8 @@ def test_scan_attrs(test_scans):
     rgb = scan.get_image("rgb")
     assert rgb.shape == (4, 5, 3)
     assert not np.any(rgb[:, :, 0])
-    assert scan.get_image("red").shape == (0,)
+    np.testing.assert_equal(scan.get_image("red"), np.zeros((4, 5)))
+
     assert scan.get_image("blue").shape == (4, 5)
     assert scan.get_image("green").shape == (4, 5)
 
@@ -122,16 +123,14 @@ def test_scan_attrs(test_scans):
     assert rgb.shape == (4, 5, 3)
     assert not np.any(rgb[:, :, 0])
     assert not np.any(rgb[:, :, 2])
-    assert scan.get_image("red").shape == (0,)
-    assert scan.get_image("blue").shape == (0,)
+    np.testing.assert_equal(scan.get_image("red"), np.zeros((4, 5)))
+    np.testing.assert_equal(scan.get_image("blue"), np.zeros((4, 5)))
     assert scan.get_image("green").shape == (4, 5)
 
     scan = test_scans["all channels missing"]
-    with pytest.raises(ValueError, match="No image data available"):
-        scan.get_image("rgb")
-    assert scan.get_image("red").shape == (0,)
-    assert scan.get_image("blue").shape == (0,)
-    assert scan.get_image("green").shape == (0,)
+    np.testing.assert_equal(scan.get_image("red"), np.zeros((4, 5)))
+    np.testing.assert_equal(scan.get_image("green"), np.zeros((4, 5)))
+    np.testing.assert_equal(scan.get_image("blue"), np.zeros((4, 5)))
 
 
 def test_slicing(test_scans):
@@ -676,3 +675,11 @@ def test_slice_by_list_disallowed(test_scans):
 
     with pytest.raises(IndexError, match="Slicing by Dummy is not allowed"):
         test_scans["fast Y slow X multiframe"][Dummy(), :, :]
+
+
+def test_crop_missing_channel(test_scans):
+    """Make sure that missing channels are handled appropriately when cropping"""
+    np.testing.assert_equal(
+        test_scans["rb channels missing"][:, 0:2, 1:3].get_image("red"),
+        np.zeros((2, 2))
+    )

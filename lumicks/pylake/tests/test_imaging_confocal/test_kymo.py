@@ -510,6 +510,7 @@ def test_downsampled_kymo_both_axes():
     for kymo_ds in downsampled_kymos:
         assert kymo_ds.name == "Mock"
         np.testing.assert_allclose(kymo_ds.get_image("red"), ds)
+        np.testing.assert_allclose(kymo_ds.get_image("green"), np.zeros(ds.shape))  # missing
         np.testing.assert_allclose(kymo_ds.start, 100)
         np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
         np.testing.assert_allclose(kymo_ds.pixelsize, 2 / 1000)
@@ -595,8 +596,14 @@ def test_kymo_crop():
         line_padding=2
     )
     cropped = kymo.crop_by_distance(4e-3, 8e-3)
-    np.testing.assert_allclose(cropped.get_image("red"),  [[12.0,  0.0,  0.0,  0.0, 12.0,  6.0,  0.0],
-                                                           [0.0, 12.0, 12.0, 12.0,  0.0,  6.0,  0.0]])
+    ref_img = np.array([
+        [12.0,  0.0,  0.0,  0.0, 12.0,  6.0,  0.0],
+        [0.0, 12.0, 12.0, 12.0,  0.0,  6.0,  0.0]
+    ])
+    np.testing.assert_allclose(cropped.get_image("red"), ref_img)
+    np.testing.assert_allclose(cropped.get_image("rgb")[:, :, 0], ref_img)
+    np.testing.assert_allclose(cropped.get_image("rgb")[:, :, 1], np.zeros(ref_img.shape))
+    np.testing.assert_allclose(cropped.get_image("green"), np.zeros(ref_img.shape))  # missing
     np.testing.assert_equal(
         cropped.timestamps,
         with_offset([[170, 315, 460, 605, 750, 895, 1040], [195, 340, 485, 630, 775, 920, 1065]]),

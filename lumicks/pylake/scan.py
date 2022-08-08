@@ -94,14 +94,7 @@ class Scan(ConfocalImage, VideoExport):
             )
 
         def image_factory(_, channel):
-            img = self._image(channel)
-
-            # Early out if this color channel is missing (slicing will otherwise fail) and
-            # we need to handle this gracefully because of files with missing color channels
-            if not img.size:
-                return img
-
-            return img[slices]
+            return self._image(channel)[slices]
 
         def timestamp_factory(_, reduce_timestamps):
             ts = self._timestamps("timestamps", reduce_timestamps)
