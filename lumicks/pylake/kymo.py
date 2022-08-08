@@ -623,7 +623,6 @@ class EmptyKymo(Kymo):
         return np.empty(shape)
 
     def get_image(self, channel="rgb"):
-        im = self._image(channel)
         return self._image(channel)
 
     @property

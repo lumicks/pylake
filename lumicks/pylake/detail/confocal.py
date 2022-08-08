@@ -531,15 +531,6 @@ class ConfocalImage(BaseScan):
             The color channel of the requested data.
         """
         if channel == "rgb":
-            images = [self.get_image(color) for color in ("red", "green", "blue")]
-            try:
-                # Get first non-zero shape
-                image_shape = next(image.shape for image in images if image.size)
-                return np.stack(
-                    [image if image.size else np.zeros(image_shape) for image in images],
-                    axis=-1,
-                )
-            except StopIteration:
-                raise ValueError("No image data available")
+            return np.stack([self.get_image(color) for color in ("red", "green", "blue")], axis=-1)
         else:
             return self._image(channel)
