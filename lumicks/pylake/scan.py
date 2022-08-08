@@ -352,7 +352,15 @@ class Scan(ConfocalImage, VideoExport):
 
     @property
     def _shape(self):
+        # Note that this is not the shape of the image property, but rather the shape in terms of
+        # [slow axis, fast axis].
         return (self.lines_per_frame, self.pixels_per_line)
+
+    @property
+    def shape(self):
+        """Shape of the reconstructed `Scan` image"""
+        shape = reversed(self._num_pixels)
+        return (self.num_frames, *shape, 3) if self.num_frames > 1 else (*shape, 3)
 
     def _fix_incorrect_start(self):
         """Resolve error when confocal scan starts before the timeline information.

@@ -17,6 +17,7 @@
 * Added `CorrelatedStack.export_video()` to export videos to export multi-frame videos to video formats or GIFs.
 * Lazily load `data` and `timestamps` for `TimeSeries` data
 * Added possibility to access property `sample_rate` for `TimeSeries` data with constant sample rate.
+* Added shape property to `Scan` and `Kymo`.
 
 #### Bug fixes
 
