@@ -71,8 +71,32 @@ class CorrelatedStack(VideoExport):
         return self.src.with_roi(np.array([columns, rows]).flatten()), item[0]
 
     def __getitem__(self, item):
-        """All indexing is in frames"""
+        """Returns specific frame(s) and/or cropped stacks.
 
+        The first item refers to the camera frames; both indexing (by integer) and slicing are
+        allowed, but using steps or slicing by a list is not.
+        The last two items refer to the spatial dimensions in pixel rows and columns. Only full
+        slices (without steps) are allowed. All values should be given in pixels.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            stack = lk.CorrelatedStack("test.tiff")
+
+            stack[5]  # Gets the 6th frame of the scan (0 is the first).
+            stack[1:5]  # Get scan frames 1, 2, 3 and 4.
+            stack[:, 10:50, 20:50]  # Gets all frames cropped from row 11 to 50 and column 21 to 50.
+            stack[:, 10:50]  # Gets all frames and all columns, but crops from row 11 to 50.
+            stack[5, 10:20, 10:20]  # Obtains the 6th frame and crops it.
+
+            stack[[1, 3, 4]]  # Produces an error, lists are not allowed.
+            stack[1:5:2]  # Produces an error, steps are not allowed.
+            stack[1, 3, 5]   # Error, integer indices are not allowed for the spatial dimensions.
+            stack[1, 3:5:2]  # Produces an error, steps are not allowed when slicing.
+        """
         src, item = self._handle_cropping(item) if isinstance(item, tuple) else (self.src, item)
 
         if isinstance(item, slice):
