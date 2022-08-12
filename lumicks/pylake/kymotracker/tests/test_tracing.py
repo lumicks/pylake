@@ -6,7 +6,7 @@ from lumicks.pylake.kymotracker.detail.trace_line_2d import (
     points_to_line_segments,
     KymoLineData,
 )
-from lumicks.pylake.kymotracker.kymoline import KymoTrack
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
 
 

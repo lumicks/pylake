@@ -5,7 +5,7 @@ from lumicks.pylake.kymotracker.kymotracker import (
     refine_lines_gaussian,
     filter_lines,
 )
-from lumicks.pylake.kymotracker.kymoline import KymoTrack, KymoTrackGroup
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 

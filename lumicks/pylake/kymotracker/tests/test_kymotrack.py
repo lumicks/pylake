@@ -1,7 +1,7 @@
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import cleanup
-from lumicks.pylake.kymotracker.kymoline import *
+from lumicks.pylake.kymotracker.kymotrack import *
 from lumicks.pylake.kymotracker.detail.localization_models import *
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
