@@ -49,9 +49,11 @@ def timestamp_mean(a, axis=None):
 
 def _default_image_factory(self: "ConfocalImage", color):
     channel = getattr(self, f"{color}_photon_count")
-    if not channel:
-        return np.empty(0)
-    raw_image = reconstruct_image_sum(channel.data.astype(float), self.infowave.data, self._shape)
+    raw_image = reconstruct_image_sum(
+        channel.data.astype(float) if channel else np.zeros(self.infowave.data.size),
+        self.infowave.data,
+        self._reconstruction_shape,
+    )
     return self._to_spatial(raw_image)
 
 
@@ -64,7 +66,9 @@ def _default_timestamp_factory(self: "ConfocalImage", reduce=timestamp_mean):
     else:
         raise RuntimeError("Can't get pixel timestamps if there are no pixels")
 
-    raw_image = reconstruct_image(channel_data, self.infowave.data, self._shape, reduce=reduce)
+    raw_image = reconstruct_image(
+        channel_data, self.infowave.data, self._reconstruction_shape, reduce=reduce
+    )
     return self._to_spatial(raw_image)
 
 
@@ -436,8 +440,9 @@ class ConfocalImage(BaseScan):
         return self.file["Info wave"]["Info wave"][self.start : self.stop]
 
     @property
-    def _shape(self):
-        """The shape of the image ([optional: pixels on slow axis], pixels on fast axis)"""
+    def _reconstruction_shape(self):
+        """The shape of the image ([optional: pixels on slow axis], pixels on fast axis). This
+        property is purely used for reconstruction from photon counts."""
         raise NotImplementedError
 
     @property
