@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.kymoline import (
+from lumicks.pylake.kymotracker.kymotrack import (
     KymoTrack,
     KymoTrackGroup,
     import_kymotrackgroup_from_csv,

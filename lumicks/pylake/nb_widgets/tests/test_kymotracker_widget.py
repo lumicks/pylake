@@ -1,5 +1,5 @@
 from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy, KymotrackerParameter
-from lumicks.pylake.kymotracker.kymoline import KymoTrack, KymoTrackGroup
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from matplotlib.testing.decorators import cleanup
 import numpy as np
 import re

@@ -1,6 +1,6 @@
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
-from .kymoline import KymoTrack
+from .kymotrack import KymoTrack, KymoTrackGroup
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.peakfinding import (
     peak_estimate,
@@ -9,7 +9,6 @@ from .detail.peakfinding import (
     KymoPeaks,
 )
 from .detail.localization_models import GaussianLocalizationModel
-from .kymoline import KymoTrackGroup
 import numpy as np
 import warnings
 

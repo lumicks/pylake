@@ -79,7 +79,7 @@ def h5_file(tmpdir_factory, request):
 
         # Force channel that overlaps kymo; step from high to low force
         # We want two lines of the kymo to have a force of 30, the other 10. Force starts 5 samples
-        # before the kymograph. First kymoline is 15 samples long, second is 16 samples long, which
+        # before the kymograph. First kymotrack is 15 samples long, second is 16 samples long, which
         # means the third line starts after 31 + 5 = 36 samples
         force_data = np.hstack((np.ones(37) * 30, np.ones(33) * 10))
         force_start = np.int64(ds.attrs["Start time (ns)"] - (freq * 5))  # before infowave

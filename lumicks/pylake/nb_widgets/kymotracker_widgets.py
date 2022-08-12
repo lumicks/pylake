@@ -7,7 +7,7 @@ from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_lines, refine_lines_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
-from lumicks.pylake.kymotracker.kymoline import KymoTrackGroup, import_kymotrackgroup_from_csv
+from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
 

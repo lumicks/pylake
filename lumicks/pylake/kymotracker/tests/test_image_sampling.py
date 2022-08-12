@@ -1,5 +1,5 @@
 import numpy as np
-from lumicks.pylake.kymotracker.kymoline import KymoTrack
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
