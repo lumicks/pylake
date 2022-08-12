@@ -344,9 +344,9 @@ class Scan(ConfocalImage, VideoExport):
         return self._num_pixels[self._metadata.scan_order[1]]
 
     @property
-    def _shape(self):
-        # Note that this is not the shape of the image property, but rather the shape in terms of
-        # [slow axis, fast axis].
+    def _reconstruction_shape(self):
+        """Shape used when reconstructing the image from raw photon counts (ordered by axis scan
+        speed slow to fast)."""
         return (self.lines_per_frame, self.pixels_per_line)
 
     @property

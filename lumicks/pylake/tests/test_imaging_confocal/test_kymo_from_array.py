@@ -33,7 +33,7 @@ def test_from_array(test_kymos):
     arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb")
 
     np.testing.assert_equal(kymo.get_image("rgb"), arr_kymo.get_image("rgb"))
-    np.testing.assert_equal(kymo._shape, arr_kymo._shape)
+    np.testing.assert_equal(kymo._reconstruction_shape, arr_kymo._reconstruction_shape)
 
     with pytest.raises(NotImplementedError, match=timestamp_err_msg):
         arr_kymo.pixel_time_seconds
@@ -87,7 +87,7 @@ def test_from_array_no_pixelsize(test_kymos):
     arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb", no_pxsize=True)
 
     np.testing.assert_equal(kymo.get_image("rgb"), arr_kymo.get_image("rgb"))
-    np.testing.assert_equal(kymo._shape, arr_kymo._shape)
+    np.testing.assert_equal(kymo._reconstruction_shape, arr_kymo._reconstruction_shape)
 
     with pytest.raises(NotImplementedError, match=timestamp_err_msg):
         arr_kymo.pixel_time_seconds

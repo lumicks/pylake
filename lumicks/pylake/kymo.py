@@ -209,7 +209,9 @@ class Kymo(ConfocalImage):
         return data.T
 
     @property
-    def _shape(self):
+    def _reconstruction_shape(self):
+        """Shape used when reconstructing the image from raw photon counts (ordered by axis scan
+        speed slow to fast)."""
         return (self.pixels_per_line,)
 
     @property
