@@ -1,26 +1,10 @@
 Installation
 ============
 
-Installation instructions
--------------------------
+Pylake can be installed on Windows, Linux and Mac and requires Python 3.7 or newer.
 
-.. _Python: https://www.python.org/
-.. _SciPy: http://www.scipy.org/
-
-Pylake can be installed on Windows, Linux or Mac, with the following prerequisites:
-
-* `Python`_ 3.7 or newer (Python 2.x is not supported)
-* The `SciPy`_ stack of scientific packages
-
-If you're already familiar with Python and have the above prerequisites, installing Pylake is just a simple case of using `pip`, Python's usual package manager::
-
-    pip install lumicks.pylake
-
-Alternatively, if you are using Anaconda, please see the more detailed instructions below.
-
-
-Anaconda
---------
+Installation using Anaconda
+---------------------------
 
 .. _Anaconda: https://www.anaconda.com/download/
 .. _conda-forge: https://conda-forge.org
@@ -29,7 +13,7 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
 .. rubric:: Windows
 
-#. Go to the `Anaconda`_ website and download the Python 3.8 (or newer) installer.
+#. Go to the `Anaconda`_ website and download the Python 3.7 (or newer) installer.
 
 #. Run it and accept the default options during the installation.
 
@@ -71,7 +55,7 @@ If importing the package fails please refer to the `Frequently asked questions`_
 
 .. rubric:: Linux
 
-#. Go to the `Anaconda`_ website and download the Python 3.8 (or newer) installer.
+#. Go to the `Anaconda`_ website and download the Python 3.7 (or newer) installer.
 
 #. Open a terminal window and run::
 
@@ -114,7 +98,7 @@ If importing the package fails please refer to the `Frequently asked questions`_
 
 .. rubric:: macOS
 
-#. Go to the `Anaconda`_ website and download the Python 3.8 (or newer) installer.
+#. Go to the `Anaconda`_ website and download the Python 3.7 (or newer) installer.
 
 #. Run it and accept the default options during the installation.
 
@@ -144,6 +128,13 @@ If you are used to starting Jupyter from `Terminal`, then remember to activate t
 
 That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
+
+Installation using pip
+----------------------
+
+If you're already familiar with Python and have Python >= 3.7 installed, installing Pylake on Windows, Linux or Mac can be done using `pip`, Python's usual package manager::
+
+    pip install lumicks.pylake
 
 
 Updating
