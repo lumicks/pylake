@@ -1,4 +1,3 @@
-import time
 from dataclasses import dataclass
 import inspect
 import numpy as np
@@ -70,8 +69,6 @@ class KymoWidget:
         self.show_lines = True
         self.output_filename = output_filename
 
-        self._dx = 0
-        self._last_update = 0
         self._area_selector = None
         self._line_connector = None
 
@@ -129,14 +126,8 @@ class KymoWidget:
         def set_xlim(drag_event):
             # Callback for dragging the field of view
             old_xlims = np.array(self._axes.get_xlim())
-            self._dx = self._dx + drag_event.dx
-
-            # We don't need to update more than 30 times per second (1/30 = 0.033).
-            if abs(time.time() - self._last_update) > 0.033:
-                self._axes.set_xlim(old_xlims - self._dx)
-                self._dx = 0
-                self._last_update = time.time()
-                canvas.draw_idle()
+            self._axes.set_xlim(old_xlims - drag_event.dx)
+            canvas.draw_idle()
 
         MouseDragCallback(self._axes, 1, set_xlim)
 
@@ -449,8 +440,6 @@ class KymoWidget:
             self._fig = plt.figure()
             self._axes = self._fig.add_subplot(111)
 
-        self._dx = 0
-        self._last_update = time.time()
         self._kymo.plot(channel=self._channel, interpolation="nearest", **kwargs)
 
         if self.axis_aspect_ratio:
