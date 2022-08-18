@@ -18,6 +18,7 @@
 * Lazily load `data` and `timestamps` for `TimeSeries` data
 * Added possibility to access property `sample_rate` for `TimeSeries` data with constant sample rate.
 * Added shape property to `Scan` and `Kymo`.
+* Added a warning to the Kymotracker widget if the threshold parameter is set too low, which may result in slow tracking and the widget hanging.
 
 #### Bug fixes
 

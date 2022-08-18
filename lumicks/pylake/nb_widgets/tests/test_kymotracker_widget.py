@@ -133,10 +133,11 @@ def test_refine_from_widget(kymograph, region_select):
         def __init__(self):
             self.value = ""
 
-    kymo_widget._label = MockLabel()
+    kymo_widget._labels = {"status": MockLabel()}
     kymo_widget.refine()
     assert (
-        kymo_widget._label.value == "You need to track or load kymograph lines before you can "
+        kymo_widget._labels["status"].value
+        == "You need to track or load kymograph lines before you can "
         "refine them"
     )
 

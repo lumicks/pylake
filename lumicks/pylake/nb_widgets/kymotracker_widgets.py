@@ -62,7 +62,7 @@ class KymoWidget:
         self.plotted_lines = []
         self._kymo = kymo
         self._channel = channel
-        self._label = None
+        self._labels = {}
         self._fig = None
         self._axes = None
         self.adding = True
@@ -242,9 +242,9 @@ class KymoWidget:
                 self.output_filename,
                 sampling_width=int(np.ceil(0.5 * self._line_width_pixels)),
             )
-            self._set_label(f"Saved {self.output_filename}")
+            self._set_label("status", f"Saved {self.output_filename}")
         except (RuntimeError, IOError) as exception:
-            self._set_label(str(exception))
+            self._set_label("status", str(exception))
 
     def save_lines(self, filename, delimiter=";", sampling_width=None):
         """Export KymoLineGroup to a csv file.
@@ -268,9 +268,9 @@ class KymoWidget:
                 self.output_filename, self._kymo, self._channel
             )
             self.update_lines()
-            self._set_label(f"Loaded {self.output_filename}")
+            self._set_label("status", f"Loaded {self.output_filename}")
         except (RuntimeError, IOError) as exception:
-            self._set_label(str(exception))
+            self._set_label("status", str(exception))
 
     def _add_slider(self, name, parameter):
         import ipywidgets
@@ -297,7 +297,9 @@ class KymoWidget:
             self.lines = refine_lines_centroid(self.lines, self._line_width_pixels)
             self.update_lines()
         else:
-            self._set_label("You need to track or load kymograph lines before you can refine them")
+            self._set_label(
+                "status", "You need to track or load kymograph lines before you can refine them"
+            )
 
     def create_algorithm_sliders(self):
         raise NotImplementedError(
@@ -305,9 +307,10 @@ class KymoWidget:
             "kymotracker algorithm"
         )
 
-    def _set_label(self, label):
-        if self._label:
-            self._label.value = label
+    def _set_label(self, key, message):
+        if self._labels:
+            message = message if key != "warning" else f"<font color='red'>{message}"
+            self._labels[key].value = message
 
     def _create_widgets(self):
         """Create widgets for setting kymotracking settings"""
@@ -324,6 +327,9 @@ class KymoWidget:
                     "work."
                 )
             )
+
+        self._labels["status"] = ipywidgets.Label(value="")
+        self._labels["warning"] = ipywidgets.HTML(value="")
 
         algorithm_sliders = self.create_algorithm_sliders()
 
@@ -383,7 +389,6 @@ class KymoWidget:
             layout=ipywidgets.Layout(flex_flow="row"),
         )
         self._mode.observe(self._select_state, "value")
-        self._label = ipywidgets.Label(value="")
 
         output = ipywidgets.Output()
         ui = ipywidgets.HBox(
@@ -398,7 +403,8 @@ class KymoWidget:
                         ipywidgets.HBox([undo_button, redo_button]),
                         ipywidgets.HBox([load_button, save_button]),
                         self._mode,
-                        self._label,
+                        self._labels["status"],
+                        self._labels["warning"],
                     ],
                     layout=ipywidgets.Layout(width="32%"),
                 ),
@@ -418,15 +424,15 @@ class KymoWidget:
         self._line_connector.set_active(False)
 
         if value["new"] == "Track lines":
-            self._set_label(f"Drag right mouse button to track lines")
+            self._set_label("status", f"Drag right mouse button to track lines")
             self._area_selector.set_active(True)
             self.adding = True
         elif value["new"] == "Remove lines":
-            self._set_label(f"Drag right mouse button to remove lines")
+            self._set_label("status", f"Drag right mouse button to remove lines")
             self._area_selector.set_active(True)
             self.adding = False
         elif value["new"] == "Connect lines":
-            self._set_label(f"Drag right mouse button to connect lines")
+            self._set_label("status", f"Drag right mouse button to connect lines")
             self._line_connector.set_active(True)
 
     def show(self, use_widgets, **kwargs):
@@ -592,13 +598,34 @@ class KymoWidgetGreedy(KymoWidget):
     def create_algorithm_sliders(self):
         import ipywidgets
 
-        return ipywidgets.VBox(
+        slider_box = ipywidgets.VBox(
             [
                 self._add_slider(key, parameter)
                 for key, parameter in self._algorithm_parameters.items()
                 if parameter.ui_visible
             ]
         )
+
+        # callback to show warning if threshold is set too low
+        image = self._kymo.get_image(self._channel)
+        min_threshold = np.percentile(image, 80)
+
+        threshold_slider_index = list(self._algorithm_parameters.keys()).index("pixel_threshold")
+        threshold_slider = slider_box.children[threshold_slider_index].children[0]
+        threshold_slider_callback = lambda change: self._set_label(
+            "warning",
+            ""
+            if change["new"] > min_threshold
+            else f"Tracking with threshold of {change['new']} may be slow.",
+        )
+        threshold_slider.observe(
+            threshold_slider_callback,
+            "value",
+            "change",
+        )
+        threshold_slider_callback({"new": threshold_slider.value})
+
+        return slider_box
 
 
 @dataclass
