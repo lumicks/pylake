@@ -1,4 +1,9 @@
-from lumicks.pylake.adjustments import ColorAdjustment
+from ..adjustments import ColorAdjustment
+from .timeindex import to_timestamp
+import numpy as np
+from typing import Union
+
+_FIRST_TIMESTAMP = 1388534400
 
 
 class VideoExport:
@@ -72,3 +77,30 @@ class VideoExport:
         )
         line_ani.save(file_name, writer=writer)
         plt.close(fig)
+
+
+class FrameIndex:
+    def _time_to_frame_index(self, time, is_start=False) -> Union[int, None]:
+        """Convert timestamps, time strings or frame indices to frame indices
+
+        Parameters
+        ----------
+        time : str or int or None
+            Time expressed in either string format (e.g. "5s"), timestamp in nanoseconds or frame.
+        is_start : bool
+            Whether the input time refers to the start or stop timestamp of the searched frame
+        """
+        if time is None:
+            return time
+
+        # Decode timestamp from string
+        time = to_timestamp(time, self.start, self.stop) if isinstance(time, str) else time
+
+        try:
+            if time < _FIRST_TIMESTAMP:
+                return time  # It's already a frame index
+            else:
+                ts = np.asarray(self.frame_timestamp_ranges())[:, 0 if is_start else 1]
+                return np.searchsorted(ts, time)
+        except TypeError:
+            raise IndexError(f"Slicing by {type(time).__name__} is not supported.")
