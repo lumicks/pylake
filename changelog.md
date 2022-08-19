@@ -22,6 +22,7 @@
 * Pylake now depends on `h5py>=3.4, <4`. This change is required to still support `len()` with the lazy loading fix for `TimeSeries`.
 * Added header line to exported track coordinate CSV files. The first header line now contains the version of `pylake` which generated the file and a version number for the CSV file itself (starting with `v2` from this release).
 * Allow slicing `CorrelatedStacks` with timestamps and time strings (e.g. `stack["5s":"10s"]` or `stack[f.force1x.start:f.force1x.stop]`).
+* Allow slicing `Scan` with timestamps and time strings (e.g. `scan["5s":"10s"]` or `scan[f.force1x.start:f.force1x.stop]`).
 
 #### Bug fixes
 

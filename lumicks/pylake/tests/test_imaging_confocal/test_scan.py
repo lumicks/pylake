@@ -1,6 +1,7 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.adjustments import ColorAdjustment
 from matplotlib.testing.decorators import cleanup
 from ..data.mock_confocal import generate_scan
@@ -664,17 +665,20 @@ def test_empty_slices_due_to_out_of_bounds(name, test_scans):
 
 
 def test_slice_by_list_disallowed(test_scans):
-    with pytest.raises(IndexError, match="Slicing by list is not allowed"):
+    with pytest.raises(IndexError, match="Indexing by list is not allowed"):
         test_scans["fast Y slow X multiframe"][[0, 1], :, :]
 
-    with pytest.raises(IndexError, match="Slicing by list is not allowed"):
+    with pytest.raises(IndexError, match="Indexing by list is not allowed"):
         test_scans["fast Y slow X multiframe"][:, [0, 1], :]
 
     class Dummy:
         pass
 
-    with pytest.raises(IndexError, match="Slicing by Dummy is not allowed"):
+    with pytest.raises(IndexError, match="Indexing by Dummy is not allowed"):
         test_scans["fast Y slow X multiframe"][Dummy(), :, :]
+
+    with pytest.raises(IndexError, match="Slicing by Dummy is not supported"):
+        test_scans["fast Y slow X multiframe"][Dummy():Dummy(), :, :]
 
 
 def test_crop_missing_channel(test_scans):
@@ -682,4 +686,69 @@ def test_crop_missing_channel(test_scans):
     np.testing.assert_equal(
         test_scans["rb channels missing"][:, 0:2, 1:3].get_image("red"),
         np.zeros((2, 2))
+    )
+
+
+def test_scan_slicing_by_time():
+    start = _FIRST_TIMESTAMP + 100
+    num_frames = 10
+    line_padding = 10
+    dt = int(1e7)
+    multi_frame = generate_scan(
+        "test",
+        np.random.randint(0, 10, size=(num_frames, 2, 2)),
+        [1, 1],
+        start=start - line_padding * dt,
+        dt=dt,
+        samples_per_pixel=15,
+        line_padding=line_padding,
+    )
+
+    # We deliberately shift the start to the start of the first frame (post padding). This makes
+    # the tests much more readable.
+    multi_frame = multi_frame[:]
+    ts = multi_frame.frame_timestamp_ranges()
+
+    def compare_frames(frames, new_scan):
+        assert new_scan.num_frames == len(frames)
+        for new_frame_index, index in enumerate(frames):
+            frame = multi_frame[index].get_image("rgb")
+            new_frame = new_scan[new_frame_index].get_image("rgb")
+            np.testing.assert_equal(frame, new_frame)
+
+    compare_frames([2], multi_frame["2s":"2.81s"])
+    compare_frames([2], multi_frame["2s":"3.8s"])
+    compare_frames([2, 3], multi_frame["2s":"3.81s"])
+    compare_frames([1, 2], multi_frame["1s":"3s"])
+    compare_frames([2, 3, 4, 5, 6, 7, 8, 9], multi_frame["2s":])  # until end
+    compare_frames([3, 4, 5, 6, 7, 8, 9], multi_frame["2.1s":])  # from beginning
+    compare_frames([0, 1], multi_frame[:"1.81s"])  # until end
+    compare_frames([0], multi_frame[:"1.8s"])  # from beginning
+
+    compare_frames([3, 4, 5], multi_frame["2s":"5.81s"]["1s":"3.81s"])  # iterative
+    compare_frames([3, 4], multi_frame["2s":"5.81s"]["1s":"3.80s"])  # iterative
+    compare_frames([3, 4, 5], multi_frame["2s":"5.81s"]["1s":])  # iterative
+
+    # Note that the from-end tests are different than the ones on correlatedstacks because the mock
+    # scan has the dead time half on the end of this frame, and half before this frame.
+    # The stop time of this scan is at 10 seconds, the last frame runs from 9 to 9.8 seconds, this
+    # means that to chop off the last two, we need to go -1.2 from end.
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], multi_frame[:"-1.199s"])  # negative indexing
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7], multi_frame[:"-1.2s"])  # negative indexing with time
+    compare_frames([8, 9], multi_frame["-2s":])  # negative indexing with time
+    compare_frames([9], multi_frame["-1.79s":])  # negative indexing with time
+    compare_frames([2, 3, 4], multi_frame["2s":"5.81s"][:"-1.199s"])  # iterative with from end
+    compare_frames([2, 3], multi_frame["2s":"5.81s"][:"-1.2s"])  # iterative with from end
+
+    # Slice by timestamps
+    compare_frames([2, 3], multi_frame[start + int(2e9):start + int(4e9)])
+    compare_frames([2, 3], multi_frame[start + int(2e9):start + int(4.8e9)])
+    compare_frames([2, 3, 4], multi_frame[start + int(2e9):start + int(4.81e9)])
+    compare_frames([0, 1, 2, 3, 4], multi_frame[:start + int(4.81e9)])
+    compare_frames([5, 6, 7, 8, 9], multi_frame[start + int(5e9):])
+    compare_frames(
+        [2, 3, 4], multi_frame[start + int(2e9):start + int(4.81e9)][start:start+int(100e9)]
+    )
+    compare_frames(
+        [3], multi_frame[start + int(2e9):start + int(4.81e9)][start + int(3e9):start + int(3.81e9)]
     )

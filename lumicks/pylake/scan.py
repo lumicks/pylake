@@ -4,13 +4,13 @@ from copy import copy
 from itertools import zip_longest
 from deprecated import deprecated
 
-from .detail.imaging_mixins import VideoExport
+from .detail.imaging_mixins import VideoExport, FrameIndex
 from .adjustments import ColorAdjustment
 from .detail.confocal import ConfocalImage, linear_colormaps
 from .detail.image import reconstruct_num_frames, make_image_title
 
 
-class Scan(ConfocalImage, VideoExport):
+class Scan(ConfocalImage, VideoExport, FrameIndex):
     """A confocal scan exported from Bluelake
 
     Parameters
@@ -152,22 +152,35 @@ class Scan(ConfocalImage, VideoExport):
             scan[1:5:2]  # Produces an error, steps are not allowed.
             scan[1, 3, 5]   # Error, integer indices are not allowed for the spatial dimensions.
             scan[1, 3:5:2]  # Produces an error, steps are not allowed when slicing.
+
+            stack["1s":"5s"]  # Gets the scan frames from first to the fifth second
+            stack[:"-5s"]  # Gets the scan frames up to the last 5 seconds
+
+            stack[file.force1x.start:file.force1x.stop]  # Gets frames overlapping with force1x
         """
 
-        def check_item(item, allow_int):
+        def check_item(item, slicing_frames):
             """We don't allow slice steps, and we don't allow slicing with lists. Slicing with
             single integer value is only allowed for frames."""
             if isinstance(item, slice):
                 if item.step is not None:
                     raise IndexError("Slice steps are not supported when indexing")
-                return item
+
+                return (
+                    slice(
+                        self._time_to_frame_index(item.start, is_start=True),
+                        self._time_to_frame_index(item.stop, is_start=False),
+                    )
+                    if slicing_frames
+                    else item
+                )
 
             if isinstance(item, int):
-                if not allow_int:
+                if not slicing_frames:
                     raise IndexError("Scalar indexing is not supported for spatial coordinates")
                 return item
 
-            raise IndexError(f"Slicing by {type(item).__name__} is not allowed.")
+            raise IndexError(f"Indexing by {type(item).__name__} is not allowed.")
 
         try:
             frame_slice, *spatial_slices = item

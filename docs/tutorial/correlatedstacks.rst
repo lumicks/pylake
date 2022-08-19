@@ -13,7 +13,7 @@ These videos can be opened and sliced using `CorrelatedStack`::
 
 You can also slice by time::
 
-    stack_slice = stack["2s":"10s"]  # Slice from second second up to tenth second
+    stack_slice = stack["2s":"10s"]  # Slice from 2 to 10 seconds from beginning of the stack
 
 You can easily load multiple TIFF files by simply listing them consecutively::
 
