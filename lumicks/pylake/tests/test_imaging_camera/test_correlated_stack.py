@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from lumicks.pylake.adjustments import ColorAdjustment
 from lumicks.pylake.correlated_stack import CorrelatedStack
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake import channel
 import matplotlib as mpl
@@ -114,7 +115,8 @@ def test_correlated_stack(shape):
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
 def test_slicing(shape):
     image = [np.random.poisson(10, size=shape) for _ in range(10)]
-    times = make_frame_times(10)
+    start = _FIRST_TIMESTAMP + 100
+    times = make_frame_times(10, step=int(0.8e9), start=start, frame_time=int(1e9))
     fake_tiff = TiffStack([MockTiffFile(data=image, times=times)], align_requested=False)
     stack0 = CorrelatedStack.from_dataset(fake_tiff)
 
@@ -135,6 +137,8 @@ def test_slicing(shape):
     compare_frames([0, 1, 2, 3, 4, 5], stack0[:-4])  # until negative index
     compare_frames([5, 6, 7], stack0[5:-2])  # mixed sign indices
     compare_frames([6, 7], stack0[-4:-2])  # negative indices slice
+
+    # With steps
     compare_frames([0, 2, 4, 6, 8], stack0[::2])  # all frames with steps
     compare_frames([0, 3, 6, 9], stack0[::3])  # all frames with steps
     compare_frames([3, 5], stack0[3:6:2])  # normal slice with steps
@@ -146,6 +150,39 @@ def test_slicing(shape):
     compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], stack0[-100:9])  # test clamping past the beginning
     compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], stack0[-100:100])  # test clamping both dirs
 
+    compare_frames([2], stack0["2s":"2.81s"])
+    compare_frames([2], stack0["2s":"3.8s"])
+    compare_frames([2, 3], stack0["2s":"3.81s"])
+    compare_frames([1, 2], stack0["1s":"3s"])
+    compare_frames([2, 3, 4, 5, 6, 7, 8, 9], stack0["2s":])  # until end
+    compare_frames([3, 4, 5, 6, 7, 8, 9], stack0["2.1s":])  # from beginning
+    compare_frames([0, 1], stack0[:"1.81s"])  # until end
+    compare_frames([0], stack0[:"1.8s"])  # from beginning
+
+    compare_frames([3, 4, 5], stack0["2s":"5.81s"]["1s":"3.81s"])  # iterative
+    compare_frames([3, 4], stack0["2s":"5.81s"]["1s":"3.80s"])  # iterative
+    compare_frames([3, 4, 5], stack0["2s":"5.81s"]["1s":])  # iterative
+    compare_frames([2, 4, 6, 8], stack0["2s"::2])  # include steps
+    compare_frames([2, 4], stack0["2s":"5.81s"][::2])  # iterative with steps
+
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], stack0[:"-0.9s"])  # negative indexing with time
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7], stack0[:"-1s"])  # negative indexing with time
+    compare_frames([8, 9], stack0["-2s":])  # negative indexing with time
+    compare_frames([9], stack0["-1.79s":])  # negative indexing with time
+    compare_frames([2, 3, 4], stack0["2s":"5.81s"][:"-0.9s"])  # iterative with from end
+    compare_frames([2, 3], stack0["2s":"5.81s"][:"-1s"])  # iterative with from end
+
+    # Slice by timestamps
+    compare_frames([2, 3], stack0[start + int(2e9):start + int(4e9)])
+    compare_frames([2, 3], stack0[start + int(2e9):start + int(4.8e9)])
+    compare_frames([2, 3, 4], stack0[start + int(2e9):start + int(4.81e9)])
+    compare_frames([0, 1, 2, 3, 4], stack0[:start + int(4.81e9)])
+    compare_frames([5, 6, 7, 8, 9], stack0[start + int(5e9):])
+    compare_frames([2, 3, 4], stack0[start + int(2e9):start + int(4.81e9)][start:start+int(100e9)])
+    compare_frames(
+        [3], stack0[start + int(2e9):start + int(4.81e9)][start + int(3e9):start + int(3.81e9)]
+    )
+
     # empty slices
     for s in [
         slice(5, 2),
@@ -154,6 +191,7 @@ def test_slicing(shape):
         slice(5, 5),
         slice(5, 5, -1),
         slice(-5, -3, -1),
+        slice("2s", "2.8s"),
     ]:
         with pytest.raises(NotImplementedError, match="Slice is empty"):
             stack0[s]

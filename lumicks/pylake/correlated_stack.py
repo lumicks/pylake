@@ -2,13 +2,13 @@ import numpy as np
 import os
 import tifffile
 from deprecated.sphinx import deprecated
-from .detail.imaging_mixins import VideoExport
+from .detail.imaging_mixins import VideoExport, FrameIndex
 from .adjustments import ColorAdjustment
 from .detail.widefield import TiffStack
 from .detail.image import make_image_title
 
 
-class CorrelatedStack(VideoExport):
+class CorrelatedStack(VideoExport, FrameIndex):
     """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various
     formats. These can be opened and correlated to timeline data using CorrelatedStack.
 
@@ -95,10 +95,18 @@ class CorrelatedStack(VideoExport):
             stack[1:5:2]  # Produces an error, steps are not allowed.
             stack[1, 3, 5]   # Error, integer indices are not allowed for the spatial dimensions.
             stack[1, 3:5:2]  # Produces an error, steps are not allowed when slicing.
+
+            stack["1s":"5s"]  # Slice the stack from 1 to 5 seconds
+            stack[:"-5s"]  # Slice the stack up to the last 5 seconds
         """
         src, item = self._handle_cropping(item) if isinstance(item, tuple) else (self.src, item)
 
         if isinstance(item, slice):
+            item = slice(
+                self._time_to_frame_index(item.start, is_start=True),
+                self._time_to_frame_index(item.stop, is_start=False),
+                item.step,
+            )
             start, stop, step = item.indices(self.num_frames)
             new_start = self._start_idx + self._step * start
             new_stop = self._start_idx + self._step * stop

@@ -11,6 +11,10 @@ These videos can be opened and sliced using `CorrelatedStack`::
     stack = lk.CorrelatedStack("wf.tiff")  # Loading a stack.
     stack_slice = stack[2:10]  # Grab frame 2 to 9
 
+You can also slice by time::
+
+    stack_slice = stack["2s":"10s"]  # Slice from second second up to tenth second
+
 You can easily load multiple TIFF files by simply listing them consecutively::
 
     stack = lk.CorrelatedStack("wf.tiff", "wf2.tiff")  # Loading two tiff files in a single stack.
