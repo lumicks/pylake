@@ -60,7 +60,7 @@ class BaseRangeSelectorWidget:
 
         # Draw a vertical line for some immediate visual feedback
         self._axes.axvline(self.range_conversion_fcn(point))
-        self._axes.get_figure().canvas.draw()
+        self._axes.figure.canvas.draw_idle()
 
     def _remove_range(self, point):
         """Removes a range if the provided timestamp falls inside it."""
@@ -114,6 +114,7 @@ class BaseRangeSelectorWidget:
         plt.sca(self._axes)
         self._plot_data()
         self.connect_click_callback()
+        self._axes.figure.canvas.draw_idle()
         plt.sca(old_axis)
 
     def _plot_data(self):

@@ -24,6 +24,7 @@
 * Improved `scan.get_image("rgb")` to handle missing channel data. Missing channels are now handled gracefully. Missing channels are zero filled matching the dimensions of the remaining channels.
 * Added calls to manually redraw the axes in kymotracker widget during horizontal pan and line connection callbacks. Without this, plot did not update correctly when using newer versions of `ipywidgets` and `matplotlib`.
 * Fixed bug in video export that led to one frame less being exported than intended.
+* Fixed bug which prevented the range selector widget from updating when the dataset to be plotted is changed. Previously, on some supported versions of `matplotlib` it would no longer update the figure. This is now fixed.
 
 #### Breaking changes
 
