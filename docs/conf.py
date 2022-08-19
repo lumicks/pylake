@@ -47,9 +47,8 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
-    "sphinx.ext.mathjax",
     "sphinxcontrib.bibtex",
-    "numpydoc",
+    "sphinx.ext.napoleon",
     "matplotlib.sphinxext.plot_directive",
     "nbexport",
     "sphinx_lfs_content",
@@ -67,9 +66,6 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
     "matplotlib": ("http://matplotlib.org/", None),
 }
-
-numpydoc_class_members_toctree = False
-numpydoc_show_class_members = False
 
 plot_include_source = True
 plot_html_show_source_link = False

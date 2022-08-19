@@ -7,6 +7,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
 .. currentmodule:: lumicks.pylake
 
 .. autosummary::
+    :template: class.rst
     :toctree: _api
 
     File
@@ -24,12 +25,16 @@ Force calibration
 
 .. autosummary::
     :toctree: _api
+    :template: class.rst
+
+    PassiveCalibrationModel
+    ActiveCalibrationModel
+
+    :template: function.rst
 
     calibrate_force
     calculate_power_spectrum
     fit_power_spectrum
-    PassiveCalibrationModel
-    ActiveCalibrationModel
     force_calibration.power_spectrum.PowerSpectrum
     force_calibration.power_spectrum_calibration.CalibrationResults
     viscosity_of_water
@@ -40,9 +45,12 @@ FD Fitting
 
 .. autosummary::
     :toctree: _api
+    :template: class.rst
 
     fitting.model.Model
     FdFit
+
+    :template: function.rst
     parameter_trace
 
 .. _fd_models:
@@ -50,6 +58,7 @@ FD Fitting
 
 .. autosummary::
     :toctree: _api
+    :template: function.rst
 
     force_offset
     distance_offset
@@ -70,9 +79,12 @@ Kymotracking
 
 .. autosummary::
     :toctree: _api
+    :template: class.rst
 
     kymotracker.kymotrack.KymoTrack
-    kymotracker.kymotrack.KymoTrack.estimate_diffusion
+
+    :template: function.rst
+
     track_greedy
     track_lines
     filter_lines
@@ -84,6 +96,7 @@ Notebook widgets
 
 .. autosummary::
     :toctree: _api
+    :template: class.rst
 
     FdRangeSelector
     FdDistanceRangeSelector
@@ -93,6 +106,7 @@ Population Dynamics
 
 .. autosummary::
     :toctree: _api
+    :template: class.rst
 
     GaussianMixtureModel
     DwelltimeModel
@@ -103,6 +117,7 @@ Piezo tracking
 
 .. autosummary::
     :toctree: _api
+    :template: class.rst
 
     DistanceCalibration
     ForceBaseLine
