@@ -55,6 +55,16 @@ This will return a new `Scan` containing data equivalent to::
 
     multiframe_scan.get_image("rgb")[5:10, :, :, :]
 
+We can also slice the frames by time::
+
+    # get frames corresponding to the time range 5 through 10 seconds
+    sliced_scan = multiframe_scan["5s":"10s"]
+
+Or directly using timestamps::
+
+    # get frames that fall between the start and stop of a force channel
+    multiframe_scan[f.force1x.start:f.force1x.stop]
+
 The images contain pixel data where each pixel represents summed photon counts.
 For an even lower-level look at data, the raw photon count samples can be accessed::
 
