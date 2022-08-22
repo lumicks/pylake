@@ -548,10 +548,14 @@ class Fit:
         self._rebuild()
         res = self._calculate_residual(params)
         sigma = sigma if np.any(sigma) else self.sigma
+        weighted_sum = -np.sum((res / sigma) ** 2) / 2.0
+        if np.isnan(weighted_sum):
+            raise RuntimeError(
+                "Residual returned NaN. Model cannot be evaluated at these parameter values."
+            )
+
         return (
-            -(self.n_residuals / 2.0) * np.log(2.0 * np.pi)
-            - np.sum(np.log(sigma))
-            - sum((res / sigma) ** 2) / 2.0
+            -(self.n_residuals / 2.0) * np.log(2.0 * np.pi) - np.sum(np.log(sigma)) + weighted_sum
         )
 
     @property

@@ -28,6 +28,7 @@
 * Fixed bug which prevented the range selector widget from updating when the dataset to be plotted is changed. Previously, on some supported versions of `matplotlib` it would no longer update the figure. This is now fixed.
 * Force-distance models now raise a `ValueError` exception when simulated for invalid parameter values.
 * Force distance models now have a non-zero lower bound for the contour length (`Lc`), persistence length (`Lp`), stretch modulus (`St`) and boltzmann constant times temperature (`kT`) instead of a lower bound of zero.
+* Force distance fits now raise a `RuntimeError` if any of the returned simulation values are NaN.
 
 #### Breaking changes
 
