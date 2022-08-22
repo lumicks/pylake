@@ -1,12 +1,6 @@
 from lumicks.pylake.fitting.models import *
-from lumicks.pylake.fitting.detail.model_implementation import (
-    WLC,
-    invWLC,
-    FJC,
-    invFJC,
-    tWLC,
-    invtWLC,
-)
+import lumicks.pylake.fitting.detail.model_implementation as model_impl
+from inspect import getfullargspec
 import numpy as np
 import pytest
 
@@ -64,11 +58,15 @@ def test_models():
     # Check whether the inverted models invert correctly
     d = np.array([3.0, 4.0])
     params = [5.0, 5.0, 5.0]
-    np.testing.assert_allclose(WLC(invWLC(d, *params), *params), d)
+    np.testing.assert_allclose(model_impl.WLC(model_impl.invWLC(d, *params), *params), d)
     params = [5.0, 15.0, 1.0, 4.11]
-    np.testing.assert_allclose(FJC(invFJC(independent, *params), *params), independent)
+    np.testing.assert_allclose(
+        model_impl.FJC(model_impl.invFJC(independent, *params), *params), independent
+    )
     params = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
-    np.testing.assert_allclose(tWLC(invtWLC(independent, *params), *params), independent)
+    np.testing.assert_allclose(
+        model_impl.tWLC(model_impl.invtWLC(independent, *params), *params), independent
+    )
 
     d = np.arange(0.15, 2, 0.5)
     (Lp, Lc, St, kT) = (38.18281266, 0.37704827, 278.50103452, 4.11)
@@ -126,3 +124,26 @@ def test_model_reprs():
     assert (force_offset("a_b_c") + force_offset("b_c_d")).invert()._repr_html_().find(
         "offset_{b\\_c\\_d}"
     ) > 0
+
+
+@pytest.mark.parametrize(
+    "model, test_params",
+    [
+        (model_impl.WLC, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.invWLC, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.FJC, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.invFJC, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.marko_siggia_simplified, ["Lp", "Lc", "kT"]),
+        (model_impl.marko_siggia_ewlc_solve_force, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.marko_siggia_ewlc_solve_distance, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.tWLC, ["Lp", "Lc", "St", "kT"]),
+        (model_impl.invtWLC, ["Lp", "Lc", "St", "kT"]),
+    ],
+)
+def test_invalid_params_models(model, test_params):
+    for test_param in test_params:
+        params = {p: 1 for p in getfullargspec(model).args}
+        for value in (0, -1):
+            with pytest.raises(ValueError, match="must be bigger than 0"):
+                params[test_param] = value
+                model(**params)
