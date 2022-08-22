@@ -35,5 +35,5 @@ def test_pickle(tmpdir_factory):
     # Verify fit result
     np.testing.assert_allclose(
         [x.value for x in dict(pickled_fit.params).values()],
-        [49.996726625805394, 24.00234442122973, 1415.9560551307495, 4.12],
+        [49.996726625805394, 24.00234442122973, 1415.93306, 4.12],
     )

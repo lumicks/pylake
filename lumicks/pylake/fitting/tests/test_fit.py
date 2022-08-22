@@ -657,10 +657,10 @@ def test_fit_reprs():
         "- Fitted parameters:\n"
         "    Name      Value  Unit      Fitted      Lower bound    Upper bound\n"
         "    ------  -------  --------  --------  -------------  -------------\n"
-        "    DNA/Lp    40     [nm]      True                  0            100\n"
-        "    DNA/Lc    16     [micron]  True                  0            inf\n"
-        "    DNA/St  1500     [pN]      True                  0            inf\n"
-        "    kT         4.11  [pN*nm]   False                 0              8"
+        "    DNA/Lp    40     [nm]      True            0.001              100\n"
+        "    DNA/Lc    16     [micron]  True            0.00034            inf\n"
+        "    DNA/St  1500     [pN]      True            1                  inf\n"
+        "    kT         4.11  [pN*nm]   False           3.77                 8"
     )
 
 

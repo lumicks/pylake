@@ -7,11 +7,17 @@ import warnings
 
 class Defaults:
     kT = Parameter(
-        value=4.11, lower_bound=0.0, upper_bound=8.0, fixed=True, shared=True, unit="pN*nm"
+        value=4.11,
+        lower_bound=3.77,  # Corresponds to 0 degrees Celsius
+        upper_bound=8.0,
+        fixed=True,
+        shared=True,
+        unit="pN*nm",
     )
-    Lp = Parameter(value=40.0, lower_bound=0.0, upper_bound=100, unit="nm")
-    Lc = Parameter(value=16.0, lower_bound=0.0, upper_bound=np.inf, unit="micron")
-    St = Parameter(value=1500.0, lower_bound=0.0, upper_bound=np.inf, unit="pN")
+    Lp = Parameter(value=40.0, lower_bound=1e-3, upper_bound=100, unit="nm")
+    # Lower bound is a single base pair
+    Lc = Parameter(value=16.0, lower_bound=3.4e-4, upper_bound=np.inf, unit="micron")
+    St = Parameter(value=1500.0, lower_bound=1.0, upper_bound=np.inf, unit="pN")
     offset = Parameter(value=0.0, lower_bound=-0.1, upper_bound=0.1, unit="pN")
 
 
@@ -61,8 +67,8 @@ def marko_siggia_simplified(d, Lp, Lc, kT):
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
         8759-8770 (1995).
     """
-    if Lc <= 0 or Lp <= 0 or kT <= 0:
-        raise ValueError("Contour length, persistence length and kT must be bigger than 0")
+    if Lp <= 0 or Lc <= 0 or kT <= 0:
+        raise ValueError("Persistence length, contour length and kT must be bigger than 0")
 
     if np.any(d > Lc):
         warnings.warn(
