@@ -678,3 +678,17 @@ def test_custom_legend_labels():
     plt.gca().clear()
     fit.plot(label="custom label")
     test_labels(["custom label (model)", "custom label (data)"])
+
+
+def test_nan():
+    def f(independent, a, b):
+        return np.asarray([1, np.nan, 1])
+
+    fit = Fit(Model("f", f))
+    data = np.asarray([1, 2, 3])
+    fit._add_data("data_name", data, data)
+    with pytest.raises(
+        RuntimeError,
+        match="Residual returned NaN. Model cannot be evaluated at these parameter values."
+    ):
+        fit.log_likelihood()
