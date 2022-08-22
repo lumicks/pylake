@@ -61,6 +61,9 @@ def marko_siggia_simplified(d, Lp, Lc, kT):
         1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
         8759-8770 (1995).
     """
+    if Lc <= 0 or Lp <= 0 or kT <= 0:
+        raise ValueError("Contour length, persistence length and kT must be bigger than 0")
+
     if np.any(d > Lc):
         warnings.warn(
             "Marko Siggia model is only defined properly up to the contour length (d = Lc)",
@@ -117,6 +120,10 @@ def WLC(f, Lp, Lc, St, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
     return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (f * Lp)) + f / St)
 
 
@@ -176,6 +183,10 @@ def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
     g = np.zeros(np.size(f))
     g[f < Fc] = g0 + g1 * Fc
     g[f >= Fc] = g0 + g1 * f[f >= Fc]
@@ -264,6 +275,10 @@ def FJC(f, Lp, Lc, St, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
     return Lc * (coth(2.0 * f * Lp / kT) - kT / (2.0 * f * Lp)) * (1.0 + f / St)
 
 
@@ -384,6 +399,11 @@ def invWLC(d, Lp, Lc, St, kT=4.11):
     #   c = - 0.25 * gamma / denom = - gamma / (4 * beta * beta)
     #
     # We can see now that parameterizing w.r.t. St is easier than b and define:
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
+
     alpha = (d / Lc) - 1.0
     gamma = kT / Lp
 
@@ -637,6 +657,11 @@ def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11) [pN nm]
     """
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
+
     f_min = 0
     f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
 
@@ -682,6 +707,11 @@ def invFJC(d, Lp, Lc, St, kT=4.11):
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
     """
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
+
     f_min = 0
     f_max = np.inf
 
@@ -717,8 +747,13 @@ def marko_siggia_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
 
 
 def marko_siggia_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
-    """Margo-Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
+    """Marko-Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
     These equations were symbolically derived. The expressions are not pretty, but they work."""
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
+
     c = -(St**3) * d * kT * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / (Lc**3 * (Lp * St + kT))
     b = (
         St**2
@@ -888,6 +923,9 @@ def inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT):
 
 
 def inverted_marko_siggia_simplified(f, Lp, Lc, kT=4.11):
+    if Lp <= 0 or Lc <= 0 or kT <= 0:
+        raise ValueError("Persistence length, contour length and kT must be bigger than 0")
+
     a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
 
     return solve_cubic_wlc(a, b, c, 1)
@@ -943,6 +981,11 @@ def inverted_marko_siggia_simplified_equation_tex(f, Lp, Lc, kT=4.11):
 
 
 def marko_siggia_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
+    if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
+        raise ValueError(
+            "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
+        )
+
     c = (
         -f
         * Lc**3
