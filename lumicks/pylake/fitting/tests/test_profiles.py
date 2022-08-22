@@ -1,3 +1,4 @@
+import warnings
 import pytest
 import numpy as np
 from textwrap import dedent
@@ -166,3 +167,50 @@ def test_plotting():
 
     profile.plot()
     profile.plot_relations()
+
+
+def test_bounded_valid_interval():
+    """Test whether profiles don't push the model beyond its valid range."""
+
+    def linear_with_exception(x, a=0.01, b=1):
+        if a <= 0:
+            raise ValueError("Invalid value!")
+        return a * x + b
+
+    # Data generated with: y = np.random.rand(7) + np.ones(1) + 0.01 * np.arange(7)
+    x = np.arange(7)
+    y = np.array(
+        [1.56368527, 1.46190795, 1.51428812, 2.02054457, 1.61288094, 1.36798765, 1.86743863]
+    )
+
+    fit = Fit(Model("model", linear_with_exception, jacobian=linear_jac))
+    fit._add_data("data", x, y)
+    fit["model/a"].value = 1
+    fit.fit()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Warning: Step size set to minimum step size")
+        warnings.filterwarnings("ignore", message="Optimization error encountered")
+        profile = fit.profile_likelihood("model/a")
+
+    assert np.all(profile.p > 0)
+
+
+def test_fit_failure():
+    """Test whether profiles don't push the model beyond its valid range."""
+
+    def linear_with_exception(x, a=1, b=0):
+        # This will fail once it starts optimizing along the profile, because then b will eventually
+        # drop below -0.1 because a + b should be 1. When a is larger than 1.1 this fails.
+        if b < -0.1:
+            print(f"a: {a}, b: {b}")
+            raise ValueError("Invalid value!")
+        return (a + b) * x
+
+    fit = Fit(Model("model", linear_with_exception))
+    data = np.array([0.01880579, 1.08151718, 2.03018996, 3.00636749, 4.07885534, 5.03468854])
+    fit._add_data("data", np.arange(6), data)
+    fit["model/a"].value = 1
+    fit["model/b"].value = 0
+
+    with pytest.warns(RuntimeWarning, match="Optimization error encountered"):
+        fit.profile_likelihood("model/a", num_steps=100, max_step=10, max_chi2_step=10.0)

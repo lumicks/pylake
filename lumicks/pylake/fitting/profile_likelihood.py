@@ -146,7 +146,14 @@ def do_step(
         if clamped:
             last_step = StepCode.shrink
 
-        chi2_trial = chi2_function(p_trial)
+        try:
+            chi2_trial = chi2_function(p_trial)
+        except (RuntimeError, ValueError):
+            # During stepping we can encounter places where the model fails, this is fine. Just make
+            # sure we flag these as non-acceptable steps and the algorithm will shrink the step and
+            # continue.
+            chi2_trial = np.inf
+
         chi2_change = chi2_trial - chi2_last
 
         if chi2_change < step_config.min_chi2_step_size:
@@ -207,9 +214,18 @@ def scan_dir_optimisation(
         current_step_size, p_next = scan_config.step_function(
             chi2_last, p_next, current_step_size, step_sign
         )
-        p_next = fit_function(
-            p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted
-        )
+        try:
+            p_next = fit_function(
+                p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted
+            )
+        except (ValueError, RuntimeError):
+            warn(
+                f"Optimization error encountered at iteration {step}, while attempting "
+                f"parameter values: {p_next}. Terminating profile. Parameter bound not found.",
+                RuntimeWarning,
+            )
+            break
+
         chi2_last = chi2_function(p_next)
         chi2_list.append(chi2_last)
         parameter_vectors.append(p_next)
