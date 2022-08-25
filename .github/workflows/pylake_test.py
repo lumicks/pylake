@@ -4,4 +4,4 @@ import os
 import pathlib
 
 os.chdir(str(pathlib.Path(lk.__file__).parent))
-sys.exit(lk.pytest(args=["--runslow", "--color=yes"]))
+sys.exit(lk.pytest(args=["--runslow", "--color=yes", "-Werror"]))
