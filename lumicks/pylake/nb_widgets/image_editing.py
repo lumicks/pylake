@@ -9,10 +9,15 @@ from ..detail.image import make_image_title
 
 
 def add_selector(axes, callback, button=None, interactive=True, **kwargs):
+    from inspect import signature
+
+    # Remove once matplotlib >= 3.5.0
+    props = "props" if "props" in signature(RectangleSelector).parameters else "rectprops"
+
     kwargs = {
         "button": button,
         "interactive": interactive,
-        "rectprops": {
+        props: {
             "facecolor": "none",
             "edgecolor": "w",
             "fill": False,
