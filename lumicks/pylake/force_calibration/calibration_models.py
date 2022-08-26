@@ -66,11 +66,7 @@ def diode_params_from_voltage(
 def viscosity_of_water(temperature):
     """Computes the viscosity of water in [Pa*s] at a particular temperature.
 
-    These equations come from section 3.7 from [7].
-
-    [7] Huber, M. L., Perkins, R. A., Laesecke, A., Friend, D. G., Sengers, J. V.,
-    Assael, M. J., & Miyagawa, K. (2009). New international formulation for the viscosity of H2O.
-    Journal of Physical and Chemical Reference Data, 38(2), 101-125.
+    These equations come from section 3.7 from [1]_.
 
     Parameters
     ----------
@@ -81,6 +77,13 @@ def viscosity_of_water(temperature):
     -------
     array_like
         Viscosity of water [Pa*s]
+
+    References
+    ----------
+
+    .. [1] Huber, M. L., Perkins, R. A., Laesecke, A., Friend, D. G., Sengers, J. V.,
+           Assael, M. J., & Miyagawa, K. (2009). New international formulation for the viscosity of
+           H2O. Journal of Physical and Chemical Reference Data, 38(2), 101-125.
     """
     temperature = np.asarray(temperature)
     if not np.all(np.logical_and(temperature >= -20, temperature < 110)):
@@ -206,7 +209,7 @@ class PassiveCalibrationModel:
     """Model to fit data acquired during passive calibration.
 
     The power spectrum calibration algorithm implemented here is based on a number of publications
-    by the Flyvbjerg group at DTU [1]_ [2]_ [3]_ [4]_.
+    by the Flyvbjerg group at DTU [1]_ [2]_ [3]_ [4]_ [5]_ [6]_.
 
     References
     ----------
@@ -498,8 +501,8 @@ class PassiveCalibrationModel:
 class ActiveCalibrationModel(PassiveCalibrationModel):
     """Model to fit data acquired during active calibration.
 
-    The power spectrum calibration algorithm implemented here is based on [1]_, [2]_, [3]_, [4]_,
-    [5]_, [6]_.
+    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
+    [6]_.
 
     References
     ----------
