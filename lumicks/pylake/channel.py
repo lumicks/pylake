@@ -20,7 +20,7 @@ class Slice:
     Parameters
     ----------
     data_source : Any
-        A slice data source. Can be `Continuous`, `TimeSeries`, 'TimeTags',
+        A slice data source. Can be `Continuous`, `TimeSeries`, `TimeTags`,
         or any other source which conforms to the same interface.
     labels : Dict[str, str]
         Plot labels: "x", "y", "title".
@@ -195,10 +195,15 @@ class Slice:
 
     @property
     def calibration(self) -> list:
-        """Calibration data slicing is deferred until calibration is requested to avoid
-        slicing values that may be needed."""
+        """List of force calibration items
+
+        The first element represents the calibration item that was active when this slice was
+        made.
+        """
         if self._calibration:
             try:
+                # Calibration data slicing is deferred until calibration is requested to avoid
+                # slicing values that may be needed.
                 return self._calibration.filter_calibration(self._src.start, self._src.stop)
             except IndexError:
                 return []
@@ -225,9 +230,9 @@ class Slice:
             )
 
     def downsampled_over(self, range_list, reduce=np.mean, where="center"):
-        """Downsample channel data based on timestamp ranges. The downsampling function (e.g. np.mean) is evaluated for
-        the time between a start and end time of each block. A list is returned that contains the data corresponding to
-        each block.
+        """Downsample channel data based on timestamp ranges. The downsampling function (e.g.
+        np.mean) is evaluated for the time between a start and end time of each block. A list is
+        returned that contains the data corresponding to each block.
 
         Parameters
         ----------
@@ -240,9 +245,11 @@ class Slice:
             cases, e.g. photon counts.
         where : str
             Where to put the final time point.
-            'center' time point is put at (timestamps_subset[0] + timestamps_subset[-1]) / 2, where timestamps_subset
-            are the timestamps corresponding to the samples being downsampled over.
-            'left' time point is put at start
+
+            - "center" : The new time points are set to
+              `(timestamps_subset[0] + timestamps_subset[-1]) / 2`, where `timestamps_subset` are
+              the timestamps corresponding to the samples being downsampled over.
+            - "left" : Time points are set to the starting timestamp of the downsampled data.
 
         Examples
         --------
@@ -298,18 +305,23 @@ class Slice:
             cases, e.g. photon counts.
         where : str
             Where to put the final time point.
-            'center' time point is put at (timestamps_subset[0] + timestamps_subset[-1]) / 2, where timestamps_subset
-            are the timestamps corresponding to the samples being downsampled over.
-            'left' time point is put at start
-        method : str
-            How to handle target sample times that are not exact multiples of the current sample time.
 
-            'safe'  new sample time must be an exact multiple of the current sample time,
-                    else an exception is raised.
-            'ceil'  rounds the sample rate up to the nearest frequency which fulfills this condition
-            'force' downsample data with the target input frequency; this will result in variable
-                    sample times and a variable number of sampling contributing to each target sample,
-                    but must be used for variable-frequency data
+            - "center" : The new time points are set to
+              `(timestamps_subset[0] + timestamps_subset[-1]) / 2`, where `timestamps_subset` are
+              the timestamps corresponding to the samples being downsampled over.
+            - "left" : Time points are set to the starting timestamp of the downsampled data.
+
+        method : str
+            How to handle target sample times that are not exact multiples of the current sample
+            time.
+
+            - "safe" : New sample time must be an exact multiple of the current sample time, else
+              an exception is raised.
+            - 'ceil' : Rounds the sample rate up to the nearest frequency which fulfills this
+              condition.
+            - 'force' : Downsample data with the target input frequency; this will result in
+              variable sample times and a variable number of sampling contributing to each target
+              sample but must be used for variable-frequency data.
         """
         if method not in ("safe", "ceil", "force"):
             raise ValueError(f"method '{method}' is not recognized")
