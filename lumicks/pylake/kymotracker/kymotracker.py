@@ -44,8 +44,8 @@ def _to_pixel_rect(rect, pixelsize, line_time_seconds):
 def track_greedy(
     kymograph,
     channel,
-    line_width,
-    pixel_threshold,
+    line_width=None,
+    pixel_threshold=None,
     window=8,
     sigma=None,
     vel=0.0,
@@ -77,11 +77,15 @@ def track_greedy(
         Kymograph.
     channel : str
         Kymograph channel.
-    line_width : float
-        Expected line width in physical units. Must be larger than zero.
-    pixel_threshold : float
+    line_width : float or None
+        Expected spatial track width in physical units. Must be larger than zero.
+        If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
+        for kymographs calibrated in microns and 1 for kymographs calibrated in kilobase pairs (based
+        on 0.34 nm/bp for duplex DNA)
+    pixel_threshold : float or None
         Intensity threshold for the pixels. Local maxima above this intensity level will be
-        designated as a line origin. Must be larger than zero.
+        designated as a track origin. Must be larger than zero. If `None`, the default is set to the
+        98th percentile of the image signal.
     window : int
         Number of kymograph lines in which the particle is allowed to disappear (and still be part
         of the same line).
@@ -118,6 +122,12 @@ def track_greedy(
     tools for the automated quantitative analysis of molecular and cellular dynamics using
     kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
+    if line_width is None:
+        line_width = {"um": 0.35, "kbp": 1, "pixels": 4}[kymograph._calibration.unit]
+
+    if pixel_threshold is None:
+        pixel_threshold = np.percentile(kymograph.get_image(channel), 0.98)
+
     if line_width <= 0:
         # Must be positive otherwise refinement fails
         raise ValueError(f"line_width should be larger than zero")

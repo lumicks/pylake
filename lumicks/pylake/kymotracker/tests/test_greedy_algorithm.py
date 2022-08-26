@@ -77,3 +77,15 @@ def test_greedy_algorithm_input_validation(kymo_integration_test_data):
     for pixel_threshold in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
             track_greedy(test_data, "red", line_width=10, pixel_threshold=pixel_threshold)
+
+
+def test_default_parameters(kymo_integration_test_data):
+    ref_tracks = track_greedy(kymo_integration_test_data, "red", 0.35, 1)
+
+    tracks = track_greedy(kymo_integration_test_data, "red", line_width=None, pixel_threshold=1)
+    for ref, track in zip(ref_tracks, tracks):
+        np.testing.assert_allclose(ref.position, track.position)
+
+    tracks = track_greedy(kymo_integration_test_data, "red", line_width=0.35, pixel_threshold=None)
+    for ref, track in zip(ref_tracks, tracks):
+        np.testing.assert_allclose(ref.position, track.position)
