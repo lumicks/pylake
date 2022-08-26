@@ -36,8 +36,8 @@ def calibrate_force(
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
-    The power spectrum calibration algorithm implemented here is based on [1]_, [2]_, [3]_, [4]_,
-    [5]_, [6]_.
+    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
+    [6]_.
 
     References
     ----------
