@@ -21,6 +21,9 @@ __all__ = [
 ]
 
 
+_default_track_widths = {"um": 0.35, "kbp": 0.35 / 0.34, "pixel": 4}
+
+
 def _to_pixel_rect(rect, pixelsize, line_time_seconds):
     """Convert (time, position) coordinates from physical units to pixels.
 
@@ -44,8 +47,8 @@ def _to_pixel_rect(rect, pixelsize, line_time_seconds):
 def track_greedy(
     kymograph,
     channel,
-    line_width,
-    pixel_threshold,
+    line_width=None,
+    pixel_threshold=None,
     window=8,
     sigma=None,
     vel=0.0,
@@ -64,24 +67,28 @@ def track_greedy(
     together using a greedy forward search analogous to [2]. This in contrast with the linking
     algorithm in [1] which uses a graph based optimization approach.
 
-    The linking step traverses the kymograph, tracing lines starting from each frame. It starts with
-    the highest line and proceeds to lines with lower signal intensity. For every point along the
-    line, the algorithm makes a prediction for where the particle will be in the next frame. Points
-    are considered candidates for line membership when they fall within a cone parameterized by a
+    The linking step traverses the kymograph, tracing tracks starting from each frame. It starts with
+    the highest intensity track and proceeds to tracks with lower signal intensity. For every point along the
+    track, the algorithm makes a prediction for where the particle will be in the next frame. Points
+    are considered candidates for track membership when they fall within a cone parameterized by a
     sigma and diffusion constant. The candidate point closest to the prediction is chosen and
-    connected to the line. When no more candidates are available the line is terminated.
+    connected to the track. When no more candidates are available the track is terminated.
 
     Parameters
     ----------
     kymograph : lumicks.pylake.Kymo
-        Kymograph.
-    channel : str
-        Kymograph channel.
-    line_width : float
-        Expected line width in physical units. Must be larger than zero.
-    pixel_threshold : float
+        The kymograph to track.
+    channel : {'red', 'green', 'blue'}
+        Color channel to track.
+    track_width : float
+        Expected (spatial) spot size in physical units. Must be larger than zero.
+        If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
+        for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
+        corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
+    pixel_threshold : float or None
         Intensity threshold for the pixels. Local maxima above this intensity level will be
-        designated as a line origin. Must be larger than zero.
+        designated as a track origin. Must be larger than zero. If `None`, the default is set to the
+        98th percentile of the image signal.
     window : int
         Number of kymograph lines in which the particle is allowed to disappear (and still be part
         of the same line).
@@ -118,6 +125,12 @@ def track_greedy(
     tools for the automated quantitative analysis of molecular and cellular dynamics using
     kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
+    if line_width is None:
+        line_width = {"um": 0.35, "kbp": 1, "pixels": 4}[kymograph._calibration.unit]
+
+    if pixel_threshold is None:
+        pixel_threshold = np.percentile(kymograph.get_image(channel), 98)
+
     if line_width <= 0:
         # Must be positive otherwise refinement fails
         raise ValueError(f"line_width should be larger than zero")
