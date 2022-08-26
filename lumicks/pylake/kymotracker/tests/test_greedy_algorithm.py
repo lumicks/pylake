@@ -18,7 +18,7 @@ def test_kymotracker_test_bias_rect():
 
     # We grab a subset of the image right beyond the bright pixel. If there's a bias induced
     # by the rectangle crop, we'll see it!
-    tracking_settings = {"line_width": 3, "pixel_threshold": 4, "sigma": 5, "window": 9}
+    tracking_settings = {"track_width": 3, "pixel_threshold": 4, "sigma": 5, "window": 9}
     traces_rect = track_greedy(kymo, "red", **tracking_settings, rect=[[0, 2], [1000, 12]])
     traces_full = track_greedy(kymo, "red", **tracking_settings)
 
@@ -66,26 +66,34 @@ def test_greedy_algorithm_input_validation(kymo_integration_test_data):
 
     for line_width in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
-            track_greedy(test_data, "red", line_width=line_width, pixel_threshold=10)
+            track_greedy(test_data, "red", track_width=line_width, pixel_threshold=10)
 
     # Any positive value will do
-    track_greedy(test_data, "red", line_width=0.00001, pixel_threshold=10)
+    track_greedy(test_data, "red", track_width=0.00001, pixel_threshold=10)
 
     with pytest.raises(ValueError, match="should be positive"):
-        track_greedy(test_data, "red", line_width=10, diffusion=-1, pixel_threshold=10)
+        track_greedy(test_data, "red", track_width=10, diffusion=-1, pixel_threshold=10)
 
     for pixel_threshold in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
-            track_greedy(test_data, "red", line_width=10, pixel_threshold=pixel_threshold)
+            track_greedy(test_data, "red", track_width=10, pixel_threshold=pixel_threshold)
 
 
 def test_default_parameters(kymo_integration_test_data):
     ref_tracks = track_greedy(kymo_integration_test_data, "red", 0.35, 1)
 
-    tracks = track_greedy(kymo_integration_test_data, "red", line_width=None, pixel_threshold=1)
+    tracks = track_greedy(kymo_integration_test_data, "red", track_width=None, pixel_threshold=1)
     for ref, track in zip(ref_tracks, tracks):
         np.testing.assert_allclose(ref.position, track.position)
 
-    tracks = track_greedy(kymo_integration_test_data, "red", line_width=0.35, pixel_threshold=None)
+    tracks = track_greedy(kymo_integration_test_data, "red", track_width=0.35, pixel_threshold=None)
     for ref, track in zip(ref_tracks, tracks):
         np.testing.assert_allclose(ref.position, track.position)
+
+
+def test_deprecated_args(kymo_integration_test_data):
+    with pytest.warns(
+        DeprecationWarning,
+        match="The argument `line_width` is deprecated; use `track_width` instead.",
+    ):
+        track_greedy(kymo_integration_test_data, "red", line_width=5)

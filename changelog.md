@@ -50,10 +50,11 @@
 * `Scan.save_tiff()` and `Kymo.save_tiff()` were deprecated and replaced with `Scan.export_tiff()` and `Kymo.export_tiff()` to more clearly communicate that the data is exported to a different format.
 * In the functions `Scan.frame_timestamp_ranges()` and `Kymo.line_timestamp_ranges()`, the parameter `exclude` was deprecated in favor of `include_dead_time` for clarity.
 * Deprecated `KymoTrackGroup.remove_lines_in_rect()`; use `KymoTrackGroup.remove_tracks_in_rect()` instead (see below).
+* Deprecated the `line_width` argument of `track_greedy()`; use `track_width` instead.
 
 #### Other changes
 
-* Added default values for the `track_greedy()` arguments `line_width` and `pixel_threshold`.
+* Added default values for the `track_greedy()` arguments `track_width` and `pixel_threshold`.
 * Renamed classes/methods/functions dealing with tracked particles. This change was made to avoid ambiguity with regard to the term *"line"*. Now, a *"line"* refers to a single scan pass of the confocal mirror during imaging. A *"track"* refers to the coordinates of tracked particles from a kymograph. Note: the relevant classes are considered internal API and should not be constructed manually. Any breaking changes or deprecations are noted above. The specific name changes are as follows:
     * `KymoLine` was renamed to `KymoTrack`
     * `KymoLineGroup` was renamed to `KymoTrackGroup`

@@ -44,7 +44,7 @@ def _to_pixel_rect(rect, pixelsize, line_time_seconds):
 def track_greedy(
     kymograph,
     channel,
-    line_width=None,
+    track_width=None,
     pixel_threshold=None,
     window=8,
     sigma=None,
@@ -52,6 +52,7 @@ def track_greedy(
     diffusion=0.0,
     sigma_cutoff=2.0,
     rect=None,
+    line_width=None,
 ):
     """Track particles on an image using a greedy algorithm.
 
@@ -64,20 +65,20 @@ def track_greedy(
     together using a greedy forward search analogous to [2]. This in contrast with the linking
     algorithm in [1] which uses a graph based optimization approach.
 
-    The linking step traverses the kymograph, tracing lines starting from each frame. It starts with
-    the highest line and proceeds to lines with lower signal intensity. For every point along the
-    line, the algorithm makes a prediction for where the particle will be in the next frame. Points
-    are considered candidates for line membership when they fall within a cone parameterized by a
+    The linking step traverses the kymograph, tracing tracks starting from each frame. It starts with
+    the highest intensity track and proceeds to tracjs with lower signal intensity. For every point along the
+    track, the algorithm makes a prediction for where the particle will be in the next frame. Points
+    are considered candidates for track membership when they fall within a cone parameterized by a
     sigma and diffusion constant. The candidate point closest to the prediction is chosen and
-    connected to the line. When no more candidates are available the line is terminated.
+    connected to the track. When no more candidates are available the track is terminated.
 
     Parameters
     ----------
     kymograph : lumicks.pylake.Kymo
-        Kymograph.
-    channel : str
-        Kymograph channel.
-    line_width : float or None
+        The kymograph to track.
+    channel : {'red', 'green', 'blue'}
+        Color channel to track.
+    track_width : float
         Expected spatial track width in physical units. Must be larger than zero.
         If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
         for kymographs calibrated in microns and 1 for kymographs calibrated in kilobase pairs (based
@@ -88,15 +89,15 @@ def track_greedy(
         98th percentile of the image signal.
     window : int
         Number of kymograph lines in which the particle is allowed to disappear (and still be part
-        of the same line).
+        of the same track).
     sigma : float or None
         Uncertainty in the particle position. This parameter will determine whether a peak in the
         next frame will be linked to this one. Increasing this value will make the algorithm tend
-        to allow more positional variation in the lines. If none, the algorithm will use half the
-        line width.
+        to allow more positional variation in the tracks. If none, the algorithm will use half the
+        track width.
     vel : float
         Expected velocity of the traces in the image in physical units. This can be used for
-        non-static particles that are expected to move at an expected rate (default: 0.0).
+        non-static particles that are expected to move at a constant rate (default: 0.0).
     diffusion : float
         Expected diffusion constant in physical units (default: 0.0). This parameter will influence
         whether a peak in the next frame will be connected to this one. Increasing this value will
@@ -106,13 +107,15 @@ def track_greedy(
         equal to or greater than zero.
     sigma_cutoff : float
         Sets at how many standard deviations from the expected trajectory a particle no longer
-        belongs to this trace. Lower values result in traces being more stringent in terms of
+        belongs to this track. Lower values result in tracks being more stringent in terms of
         continuing (default: 2.0).
     rect : tuple of two coordinates
         Only perform tracking over a subset of the image. When this argument is supplied, the peak
         detection and refinement is performed over the full image, but the results are then filtered
         to omit the peaks that fall outside of the rect. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
+    line_width : float
+        **Deprecated** Forwarded to track_width.
 
     References
     ----------
@@ -122,15 +125,26 @@ def track_greedy(
     tools for the automated quantitative analysis of molecular and cellular dynamics using
     kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
-    if line_width is None:
-        line_width = {"um": 0.35, "kbp": 1, "pixels": 4}[kymograph._calibration.unit]
+
+    # TODO: remove line_width argument deprecation path
+    if track_width is None:
+        if line_width is None:
+            track_width = {"um": 0.35, "kbp": 1, "pixels": 4}[kymograph._calibration.unit]
+        else:
+            track_width = line_width
+            warnings.warn(
+                DeprecationWarning(
+                    "The argument `line_width` is deprecated; use `track_width` instead."
+                ),
+                stacklevel=2,
+            )
 
     if pixel_threshold is None:
         pixel_threshold = np.percentile(kymograph.get_image(channel), 0.98)
 
-    if line_width <= 0:
+    if track_width <= 0:
         # Must be positive otherwise refinement fails
-        raise ValueError(f"line_width should be larger than zero")
+        raise ValueError(f"track_width should be larger than zero")
 
     if pixel_threshold <= 0:
         raise ValueError(f"pixel_threshold should be larger than zero")
@@ -141,16 +155,16 @@ def track_greedy(
     kymograph_data = kymograph.get_image(channel)
 
     position_scale = kymograph.pixelsize[0]
-    line_width_pixels = line_width / position_scale
+    track_width_pixels = track_width / position_scale
 
     coordinates, time_points = peak_estimate(
-        kymograph_data, np.ceil(0.5 * line_width_pixels), pixel_threshold
+        kymograph_data, np.ceil(0.5 * track_width_pixels), pixel_threshold
     )
     if len(coordinates) == 0:
         return []
 
     position, time, m0 = refine_peak_based_on_moment(
-        kymograph_data, coordinates, time_points, np.ceil(0.5 * line_width_pixels)
+        kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)
     )
 
     if rect:
@@ -161,14 +175,14 @@ def track_greedy(
         position, time, m0 = position[mask], time[mask], m0[mask]
 
     peaks = KymoPeaks(position, time, m0)
-    peaks = merge_close_peaks(peaks, np.ceil(0.5 * line_width_pixels))
+    peaks = merge_close_peaks(peaks, np.ceil(0.5 * track_width_pixels))
 
     # Convert algorithm parameters to pixel units
     velocity_pixels = vel * kymograph.line_time_seconds / position_scale
     diffusion_pixels = diffusion / (position_scale**2 / kymograph.line_time_seconds)
-    sigma_pixels = sigma / position_scale if sigma else 0.5 * line_width_pixels
+    sigma_pixels = sigma / position_scale if sigma else 0.5 * track_width_pixels
 
-    lines = points_to_line_segments(
+    tracks = points_to_line_segments(
         peaks,
         kymo_score(
             vel=velocity_pixels,
@@ -179,9 +193,9 @@ def track_greedy(
         sigma_cutoff=sigma_cutoff,
     )
 
-    lines = [KymoTrack(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
+    tracks = [KymoTrack(track.time_idx, track.coordinate_idx, kymograph, channel) for track in tracks]
 
-    return KymoTrackGroup(lines)
+    return KymoTrackGroup(tracks)
 
 
 def track_lines(
