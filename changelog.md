@@ -55,6 +55,7 @@
 
 #### Other changes
 
+* Added default values for the `track_greedy()` arguments `line_width` and `pixel_threshold`.
 * Renamed classes/methods/functions dealing with tracked particles. This change was made to avoid ambiguity with regard to the term *"line"*. Now, a *"line"* refers to a single scan pass of the confocal mirror during imaging. A *"track"* refers to the coordinates of tracked particles from a kymograph. Note: the relevant classes are considered internal API and should not be constructed manually. Any breaking changes or deprecations are noted above. The specific name changes are as follows:
     * `KymoLine` was renamed to `KymoTrack`
     * `KymoLineGroup` was renamed to `KymoTrackGroup`

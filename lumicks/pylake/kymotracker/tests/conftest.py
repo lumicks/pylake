@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
+from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from .data.generate_gaussian_data import read_dataset as read_dataset_gaussian
 
@@ -28,6 +29,27 @@ def kymo_integration_test_data():
         samples_per_pixel=3,
         line_padding=5,
     )
+
+
+@pytest.fixture
+def kymo_pixel_calibrations():
+    image = raw_test_data()
+    background = np.random.uniform(1, 10, size=image.size).reshape(image.shape)
+
+    kymo_um = generate_kymo(
+        "test",
+        image + background,
+        pixel_size_nm=50,
+        start=int(4e9),
+        dt=int(5e9 / 100),
+        samples_per_pixel=3,
+        line_padding=5,
+    )
+
+    kymo_kbp = kymo_um.calibrate_to_kbp(kymo_um.pixelsize_um[0] * kymo_um.pixels_per_line / 0.34)
+    kymo_px = _kymo_from_array(image + background, "r", kymo_um.line_time_seconds)
+
+    return kymo_um, kymo_kbp, kymo_px
 
 
 @pytest.fixture
