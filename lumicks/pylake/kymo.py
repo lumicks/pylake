@@ -576,6 +576,7 @@ class Kymo(ConfocalImage):
         """Open a widget to interactively edit the image stack.
 
         Actions include:
+
             * left-click and drag to define the cropped ROI
 
         Parameters
@@ -594,19 +595,19 @@ class Kymo(ConfocalImage):
         --------
         ::
 
-        from lumicks import pylake
-        import matplotlib.pyplot as plt
+            from lumicks import pylake
+            import matplotlib.pyplot as plt
 
-        # Loading a stack.
-        h5_file = pylake.File("example.h5")
-        _, kymo = h5_file.kymos.popitem()
-        widget = kymo.crop_and_calibrate("green", 48.502)
-        plt.show()
+            # Loading a stack.
+            h5_file = pylake.File("example.h5")
+            _, kymo = h5_file.kymos.popitem()
+            widget = kymo.crop_and_calibrate("green", 48.502)
+            plt.show()
 
-        # Select cropping ROI by left-click drag
+            # Select cropping ROI by left-click drag
 
-        # Grab the updated image stack
-        new_kymo = widget.kymo
+            # Grab the updated image stack
+            new_kymo = widget.kymo
         """
         from .nb_widgets.image_editing import KymoEditorWidget
 
