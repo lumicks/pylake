@@ -49,7 +49,7 @@ use the region from 7 to 22 micrometer. Let's have a look at what that looks lik
     >>> plt.ylim([22, 7])
 
 If we zoom in a bit, we can see that our tracks in this image are about 0.3 microns wide, so let's set this as our
-`line_width`. Note that we invoked `plt.colorbar()` to add a little color legend here.
+`track_width`. Note that we invoked `plt.colorbar()` to add a little color legend here.
 
 .. image:: kymo_zoom.png
 
@@ -60,7 +60,7 @@ Considering that we only want to run the kymotracker on part of the image, we al
 a rectangle over which to track peaks. In this case, we track particles between 0 and 350 seconds, and 7 and 22 micron.
 Running the algorithm is easy using the function :func:`~lumicks.pylake.track_greedy`::
 
-    tracks = lk.track_greedy(kymo, "green", line_width=0.3, pixel_threshold=3, window=6, rect=[[0, 7], [350, 22]])
+    tracks = lk.track_greedy(kymo, "green", track_width=0.3, pixel_threshold=3, window=6, rect=[[0, 7], [350, 22]])
 
 The result of tracking is a list of kymograph tracks::
 
@@ -68,10 +68,10 @@ The result of tracking is a list of kymograph tracks::
     7417
 
 Sometimes, we can have very short spurious tracks. To remove these from the list of detected tracks we can use
-:func:`~lumicks.pylake.filter_lines`. To omit all tracks with fewer than 4 detected points, we
+:func:`~lumicks.pylake.filter_tracks`. To omit all tracks with fewer than 4 detected points, we
 can invoke::
 
-    >>> tracks = lk.filter_lines(tracks, 4)
+    >>> tracks = lk.filter_tracks(tracks, 4)
 
 We can get the determined time and positions of these tracks from the `seconds` and `position`
 attributes. Let's plot the first track::
@@ -94,14 +94,14 @@ Centroid
 
 Once we are happy with the tracks found by the algorithm, we may still want to refine them. Since the algorithm finds
 tracks by determining local peaks and stringing these together, it is possible that some scan lines in the kymograph
-don't have an explicit point on the track associated with them. Using :func:`~lumicks.pylake.refine_lines_centroid` we
+don't have an explicit point on the track associated with them. Using :func:`~lumicks.pylake.refine_tracks_centroid` we
 can refine the tracks found by the algorithm. This function interpolates the tracks such that each time point gets its
 own point on the track. Subsequently, these points are then refined using a brightness weighted centroid. Let's perform
-line refinement and plot the longest track::
+track refinement and plot the longest track::
 
     longest_track_idx = np.argmax([len(track) for track in tracks])  # Get the longest track
 
-    refined = lk.refine_lines_centroid(tracks, line_width=0.3)
+    refined = lk.refine_tracks_centroid(tracks, track_width=0.3)
 
     plt.plot(refined[longest_track_idx].seconds, refined[longest_track_idx].position, '.')
     plt.plot(tracks[longest_track_idx].seconds, tracks[longest_track_idx].position, '.')
@@ -112,7 +112,7 @@ line refinement and plot the longest track::
 .. image:: kymo_refine.png
 
 We can see now that a few points were added post refinement (shown in blue). The others remain unchanged, since we used
-the same `line_width`.
+the same `track_width`.
 
 Fortunately, the signal to noise level in this kymograph is quite good. In practice, when the signal to noise is lower,
 one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
@@ -121,7 +121,7 @@ an acceptable result.
 Maximum Likelihood Estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The function `refine_lines_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
+The function `refine_tracks_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
 to characterize both the expected peak shape and photonic noise of the observed signal, adapted from :cite:`mortensen2010gauloc`.
 For each frame in the kymograph, we fit a small region around the tracked peak to the data by maximizing the following likelihood function:
 
@@ -142,7 +142,7 @@ photons/pixel.
 
 This function is called in a similar manner as the centroid refinement::
 
-    refined = lk.refine_lines_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip")
+    refined = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip")
 
 The number of pixels to be included in the fit is determined by the `window` argument, with a total size of `2*window+1` pixels.
 The exact value of this parameter is dependent on the quality of the data and should be balanced between including enough pixels to fully
@@ -179,9 +179,9 @@ Computing the appropriate photons/pixel background considering a Poissonian nois
 
     offset = np.mean(kymo_cropped.green_image)
 
-The independently determined offset (in photons per pixel) can then be provided directly to `lk.refine_lines_gaussian`::
+The independently determined offset (in photons per pixel) can then be provided directly to `lk.refine_tracks_gaussian`::
 
-    refined = lk.refine_lines_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
+    refined = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
 
 In this case the parameter will not be fitted, but fixed to the user specified value.
 This can help reduce the variance of the parameter estimates.
@@ -268,7 +268,7 @@ For instance, we can increase the number of bins from 10 (the default) to 50::
 When an integer is supplied to the `bins` argument, the full position range is used to calculate the bin edges (this is
 equivalent to using `np.histogram(data, bins=n, range=(0, max_position))`). This facilitates comparison of histograms calculated
 from different kymographs, as the absolute x-scale is dependent on the kymograph acquisition options, rather than the positions
-of the tracked lines. Alternatively, it is possible to supply a custom array of bin edges, as demonstrated below::
+of the tracks. Alternatively, it is possible to supply a custom array of bin edges, as demonstrated below::
 
     plt.figure()
     tracks.plot_binding_histogram("kind=all", bins=np.linspace(12, 18, 75), fc="#dcdcdc", ec="tab:blue")
@@ -377,7 +377,7 @@ We use the following estimator:
 
     \hat{\rho}[n] = \frac{1}{N - n} \sum_{i=1}^{N-n}\left(x_{i+n} - x_{i}\right)^2
 
-where :math:`\hat{\rho}[n]` corresponds to the estimate of the MSD for lag :math:`n`, :math:`N` is the number of time points in the tracked line, and :math:`x_i` is the track position at time frame :math:`i`.
+where :math:`\hat{\rho}[n]` corresponds to the estimate of the MSD for lag :math:`n`, :math:`N` is the number of time points in the track, and :math:`x_i` is the track position at time frame :math:`i`.
 
 What we can see in this definition is that it uses the same data points several times, thereby resulting in a well averaged estimate.
 However, the downside of this estimator is that the calculated values are highly correlated :cite:`qian1991single,michalet2010mean,michalet2012optimal` which needs to be accounted for in subsequent analyses.
@@ -476,7 +476,7 @@ Dwelltime analysis
 ------------------
 
 The lifetime of the bound state(s) can be determined using `KymoTrackGroup.fit_binding_times()`. This method defines
-the bound dwelltime as the length of each tracked line in seconds.
+the bound dwelltime as the length of each track in seconds.
 
 Note: tracks which start in the first frame of the kymograph or end in the last frame are excluded from the analysis. This is because, such tracks have
 ambiguous binding times as the start or end of the track is not known definitively. If these tracks were included in the analysis, this could lead to minor
@@ -502,5 +502,5 @@ For a detailed description of the optimization method and available attributes/m
 in :doc:`Population Dynamics </tutorial/population_dynamics>`.
 
 Note: the `min_observation_time` and `max_observation_time` arguments to the underlying `DwelltimeModel` are set automatically by this method.
-The minimum length of tracked lines depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
+The minimum length of the tracks depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
 Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.
