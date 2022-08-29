@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.kymotracker import (
+    filter_tracks,
     refine_lines_centroid,
     refine_lines_gaussian,
     filter_lines,
@@ -204,11 +205,14 @@ def test_gaussian_refinement_overlap(kymogroups_close_tracks):
     )
 
 
-def test_filter_lines(blank_kymo):
+def test_filter_tracks(blank_kymo):
     k1 = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
     k2 = KymoTrack([2, 3], [1, 2], blank_kymo, "red")
     k3 = KymoTrack([2, 3, 4, 5], [1, 2, 4, 5], blank_kymo, "red")
     tracks = KymoTrackGroup([k1, k2, k3])
-    assert len(filter_lines(tracks, 5)) == 0
-    assert all([track1 == track2 for track1, track2 in zip(filter_lines(tracks, 5), [k1, k3])])
-    assert all([track1 == track2 for track1, track2 in zip(filter_lines(tracks, 2), [k1, k2, k3])])
+    assert len(filter_tracks(tracks, 5)) == 0
+    assert all([track1 == track2 for track1, track2 in zip(filter_tracks(tracks, 5), [k1, k3])])
+    assert all([track1 == track2 for track1, track2 in zip(filter_tracks(tracks, 2), [k1, k2, k3])])
+
+    with pytest.warns(DeprecationWarning):
+        filter_lines(tracks, 5)

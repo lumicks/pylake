@@ -11,10 +11,12 @@ from .detail.peakfinding import (
 from .detail.localization_models import GaussianLocalizationModel
 import numpy as np
 import warnings
+from deprecated.sphinx import deprecated
 
 __all__ = [
     "track_greedy",
     "track_lines",
+    "filter_tracks",
     "filter_lines",
     "refine_lines_centroid",
     "refine_lines_gaussian",
@@ -280,6 +282,13 @@ def track_lines(
     )
 
 
+@deprecated(
+        reason=(
+            "`filter_lines()` has been renamed to `filter_tracks()`."
+        ),
+        action="always",
+        version="0.13.0",
+    )
 def filter_lines(lines, minimum_length):
     """Remove lines below a specific minimum number of points from the list.
 
@@ -293,7 +302,23 @@ def filter_lines(lines, minimum_length):
     minimum_length : int
         Minimum length for the line to be accepted.
     """
-    return KymoTrackGroup([line for line in lines if len(line) >= minimum_length])
+    return filter_tracks(lines, minimum_length)
+
+
+def filter_tracks(tracks, minimum_length):
+    """Remove tracks shorter than a minimum number of time points from the list.
+
+    This can be used to enforce a minimum number of frames a spot has to be detected in order
+    to be considered a valid track.
+
+    Parameters
+    ----------
+    tracks : List[pylake.KymoTrack]
+        Detected tracks on a kymograph.
+    minimum_length : int
+        Minimum length for the track to be accepted.
+    """
+    return KymoTrackGroup([track for track in tracks if len(track) >= minimum_length])
 
 
 def refine_lines_centroid(lines, line_width):

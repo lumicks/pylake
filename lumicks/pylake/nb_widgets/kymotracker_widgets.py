@@ -6,7 +6,7 @@ from copy import copy
 import warnings
 from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
-from lumicks.pylake import filter_lines, refine_lines_centroid
+from lumicks.pylake import filter_tracks, refine_lines_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
@@ -552,7 +552,7 @@ class KymoWidgetGreedy(KymoWidget):
         """
 
         def wrapped_track_greedy(kymo, channel, min_length, **kwargs):
-            return filter_lines(
+            return filter_tracks(
                 track_greedy(kymo, channel, **kwargs),
                 min_length,
             )
