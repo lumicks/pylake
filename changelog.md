@@ -19,6 +19,7 @@
 * Added possibility to access property `sample_rate` for `TimeSeries` data with constant sample rate.
 * Added shape property to `Scan` and `Kymo`.
 * Added a warning to the Kymotracker widget if the threshold parameter is set too low, which may result in slow tracking and the widget hanging.
+* Pylake now depends on `h5py>=3.4, <4`. This change is required to still support `len()` with the lazy loading fix for `TimeSeries`.
 
 #### Bug fixes
 
@@ -30,6 +31,7 @@
 * Force distance models now have a non-zero lower bound for the contour length (`Lc`), persistence length (`Lp`), stretch modulus (`St`) and boltzmann constant times temperature (`kT`) instead of a lower bound of zero.
 * Force distance fits now raise a `RuntimeError` if any of the returned simulation values are NaN.
 * Fixed bug that resulted in profile likelihood automatically failing when an attempted step exceeded the bounds where the model could be simulated.
+* Fixed method `TimeSeries.from_dataset()` reading all data from datasets upon creation of a `TimeSeries` instance instead of lazy loading 
 
 #### Breaking changes
 

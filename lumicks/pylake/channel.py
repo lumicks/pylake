@@ -559,7 +559,7 @@ class TimeSeries:
         self._cached_timestamps = None
 
     def __len__(self):
-        return len(self.data)
+        return len(self._src_data)
 
     def _with_data(self, data):
         return self.__class__(data, self.timestamps)
@@ -572,7 +572,7 @@ class TimeSeries:
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
         return Slice(
-            TimeSeries(dset["Value"], dset["Timestamp"]),
+            TimeSeries(dset.fields("Value"), dset.fields("Timestamp")),
             labels={"title": dset.name.strip("/"), "y": y_label},
             calibration=calibration,
         )
