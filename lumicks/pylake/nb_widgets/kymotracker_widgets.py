@@ -16,6 +16,7 @@ class KymoWidget:
         self,
         kymo,
         channel,
+        *,
         axis_aspect_ratio,
         use_widgets,
         output_filename,
@@ -482,6 +483,7 @@ class KymoWidgetGreedy(KymoWidget):
         self,
         kymo,
         channel,
+        *,
         axis_aspect_ratio=None,
         line_width=None,
         pixel_threshold=None,
@@ -587,11 +589,11 @@ class KymoWidgetGreedy(KymoWidget):
         super().__init__(
             kymo,
             channel,
-            axis_aspect_ratio,
-            use_widgets,
-            output_filename,
-            algorithm,
-            algorithm_parameters,
+            axis_aspect_ratio=axis_aspect_ratio,
+            use_widgets=use_widgets,
+            output_filename=output_filename,
+            algorithm=algorithm,
+            algorithm_parameters=algorithm_parameters,
             **kwargs,
         )
 

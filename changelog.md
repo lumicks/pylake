@@ -43,6 +43,7 @@
 * Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
 * The property `sample_rate` of `Continuous` data now returns a `float` instead of an `int``
 * Removed deprecated argument `roi` from `CorrelatedStack.export_tiff`. Use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting.
+* `KymoWidgetGreedy` now enforces using keywords for all arguments after the first two (`kymo` and `channel`).
 
 #### Deprecations
 
