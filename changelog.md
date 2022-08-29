@@ -52,6 +52,8 @@
 * In the functions `Scan.frame_timestamp_ranges()` and `Kymo.line_timestamp_ranges()`, the parameter `exclude` was deprecated in favor of `include_dead_time` for clarity.
 * Deprecated `KymoTrackGroup.remove_lines_in_rect()`; use `KymoTrackGroup.remove_tracks_in_rect()` instead (see below).
 * Deprecated the `line_width` argument of `track_greedy()`; use `track_width` instead.
+* Deprecated `filter_lines()`; use `filter_tracks()` instead.
+* Deprecated `refine_lines_centroid()`; use `refine_tracks_centroid()` instead. *Note: the `track_width` argument of `refine_tracks_centroid()` expects values in physical units whereas the previous `refine_lines_centroid()` expected the `line_width` argument in pixel units.*
 
 #### Other changes
 

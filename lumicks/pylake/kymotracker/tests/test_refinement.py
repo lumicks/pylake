@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.kymotracker import (
     filter_tracks,
+    refine_tracks_centroid,
     refine_lines_centroid,
     refine_lines_gaussian,
     filter_lines,
@@ -45,16 +46,18 @@ def test_refinement_2d():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     track = KymoTrack(time_idx[::2], coordinate_idx[::2], kymo, "red")
-    refined_track = refine_lines_centroid([track], 5)[0]
+    refined_track = refine_tracks_centroid([track], 5)[0]
     np.testing.assert_allclose(refined_track.time_idx, time_idx)
     np.testing.assert_allclose(refined_track.coordinate_idx, coordinate_idx + offset)
 
     # Test whether concatenation still works after refinement
-    np.testing.assert_allclose((refined_track + track).time_idx, np.hstack((time_idx, time_idx[::2])))
+    np.testing.assert_allclose(
+        (refined_track + track).time_idx, np.hstack((time_idx, time_idx[::2]))
+    )
     np.testing.assert_allclose(
         (refined_track + track).coordinate_idx,
         np.hstack((coordinate_idx + offset, coordinate_idx[::2])),
@@ -62,7 +65,7 @@ def test_refinement_2d():
 
 
 @pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
-def test_refinement_line(loc, inv_sigma=0.3):
+def test_refinement_track(loc, inv_sigma=0.3):
     # TODO: test does not run, same name as below
     xx = np.arange(0, 50) - loc
     image = np.exp(-inv_sigma * xx * xx)
@@ -77,16 +80,20 @@ def test_refinement_line(loc, inv_sigma=0.3):
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
-    track = refine_lines_centroid([KymoTrack([0], [25], kymo, "red")], 5)[0]
+    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5)[0]
     np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
 
 
-def test_refinement_line(kymo_integration_test_data):
-    with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
-        refine_lines_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0)[0]
+def test_refinement_error(kymo_integration_test_data):
+    with pytest.raises(ValueError, match="track_width should be larger than zero"):
+        refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0)[0]
+
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
+            refine_lines_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0)[0]
 
 
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
