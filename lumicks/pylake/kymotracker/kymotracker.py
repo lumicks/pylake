@@ -11,10 +11,14 @@ from .detail.peakfinding import (
 from .detail.localization_models import GaussianLocalizationModel
 import numpy as np
 import warnings
+from deprecated.sphinx import deprecated
 
 __all__ = [
     "track_greedy",
     "track_lines",
+    "filter_tracks",
+    "refine_tracks_centroid",
+    "refine_tracks_gaussian",
     "filter_lines",
     "refine_lines_centroid",
     "refine_lines_gaussian",
@@ -75,13 +79,17 @@ def track_greedy(
     sigma and diffusion constant. The candidate point closest to the prediction is chosen and
     connected to the track. When no more candidates are available the track is terminated.
 
+    *Note: the `track_width` parameter is given in physical units, but the algorithm works with discrete
+    pixels. In order to avoid bias in the result, the number of pixels to use is rounded up to the
+    nearest odd value.*
+
     Parameters
     ----------
     kymograph : lumicks.pylake.Kymo
         The kymograph to track.
     channel : {'red', 'green', 'blue'}
         Color channel to track.
-    track_width : float
+    track_width : float or None
         Expected (spatial) spot size in physical units. Must be larger than zero.
         If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
         for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
@@ -132,7 +140,7 @@ def track_greedy(
     # TODO: remove line_width argument deprecation path
     if track_width is None:
         if line_width is None:
-            track_width = {"um": 0.35, "kbp": 1, "pixels": 4}[kymograph._calibration.unit]
+            track_width = _default_track_widths[kymograph._calibration.unit]
         else:
             track_width = line_width
             warnings.warn(
@@ -196,7 +204,9 @@ def track_greedy(
         sigma_cutoff=sigma_cutoff,
     )
 
-    tracks = [KymoTrack(track.time_idx, track.coordinate_idx, kymograph, channel) for track in tracks]
+    tracks = [
+        KymoTrack(track.time_idx, track.coordinate_idx, kymograph, channel) for track in tracks
+    ]
 
     return KymoTrackGroup(tracks)
 
@@ -283,62 +293,117 @@ def track_lines(
     )
 
 
+@deprecated(
+    reason=("`filter_lines()` has been renamed to `filter_tracks()`."),
+    action="always",
+    version="0.13.0",
+)
 def filter_lines(lines, minimum_length):
     """Remove lines below a specific minimum number of points from the list.
 
     This can be used to enforce a minimum number of frames a spot has to be detected in to be
     considered a valid trace.
+    """
+    return filter_tracks(lines, minimum_length)
+
+
+def filter_tracks(tracks, minimum_length):
+    """Remove tracks shorter than a minimum number of time points from the list.
+
+    This can be used to enforce a minimum number of frames a spot has to be detected in order
+    to be considered a valid track.
 
     Parameters
     ----------
-    lines : List[pylake.KymoTrack]
+    tracks : List[pylake.KymoTrack]
         Detected tracks on a kymograph.
     minimum_length : int
-        Minimum length for the line to be accepted.
+        Minimum length for the track to be accepted.
     """
-    return KymoTrackGroup([line for line in lines if len(line) >= minimum_length])
+    return KymoTrackGroup([track for track in tracks if len(track) >= minimum_length])
 
 
+@deprecated(
+    reason=("`refine_lines_centroid()` has been renamed to `refine_tracks_centroid()`."),
+    action="always",
+    version="0.13.0",
+)
 def refine_lines_centroid(lines, line_width):
     """Refine the lines based on the brightness-weighted centroid.
 
     This function interpolates the determined traces and then uses the pixels in the vicinity of the
     traces to make small adjustments to the estimated location. The refinement correction is
     computed by considering the brightness weighted centroid.
-
-    Parameters
-    ----------
-    lines : List[pylake.KymoTrack]
-        Detected traces on a kymograph
-    line_width : int
-        Line width in pixels (may not be smaller than 1)
     """
     if line_width < 1:
         # Refinement only does something when line_width in pixels is larger than 1
         raise ValueError("line_width may not be smaller than 1")
 
-    interpolated_lines = [line.interpolate() for line in lines]
-    time_idx = np.round(np.array(np.hstack([line.time_idx for line in interpolated_lines]))).astype(
-        int
-    )
+    # convert line_width (pixel units) to physical units expected by refine_tracks_centroid
+    track_width = line_width * lines[0]._kymo.pixelsize[0]
+    return refine_tracks_centroid(lines, track_width)
+
+
+def refine_tracks_centroid(tracks, track_width=None):
+    """Refine the tracks based on the brightness-weighted centroid.
+
+    This function interpolates the determined tracks (in time) and then uses the pixels in the vicinity of the
+    tracks to make small adjustments to the estimated location. The refinement correction is
+    computed by considering the brightness weighted centroid.
+
+    *Note: the `track_width` parameter is given in physical units, but the algorithm works with discrete
+    pixels. In order to avoid bias in the result, the number of pixels to use is rounded up to the
+    nearest odd value.*
+
+    Parameters
+    ----------
+    tracks : List[pylake.KymoTrack]
+        Detected tracks on a kymograph
+    track_width : float
+        Expected (spatial) spot size in physical units. Must be larger than zero.
+        If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
+        for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
+        corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
+    """
+    if track_width is None:
+        track_width = _default_track_widths[tracks[0]._kymo._calibration.unit]
+
+    if track_width <= 0:
+        # Must be positive otherwise refinement fails
+        raise ValueError(f"track_width should be larger than zero")
+
+    track_width_pixels = np.ceil(track_width / tracks[0]._kymo.pixelsize[0])
+
+    interpolated_tracks = [track.interpolate() for track in tracks]
+    time_idx = np.round(
+        np.array(np.hstack([track.time_idx for track in interpolated_tracks]))
+    ).astype(int)
     coordinate_idx = np.round(
-        np.array(np.hstack([line.coordinate_idx for line in interpolated_lines]))
+        np.array(np.hstack([track.coordinate_idx for track in interpolated_tracks]))
     ).astype(int)
 
     coordinate_idx, time_idx, _ = refine_peak_based_on_moment(
-        interpolated_lines[0]._image.data, coordinate_idx, time_idx, np.ceil(0.5 * line_width)
+        interpolated_tracks[0]._image.data,
+        coordinate_idx,
+        time_idx,
+        np.ceil(0.5 * track_width_pixels),
     )
 
-    line_ids = np.hstack(
-        [np.full(len(line.time_idx), j) for j, line in enumerate(interpolated_lines)]
+    track_ids = np.hstack(
+        [np.full(len(track.time_idx), j) for j, track in enumerate(interpolated_tracks)]
     )
-    new_lines = [
-        line._with_coordinates(time_idx[line_ids == j], coordinate_idx[line_ids == j])
-        for j, line in enumerate(interpolated_lines)
+    new_tracks = [
+        track._with_coordinates(time_idx[track_ids == j], coordinate_idx[track_ids == j])
+        for j, track in enumerate(interpolated_tracks)
     ]
-    return KymoTrackGroup(new_lines)
+    return KymoTrackGroup(new_tracks)
 
 
+@deprecated(
+    reason=("`refine_lines_gaussian()` has been renamed to `refine_tracks_gaussian()`."),
+    action="always",
+    version="0.13.0",
+)
 def refine_lines_gaussian(
     lines,
     window,
@@ -347,14 +412,35 @@ def refine_lines_gaussian(
     initial_sigma=None,
     fixed_background=None,
 ):
-    """Refine the lines by gaussian peak MLE.
+    """Refine the lines by gaussian peak MLE."""
+    return refine_tracks_gaussian(
+        lines,
+        window,
+        refine_missing_frames,
+        overlap_strategy,
+        initial_sigma=initial_sigma,
+        fixed_background=fixed_background,
+    )
+
+
+def refine_tracks_gaussian(
+    tracks,
+    window,
+    refine_missing_frames,
+    overlap_strategy,
+    initial_sigma=None,
+    fixed_background=None,
+):
+    """Refine the tracks by gaussian peak MLE.
 
     Parameters
     ----------
-    lines : List[pylake.KymoTrack] or pylake.KymolineGroup
+    tracks : List[pylake.KymoTrack] or pylake.KymoTrackGroup
         Detected tracks on a kymograph.
     window : int
-        Number of pixels on either side of the estimated line to include in the optimization data.
+        Number of pixels on either side of the estimated track to include in the optimization data.
+        The fitting window should be large enough to capture the tails of the gaussian PSF, but
+        ideally small enough such that it will not include data from nearby tracks.
     refine_missing_frames : bool
         Whether to estimate location for frames which were missed in initial peak finding.
     overlap_strategy : {'multiple', 'ignore', 'skip'}
@@ -371,10 +457,10 @@ def refine_lines_gaussian(
     """
     assert overlap_strategy in ("ignore", "skip", "multiple")
     if refine_missing_frames:
-        lines = [line.interpolate() for line in lines]
+        tracks = [track.interpolate() for track in tracks]
 
-    kymo = lines[0]._kymo
-    channel = lines[0]._channel
+    kymo = tracks[0]._kymo
+    channel = tracks[0]._channel
     image_data = kymo.get_image(channel)
 
     initial_sigma = kymo.pixelsize[0] * 1.1 if initial_sigma is None else initial_sigma
@@ -384,19 +470,19 @@ def refine_lines_gaussian(
 
     # Generate a structure in which we can look up which lines contribute to which frame
     # 3 groups: (spatial) pixel coordinate, spatial position, line index
-    lines_per_frame = [[[] for _ in range(image_data.shape[1])] for _ in range(3)]
-    for line_index, line in enumerate(lines):
-        for idx, frame_index in enumerate(line.time_idx):
-            lines_per_frame[0][int(frame_index)].append(int(line.coordinate_idx[idx]))
-            lines_per_frame[1][int(frame_index)].append(line.position[idx])
-            lines_per_frame[2][int(frame_index)].append(line_index)
-    lines_per_frame = zip(*lines_per_frame)
+    tracks_per_frame = [[[] for _ in range(image_data.shape[1])] for _ in range(3)]
+    for track_index, track in enumerate(tracks):
+        for idx, frame_index in enumerate(track.time_idx):
+            tracks_per_frame[0][int(frame_index)].append(int(track.coordinate_idx[idx]))
+            tracks_per_frame[1][int(frame_index)].append(track.position[idx])
+            tracks_per_frame[2][int(frame_index)].append(track_index)
+    tracks_per_frame = zip(*tracks_per_frame)
 
     # Prepare storage for the refined lines
-    refined_lines_time_idx = [[] for _ in range(len(lines))]
-    refined_lines_parameters = [[] for _ in range(len(lines))]
+    refined_tracks_time_idx = [[] for _ in range(len(tracks))]
+    refined_tracks_parameters = [[] for _ in range(len(tracks))]
 
-    for frame_index, (pixel_coordinates, positions, line_indices) in enumerate(lines_per_frame):
+    for frame_index, (pixel_coordinates, positions, track_indices) in enumerate(tracks_per_frame):
         # Determine which lines are close enough so that they have to be fitted in the same group
         groups = (
             [[idx] for idx in range(len(pixel_coordinates))]
@@ -409,7 +495,7 @@ def refine_lines_gaussian(
                 continue
 
             # Grab the line indices within the group
-            line_indices_group = [line_indices[idx] for idx in group]
+            track_indices_group = [track_indices[idx] for idx in group]
             initial_positions = [positions[idx] for idx in group]
 
             # Cut out the relevant chunk of data
@@ -429,10 +515,10 @@ def refine_lines_gaussian(
             )
 
             # Store results in refined lines
-            for line_idx, params in zip(line_indices_group, result):
-                refined_lines_time_idx[line_idx].append(frame_index)
+            for track_idx, params in zip(track_indices_group, result):
+                refined_tracks_time_idx[track_idx].append(frame_index)
                 is_overlapping = len(result) != 1 if overlap_strategy == "multiple" else False
-                refined_lines_parameters[line_idx].append(np.hstack((params, is_overlapping)))
+                refined_tracks_parameters[track_idx].append(np.hstack((params, is_overlapping)))
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
@@ -442,7 +528,7 @@ def refine_lines_gaussian(
     return KymoTrackGroup(
         [
             KymoTrack(t, GaussianLocalizationModel(*np.vstack(p).T), kymo, channel)
-            for t, p in zip(refined_lines_time_idx, refined_lines_parameters)
+            for t, p in zip(refined_tracks_time_idx, refined_tracks_parameters)
             if len(t) > 0
         ]
     )

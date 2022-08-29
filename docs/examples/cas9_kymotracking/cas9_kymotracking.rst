@@ -102,7 +102,7 @@ view of our data.
 
 We will be using the greedy algorithm. The `threshold` should typically be chosen somewhere between the expected
 baseline photon count and the photon count of a true track (note that you can see the local photon count between square
-brackets while hovering over the kymograph). The `line width` should roughly be set to the expected line width (in the spatial dimension) of a
+brackets while hovering over the kymograph). The `track width` should roughly be set to the expected spot size (in the spatial dimension) of a
 track. The `window` should be chosen such that small gaps in a track can be overcome, but not so large that spurious
 points may be strung together as a track. `Sigma` controls how much the location can fluctuate from one time point to the
 next, while the `min length` determines how many peak points should be in a track for it to be considered a valid track.
