@@ -51,7 +51,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "pytest>=3.5",
-        "h5py>=3.0, <4",
+        "h5py>=3.4, <4",
         "numpy>=1.20, <2",
         "scipy>=1.1, <2",
         "matplotlib>=2.2",
