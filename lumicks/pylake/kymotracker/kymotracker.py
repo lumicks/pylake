@@ -18,6 +18,7 @@ __all__ = [
     "track_lines",
     "filter_tracks",
     "refine_tracks_centroid",
+    "refine_tracks_gaussian",
     "filter_lines",
     "refine_lines_centroid",
     "refine_lines_gaussian",
@@ -404,6 +405,11 @@ def refine_tracks_centroid(tracks, track_width=None):
     return KymoTrackGroup(new_tracks)
 
 
+@deprecated(
+    reason=("`refine_lines_gaussian()` has been renamed to `refine_tracks_gaussian()`."),
+    action="always",
+    version="0.13.0",
+)
 def refine_lines_gaussian(
     lines,
     window,
@@ -434,12 +440,52 @@ def refine_lines_gaussian(
         Fixed background parameter in photons per second.
         When supplied, the background is not estimated but fixed at this value.
     """
+    return refine_tracks_gaussian(
+        lines,
+        window,
+        refine_missing_frames,
+        overlap_strategy,
+        initial_sigma=initial_sigma,
+        fixed_background=fixed_background,
+    )
+
+
+def refine_tracks_gaussian(
+    tracks,
+    window,
+    refine_missing_frames,
+    overlap_strategy,
+    initial_sigma=None,
+    fixed_background=None,
+):
+    """Refine the tracks by gaussian peak MLE.
+
+    Parameters
+    ----------
+    tracks : List[pylake.KymoTrack] or pylake.KymoTrackGroup
+        Detected tracks on a kymograph.
+    window : int
+        Number of pixels on either side of the estimated track to include in the optimization data.
+    refine_missing_frames : bool
+        Whether to estimate location for frames which were missed in initial peak finding.
+    overlap_strategy : {'multiple', 'ignore', 'skip'}
+        How to deal with frames in which the fitting window of two `KymoTrack`'s overlap.
+
+        - 'multiple' : fit the peaks simultaneously.
+        - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
+        - 'skip' : skip optimization of the frame; remove from returned `KymoTrack`.
+    initial_sigma : float
+        Initial guess for the `sigma` parameter.
+    fixed_background : float
+        Fixed background parameter in photons per second.
+        When supplied, the background is not estimated but fixed at this value.
+    """
     assert overlap_strategy in ("ignore", "skip", "multiple")
     if refine_missing_frames:
-        lines = [line.interpolate() for line in lines]
+        tracks = [track.interpolate() for track in tracks]
 
-    kymo = lines[0]._kymo
-    channel = lines[0]._channel
+    kymo = tracks[0]._kymo
+    channel = tracks[0]._channel
     image_data = kymo.get_image(channel)
 
     initial_sigma = kymo.pixelsize[0] * 1.1 if initial_sigma is None else initial_sigma
@@ -449,19 +495,19 @@ def refine_lines_gaussian(
 
     # Generate a structure in which we can look up which lines contribute to which frame
     # 3 groups: (spatial) pixel coordinate, spatial position, line index
-    lines_per_frame = [[[] for _ in range(image_data.shape[1])] for _ in range(3)]
-    for line_index, line in enumerate(lines):
-        for idx, frame_index in enumerate(line.time_idx):
-            lines_per_frame[0][int(frame_index)].append(int(line.coordinate_idx[idx]))
-            lines_per_frame[1][int(frame_index)].append(line.position[idx])
-            lines_per_frame[2][int(frame_index)].append(line_index)
-    lines_per_frame = zip(*lines_per_frame)
+    tracks_per_frame = [[[] for _ in range(image_data.shape[1])] for _ in range(3)]
+    for track_index, track in enumerate(tracks):
+        for idx, frame_index in enumerate(track.time_idx):
+            tracks_per_frame[0][int(frame_index)].append(int(track.coordinate_idx[idx]))
+            tracks_per_frame[1][int(frame_index)].append(track.position[idx])
+            tracks_per_frame[2][int(frame_index)].append(track_index)
+    tracks_per_frame = zip(*tracks_per_frame)
 
     # Prepare storage for the refined lines
-    refined_lines_time_idx = [[] for _ in range(len(lines))]
-    refined_lines_parameters = [[] for _ in range(len(lines))]
+    refined_tracks_time_idx = [[] for _ in range(len(tracks))]
+    refined_tracks_parameters = [[] for _ in range(len(tracks))]
 
-    for frame_index, (pixel_coordinates, positions, line_indices) in enumerate(lines_per_frame):
+    for frame_index, (pixel_coordinates, positions, track_indices) in enumerate(tracks_per_frame):
         # Determine which lines are close enough so that they have to be fitted in the same group
         groups = (
             [[idx] for idx in range(len(pixel_coordinates))]
@@ -474,7 +520,7 @@ def refine_lines_gaussian(
                 continue
 
             # Grab the line indices within the group
-            line_indices_group = [line_indices[idx] for idx in group]
+            track_indices_group = [track_indices[idx] for idx in group]
             initial_positions = [positions[idx] for idx in group]
 
             # Cut out the relevant chunk of data
@@ -494,10 +540,10 @@ def refine_lines_gaussian(
             )
 
             # Store results in refined lines
-            for line_idx, params in zip(line_indices_group, result):
-                refined_lines_time_idx[line_idx].append(frame_index)
+            for track_idx, params in zip(track_indices_group, result):
+                refined_tracks_time_idx[track_idx].append(frame_index)
                 is_overlapping = len(result) != 1 if overlap_strategy == "multiple" else False
-                refined_lines_parameters[line_idx].append(np.hstack((params, is_overlapping)))
+                refined_tracks_parameters[track_idx].append(np.hstack((params, is_overlapping)))
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
@@ -507,7 +553,7 @@ def refine_lines_gaussian(
     return KymoTrackGroup(
         [
             KymoTrack(t, GaussianLocalizationModel(*np.vstack(p).T), kymo, channel)
-            for t, p in zip(refined_lines_time_idx, refined_lines_parameters)
+            for t, p in zip(refined_tracks_time_idx, refined_tracks_parameters)
             if len(t) > 0
         ]
     )

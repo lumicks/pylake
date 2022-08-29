@@ -1,12 +1,6 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.kymotracker import (
-    filter_tracks,
-    refine_tracks_centroid,
-    refine_lines_centroid,
-    refine_lines_gaussian,
-    filter_lines,
-)
+from lumicks.pylake.kymotracker.kymotracker import *
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
@@ -100,8 +94,20 @@ def test_refinement_error(kymo_integration_test_data):
 def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
     tracks, gapped_tracks, mixed_tracks = kymogroups_2tracks
 
+    # test aliasing
+    with pytest.warns(DeprecationWarning):
+        refined = refine_lines_gaussian(
+            tracks, window=3, refine_missing_frames=True, overlap_strategy=fit_mode
+        )
+        assert np.allclose(
+            refined[0].position, [3.54796254, 3.52869381, 3.51225177, 3.38714711, 3.48588436]
+        )
+        assert np.allclose(
+            refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
+        )
+
     # full data, no overlap
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         tracks, window=3, refine_missing_frames=True, overlap_strategy=fit_mode
     )
     assert np.allclose(
@@ -112,7 +118,7 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
     )
 
     # initial guess for sigma
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         tracks, window=3, refine_missing_frames=True, overlap_strategy=fit_mode, initial_sigma=0.250
     )
     assert np.allclose(
@@ -124,19 +130,19 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
 
     # all frames overlap, therefore skipped and result is empty
     with pytest.warns(UserWarning):
-        refined = refine_lines_gaussian(
+        refined = refine_tracks_gaussian(
             tracks, window=10, refine_missing_frames=True, overlap_strategy="skip"
         )
     assert len(refined) == 0
 
     # invalid overlap strategy
     with pytest.raises(AssertionError):
-        refined = refine_lines_gaussian(
+        refined = refine_tracks_gaussian(
             tracks, window=3, refine_missing_frames=True, overlap_strategy="something"
         )
 
     # gapped data, fill in missing frames
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         gapped_tracks, window=3, refine_missing_frames=True, overlap_strategy="skip"
     )
     assert np.allclose(
@@ -147,14 +153,14 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
     )
 
     # gapped data, skip missing frames
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         gapped_tracks, window=3, refine_missing_frames=False, overlap_strategy=fit_mode
     )
     assert np.allclose(refined[0].position, [3.54796254, 3.52869381, 3.38714711, 3.48588436])
     assert np.allclose(refined[1].position, [4.96700319, 4.99771575, 5.0066495, 4.99092852])
 
     # mixed length tracks, no overlap
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         mixed_tracks, window=3, refine_missing_frames=True, overlap_strategy="skip"
     )
     assert np.allclose(refined[0].position, [3.52869383, 3.51225048])
@@ -164,7 +170,7 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
 
     # mixed length tracks, track windows overlap
     with pytest.warns(UserWarning):
-        refined = refine_lines_gaussian(
+        refined = refine_tracks_gaussian(
             mixed_tracks, window=10, refine_missing_frames=True, overlap_strategy="skip"
         )
     # all frames in mixed_tracks[0] overlap with second track, all skipped
@@ -177,7 +183,7 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
 def test_gaussian_refinement_fixed_background(kymogroups_2tracks, fit_mode):
     tracks, _, _ = kymogroups_2tracks
 
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         tracks,
         window=3,
         refine_missing_frames=True,
@@ -195,7 +201,7 @@ def test_gaussian_refinement_fixed_background(kymogroups_2tracks, fit_mode):
 
 
 def test_gaussian_refinement_overlap(kymogroups_close_tracks):
-    refined = refine_lines_gaussian(
+    refined = refine_tracks_gaussian(
         kymogroups_close_tracks,
         window=15,
         refine_missing_frames=True,
