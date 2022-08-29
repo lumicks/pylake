@@ -115,7 +115,7 @@ def track_greedy(
         to omit the peaks that fall outside of the rect. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
     line_width : float
-        **Deprecated** Forwarded to track_width.
+        **Deprecated** Forwarded to `track_width`.
 
     References
     ----------

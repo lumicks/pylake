@@ -240,9 +240,9 @@ def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
     assert len(kymo_widget.lines) == 2 if same_line else 1
 
 
-def test_refine_line_width_units(kymograph, region_select):
+def test_refine_track_width_units(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(
-        kymograph, "red", axis_aspect_ratio=1, line_width=2, use_widgets=False
+        kymograph, "red", axis_aspect_ratio=1, track_width=2, use_widgets=False
     )
     in_um, in_s = calibrate_to_kymo(kymograph)
 
@@ -250,7 +250,7 @@ def test_refine_line_width_units(kymograph, region_select):
     kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
     kymo_widget.refine()
 
-    # With this line_width we'll include the two dim pixels in the test data
+    # With this track_width we'll include the two dim pixels in the test data
     true_coordinate = [12.176471] * 15
     true_coordinate[2] = 12
     true_coordinate[3] = 12
@@ -261,17 +261,17 @@ def test_refine_line_width_units(kymograph, region_select):
 def test_widget_with_calibration(kymograph):
     widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     np.testing.assert_allclose(
-        widget._algorithm_parameters["line_width"].value, kymograph.pixelsize[0] * 4
+        widget._algorithm_parameters["track_width"].value, kymograph.pixelsize[0] * 4
     )
-    np.testing.assert_allclose(widget._algorithm_parameters["line_width"].value, 1.6)
+    np.testing.assert_allclose(widget._algorithm_parameters["track_width"].value, 1.6)
     assert widget._axes.get_ylabel() == r"position ($\mu$m)"
 
     kymo_bp = kymograph.calibrate_to_kbp(10.000)
     widget = KymoWidgetGreedy(kymo_bp, "red", axis_aspect_ratio=1, use_widgets=False)
     np.testing.assert_allclose(
-        widget._algorithm_parameters["line_width"].value, kymo_bp.pixelsize[0] * 4
+        widget._algorithm_parameters["track_width"].value, kymo_bp.pixelsize[0] * 4
     )
-    np.testing.assert_allclose(widget._algorithm_parameters["line_width"].value, 2.0)
+    np.testing.assert_allclose(widget._algorithm_parameters["track_width"].value, 2.0)
     assert widget._axes.get_ylabel() == "position (kbp)"
 
 

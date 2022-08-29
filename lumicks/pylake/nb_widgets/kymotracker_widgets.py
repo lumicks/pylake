@@ -3,6 +3,7 @@ import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
+import warnings
 from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_lines, refine_lines_centroid
@@ -88,7 +89,7 @@ class KymoWidget:
 
     @property
     def _line_width_pixels(self):
-        return np.ceil(self._algorithm_parameters["line_width"].value / self._kymo.pixelsize[0])
+        return np.ceil(self._algorithm_parameters["track_width"].value / self._kymo.pixelsize[0])
 
     def track_kymo(self, click, release):
         """Handle mouse release event.
@@ -485,6 +486,7 @@ class KymoWidgetGreedy(KymoWidget):
         channel,
         *,
         axis_aspect_ratio=None,
+        track_width=None,
         line_width=None,
         pixel_threshold=None,
         window=None,
@@ -510,8 +512,10 @@ class KymoWidgetGreedy(KymoWidget):
             Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
             This helps you visualize them. The aspect ratio is defined in physical spatial and
             temporal units (rather than pixels).
-        line_width : float, optional
+        track_width : float, optional
             Expected width of the particles in physical units. Defaults to 4 * pixel size.
+        line_width : float, optional
+            **Deprecated** Forwarded to `track_width`.
         pixel_threshold : float, optional
             Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a line
             origin. Defaults to 98th percentile of the pixel intensities.
@@ -543,7 +547,7 @@ class KymoWidgetGreedy(KymoWidget):
         slider_ranges : dict of list, optional
             Dictionary with custom ranges for selected parameter sliders. Ranges should be in the
             following format: (lower bound, upper bound).
-            Valid options are: "window", "pixel_threshold", "line_width", "sigma", "min_length" and
+            Valid options are: "window", "pixel_threshold", "track_width", "sigma", "min_length" and
             "vel".
         """
 
@@ -555,6 +559,17 @@ class KymoWidgetGreedy(KymoWidget):
 
         algorithm = wrapped_track_greedy
         algorithm_parameters = _get_default_parameters(kymo, channel)
+
+        # TODO: remove line_width argument deprecation path
+        if "line_width" in slider_ranges.keys():
+            warnings.warn(
+                DeprecationWarning(
+                    "The argument `slider_ranges['line_width']` is deprecated; use `'track_width'` instead."
+                ),
+                stacklevel=2,
+            )
+            slider_ranges["track_width"] = slider_ranges["line_width"]
+            slider_ranges.pop("line_width")
 
         # check slider_ranges entries are valid
         keys = tuple(algorithm_parameters.keys())
@@ -579,6 +594,17 @@ class KymoWidgetGreedy(KymoWidget):
         # update defaults to user-supplied parameters
         arg_names, _, _, values = inspect.getargvalues(inspect.currentframe())
         parameters = {name: values[name] for name in arg_names if name != "self"}
+
+        # TODO: remove line_width argument deprecation path
+        if line_width is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The argument `line_width` is deprecated; use `track_width` instead."
+                ),
+                stacklevel=2,
+            )
+            parameters["track_width"] = line_width
+
         for key in keys:
             if parameters[key] is not None:
                 algorithm_parameters[key].value = parameters[key]
@@ -667,8 +693,8 @@ def _get_default_parameters(kymo, channel):
             *(1, np.max(data)),
             True,
         ),
-        "line_width": KymotrackerParameter(
-            "Line width",
+        "track_width": KymotrackerParameter(
+            "Track width",
             "Estimated spot width.",
             "float",
             4 * position_scale,
