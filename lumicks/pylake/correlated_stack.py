@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import tifffile
-import warnings
 from deprecated.sphinx import deprecated
 from .detail.imaging_mixins import VideoExport
 from .adjustments import ColorAdjustment
@@ -282,7 +281,7 @@ class CorrelatedStack(VideoExport):
         axes : mpl.axes.Axes or None
             If supplied, the axes instance in which to plot.
         **kwargs
-            Forwarded to :fun:`matplotlib.pyplot.plot`.
+            Forwarded to :func:`matplotlib.pyplot.plot`.
         """
         import matplotlib.pyplot as plt
 
@@ -300,6 +299,7 @@ class CorrelatedStack(VideoExport):
         """Open a widget to interactively edit the image stack.
 
         Actions include:
+
             * scrolling through frames using the mouse wheel
             * left-click to define the location of the tether
 
@@ -319,19 +319,19 @@ class CorrelatedStack(VideoExport):
         --------
         ::
 
-        from lumicks import pylake
-        import matplotlib.pyplot as plt
+            from lumicks import pylake
+            import matplotlib.pyplot as plt
 
-        # Loading a stack.
-        stack = pylake.CorrelatedStack("example.tiff")
-        widget = stack.crop_and_rotate()
-        plt.show()
+            # Loading a stack.
+            stack = pylake.CorrelatedStack("example.tiff")
+            widget = stack.crop_and_rotate()
+            plt.show()
 
-        # Select cropping ROI by right-click drag
-        # Select tether ends by left-click
+            # Select cropping ROI by right-click drag
+            # Select tether ends by left-click
 
-        # Grab the updated image stack
-        new_stack = widget.image
+            # Grab the updated image stack
+            new_stack = widget.image
         """
         from .nb_widgets.image_editing import ImageEditorWidget
 
@@ -351,9 +351,9 @@ class CorrelatedStack(VideoExport):
         figure_scale=0.75,
         adjustment=ColorAdjustment.nothing(),
     ):
-        """Downsample channel on a frame by frame basis and plot the results. The downsampling function (e.g. np.mean)
-        is evaluated for the time between a start and end time of a frame. Note: In environments which support
-        interactive figures (e.g. jupyter notebook with ipywidgets or interactive python) this plot will be interactive.
+        """Downsample channel on a frame by frame basis and plot the results. The downsampling
+        function (e.g. `np.mean`) is evaluated for the time between a start and end time of a
+        frame.
 
         Parameters
         ----------
@@ -374,6 +374,10 @@ class CorrelatedStack(VideoExport):
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
 
+        Note
+        ----
+        In environments which support interactive figures (e.g. `jupyter notebook` with
+        `ipywidgets` or interactive python) this plot will be interactive.
 
         Examples
         --------
@@ -501,6 +505,7 @@ class CorrelatedStack(VideoExport):
         version="0.11.1",
     )
     def timestamps(self):
+        """Get start and stop timestamp of each frame in the stack."""
         return self.frame_timestamp_ranges()
 
     def frame_timestamp_ranges(self, *, include_dead_time=False):
