@@ -264,63 +264,39 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         raise NotImplementedError
 
     @deprecated(
-        reason="`plot_red()` is deprecated. Use `plot(channel='red') instead.",
+        reason=("`plot_red()` is deprecated. Use `plot(channel='red')` instead."),
         version="0.11.1",
         action="always",
     )
     def plot_red(self, **kwargs):
-        """Plot an image of the red photon channel
-
-        Parameters
-        ----------
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
+        """Plot an image of the red photon channel"""
         return self.plot(channel="red", **kwargs)
 
     @deprecated(
-        reason="`plot_green()` is deprecated. Use `plot(channel='green') instead.",
+        reason="`plot_green()` is deprecated. Use `plot(channel='green')` instead.",
         version="0.11.1",
         action="always",
     )
     def plot_green(self, **kwargs):
-        """Plot an image of the green photon channel
-
-        Parameters
-        ----------
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
+        """Plot an image of the green photon channel"""
         return self.plot(channel="green", **kwargs)
 
     @deprecated(
-        reason="`plot_blue()` is deprecated. Use `plot(channel='blue') instead.",
+        reason="`plot_blue()` is deprecated. Use `plot(channel='blue')` instead.",
         version="0.11.1",
         action="always",
     )
     def plot_blue(self, **kwargs):
-        """Plot an image of the blue photon channel
-
-        Parameters
-        ----------
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
+        """Plot an image of the blue photon channel"""
         return self.plot(channel="blue", **kwargs)
 
     @deprecated(
-        reason="`plot_rgb()` is deprecated. Use `plot(channel='rgb') instead.",
+        reason="`plot_rgb()` is deprecated. Use `plot(channel='rgb')` instead.",
         version="0.11.1",
         action="always",
     )
     def plot_rgb(self, **kwargs):
-        """Plot an image of all color channels.
-
-        Parameters
-        ----------
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
+        """Plot an image of all color channels."""
         return self.plot(channel="rgb", **kwargs)
 
     def _get_plot_data(self, channel):
@@ -459,9 +435,10 @@ class ConfocalImage(BaseScan):
 
     @property
     def timestamps(self) -> np.ndarray:
-        """Timestamps for image pixels, not for samples
+        """Timestamps for each image pixel.
 
-        The returned array has the same shape as the `*_image` arrays.
+        The returned array has the same shape as the `{color}_image` arrays. Timestamps are defined
+        at the mean of the timestamps.
         """
         return self._timestamps("timestamps")
 
@@ -492,6 +469,7 @@ class ConfocalImage(BaseScan):
         version="0.12.0",
     )
     def red_image(self):
+        """Returns an image representing the red channel"""
         return self.get_image("red")
 
     @property
@@ -503,6 +481,7 @@ class ConfocalImage(BaseScan):
         version="0.12.0",
     )
     def green_image(self):
+        """Returns an image representing the green channel"""
         return self.get_image("green")
 
     @property
@@ -514,6 +493,7 @@ class ConfocalImage(BaseScan):
         version="0.12.0",
     )
     def blue_image(self):
+        """Returns an image representing the blue channel"""
         return self.get_image("blue")
 
     @property
@@ -525,6 +505,7 @@ class ConfocalImage(BaseScan):
         version="0.12.0",
     )
     def rgb_image(self):
+        """Returns an rgb image"""
         return self.get_image("rgb")
 
     def get_image(self, channel="rgb") -> np.ndarray:
