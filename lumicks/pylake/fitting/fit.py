@@ -16,8 +16,8 @@ def front(x):
 
 
 class Fit:
-    """Object which is used for fitting. It is a collection of models and their data. Once data is loaded, a fit object
-    contains parameters, which can be fitted by invoking fit.
+    """Object which is used for fitting. It is a collection of models and their data. Once data is
+    loaded, a fit object contains parameters, which can be fitted by invoking fit.
 
     Parameters
     ----------
@@ -275,29 +275,31 @@ class Fit:
         confidence_level=0.95,
         verbose=False,
     ):
-        """Calculate a profile likelihood. This method traces an optimal path through parameter space in order to
-        estimate parameter confidence intervals. It iteratively performs a step for the profiled parameter, then fixes
-        that parameter and re-optimizes all the other parameters.
+        """Calculate a profile likelihood. This method traces an optimal path through parameter
+        space in order to estimate parameter confidence intervals. It iteratively performs a step
+        for the profiled parameter, then fixes that parameter and re-optimizes all the other
+        parameters [4]_ [5]_.
 
         Parameters
         ----------
         parameter_name: str
             Which parameter to evaluate a profile likelihood for.
         min_step: float
-            Minimum step size. This is multiplied by the current parameter value to come to a minimum step size used
-            in the step-size estimation procedure (default: 1e-4).
+            Minimum step size. This is multiplied by the current parameter value to come to a
+            minimum step size used in the step-size estimation procedure.
         max_step: float
-            Maximum step size (default: 1.0).
+            Maximum step size.
         num_steps: integer
-            Number of steps to take (default: 100).
+            Number of steps to take .
         step_factor: float
-            Which factor to change the step-size by when step-size is too large or too small (default: 2).
+            Which factor to change the step-size by when step-size is too large or too small.
         min_chi2_step: float
-            Minimal desired step in terms of chi squared change prior to re-optimization. When the step results in a fit
-            change smaller than this threshold, the step-size will be increased.
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the
+            step results in a fit change smaller than this threshold, the step-size will be
+            increased.
         max_chi2_step: float
-            Minimal desired step in terms of chi squared change prior to re-optimization. When the step results in a fit
-            change bigger than this threshold, the step-size will be reduced.
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the
+            step results in a fit change bigger than this threshold, the step-size will be reduced.
         termination_significance: float
             Significance level for terminating the parameter scan. When the fit quality exceeds the
             termination_significance confidence level, it stops scanning.
@@ -305,6 +307,16 @@ class Fit:
             Significance level for the chi squared test.
         verbose: bool
             Controls the verbosity of the output.
+
+        References
+        ----------
+        .. [4] Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M., Klingmüller, U.,
+               & Timmer, J. (2009). Structural and practical identifiability analysis of partially
+               observed dynamical models by exploiting the profile likelihood. Bioinformatics,
+               25(15), 1923-1929.
+        .. [5] Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew,
+               F., Bock, H.H., Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to
+               its limit: profile likelihood based model reduction. PloS one, 11(9).
         """
 
         if parameter_name not in self.params:
@@ -426,13 +438,13 @@ class Fit:
         independent : array_like
             Array with values for the independent variable (used when plotting the model).
         legend : bool
-            Show legend (default: True).
+            Show legend.
         plot_data : bool
-            Show data (default: True).
+            Show data.
         overrides : dict
-            Parameter / value pairs which override parameter values in the current fit. Should be a dict of
-            {str: float} that provides values for parameters which should be set to particular values in the plot
-            (default: None);
+            Parameter / value pairs which override parameter values in the current fit. Should be
+            a dict of `{str: float}` that provides values for parameters which should be set to
+            particular values in the plot.
         ``**kwargs``
             Forwarded to :func:`matplotlib.pyplot.plot`.
 
@@ -453,7 +465,8 @@ class Fit:
             # Have a quick look at what a stiffness of 5 would do to the fit.
             fit.plot("Control", overrides={"DNA/St": 5})
 
-            # When dealing with multiple models in one fit, one has to select the model first when we want to plot.
+            # When dealing with multiple models in one fit, one has to select the model first when
+            # we want to plot.
             model1 = pylake.odijk("DNA")
             model2 = pylake.odijk("DNA") + pylake.odijk("protein")
             fit[model1].add_data("Control", force1, distance2)
@@ -532,8 +545,8 @@ class Fit:
     @property
     def sigma(self):
         """Error variance of the data points."""
-        # TO DO: Ideally, this will eventually depend on the exact error model used. For now, we use the a-posteriori
-        # noise standard deviation estimate based on the residual.
+        # TO DO: Ideally, this will eventually depend on the exact error model used. For now,
+        # we use the a-posteriori noise standard deviation estimate based on the residual.
         res = self._calculate_residual()
         est_sd = np.sqrt((res * res).sum() / (len(res) - np.sum(self.params.fitted)))
 
@@ -562,17 +575,19 @@ class Fit:
     def aic(self):
         """Calculates the Akaike Information Criterion:
 
-            AIC = 2 k - 2 ln(L)
+        .. math::
+            AIC = 2 k - 2 \mathrm{ln}(L)
 
-        Where k refers to the number of parameters, n to the number of observations (or data points) and L to the
-        maximized value of the likelihood function
+        Where k refers to the number of parameters, n to the number of observations (or data
+        points) and L to the maximized value of the likelihood function [6]_.
 
-        The emphasis of this criterion is future prediction. It does not lead to consistent model selection and is more
-        prone to over-fitting than the Bayesian Information Criterion.
+        The emphasis of this criterion is future prediction. It does not lead to consistent model
+        selection and is more prone to over-fitting than the Bayesian Information Criterion.
 
-        References:
-            Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
-            Statistics & Probability Letters, 33(2), pp.201-208.
+        References
+        ----------
+        .. [6] Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike
+               information criteria. Statistics & Probability Letters, 33(2), pp.201-208.
         """
         self._rebuild()
         k = sum(self.params.fitted)
@@ -586,15 +601,17 @@ class Fit:
         .. math::
             AICc = AIC + \\frac{2 k^2 + 2 k}{n - k - 1}
 
-        Where k refers to the number of parameters, n to the number of observations (or data points) and L to the
-        maximized value of the likelihood function
+        Where k refers to the number of parameters, n to the number of observations (or data
+        points) and L to the maximized value of the likelihood function [7]_.
 
-        The emphasis of this criterion is future prediction. Compared to the AIC it should be less prone to overfitting
-        for smaller sample sizes. Analogously to the AIC, it does not lead to a consistent model selection procedure.
+        The emphasis of this criterion is future prediction. Compared to the AIC it should be less
+        prone to overfitting for smaller sample sizes. Analogously to the AIC, it does not lead to
+        a consistent model selection procedure.
 
-        References:
-            Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike information criteria.
-            Statistics & Probability Letters, 33(2), pp.201-208.
+        References
+        ----------
+        .. [7] Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike
+               information criteria. Statistics & Probability Letters, 33(2), pp.201-208.
         """
 
         aic = self.aic
@@ -605,14 +622,16 @@ class Fit:
     def bic(self):
         """Calculates the Bayesian Information Criterion:
 
-            BIC = k ln(n) - 2 ln(L)
+        .. math::
+            BIC = k \mathrm{ln}(n) - 2 \mathrm{ln}(L)
 
-        Where k refers to the number of parameters, n to the number of observations (or data points) and L to the
-        maximized value of the likelihood function
+        Where k refers to the number of parameters, n to the number of observations (or data points)
+        and L to the maximized value of the likelihood function
 
-        The emphasis of the BIC is put on parsimonious models. As such it is less prone to over-fitting. Selection via
-        BIC leads to a consistent model selection procedure, meaning that as the number of data points tends to
-        infinity, BIC will select the true model assuming the true model is in the set of selected models.
+        The emphasis of the BIC is put on parsimonious models. As such it is less prone to
+        over-fitting. Selection via BIC leads to a consistent model selection procedure, meaning
+        that as the number of data points tends to infinity, BIC will select the true model
+        assuming the true model is in the set of selected models.
         """
 
         k = sum(self.params.fitted)
@@ -620,18 +639,21 @@ class Fit:
 
     @property
     def cov(self):
-        """Returns the inverse of the approximate Hessian. This approximation is valid when the model fits well (small
-        residuals) and there is sufficient data to assume we're in the asymptotic regime.
+        """Returns the inverse of the approximate Hessian. This approximation is valid when the
+        model fits well (small residuals) and there is sufficient data to assume we're in the
+        asymptotic regime.
 
-        It makes use of the Gauss-Newton approximation of the Hessian, which uses only the first order sensitivity
-        information. This is valid for linear problems and problems near the optimum (assuming the model fits).
+        It makes use of the Gauss-Newton approximation of the Hessian, which uses only the first
+        order sensitivity information. This is valid for linear problems and problems near the
+        optimum (assuming the model fits) [8]_ [9]_.
 
-        References:
-            Press, W.H., Teukolsky, S.A., Vetterling, W.T. and Flannery, B.P., 1988. Numerical recipes in C.
-
-            Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew, F., Bock, H.H.,
-            Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to its limit: profile likelihood
-            based model reduction. PloS one, 11(9).
+        References
+        ----------
+        .. [8] Press, W.H., Teukolsky, S.A., Vetterling, W.T. and Flannery, B.P., 1988. Numerical
+               recipes in C.
+        .. [9] Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew,
+               F., Bock, H.H., Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to
+               its limit: profile likelihood based model reduction. PloS one, 11(9).
         """
         # Note that this approximation is only valid if the noise on each data set is the same.
         if self.has_jacobian:
@@ -686,8 +708,8 @@ class Fit:
 
 
 class FdFit(Fit):
-    """Object which is used for fitting. It is a collection of models and their data. Once data is loaded, a fit object
-    contains parameters, which can be fitted by invoking fit.
+    """Object which is used for fitting. It is a collection of models and their data. Once data is
+    loaded, a fit object contains parameters, which can be fitted by invoking fit.
 
     Examples
     --------
@@ -717,8 +739,9 @@ class FdFit(Fit):
         d : array_like
             An array_like containing distance data.
         params : dict of {str : str or int}
-            List of parameter transformations. These can be used to convert one parameter in the model, to a new
-            parameter name or constant for this specific data set (for more information, see the examples).
+            List of parameter transformations. These can be used to convert one parameter in the
+            model, to a new parameter name or constant for this specific data set (for more
+            information, see the examples).
 
         Examples
         --------

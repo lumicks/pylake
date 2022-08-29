@@ -75,14 +75,20 @@ def distance_offset(name):
 def marko_siggia_ewlc_force(name):
     """Marko Siggia's Worm-like Chain model with force as dependent parameter.
 
-    References:
-        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
-        8759-8770 (1995).
+    Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
+    to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
+    near `F = 0.1 pN` [2]_.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] Wang, M. D., Yin, H., Landick, R., Gelles, J., & Block, S. M. (1997). Stretching DNA
+           with optical tweezers. Biophysical journal, 72(3), 1335-1346.
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -110,16 +116,22 @@ def marko_siggia_ewlc_force(name):
 
 
 def marko_siggia_ewlc_distance(name):
-    """Marko Siggia's Worm-like Chain model with distance as dependent parameter.
+    """Marko Siggia's Worm-like Chain model with distance as dependent parameter
 
-    References:
-        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
-        8759-8770 (1995).
+    Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
+    to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
+    near `F = 0.1 pN` [2]_.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] Wang, M. D., Yin, H., Landick, R., Gelles, J., & Block, S. M. (1997). Stretching DNA
+           with optical tweezers. Biophysical journal, 72(3), 1335-1346.
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -147,17 +159,19 @@ def marko_siggia_ewlc_distance(name):
 
 
 def marko_siggia_simplified(name):
-    """Marko Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
-    has force as a dependent variable.
+    """Marko Siggia's Worm-like Chain model.
 
-    References:
-        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
-        8759-8770 (1995).
+    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). This model has
+    force as a dependent variable.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -184,17 +198,19 @@ def marko_siggia_simplified(name):
 
 
 def inverted_marko_siggia_simplified(name):
-    """Marko Siggia's Worm-like Chain model based on only entropic contributions (valid for F << 10 pN). This model
-    has distance as a dependent variable.
+    """Marko Siggia's Worm-like Chain model.
 
-    References:
-        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
-        8759-8770 (1995).
+    This model is based on only entropic contributions [1]_ (valid for F << 10 pN). This model has
+    distance as a dependent variable.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -221,18 +237,20 @@ def inverted_marko_siggia_simplified(name):
 
 
 def odijk(name):
-    """Odijk's Extensible Worm-Like Chain model with distance as dependent variable (useful for 10 pN < F < 30 pN).
+    """Odijk's Extensible Worm-Like Chain model with distance as dependent variable
 
-    References:
-      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
-         28, 7016-7018 (1995).
-      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules 28, 7016-7018 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -260,26 +278,11 @@ def odijk(name):
 
 
 def dsdna_odijk(name, dna_length_kbp, um_per_kbp=0.34, temperature=24.53608821):
-    """Odijk's Extensible Worm-Like Chain model with distance as the dependent variable, using user-specified kilobase-pairs (useful for 10 pN < F < 30 pN).
+    """Model for dsDNA with distance as the dependent variable.
 
-    References:
-      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
-         28, 7016-7018 (1995).
-      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
-      3. Manning, G. S. (2006). The persistence length of DNA is reached from
-         the persistence length of its null isomer through an internal
-         electrostatic stretching force. Biophysical journal, 91(10),
-         3607-3616.
-      4. Liu, J. H., Xi, K., Zhang, X., Bao, L., Zhang, X., & Tan, Z. J.
-         (2019). Structural flexibility of DNA-RNA hybrid duplex: stretching
-         and twist-stretch coupling. Biophysical journal, 117(1), 74-86.
-      5. Herrero-Galán, E., Fuentes-Perez, M. E., Carrasco, C., Valpuesta,
-         J. M., Carrascosa, J. L., Moreno-Herrero, F., & Arias-Gonzalez, J. R.
-         (2013). Mechanical identities of RNA and DNA double helices unveiled
-         at the single-molecule level. Journal of the American Chemical Society,
-         135(1), 122-131.
-     6.  Saenger, W. (1984). Principles of Nucleic Acid Structure. Springer. New York, Berlin, Heidelberg.
+    Odijk's Extensible Worm-Like Chain model [1]_ [2]_ with distance as the dependent
+    variable using user-specified kilobase-pairs (useful for 10 pN < F < 30 pN). Default model
+    parameters were obtained from [3]_ [4]_ and [5]_.
 
     Parameters
     ----------
@@ -288,9 +291,28 @@ def dsdna_odijk(name, dna_length_kbp, um_per_kbp=0.34, temperature=24.53608821):
     dna_length_kbp: integer
         The length of the dna in tether/construct measured in kilobase-pairs
     um_per_kbp: float
-        The number of kilobase pairs evaluating to 1 um. This is used to convert the length in kbp to um as applied in the fit function [6].
+        The number of kilobase pairs evaluating to 1 um. This is used to convert the length in kbp
+        to um as applied in the fit function [6]_.
     temperature: float
         The temperature in celsius. This is used to calculate the boltzmann * temperature (kT) value
+
+    References
+    ----------
+    .. [1] T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules 28, 7016-7018 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
+    .. [3] Manning, G. S. (2006). The persistence length of DNA is reached from the persistence
+           length of its null isomer through an internal electrostatic stretching force.
+           Biophysical journal, 91(10), 3607-3616.
+    .. [4] Liu, J. H., Xi, K., Zhang, X., Bao, L., Zhang, X., & Tan, Z. J. (2019). Structural
+           flexibility of DNA-RNA hybrid duplex: stretching and twist-stretch coupling. Biophysical
+           journal, 117(1), 74-86.
+    .. [5] Herrero-Galán, E., Fuentes-Perez, M. E., Carrasco, C., Valpuesta, J. M.,
+           Carrascosa, J. L., Moreno-Herrero, F., & Arias-Gonzalez, J. R. (2013). Mechanical
+           identities of RNA and DNA double helices unveiled at the single-molecule level. Journal
+           of the American Chemical Society, 135(1), 122-131.
+    .. [6] Saenger, W. (1984). Principles of Nucleic Acid Structure. Springer. New York, Berlin,
+           Heidelberg.
     """
     from scipy import constants
 
@@ -305,18 +327,22 @@ def dsdna_odijk(name, dna_length_kbp, um_per_kbp=0.34, temperature=24.53608821):
 
 
 def inverted_odijk(name):
-    """Odijk's Extensible Worm-Like Chain model with force as dependent variable (useful for 10 pN < F < 30 pN).
+    """Odijk's Extensible Worm-Like Chain model with force as dependent variable
 
-    References:
-      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
-         28, 7016-7018 (1995).
-      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_. Note that
+    this implementation was analytically solved and is significantly faster than fitting the
+    model obtained with `lk.odijk("name").invert()`.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules 28, 7016-7018 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -346,17 +372,20 @@ def inverted_odijk(name):
 def freely_jointed_chain(name):
     """Freely-Jointed Chain with distance as dependent parameter.
 
-    References:
-        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
-           Elastic Response of Individual Double-Stranded and Single-Stranded
-           DNA Molecules, Science 271, 795-799 (1996).
-        2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-           DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    Freely jointed chain model [1]_ [2]_. Useful for modelling single stranded DNA.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The Elastic Response of
+           Individual Double-Stranded and Single-Stranded DNA Molecules, Science 271, 795-799
+           (1996).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -384,18 +413,10 @@ def freely_jointed_chain(name):
 
 
 def ssdna_fjc(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
-    """Freely-Jointed Chain with distance as dependent parameter, using user-specified kilobases.
+    """Model of ssDNA with distance as the dependent parameter.
 
-    References:
-        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
-           Elastic Response of Individual Double-Stranded and Single-Stranded
-           DNA Molecules, Science 271, 795-799 (1996).
-        2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-           DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
-        3. Bosco, A., Camunas-Soler, J., & Ritort, F. (2014). Elastic
-           properties and secondary structure formation of single-stranded
-           DNA at monovalent and divalent salt conditions. Nucleic acids
-           research, 42(3), 2064-2074.
+    Freely-Jointed Chain model [1]_ [2]_ with distance as dependent parameter, using
+    user-specified kilobases with default parameters obtained from [3]_.
 
     Parameters
     ----------
@@ -409,6 +430,17 @@ def ssdna_fjc(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
     temperature: float
         The temperature in celsius. This is used to calculate the
         Boltzmann's constant * temperature value
+
+    References
+    ----------
+    .. [1] S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The Elastic Response of
+           Individual Double-Stranded and Single-Stranded DNA Molecules, Science 271, 795-799
+           (1996).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
+    .. [3] Bosco, A., Camunas-Soler, J., & Ritort, F. (2014). Elastic properties and secondary
+           structure formation of single-stranded DNA at monovalent and divalent salt conditions.
+           Nucleic acids research, 42(3), 2064-2074.
     """
     from scipy import constants
 
@@ -424,19 +456,22 @@ def ssdna_fjc(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
 
 
 def inverted_freely_jointed_chain(name):
-    """Inverted Freely-Jointed Chain with force as dependent parameter.
+    """Freely-Jointed Chain model with distance as the dependent parameter.
 
-    References:
-        1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
-           Elastic Response of Individual Double-Stranded and Single-Stranded
-           DNA Molecules, Science 271, 795-799 (1996).
-        2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-           DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    The Freely-Jointed Chain model [1]_ [2]_ is useful for modelling ssDNA.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The Elastic Response of
+           Individual Double-Stranded and Single-Stranded DNA Molecules, Science 271, 795-799
+           (1996).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     from .model import InverseModel
 
@@ -444,19 +479,23 @@ def inverted_freely_jointed_chain(name):
 
 
 def twistable_wlc(name):
-    """Twistable Worm-like Chain model. With distance as dependent variable.
+    """Twistable Worm-like Chain model with distance as dependent variable.
 
-    References:
-       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
-          twist under tension, Nature Physics 7, 731-736 (2011).
-       2. Broekmans, Onno D., et al. DNA twist stability changes with
-          magnesium (2+) concentration, Physical review letters 116.25,
-          258102 (2016).
+    Twistable Worm-like Chain model [1]_ [2]_ that takes into account untwisting of the DNA at
+    high forces. Note that it is generally recommended to fit this model with force as the
+    dependent variable [2]_.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] P. Gross et al., Quantifying how DNA stretches, melts and changes twist under tension,
+           Nature Physics 7, 731-736 (2011).
+    .. [2] Broekmans, Onno D., et al. DNA twist stability changes with magnesium (2+) concentration,
+           Physical review letters 116.25, 258102 (2016).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -488,21 +527,24 @@ def twistable_wlc(name):
 
 
 def inverted_twistable_wlc(name):
-    """Twistable Worm-like Chain model. With force as dependent variable. This model uses a more performant implementation
-    for inverting the model. It inverts the model by interpolating the forward curve and using this interpolant to
-    invert the function.
+    """Twistable Worm-like Chain model with force as the dependent variable.
 
-    References:
-       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
-          twist under tension, Nature Physics 7, 731-736 (2011).
-       2. Broekmans, Onno D., et al. DNA twist stability changes with
-          magnesium (2+) concentration, Physical review letters 116.25,
-          258102 (2016).
+    Twistable Worm-like Chain model [1]_ [2]_ that takes into account untwisting of the DNA at
+    high forces. This model uses a more performant implementation for inverting the model. It
+    inverts the model by interpolating the forward curve and using this interpolant to invert the
+    function.
 
     Parameters
     ----------
     name : str
         Name for the model. This name will be prefixed to the model parameter names.
+
+    References
+    ----------
+    .. [1] P. Gross et al., Quantifying how DNA stretches, melts and changes twist under tension,
+           Nature Physics 7, 731-736 (2011).
+    .. [2] Broekmans, Onno D., et al. DNA twist stability changes with magnesium (2+) concentration,
+           Physical review letters 116.25, 258102 (2016).
     """
     from .model import Model
     from .detail.model_implementation import (

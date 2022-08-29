@@ -61,11 +61,12 @@ def marko_siggia_simplified_equation_tex(d, Lp, Lc, kT):
 
 
 def marko_siggia_simplified(d, Lp, Lc, kT):
-    """Marko Siggia's Worm-like Chain model based on only entropic contributions. Valid for F < 10 pN).
+    """Marko Siggia's Worm-like Chain model based on only entropic contributions. Valid for
+    F < 10 pN) [1]_.
 
-    References:
-        1. J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26,
-        8759-8770 (1995).
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
     """
     if Lp <= 0 or Lc <= 0 or kT <= 0:
         raise ValueError("Persistence length, contour length and kT must be bigger than 0")
@@ -105,13 +106,7 @@ def WLC_equation_tex(f, Lp, Lc, St, kT=4.11):
 
 
 def WLC(f, Lp, Lc, St, kT=4.11):
-    """Odijk's Extensible Worm-like Chain model
-
-    References:
-      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
-         28, 7016-7018 (1995).
-      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    """Odijk's Extensible Worm-like Chain model [1]_ [2]_.
 
     Parameters
     ----------
@@ -125,6 +120,12 @@ def WLC(f, Lp, Lc, St, kT=4.11):
         stretching modulus [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+
+    References
+    ----------
+    .. [1] T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules 28, 7016-7018 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
@@ -162,11 +163,7 @@ def tWLC_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 
 
 def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    """Twistable Worm-like Chain model
-
-    References:
-       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
-          twist under tension, Nature Physics 7, 731-736 (2011).
+    """Twistable Worm-like Chain model [1]_.
 
     Parameters
     ----------
@@ -188,6 +185,11 @@ def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
         critical force for twist stretch coupling [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+
+    References
+    ----------
+    .. [1] P. Gross et al., Quantifying how DNA stretches, melts and changes twist under tension,
+    Nature Physics 7, 731-736 (2011).
     """
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
@@ -259,14 +261,7 @@ def FJC_equation_tex(f, Lp, Lc, St, kT=4.11):
 
 
 def FJC(f, Lp, Lc, St, kT=4.11):
-    """Freely-Jointed Chain
-
-    References:
-       1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
-          Elastic Response of Individual Double-Stranded and Single-Stranded
-          DNA Molecules, Science 271, 795-799 (1996).
-       2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-          DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    """Freely-Jointed Chain [1]_ [2]_.
 
     Parameters
     ----------
@@ -280,6 +275,14 @@ def FJC(f, Lp, Lc, St, kT=4.11):
         elastic modulus [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+
+    References
+    ----------
+    .. [1] S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The Elastic Response of
+           Individual Double-Stranded and Single-Stranded DNA Molecules, Science 271, 795-799
+           (1996).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
@@ -363,13 +366,7 @@ def invWLC_equation_tex(d, Lp, Lc, St, kT=4.11):
 
 
 def invWLC(d, Lp, Lc, St, kT=4.11):
-    """Inverted Odijk's Worm-like Chain model
-
-    References:
-      1. T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules
-         28, 7016-7018 (1995).
-      2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-         DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    """Inverted Odijk's Worm-like Chain model [1]_ [2]_.
 
     Parameters
     ----------
@@ -383,6 +380,12 @@ def invWLC(d, Lp, Lc, St, kT=4.11):
         stretching modulus [pN]
     kT : float
         Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+
+    References
+    ----------
+    .. [1] T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules 28, 7016-7018 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     #
     # In short, this model was analytically solved, since it is basically a cubic equation. There are some issues
@@ -638,9 +641,13 @@ def invtWLC_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """Inverted Twistable Worm-like Chain model
 
-    References:
-       1. P. Gross et al., Quantifying how DNA stretches, melts and changes
-          twist under tension, Nature Physics 7, 731-736 (2011).
+    Inverted form of the Twistable Worm-like Chain model that takes into account untwisting of the
+    DNA at high forces.
+
+    References
+    ----------
+    .. [1] P. Gross et al., Quantifying how DNA stretches, melts and changes twist under tension,
+           Nature Physics 7, 731-736 (2011).
 
     Parameters
     ----------
@@ -691,14 +698,15 @@ def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 
 
 def invFJC(d, Lp, Lc, St, kT=4.11):
-    """Inverted Freely-Jointed Chain
+    """Inverted Freely-Jointed Chain [1]_ [2]_.
 
-    References:
-       1. S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The
-          Elastic Response of Individual Double-Stranded and Single-Stranded
-          DNA Molecules, Science 271, 795-799 (1996).
-       2. M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching
-          DNA with optical tweezers., Biophysical journal 72, 1335-46 (1997).
+    References
+    ----------
+    .. [1] S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The Elastic Response of
+           Individual Double-Stranded and Single-Stranded DNA Molecules, Science 271, 795-799
+           (1996).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
 
     Parameters
     ----------
@@ -753,13 +761,23 @@ def marko_siggia_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
 
 
 def marko_siggia_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
-    """Marko-Siggia's Worm-like Chain model with distance as dependent parameter (useful for F < 10 pN).
-    These equations were symbolically derived. The expressions are not pretty, but they work."""
+    """Modified Marko Siggia's Worm-like Chain model with distance as dependent parameter.
+
+    Modification of Marko-Siggia formula [1] to incorporate enthalpic stretching. Has limitations
+    similar to Marko-Siggia near `F = 0.1 pN` [2]_.
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] Wang, M. D., Yin, H., Landick, R., Gelles, J., & Block, S. M. (1997). Stretching DNA
+           with optical tweezers. Biophysical journal, 72(3), 1335-1346.
+    """
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
             "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
         )
 
+    """Margo-Siggia's Worm-like Chain model with distance as dependent parameter."""
     c = -(St**3) * d * kT * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / (Lc**3 * (Lp * St + kT))
     b = (
         St**2

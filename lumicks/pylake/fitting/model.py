@@ -221,8 +221,27 @@ class Model:
         return model_info
 
     def invert(self, independent_min=0.0, independent_max=np.inf, interpolate=False):
-        """
-        Invert this model (swap dependent and independent parameter).
+        """Invert this model.
+
+        This operation swaps the dependent and independent parameter and should be avoided if a
+        faster alternative (such as an analytically inverted model) exists.
+
+        By default, this function returns an inverted version of the model, where the function
+        is inverted for each point using a least squares optimizer. Alternatively, one can use
+        an interpolation method to perform the inversion (here the relation is interpolated using
+        a spline and the result is looked up). Note that for the interpolation method, the range
+        used for the independent variable must be known a-priori.
+
+        Parameters
+        ----------
+        independent_min : float
+            Minimum value for the independent variable over which to interpolate. Only used when
+            `interpolate` is set to `True`.
+        independent_max : float
+            Maximum value for the independent variable over which to interpolate. Only used when
+            `interpolate` is set to `True`.
+        interpolate : bool
+            Use interpolation method rather than numerical inversion.
         """
         return InverseModel(self, independent_min, independent_max, interpolate)
 
@@ -281,13 +300,14 @@ class Model:
 
     @property
     def has_jacobian(self):
-        """Returns true if the model can return an analytically computed Jacobian."""
+        """Returns `True` if the model can return an analytically computed Jacobian."""
         if self._jacobian:
             return True
 
     @property
     def has_derivative(self):
-        """Returns true if the model can return an analytically computed derivative w.r.t. the independent variable."""
+        """Returns `True` if the model can return an analytically computed derivative w.r.t. the
+        independent variable."""
         if self._derivative:
             return True
 
