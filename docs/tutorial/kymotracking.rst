@@ -207,9 +207,9 @@ For example::
 
     KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, slider_ranges={"window": (0, 8)})
 
-Tracked lines are accessible through the `.lines` property::
+Detected tracks are accessible through the `.tracks` property::
 
-    >>> lines = kymowidget.lines
+    >>> tracks = kymowidget.tracks
     KymoTrackGroup(N=199)
 
 For more information on its use, please see the example :ref:`cas9_kymotracking`.

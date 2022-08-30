@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
 import warnings
+from deprecated.sphinx import deprecated
 from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
@@ -60,7 +61,7 @@ class KymoWidget:
             if axis_aspect_ratio
             else None
         )
-        self._lines_history = UndoStack(KymoTrackGroup([]))
+        self._tracks_history = UndoStack(KymoTrackGroup([]))
         self.plotted_lines = []
         self._kymo = kymo
         self._channel = channel
@@ -80,12 +81,48 @@ class KymoWidget:
         self.show(use_widgets=use_widgets, **kwargs)
 
     @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use the `tracks` property instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def lines(self):
-        return self._lines_history.state
+        """Detected tracks.
+
+        Returns
+        -------
+        KymoTrackGroup:
+            Collection of detected tracks.
+        """
+        return self.tracks
+
+    @property
+    def tracks(self):
+        """Detected tracks.
+
+        Returns
+        -------
+        KymoTrackGroup:
+            Collection of detected tracks.
+        """
+        return self._tracks_history.state
 
     @lines.setter
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use the `tracks` property instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def lines(self, new_lines):
-        self._lines_history.state = new_lines
+        self.tracks = new_lines
+
+    @tracks.setter
+    def tracks(self, new_tracks):
+        self._tracks_history.state = new_tracks
 
     @property
     def _line_width_pixels(self):
@@ -99,19 +136,19 @@ class KymoWidget:
         p2 = [release.xdata, release.ydata]
 
         # Explicit copy to make modifications. Current state pushed to undo stack on assignment.
-        lines = copy(self.lines)
-        lines.remove_tracks_in_rect([p1, p2])
+        tracks = copy(self.tracks)
+        tracks.remove_tracks_in_rect([p1, p2])
 
         if self.adding:
-            new_lines = self._track(rect=[p1, p2])
-            lines.extend(new_lines)
+            new_tracks = self._track(rect=[p1, p2])
+            tracks.extend(new_tracks)
 
-        self.lines = lines
+        self.tracks = tracks
         self.update_lines()
 
     def track_all(self):
         """Track all lines on the kymograph"""
-        self.lines = self._track()
+        self.tracks = self._track()
         self.update_lines()
 
     def _track(self, rect=None):
@@ -154,7 +191,7 @@ class KymoWidget:
                         track.position,  # y-coordinate
                     )
                 )
-                for j, track in enumerate(self.lines)
+                for j, track in enumerate(self.tracks)
             ]
             return np.hstack(nodes).T
 
@@ -167,7 +204,7 @@ class KymoWidget:
 
         def initiate_line(event):
             nonlocal nodes, clicked_line_info
-            if len(self.lines) == 0:
+            if len(self.tracks) == 0:
                 return
 
             nodes = get_node_info()
@@ -175,7 +212,7 @@ class KymoWidget:
 
             if distance < cutoff_radius:
                 line_index, *line_info = nodes[idx]
-                clicked_line_info = [self.lines[int(line_index)], *line_info]
+                clicked_line_info = [self.tracks[int(line_index)], *line_info]
                 return True
 
         def drag_line(event):
@@ -202,16 +239,16 @@ class KymoWidget:
             if distance < cutoff_radius:
                 # Explicit copy to make modifications. Current state pushed to undo stack on
                 # assignment.
-                lines = copy(self.lines)
+                tracks = copy(self.tracks)
 
                 line_index, *line_info = nodes[idx]
-                released_line_info = [self.lines[int(line_index)], *line_info]
+                released_line_info = [self.tracks[int(line_index)], *line_info]
 
                 clicked = [clicked_line_info, released_line_info]
                 clicked.sort(key=lambda x: x[2])  # by time
-                lines._merge_tracks(*clicked[0][:2], *clicked[1][:2])
+                tracks._merge_tracks(*clicked[0][:2], *clicked[1][:2])
 
-                self.lines = lines
+                self.tracks = tracks
                 self.update_lines()
 
         self._line_connector = MouseDragCallback(
@@ -226,13 +263,13 @@ class KymoWidget:
 
         if self.show_lines:
             self.plotted_lines = [
-                self._axes.plot(line.seconds, line.position, color="black", linewidth=5)[0]
-                for line in self.lines
+                self._axes.plot(track.seconds, track.position, color="black", linewidth=5)[0]
+                for track in self.tracks
             ]
             self.plotted_lines.extend(
                 [
-                    self._axes.plot(line.seconds, line.position, markersize=8)[0]
-                    for line in self.lines
+                    self._axes.plot(track.seconds, track.position, markersize=8)[0]
+                    for track in self.tracks
                 ]
             )
 
@@ -262,11 +299,11 @@ class KymoWidget:
             the summed intensity with the image. The value indicates the number of pixels in either direction
             to sum over.
         """
-        self.lines.save(filename, delimiter, sampling_width)
+        self.tracks.save(filename, delimiter, sampling_width)
 
     def _load_from_ui(self):
         try:
-            self.lines = import_kymotrackgroup_from_csv(
+            self.tracks = import_kymotrackgroup_from_csv(
                 self.output_filename, self._kymo, self._channel
             )
             self.update_lines()
@@ -295,14 +332,14 @@ class KymoWidget:
         )
 
     def refine(self):
-        if self.lines:
-            self.lines = refine_tracks_centroid(
-                self.lines, self._algorithm_parameters["track_width"].value
+        if self.tracks:
+            self.tracks = refine_tracks_centroid(
+                self.tracks, self._algorithm_parameters["track_width"].value
             )
             self.update_lines()
         else:
             self._set_label(
-                "status", "You need to track or load kymograph lines before you can refine them"
+                "status", "You need to track this kymograph or load tracks before you can refine them"
             )
 
     def create_algorithm_sliders(self):
@@ -362,11 +399,11 @@ class KymoWidget:
         all_button.on_click(lambda button: self.track_all())
 
         def undo(button):
-            self._lines_history.undo()
+            self._tracks_history.undo()
             self.update_lines()
 
         def redo(button):
-            self._lines_history.redo()
+            self._tracks_history.redo()
             self.update_lines()
 
         undo_button = ipywidgets.Button(description="Undo", tooltip="Undo")

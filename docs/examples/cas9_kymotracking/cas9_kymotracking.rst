@@ -146,20 +146,20 @@ This sums the photon counts from `pixel_position - sampling_width` to (and inclu
 Analyzing the results
 ---------------------
 
-The tracks are available in `kymowidget.lines`, which returns a `KymoTrackGroup` object. The group is a customized list of `KymoTrack` objects
+The tracks are available in `kymowidget.tracks`, which returns a `KymoTrackGroup` object. The group is a customized list of `KymoTrack` objects
 which contain lists of position and time coordinates for each tracked particle. These can be accessed with the `KymoTrack.position` and
 `KymoTrack.seconds` properties, respectively. Let's grab the longest track we found, and have a look at its position over time::
 
-    lengths = [len(line) for line in kymowidget.lines]
+    lengths = [len(track) for track in kymowidget.tracks]
 
-    # Get the index of the longest kymo line
+    # Get the index of the longest track
     longest_index = np.argmax(lengths)
 
-    # Select the longest line
-    longest_line = kymowidget.lines[longest_index]
+    # Select the longest track
+    longest_track = kymowidget.tracks[longest_index]
 
     plt.figure(figsize=(5, 3))
-    plt.plot(longest_line.seconds, longest_line.position)
+    plt.plot(longest_track.seconds, longest_track.position)
     plt.xlabel('Time [s]')
     plt.ylabel('Position [$\mu$m]')
     plt.tight_layout()
@@ -173,13 +173,13 @@ earlier is subtracted from the photon counts. Since the kymograph was downsample
 the background per pixel is multiplied by 2::
 
     window = 3
-    bg_corrected = longest_line.sample_from_image(window) - (2 * window + 1) * 2 * green_background_per_pixel
+    bg_corrected = longest_track.sample_from_image(window) - (2 * window + 1) * 2 * green_background_per_pixel
 
     plt.figure()
-    plt.plot(longest_line.seconds, bg_corrected)
+    plt.plot(longest_track.seconds, bg_corrected)
     plt.ylabel('Photon count')
     plt.xlabel('Time [s]')
-    plt.title('Photon counts along the longest line')
+    plt.title('Photon counts along the longest track')
     plt.tight_layout()
     plt.show()
 
@@ -197,10 +197,10 @@ compare them to the force::
     plt.ylabel('Force [pN]')
 
     ax2 = ax1.twinx()
-    line_start_times = np.array([line.seconds[0] for line in kymowidget.lines])
-    line_stop_times = np.array([line.seconds[-1] for line in kymowidget.lines])
-    line_durations = line_stop_times - line_start_times
-    [plt.plot(line_start_times, line_durations, 'k.') for line in kymowidget.lines]
+    track_start_times = np.array([track.seconds[0] for track in kymowidget.tracks])
+    track_stop_times = np.array([track.seconds[-1] for track in kymowidget.tracks])
+    track_durations = track_stop_times - track_start_times
+    [plt.plot(track_start_times, track_durations, 'k.') for track in kymowidget.tracks]
     plt.ylabel('Trace Duration [s]')
     plt.xlabel('Start time [s]')
     plt.tight_layout()
@@ -208,18 +208,18 @@ compare them to the force::
 .. image:: line_duration_vs_force.png
 
 However, what we wanted to know was how the force affects initiation. To determine this, we will need to know the force
-at which events were started. To do this, we compare the `line_start_time` we just computed to the time in the force
-channel. What we want is the index with the smallest distance to our line start time. We can use `np.argmin()` for
+at which events were started. To do this, we compare the `track_start_time` we just computed to the time in the force
+channel. What we want is the index with the smallest distance to our track start time. We can use `np.argmin()` for
 this, which will return the index of the minimum value in a list. Once we have the index, we can quickly look up the
 force for each track start position::
 
-    force_index = [np.argmin(np.abs(time - line_start_time)) for line_start_time in line_start_times]
-    line_forces = force[force_index]
+    force_index = [np.argmin(np.abs(time - track_start_time)) for track_start_time in track_start_times]
+    track_forces = force[force_index]
 
 We can look at the number of events started at each force by making a histogram of these start events. Let's make a
 `10` bin histogram for forces from `10` to `60`::
 
-    events_started, edges = np.histogram(line_forces, 10, range=(10, 60))
+    events_started, edges = np.histogram(track_forces, 10, range=(10, 60))
 
 Since we didn't spend an equal amount of time in each force bin, we should normalize by the time spent in each force
 bin. We can also compute this with a histogram::
