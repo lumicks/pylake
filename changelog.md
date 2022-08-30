@@ -57,6 +57,7 @@
 * Deprecated `filter_lines()`; use `filter_tracks()` instead.
 * Deprecated `refine_lines_centroid()`; use `refine_tracks_centroid()` instead. *Note: the `track_width` argument of `refine_tracks_centroid()` expects values in physical units whereas the previous `refine_lines_centroid()` expected the `line_width` argument in pixel units.*
 * Deprecated `refine_lines_gaussian()`; use `refine_tracks_gaussian()` instead.
+* Deprecated `KymoWidget.save_lines()`; use `KymoWidget.save_tracks()` instead.
 
 #### Other changes
 

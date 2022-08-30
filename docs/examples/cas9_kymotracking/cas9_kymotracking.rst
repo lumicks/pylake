@@ -141,7 +141,7 @@ Exporting from the widget results in a file that contains the track coordinates 
 If we also want to export the photon counts in a region around the track, we can include a `sampling_width`.
 This sums the photon counts from `pixel_position - sampling_width` to (and including) `pixel_position + sampling_width`::
 
-    kymowidget.save_lines("kymotracks_calibrated.txt", sampling_width=3)
+    kymowidget.save_tracks("kymotracks_calibrated.txt", sampling_width=3)
 
 Analyzing the results
 ---------------------
