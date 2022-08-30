@@ -60,6 +60,12 @@ autodoc_default_flags = ["members", "special-members", "inherited-members"]
 autodoc_allowed_special_members = ["__call__", "__getitem__"]
 autosummary_generate = True
 
+# custom type aliases to prevent rendering an unreadable list of all types
+# defined by generic types
+# requires `from __future__ import annotations` in files where the aliased
+# types are used
+autodoc_type_aliases = {"npt.ArrayLike": "numpy.typing.ArrayLike"}
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
