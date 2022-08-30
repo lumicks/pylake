@@ -53,7 +53,7 @@ class KymoWidget:
         data = kymo.get_image(channel)
 
         # Forcing the aspect ratio only makes sense when the time axis is longer.
-        self.axis_aspect_ratio = (
+        self._axis_aspect_ratio = (
             min(
                 axis_aspect_ratio,
                 (kymo.line_time_seconds * data.shape[1]) / (kymo.pixelsize[0] * data.shape[0]),
@@ -62,23 +62,23 @@ class KymoWidget:
             else None
         )
         self._tracks_history = UndoStack(KymoTrackGroup([]))
-        self.plotted_lines = []
+        self._plotted_tracks = []
         self._kymo = kymo
         self._channel = channel
         self._labels = {}
         self._fig = None
         self._axes = None
-        self.adding = True
-        self.show_lines = True
-        self.output_filename = output_filename
+        self._adding = True
+        self._show_tracks = True
+        self._output_filename = output_filename
 
         self._area_selector = None
-        self._line_connector = None
+        self._track_connector = None
 
         self._algorithm = algorithm
         self._algorithm_parameters = algorithm_parameters
 
-        self.show(use_widgets=use_widgets, **kwargs)
+        self._show(use_widgets=use_widgets, **kwargs)
 
     @property
     @deprecated(
@@ -89,13 +89,7 @@ class KymoWidget:
         version="0.13.0",
     )
     def lines(self):
-        """Detected tracks.
-
-        Returns
-        -------
-        KymoTrackGroup:
-            Collection of detected tracks.
-        """
+        """Detected tracks."""
         return self.tracks
 
     @property
@@ -125,13 +119,13 @@ class KymoWidget:
         self._tracks_history.state = new_tracks
 
     @property
-    def _line_width_pixels(self):
+    def _track_width_pixels(self):
         return np.ceil(self._algorithm_parameters["track_width"].value / self._kymo.pixelsize[0])
 
-    def track_kymo(self, click, release):
+    def _track_kymo(self, click, release):
         """Handle mouse release event.
 
-        Removes lines in a region, and traces new ones."""
+        Removes tracks in a region, and traces new ones."""
         p1 = [click.xdata, click.ydata]
         p2 = [release.xdata, release.ydata]
 
@@ -139,17 +133,17 @@ class KymoWidget:
         tracks = copy(self.tracks)
         tracks.remove_tracks_in_rect([p1, p2])
 
-        if self.adding:
+        if self._adding:
             new_tracks = self._track(rect=[p1, p2])
             tracks.extend(new_tracks)
 
         self.tracks = tracks
-        self.update_lines()
+        self._update_tracks()
 
-    def track_all(self):
-        """Track all lines on the kymograph"""
+    def _track_all(self):
+        """Track the entire kymograph."""
         self.tracks = self._track()
-        self.update_lines()
+        self._update_tracks()
 
     def _track(self, rect=None):
         return self._algorithm(
@@ -174,11 +168,11 @@ class KymoWidget:
         """Get scaling of the image axes"""
         return tuple(lims[1] - lims[0] for lims in (self._axes.get_xlim(), self._axes.get_ylim()))
 
-    def _connect_line_callback(self):
+    def _connect_track_callback(self):
         canvas = self._axes.figure.canvas
         cutoff_radius = 0.05  # We use a connection cutoff of 5% of the axis ranges
-        clicked_line_info = None
-        plotted_line = None
+        clicked_track_info = None
+        plotted_track = None
         nodes = None
 
         def get_node_info():
@@ -202,8 +196,8 @@ class KymoWidget:
             idx = np.argmin(squared_dist)
             return np.sqrt(squared_dist[idx]), idx
 
-        def initiate_line(event):
-            nonlocal nodes, clicked_line_info
+        def initiate_track(event):
+            nonlocal nodes, clicked_track_info
             if len(self.tracks) == 0:
                 return
 
@@ -211,29 +205,29 @@ class KymoWidget:
             distance, idx = get_nearest(event.x, event.y)
 
             if distance < cutoff_radius:
-                line_index, *line_info = nodes[idx]
-                clicked_line_info = [self.tracks[int(line_index)], *line_info]
+                track_index, *track_info = nodes[idx]
+                clicked_track_info = [self.tracks[int(track_index)], *track_info]
                 return True
 
-        def drag_line(event):
-            nonlocal clicked_line_info, plotted_line
-            if plotted_line:
-                plotted_line.remove()
-                plotted_line = None
+        def drag_track(event):
+            nonlocal clicked_track_info, plotted_track
+            if plotted_track:
+                plotted_track.remove()
+                plotted_track = None
 
-            line, node_index, *_ = clicked_line_info
-            plotted_line, *_ = self._axes.plot(
-                [line.seconds[int(node_index)], event.x],
-                [line.position[int(node_index)], event.y],
+            track, node_index, *_ = clicked_track_info
+            plotted_track, *_ = self._axes.plot(
+                [track.seconds[int(node_index)], event.x],
+                [track.position[int(node_index)], event.y],
                 "r",
             )
             canvas.draw_idle()
 
-        def finalize_line(event):
-            nonlocal clicked_line_info, plotted_line
-            if plotted_line:
-                plotted_line.remove()
-                plotted_line = None
+        def finalize_track(event):
+            nonlocal clicked_track_info, plotted_track
+            if plotted_track:
+                plotted_track.remove()
+                plotted_track = None
 
             distance, idx = get_nearest(event.x, event.y)
             if distance < cutoff_radius:
@@ -241,32 +235,36 @@ class KymoWidget:
                 # assignment.
                 tracks = copy(self.tracks)
 
-                line_index, *line_info = nodes[idx]
-                released_line_info = [self.tracks[int(line_index)], *line_info]
+                track_index, *track_info = nodes[idx]
+                released_track_info = [self.tracks[int(track_index)], *track_info]
 
-                clicked = [clicked_line_info, released_line_info]
+                clicked = [clicked_track_info, released_track_info]
                 clicked.sort(key=lambda x: x[2])  # by time
                 tracks._merge_tracks(*clicked[0][:2], *clicked[1][:2])
 
                 self.tracks = tracks
-                self.update_lines()
+                self._update_tracks()
 
-        self._line_connector = MouseDragCallback(
-            self._axes, 3, drag_line, press_callback=initiate_line, release_callback=finalize_line
+        self._track_connector = MouseDragCallback(
+            self._axes,
+            3,
+            drag_track,
+            press_callback=initiate_track,
+            release_callback=finalize_track,
         )
-        self._line_connector.set_active(False)
+        self._track_connector.set_active(False)
 
-    def update_lines(self):
-        for line in self.plotted_lines:
-            line.remove()
-        self.plotted_lines = []
+    def _update_tracks(self):
+        for track in self._plotted_tracks:
+            track.remove()
+        self._plotted_tracks = []
 
-        if self.show_lines:
-            self.plotted_lines = [
+        if self._show_tracks:
+            self._plotted_tracks = [
                 self._axes.plot(track.seconds, track.position, color="black", linewidth=5)[0]
                 for track in self.tracks
             ]
-            self.plotted_lines.extend(
+            self._plotted_tracks.extend(
                 [
                     self._axes.plot(track.seconds, track.position, markersize=8)[0]
                     for track in self.tracks
@@ -278,34 +276,20 @@ class KymoWidget:
     def _save_from_ui(self):
         try:
             self.save_tracks(
-                self.output_filename,
-                sampling_width=int(np.ceil(0.5 * self._line_width_pixels)),
+                self._output_filename,
+                sampling_width=int(np.ceil(0.5 * self._track_width_pixels)),
             )
-            self._set_label("status", f"Saved {self.output_filename}")
+            self._set_label("status", f"Saved {self._output_filename}")
         except (RuntimeError, IOError) as exception:
             self._set_label("status", str(exception))
 
     @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use the `tracks` property instead."
-        ),
+        reason=("This property will be removed in a future release. Use `save_tracks()` instead."),
         action="always",
         version="0.13.0",
     )
     def save_lines(self, filename, delimiter=";", sampling_width=None):
-        """Export KymoTrackGroup to a csv file.
-
-        Parameters
-        ----------
-        filename : str
-            Filename to output kymograph tracks to.
-        delimiter : str
-            Which delimiter to use in the csv file.
-        sampling_width : int or None
-            When supplied, this will sample the source image around the kymograph track and export
-            the summed intensity with the image. The value indicates the number of pixels in either direction
-            to sum over.
-        """
+        """Export KymoTrackGroup to a csv file."""
         self.save_tracks(filename, delimiter, sampling_width)
 
     def save_tracks(self, filename, delimiter=";", sampling_width=None):
@@ -323,15 +307,14 @@ class KymoWidget:
             to sum over.
         """
         self.tracks.save(filename, delimiter, sampling_width)
-        self.tracks.save(filename, delimiter, sampling_width)
 
     def _load_from_ui(self):
         try:
             self.tracks = import_kymotrackgroup_from_csv(
-                self.output_filename, self._kymo, self._channel
+                self._output_filename, self._kymo, self._channel
             )
-            self.update_lines()
-            self._set_label("status", f"Loaded {self.output_filename}")
+            self._update_tracks()
+            self._set_label("status", f"Loaded {self._output_filename}")
         except (RuntimeError, IOError) as exception:
             self._set_label("status", str(exception))
 
@@ -355,18 +338,19 @@ class KymoWidget:
             ),
         )
 
-    def refine(self):
+    def _refine(self):
         if self.tracks:
             self.tracks = refine_tracks_centroid(
                 self.tracks, self._algorithm_parameters["track_width"].value
             )
-            self.update_lines()
+            self._update_tracks()
         else:
             self._set_label(
-                "status", "You need to track this kymograph or load tracks before you can refine them"
+                "status",
+                "You need to track this kymograph or load tracks before you can refine them",
             )
 
-    def create_algorithm_sliders(self):
+    def _create_algorithm_sliders(self):
         raise NotImplementedError(
             "You should be using a class derived from this class to interact with the "
             "kymotracker algorithm"
@@ -396,39 +380,39 @@ class KymoWidget:
         self._labels["status"] = ipywidgets.Label(value="")
         self._labels["warning"] = ipywidgets.HTML(value="")
 
-        algorithm_sliders = self.create_algorithm_sliders()
+        algorithm_sliders = self._create_algorithm_sliders()
 
-        refine_button = ipywidgets.Button(description="Refine lines")
-        refine_button.on_click(lambda button: self.refine())
+        refine_button = ipywidgets.Button(description="Refine Tracks")
+        refine_button.on_click(lambda button: self._refine())
 
-        def set_show_lines(show_lines):
-            self.show_lines = show_lines
+        def set__show_tracks(_show_tracks):
+            self._show_tracks = _show_tracks
             if self._fig:
-                self.update_lines()
+                self._update_tracks()
 
-        show_lines_toggle = ipywidgets.interactive(
-            set_show_lines,
-            show_lines=ipywidgets.ToggleButton(
-                description="Show Lines",
-                value=self.show_lines,
+        _show_tracks_toggle = ipywidgets.interactive(
+            set__show_tracks,
+            _show_tracks=ipywidgets.ToggleButton(
+                description="Show Tracks",
+                value=self._show_tracks,
                 disabled=False,
                 button_style="",
-                tooltip="Show Lines\n\nDisabling this will hide all lines",
+                tooltip="Show Tracks\n\nDisabling this will hide all tracks",
             ),
         )
 
         all_button = ipywidgets.Button(
-            description="Track all", tooltip="Reset all lines and track all lines"
+            description="Track All", tooltip="Track the entire kymograph with current parameters."
         )
-        all_button.on_click(lambda button: self.track_all())
+        all_button.on_click(lambda button: self._track_all())
 
         def undo(button):
             self._tracks_history.undo()
-            self.update_lines()
+            self._update_tracks()
 
         def redo(button):
             self._tracks_history.redo()
-            self.update_lines()
+            self._update_tracks()
 
         undo_button = ipywidgets.Button(description="Undo", tooltip="Undo")
         undo_button.on_click(undo)
@@ -442,15 +426,15 @@ class KymoWidget:
         save_button.on_click(lambda button: self._save_from_ui())
 
         def set_fn(value):
-            self.output_filename = value.new
+            self._output_filename = value.new
 
-        fn_widget = ipywidgets.Text(value=self.output_filename, description="File")
+        fn_widget = ipywidgets.Text(value=self._output_filename, description="File")
         fn_widget.observe(set_fn, "value")
 
         self._mode = ipywidgets.RadioButtons(
-            options=["Track lines", "Remove lines", "Connect lines"],
+            options=["Track", "Remove Tracks", "Connect Tracks"],
             disabled=False,
-            tooltip="Choose between adding/removing tracked lines and connecting existing ones",
+            tooltip="Choose between adding, removing, or connecting tracks",
             layout=ipywidgets.Layout(flex_flow="row"),
         )
         self._mode.observe(self._select_state, "value")
@@ -463,7 +447,7 @@ class KymoWidget:
                     [
                         all_button,
                         algorithm_sliders,
-                        ipywidgets.HBox([refine_button, show_lines_toggle]),
+                        ipywidgets.HBox([refine_button, _show_tracks_toggle]),
                         fn_widget,
                         ipywidgets.HBox([undo_button, redo_button]),
                         ipywidgets.HBox([load_button, save_button]),
@@ -486,24 +470,24 @@ class KymoWidget:
         """Select a different state to operate the widget in. Note that the input argument is value
         because it is hooked up to a ToggleButton directly"""
         self._area_selector.set_active(False)
-        self._line_connector.set_active(False)
+        self._track_connector.set_active(False)
 
-        if value["new"] == "Track lines":
-            self._set_label("status", f"Drag right mouse button to track lines")
+        if value["new"] == "Track":
+            self._set_label("status", f"Drag right mouse button to track an ROI")
             self._area_selector.set_active(True)
-            self.adding = True
-        elif value["new"] == "Remove lines":
-            self._set_label("status", f"Drag right mouse button to remove lines")
+            self._adding = True
+        elif value["new"] == "Remove Tracks":
+            self._set_label("status", f"Drag right mouse button to remove tracks from an ROI")
             self._area_selector.set_active(True)
-            self.adding = False
-        elif value["new"] == "Connect lines":
-            self._set_label("status", f"Drag right mouse button to connect lines")
-            self._line_connector.set_active(True)
+            self._adding = False
+        elif value["new"] == "Connect Tracks":
+            self._set_label("status", f"Drag right mouse button to connect two tracks")
+            self._track_connector.set_active(True)
 
-    def show(self, use_widgets, **kwargs):
+    def _show(self, use_widgets, **kwargs):
         if self._fig:
             plt.close(self._fig)
-            self.plotted_lines = []
+            self._plotted_tracks = []
 
         if use_widgets:
             self._create_widgets()
@@ -513,22 +497,22 @@ class KymoWidget:
 
         self._kymo.plot(channel=self._channel, interpolation="nearest", **kwargs)
 
-        if self.axis_aspect_ratio:
+        if self._axis_aspect_ratio:
             self._axes.set_xlim(
                 [
                     0,
-                    self.axis_aspect_ratio
+                    self._axis_aspect_ratio
                     * (self._kymo.pixelsize[0] * self._kymo.get_image(self._channel).shape[0]),
                 ]
             )
 
-        # Prevents the axes from resetting every time new lines are drawn
+        # Prevents the axes from resetting every time new tracks are drawn
         self._axes.autoscale(enable=False)
         plt.tight_layout()
 
         self._area_selector = RectangleSelector(
             self._axes,
-            self.track_kymo,
+            self._track_kymo,
             useblit=True,
             button=[3],
             minspanx=5,
@@ -536,10 +520,10 @@ class KymoWidget:
             spancoords="pixels",
             interactive=False,
         )
-        self.update_lines()
+        self._update_tracks()
         self._connect_drag_callback()
-        self._connect_line_callback()
-        self._select_state({"value": "mode", "old": "", "new": "Track lines"})
+        self._connect_track_callback()
+        self._select_state({"value": "mode", "old": "", "new": "Track"})
 
 
 class KymoWidgetGreedy(KymoWidget):
@@ -580,15 +564,15 @@ class KymoWidgetGreedy(KymoWidget):
         line_width : float, optional
             **Deprecated** Forwarded to `track_width`.
         pixel_threshold : float, optional
-            Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a line
+            Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a track
             origin. Defaults to 98th percentile of the pixel intensities.
         window : int, optional
             Number of kymograph frames in which the particle is allowed to disappear (and still be part of the same
-            line). Defaults to 4.
+            track). Defaults to 4.
         sigma : float or None, optional
             Uncertainty in the particle position. This parameter will determine whether a peak in the next frame will be
             linked to this one. Increasing this value will make the algorithm tend to allow more positional variation in
-            the lines. If none, the algorithm will use half the line width.
+            the tracks. If none, the algorithm will use half the track width.
         vel : float, optional
             Expected velocity of the traces in the image. This can be used for non-static particles that are expected to
             move at an expected rate (default: 0.0).
@@ -686,7 +670,7 @@ class KymoWidgetGreedy(KymoWidget):
             **kwargs,
         )
 
-    def create_algorithm_sliders(self):
+    def _create_algorithm_sliders(self):
         import ipywidgets
 
         slider_box = ipywidgets.VBox(
@@ -765,11 +749,11 @@ def _get_default_parameters(kymo, channel):
             True,
         ),
         "window": KymotrackerParameter(
-            "Window", "How many frames can a line disappear.", "int", 4, *(1, 15), True
+            "Window", "How many frames can a track disappear.", "int", 4, *(1, 15), True
         ),
         "sigma": KymotrackerParameter(
             "Sigma",
-            "How much does the line fluctuate?",
+            "How much does the track fluctuate?",
             "float",
             2 * position_scale,
             *(1.0 * position_scale, 5.0 * position_scale),

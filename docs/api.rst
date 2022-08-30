@@ -87,9 +87,9 @@ Kymotracking
 
     track_greedy
     track_lines
-    filter_lines
-    refine_lines_centroid
-    refine_lines_gaussian
+    filter_tracks
+    refine_tracks_centroid
+    refine_tracks_gaussian
 
 Notebook widgets
 ----------------

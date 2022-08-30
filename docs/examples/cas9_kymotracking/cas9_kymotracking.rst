@@ -115,22 +115,32 @@ kymograph. Clicking it again brings us back out of zoom mode. You can zoom out a
 often, it is beneficial to find some adequate settings for track all, and then fine-tune the results using the manual
 rectangle selection. It's not mandatory to use the same settings throughout the kymograph. For example, if you see a
 particular event where two tracks are disconnected but should be connected, temporarily increase the window size and
-just drag a rectangle over that particular track while having the option `Track lines` enabled.
+just drag a rectangle over that particular track while having the option `Track` enabled.
 
 Now, let's do some tracking. There are two ways to approach this analysis. The first is to just use the rectangle
-selection, which can be quite time intensive. Alternatively, you can use `Track all` to simply track the entire kymograph,
+selection, which can be quite time intensive. Alternatively, you can use `Track All` to simply track the entire kymograph,
 and then remove spurious detections by hand. This can be good to get a feel for the parameters as
-well. If we select the `Remove lines` mode we will start removing tracks without grabbing new ones. This
+well. If we select the `Remove Tracks` mode we will start removing tracks without grabbing new ones. This
 functionality can be used to remove spurious detections.
 
-Finally, if you wish to connect two tracks in the kymograph manually, you can switch to the `Connect Lines` mode.
+Finally, if you wish to connect two tracks in the kymograph manually, you can switch to the `Connect Tracks` mode.
 In this mode you can click a point in one track with the right mouse button and connect it to another by dragging to a point
 in the track you wish to connect it to.
 
 Note that in this data for example, there are some regions where fluorescence starts building up on the surface of the
 bead. This binding should be omitted from the analysis::
 
-    kymowidget = lk.KymoWidgetGreedy(kymo_ds, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14, vmax=8)
+    kymowidget = lk.KymoWidgetGreedy(
+        kymo_ds,
+        "green",
+        axis_aspect_ratio=0.5,
+        min_length=4,
+        pixel_threshold=3,
+        window=6,
+        sigma=0.14,
+        vmax=8,
+        cmap="viridis"
+    )
 
 .. image:: kymowidget.png
 
