@@ -205,8 +205,9 @@ class KymoTrack:
     def sample_from_image(self, num_pixels, reduce=np.sum):
         """Sample from image using coordinates from this KymoTrack.
 
-        This function samples data from the image given in data based on the points in this KymoTrack. It samples
-        from [time, position - num_pixels : position + num_pixels + 1] and then applies the function sum.
+        This function samples data from the image given in data based on the points in this
+        KymoTrack. It samples from `[time, position - num_pixels : position + num_pixels + 1]` and
+        then applies the function sum.
 
         Parameters
         ----------
@@ -260,17 +261,15 @@ class KymoTrack:
         return len(self.coordinate_idx)
 
     def msd(self, max_lag=None):
-        """Estimate the Mean Square Displacement (MSD) for various time lags.
+        r"""Estimate the Mean Square Displacement (MSD) for various time lags.
 
-        The estimator for the MSD (rho) is defined as:
+        The estimator for the MSD (:math:`\rho`) is defined as:
 
-            rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+        .. math::
+            \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n} \left(r_{i+n} - r_{i}\right)^2
 
         Note: This estimator leads to highly correlated estimates, which should not be treated
-        as independent measurements. See [1] for more information.
-
-        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-        single-particle tracking. Physical Review E, 85(6), 061916.
+        as independent measurements. See [1]_ for more information.
 
         Parameters
         ----------
@@ -283,6 +282,11 @@ class KymoTrack:
             array of lag times
         msd : array_like
             array of mean square distance estimates for the corresponding lag times
+
+        References
+        ----------
+        .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+               single-particle tracking. Physical Review E, 85(6), 061916.
         """
         frame_lag, msd = calculate_msd(
             np.array(self.time_idx, dtype=int),
@@ -293,24 +297,27 @@ class KymoTrack:
         return frame_lag * self._line_time_seconds, msd
 
     def plot_msd(self, max_lag=None, **kwargs):
-        """Plot Mean Squared Differences of this trace
+        r"""Plot Mean Squared Differences of this trace
 
-        The estimator for the MSD (rho) is defined as:
+        The estimator for the MSD (:math:`\rho`) is defined as:
 
-            rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+        .. math::
+            \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n} \left(r_{i+n} - r_{i}\right)^2
 
         Note: This estimator leads to highly correlated estimates, which should not be treated
-        as independent measurements. See [1] for more information.
-
-        1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-        single-particle tracking. Physical Review E, 85(6), 061916.
+        as independent measurements. See [2]_ for more information.
 
         Parameters
         ----------
         max_lag : int (optional)
-            Maximum lag to include. When omitted, an optimal number of lags is chosen [1].
+            Maximum lag to include. When omitted, an optimal number of lags is chosen [2]_.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
+
+        References
+        ----------
+        .. [2] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+               single-particle tracking. Physical Review E, 85(6), 061916.
         """
         import matplotlib.pyplot as plt
 
@@ -322,19 +329,22 @@ class KymoTrack:
         plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}$^2$]")
 
     def estimate_diffusion(self, method, max_lag=None):
-        """Estimate diffusion constant
+        r"""Estimate diffusion constant
 
-        The estimator for the MSD (rho) is defined as:
+        The estimator for the MSD (:math:`\rho`) is defined as:
 
-          rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i}) ** 2
+        .. math::
+            \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n} \left(r_{i+n} - r_{i}\right)^2
 
         In a diffusion problem, the MSD can be fitted to a linear curve.
 
-            intercept = 2 * d * (sigma**2 - 2 * R * D * delta_t)
-            slope = 2 * d * D * delta_t
+        .. math::
+            \textrm{intercept} =& 2 d (\sigma^2 - 2 R D dt)
+
+            \textrm{slope} =& 2 d D dt
 
         Here d is the dimensionality of the problem. D is the diffusion constant. R is a motion blur
-        constant. delta_t is the time step and sigma represents the dynamic localization error.
+        constant. dt is the time step and :math:`\sigma` represents the dynamic localization error.
 
         One aspect that is import to consider is that this estimator uses every data point multiple
         times. As a consequence the elements of rho_n are highly correlated. This means that
@@ -342,10 +352,10 @@ class KymoTrack:
         the estimate worse.
 
         There are two ways around this. Either you determine an optimal number of points to use
-        in the estimation procedure (ols) [1] or you take into account the covariances present in
-        the mean squared difference estimates (gls) [2].
+        in the estimation procedure (ols) [3]_ or you take into account the covariances present in
+        the mean squared difference estimates (gls) [4]_.
 
-        The standard error returned by this method is based on [2].
+        The standard error returned by this method is based on [4]_.
 
         Note that this estimation procedure should only be used for pure diffusion in the absence
         of drift.
@@ -355,19 +365,19 @@ class KymoTrack:
         method : str
             Valid options are "ols" and "gls".
 
-            - "ols" : Ordinary least squares [1]. Determines optimal number of lags.
-            - "gls" : Generalized least squares [2]. Takes into account covariance matrix (slower).
+            - "ols" : Ordinary least squares [3]_. Determines optimal number of lags.
+            - "gls" : Generalized least squares [4]_. Takes into account covariance matrix (slower).
         max_lag : int (optional)
             Number of lags to include. When omitted, the method will choose an appropriate number
             of lags to use.
             When the method chosen is "ols" an optimal number of lags is estimated as determined by
-            [1]. When the method is set to "gls" all lags are included.
+            [3]_. When the method is set to "gls" all lags are included.
 
         References
         ----------
-        .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+        .. [3] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
                single-particle tracking. Physical Review E, 85(6), 061916.
-        .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+        .. [4] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
                self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
                Physics, 153(2), 024116.
         """
@@ -404,19 +414,7 @@ class KymoTrack:
         version="0.12.1",
     )
     def estimate_diffusion_ols(self, max_lag=None):
-        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant [1].
-
-        Parameters
-        ----------
-        max_lag : int (optional)
-            Number of lags to include. When omitted, the method uses an optimal number of lags
-            as determined by [1].
-
-        References
-        ----------
-        .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-               single-particle tracking. Physical Review E, 85(6), 061916.
-        """
+        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant"""
         return self.estimate_diffusion("ols", max_lag).value
 
 

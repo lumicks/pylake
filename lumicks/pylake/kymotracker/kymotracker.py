@@ -67,10 +67,10 @@ def track_greedy(
     and the API is still subject to change without a prior deprecation notice.
 
     A method based on connecting feature points. Detection of the feature points is done analogously
-    to [1], using a greyscale dilation approach to detect peaks, followed by a local centroid
+    to [1]_, using a greyscale dilation approach to detect peaks, followed by a local centroid
     computation to achieve subpixel accuracy. After peak detection the feature points are linked
-    together using a greedy forward search analogous to [2]. This in contrast with the linking
-    algorithm in [1] which uses a graph based optimization approach.
+    together using a greedy forward search analogous to [2]_. This in contrast with the linking
+    algorithm in [1]_ which uses a graph based optimization approach.
 
     The linking step traverses the kymograph, tracing tracks starting from each frame. It starts with
     the highest intensity track and proceeds to tracks with lower signal intensity. For every point along the
@@ -130,11 +130,12 @@ def track_greedy(
 
     References
     ----------
-    [1] Sbalzarini, I. F., & Koumoutsakos, P. (2005). Feature point tracking and trajectory analysis
-    for video imaging in cell biology. Journal of structural biology, 151(2), 182-195.
-    [2] Mangeol, P., Prevo, B., & Peterman, E. J. (2016). KymographClear and KymographDirect: two
-    tools for the automated quantitative analysis of molecular and cellular dynamics using
-    kymographs. Molecular biology of the cell, 27(12), 1948-1957.
+    .. [1] Sbalzarini, I. F., & Koumoutsakos, P. (2005). Feature point tracking and trajectory
+           analysis for video imaging in cell biology. Journal of structural biology, 151(2),
+           182-195.
+    .. [2] Mangeol, P., Prevo, B., & Peterman, E. J. (2016). KymographClear and KymographDirect: two
+           tools for the automated quantitative analysis of molecular and cellular dynamics using
+           kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
 
     # TODO: remove line_width argument deprecation path
@@ -229,7 +230,7 @@ def track_lines(
     This function tracks particles in an image. It takes a pixel image, and traces lines on it.
     These lines can subsequently be refined and/or used to extract intensities or other parameters.
 
-    This method is based on sections 1, 2 and 3 from [1]. This method attempts to find lines purely
+    This method is based on sections 1, 2 and 3 from [1]_. This method attempts to find lines purely
     based on differential geometric considerations. It blurs the image based with a user specified
     line width and then attempts to find curvilinear sections. Based on eigenvalue decomposition of
     the local Hessian it finds the principal direction of the line. It then computes subpixel
@@ -266,8 +267,8 @@ def track_lines(
 
     References
     ----------
-    [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on
-    pattern analysis and machine intelligence, 20(2), 113-125.
+    .. [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on
+           pattern analysis and machine intelligence, 20(2), 113-125.
     """
     if line_width <= 0:
         raise ValueError("line_width should be larger than zero")
