@@ -277,7 +277,7 @@ class KymoWidget:
 
     def _save_from_ui(self):
         try:
-            self.save_lines(
+            self.save_tracks(
                 self.output_filename,
                 sampling_width=int(np.ceil(0.5 * self._line_width_pixels)),
             )
@@ -285,20 +285,44 @@ class KymoWidget:
         except (RuntimeError, IOError) as exception:
             self._set_label("status", str(exception))
 
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use the `tracks` property instead."
+        ),
+        action="always",
+        version="0.13.0",
+    )
     def save_lines(self, filename, delimiter=";", sampling_width=None):
         """Export KymoTrackGroup to a csv file.
 
         Parameters
         ----------
         filename : str
-            Filename to output kymograph traces to.
+            Filename to output kymograph tracks to.
         delimiter : str
             Which delimiter to use in the csv file.
         sampling_width : int or None
-            When supplied, this will sample the source image around the kymograph line and export
+            When supplied, this will sample the source image around the kymograph track and export
             the summed intensity with the image. The value indicates the number of pixels in either direction
             to sum over.
         """
+        self.save_tracks(filename, delimiter, sampling_width)
+
+    def save_tracks(self, filename, delimiter=";", sampling_width=None):
+        """Export KymoTrackGroup to a csv file.
+
+        Parameters
+        ----------
+        filename : str
+            Filename to output kymograph tracks to.
+        delimiter : str
+            Which delimiter to use in the csv file.
+        sampling_width : int or None
+            When supplied, this will sample the source image around the kymograph track and export
+            the summed intensity with the image. The value indicates the number of pixels in either direction
+            to sum over.
+        """
+        self.tracks.save(filename, delimiter, sampling_width)
         self.tracks.save(filename, delimiter, sampling_width)
 
     def _load_from_ui(self):
