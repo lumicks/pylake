@@ -31,7 +31,7 @@
 * Force distance models now have a non-zero lower bound for the contour length (`Lc`), persistence length (`Lp`), stretch modulus (`St`) and boltzmann constant times temperature (`kT`) instead of a lower bound of zero.
 * Force distance fits now raise a `RuntimeError` if any of the returned simulation values are NaN.
 * Fixed bug that resulted in profile likelihood automatically failing when an attempted step exceeded the bounds where the model could be simulated.
-* Fixed method `TimeSeries.from_dataset()` reading all data from datasets upon creation of a `TimeSeries` instance instead of lazy loading 
+* Fixed method `TimeSeries.from_dataset()` reading all data from datasets upon creation of a `TimeSeries` instance instead of lazy loading
 
 #### Breaking changes
 
@@ -46,6 +46,7 @@
 * The property `sample_rate` of `Continuous` data now returns a `float` instead of an `int``
 * Removed deprecated argument `roi` from `CorrelatedStack.export_tiff`. Use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting.
 * `KymoWidgetGreedy` now enforces using keywords for all arguments after the first two (`kymo` and `channel`).
+* The following `KymoWidgetGreedy` attributes/functions have been removed (replaced with private API): `adding`, `axis_aspect_ratio`, `output_filename`, `plotted_lines`, `show_lines`, `create_algorithm_sliders()`, `refine()`, `show()`, `track_all()`, `track_kymo()` and `update_lines()`.
 
 #### Deprecations
 
@@ -67,6 +68,7 @@
     * `KymoLineGroup` was renamed to `KymoTrackGroup`
     * `export_kymolinegroup_to_csv()` was renamed to `export_kymotrackgroup_to_csv()`
     * `import_kymolinegroup_from_csv()` was renamed to `import_kymotrackgroup_from_csv()`
+* Updated the `KymoWidgetGreedy` UI to reflect changes in terminology.
 
 ## v0.12.1 | 2022-06-21
 

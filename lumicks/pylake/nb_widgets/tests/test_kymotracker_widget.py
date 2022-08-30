@@ -28,18 +28,18 @@ def test_deprecations(kymograph):
 @cleanup
 def test_parameters_kymo(kymograph):
     """Test whether the parameter setting is passed correctly to the algorithm. By setting the threshold to different
-    values we can check which lines are detected and use that to verify that the parameter is used."""
+    values we can check which tracks are detected and use that to verify that the parameter is used."""
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 30
-    kymo_widget.track_all()
+    kymo_widget._track_all()
     assert len(kymo_widget.tracks) == 0
 
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 7
-    kymo_widget.track_all()
+    kymo_widget._track_all()
     assert len(kymo_widget.tracks) == 1
 
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 2
-    kymo_widget.track_all()
+    kymo_widget._track_all()
     assert len(kymo_widget.tracks) == 3
 
 
@@ -84,27 +84,27 @@ def test_track_kymo(kymograph, region_select):
 
     in_um, in_s = calibrate_to_kymo(kymograph)
 
-    # Track a line in a particular region. Only a single line exists in this region.
+    # Track a particular region. Only a single track exists in this region.
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
-    kymo_widget.track_kymo(*region_select(in_s(10), in_um(8), in_s(20), in_um(9)))
+    kymo_widget._track_kymo(*region_select(in_s(10), in_um(8), in_s(20), in_um(9)))
     np.testing.assert_allclose(kymo_widget.tracks[0].time_idx, np.arange(10, 20))
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, [8] * 10)
     assert len(kymo_widget.tracks) == 1
 
-    # Verify that if we track the same region, the old one gets deleted and we track the same line
-    # again.
-    kymo_widget.track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
+    # Verify that if we track the same region, the old one gets deleted and we get the same
+    # track again.
+    kymo_widget._track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
     np.testing.assert_allclose(kymo_widget.tracks[0].time_idx, np.arange(15, 20))
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, [8] * 5)
     assert len(kymo_widget.tracks) == 1
 
-    # Tracking all lines will result in all lines being found.
-    kymo_widget.track_all()
+    # Tracking the full kymo will result in all tracks being found.
+    kymo_widget._track_all()
     assert len(kymo_widget.tracks) == 3
 
-    # Remove a single line
-    kymo_widget.adding = False
-    kymo_widget.track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
+    # Remove a single track
+    kymo_widget._adding = False
+    kymo_widget._track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
     assert len(kymo_widget.tracks) == 2
 
 
@@ -114,19 +114,19 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
 
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
-    kymo_widget.track_all()
-    kymo_widget.output_filename = testfile
+    kymo_widget._track_all()
+    kymo_widget._output_filename = testfile
     kymo_widget._save_from_ui()
 
-    lines = kymo_widget.tracks
+    tracks = kymo_widget.tracks
 
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     assert len(kymo_widget.tracks) == 0
 
-    kymo_widget.output_filename = testfile
+    kymo_widget._output_filename = testfile
     kymo_widget._load_from_ui()
 
-    for l1, l2 in zip(lines, kymo_widget.tracks):
+    for l1, l2 in zip(tracks, kymo_widget.tracks):
         np.testing.assert_allclose(l1.time_idx, l2.time_idx)
         np.testing.assert_allclose(l1.coordinate_idx, l2.coordinate_idx)
 
@@ -141,19 +141,21 @@ def test_refine_from_widget(kymograph, region_select):
             self.value = ""
 
     kymo_widget._labels = {"status": MockLabel()}
-    kymo_widget.refine()
+    kymo_widget._refine()
     assert (
         kymo_widget._labels["status"].value
         == "You need to track this kymograph or load tracks before you can refine them"
     )
 
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
-    kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
-    np.testing.assert_allclose(kymo_widget.tracks[0].time_idx, np.hstack(([5, 6], np.arange(9, 20))))
+    kymo_widget._track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
+    np.testing.assert_allclose(
+        kymo_widget.tracks[0].time_idx, np.hstack(([5, 6], np.arange(9, 20)))
+    )
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, [12] * 13)
     assert len(kymo_widget.tracks) == 1
 
-    kymo_widget.refine()
+    kymo_widget._refine()
     np.testing.assert_allclose(kymo_widget.tracks[0].time_idx, np.arange(5, 20))
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, [12] * 15)
     assert len(kymo_widget.tracks) == 1
@@ -176,36 +178,36 @@ def test_stitch(kymograph, mockevent):
     )
     kymo_widget.tracks = KymoTrackGroup([k1, k2])
 
-    # Go into line connection mode
-    kymo_widget._select_state({"new": "Connect Lines"})
+    # Go into track connection mode
+    kymo_widget._select_state({"new": "Connect Tracks"})
 
     assert len(kymo_widget.tracks) == 2
 
     in_um, in_s = calibrate_to_kymo(kymograph)
 
-    # Drag but stop too early (not leading to a connected line)
-    kymo_widget._line_connector.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
-    kymo_widget._line_connector.button_release(
+    # Drag but stop too early (not leading to a connected track)
+    kymo_widget._track_connector.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
+    kymo_widget._track_connector.button_release(
         mockevent(kymo_widget._axes, in_s(4), in_um(3), 3, 0)
     )
     assert len(kymo_widget.tracks) == 2
 
     # Drag all the way (stitch the two)
-    kymo_widget._line_connector.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
-    kymo_widget._line_connector.button_release(
+    kymo_widget._track_connector.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
+    kymo_widget._track_connector.button_release(
         mockevent(kymo_widget._axes, in_s(6), in_um(3), 3, 0)
     )
 
-    # Verify the stitched line
+    # Verify the stitched track
     np.testing.assert_allclose(kymo_widget.tracks[0].time_idx, [1, 2, 3, 6, 7, 8])
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, [1, 1, 1, 3, 3, 3])
     assert len(kymo_widget.tracks) == 1
 
 
 @pytest.mark.parametrize(
-    "start,stop,same_line", [(2, 7, False), (3, 7, False), (2, 6, False), (2, 5, True)]
+    "start,stop,same_track", [(2, 7, False), (3, 7, False), (2, 6, False), (2, 5, True)]
 )
-def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
+def test_stitch_anywhere(start, stop, same_track, kymograph, mockevent):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
 
     k1 = KymoTrack(
@@ -222,20 +224,20 @@ def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
     )
     kymo_widget.tracks = KymoTrackGroup([k1, k2])
 
-    # Go into line connection mode
-    kymo_widget._select_state({"new": "Connect Lines"})
+    # Go into track connection mode
+    kymo_widget._select_state({"new": "Connect Tracks"})
     in_um, in_s = calibrate_to_kymo(kymograph)
 
     # Merge points
-    kymo_widget._line_connector.button_down(
+    kymo_widget._track_connector.button_down(
         mockevent(kymo_widget._axes, in_s(start), in_um(1), 3, 0)
     )
-    kymo_widget._line_connector.button_release(
+    kymo_widget._track_connector.button_release(
         mockevent(kymo_widget._axes, in_s(stop), in_um(3), 3, 0)
     )
 
-    # Verify the stitched line
-    if not same_line:
+    # Verify the stitched track
+    if not same_track:
         time_result = np.hstack((np.arange(start) + 1, np.arange(stop, 9)))
         coord_result = np.hstack((np.full(start, 1), np.full(9 - stop, 3)))
     else:
@@ -243,7 +245,7 @@ def test_stitch_anywhere(start, stop, same_line, kymograph, mockevent):
         coord_result = np.hstack((np.full(start, 1), np.full(6 - stop, 3)))
     np.testing.assert_allclose(kymo_widget.tracks[0].time_idx, time_result)
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, coord_result)
-    assert len(kymo_widget.tracks) == 2 if same_line else 1
+    assert len(kymo_widget.tracks) == 2 if same_track else 1
 
 
 def test_refine_track_width_units(kymograph, region_select):
@@ -253,8 +255,8 @@ def test_refine_track_width_units(kymograph, region_select):
     in_um, in_s = calibrate_to_kymo(kymograph)
 
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
-    kymo_widget.track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
-    kymo_widget.refine()
+    kymo_widget._track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
+    kymo_widget._refine()
 
     # With this track_width we'll include the two dim pixels in the test data
     true_coordinate = [12.176471] * 15
