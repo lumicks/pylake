@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 
-_default_track_widths = {"um": 0.35, "kbp": 1, "pixels": 4}
+_default_track_widths = {"um": 0.35, "kbp": 0.35 / 0.34, "pixel": 4}
 
 
 def _to_pixel_rect(rect, pixelsize, line_time_seconds):
@@ -73,7 +73,7 @@ def track_greedy(
     algorithm in [1] which uses a graph based optimization approach.
 
     The linking step traverses the kymograph, tracing tracks starting from each frame. It starts with
-    the highest intensity track and proceeds to tracjs with lower signal intensity. For every point along the
+    the highest intensity track and proceeds to tracks with lower signal intensity. For every point along the
     track, the algorithm makes a prediction for where the particle will be in the next frame. Points
     are considered candidates for track membership when they fall within a cone parameterized by a
     sigma and diffusion constant. The candidate point closest to the prediction is chosen and
@@ -86,10 +86,10 @@ def track_greedy(
     channel : {'red', 'green', 'blue'}
         Color channel to track.
     track_width : float
-        Expected spatial track width in physical units. Must be larger than zero.
+        Expected (spatial) spot size in physical units. Must be larger than zero.
         If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
-        for kymographs calibrated in microns and 1 for kymographs calibrated in kilobase pairs (based
-        on 0.34 nm/bp for duplex DNA)
+        for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
+        corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
     pixel_threshold : float or None
         Intensity threshold for the pixels. Local maxima above this intensity level will be
         designated as a track origin. Must be larger than zero. If `None`, the default is set to the
@@ -147,7 +147,7 @@ def track_greedy(
             )
 
     if pixel_threshold is None:
-        pixel_threshold = np.percentile(kymograph.get_image(channel), 0.98)
+        pixel_threshold = np.percentile(kymograph.get_image(channel), 98)
 
     if track_width <= 0:
         # Must be positive otherwise refinement fails

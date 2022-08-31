@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.kymotracker import track_greedy
+from lumicks.pylake.kymotracker.kymotracker import track_greedy, _default_track_widths
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
@@ -79,16 +79,39 @@ def test_greedy_algorithm_input_validation(kymo_integration_test_data):
             track_greedy(test_data, "red", track_width=10, pixel_threshold=pixel_threshold)
 
 
-def test_default_parameters(kymo_integration_test_data):
-    ref_tracks = track_greedy(kymo_integration_test_data, "red", 0.35, 1)
+def test_default_parameters(kymo_pixel_calibrations):
+    # calibrated in microns, kilobase pairs, pixels
+    for kymo, default_width in zip(kymo_pixel_calibrations, [0.35, 0.35 / 0.34, 4]):
 
-    tracks = track_greedy(kymo_integration_test_data, "red", track_width=None, pixel_threshold=1)
-    for ref, track in zip(ref_tracks, tracks):
-        np.testing.assert_allclose(ref.position, track.position)
+        # test that default values are used when `None` is supplied
+        default_threshold = np.percentile(kymo.get_image("red"), 98)
+        ref_tracks = track_greedy(kymo, "red", default_width, default_threshold)
 
-    tracks = track_greedy(kymo_integration_test_data, "red", track_width=0.35, pixel_threshold=None)
-    for ref, track in zip(ref_tracks, tracks):
-        np.testing.assert_allclose(ref.position, track.position)
+        tracks = track_greedy(kymo, "red", track_width=None, pixel_threshold=default_threshold)
+        for ref, track in zip(ref_tracks, tracks):
+            np.testing.assert_allclose(ref.position, track.position)
+
+        tracks = track_greedy(kymo, "red", track_width=default_width, pixel_threshold=None)
+        for ref, track in zip(ref_tracks, tracks):
+            np.testing.assert_allclose(ref.position, track.position)
+
+        tracks = track_greedy(kymo, "red", track_width=None, pixel_threshold=None)
+        for ref, track in zip(ref_tracks, tracks):
+            np.testing.assert_allclose(ref.position, track.position)
+
+        # test non-default args fails when compared to tracking with defaults
+        ref_tracks = track_greedy(kymo, "red", None, None)
+        tracks = track_greedy(
+            kymo, "red", track_width=None, pixel_threshold=default_threshold * 0.7
+        )
+        with pytest.raises(AssertionError):
+            for ref, track in zip(ref_tracks, tracks):
+                np.testing.assert_allclose(ref.position, track.position)
+
+        tracks = track_greedy(kymo, "red", track_width=default_width * 1.2, pixel_threshold=None)
+        with pytest.raises(AssertionError):
+            for ref, track in zip(ref_tracks, tracks):
+                np.testing.assert_allclose(ref.position, track.position)
 
 
 def test_deprecated_args(kymo_integration_test_data):
