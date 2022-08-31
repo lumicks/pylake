@@ -347,6 +347,10 @@ def refine_tracks_centroid(tracks, track_width=None):
     tracks to make small adjustments to the estimated location. The refinement correction is
     computed by considering the brightness weighted centroid.
 
+    *Note: the `track_width` parameter is given in physical units, but the algorithm works with discrete
+    pixels. In order to avoid bias in the result, the number of pixels to use is rounded up to the
+    nearest odd value.*
+
     Parameters
     ----------
     tracks : List[pylake.KymoTrack]
@@ -364,7 +368,10 @@ def refine_tracks_centroid(tracks, track_width=None):
         # Must be positive otherwise refinement fails
         raise ValueError(f"track_width should be larger than zero")
 
-    track_width_pixels = np.ceil(track_width / tracks[0]._kymo.pixelsize[0])
+    # convert from physical units to pixels
+    # enforce an odd number of pixels to avoid bias in the results
+    n_pixels = np.ceil(track_width / tracks[0]._kymo.pixelsize[0])
+    track_width_pixels = n_pixels + 1 if n_pixels % 2 == 0 else n_pixels
 
     interpolated_tracks = [track.interpolate() for track in tracks]
     time_idx = np.round(

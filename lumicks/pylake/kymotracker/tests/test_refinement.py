@@ -60,7 +60,6 @@ def test_refinement_2d():
 
 @pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
 def test_refinement_track(loc, inv_sigma=0.3):
-    # TODO: test does not run, same name as below
     xx = np.arange(0, 50) - loc
     image = np.exp(-inv_sigma * xx * xx)
     # real kymo pixel values are integer photon counts
@@ -88,6 +87,27 @@ def test_refinement_error(kymo_integration_test_data):
     with pytest.warns(DeprecationWarning):
         with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
             refine_lines_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0)[0]
+
+
+def test_centroid_odd_pixels():
+    image = np.zeros((10, 10))
+    image[5, 5:7] = 5
+
+    kymo = generate_kymo(
+        "",
+        image,
+        pixel_size_nm=1000,
+        start=np.int64(20e9),
+        dt=np.int64(1e9),
+        samples_per_pixel=1,
+        line_padding=0,
+    )
+    tracks = [KymoTrack([5, 6], [7, 7], kymo, "red")]
+
+    # with `track_width` = 1.2, conversion to pixels w/o enforcing odd == 2
+    # and refinement will not cover the signal at pixel 5
+    refined = refine_tracks_centroid(tracks, 1.2)
+    np.testing.assert_allclose(refined[0].position, [5, 5])
 
 
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
