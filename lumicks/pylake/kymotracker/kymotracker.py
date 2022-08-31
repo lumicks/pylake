@@ -85,7 +85,7 @@ def track_greedy(
         The kymograph to track.
     channel : {'red', 'green', 'blue'}
         Color channel to track.
-    track_width : float
+    track_width : float or None
         Expected (spatial) spot size in physical units. Must be larger than zero.
         If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
         for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
@@ -299,13 +299,6 @@ def filter_lines(lines, minimum_length):
 
     This can be used to enforce a minimum number of frames a spot has to be detected in to be
     considered a valid trace.
-
-    Parameters
-    ----------
-    lines : List[pylake.KymoTrack]
-        Detected tracks on a kymograph.
-    minimum_length : int
-        Minimum length for the line to be accepted.
     """
     return filter_tracks(lines, minimum_length)
 
@@ -337,13 +330,6 @@ def refine_lines_centroid(lines, line_width):
     This function interpolates the determined traces and then uses the pixels in the vicinity of the
     traces to make small adjustments to the estimated location. The refinement correction is
     computed by considering the brightness weighted centroid.
-
-    Parameters
-    ----------
-    lines : List[pylake.KymoTrack]
-        Detected traces on a kymograph
-    line_width : int
-        Line width in pixels (may not be smaller than 1)
     """
     if line_width < 1:
         # Refinement only does something when line_width in pixels is larger than 1
@@ -366,10 +352,10 @@ def refine_tracks_centroid(tracks, track_width=None):
     tracks : List[pylake.KymoTrack]
         Detected tracks on a kymograph
     track_width : float
-        Expected spatial track width in physical units. Must be larger than zero.
+        Expected (spatial) spot size in physical units. Must be larger than zero.
         If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
-        for kymographs calibrated in microns and 1 for kymographs calibrated in kilobase pairs (based
-        on 0.34 nm/bp for duplex DNA)
+        for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
+        corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
     """
     if track_width is None:
         track_width = _default_track_widths[tracks[0]._kymo._calibration.unit]
@@ -418,28 +404,7 @@ def refine_lines_gaussian(
     initial_sigma=None,
     fixed_background=None,
 ):
-    """Refine the lines by gaussian peak MLE.
-
-    Parameters
-    ----------
-    lines : List[pylake.KymoTrack] or pylake.KymolineGroup
-        Detected tracks on a kymograph.
-    window : int
-        Number of pixels on either side of the estimated line to include in the optimization data.
-    refine_missing_frames : bool
-        Whether to estimate location for frames which were missed in initial peak finding.
-    overlap_strategy : {'multiple', 'ignore', 'skip'}
-        How to deal with frames in which the fitting window of two `KymoTrack`'s overlap.
-
-        - 'multiple' : fit the peaks simultaneously.
-        - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
-        - 'skip' : skip optimization of the frame; remove from returned `KymoTrack`.
-    initial_sigma : float
-        Initial guess for the `sigma` parameter.
-    fixed_background : float
-        Fixed background parameter in photons per second.
-        When supplied, the background is not estimated but fixed at this value.
-    """
+    """Refine the lines by gaussian peak MLE."""
     return refine_tracks_gaussian(
         lines,
         window,
@@ -466,6 +431,8 @@ def refine_tracks_gaussian(
         Detected tracks on a kymograph.
     window : int
         Number of pixels on either side of the estimated track to include in the optimization data.
+        The fitting window should be large enough to capture the tails of the gaussian PSF, but
+        ideally small enough such that it will not include data from nearby tracks.
     refine_missing_frames : bool
         Whether to estimate location for frames which were missed in initial peak finding.
     overlap_strategy : {'multiple', 'ignore', 'skip'}
