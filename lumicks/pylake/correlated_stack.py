@@ -298,7 +298,8 @@ class CorrelatedStack(VideoExport):
     def crop_and_rotate(self, frame=0, channel="rgb", show_title=True, **kwargs):
         """Open a widget to interactively edit the image stack.
 
-        Actions include:
+        Actions
+        -------
 
             * scrolling through frames using the mouse wheel
             * left-click to define the location of the tether
