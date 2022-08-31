@@ -575,7 +575,8 @@ class Kymo(ConfocalImage):
     def crop_and_calibrate(self, channel="rgb", tether_length_kbp=None, **kwargs):
         """Open a widget to interactively edit the image stack.
 
-        Actions include:
+        Actions
+        -------
 
             * left-click and drag to define the cropped ROI
 
