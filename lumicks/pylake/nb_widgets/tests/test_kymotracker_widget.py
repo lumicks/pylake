@@ -148,8 +148,17 @@ def test_refine_from_widget(kymograph, region_select):
     assert len(kymo_widget.lines) == 1
 
     kymo_widget.refine()
+
+    # Now enforcing odd number of pixels in refinement, the default widget value
+    # for track_width gets bumped to 5 pixels. Before the fix it was 4 pixels
+    # This test now matches the result from `test_refine_track_width_units`
+    # With this track_width we'll include the two dim pixels in the test data
+    true_coordinate = [12.176471] * 15
+    true_coordinate[2] = 12
+    true_coordinate[3] = 12
+
     np.testing.assert_allclose(kymo_widget.lines[0].time_idx, np.arange(5, 20))
-    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, [12] * 15)
+    np.testing.assert_allclose(kymo_widget.lines[0].coordinate_idx, true_coordinate)
     assert len(kymo_widget.lines) == 1
 
 
