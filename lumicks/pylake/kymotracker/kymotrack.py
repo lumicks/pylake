@@ -4,7 +4,8 @@ from sklearn.neighbors import KernelDensity
 from ..detail.utilities import use_docstring_from
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel
-from lumicks.pylake.population.dwelltime import DwelltimeModel
+from .. import __version__
+from ..population.dwelltime import DwelltimeModel
 
 
 def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_width):
@@ -35,11 +36,11 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
     position = np.hstack([track.position for track in kymotrack_group])
     seconds = np.hstack([track.seconds for track in kymotrack_group])
 
-    data, header, fmt = [], [], []
+    data, column_titles, fmt = [], [], []
 
     def store_column(column_title, format_string, new_data):
         data.append(new_data)
-        header.append(column_title)
+        column_titles.append(column_title)
         fmt.append(format_string)
 
     store_column("track index", "%d", idx)
@@ -56,12 +57,17 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
             np.hstack([track.sample_from_image(sampling_width) for track in kymotrack_group]),
         )
 
+    version_header = f"Exported with pylake v{__version__} | track coordinates v2\n"
+    header = version_header + delimiter.join(column_titles)
     data = np.vstack(data).T
-    np.savetxt(filename, data, fmt=fmt, header=delimiter.join(header), delimiter=delimiter)
+    np.savetxt(filename, data, fmt=fmt, header=header, delimiter=delimiter)
 
 
 def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
     """Import a KymoTrackGroup from a csv file.
+
+    The file format contains a series of columns as follows:
+    track index, time (pixels), coordinate (pixels), time (optional), coordinate (optional), sampled_counts (optional)
 
     Parameters
     ----------
@@ -73,9 +79,8 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
         color channel that was used for tracking.
     delimiter : str
         The string used to separate columns.
+    """
 
-    The file format contains a series of columns as follows:
-    track index, time (pixels), coordinate (pixels), time (optional), coordinate (optional), sampled_counts (optional)"""
     data = np.loadtxt(filename, delimiter=delimiter)
     assert len(data.shape) == 2, "Invalid file format"
     assert data.shape[0] > 2, "Invalid file format"
