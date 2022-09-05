@@ -160,20 +160,28 @@ class KymoTrack:
 
     @property
     def time_idx(self):
+        """Tracked temporal coordinates in pixel units."""
         return self._time_idx
 
     @property
     def coordinate_idx(self):
-        """Return spatial coordinates in units of pixels."""
+        """Tracked spatial coordinates in pixel units."""
         return self._localization.position / self._kymo.pixelsize[0]
 
     @property
     def seconds(self):
+        """Tracked temporal coordinates in seconds."""
         return self._line_time_seconds * self.time_idx
 
     @property
     def position(self):
+        """Tracked position coordinates in spatial units."""
         return self._localization.position
+
+    @property
+    def position_variance(self):
+        """Estimated variance of the tracked position."""
+        return self._localization._calculate_position_variance(self._pixelsize)
 
     @property
     def _line_time_seconds(self):
@@ -182,7 +190,7 @@ class KymoTrack:
 
     @property
     def _pixelsize(self):
-        """Kymograph (spatial) pixel size in physical units."""
+        """Source kymograph (spatial) pixel size in physical units."""
         return self._kymo.pixelsize[0]
 
     def _check_ends_are_defined(self):
