@@ -176,6 +176,7 @@ def test_distance_selector_widget(mockevent):
     assert selector.fdcurves == []
 
 
+@pytest.mark.notebook
 @cleanup
 def test_multi_selector_widget():
     fd_curve1 = make_mock_fd([0, 1, 2, 3], [0, 1, 2, 3], start=int(2500e9))
@@ -188,6 +189,7 @@ def test_multi_selector_widget():
         FdRangeSelector({"fd1": fd_curve1, "fd2": fd_curve2})
 
 
+@pytest.mark.notebook
 @cleanup
 def test_multi_distance_selector_widget():
     fd_curve1 = make_mock_fd(np.arange(10), np.arange(10), start=int(2500e9))

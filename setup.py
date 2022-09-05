@@ -58,12 +58,14 @@ setup(
         "tifffile>=2020.9.30",
         "tabulate>=0.8.8, <0.9",
         "opencv-python-headless>=3.0",
-        "ipywidgets>=7.0.0",
         "cachetools>=3.1",
         "deprecated>=1.2.8",
         "scikit-learn>=0.18.0",
         "scikit-image>=0.17.2",
         "tqdm>=4.27.0",  # 4.27.0 introduced tqdm.auto which auto-selects notebook or console
     ],
+    extras_require={
+        "notebook": ["notebook>=4.4.1", "ipywidgets>=7.0.0"],
+    },
     zip_safe=False,
 )

@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install .
+        pip install .[notebook]
     - name: Pytest
       run: |
         cd .github/workflows
