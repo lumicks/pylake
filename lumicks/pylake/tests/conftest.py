@@ -1,3 +1,4 @@
+import importlib
 import pytest
 import json
 import warnings
@@ -14,6 +15,14 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
+    nb_packages = ("ipywidgets", "notebook")
+    has_notebook = all(importlib.util.find_spec(lib) for lib in nb_packages)
+    if not has_notebook:
+        skip_nb = pytest.mark.skip(reason=f"{nb_packages} need to be installed for these tests")
+        for item in items:
+            if "notebook" in item.keywords:
+                item.add_marker(skip_nb)
+
     for option in ("slow", "preflight"):
         if config.getoption(f"--run{option}"):
             continue
@@ -25,10 +34,13 @@ def pytest_collection_modifyitems(config, items):
 
 def pytest_configure(config):
     # Use a headless backend for testing
-    plt.switch_backend('agg')
+    plt.switch_backend("agg")
     config.addinivalue_line("markers", "slow: mark test as slow to run")
     config.addinivalue_line(
         "markers", "preflight: mark preflight tests which should only be run manually"
+    )
+    config.addinivalue_line(
+        "markers", "notebook: these tests require the notebook dependencies to be installed"
     )
 
 
@@ -43,8 +55,10 @@ def fd_h5_file(tmpdir_factory, request):
 
     # write data
     fd_metadata = {"Polynomial Coefficients": {f"Corrected Force {n+1}x": p for n in range(2)}}
-    fd_attrs = {"Start time (ns)": data["LF"]["time"][0],
-                "Stop time (ns)": data["LF"]["time"][-1]+1}
+    fd_attrs = {
+        "Start time (ns)": data["LF"]["time"][0],
+        "Stop time (ns)": data["LF"]["time"][-1] + 1,
+    }
     mock_file.make_fd("fd1", metadata=json.dumps(fd_metadata), attributes=fd_attrs)
 
     obs_force_lf_data = [datum for datum in zip(data["LF"]["time"], data["LF"]["obs_force"])]
@@ -52,9 +66,15 @@ def fd_h5_file(tmpdir_factory, request):
     hf_start_time = data["HF"]["time"][0]
     for n in (1, 2):
         for component in ("x", "y"):
-            mock_file.make_timeseries_channel("Force LF", f"Force {n}{component}", obs_force_lf_data)
-            mock_file.make_continuous_channel("Force HF", f"Force {n}{component}", hf_start_time, 3, data["HF"]["obs_force"])
-        mock_file.make_continuous_channel("Force HF", f"Corrected Force {n}x", hf_start_time, 3, data["HF"]["true_force"])
+            mock_file.make_timeseries_channel(
+                "Force LF", f"Force {n}{component}", obs_force_lf_data
+            )
+            mock_file.make_continuous_channel(
+                "Force HF", f"Force {n}{component}", hf_start_time, 3, data["HF"]["obs_force"]
+            )
+        mock_file.make_continuous_channel(
+            "Force HF", f"Corrected Force {n}x", hf_start_time, 3, data["HF"]["true_force"]
+        )
         mock_file.make_timeseries_channel("Distance", f"Distance {n}", distance_lf_data)
 
     return mock_file.file, (data["LF"]["time"], data["LF"]["true_force"])
@@ -66,6 +86,7 @@ def report_line():
 
     def reporter(text):
         """Print this line to a report at the end of the testing procedure"""
+
         def report():
             print(text)
 

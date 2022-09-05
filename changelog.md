@@ -70,6 +70,8 @@
     * `export_kymolinegroup_to_csv()` was renamed to `export_kymotrackgroup_to_csv()`
     * `import_kymolinegroup_from_csv()` was renamed to `import_kymotrackgroup_from_csv()`
 * Updated the `KymoWidgetGreedy` UI to reflect changes in terminology.
+* Made `ipywidgets>=7.0.0` and `notebook>=4.4.1` optional dependencies for `pip`.
+* Made `notebook>=4.4.1` a mandatory dependency for `conda` release.
 
 ## v0.12.1 | 2022-06-21
 

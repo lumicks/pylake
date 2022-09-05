@@ -136,6 +136,9 @@ If you're already familiar with Python and have Python >= 3.7 installed, install
 
     pip install lumicks.pylake
 
+By default, this will only install the Pylake package and not Jupyter notebook or `ipywidgets`. If you wish to install these additional dependencies, you can invoke::
+
+    pip install lumicks.pylake[notebook]
 
 Updating
 --------
