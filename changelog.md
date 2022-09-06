@@ -1,60 +1,58 @@
 # Changelog
 
-## v0.13.0 t.b.d.
+## v0.13.0 | 2022-09-06
 
 #### New features
 
-* Allow reading multiple files with `lk.CorrelatedStack` (e.g. `lk.CorrelatedStack("image1.tiff", "image2.tiff")`).
-* Added function `Kymo.line_timestamp_ranges()` to obtain the start and stop timestamp of each scan line in a `Kymo`. Please refer to [Confocal images](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html) for more information.
-* Added `Kymo.flip()` to flip a Kymograph along its positional axis.
-* Propagate `Slice` axis labels when performing arithmetic (when possible).
-* It is now possible to pickle `FdFit` objects. Prior to this change, unpickling an `FdFit` would fail since model identification relied on a stored `id` for each of the models used. The `id` of a variable changes whenever a new variable is created however. After this change, each model is associated with a universally unique identifier (uuid) that is used for identification instead. This uuid is serialized with the `Model` and used by `FdFit` thereby preserving their relationship when pickled/unpickled.
-* Added `KymoLineGroup.estimate_diffusion()` to estimate diffusion constants for a group of kymograph traces.
-* Include unit in `DiffusionEstimate` dataclass.
-* Allow downloading files directly from Zenodo using `lk.download_from_doi()`. See the [example on Cas9 binding](https://lumicks-pylake.readthedocs.io/en/latest/examples/cas9_kymotracking/cas9_kymotracking.html) for an example of its use.
-* Made piezo tracking functionality public and added [piezo tracking tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/piezotracking.html).
-* Added support for steps when slicing frames from `CorrelatedStack`s.
-* Added `CorrelatedStack.export_video()` to export videos to export multi-frame videos to video formats or GIFs.
-* Lazily load `data` and `timestamps` for `TimeSeries` data
 * Added possibility to access property `sample_rate` for `TimeSeries` data with constant sample rate.
-* Added shape property to `Scan` and `Kymo`.
-* Added a warning to the Kymotracker widget if the threshold parameter is set too low, which may result in slow tracking and the widget hanging.
-* Pylake now depends on `h5py>=3.4, <4`. This change is required to still support `len()` with the lazy loading fix for `TimeSeries`.
-* Added header line to exported track coordinate CSV files. The first header line now contains the version of `pylake` which generated the file and a version number for the CSV file itself (starting with `v2` from this release).
-* Allow slicing `CorrelatedStacks` with timestamps and time strings (e.g. `stack["5s":"10s"]` or `stack[f.force1x.start:f.force1x.stop]`).
+* Allow reading multiple files with `lk.CorrelatedStack` (e.g. `lk.CorrelatedStack("image1.tiff", "image2.tiff")`).
+* Added `CorrelatedStack.export_video()` to export videos to export multi-frame videos to video formats or GIFs.
+* Added support for steps when slicing frames from `CorrelatedStack`s.
+* Added function `Kymo.line_timestamp_ranges()` to obtain the start and stop timestamp of each scan line in a `Kymo`. Please refer to [Confocal images](https://lumicks-pylake.readthedocs.io/en/stable/tutorial/kymographs.html) for more information.
+* Added `Kymo.flip()` to flip a Kymograph along its positional axis.
+* Added `KymoTrackGroup.estimate_diffusion()` to estimate diffusion constants for a group of kymograph traces.
+* Include unit in `DiffusionEstimate` dataclass.
+* Added `shape` property to `Scan` and `Kymo`.
+* Allow slicing `CorrelatedStack`s with timestamps and time strings (e.g. `stack["5s":"10s"]` or `stack[f.force1x.start:f.force1x.stop]`).
 * Allow slicing `Scan` with timestamps and time strings (e.g. `scan["5s":"10s"]` or `scan[f.force1x.start:f.force1x.stop]`).
+* Allow downloading files directly from Zenodo using `lk.download_from_doi()`. See the [example on Cas9 binding](https://lumicks-pylake.readthedocs.io/en/stable/examples/cas9_kymotracking/cas9_kymotracking.html) for an example of its use.
+* Made piezo tracking functionality public and added [piezo tracking tutorial](https://lumicks-pylake.readthedocs.io/en/stable/tutorial/piezotracking.html).
+* Lazily load `data` and `timestamps` for `TimeSeries` data
+* Propagate `Slice` axis labels when performing arithmetic (when possible).
+* Added a warning to the Kymotracker widget if the threshold parameter is set too low, which may result in slow tracking and the widget hanging.
+* Added header line to exported track coordinate CSV files. The first header line now contains the version of `Pylake` which generated the file and a version number for the CSV file itself (starting with `v2` from this release).
+* It is now possible to pickle `FdFit` objects. Prior to this change, unpickling an `FdFit` would fail since model identification relied on a stored `id` for each of the models used. The `id` of a variable changes whenever a new variable is created however. After this change, each model is associated with a universally unique identifier (uuid) that is used for identification instead. This uuid is serialized with the `Model` and used by `FdFit` thereby preserving their relationship when pickled/unpickled.
 
 #### Bug fixes
 
 * Improved `scan.get_image("rgb")` to handle missing channel data. Missing channels are now handled gracefully. Missing channels are zero filled matching the dimensions of the remaining channels.
-* Added calls to manually redraw the axes in kymotracker widget during horizontal pan and line connection callbacks. Without this, plot did not update correctly when using newer versions of `ipywidgets` and `matplotlib`.
-* Fixed bug in video export that led to one frame less being exported than intended.
-* Fixed bug which prevented the range selector widget from updating when the dataset to be plotted is changed. Previously, on some supported versions of `matplotlib` it would no longer update the figure. This is now fixed.
-* Force-distance models now raise a `ValueError` exception when simulated for invalid parameter values.
-* Force distance models now have a non-zero lower bound for the contour length (`Lc`), persistence length (`Lp`), stretch modulus (`St`) and boltzmann constant times temperature (`kT`) instead of a lower bound of zero.
-* Force distance fits now raise a `RuntimeError` if any of the returned simulation values are NaN.
-* Fixed bug that resulted in profile likelihood automatically failing when an attempted step exceeded the bounds where the model could be simulated.
-* Fixed method `TimeSeries.from_dataset()` reading all data from datasets upon creation of a `TimeSeries` instance instead of lazy loading
+* Added calls to manually redraw the axes in the kymotracker widget during horizontal pan and line connection callbacks. Without this, the plot did not update correctly when using newer versions of `ipywidgets` and `matplotlib`.
+* Fixed a bug in the video export that led to one frame less being exported than intended.
+* Fixed a bug which prevented the range selector widget from updating when the dataset to be plotted is changed. Previously, on some supported versions of `matplotlib` it would no longer update the figure. This is now fixed.
+* Force distance models now raise a `ValueError` exception when simulated for invalid parameter values.
+* Force distance models now have a non-zero lower bound for the contour length (`Lc`), persistence length (`Lp`), stretch modulus (`St`) and Boltzmann constant times temperature (`kT`) instead of a lower bound of zero.
+* Force distance fits now raise a `RuntimeError` if any of the returned simulation values are `NaN`.
+* Fixed a bug that resulted in profile likelihood automatically failing when an attempted step exceeded the bounds where the model could be simulated.
 
 #### Breaking changes
 
-* Removed default value provided for `driving_frequency_guess` in `lk.calibrate_force()`.
-* `CorrelatedStack.frame_timestamp_ranges()` is now a method rather than a property. This was done for API consistency with the API for `Scan`. Please refer to [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/correlatedstacks.html#correlated-stacks) for more information.
 * To disable image alignment for `lk.CorrelatedStack`, the alignment argument has to be provided as a keyword argument (e.g. `lk.CorrelatedStack("filename.tiff", align=False)` rather than `lk.CorrelatedStack("filename.tiff", False)`).
+* Removed deprecated argument `roi` from `CorrelatedStack.export_tiff`. Use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting.
+* `CorrelatedStack.frame_timestamp_ranges()` is now a method rather than a property. This was done for API consistency with the API for `Scan`. Please refer to [Correlated stacks](https://lumicks-pylake.readthedocs.io/en/stable/tutorial/correlatedstacks.html#correlated-stacks) for more information.
+* Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
+* The property `sample_rate` of `Continuous` data now returns a `float` instead of an `int`.
 * Changed the error type when attempting to access undefined per-pixel timestamps in `Kymo` from `AttributeError` to `NotImplementedError`.
-* Made `KymoWidget.algorithm_parameters` a private attribute.
+* `KymoWidgetGreedy` now enforces using keywords for all arguments after the first two (`kymo` and `channel`).
+* The following `KymoWidgetGreedy` attributes/functions have been removed (replaced with private API): `adding`, `algorithm_parameters`, `axis_aspect_ratio`, `output_filename`, `plotted_lines`, `show_lines`, `create_algorithm_sliders()`, `refine()`, `show()`, `track_all()`, `track_kymo()` and `update_lines()`.
+* The `track_width` argument of `refine_tracks_centroid()` expects values in physical units whereas the deprecated `refine_lines_centroid()` expected the `line_width` argument in pixel units.
+* Removed default value provided for `driving_frequency_guess` in `lk.calibrate_force()`.
 * It is now mandatory to supply a `sample_rate` when calling `lk.calibrate_force()`.
 * It is now mandatory to supply a `sample_rate` when calling `lumicks.pylake.force_calibration.touchdown.touchdown()`.
-* Removed public attributes `CorrelatedStack.start_idx` and `CorrelatedStack.stop_idx` and made them protected.
-* The property `sample_rate` of `Continuous` data now returns a `float` instead of an `int``
-* Removed deprecated argument `roi` from `CorrelatedStack.export_tiff`. Use `CorrelatedStack.crop_by_pixels()` to select the ROI before exporting.
-* `KymoWidgetGreedy` now enforces using keywords for all arguments after the first two (`kymo` and `channel`).
-* The following `KymoWidgetGreedy` attributes/functions have been removed (replaced with private API): `adding`, `axis_aspect_ratio`, `output_filename`, `plotted_lines`, `show_lines`, `create_algorithm_sliders()`, `refine()`, `show()`, `track_all()`, `track_kymo()` and `update_lines()`.
 
 #### Deprecations
 
-* Deprecated `export_video_red()`, `export_video_green()`, `export_video_blue()`, and `export_video_rgb()` methods for `Scan`. These methods have been replaced with a single `export_video(channel=color)` method.
 * `Scan.save_tiff()` and `Kymo.save_tiff()` were deprecated and replaced with `Scan.export_tiff()` and `Kymo.export_tiff()` to more clearly communicate that the data is exported to a different format.
+* Deprecated `export_video_red()`, `export_video_green()`, `export_video_blue()`, and `export_video_rgb()` methods for `Scan`. These methods have been replaced with a single `export_video(channel=color)` method.
 * In the functions `Scan.frame_timestamp_ranges()` and `Kymo.line_timestamp_ranges()`, the parameter `exclude` was deprecated in favor of `include_dead_time` for clarity.
 * Deprecated `KymoTrackGroup.remove_lines_in_rect()`; use `KymoTrackGroup.remove_tracks_in_rect()` instead (see below).
 * Deprecated the `line_width` argument of `track_greedy()`; use `track_width` instead.
@@ -74,6 +72,7 @@
 * Updated the `KymoWidgetGreedy` UI to reflect changes in terminology.
 * Made `ipywidgets>=7.0.0` and `notebook>=4.4.1` optional dependencies for `pip`.
 * Made `notebook>=4.4.1` a mandatory dependency for `conda` release.
+* `Pylake` now depends on `h5py>=3.4, <4`. This change is required to support lazy loading for `TimeSeries`.
 
 ## v0.12.1 | 2022-06-21
 
