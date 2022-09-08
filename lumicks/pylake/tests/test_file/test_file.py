@@ -1,9 +1,11 @@
 import numpy as np
 from lumicks import pylake
 import pytest
+import time
 from textwrap import dedent
 from lumicks.pylake.detail.h5_helper import write_h5
 from . import test_file_items
+from lumicks.pylake.tests.data.mock_file import MockDataFile_v2
 
 
 def test_attributes(h5_file):
@@ -292,3 +294,19 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
         np.testing.assert_allclose(omit_two["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
     with pytest.raises(KeyError):
         np.testing.assert_allclose(omit_two["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+
+
+def test_timeseries_performance(tmpdir_factory):
+    # This is a regression test for a bug that showed catastrophic performance for TimeSeries data.
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = MockDataFile_v2(tmpdir.join("regression_test_timeseries.h5"))
+    mock_file.write_metadata()
+
+    ts = np.arange(int(1e10), int(10e10), int(1e7), dtype=np.int64)
+    data = [datum for datum in zip(ts, np.arange(1e10, 10e10, 1e7))]
+    mock_file.make_timeseries_channel("test", "test", data)
+
+    f = pylake.File.from_h5py(mock_file.file)
+    tic = time.time()
+    np.testing.assert_allclose(f["test"]["test"].timestamps, ts)
+    assert time.time() - tic < 0.1, "Grabbing timestamps from TimeSeries is too slow"
