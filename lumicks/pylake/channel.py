@@ -567,13 +567,12 @@ class TimeSeries:
 
     def __init__(self, data, timestamps):
         assert len(data) == len(timestamps)
-        self._src_data = data
-        self._cached_data = None
-        self._src_timestamps = timestamps
-        self._cached_timestamps = None
+        # TODO: should be lazily evaluated
+        self.data = np.asarray(data)
+        self.timestamps = np.asarray(timestamps)
 
     def __len__(self):
-        return len(self._src_data)
+        return len(self.data)
 
     def _with_data(self, data):
         return self.__class__(data, self.timestamps)
@@ -586,22 +585,10 @@ class TimeSeries:
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None):
         return Slice(
-            TimeSeries(dset.fields("Value"), dset.fields("Timestamp")),
+            TimeSeries(dset["Value"], dset["Timestamp"]),
             labels={"title": dset.name.strip("/"), "y": y_label},
             calibration=calibration,
         )
-
-    @property
-    def data(self) -> npt.ArrayLike:
-        if self._cached_data is None:
-            self._cached_data = np.asarray(self._src_data)
-        return self._cached_data
-
-    @property
-    def timestamps(self) -> npt.ArrayLike:
-        if self._cached_timestamps is None:
-            self._cached_timestamps = np.asarray(self._src_timestamps)
-        return self._cached_timestamps
 
     @property
     def start(self):
