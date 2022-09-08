@@ -3,6 +3,7 @@
 ## v0.13.1 | 2022-09-08
 
 #### Bug fixes
+
 * Reverted lazy loading for `TimeSeries` data as this actually caused significantly long wait times for accessing the data.
 
 ## v0.13.0 | 2022-09-06
