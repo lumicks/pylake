@@ -426,16 +426,34 @@ def test_inspections(channel_h5_file):
 
 
 def test_channel(channel_h5_file):
-    force = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
+    dset = channel_h5_file["Force HF"]["Force 1x"]
+    force = channel.Continuous.from_dataset(dset)
+    np.testing.assert_equal(len(force), 5)
     np.testing.assert_allclose(force.data, [0, 1, 2, 3, 4])
     np.testing.assert_allclose(force.timestamps, [1, 11, 21, 31, 41])
+    np.testing.assert_equal(force.start, 1)
+    np.testing.assert_equal(force.stop, 41 + 10)
+    np.testing.assert_equal(force.sample_rate, 1e9 / int(1e9 / dset.attrs["Sample rate (Hz)"]))
 
     downsampled = channel.TimeSeries.from_dataset(channel_h5_file["Force LF"]["Force 1x"])
+    np.testing.assert_equal(len(downsampled), 2)
     np.testing.assert_allclose(downsampled.data, [1.1, 2.1])
     np.testing.assert_allclose(downsampled.timestamps, [1, 2])
+    np.testing.assert_equal(downsampled.start, 1)
+    np.testing.assert_equal(downsampled.stop, 2 + 1)
+    np.testing.assert_equal(downsampled.sample_rate, 1e9 / 1)
+
+    variable = channel.TimeSeries.from_dataset(channel_h5_file["Force LF variable"]["Force 1x"])
+    np.testing.assert_equal(len(variable), 3)
+    np.testing.assert_allclose(variable.data, [1.1, 2.1, 3.1])
+    np.testing.assert_allclose(variable.timestamps, [1, 2, 4])
+    np.testing.assert_equal(variable.start, 1)
+    np.testing.assert_equal(variable.stop, 4 + 1)
+    np.testing.assert_equal(variable.sample_rate, None)
 
     if "Photon Time Tags" in channel_h5_file:
         timetags = channel.TimeTags.from_dataset(channel_h5_file["Photon Time Tags"]["Red"])
+        np.testing.assert_equal(len(timetags), 9)
         assert np.all(np.equal(timetags.data, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
         assert np.all(np.equal(timetags.timestamps, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
 

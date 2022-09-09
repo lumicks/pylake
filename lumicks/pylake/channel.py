@@ -567,12 +567,13 @@ class TimeSeries:
 
     def __init__(self, data, timestamps):
         assert len(data) == len(timestamps)
-        # TODO: should be lazily evaluated
-        self.data = np.asarray(data)
-        self.timestamps = np.asarray(timestamps)
+        self._src_data = data
+        self._cached_data = None
+        self._src_timestamps = timestamps
+        self._cached_timestamps = None
 
     def __len__(self):
-        return len(self.data)
+        return len(self._src_data)
 
     def _with_data(self, data):
         return self.__class__(data, self.timestamps)
@@ -583,12 +584,50 @@ class TimeSeries:
         return TimeSeries(self.data[mask], self.timestamps[mask])
 
     @staticmethod
-    def from_dataset(dset, y_label="y", calibration=None):
+    def from_dataset(dset, y_label="y", calibration=None) -> Slice:
+        class LazyLoadedCompoundField:
+            """Wrapper to enable lazy loading of HDF5 compound datasets
+
+            Notes
+            -----
+            We only need to support the methods `__array__()` and `__len__()`, as we only access
+            `LazyLoadedCompoundField` via the properties `TimeSeries.data`, `timestamps` and the
+            method `__len__()`.
+
+            `LazyLoadCompoundField` might be replaced with `dset.fields(fieldname)` if and when the
+            returned `FieldsWrapper` object provides an `__array__()` method itself"""
+
+            def __init__(self, dset, fieldname):
+                self._dset = dset
+                self._fieldname = fieldname
+
+            def __array__(self):
+                """Get the data of the field as an array"""
+                return self._dset[self._fieldname]
+
+            def __len__(self):
+                """Get the length of the underlying dataset"""
+                return len(self._dset)
+
+        data = LazyLoadedCompoundField(dset, "Value")
+        timestamps = LazyLoadedCompoundField(dset, "Timestamp")
         return Slice(
-            TimeSeries(dset["Value"], dset["Timestamp"]),
+            TimeSeries(data, timestamps),
             labels={"title": dset.name.strip("/"), "y": y_label},
             calibration=calibration,
         )
+
+    @property
+    def data(self) -> npt.ArrayLike:
+        if self._cached_data is None:
+            self._cached_data = np.asarray(self._src_data)
+        return self._cached_data
+
+    @property
+    def timestamps(self) -> npt.ArrayLike:
+        if self._cached_timestamps is None:
+            self._cached_timestamps = np.asarray(self._src_timestamps)
+        return self._cached_timestamps
 
     @property
     def start(self):
