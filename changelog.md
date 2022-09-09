@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.13.2 | tbd
+
+### New features
+
+* Fixed and reintroduced lazy loading for `TimeSeries` data. 
+
 ## v0.13.1 | 2022-09-08
 
 #### Bug fixes

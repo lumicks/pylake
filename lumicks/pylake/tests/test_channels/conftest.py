@@ -13,6 +13,9 @@ def channel_h5_file(tmpdir_factory, request):
 
     mock_file.make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5.0))
     mock_file.make_timeseries_channel("Force LF", "Force 1x", [(1, 1.1), (2, 2.1)])
+    mock_file.make_timeseries_channel(
+        "Force LF variable", "Force 1x", [(1, 1.1), (2, 2.1), (4, 3.1)]
+    )
 
     if mock_class == MockDataFile_v2:
         # fmt: off
