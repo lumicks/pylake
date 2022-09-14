@@ -674,3 +674,17 @@ def test_disallowed_diffusion_est(blank_kymo):
     group = KymoTrackGroup([k])
     with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
         group.estimate_diffusion(method="ols")
+
+
+def test_diffusion_cve(blank_kymo):
+    """Test the API for the covariance based estimator"""
+    k = KymoTrack(np.arange(5), np.arange(5), blank_kymo, "red")
+    cve_est = k.estimate_diffusion("cve")
+
+    np.testing.assert_allclose(cve_est.value, 1.5)
+    np.testing.assert_allclose(cve_est.std_err, 1.3928388277184118)
+    np.testing.assert_allclose(cve_est.num_points, 5)
+    assert cve_est.num_lags is None
+    assert cve_est.method == 'cve'
+    assert cve_est.unit == "um^2 / s"
+    assert cve_est._unit_label == "$\\mu$m$^2$/s"

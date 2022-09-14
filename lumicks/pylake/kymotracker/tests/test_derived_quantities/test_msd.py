@@ -4,6 +4,7 @@ from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.msd_estimation import (
     _msd_diffusion_covariance,
     _diffusion_ols,
+    _cve,
 )
 
 
@@ -291,3 +292,44 @@ def test_singular_handling():
         trace = simulate_diffusion_1d(0, 30, 3, 0)
         with pytest.warns(RuntimeWarning, match="Covariance matrix is singular"):
             estimate_diffusion_constant_simple(np.arange(len(trace)), trace, 1, 3, "gls", "unit")
+
+
+@pytest.mark.parametrize(
+    "diffusion,obs_noise,num_points,time_step, blur_constant,variance_loc,variance_variance_loc,"
+    "diffusion_ref,var_diffusion_ref,variance_loc_ref,num_points_ref",
+    # fmt:off
+    [
+        (0.1, 0.01, 50, 0.1, 0, None, None, 0.09206101801689968, 0.0009716913812060779, -0.0008040516549331511, 50),
+        (0.1, 0.01, 50, 0.1, 1/6, None, None, 0.09206101801689968, 0.0009716913812060779, 0.0022646489456301716, 50),
+        (0.1, 0.01, 50, 0.1, 0, 0.0001, 0.0001, 0.08302050146756818, 0.010282397786674464, 0.0001, 50),
+        (0.1, 0.01, 50, 0.1, 1/6, 0.0001, 0.0001, 0.12453075220135225, 0.023209198638670672, 0.0001, 50),
+    ],
+    # fmt:on
+)
+def test_cve(
+    diffusion,
+    obs_noise,
+    num_points,
+    time_step,
+    blur_constant,
+    variance_loc,
+    variance_variance_loc,
+    diffusion_ref,
+    var_diffusion_ref,
+    variance_loc_ref,
+    num_points_ref,
+):
+    with temp_seed(10):
+        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        diffusion_est, var_diffusion_est, variance_loc_est, num_points_est = _cve(
+            np.arange(num_points),
+            trace,
+            time_step,
+            blur_constant,
+            variance_loc,
+            variance_variance_loc,
+        )
+        np.testing.assert_allclose(diffusion_est, diffusion_ref)
+        np.testing.assert_allclose(var_diffusion_est, var_diffusion_ref)
+        np.testing.assert_allclose(variance_loc_est, variance_loc_ref)
+        np.testing.assert_allclose(num_points_est, num_points_ref)
