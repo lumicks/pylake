@@ -336,6 +336,19 @@ class KymoTrack:
     def estimate_diffusion(self, method, max_lag=None):
         r"""Estimate diffusion constant
 
+        There are three algorithms to determine diffusion constants:
+
+            - CVE: Covariance based estimator. Works directly on the tracks.
+            - OLS: Ordinary least-squares estimator based on Mean Squared Displacements (MSD).
+            - GLS: Generalized least-squares estimator based on Mean Squared Displacements (MSD).
+
+        1. Covariance based estimator (CVE)
+
+        The CVE is unbiased and practically optimal when SNR > 1. Here SNR is defined as follows
+        :math:`\sqrt(D \Delta t) / \sigma`.
+
+        2. MSD-based estimators (OLS, GLS)
+
         The estimator for the MSD (:math:`\rho`) is defined as:
 
         .. math::
@@ -368,13 +381,16 @@ class KymoTrack:
         Parameters
         ----------
         method : str
-            Valid options are "ols" and "gls".
+            Valid options are "cve", "ols" and "gls".
 
+            - "cve" : Covariance based estimator [5]_. Optimal if SNR > 1. Can only be used when
+                      track is equidistantly sampled.
             - "ols" : Ordinary least squares [3]_. Determines optimal number of lags.
             - "gls" : Generalized least squares [4]_. Takes into account covariance matrix (slower).
         max_lag : int (optional)
-            Number of lags to include. When omitted, the method will choose an appropriate number
-            of lags to use.
+            Number of lags to include when using an MSD-based estimator. When omitted, the method
+            will choose an appropriate number of lags to use. For the cve estimator this argument
+            is ignored.
             When the method chosen is "ols" an optimal number of lags is estimated as determined by
             [3]_. When the method is set to "gls" all lags are included.
 
@@ -385,8 +401,11 @@ class KymoTrack:
         .. [4] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
                self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
                Physics, 153(2), 024116.
+        .. [5] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+               diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+               022726.
         """
-        if method not in ("gls", "ols"):
+        if method not in ("cve", "gls", "ols"):
             raise ValueError('Invalid method selected. Method must be "gls" or "ols"')
 
         if not self._kymo.contiguous:
@@ -397,6 +416,16 @@ class KymoTrack:
             )
 
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
+        unit_labels = {
+            "unit": f"{self._kymo._calibration.unit}^2 / s",
+            "unit_label": f"{self._kymo._calibration.unit_label}$^2$/s",
+        }
+
+        if method == "cve":
+            return estimate_diffusion_cve(
+                frame_idx, positions, self._line_time_seconds, **unit_labels
+            )
+
         max_lag = (
             max_lag
             if max_lag
@@ -413,8 +442,7 @@ class KymoTrack:
             self._line_time_seconds,
             max_lag,
             method,
-            f"{self._kymo._calibration.unit}^2 / s",
-            f"{self._kymo._calibration.unit_label}$^2$/s",
+            **unit_labels,
         )
 
     @deprecated(

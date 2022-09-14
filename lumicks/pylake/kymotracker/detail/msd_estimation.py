@@ -1,4 +1,6 @@
 import numpy as np
+import numpy.typing as npt
+from typing import Optional
 import warnings
 from dataclasses import dataclass, field
 
@@ -12,7 +14,10 @@ class DiffusionEstimate:
     value : float
         Estimate for the diffusion constant.
     std_err : float
-        Standard error,
+        Standard error.
+
+        Note: while this provides some measure of uncertainty, these estimates are expected to be
+        biased and should not be used to weight multiple diffusion estimates!
     num_lags : int
         Number of lags used to compute this estimate.
     num_points : int
@@ -447,3 +452,211 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
         RuntimeWarning("Warning, maximum number of iterations exceeded. Returning best solution.")
     )
     return num_slope, num_intercept
+
+
+def _var_cve_unknown_var(
+    diffusion_constant: float,
+    variance_loc: float,
+    dt: float,
+    num_points: int,
+    blur_constant: float = 0,
+) -> float:
+    """Expected variance of the diffusion estimate obtained with CVE.
+
+    The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
+    This function is based on eqn 17 from Vestergaard et al [1].
+
+    Parameters
+    ----------
+    diffusion_constant : float
+        Estimate of the diffusion constant
+    variance_loc : float
+        Estimate of the localization variance
+    dt : float
+        Time step
+    num_points : int
+        Number of points in the trace
+    blur_constant : float
+        Motion blur constant. See :func:`lumicks.pylake.kymotracker.detail.msd_estimation._cve` for
+        more information.
+
+    References
+    ----------
+    .. [1] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+           diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+           022726.
+    """
+    epsilon = variance_loc / (diffusion_constant * dt) - 2.0 * blur_constant
+    term1 = (6.0 + 4.0 * epsilon + 2.0 * epsilon**2) / num_points
+    term2 = (4.0 * (1.0 + epsilon) ** 2) / (num_points**2)
+    return (term1 + term2) * diffusion_constant**2
+
+
+def _var_cve_known_var(
+    diffusion_constant: float,
+    variance_loc: float,
+    variance_variance_loc: float,
+    dt: float,
+    num_points: int,
+    blur_constant: float = 0,
+) -> float:
+    """Expected variance of the diffusion estimate obtained with CVE.
+
+    The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
+    This function is based on eqn 18 from Vestergaard et al [1].
+
+    Parameters
+    ----------
+    diffusion_constant : float
+        Estimate of the diffusion constant
+    variance_loc : float
+        Estimate of the localization variance
+    variance_variance_loc : float
+        Variance of the localization variance estimate.
+    dt : float
+        Time step
+    num_points : int
+        Number of points in the trace
+    blur_constant : float
+        Motion blur constant. See :func:`lumicks.pylake.kymotracker.detail.msd_estimation._cve` for
+        more information.
+
+    References
+    ----------
+    .. [1] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+           diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+           022726.
+    """
+    epsilon = variance_loc / (diffusion_constant * dt) - 2.0 * blur_constant
+    blur_term = (1.0 - 2.0 * blur_constant) ** 2
+    term1 = (
+        diffusion_constant**2
+        * (2.0 + 4.0 * epsilon + 3.0 * epsilon**2)
+        / (num_points * blur_term)
+    )
+    term2 = variance_variance_loc / (blur_term * dt**2)
+    return term1 + term2
+
+
+def _cve(
+    x: npt.ArrayLike,
+    dt: float,
+    blur_constant: float = 0,
+    variance_loc: Optional[float] = None,
+    variance_variance_loc: Optional[float] = None,
+) -> tuple:
+    """Covariance based estimator.
+
+    The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
+    This estimator was introduced in the work of Vestergaard et al [1].
+
+    Note that this estimator is only valid in the case of pure diffusion without drift.
+
+    References
+    ----------
+    .. [1] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+           diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+           022726.
+
+    Parameters
+    ----------
+    x : array_like
+        Positions over time
+    dt : float
+        Time step
+    blur_constant : float
+        Motion blur coefficient. Should be between 0 and 1/4.
+
+        The normalized shutter function is defined as c(t), where c(t) represents whether the
+        shutter is open or closed. c(t) is normalized w.r.t. area. For no motion blur,
+        c(t) = delta(t_exposure), whereas for a constantly open shutter it is defined as
+        c(t) = 1 / dt.
+
+        With c(t) defined as before, the motion blur constant is defined as:
+
+        .. math::
+            R = \frac{1}{\Delta t} \int_{0}^{\Delta t}S(t) \left(1 - S(t)\right)dt
+
+        with
+
+        .. math::
+            S(t) = \int_{0}^{t} c(t') dt'
+
+        For no motion blur, we obtain: R = 0, while a continuously open shutter over the exposure
+        time results in R = 1/6. Note that when estimating both localization uncertainty and
+        the diffusion constant, the motion blur factor has no effect on the estimate of the
+        diffusion constant itself, but it does affect the calculated uncertainties. In the case of
+        a provided localization uncertainty, it does impact the estimate of the diffusion constant.
+    variance_loc : float
+        Variance of the localization error if it has been determined independently.
+    variance_variance_loc : float
+        The variance of the localization variance estimate (needed if variance_loc is provided).
+
+    Note
+    ----
+    With the SNR defined as:
+
+    .. math::
+        \sqrt{D \Delta t} / \sigma
+
+    With D the diffusion constant and :math:`\sigma`
+    This method requires SNR > 1. Below SNR = 1 it degrades rapidly.
+    """
+    if not 0 <= blur_constant < 0.25:
+        raise ValueError("Motion blur constant should be between 0 and 1/4")
+
+    dx = np.diff(x)
+    mean_dx_squared = np.mean(dx**2)
+
+    if not variance_loc:
+        # Estimate the variance based on this frame
+        mean_dx_consecutive = np.mean(dx[1:] * dx[:-1])
+        diffusion_constant = mean_dx_squared / (2 * dt) + mean_dx_consecutive / dt
+        variance_loc = (
+            blur_constant * mean_dx_squared + (2 * blur_constant - 1) * mean_dx_consecutive
+        )
+        var_diffusion = _var_cve_unknown_var(
+            diffusion_constant, variance_loc, dt, len(x), blur_constant
+        )
+    else:
+        # We know the variance in advance.
+        diffusion_constant = (mean_dx_squared - 2.0 * variance_loc) / (
+            2.0 * (1.0 - 2.0 * blur_constant) * dt
+        )
+        var_diffusion = _var_cve_known_var(
+            diffusion_constant,
+            variance_loc,
+            variance_variance_loc,
+            dt,
+            len(x),
+            blur_constant,
+        )
+
+    return diffusion_constant, var_diffusion, variance_loc
+
+
+def estimate_diffusion_cve(
+    frame_idx: npt.ArrayLike, coordinate: npt.ArrayLike, dt: float, unit: str, unit_label: str
+) -> DiffusionEstimate:
+    """Estimate diffusion constant based on covariance estimator
+
+    This function estimates the diffusion constant based on the covariance estimator and packs
+    the result in a `DiffusionEstimate`. Note that it is only suitable for confocal-based tracking
+    at the moment.
+    """
+    if np.unique(np.diff(frame_idx)).size > 1:
+        raise RuntimeError(
+            "This method can only be used for equidistantly sampled lines at the moment"
+        )
+
+    # We hardcode the blur constant for confocal for now (no motion blur)
+    diffusion, diffusion_variance, _ = _cve(coordinate, dt, blur_constant=0)
+    return DiffusionEstimate(
+        diffusion,
+        np.sqrt(diffusion_variance),
+        None,
+        len(coordinate),
+        "CVE",
+        unit,
+        unit_label,
+    )

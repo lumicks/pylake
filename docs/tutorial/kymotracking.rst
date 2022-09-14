@@ -446,7 +446,8 @@ We can also directly determine them for an entire group by just invoking::
     DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols', unit='um^2 / s')]
 
 We can see that there is considerable variation in the estimates, which is unfortunately typical for diffusion coefficient estimates.
-By default, :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`. You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
+By default, :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`.
+You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
 
     >>> tracks.estimate_diffusion(method="ols", max_lag=30)
     [DiffusionEstimate(value=11.949917925662831, std_err=10.394298104056345, num_lags=30, num_points=80, method='ols', unit='um^2 / s'),
@@ -476,6 +477,17 @@ This method is slower, since it has to solve some implicit equations, but it doe
      DiffusionEstimate(value=4.432955288469379, std_err=1.565056974828146, num_lags=30, num_points=80, method='gls', unit='um^2 / s'),
      DiffusionEstimate(value=5.378609478528924, std_err=1.7771064499907185, num_lags=30, num_points=80, method='gls', unit='um^2 / s')]
 
+A third more performant and unbiased method for computing the free diffusion is the covariance-based estimator (CVE) :cite:`vestergaard2014optimal`.
+The CVE does not rely on computing mean squared displacements and avoids the complications that arise from their use.
+The performance of this estimator can be characterized by its signal to noise ratio (SNR).
+This SNR is defined by:
+
+.. math::
+
+    SNR = \frac{\sqrt{D \Delta t}}{{\sigma}}
+
+Here :math:`D` is the diffusion constant, :math:`Delta t` the time step and :math:`\sigma` the localization uncertainty.
+Use of the CVE is indicated when the SNR is bigger than 1. For smaller values for the SNR, we recommend using OLS or GLS instead.
 
 Dwelltime analysis
 ------------------
