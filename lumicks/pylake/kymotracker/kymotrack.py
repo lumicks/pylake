@@ -344,8 +344,11 @@ class KymoTrack:
 
         1. Covariance based estimator (CVE)
 
-        The CVE is unbiased and practically optimal when SNR > 1. Here SNR is defined as follows
-        :math:`\sqrt(D \Delta t) / \sigma`.
+        The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
+        This estimator was introduced in the work of Vestergaard et al [5]_. The correction for
+        missing data was introduced in [6]_. The CVE is unbiased and practically optimal when the
+        signal-to-noise ratio (SNR) is bigger than 1. In this context, the SNR is defined
+        as: :math:`\sqrt{D \Delta t} / \sigma`.
 
         2. MSD-based estimators (OLS, GLS)
 
@@ -384,7 +387,7 @@ class KymoTrack:
             Valid options are "cve", "ols" and "gls".
 
             - "cve" : Covariance based estimator [5]_. Optimal if SNR > 1. Can only be used when
-                      track is equidistantly sampled.
+              track is equidistantly sampled.
             - "ols" : Ordinary least squares [3]_. Determines optimal number of lags.
             - "gls" : Generalized least squares [4]_. Takes into account covariance matrix (slower).
         max_lag : int (optional)
@@ -399,11 +402,13 @@ class KymoTrack:
         .. [3] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
                single-particle tracking. Physical Review E, 85(6), 061916.
         .. [4] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
-               self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
-               Physics, 153(2), 024116.
+               self-diffusion coefficients from molecular dynamics simulations. The Journal of
+               Chemical Physics, 153(2), 024116.
         .. [5] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
                diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
                022726.
+        .. [6] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of
+               diffusing particles. Physical Review E, 94(2), 022401.
         """
         if method not in ("cve", "gls", "ols"):
             raise ValueError('Invalid method selected. Method must be "gls" or "ols"')
@@ -423,7 +428,7 @@ class KymoTrack:
 
         if method == "cve":
             return estimate_diffusion_cve(
-                frame_idx, positions, self._line_time_seconds, **unit_labels
+                frame_idx, positions, self._line_time_seconds, **unit_labels, blur_constant=0
             )
 
         max_lag = (
