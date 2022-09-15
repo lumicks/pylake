@@ -477,7 +477,7 @@ This method is slower, since it has to solve some implicit equations, but it doe
      DiffusionEstimate(value=4.432955288469379, std_err=1.565056974828146, num_lags=30, num_points=80, method='gls', unit='um^2 / s'),
      DiffusionEstimate(value=5.378609478528924, std_err=1.7771064499907185, num_lags=30, num_points=80, method='gls', unit='um^2 / s')]
 
-A third more performant and unbiased method for computing the free diffusion is the covariance-based estimator (CVE) :cite:`vestergaard2014optimal`.
+A third more performant and unbiased method for computing the free diffusion is the covariance-based estimator (CVE) :cite:`vestergaard2014optimal,vestergaard2016optimizing`.
 The CVE does not rely on computing mean squared displacements and avoids the complications that arise from their use.
 The performance of this estimator can be characterized by its signal to noise ratio (SNR).
 This SNR is defined by:

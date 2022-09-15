@@ -296,13 +296,13 @@ def test_singular_handling():
 
 @pytest.mark.parametrize(
     "diffusion,obs_noise,num_points,time_step, blur_constant,variance_loc,variance_variance_loc,"
-    "diffusion_ref,var_diffusion_ref,variance_loc_ref,num_points_ref",
+    "diffusion_ref,var_diffusion_ref,variance_loc_ref",
     # fmt:off
     [
-        (0.1, 0.01, 50, 0.1, 0, None, None, 0.09206101801689968, 0.0009716913812060779, -0.0008040516549331511, 50),
-        (0.1, 0.01, 50, 0.1, 1/6, None, None, 0.09206101801689968, 0.0009716913812060779, 0.0022646489456301716, 50),
-        (0.1, 0.01, 50, 0.1, 0, 0.0001, 0.0001, 0.08302050146756818, 0.010282397786674464, 0.0001, 50),
-        (0.1, 0.01, 50, 0.1, 1/6, 0.0001, 0.0001, 0.12453075220135225, 0.023209198638670672, 0.0001, 50),
+        (0.1, 0.01, 50, 0.1, 0, None, None, 0.09206101801689968, 0.0009716913812060779, -0.0008040516549331511),
+        (0.1, 0.01, 50, 0.1, 1/6, None, None, 0.09206101801689968, 0.0009716913812060779, 0.0022646489456301716),
+        (0.1, 0.01, 50, 0.1, 0, 0.0001, 0.0001, 0.08302050146756818, 0.010282397786674464, 0.0001),
+        (0.1, 0.01, 50, 0.1, 1/6, 0.0001, 0.0001, 0.12453075220135225, 0.023209198638670672, 0.0001),
     ],
     # fmt:on
 )
@@ -317,19 +317,85 @@ def test_cve(
     diffusion_ref,
     var_diffusion_ref,
     variance_loc_ref,
-    num_points_ref,
 ):
     with temp_seed(10):
-        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
-        diffusion_est, var_diffusion_est, variance_loc_est, num_points_est = _cve(
-            np.arange(num_points),
-            trace,
-            time_step,
-            blur_constant,
-            variance_loc,
-            variance_variance_loc,
+        frame = np.arange(num_points)
+        coord = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        diffusion_est, var_diffusion_est, variance_loc_est = _cve(
+            frame, coord, time_step, blur_constant, variance_loc, variance_variance_loc
         )
         np.testing.assert_allclose(diffusion_est, diffusion_ref)
         np.testing.assert_allclose(var_diffusion_est, var_diffusion_ref)
         np.testing.assert_allclose(variance_loc_est, variance_loc_ref)
-        np.testing.assert_allclose(num_points_est, num_points_ref)
+
+
+@pytest.mark.parametrize(
+    "diffusion,obs_noise,num_points,time_step, blur_constant,variance_loc,variance_variance_loc,"
+    "diffusion_ref,var_diffusion_ref,variance_loc_ref",
+    # fmt:off
+    [
+        (0.1, 0.01, 50, 0.1, 0, None, None, 0.10637910762942307, 0.0015596341426062676, -0.0005047779987189253),
+        (0.1, 0.01, 50, 0.1, 1/6, None, None, 0.10637910762942307, 0.0016112096114555851, 0.00363218729798086),
+        (0.1, 0.01, 50, 0.1, 0, 0.0001, 0.0001, 0.10119529621183229, 0.007831360527457441, 0.0001),
+        (0.1, 0.01, 50, 0.1, 1/6, 0.0001, 0.0001, 0.14167341469656522, 0.0154209878094207, 0.0001),
+    ],
+    # fmt:on
+)
+def test_cve_skipped_samples(
+    diffusion,
+    obs_noise,
+    num_points,
+    time_step,
+    blur_constant,
+    variance_loc,
+    variance_variance_loc,
+    diffusion_ref,
+    var_diffusion_ref,
+    variance_loc_ref,
+):
+    with temp_seed(10):
+        frame = np.arange(num_points)
+        coord = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        mask = np.full(len(frame), True, dtype=bool)
+        mask[np.array([10, 20, 40, 41, 42, 43, 44])] = False
+        diffusion_est, var_diffusion_est, variance_loc_est = _cve(
+            frame[mask], coord[mask], time_step, blur_constant, variance_loc, variance_variance_loc
+        )
+        np.testing.assert_allclose(diffusion_est, diffusion_ref)
+        np.testing.assert_allclose(var_diffusion_est, var_diffusion_ref)
+        np.testing.assert_allclose(variance_loc_est, variance_loc_ref)
+
+
+@pytest.mark.parametrize(
+    "diffusion,obs_noise,num_points,time_step,blur_constant,"
+    "diffusion_ref,var_diffusion_ref,num_points_ref",
+    # fmt:off
+    [
+        (2, 0.01, 50, 0.1, 0, 1.8984350363870435, 0.3972529037563432, 50),
+        (2, 0.01, 50, 0.1, 1/6, 1.8984350363870435, 0.3972529037563432, 50),
+    ]
+)
+def test_estimate_diffusion_cve(
+    diffusion,
+    obs_noise,
+    num_points,
+    time_step,
+    blur_constant,
+    diffusion_ref,
+    var_diffusion_ref,
+    num_points_ref,
+):
+    with temp_seed(10):
+        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        diffusion_est = estimate_diffusion_cve(
+            np.arange(num_points), trace, time_step, blur_constant, "mu^2/s", r"$\mu^2/s$"
+        )
+
+        np.testing.assert_allclose(float(diffusion_est), diffusion_ref)
+        np.testing.assert_allclose(diffusion_est.value, diffusion_ref)
+        assert diffusion_est.num_lags is None
+        np.testing.assert_allclose(diffusion_est.num_points, num_points_ref)
+        np.testing.assert_allclose(diffusion_est.std_err, np.sqrt(var_diffusion_ref))
+        assert diffusion_est.method == "cve"
+        assert diffusion_est.unit == "mu^2/s"
+        assert diffusion_est._unit_label == r"$\mu^2/s$"
