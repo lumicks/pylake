@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import json
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 
 from lumicks.pylake.tests.data.mock_widefield import make_alignment_image_data, MockTiffFile
 from lumicks.pylake.detail.widefield import TiffStack

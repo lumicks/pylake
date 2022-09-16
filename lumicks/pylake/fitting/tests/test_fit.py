@@ -2,11 +2,11 @@ from lumicks.pylake.fitting.models import odijk, inverted_odijk
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.fit import Fit, FdFit, Params, Datasets
 from lumicks.pylake.fitting.parameters import Parameter
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import OrderedDict
-from matplotlib.testing.decorators import cleanup
 
 
 def test_model_defaults():
@@ -548,7 +548,7 @@ def test_fd_variable_order():
     np.testing.assert_allclose(fit[m].data["test2"].y, [3, 4, 5])
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plotting():
     m = odijk("DNA")
     m2 = odijk("protein")
@@ -596,6 +596,7 @@ def test_plotting():
     with pytest.raises(KeyError):
         fit[m].plot(overrides={"DNA/c": 12})
 
+    plt.close('all')
     independent = np.arange(0.15, 2, 0.25)
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
     odijk("WLC").verify_jacobian(independent, params, plot=1)
@@ -664,7 +665,7 @@ def test_fit_reprs():
     )
 
 
-@cleanup
+@mpl_test_cleanup
 def test_custom_legend_labels():
     """Test whether users can provide a custom label for plotting"""
     def test_labels(labels):
