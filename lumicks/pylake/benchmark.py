@@ -103,7 +103,7 @@ class _Tracking(_Benchmark):
 
     def context(self):
         kymo = _generate_kymo_for_tracking(12, 11)
-        yield lambda: lk.track_greedy(kymo, "red", line_width=1, pixel_threshold=20)
+        yield lambda: lk.track_greedy(kymo, "red", track_width=1, pixel_threshold=20)
 
 
 class _Refinement(_Benchmark):
@@ -112,8 +112,8 @@ class _Refinement(_Benchmark):
 
     def context(self):
         kymo_tracking = _generate_kymo_for_tracking(1, 4)
-        lines = lk.track_greedy(kymo_tracking, "red", line_width=1, pixel_threshold=20)
-        yield lambda: lk.refine_lines_gaussian(
+        lines = lk.track_greedy(kymo_tracking, "red", track_width=1, pixel_threshold=20)
+        yield lambda: lk.refine_tracks_gaussian(
             lines, 10000, refine_missing_frames=True, overlap_strategy="multiple"
         )
 
