@@ -1,6 +1,6 @@
 from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 import numpy as np
 import pytest
 import matplotlib.pyplot as plt
@@ -48,7 +48,7 @@ def test_pdf(trace_simple):
     np.testing.assert_allclose(m.pdf(np.array([10, 11])), [[1.857758, 5e-26], [5e-21, 2.222931]], rtol=1e-5, atol=1e-13)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_gmm_plots(trace_simple):
     data, statepath, params = trace_simple
     m = GaussianMixtureModel(data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100)

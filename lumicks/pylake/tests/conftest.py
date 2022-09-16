@@ -2,7 +2,6 @@ import importlib
 import pytest
 import json
 import warnings
-import matplotlib.pyplot as plt
 from .data.mock_file import MockDataFile_v2
 from .data.mock_fdcurve import generate_fdcurve_with_baseline_offset
 
@@ -33,8 +32,6 @@ def pytest_collection_modifyitems(config, items):
 
 
 def pytest_configure(config):
-    # Use a headless backend for testing
-    plt.switch_backend("agg")
     config.addinivalue_line("markers", "slow: mark test as slow to run")
     config.addinivalue_line(
         "markers", "preflight: mark preflight tests which should only be run manually"

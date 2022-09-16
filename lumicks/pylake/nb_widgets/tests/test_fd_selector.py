@@ -4,7 +4,7 @@ from lumicks.pylake.nb_widgets.range_selector import (FdTimeRangeSelectorWidget,
                                                       BaseRangeSelectorWidget)
 from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import TimeSeries, Slice
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 import pytest
 import numpy as np
 
@@ -19,7 +19,7 @@ def make_mock_fd(force, distance, start=0, dt=600e9):
     return fd
 
 
-@cleanup
+@mpl_test_cleanup
 def test_selector_widget(mockevent):
     start_point = int(2500e9)
     dt = int(600e9)
@@ -98,7 +98,7 @@ def test_selector_widget(mockevent):
     assert selector.fdcurves == []
 
 
-@cleanup
+@mpl_test_cleanup
 def test_distance_selector_widget(mockevent):
     start_point = int(2500e9)
     dt = int(600e9)
@@ -177,7 +177,7 @@ def test_distance_selector_widget(mockevent):
 
 
 @pytest.mark.notebook
-@cleanup
+@mpl_test_cleanup
 def test_multi_selector_widget():
     fd_curve1 = make_mock_fd([0, 1, 2, 3], [0, 1, 2, 3], start=int(2500e9))
     fd_curve2 = make_mock_fd([2, 3, 4, 5], [2, 3, 4, 5], start=int(2500e9))
@@ -190,7 +190,7 @@ def test_multi_selector_widget():
 
 
 @pytest.mark.notebook
-@cleanup
+@mpl_test_cleanup
 def test_multi_distance_selector_widget():
     fd_curve1 = make_mock_fd(np.arange(10), np.arange(10), start=int(2500e9))
     fd_curve2 = make_mock_fd(np.arange(3, 13), np.arange(3, 13), start=int(2500e9))
@@ -202,7 +202,7 @@ def test_multi_distance_selector_widget():
         FdRangeSelector({"fd1": fd_curve1, "fd2": fd_curve2})        
 
 
-@cleanup
+@mpl_test_cleanup
 def test_selector_widgets_open():
     channel = Slice(TimeSeries([1, 2, 3, 4], [100, 200, 300, 400]))
     widget = channel.range_selector()

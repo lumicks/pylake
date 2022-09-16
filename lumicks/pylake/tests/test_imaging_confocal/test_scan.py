@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.adjustments import ColorAdjustment
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from ..data.mock_confocal import generate_scan
 
 
@@ -200,7 +200,7 @@ def test_damaged_scan(test_scans):
     np.testing.assert_allclose(scan.start, middle)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plotting(test_scans):
     scan = test_scans["fast Y slow X multiframe"]
     scan.plot(channel="blue")
@@ -234,7 +234,7 @@ def test_plotting(test_scans):
         scan.plot(channel="rgb", frame=-1)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_deprecated_plotting(test_scans):
     scan = test_scans["fast Y slow X multiframe"]
     with pytest.deprecated_call():
@@ -388,7 +388,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
         scan.frame_timestamp_ranges(False, include_dead_time=True)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
     """Tests whether we can set an absolute color range for an RGB plot."""
     scan = test_scans["fast Y slow X"]
@@ -403,7 +403,7 @@ def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
     plt.close(fig)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
     """Tests whether we can set an absolute color range for a single channel plot."""
     scan = test_scans["fast Y slow X"]
@@ -431,7 +431,7 @@ def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
         plt.close(fig)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plot_rgb_percentile_color_adjustment(test_scans):
     """Tests whether we can set a percentile color range for an RGB plot."""
     scan = test_scans["fast Y slow X multiframe"]
@@ -453,7 +453,7 @@ def test_plot_rgb_percentile_color_adjustment(test_scans):
     plt.close(fig)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plot_single_channel_percentile_color_adjustment(test_scans):
     """Tests whether we can set a percentile color range for separate channel plots."""
     scan = test_scans["fast Y slow X multiframe"]

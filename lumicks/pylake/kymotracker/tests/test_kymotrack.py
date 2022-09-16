@@ -1,6 +1,6 @@
 import pytest
 import matplotlib.pyplot as plt
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from lumicks.pylake.kymotracker.kymotrack import *
 from lumicks.pylake.kymotracker.detail.localization_models import *
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -301,7 +301,7 @@ def test_lag_default(blank_kymo):
         (3, [2, 4, 6], (3 * np.arange(1, 4)) ** 2),
     ],
 )
-@cleanup
+@mpl_test_cleanup
 def test_kymotrack_msd_plot(max_lag, x_data, y_data):
     # See whether the plot spins up
     kymo = generate_kymo(

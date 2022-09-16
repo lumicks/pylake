@@ -3,10 +3,10 @@ from lumicks.pylake.channel import Slice, Continuous
 import pytest
 import numpy as np
 import matplotlib as mpl
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plot_correlated():
     start = 1592916040906356300
     dt = int(1e9)

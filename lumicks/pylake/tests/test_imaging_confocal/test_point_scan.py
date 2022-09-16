@@ -2,7 +2,7 @@ import pytest
 import matplotlib.pyplot as plt
 import numpy as np
 from lumicks import pylake
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 
 
 def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
@@ -15,7 +15,7 @@ def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
     np.testing.assert_allclose(ps_red.data, reference_counts)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plotting(test_point_scans):
     ps = test_point_scans["PointScan1"]
 
@@ -38,7 +38,7 @@ def test_plotting(test_point_scans):
     plt.close()
 
 
-@cleanup
+@mpl_test_cleanup
 def test_deprecated_plotting(test_point_scans):
     ps = test_point_scans["PointScan1"]
     with pytest.deprecated_call():

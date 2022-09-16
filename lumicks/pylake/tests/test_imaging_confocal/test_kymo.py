@@ -6,7 +6,7 @@ from lumicks.pylake.channel import Slice, TimeSeries, empty_slice
 from lumicks.pylake.kymo import EmptyKymo
 from lumicks.pylake.adjustments import ColorAdjustment
 import matplotlib.pyplot as plt
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from ..data.mock_confocal import generate_kymo
 
 
@@ -140,7 +140,7 @@ def test_damaged_kymo(test_kymos):
     np.testing.assert_allclose(kymo.get_image("red").data, kymo_reference[:, 1:])
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plotting(test_kymos):
     kymo = test_kymos["Kymo1"]
 
@@ -166,7 +166,7 @@ def test_plotting(test_kymos):
     plt.close()
 
 
-@cleanup
+@mpl_test_cleanup
 def test_deprecated_plotting(test_kymos):
     kymo = test_kymos["Kymo1"]
     with pytest.deprecated_call():
@@ -256,7 +256,7 @@ def test_plotting_with_force_downsampling(kymo_h5_file):
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plotting_with_force(kymo_h5_file):
     f = pylake.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["Kymo1"]
@@ -272,7 +272,7 @@ def test_plotting_with_force(kymo_h5_file):
     np.testing.assert_allclose(np.sort(plt.ylim()), [10, 30])
 
 
-@cleanup
+@mpl_test_cleanup
 def test_downsample_channel_downsampled_kymo(kymo_h5_file):
     f = pylake.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["Kymo1"]
@@ -301,7 +301,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
         kymo.downsampled_by(time_factor=2).plot_with_force("1x", "red")
 
 
-@cleanup
+@mpl_test_cleanup
 def test_regression_plot_with_force(kymo_h5_file):
     # Plot_with_force used to fail when the last line of a kymograph was incomplete. The reason for
     # this was that the last few timestamps on the last line had zero as their timestamp. This meant
@@ -325,7 +325,7 @@ def test_regression_plot_with_force(kymo_h5_file):
     np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plotting_with_histograms(test_kymos):
     def get_rectangle_data():
         widths = [p.get_width() for p in plt.gca().patches]
@@ -340,6 +340,7 @@ def test_plotting_with_histograms(test_kymos):
     assert np.all(np.equal(w, [3, 1, 1, 1, 3]))
     np.testing.assert_allclose(np.sort(plt.xlim()), [0, 3], atol=0.05)
 
+    plt.close('all')
     kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=1)
     w, h = get_rectangle_data()
     np.testing.assert_allclose(w, 1.03, atol=0.002)
@@ -347,6 +348,7 @@ def test_plotting_with_histograms(test_kymos):
     np.testing.assert_allclose(np.sort(plt.ylim()), [0, 4], atol=0.05)
 
     with pytest.warns(UserWarning):
+        plt.close('all')
         kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=3)
         w, h = get_rectangle_data()
         np.testing.assert_allclose(h, [0.03, 0.02])
@@ -354,6 +356,7 @@ def test_plotting_with_histograms(test_kymos):
         np.testing.assert_allclose(np.sort(plt.xlim()), [0, 5], atol=0.05)
 
     with pytest.warns(UserWarning):
+        plt.close('all')
         kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=3)
         w, h = get_rectangle_data()
         np.testing.assert_allclose(w, [3.09, 1.03], atol=0.02)
@@ -361,9 +364,11 @@ def test_plotting_with_histograms(test_kymos):
         np.testing.assert_allclose(np.sort(plt.ylim()), [0, 6], atol=0.05)
 
     with pytest.raises(ValueError):
+        plt.close('all')
         kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=6)
 
     with pytest.raises(ValueError):
+        plt.close('all')
         kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=6)
 
 
@@ -1002,7 +1007,7 @@ def test_partial_pixel_kymo():
     np.testing.assert_equal(kymo.get_image("red")[-2, -1], 0)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_plot_with_lf_force():
     dt = int(1e9 / 78125)
     start = 1536582124217030400
@@ -1035,7 +1040,7 @@ def test_plot_with_lf_force():
         kymo.plot_with_force("1x", "red")
 
 
-@cleanup
+@mpl_test_cleanup
 def test_kymo_plot_rgb_absolute_color_adjustment(test_kymos):
     """Tests whether we can set an absolute color range for the RGB plot."""
     kymo = test_kymos["Kymo1"]
@@ -1048,7 +1053,7 @@ def test_kymo_plot_rgb_absolute_color_adjustment(test_kymos):
     plt.close(fig)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_kymo_plot_rgb_percentile_color_adjustment(test_kymos):
     """Tests whether we can set a percentile color range for the RGB plot."""
     kymo = test_kymos["Kymo1"]
@@ -1068,7 +1073,7 @@ def test_kymo_plot_rgb_percentile_color_adjustment(test_kymos):
     plt.close(fig)
 
 
-@cleanup
+@mpl_test_cleanup
 def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
     """Tests whether we can set an absolute color range for a single channel plot."""
     kymo = test_kymos["Kymo1"]

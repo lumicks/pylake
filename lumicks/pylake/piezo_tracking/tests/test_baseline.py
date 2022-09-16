@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from copy import deepcopy
-from matplotlib.testing.decorators import cleanup
+from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
 
 
@@ -26,7 +26,7 @@ def test_baseline_downsampled(poly_baseline_data):
     np.testing.assert_allclose(baseline._force, force.downsampled_by(500))
 
 
-@cleanup
+@mpl_test_cleanup
 def test_baseline_plots(poly_baseline_data):
     trap, force = poly_baseline_data
 
