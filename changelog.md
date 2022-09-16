@@ -2,9 +2,13 @@
 
 ## v0.13.2 | tbd
 
-### New features
+#### New features
 
-* Fixed and reintroduced lazy loading for `TimeSeries` data. 
+* Fixed and reintroduced lazy loading for `TimeSeries` data.
+
+#### Other changes
+
+* All `KymoTrack` intances must have the same source `Kymo` and color channel in order to be in the same `KymoTrackGroup` instance. While this behavior was required previously for some downstream analyses on the tracks, it is now explicitly enforced upon `KymoTrackGroup` construction.
 
 #### Deprecations
 

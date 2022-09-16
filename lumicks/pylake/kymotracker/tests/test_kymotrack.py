@@ -2,7 +2,9 @@ import pytest
 import matplotlib.pyplot as plt
 from lumicks.pylake.kymotracker.kymotrack import *
 from lumicks.pylake.kymotracker.detail.localization_models import *
-from lumicks.pylake.tests.data.mock_confocal import generate_kymo
+from lumicks.pylake import filter_tracks
+from lumicks.pylake.kymo import _kymo_from_array
+from ...tests.data.mock_confocal import generate_kymo
 
 
 def test_kymo_track(blank_kymo):
@@ -216,9 +218,7 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
     )
     k = KymoTrack(time_idx, coordinate / pixel_size, kymo, "red")
 
-    np.testing.assert_allclose(
-        k.estimate_diffusion("ols", max_lag=max_lag).value, diffusion_const
-    )
+    np.testing.assert_allclose(k.estimate_diffusion("ols", max_lag=max_lag).value, diffusion_const)
 
 
 @pytest.mark.parametrize("calibration_coeff", [0.5, 2.0])
@@ -229,7 +229,9 @@ def test_diffusion_units(blank_kymo, calibration_coeff):
             np.array([-1.0, 1.0, -1.0, -3.0, -5.0]),
             kymo,
             "red",
-        ) for kymo in (blank_kymo, blank_kymo.calibrate_to_kbp(calibration_coeff))]
+        )
+        for kymo in (blank_kymo, blank_kymo.calibrate_to_kbp(calibration_coeff))
+    ]
 
     ref_constant = 3.33333333333
     diffusion_estimate = kymotrack_kbp.estimate_diffusion("ols", max_lag=2)
@@ -356,6 +358,70 @@ def test_binding_histograms():
     counts, edges = tracks._histogram_binding_events("all", bins=[2, 3, 4, 5, 6, 7, 8])
     np.testing.assert_equal(counts, [1, 2, 3, 3, 2, 1])
     np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
+
+
+def test_kymotrackgroup_source_kymo():
+    # test that all tracks are from the same source Kymo and tracked
+    # on the same color channel
+
+    image = np.random.randint(0, 20, size=(10, 10, 3))
+    kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
+    kymos = [_kymo_from_array(image, "rgb", **kwargs) for _ in range(2)]
+
+    time_idx = ([1, 2, 3], [4, 6, 7], [1, 2, 3], [4, 6, 7])
+
+    pos_idx = ([4, 5, 6], [1, 7, 7], [1, 2, 3], [1, 2, 3])
+
+    green_tracks_a = [KymoTrack(t, p, kymos[0], "green") for t, p in zip(time_idx, pos_idx)]
+    green_tracks_b = [KymoTrack(t, p, kymos[1], "green") for t, p in zip(time_idx, pos_idx)]
+
+    red_tracks_a = [KymoTrack(t, p, kymos[0], "red") for t, p in zip(time_idx, pos_idx)]
+    red_tracks_b = [KymoTrack(t, p, kymos[1], "red") for t, p in zip(time_idx, pos_idx)]
+
+    # test proper group construction
+    tracks_a = KymoTrackGroup(green_tracks_a[:2])
+    assert len(tracks_a) == 2
+
+    tracks_b = KymoTrackGroup(green_tracks_b[:2])
+    assert len(tracks_b) == 2
+
+    # test empty result
+    tracks_empty = KymoTrackGroup([])
+    assert len(tracks_empty) == 0
+
+    tracks_empty = filter_tracks(tracks_a, 5)
+    assert len(tracks_empty) == 0
+
+    # cannot make group from different source kymos
+    with pytest.raises(AssertionError, match="All tracks must have the same source kymograph."):
+        KymoTrackGroup([*green_tracks_a, *green_tracks_b])
+
+    # test extend with single track
+    tracks_a.extend(green_tracks_a[2])
+    assert len(tracks_a) == 3
+
+    # test extend with KymoTrackGroup
+    tracks_a.extend(KymoTrackGroup(green_tracks_a[-1:]))
+    assert len(tracks_a) == 4
+
+    # cannot extend with different source kymos
+    with pytest.raises(AssertionError, match="All tracks must have the same source kymograph."):
+        tracks_a.extend(tracks_b)
+
+    # test extend from empty group
+    tracks_empty = KymoTrackGroup([])
+    tracks_empty.extend(tracks_a)
+    assert len(tracks_empty) == 4
+
+    # cannot make group from different color channels
+    with pytest.raises(AssertionError, match="All tracks must be from the same color channel."):
+        KymoTrackGroup([*green_tracks_a, *red_tracks_a])
+
+    # cannot extend with different color channels
+    with pytest.raises(AssertionError, match="All tracks must be from the same color channel."):
+        tracks_a.extend(red_tracks_a[0])
+    with pytest.raises(AssertionError, match="All tracks must be from the same color channel."):
+        tracks_a.extend(KymoTrackGroup(red_tracks_a))
 
 
 def test_kymotrackgroup_copy(blank_kymo):
