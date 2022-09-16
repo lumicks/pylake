@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from lumicks.pylake.channel import Continuous, TimeSeries, Slice
-from lumicks.pylake.fitting.models import inverted_odijk
+from lumicks.pylake.fitting.models import ewlc_odijk_force
 from lumicks.pylake.calibration import ForceCalibration
 
 
@@ -65,7 +65,7 @@ def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
     tether_length_um = np.hstack(
         (np.arange(0.65, 0.7, 0.08 / sample_rate), np.arange(0.7, 0.785, 0.02 / sample_rate))
     )
-    wlc_force = inverted_odijk("tether")(
+    wlc_force = ewlc_odijk_force("tether")(
         tether_length_um, {"tether/Lp": 60, "tether/Lc": 0.75, "tether/St": 1400, "kT": 4.11}
     )
 

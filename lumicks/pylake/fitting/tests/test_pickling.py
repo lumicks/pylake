@@ -1,4 +1,4 @@
-from lumicks.pylake.fitting.models import inverted_odijk
+from lumicks.pylake.fitting.models import ewlc_odijk_force
 from lumicks.pylake.fitting.fit import FdFit
 import numpy as np
 import pickle
@@ -7,7 +7,7 @@ import pickle
 def test_pickle(tmpdir_factory):
     tmpdir = tmpdir_factory.mktemp("pylake")
 
-    model = inverted_odijk("DNA")
+    model = ewlc_odijk_force("DNA")
     fit = FdFit(model)
     x = np.arange(1, 20, 5)
     y = model(np.arange(1, 20, 5), params={"DNA/Lp": 50, "DNA/Lc": 24, "DNA/St": 1000, "kT": 4.12})

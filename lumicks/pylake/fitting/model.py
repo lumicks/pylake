@@ -77,7 +77,7 @@ class Model:
 
             from lumicks import pylake
 
-            dna_model = pylake.inverted_odijk("DNA")
+            dna_model = pylake.ewlc_odijk_force("DNA")
             fit = pylake.FdFit(dna_model)
             fit.add_data("my data", force, distance)
 
@@ -167,8 +167,8 @@ class Model:
         Examples
         --------
         ::
-            DNA_model = pylake.inverted_odijk("DNA")
-            protein_model = pylake.inverted_odijk("protein")
+            DNA_model = pylake.ewlc_odijk_force("DNA")
+            protein_model = pylake.ewlc_odijk_force("protein")
             construct_model = DNA_model + protein_model
         """
 
@@ -441,7 +441,7 @@ class Model:
         --------
         ::
 
-            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            dna_model = pylake.ewlc_odijk_force("DNA")  # Use an inverted Odijk eWLC model.
             fit = pylake.FdFit(dna_model)
             fit.add_data("data1", force1, distance1)
             fit.add_data("data2", force2, distance2, {"DNA/Lc": "DNA/Lc_RecA"})

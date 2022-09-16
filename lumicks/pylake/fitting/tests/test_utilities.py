@@ -6,8 +6,8 @@ from lumicks.pylake.fitting.detail.utilities import (
     latex_sqrt,
 )
 from lumicks.pylake.fitting.detail.model_implementation import (
-    solve_cubic_wlc,
-    invwlc_root_derivatives,
+    calc_cubic_root,
+    calc_cubic_root_derivatives,
 )
 import numpy as np
 import pytest
@@ -59,26 +59,26 @@ def test_analytic_roots():
         np.sort(
             np.array(
                 [
-                    solve_cubic_wlc(a, b, c, 0)[0],
-                    solve_cubic_wlc(a, b, c, 1)[0],
-                    solve_cubic_wlc(a, b, c, 2)[0],
+                    calc_cubic_root(a, b, c, 0)[0],
+                    calc_cubic_root(a, b, c, 1)[0],
+                    calc_cubic_root(a, b, c, 2)[0],
                 ]
             )
         ),
     )
 
     with pytest.raises(RuntimeError):
-        solve_cubic_wlc(a, b, c, 3)
+        calc_cubic_root(a, b, c, 3)
 
     def test_root_derivatives(root):
         dx = 1e-5
-        ref_root = solve_cubic_wlc(a, b, c, root)
-        da = (solve_cubic_wlc(a + dx, b, c, root) - ref_root) / dx
-        db = (solve_cubic_wlc(a, b + dx, c, root) - ref_root) / dx
-        dc = (solve_cubic_wlc(a, b, c + dx, root) - ref_root) / dx
+        ref_root = calc_cubic_root(a, b, c, root)
+        da = (calc_cubic_root(a + dx, b, c, root) - ref_root) / dx
+        db = (calc_cubic_root(a, b + dx, c, root) - ref_root) / dx
+        dc = (calc_cubic_root(a, b, c + dx, root) - ref_root) / dx
 
         np.testing.assert_allclose(
-            np.array(invwlc_root_derivatives(a, b, c, root)),
+            np.array(calc_cubic_root_derivatives(a, b, c, root)),
             np.array([da, db, dc]),
             atol=1e-5,
             rtol=1e-5,

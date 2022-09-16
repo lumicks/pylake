@@ -1,4 +1,4 @@
-from lumicks.pylake.fitting.parameters import Params
+from lumicks.pylake.fitting.parameters import Params, Parameter
 from lumicks.pylake.fitting.models import *
 import pytest
 import numpy as np
