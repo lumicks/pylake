@@ -97,6 +97,10 @@ class Kymo(ConfocalImage):
         kymo_copy._calibration = self._calibration
         return kymo_copy
 
+    @property
+    def _id(self):
+        return id(self)
+
     def _check_is_sliceable(self):
         if self._file is None:
             raise NotImplementedError(

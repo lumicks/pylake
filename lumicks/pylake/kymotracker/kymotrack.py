@@ -429,6 +429,17 @@ class KymoTrackGroup:
 
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
+        if self._src:
+            self._validate_single_source(kymo_tracks)
+
+    def _validate_single_source(self, kymo_tracks):
+        kymos = set([track._kymo._id for track in kymo_tracks])
+        channels = set([track._channel for track in kymo_tracks])
+
+        assert len(kymos) == 1, "All tracks must have the same source kymograph."
+        assert len(channels) == 1, "All tracks must be from the same color channel."
+
+        return next(iter(kymos)), next(iter(channels))
 
     def __iter__(self):
         return self._src.__iter__()
@@ -441,6 +452,9 @@ class KymoTrackGroup:
 
     def __setitem__(self, item, value):
         raise NotImplementedError("Cannot overwrite KymoTracks.")
+
+    def __bool__(self):
+        return bool(self._src)
 
     def __copy__(self):
         return KymoTrackGroup(copy(self._src))
@@ -487,10 +501,17 @@ class KymoTrackGroup:
         return len(self._src)
 
     def extend(self, other):
+        other = [other] if isinstance(other, KymoTrack) else other
+
+        other_kymo, other_channel = self._validate_single_source(other)
+        if self:
+            assert self[0]._kymo._id == other_kymo, "All tracks must have the same source kymograph."
+            assert self._channel == other_channel, "All tracks must be from the same color channel."
+
         if isinstance(other, self.__class__):
             self._src.extend(other._src)
-        elif isinstance(other, KymoTrack):
-            self._src.extend([other])
+        elif isinstance(other, list):
+            self._src.extend(other)
         else:
             raise TypeError(
                 f"You can only extend a {self.__class__} with a {self.__class__} or " f"{KymoTrack}"
@@ -524,7 +545,7 @@ class KymoTrackGroup:
         self._src = [track for track in self._src if not track.in_rect(rect)]
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(N={len(self._src)})"
+        return f"{self.__class__.__name__}(N={len(self)})"
 
     def save(self, filename, delimiter=";", sampling_width=None):
         """Export kymograph tracks to a csv file.
