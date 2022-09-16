@@ -6,6 +6,10 @@
 
 * Fixed and reintroduced lazy loading for `TimeSeries` data. 
 
+### Other changes
+
+* Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.
+
 ## v0.13.1 | 2022-09-08
 
 #### Bug fixes
