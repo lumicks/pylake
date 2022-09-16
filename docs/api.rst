@@ -62,16 +62,16 @@ FD Fitting
 
     force_offset
     distance_offset
-    marko_siggia_ewlc_force
-    marko_siggia_ewlc_distance
-    marko_siggia_simplified
-    inverted_marko_siggia_simplified
-    odijk
-    inverted_odijk
-    freely_jointed_chain
-    inverted_freely_jointed_chain
-    twistable_wlc
-    inverted_twistable_wlc
+    wlc_marko_siggia_force
+    wlc_marko_siggia_distance
+    ewlc_marko_siggia_force
+    ewlc_marko_siggia_distance
+    ewlc_odijk_force
+    ewlc_odijk_distance
+    twlc_force
+    twlc_distance
+    efjc_force
+    efjc_distance
 
 
 Kymotracking

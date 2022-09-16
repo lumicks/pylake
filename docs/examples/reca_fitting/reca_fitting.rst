@@ -47,7 +47,7 @@ Set up the model
 
 For this we want to use an inverted worm-like chain model. We also include an estimated distance and force offset::
 
-    model = lk.inverted_odijk("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    model = lk.ewlc_odijk_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
 
 We would like to fit this model to some data. So let's make a `FdFit`::
 
@@ -175,7 +175,7 @@ Try another model
 There are more models in pylake. We can also try the Marko Siggia model for instance and see if it fits this data any
 differently::
 
-    ms_model = lk.marko_siggia_ewlc_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    ms_model = lk.ewlc_marko_siggia_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     ms_fit = lk.FdFit(ms_model)
     ms_fit.add_data("Control", force_control, distance_control)
     ms_fit.add_data("RecA", force_reca, distance_reca,

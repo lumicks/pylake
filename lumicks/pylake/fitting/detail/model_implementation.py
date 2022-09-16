@@ -49,18 +49,18 @@ def offset_model_derivative(x, offset):
     return np.zeros(len(x))
 
 
-def marko_siggia_simplified_equation(d, Lp, Lc, kT):
+def wlc_marko_siggia_force_equation(d, Lp, Lc, kT):
     return f"({kT}/{Lp}) * ((1/4) * (1-({d}/{Lc}))**(-2) + ({d}/{Lc}) - (1/4))"
 
 
-def marko_siggia_simplified_equation_tex(d, Lp, Lc, kT):
+def wlc_marko_siggia_force_equation_tex(d, Lp, Lc, kT):
     return (
         f"\\frac{{{kT}}}{{{Lp}}} \\left(\\frac{{1}}{{4}} \\left(1-\\frac{{{d}}}{{{Lc}}}\\right)^{{-2}} + "
         f"\\frac{{{d}}}{{{Lc}}} - \\frac{{1}}{{4}}\\right)"
     )
 
 
-def marko_siggia_simplified(d, Lp, Lc, kT):
+def wlc_marko_siggia_force(d, Lp, Lc, kT):
     """Marko Siggia's Worm-like Chain model based on only entropic contributions. Valid for
     F < 10 pN) [1]_.
 
@@ -81,7 +81,7 @@ def marko_siggia_simplified(d, Lp, Lc, kT):
     return (kT / Lp) * (0.25 * (1.0 - d_div_Lc) ** (-2) + d_div_Lc - 0.25)
 
 
-def marko_siggia_simplified_jac(d, Lp, Lc, kT):
+def wlc_marko_siggia_force_jac(d, Lp, Lc, kT):
     return np.vstack(
         (
             -0.25 * Lc**2 * kT / (Lp**2 * (Lc - d) ** 2)
@@ -93,19 +93,19 @@ def marko_siggia_simplified_jac(d, Lp, Lc, kT):
     )
 
 
-def marko_siggia_simplified_derivative(d, Lp, Lc, kT):
+def wlc_marko_siggia_force_derivative(d, Lp, Lc, kT):
     return 0.5 * Lc**2 * kT / (Lp * (Lc - d) ** 3) + kT / (Lc * Lp)
 
 
-def WLC_equation(f, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_distance_equation(f, Lp, Lc, St, kT=4.11):
     return f"{Lc} * (1 - (1/2)*sqrt({kT}/({f}*{Lp})) + {f}/{St})"
 
 
-def WLC_equation_tex(f, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
     return f"{Lc} \\left(1 - \\frac{1}{2}\\sqrt{{\\frac{{{kT}}}{{{f} {Lp}}}}} + \\frac{{{f}}}{{{St}}}\\right)"
 
 
-def WLC(f, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_distance(f, Lp, Lc, St, kT=4.11):
     """Odijk's Extensible Worm-like Chain model [1]_ [2]_.
 
     Parameters
@@ -134,7 +134,7 @@ def WLC(f, Lp, Lc, St, kT=4.11):
     return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (f * Lp)) + f / St)
 
 
-def WLC_jac(f, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_distance_jac(f, Lp, Lc, St, kT=4.11):
     sqrt_term = np.sqrt(kT / (f * Lp))
     return np.vstack(
         (
@@ -146,7 +146,7 @@ def WLC_jac(f, Lp, Lc, St, kT=4.11):
     )
 
 
-def tWLC_equation(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def twlc_distance_equation(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     g = f"({g0} + clip({g1}, {Fc}, inf))"
 
     return (
@@ -154,7 +154,7 @@ def tWLC_equation(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     )
 
 
-def tWLC_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def twlc_distance_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     g = f"\\left({g0} + \\max({g1}, {Fc})\\right)"
     sqrt_term = latex_sqrt(latex_frac(kT, f"{f} {Lp}"))
     stiff_term = latex_frac(C, f"-{g}^2 + {St} {C}")
@@ -162,7 +162,7 @@ def tWLC_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     return f"{Lc} \\left(1 - \\frac{{1}}{{2}} {sqrt_term} + {stiff_term}{f}\\right)"
 
 
-def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def twlc_distance(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """Twistable Worm-like Chain model [1]_.
 
     Parameters
@@ -202,7 +202,7 @@ def tWLC(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     return Lc * (1.0 - 1.0 / 2.0 * np.sqrt(kT / (f * Lp)) + (C / (-g * g + St * C)) * f)
 
 
-def tWLC_jac(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def twlc_distance_jac(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     x0 = 1.0 / Lp
     x1 = np.sqrt(kT * x0 / f)
     x2 = 0.25 * Lc * x1
@@ -248,11 +248,11 @@ def coth(x):
     return sol
 
 
-def FJC_equation(f, Lp, Lc, St, kT=4.11):
+def efjc_distance_equation(f, Lp, Lc, St, kT=4.11):
     return f"{Lc} * (coth(2.0 * {f} * {Lp} / {kT}) - {kT} / (2 * {f} * {Lp})) * (1 + {f}/{St})"
 
 
-def FJC_equation_tex(f, Lp, Lc, St, kT=4.11):
+def efjc_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
     frac1 = latex_frac(f"{f} {Lp}", kT)
     frac2 = latex_frac(kT, f"2 {f} {Lp}")
     frac3 = latex_frac(f, St)
@@ -260,8 +260,8 @@ def FJC_equation_tex(f, Lp, Lc, St, kT=4.11):
     return f"{Lc} \\left(coth\\left(2 {frac1}\\right) - {frac2}\\right) \\left(1 + {frac3}\\right)"
 
 
-def FJC(f, Lp, Lc, St, kT=4.11):
-    """Freely-Jointed Chain [1]_ [2]_.
+def efjc_distance(f, Lp, Lc, St, kT=4.11):
+    """Extensible Freely-Jointed Chain [1]_ [2]_.
 
     Parameters
     ----------
@@ -291,7 +291,7 @@ def FJC(f, Lp, Lc, St, kT=4.11):
     return Lc * (coth(2.0 * f * Lp / kT) - kT / (2.0 * f * Lp)) * (1.0 + f / St)
 
 
-def FJC_jac(f, Lp, Lc, St, kT=4.11):
+def efjc_distance_jac(f, Lp, Lc, St, kT=4.11):
     x0 = 0.5 / f
     x1 = 2.0 * f / kT
     x2 = Lp * x1
@@ -311,7 +311,7 @@ def FJC_jac(f, Lp, Lc, St, kT=4.11):
     )
 
 
-def solve_cubic_wlc(a, b, c, selected_root):
+def calc_cubic_root(a, b, c, selected_root):
     # Convert the equation to a depressed cubic for p and q, which'll allow us to greatly simplify the equations
     p = b - a * a / 3.0
     q = 2 * a * a * a / 27.0 - a * b / 3.0 + c
@@ -357,15 +357,15 @@ def solve_cubic_wlc(a, b, c, selected_root):
     return sol - a / 3.0
 
 
-def invWLC_equation(d, Lp, Lc, St, kT=4.11):
-    return solve_formatter(WLC_equation("f", Lp, Lc, St, kT), "f", d)
+def ewlc_odijk_force_equation(d, Lp, Lc, St, kT=4.11):
+    return solve_formatter(ewlc_odijk_distance_equation("f", Lp, Lc, St, kT), "f", d)
 
 
-def invWLC_equation_tex(d, Lp, Lc, St, kT=4.11):
-    return solve_formatter_tex(WLC_equation_tex("f", Lp, Lc, St, kT), "f", d)
+def ewlc_odijk_force_equation_tex(d, Lp, Lc, St, kT=4.11):
+    return solve_formatter_tex(ewlc_odijk_distance_equation_tex("f", Lp, Lc, St, kT), "f", d)
 
 
-def invWLC(d, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_force(d, Lp, Lc, St, kT=4.11):
     """Inverted Odijk's Worm-like Chain model [1]_ [2]_.
 
     Parameters
@@ -420,10 +420,10 @@ def invWLC(d, Lp, Lc, St, kT=4.11):
     b = (alpha * alpha) * (St * St)
     c = -0.25 * gamma * (St * St)
 
-    return solve_cubic_wlc(a, b, c, 2)
+    return calc_cubic_root(a, b, c, 2)
 
 
-def calc_root1_invwlc(det, p, q, dp_da, dq_da, dq_db):
+def calc_first_root(det, p, q, dp_da, dq_da, dq_db):
     # Calculate the first root for det < 0
     # Note that dp/dc = 0, dp_db = 1, dq_dc = 1
 
@@ -464,7 +464,7 @@ def calc_root1_invwlc(det, p, q, dp_da, dq_da, dq_db):
     return total_dy_da, total_dy_db, total_dy_dc
 
 
-def calc_triple_root_invwlc(p, q, dp_da, dq_da, dq_db, root):
+def calc_triple_root(p, q, dp_da, dq_da, dq_db, root):
     # If we define:
     #   sqmp = sqrt(-p)
     #   F = 3 * sqrt(3) * q / (2 * sqmp**3 )
@@ -505,7 +505,7 @@ def calc_triple_root_invwlc(p, q, dp_da, dq_da, dq_db, root):
     return total_dy_da, total_dy_db, total_dy_dc
 
 
-def invwlc_root_derivatives(a, b, c, selected_root):
+def calc_cubic_root_derivatives(a, b, c, selected_root):
     """Calculate the root derivatives of a cubic polynomial with respect to the polynomial coefficients.
 
     For a polynomial of the form:
@@ -536,19 +536,19 @@ def invwlc_root_derivatives(a, b, c, selected_root):
     total_dy_dc = np.zeros(det.shape)
 
     mask = det > 0
-    total_dy_da[mask], total_dy_db[mask], total_dy_dc[mask] = calc_root1_invwlc(
+    total_dy_da[mask], total_dy_db[mask], total_dy_dc[mask] = calc_first_root(
         det[mask], p[mask], q[mask], dp_da[mask], dq_da[mask], dq_db[mask]
     )
 
     nmask = np.logical_not(mask)
-    total_dy_da[nmask], total_dy_db[nmask], total_dy_dc[nmask] = calc_triple_root_invwlc(
+    (total_dy_da[nmask], total_dy_db[nmask], total_dy_dc[nmask]) = calc_triple_root(
         p[nmask], q[nmask], dp_da[nmask], dq_da[nmask], dq_db[nmask], selected_root
     )
 
     return total_dy_da, total_dy_db, total_dy_dc
 
 
-def invWLC_jac(d, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_force_jac(d, Lp, Lc, St, kT=4.11):
     alpha = (d / Lc) - 1.0
     gamma = kT / Lp
 
@@ -557,7 +557,7 @@ def invWLC_jac(d, Lp, Lc, St, kT=4.11):
     b = (alpha * alpha) * St_squared
     c = -0.25 * gamma * St_squared
 
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     da_dLc = 2.0 * St * d / Lc**2
@@ -577,7 +577,7 @@ def invWLC_jac(d, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def invWLC_derivative(d, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_force_derivative(d, Lp, Lc, St, kT=4.11):
     alpha = (d / Lc) - 1.0
     gamma = kT / Lp
 
@@ -586,7 +586,7 @@ def invWLC_derivative(d, Lp, Lc, St, kT=4.11):
     b = (alpha * alpha) * St_squared
     c = -0.25 * gamma * St_squared
 
-    total_dy_da, total_dy_db, _ = invwlc_root_derivatives(a, b, c, 2)
+    total_dy_da, total_dy_db, _ = calc_cubic_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     da_dd = -2.0 * St / Lc
@@ -595,12 +595,12 @@ def invWLC_derivative(d, Lp, Lc, St, kT=4.11):
     return total_dy_da * da_dd + total_dy_db * db_dd
 
 
-def WLC_derivative(f, Lp, Lc, St, kT=4.11):
+def ewlc_odijk_distance_derivative(f, Lp, Lc, St, kT=4.11):
     x0 = 1.0 / f
     return Lc * (0.25 * x0 * np.sqrt(kT * x0 / Lp) + 1.0 / St)
 
 
-def tWLC_derivative(f, Lp, Lc, St, C, g0, g1, Fc, kT):
+def twlc_distance_derivative(f, Lp, Lc, St, C, g0, g1, Fc, kT):
     """Derivative of the tWLC model w.r.t. the independent variable"""
     x0 = 1.0 / f
     x1 = f > Fc
@@ -616,7 +616,7 @@ def tWLC_derivative(f, Lp, Lc, St, C, g0, g1, Fc, kT):
     )
 
 
-def FJC_derivative(f, Lp, Lc, St, kT=4.11):
+def efjc_distance_derivative(f, Lp, Lc, St, kT=4.11):
     """Derivative of the FJC model w.r.t. the independent variable"""
     x0 = 1.0 / St
     x1 = 2.0 * Lp / kT
@@ -630,15 +630,19 @@ def FJC_derivative(f, Lp, Lc, St, kT=4.11):
     return Lc * x0 * (coth(x2) - x3 / f) + Lc * (f * x0 + 1.0) * (-x1 * sinh_term + x3 / f**2)
 
 
-def invtWLC_equation(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    return solve_formatter(tWLC_equation_tex("f", Lp, Lc, St, C, g0, g1, Fc, kT=4.11), "f", d)
+def twlc_solve_force_equation(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return solve_formatter(
+        twlc_distance_equation_tex("f", Lp, Lc, St, C, g0, g1, Fc, kT=4.11), "f", d
+    )
 
 
-def invtWLC_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
-    return solve_formatter_tex(tWLC_equation_tex("f", Lp, Lc, St, C, g0, g1, Fc, kT=4.11), "f", d)
+def twlc_solve_force_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+    return solve_formatter_tex(
+        twlc_distance_equation_tex("f", Lp, Lc, St, C, g0, g1, Fc, kT=4.11), "f", d
+    )
 
 
-def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def twlc_solve_force(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """Inverted Twistable Worm-like Chain model
 
     Inverted form of the Twistable Worm-like Chain model that takes into account untwisting of the
@@ -683,22 +687,22 @@ def invtWLC(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
         1.0,
         f_min,
         f_max,
-        lambda f_trial: tWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
-        lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+        lambda f_trial: twlc_distance(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+        lambda f_trial: twlc_distance_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
     )
 
 
-def invtWLC_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
+def twlc_solve_force_jac(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     return invert_jacobian(
         d,
-        lambda f_trial: invtWLC(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
-        lambda f_trial: tWLC_jac(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
-        lambda f_trial: tWLC_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+        lambda f_trial: twlc_solve_force(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+        lambda f_trial: twlc_distance_jac(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+        lambda f_trial: twlc_distance_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
     )
 
 
-def invFJC(d, Lp, Lc, St, kT=4.11):
-    """Inverted Freely-Jointed Chain [1]_ [2]_.
+def efjc_solve_force(d, Lp, Lc, St, kT=4.11):
+    """Inverted Extensible Freely-Jointed Chain [1]_ [2]_.
 
     References
     ----------
@@ -734,12 +738,12 @@ def invFJC(d, Lp, Lc, St, kT=4.11):
         1.0,
         f_min,
         f_max,
-        lambda f_trial: FJC(f_trial, Lp, Lc, St, kT),
-        lambda f_trial: FJC_derivative(f_trial, Lp, Lc, St, kT),
+        lambda f_trial: efjc_distance(f_trial, Lp, Lc, St, kT),
+        lambda f_trial: efjc_distance_derivative(f_trial, Lp, Lc, St, kT),
     )
 
 
-def marko_siggia_ewlc_solve_force_equation(d, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_force_equation(d, Lp, Lc, St, kT=4.11):
     return solve_formatter(
         f"(1/4) * (1 - ({d}/{Lc}) + (f/{St}))**(-2) - (1/4) + ({d}/{Lc}) - (f/{St})",
         "f",
@@ -747,7 +751,7 @@ def marko_siggia_ewlc_solve_force_equation(d, Lp, Lc, St, kT=4.11):
     )
 
 
-def marko_siggia_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_force_equation_tex(d, Lp, Lc, St, kT=4.11):
     dLc = latex_frac(d, Lc)
     FSt = latex_frac("f", St)
     lhs = latex_frac(f"f {Lp}", kT)
@@ -760,7 +764,7 @@ def marko_siggia_ewlc_solve_force_equation_tex(d, Lp, Lc, St, kT=4.11):
     )
 
 
-def marko_siggia_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_force(d, Lp, Lc, St, kT=4.11):
     """Modified Marko Siggia's Worm-like Chain model with distance as dependent parameter.
 
     Modification of Marko-Siggia formula [1] to incorporate enthalpic stretching. Has limitations
@@ -797,10 +801,10 @@ def marko_siggia_ewlc_solve_force(d, Lp, Lc, St, kT=4.11):
         / (Lc * (Lp * St + kT))
     )
 
-    return solve_cubic_wlc(a, b, c, 2)
+    return calc_cubic_root(a, b, c, 2)
 
 
-def marko_siggia_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_force_jac(d, Lp, Lc, St, kT=4.11):
     c = -(St**3) * d * kT * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / (Lc**3 * (Lp * St + kT))
     b = (
         St**2
@@ -820,7 +824,7 @@ def marko_siggia_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
         / (Lc * (Lp * St + kT))
     )
 
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     denom1 = Lc**3 * (Lp * St + kT) ** 2
@@ -885,7 +889,7 @@ def marko_siggia_ewlc_solve_force_jac(d, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def marko_siggia_ewlc_solve_force_derivative(d, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_force_derivative(d, Lp, Lc, St, kT=4.11):
     c = -(St**3) * d * kT * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / (Lc**3 * (Lp * St + kT))
     b = (
         St**2
@@ -905,7 +909,7 @@ def marko_siggia_ewlc_solve_force_derivative(d, Lp, Lc, St, kT=4.11):
         / (Lc * (Lp * St + kT))
     )
 
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 2)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 2)
 
     # Map back to our output parameters
     denom = Lc * (Lp * St + kT)
@@ -918,7 +922,7 @@ def marko_siggia_ewlc_solve_force_derivative(d, Lp, Lc, St, kT=4.11):
     return total_dy_da * da_dd + total_dy_db * db_dd + total_dy_dc * dc_dd
 
 
-def marko_siggia_ewlc_solve_distance_equation(f, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_distance_equation(f, Lp, Lc, St, kT=4.11):
     return solve_formatter(
         f"(1/4) * (1 - (d/{Lc}) + ({f}/{St}))**(-2) - (1/4) + (d/{Lc}) - ({f}/{St})",
         "d",
@@ -926,7 +930,7 @@ def marko_siggia_ewlc_solve_distance_equation(f, Lp, Lc, St, kT=4.11):
     )
 
 
-def marko_siggia_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
     dLc = latex_frac("d", Lc)
     FSt = latex_frac(f, St)
     lhs = latex_frac(f"{f} {Lp}", kT)
@@ -939,26 +943,26 @@ def marko_siggia_ewlc_solve_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
     )
 
 
-def inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT):
+def wlc_marko_siggia_distance_coefficients(f, Lp, Lc, kT):
     a = -Lc * (f * Lp / kT + 2.25)
     b = Lc**2.0 * (2.0 * f * Lp / kT + 1.5)
     c = -f * Lc**3.0 * Lp / kT
     return a, b, c
 
 
-def inverted_marko_siggia_simplified(f, Lp, Lc, kT=4.11):
+def wlc_marko_siggia_distance(f, Lp, Lc, kT=4.11):
     if Lp <= 0 or Lc <= 0 or kT <= 0:
         raise ValueError("Persistence length, contour length and kT must be bigger than 0")
 
-    a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
+    a, b, c = wlc_marko_siggia_distance_coefficients(f, Lp, Lc, kT)
 
-    return solve_cubic_wlc(a, b, c, 1)
+    return calc_cubic_root(a, b, c, 1)
 
 
-def inverted_marko_siggia_simplified_jac(f, Lp, Lc, kT=4.11):
-    a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
+def wlc_marko_siggia_distance_jac(f, Lp, Lc, kT=4.11):
+    a, b, c = wlc_marko_siggia_distance_coefficients(f, Lp, Lc, kT)
 
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 1)
 
     dc_dLc = -3.0 * f * Lc**2 * Lp / kT
     dc_dLp = -f * Lc**3 / kT
@@ -978,9 +982,9 @@ def inverted_marko_siggia_simplified_jac(f, Lp, Lc, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dkT]
 
 
-def inverted_marko_siggia_simplified_derivative(f, Lp, Lc, kT=4.11):
-    a, b, c = inverted_marko_siggia_simplified_coefficients(f, Lp, Lc, kT)
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
+def wlc_marko_siggia_distance_derivative(f, Lp, Lc, kT=4.11):
+    a, b, c = wlc_marko_siggia_distance_coefficients(f, Lp, Lc, kT)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 1)
 
     da_df = -Lc * Lp / kT
     db_df = 2.0 * Lc**2 * Lp / kT
@@ -989,13 +993,13 @@ def inverted_marko_siggia_simplified_derivative(f, Lp, Lc, kT=4.11):
     return total_dy_da * da_df + total_dy_db * db_df + total_dy_dc * dc_df
 
 
-def inverted_marko_siggia_simplified_equation(f, Lp, Lc, kT=4.11):
+def wlc_marko_siggia_distance_equation(f, Lp, Lc, kT=4.11):
     return solve_formatter(
         f"(1/4) * (1 - (d/{Lc}))**(-2) - (1/4) + (d/{Lc})", "d", f"{f}*{Lp}/{kT}"
     )
 
 
-def inverted_marko_siggia_simplified_equation_tex(f, Lp, Lc, kT=4.11):
+def wlc_marko_siggia_distance_equation_tex(f, Lp, Lc, kT=4.11):
     dLc = latex_frac("d", Lc)
     lhs = latex_frac(f"{f} {Lp}", kT)
 
@@ -1004,7 +1008,7 @@ def inverted_marko_siggia_simplified_equation_tex(f, Lp, Lc, kT=4.11):
     )
 
 
-def marko_siggia_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_distance(f, Lp, Lc, St, kT=4.11):
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
             "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
@@ -1036,10 +1040,10 @@ def marko_siggia_ewlc_solve_distance(f, Lp, Lc, St, kT=4.11):
     )
     a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
 
-    return solve_cubic_wlc(a, b, c, 1)
+    return calc_cubic_root(a, b, c, 1)
 
 
-def marko_siggia_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_distance_jac(f, Lp, Lc, St, kT=4.11):
     c = (
         -f
         * Lc**3
@@ -1066,7 +1070,7 @@ def marko_siggia_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
     )
     a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
 
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 1)
 
     # Map back to our output parameters
     dc_dLc = (
@@ -1121,7 +1125,7 @@ def marko_siggia_ewlc_solve_distance_jac(f, Lp, Lc, St, kT=4.11):
     return [total_dy_dLp, total_dy_dLc, total_dy_dSt, total_dy_dkT]
 
 
-def marko_siggia_ewlc_solve_distance_derivative(f, Lp, Lc, St, kT=4.11):
+def ewlc_marko_siggia_distance_derivative(f, Lp, Lc, St, kT=4.11):
     fsq = f * f
     c = (
         -f
@@ -1149,7 +1153,7 @@ def marko_siggia_ewlc_solve_distance_derivative(f, Lp, Lc, St, kT=4.11):
     )
     a = -f * Lc * Lp / kT - 3 * f * Lc / St - 2.25 * Lc
 
-    total_dy_da, total_dy_db, total_dy_dc = invwlc_root_derivatives(a, b, c, 1)
+    total_dy_da, total_dy_db, total_dy_dc = calc_cubic_root_derivatives(a, b, c, 1)
 
     # Map back to our output parameters
     dc_df = (

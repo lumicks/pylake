@@ -94,7 +94,7 @@ class Params:
     Examples
     --------
     ::
-        fit = pylake.FdFit(pylake.odijk("my_model"))
+        fit = pylake.FdFit(pylake.ewlc_odijk_distance("my_model"))
 
         print(fit.params)  # Prints the model parameters
         fit["test_parameter"].value = 5  # Set parameter test_parameter to 5

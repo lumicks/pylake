@@ -16,11 +16,11 @@ Models
 ------
 
 When fitting data, everything revolves around models. One of these models is the so-called extensible worm-like-chain
-model by Odijk et al. Let's have a look at it. We can construct this model using the supplied function `lk.odijk()`.
+model by Odijk et al. Let's have a look at it. We can construct this model using the supplied function `lk.ewlc_odijk_distance()`.
 
 Note that we also have to give it a name. This name will be prefixed to model specific parameters in this model::
 
-    >>> model = lk.odijk("DNA")
+    >>> model = lk.ewlc_odijk_distance("DNA")
 
 Entering model prints the model equation and its default parameters::
 
@@ -58,7 +58,7 @@ Simulating the model
 
 We can simulate the model by passing a dictionary with parameters values::
 
-    dna = lk.odijk("DNA")
+    dna = lk.ewlc_odijk_distance("DNA")
     force = np.arange(0.1, 14, 0.1)
     dna(force, {"DNA/Lp": 50.0, "DNA/Lc": 16.0, "DNA/St": 1500.0, "kT": 4.11})
 
@@ -70,7 +70,7 @@ Model composition and inversion
 In practice, we would typically want to fit force as a function of distance however. For this we have the inverted
 Odijk model::
 
-    model = lk.inverted_odijk("DNA")
+    model = lk.ewlc_odijk_force("DNA")
 
 We can have a quick look at what this model looks like and which parameters are in there::
 
@@ -94,7 +94,7 @@ we notice that the template matching wasn't completely optimal. In addition, we 
 forgetting to reset the force back to zero. In this case, we can incorporate offsets in our model. We can introduce an
 offset in the independent parameter, by calling `.subtract_independent_offset()` on our model::
 
-    >>> model = lk.inverted_odijk("DNA").subtract_independent_offset()
+    >>> model = lk.ewlc_odijk_force("DNA").subtract_independent_offset()
     >>> model
 
     Model: DNA(x-d)
@@ -115,7 +115,7 @@ offset in the independent parameter, by calling `.subtract_independent_offset()`
 
 If we also expect an offset in the dependent parameter, we can simply add an offset model to our model::
 
-    >>> model = lk.inverted_odijk("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    >>> model = lk.ewlc_odijk_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     >>> model
 
     Model: DNA(x-d)_with_DNA
@@ -139,7 +139,7 @@ From the above example, you can see how easy it is to composite models. Sometime
 instance, we may have two worm like chain models that we wish to add, and then invert. For the Odijk model, this can be
 done as follows::
 
-    model = lk.odijk("DNA") + lk.odijk("protein") + lk.distance_offset("offset")
+    model = lk.ewlc_odijk_distance("DNA") + lk.ewlc_odijk_distance("protein") + lk.distance_offset("offset")
     model = model.invert()
 
 Note how we added three models and then inverted the composition of those models. Models inverted via `invert()` will
@@ -245,7 +245,7 @@ Incremental fitting
 
 Fits can also be done incrementally::
 
-    >>> model = lk.inverted_odijk("DNA")
+    >>> model = lk.ewlc_odijk_force("DNA")
     >>> fit = lk.FdFit(model)
     >>> print(fit.params)
     No parameters
@@ -290,7 +290,7 @@ point basis). This can be used to obtain dynamic contour lengths for instance. I
 be performed. We first set up a model and fit it to some data. This is all analogous to what we've learned before::
 
     # Define the model to be fitted
-    model = lk.inverted_odijk("model") + lk.force_offset("model")
+    model = lk.ewlc_odijk_force("model") + lk.force_offset("model")
 
     # Fit the overall model first
     fit = lk.FdFit(model)
@@ -335,7 +335,7 @@ Global fits versus single fits
 The `FdFit` object manages a fit. To illustrate its use, and how a global fit differs from a local fit, consider the
 following two examples::
 
-    model = lk.inverted_odijk("DNA")
+    model = lk.ewlc_odijk_force("DNA")
     fit = lk.FdFit(model)
     for i, (distance, force) in enumerate(zip(distances, forces)):
         fit.add_data(f"RecA {i}", f=force, d=distance)
@@ -345,7 +345,7 @@ following two examples::
 and::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
-        model = lk.inverted_odijk("DNA")
+        model = lk.ewlc_odijk_force("DNA")
         fit = lk.FdFit(model)
         fit.add_data(f"RecA {i}", f=force, d=distance)
         fit.fit()
@@ -362,7 +362,7 @@ parameters shared between different conditions. It's usually a good idea to thin
 be different between different experiments and only allow these parameters to be different in the fit. For example,
 if the only expected difference between the experiments is the contour length, then this can be achieved using::
 
-    model = lk.inverted_odijk("DNA")
+    model = lk.ewlc_odijk_force("DNA")
     fit = lk.FdFit(model)
     for i, (distance, force) in enumerate(zip(distances, forces)):
         fit.add_data(f"RecA {i}", force, distance, {"DNA/Lc": f"DNA/Lc_{i}"})
@@ -377,8 +377,8 @@ Multiple models
 When working with multiple models, things can get a little more complicated. Let's say we have two models, `model1` and
 `model2` and we want to fit both in a global fit. Constructing the `FdFit` is easy::
 
-    model1 = lk.inverted_odijk("DNA")
-    model2 = (lk.odijk("DNA") + lk.odijk("protein")).invert()
+    model1 = lk.ewlc_odijk_force("DNA")
+    model2 = (lk.ewlc_odijk_distance("DNA") + lk.ewlc_odijk_distance("protein")).invert()
     fit = lk.FdFit(model1, model2)
 
 But then the question arises, how do we add data to each model? Well, the trick is in the assignments to `model1` and

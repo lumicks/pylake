@@ -4,7 +4,12 @@ from lumicks.pylake.fitting.model import (
     CompositeModel,
     SubtractIndependentOffset,
 )
-from lumicks.pylake.fitting.models import inverted_odijk, distance_offset, force_offset, odijk
+from lumicks.pylake.fitting.models import (
+    distance_offset,
+    force_offset,
+    ewlc_odijk_distance,
+    ewlc_odijk_force,
+)
 import pytest
 import numpy as np
 
@@ -76,8 +81,8 @@ def test_model_composition():
     assert m1.subtract_independent_offset().verify_jacobian(t, [-1.0, 2.0, 3.0], verbose=False)
     assert m1.subtract_independent_offset().verify_derivative(t, [-1.0, 2.0, 3.0])
 
-    m1 = inverted_odijk("DNA").subtract_independent_offset() + force_offset("f")
-    m2 = (odijk("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
+    m1 = ewlc_odijk_force("DNA").subtract_independent_offset() + force_offset("f")
+    m2 = (ewlc_odijk_distance("DNA") + distance_offset("DNA_d")).invert() + force_offset("f")
     t = np.array([0.19, 0.2, 0.3])
     p1 = np.array([0.1, 4.9e1, 3.8e-1, 2.1e2, 4.11, 1.5])
     p2 = np.array([4.9e1, 3.8e-1, 2.1e2, 4.11, 0.1, 1.5])
@@ -87,7 +92,7 @@ def test_model_composition():
     with pytest.raises(AssertionError):
         distance_offset("d") + force_offset("f")
 
-    composite = distance_offset("d") + odijk("DNA")
+    composite = distance_offset("d") + ewlc_odijk_distance("DNA")
     assert composite.dependent == "d"
     assert composite.independent == "f"
     assert composite._dependent_unit == "micron"
@@ -103,10 +108,14 @@ def test_model_composition():
 @pytest.mark.parametrize(
     "model,param,unit",
     [
-        (odijk("m").subtract_independent_offset(), "m/f_offset", "pN"),
-        (inverted_odijk("m").subtract_independent_offset(), "m/d_offset", "micron"),
-        ((odijk("m") + odijk("m")).subtract_independent_offset(), "m_with_m/f_offset", "pN"),
-        (odijk("m").invert().subtract_independent_offset(), "inv(m)/d_offset", "micron"),
+        (ewlc_odijk_distance("m").subtract_independent_offset(), "m/f_offset", "pN"),
+        (ewlc_odijk_force("m").subtract_independent_offset(), "m/d_offset", "micron"),
+        (
+            (ewlc_odijk_distance("m") + ewlc_odijk_distance("m")).subtract_independent_offset(),
+            "m_with_m/f_offset",
+            "pN",
+        ),
+        (ewlc_odijk_distance("m").invert().subtract_independent_offset(), "inv(m)/d_offset", "micron"),
         (Model("m", lambda c, a: c + a).subtract_independent_offset(), "m/c_offset", "au"),
         (
             Model("m", lambda c, a: c + a).invert().subtract_independent_offset(),
@@ -121,7 +130,7 @@ def test_subtract_independent_offset_unit(model, param, unit):
 
 
 def test_interpolation_inversion():
-    m = odijk("Nucleosome").invert(independent_max=120.0, interpolate=True)
+    m = ewlc_odijk_distance("Nucleosome").invert(independent_max=120.0, interpolate=True)
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
     np.testing.assert_allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)

@@ -1,4 +1,4 @@
-from lumicks.pylake.fitting.models import odijk, inverted_odijk
+from lumicks.pylake.fitting.models import ewlc_odijk_distance, ewlc_odijk_force
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.fit import Fit, FdFit, Params, Datasets
 from lumicks.pylake.fitting.parameters import Parameter
@@ -161,10 +161,14 @@ def test_model_fit_object_linking():
     np.testing.assert_allclose(fit.datasets[m2.uuid]._conditions[0].p_external, [0, 1, 2])
     assert np.all(fit.datasets[m2.uuid]._conditions[0].p_local == [None, None, None, 4, 6])
     params = ["M/mu", "M/e", "M/q", None, None]
-    assert fetch_params(fit.params, fit.datasets[m2.uuid]._conditions[0]._p_global_indices) == params
+    assert (
+        fetch_params(fit.params, fit.datasets[m2.uuid]._conditions[0]._p_global_indices) == params
+    )
 
     params = ["M/mu", None, "M/q", None, "M/r"]
-    assert fetch_params(fit.params, fit.datasets[m2.uuid]._conditions[1]._p_global_indices) == params
+    assert (
+        fetch_params(fit.params, fit.datasets[m2.uuid]._conditions[1]._p_global_indices) == params
+    )
 
     fit.update_params(Params(**{"M/mu": 4, "M/sig": 6}))
     assert fit["M/mu"].value == 4
@@ -215,10 +219,10 @@ def test_jacobian_test_fit():
     assert not fit.verify_jacobian(fit.params.values)
 
     with pytest.raises(ValueError):
-        assert odijk("WLC").verify_jacobian([1.0, 2.0, 3.0], [1.0, 2.0])
+        assert ewlc_odijk_distance("WLC").verify_jacobian([1.0, 2.0, 3.0], [1.0, 2.0])
 
     with pytest.raises(ValueError):
-        odijk("WLC").verify_derivative([1, 2, 3], [1, 2, 3])
+        ewlc_odijk_distance("WLC").verify_derivative([1, 2, 3], [1, 2, 3])
 
 
 def test_integration_test_fitting():
@@ -407,7 +411,7 @@ def test_data_loading():
 
 
 def test_parameter_access():
-    m = inverted_odijk("DNA")
+    m = ewlc_odijk_force("DNA")
     fit = FdFit(m)
     data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
     data2 = fit._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
@@ -419,8 +423,8 @@ def test_parameter_access():
     assert fit["RecA"] == fit.params[data1]
     assert fit["RecA2"] == fit.params[data2]
 
-    m1 = inverted_odijk("DNA")
-    m2 = inverted_odijk("Protein")
+    m1 = ewlc_odijk_force("DNA")
+    m2 = ewlc_odijk_force("Protein")
     fit = FdFit(m1, m2)
 
     # This should throw since we have multiple models.
@@ -442,7 +446,7 @@ def test_parameter_access():
 
 
 def test_data_access():
-    m = inverted_odijk("DNA")
+    m = ewlc_odijk_force("DNA")
     fit = FdFit(m)
     data1 = fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
     data2 = fit._add_data("RecA2", [1, 2, 3], [1, 2, 3], params={"DNA/Lc": "DNA/Lc2"})
@@ -454,8 +458,8 @@ def test_data_access():
     assert fit.data["RecA"] == data1
     assert fit.data["RecA2"] == data2
 
-    m1 = inverted_odijk("DNA")
-    m2 = inverted_odijk("Protein")
+    m1 = ewlc_odijk_force("DNA")
+    m2 = ewlc_odijk_force("Protein")
     fit = FdFit(m1, m2)
 
     # This should throw since we have multiple models.
@@ -501,7 +505,7 @@ def test_parameter_slicing():
 
 def test_fd_variable_order():
     # Fit takes dependent, then independent
-    m = odijk("M")
+    m = ewlc_odijk_distance("M")
     fit = Fit(m)
     fit._add_data("test", [1, 2, 3], [2, 3, 4])
     np.testing.assert_allclose(fit[m].data["test"].x, [1, 2, 3])
@@ -511,7 +515,7 @@ def test_fd_variable_order():
     np.testing.assert_allclose(fit[m].data["test2"].x, [1, 2, 3])
     np.testing.assert_allclose(fit[m].data["test2"].y, [2, 3, 4])
 
-    m = inverted_odijk("M")
+    m = ewlc_odijk_force("M")
     fit = Fit(m)
     fit._add_data("test", [1, 2, 3], [2, 3, 4])
     np.testing.assert_allclose(fit[m].data["test"].x, [1, 2, 3])
@@ -522,7 +526,7 @@ def test_fd_variable_order():
     np.testing.assert_allclose(fit[m].data["test2"].y, [2, 3, 4])
 
     # FdFit always takes f, d and maps it to the correct values
-    m = odijk("M")
+    m = ewlc_odijk_distance("M")
     fit = FdFit(m)
 
     # Test the FdFit interface
@@ -535,7 +539,7 @@ def test_fd_variable_order():
     np.testing.assert_allclose(fit[m].data["test2"].x, [3, 4, 5])
     np.testing.assert_allclose(fit[m].data["test2"].y, [4, 5, 6])
 
-    m = inverted_odijk("M")
+    m = ewlc_odijk_force("M")
     fit = FdFit(m)
     fit.add_data("test", [1, 2, 3], [2, 3, 4])
     np.testing.assert_allclose(fit[m].data["test"].x, [2, 3, 4])
@@ -548,8 +552,8 @@ def test_fd_variable_order():
 
 
 def test_plotting():
-    m = odijk("DNA")
-    m2 = odijk("protein")
+    m = ewlc_odijk_distance("DNA")
+    m2 = ewlc_odijk_distance("protein")
 
     # Test single model plotting
     fit = Fit(m)
@@ -597,10 +601,10 @@ def test_plotting():
     plt.close('all')
     independent = np.arange(0.15, 2, 0.25)
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
-    odijk("WLC").verify_jacobian(independent, params, plot=1)
+    ewlc_odijk_distance("WLC").verify_jacobian(independent, params, plot=1)
 
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
-    fit = FdFit(odijk("WLC"))
+    fit = FdFit(ewlc_odijk_distance("WLC"))
     fit.add_data("dataset 3", [1, 2, 3], [2, 3, 4])
     plt.figure()
     fit.verify_jacobian(params, plot=1)
@@ -614,7 +618,7 @@ def test_plotting():
 
 
 def test_fit_reprs():
-    m = odijk("DNA")
+    m = ewlc_odijk_distance("DNA")
     fit = Fit(m)
     d1 = fit._add_data("data_1", [1, 2, 3], [2, 3, 4])
     assert d1.__repr__() == "FitData(data_1, N=3)"
@@ -630,7 +634,7 @@ def test_fit_reprs():
     assert fit.__repr__()
     assert fit._repr_html_()
 
-    m = inverted_odijk("DNA")
+    m = ewlc_odijk_force("DNA")
     fit = FdFit(m)
     fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
     fit._add_data("RecA2", [1, 2, 3], [1, 2, 3])
@@ -665,11 +669,12 @@ def test_fit_reprs():
 
 def test_custom_legend_labels():
     """Test whether users can provide a custom label for plotting"""
+
     def test_labels(labels):
         for legend_entry, label in zip(plt.gca().get_legend().texts, labels):
             assert label == legend_entry.get_text()
 
-    fit = Fit(odijk("m"))
+    fit = Fit(ewlc_odijk_distance("m"))
     fit._add_data("data_1", [1, 2, 3], [2, 3, 4])
     fit.plot()
     test_labels(["data_1 (model)", "data_1 (data)"])
@@ -687,6 +692,6 @@ def test_nan():
     fit._add_data("data_name", data, data)
     with pytest.raises(
         RuntimeError,
-        match="Residual returned NaN. Model cannot be evaluated at these parameter values."
+        match="Residual returned NaN. Model cannot be evaluated at these parameter values.",
     ):
         fit.log_likelihood()

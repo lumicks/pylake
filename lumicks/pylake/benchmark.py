@@ -129,11 +129,11 @@ class _FdFit(_Benchmark):
         # The interpolated method is a lot faster, so we can do more points in that case
         force = np.arange(0.1, 20.0, 0.95 * (0.07 if self.interpolated else 1))
         true = {"m/Lp": 50.0, "m/Lc": 1024 * 0.34, "m/St": 1200.0, "kT": 4.11}
-        distance = lk.odijk("m")(force, true) + 0.02
+        distance = lk.ewlc_odijk_distance("m")(force, true) + 0.02
 
         def bench():
             # Deliberately use the manually inverted form (slower)
-            manually_inverted = (lk.odijk("m") + lk.distance_offset("m")).invert(
+            manually_inverted = (lk.ewlc_odijk_distance("m") + lk.distance_offset("m")).invert(
                 independent_min=0.0, independent_max=30, interpolate=self.interpolated
             )
 

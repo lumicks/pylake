@@ -9,6 +9,17 @@
 ### Other changes
 
 * Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.
+* Renamed force distance fitting functions. They are deprecated now and will be removed in the future:
+    *  `inverted_marko_siggia_simplified` -> `wlc_marko_siggia_distance`
+    *  `marko_siggia_simplified` -> `wlc_marko_siggia_force`
+    *  `marko_siggia_ewlc_distance` -> `ewlc_marko_siggia_distance`
+    *  `marko_siggia_ewlc_force` -> `ewlc_marko_siggia_force`
+    *  `odijk` -> `ewlc_odijk_distance`
+    *  `inverted_odijk` -> `ewlc_odijk_force`
+    *  `freely_jointed_chain` -> `efjc_distance`
+    *  `inverted_freely_jointed_chain` -> `efjc_force`
+    *  `twistable_wlc` -> `twlc_distance`
+    *  `inverted_twistable_wlc` -> `twlc_force`
 
 ## v0.13.1 | 2022-09-08
 

@@ -40,7 +40,7 @@ slightly from experiment to experiment, or the force may have experienced some d
 both distance and force to compensate for small offsets that may exist in the data. Let's set up the Odijk worm-like
 chain model and create the fit::
 
-    m_odijk = lk.inverted_odijk("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    m_odijk = lk.ewlc_odijk_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_odijk = lk.FdFit(m_odijk)
 
 Considering that this model only describes the force-extension behaviour at low forces (0.1 - 30 pN), we have to extract
@@ -87,12 +87,12 @@ And fit the model::
 Set up the twistable worm like chain model
 ------------------------------------------
 
-By default, the `twistable_wlc` model provided with pylake outputs the distance as a function of force. However, we
+By default, the `twlc_distance` model provided with pylake outputs the distance as a function of force. However, we
 typically want to fit force as a function of distance. To achieve this, we can invert the model using its `invert`
 function at the cost of slowing down the fit. Alternatively, we have a faster way of achieving this in pylake, by
-using the dedicated `inverted_twistable_wlc` model::
+using the dedicated `twlc_force` model::
 
-    m_dna = lk.inverted_twistable_wlc("DNA").subtract_independent_offset() + lk.force_offset("DNA")
+    m_dna = lk.twlc_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_twlc = lk.FdFit(m_dna)
 
 Load the full data into the model

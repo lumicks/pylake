@@ -72,7 +72,7 @@ class Datasets:
         Examples
         --------
         ::
-            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            dna_model = pylake.ewlc_odijk_force("DNA")  # Use an inverted Odijk eWLC model.
             fit = pylake.FdFit(dna_model)
 
             fit.add_data("Control", f1, d1)  # Load the first dataset like that
@@ -136,7 +136,7 @@ class Datasets:
         ::
             from lumicks import pylake
 
-            model = pylake.inverted_odijk("DNA")
+            model = pylake.ewlc_odijk_force("DNA")
             fit = pylake.FdFit(model)
             fit.add_data("Control", force, distance)
             fit.fit()
@@ -148,8 +148,8 @@ class Datasets:
             fit.plot("Control", overrides={"DNA/St": 5})
 
             # When dealing with multiple models in one fit, one has to select the model first when we want to plot.
-            model1 = pylake.odijk("DNA")
-            model2 = pylake.odijk("DNA") + pylake.odijk("protein")
+            model1 = pylake.ewlc_odijk_distance("DNA")
+            model2 = pylake.ewlc_odijk_distance("DNA") + pylake.ewlc_odijk_distance("protein")
             fit[model1].add_data("Control", force1, distance2)
             fit[model2].add_data("Control", force1, distance2)
             fit.fit()
@@ -223,7 +223,7 @@ class FdDatasets(Datasets):
         --------
         ::
 
-            dna_model = pylake.inverted_odijk("DNA")  # Use an inverted Odijk eWLC model.
+            dna_model = pylake.ewlc_odijk_force("DNA")  # Use an inverted Odijk eWLC model.
             fit = pylake.FdFit(dna_model)
 
             fit.add_data("Data1", force1, distance1)  # Load the first data set like that
