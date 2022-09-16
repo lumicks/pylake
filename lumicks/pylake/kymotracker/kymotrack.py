@@ -428,6 +428,11 @@ class KymoTrackGroup:
 
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
+        if self._src:
+            n_kymos = len(set([track._kymo._id for track in kymo_tracks]))
+            assert n_kymos == 1, "All tracks must have the same source kymograph."
+            n_channels = len(set([track._channel for track in kymo_tracks]))
+            assert n_channels == 1, "All tracks must be from the same color channel."
 
     def __iter__(self):
         return self._src.__iter__()
@@ -486,10 +491,22 @@ class KymoTrackGroup:
         return len(self._src)
 
     def extend(self, other):
+        other = [other] if isinstance(other, KymoTrack) else other
+
+        if len(self):
+            new_kymos = set([track._kymo._id for track in other])
+            assert (
+                len(new_kymos) == 1 and self[0]._kymo._id == list(new_kymos)[0]
+            ), "All tracks must have the same source kymograph."
+            new_channels = set([track._channel for track in other])
+            assert (
+                len(new_channels) == 1 and self[0]._channel == list(new_channels)[0]
+            ), "All tracks must be from the same color channel."
+
         if isinstance(other, self.__class__):
             self._src.extend(other._src)
-        elif isinstance(other, KymoTrack):
-            self._src.extend([other])
+        elif isinstance(other, list):
+            self._src.extend(other)
         else:
             raise TypeError(
                 f"You can only extend a {self.__class__} with a {self.__class__} or " f"{KymoTrack}"
