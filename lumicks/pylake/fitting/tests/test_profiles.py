@@ -5,7 +5,6 @@ from textwrap import dedent
 from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.parameters import Parameter
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 
 
 def linear(x, a=1, b=1):
@@ -136,7 +135,6 @@ def test_non_identifiability():
     )
 
 
-@mpl_test_cleanup
 def test_plotting():
     x = np.arange(10.0) / 100.0
     y = [

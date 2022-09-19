@@ -6,7 +6,6 @@ from lumicks.pylake.force_calibration.calibration_models import (
     viscosity_of_water,
     NoFilter,
 )
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from textwrap import dedent
 import numpy as np
 import scipy as sp
@@ -223,13 +222,11 @@ def test_actual_spectrum(reference_calibration_result):
     np.testing.assert_allclose(ps_calibration.ps_data.num_points_per_block, 100)
 
 
-@mpl_test_cleanup
 def test_result_plot(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     ps_calibration.plot()
 
 
-@mpl_test_cleanup
 def test_result_plot(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     ps_calibration.plot_spectrum_residual()

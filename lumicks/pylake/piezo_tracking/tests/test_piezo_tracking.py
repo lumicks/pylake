@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
 from lumicks.pylake.piezo_tracking.piezo_tracking import (
     DistanceCalibration,
@@ -81,7 +80,6 @@ def test_from_file():
     assert calibrated_slice.labels["y"] == "Distance [um]"
 
 
-@mpl_test_cleanup
 def test_plots():
     distance_calibration = DistanceCalibration(*trap_pos_camera_distance(), 1)
     distance_calibration.plot()
