@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
 import matplotlib as mpl
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 
 
 def with_offset(t, start_time=1592916040906356300):
@@ -720,7 +719,6 @@ def test_downsampling_like():
     with pytest.raises(AssertionError):
         s.downsampled_like(s)
 
-@mpl_test_cleanup
 def test_channel_plot():
     def testLine(x, y):
         data = [obj for obj in mpl.pyplot.gca().get_children() if isinstance(obj, mpl.lines.Line2D)]

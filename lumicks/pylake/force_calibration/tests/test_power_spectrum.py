@@ -1,5 +1,4 @@
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 import numpy as np
 import pytest
 
@@ -160,13 +159,11 @@ def test_in_range(frequency, num_data, sample_rate, num_blocks, f_min, f_max):
     np.testing.assert_allclose(power_spectrum.sample_rate, power_subset.sample_rate)
 
 
-@mpl_test_cleanup
 def test_plot():
     ps = PowerSpectrum(np.sin(2.0 * np.pi * 100 / 78125 * np.arange(100)), 78125)
     ps.plot()
 
 
-@mpl_test_cleanup
 def test_replace_spectrum():
     power_spectrum = PowerSpectrum(np.arange(10), 5)
     replaced = power_spectrum.with_spectrum(np.arange(6))

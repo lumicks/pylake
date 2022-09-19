@@ -2,7 +2,6 @@ from lumicks.pylake.fitting.models import odijk, inverted_odijk
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.fit import Fit, FdFit, Params, Datasets
 from lumicks.pylake.fitting.parameters import Parameter
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -548,7 +547,6 @@ def test_fd_variable_order():
     np.testing.assert_allclose(fit[m].data["test2"].y, [3, 4, 5])
 
 
-@mpl_test_cleanup
 def test_plotting():
     m = odijk("DNA")
     m2 = odijk("protein")
@@ -665,7 +663,6 @@ def test_fit_reprs():
     )
 
 
-@mpl_test_cleanup
 def test_custom_legend_labels():
     """Test whether users can provide a custom label for plotting"""
     def test_labels(labels):

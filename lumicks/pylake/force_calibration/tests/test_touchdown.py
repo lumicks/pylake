@@ -1,7 +1,6 @@
 import pytest
 import warnings
 import numpy as np
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from lumicks.pylake.force_calibration.touchdown import (
     fit_piecewise_linear,
     fit_damped_sine_with_polynomial,
@@ -99,7 +98,6 @@ def test_touchdown(mack_parameters):
     np.testing.assert_allclose(touchdown_result.focal_shift, 0.9212834464971221)
 
 
-@mpl_test_cleanup
 def test_plot():
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Covariance of the parameters could not be estimated")

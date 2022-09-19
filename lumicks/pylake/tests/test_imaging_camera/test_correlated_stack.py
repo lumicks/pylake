@@ -10,7 +10,6 @@ from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake import channel
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 from ..data.mock_widefield import MockTiffFile, make_alignment_image_data, make_frame_times
 
 
@@ -340,7 +339,6 @@ def test_deprecate_raw():
         stack.raw
 
 
-@mpl_test_cleanup
 def test_correlated_stack_plotting(rgb_alignment_image_data):
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
     fake_tiff = TiffStack(
@@ -390,7 +388,6 @@ def test_correlated_stack_plotting(rgb_alignment_image_data):
         stack.plot(channel="blue", frame=-1)
 
 
-@mpl_test_cleanup
 def test_plot_correlated():
     cc = channel.Slice(
         channel.Continuous(np.arange(10, 80, 2), 10, 2), {"y": "mock", "title": "mock"}
@@ -667,7 +664,6 @@ def test_define_tether():
     check_result(stack, ref_stack, 16)
 
 
-@mpl_test_cleanup
 def test_correlated_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image_data):
     """Tests whether we can set an absolute color range for RGB plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
@@ -695,7 +691,6 @@ def test_correlated_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image
     plt.close(fig)
 
 
-@mpl_test_cleanup
 def test_correlated_stack_plot_channels_absolute_color_adjustment(rgb_alignment_image_data):
     """Tests whether we can set an absolute color range for separate channel plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
@@ -723,7 +718,6 @@ def test_correlated_stack_plot_channels_absolute_color_adjustment(rgb_alignment_
         plt.close(fig)
 
 
-@mpl_test_cleanup
 def test_correlated_stack_plot_rgb_percentile_color_adjustment(rgb_alignment_image_data):
     """Tests whether we can set a percentile color range for RGB plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
@@ -756,7 +750,6 @@ def test_correlated_stack_plot_rgb_percentile_color_adjustment(rgb_alignment_ima
     plt.close(fig)
 
 
-@mpl_test_cleanup
 def test_correlated_stack_plot_single_channel_percentile_color_adjustment(rgb_alignment_image_data):
     """Tests whether we can set a percentile color range for separate channel plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data

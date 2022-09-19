@@ -1,6 +1,5 @@
 from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy, KymotrackerParameter
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
-from lumicks.pylake.tests.test_decorators import mpl_test_cleanup
 import numpy as np
 import re
 import pytest
@@ -13,19 +12,16 @@ def calibrate_to_kymo(kymo):
     )
 
 
-@mpl_test_cleanup
 def test_widget_open(kymograph):
     KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
 
 
-@mpl_test_cleanup
 def test_deprecations(kymograph):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     with pytest.warns(DeprecationWarning):
         kymo_widget.lines
 
 
-@mpl_test_cleanup
 def test_parameters_kymo(kymograph):
     """Test whether the parameter setting is passed correctly to the algorithm. By setting the threshold to different
     values we can check which tracks are detected and use that to verify that the parameter is used."""
@@ -43,7 +39,6 @@ def test_parameters_kymo(kymograph):
     assert len(kymo_widget.tracks) == 3
 
 
-@mpl_test_cleanup
 def test_invalid_algorithm_parameter(kymograph):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     with pytest.raises(KeyError):
@@ -61,7 +56,6 @@ def test_invalid_algorithm_parameter(kymograph):
         kymo_widget.track_all()
 
 
-@mpl_test_cleanup
 def test_aspect_ratio(kymograph, region_select):
     for requested_aspect in (2, 3, 5):
         kymo_widget = KymoWidgetGreedy(
@@ -77,7 +71,6 @@ def test_aspect_ratio(kymograph, region_select):
         )
 
 
-@mpl_test_cleanup
 def test_track_kymo(kymograph, region_select):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     assert len(kymo_widget.tracks) == 0
@@ -265,7 +258,6 @@ def test_refine_track_width_units(kymograph, region_select):
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, true_coordinate)
 
 
-@mpl_test_cleanup
 def test_widget_with_calibration(kymograph):
     widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     np.testing.assert_allclose(
@@ -283,7 +275,6 @@ def test_widget_with_calibration(kymograph):
     assert widget._axes.get_ylabel() == "position (kbp)"
 
 
-@mpl_test_cleanup
 def test_invalid_range_overrides(kymograph):
     with pytest.raises(KeyError, match="Slider range provided for parameter that does not exist"):
         KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, slider_ranges={"wrong_par": (1, 5)})
@@ -306,7 +297,6 @@ def test_invalid_range_overrides(kymograph):
         )
 
 
-@mpl_test_cleanup
 def test_valid_override(kymograph):
     """Tests whether the correct ranges make it into the widget data. Unfortunately we cannot test
     the full widget as we cannot spin up the UI."""
@@ -344,7 +334,6 @@ def test_valid_default_parameters():
             KymotrackerParameter("p", "d", "int", 5, *rng, True)
 
 
-@mpl_test_cleanup
 def test_keyword_args(kymograph):
     """Test that only 2 positional arguments can be used."""
     with pytest.raises(TypeError):
