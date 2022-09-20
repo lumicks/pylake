@@ -385,6 +385,9 @@ def test_kymotrackgroup_source_kymo():
     tracks_b = KymoTrackGroup(green_tracks_b[:2])
     assert len(tracks_b) == 2
 
+    assert id(tracks_a._kymo) == id(kymos[0])
+    assert tracks_a._channel == "green"
+
     # test empty result
     tracks_empty = KymoTrackGroup([])
     assert len(tracks_empty) == 0
