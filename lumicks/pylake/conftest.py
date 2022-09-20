@@ -42,7 +42,6 @@ def pytest_configure(config):
     )
 
 
-
 @pytest.fixture(scope="session")
 def report_line():
     import atexit
@@ -60,9 +59,6 @@ def report_line():
 
 @pytest.fixture(autouse=True)
 def configure_warnings():
-    # make warnings into errors but ignore certain third-party extension issues
-    warnings.filterwarnings("error")
-
     # importing scipy submodules on some version of Python
     warnings.filterwarnings("ignore", category=ImportWarning)
 
@@ -91,4 +87,4 @@ def configure_mpl():
         with plt.style.context(["classic", "_classic_test_patch"]):
             yield
     finally:
-        plt.close('all')
+        plt.close("all")
