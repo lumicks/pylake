@@ -27,7 +27,7 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
         raise RuntimeError("No kymograph tracks to export")
 
     time_units = "seconds"
-    position_units = kymotrack_group[0]._kymo._calibration.unit
+    position_units = kymotrack_group._kymo._calibration.unit
 
     idx = np.hstack([np.full(len(track), idx) for idx, track in enumerate(kymotrack_group)])
     coords_idx = np.hstack([track.coordinate_idx for track in kymotrack_group])
@@ -449,6 +449,14 @@ class KymoTrackGroup:
     def __copy__(self):
         return KymoTrackGroup(copy(self._src))
 
+    @property
+    def _kymo(self):
+        return self[0]._kymo
+
+    @property
+    def _channel(self):
+        return self[0]._channel
+
     def _concatenate_tracks(self, starting_track, ending_track):
         """Concatenate two tracks together.
 
@@ -496,11 +504,11 @@ class KymoTrackGroup:
         if len(self):
             new_kymos = set([track._kymo._id for track in other])
             assert (
-                len(new_kymos) == 1 and self[0]._kymo._id == list(new_kymos)[0]
+                len(new_kymos) == 1 and self._kymo._id == list(new_kymos)[0]
             ), "All tracks must have the same source kymograph."
             new_channels = set([track._channel for track in other])
             assert (
-                len(new_channels) == 1 and self[0]._channel == list(new_channels)[0]
+                len(new_channels) == 1 and self._channel == list(new_channels)[0]
             ), "All tracks must be from the same color channel."
 
         if isinstance(other, self.__class__):
@@ -555,7 +563,7 @@ class KymoTrackGroup:
             When supplied, this will sample the source image around the kymograph track and export the summed intensity
             with the image. The value indicates the number of pixels in either direction to sum over.
         """
-        export_kymotrackgroup_to_csv(filename, self._src, delimiter, sampling_width)
+        export_kymotrackgroup_to_csv(filename, self, delimiter, sampling_width)
 
     def fit_binding_times(
         self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
@@ -645,7 +653,7 @@ class KymoTrackGroup:
         widths = np.diff(edges)
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
-        plt.xlabel(f"Position ({self[0]._kymo._calibration.unit_label})")
+        plt.xlabel(f"Position ({self._kymo._calibration.unit_label})")
 
     def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points):
         """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.

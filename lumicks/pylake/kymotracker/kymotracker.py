@@ -341,7 +341,7 @@ def refine_lines_centroid(lines, line_width):
         raise ValueError("line_width may not be smaller than 1")
 
     # convert line_width (pixel units) to physical units expected by refine_tracks_centroid
-    track_width = line_width * lines[0]._kymo.pixelsize[0]
+    track_width = line_width * lines._kymo.pixelsize[0]
     return refine_tracks_centroid(lines, track_width)
 
 
@@ -358,7 +358,7 @@ def refine_tracks_centroid(tracks, track_width=None):
 
     Parameters
     ----------
-    tracks : List[pylake.KymoTrack]
+    tracks : List[KymoTrack] or KymoTrackGroup
         Detected tracks on a kymograph
     track_width : float
         Expected (spatial) spot size in physical units. Must be larger than zero.
@@ -366,14 +366,15 @@ def refine_tracks_centroid(tracks, track_width=None):
         for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
         corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
     """
+    tracks = KymoTrackGroup(tracks) if isinstance(tracks, (list, tuple)) else tracks
     if track_width is None:
-        track_width = _default_track_widths[tracks[0]._kymo._calibration.unit]
+        track_width = _default_track_widths[tracks._kymo._calibration.unit]
 
     if track_width <= 0:
         # Must be positive otherwise refinement fails
         raise ValueError(f"track_width should be larger than zero")
 
-    track_width_pixels = np.ceil(track_width / tracks[0]._kymo.pixelsize[0])
+    track_width_pixels = np.ceil(track_width / tracks._kymo.pixelsize[0])
 
     interpolated_tracks = [track.interpolate() for track in tracks]
     time_idx = np.round(
@@ -458,10 +459,10 @@ def refine_tracks_gaussian(
     """
     assert overlap_strategy in ("ignore", "skip", "multiple")
     if refine_missing_frames:
-        tracks = [track.interpolate() for track in tracks]
+        tracks = KymoTrackGroup([track.interpolate() for track in tracks])
 
-    kymo = tracks[0]._kymo
-    channel = tracks[0]._channel
+    kymo = tracks._kymo
+    channel = tracks._channel
     image_data = kymo.get_image(channel)
 
     initial_sigma = kymo.pixelsize[0] * 1.1 if initial_sigma is None else initial_sigma
