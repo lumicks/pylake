@@ -5,6 +5,7 @@
 #### New features
 
 * Fixed and reintroduced lazy loading for `TimeSeries` data.
+* Added the optional `pixel_threshold` keyword argument to `refine_tracks_centroid`. If supplied, interpolated points in the refined tracks with signal below the specified threshold will be discarded.
 
 #### Other changes
 
