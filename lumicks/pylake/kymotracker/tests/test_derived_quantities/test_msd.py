@@ -2,6 +2,8 @@ import pytest
 import contextlib
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.msd_estimation import (
+    _var_cve_known_var,
+    _var_cve_unknown_var,
     _msd_diffusion_covariance,
     _diffusion_ols,
     _cve,
@@ -399,3 +401,43 @@ def test_estimate_diffusion_cve(
         assert diffusion_est.method == "cve"
         assert diffusion_est.unit == "mu^2/s"
         assert diffusion_est._unit_label == r"$\mu^2/s$"
+
+
+@pytest.mark.parametrize(
+    "diffusion_constant,variance_loc,variance_variance_loc,dt,num_points,blur_constant,avg_frame_steps,ref_value_known,ref_value_unknown",
+    [
+        (2.0, 0.0001, 0.00005, 0.1, 50, 0, 0.9, 0.16635069135802472, 0.48658494024691357),
+        (2.0, 0.0002, 0.0001, 0.1, 50, 0, 0.9, 0.17270153086419754, 0.4867699832098765),
+        (2.0, 0.0001, 0.00005, 0.2, 50, 0, 0.9, 0.16163211728395063, 0.4864924572839506),
+        (2.0, 0.0001, 0.00005, 0.1, 20, 0, 0.9, 0.40661746913580243, 1.2404890246913578),
+        (2.0, 0.0001, 0.00005, 0.1, 50, 0.3, 0.9, 0.5355562222222221, 0.3385505698765432),
+        (2.0, 0.0001, 0.00005, 0.1, 50, 0, 1.0, 0.16516005999999997, 0.48656644159999995),
+        (2.5, 0.0001, 0.00005, 0.1, 50, 0, 0.9, 0.2563951358024691, 0.7602311624691358),
+        (0, 0.0001, 0.00005, 0.1, 50, 0, 0.9, 0.006172913580246913, 5.1358024691358016e-08),
+    ],
+)
+def test_cve_variances(
+    diffusion_constant,
+    variance_loc,
+    variance_variance_loc,
+    dt,
+    num_points,
+    blur_constant,
+    avg_frame_steps,
+    ref_value_known,
+    ref_value_unknown,
+):
+    shared_pars = {
+        "diffusion_constant": diffusion_constant,
+        "variance_loc": variance_loc,
+        "dt": dt,
+        "num_points": num_points,
+        "blur_constant": blur_constant,
+        "avg_frame_steps": avg_frame_steps,
+    }
+    np.testing.assert_allclose(
+        _var_cve_known_var(**shared_pars, variance_variance_loc=variance_variance_loc),
+        ref_value_known,
+    )
+
+    np.testing.assert_allclose(_var_cve_unknown_var(**shared_pars), ref_value_unknown)

@@ -492,12 +492,13 @@ def _var_cve_unknown_var(
            diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
            022726.
     """
-    epsilon = variance_loc / (diffusion_constant * dt) - 2.0 * blur_constant
-    numerator = 6.0 * avg_frame_steps**2 + 4.0 * epsilon * avg_frame_steps + 2.0 * epsilon**2
+    epsilon = variance_loc / dt - 2.0 * blur_constant * diffusion_constant
+    avg_diff = avg_frame_steps * diffusion_constant
+    numerator = 6.0 * avg_diff**2 + 4.0 * epsilon * avg_diff + 2.0 * epsilon**2
     denominator = num_points * avg_frame_steps**2
     term1 = numerator / denominator
-    term2 = (4.0 * (avg_frame_steps + epsilon) ** 2) / (num_points**2 * avg_frame_steps**2)
-    return (term1 + term2) * diffusion_constant**2
+    term2 = 4.0 * (avg_diff + epsilon) ** 2 / (num_points**2 * avg_frame_steps**2)
+    return term1 + term2
 
 
 def _var_cve_known_var(
@@ -542,11 +543,10 @@ def _var_cve_known_var(
     .. [2] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
            particles. Physical Review E, 94(2), 022401.
     """
-    epsilon = variance_loc / (diffusion_constant * dt) - 2.0 * blur_constant
+    epsilon = variance_loc / dt - 2.0 * blur_constant * diffusion_constant
     blur_term = (avg_frame_steps - 2.0 * blur_constant) ** 2
-    numerator = diffusion_constant**2 * (
-        2.0 * avg_frame_steps**2 + 4.0 * epsilon * avg_frame_steps + 3.0 * epsilon**2
-    )
+    avg_diff = avg_frame_steps * diffusion_constant
+    numerator = 2.0 * avg_diff**2 + 4.0 * epsilon * avg_diff + 3.0 * epsilon**2
     denominator = num_points * blur_term
     term1 = numerator / denominator
     term2 = variance_variance_loc / (blur_term * dt**2)
