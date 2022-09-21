@@ -16,8 +16,11 @@ class DiffusionEstimate:
     std_err : float
         Standard error.
 
-        Note: while this provides some measure of uncertainty, these estimates are expected to be
-        biased and should not be used to weight multiple diffusion estimates!
+        Note: While this provides some measure of uncertainty, the estimate should not be used for
+        calculating the weighted mean of multiple tracks. This is to prevent complications such as
+        bias due to correlations between the estimated parameters and estimated variances. Instead,
+        when calculating the weighted mean of estimates from time series of different lengths, the
+        length :math:`N` of a time series should be used as weight, since it is known exactly.
     num_lags : int
         Number of lags used to compute this estimate.
     num_points : int
@@ -43,14 +46,17 @@ class DiffusionEstimate:
 
 
 def calculate_msd(frame_idx, position, max_lag):
-    """Estimate the Mean Square Displacement (MSD) for various time lags.
+    r"""Estimate the Mean Squared Displacement (MSD) for various time lags.
 
-    The estimator for the MSD (rho) is defined as:
+    The estimator for the MSD (:math:`\rho`) is defined as:
 
-      rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+    .. math::
 
-    here N refers to the total frames, n to the lag time and r_i the spatial position at lag i.
-    This function produces a list of lag times and mean squared displacements for those lag times.
+      \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n}\left(r_{i+n} - r_{i}\right)^2
+
+    here :math:`N` refers to the total frames, :math:`n` to the lag time and :math:`r_i` to the
+    spatial position at lag :math:`i`. This function produces a list of lag times and mean squared
+    displacements for those lag times.
 
     Parameters
     ----------
@@ -80,7 +86,7 @@ def calculate_msd(frame_idx, position, max_lag):
 def _msd_diffusion_covariance(max_lags, n, intercept, slope):
     """Covariance matrix for the mean squared displacements.
 
-    Equation 8a from [2].
+    Equation 8a from Bullerjahn et al [1]_.
 
     Parameters
     ----------
@@ -95,7 +101,7 @@ def _msd_diffusion_covariance(max_lags, n, intercept, slope):
 
     References
     ----------
-    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+    .. [1] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
            self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
            Physics, 153(2), 024116.
     """
@@ -126,7 +132,7 @@ def _msd_diffusion_covariance(max_lags, n, intercept, slope):
 
 
 def _diffusion_ols(mean_squared_displacements, num_points):
-    """Estimate the intercept, slope and standard deviation of the slope based on the msd
+    """Estimate the intercept, slope and standard deviation of the slope based on the msd [2]_
 
     Parameters
     ----------
@@ -205,7 +211,7 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
     """Estimate the intercept, slope and standard deviation of the slope based on the msd
 
     This method takes into account the covariance matrix and thereby does not suffer from including
-    more lags than the optimal number of lags.
+    more lags than the optimal number of lags [3]_.
 
     Parameters
     ----------
@@ -220,14 +226,14 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
 
     References
     ----------
-    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+    .. [3] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
            self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
            Physics, 153(2), 024116.
     """
-    # Eq. A1a from Appendix A of [2].
+    # Eq. A1a from Appendix A of [3].
     num_lags = len(mean_squared_displacements)
 
-    # Fetch initial guess for the iterative refinement (Appendix C from [2]).
+    # Fetch initial guess for the iterative refinement (Appendix C from [3]).
     intercept = 2.0 * mean_squared_displacements[0] - mean_squared_displacements[1]
     slope = mean_squared_displacements[1] - mean_squared_displacements[0]
 
@@ -243,7 +249,7 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
         covariance_matrix = _msd_diffusion_covariance(num_lags, num_points, intercept, slope)
 
         # Solve generalized least squares problem using the current estimate for the covariance
-        # matrix (Equation 10 from [2]).
+        # matrix (Equation 10 from [3]).
         try:
             inverse_cov = np.linalg.inv(covariance_matrix)
         except np.linalg.LinAlgError:
@@ -271,28 +277,34 @@ def estimate_diffusion_constant_simple(
     unit="au",
     unit_label="au",
 ):
-    """Estimate diffusion constant
+    r"""Estimate diffusion constant
 
-    The estimator for the MSD (rho) is defined as:
+    The estimator for the MSD (:math:`\rho`) is defined as:
 
-      rho_n = (1 / (N-n)) sum_{i=1}^{N-n}(r_{i+n} - r_{i})^2
+    .. math::
+
+        \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n}\left(r_{i+n} - r_{i}\right)^2
 
     In a diffusion problem, the MSD can be fitted to a linear curve.
 
-        intercept = 2 * d * (sigma**2 - 2 * R * D * delta_t)
-        slope = 2 * d * D * delta_t
+    .. math::
 
-    Here d is the dimensionality of the problem. D is the diffusion constant. R is a motion blur
-    constant. delta_t is the time step and sigma represents the dynamic localization error.
+        intercept =& 2 d \left(\sigma^2 - 2 R D \Delta t\right)
+
+        slope =& 2 d D \Delta t
+
+    Here :math:`d` is the dimensionality of the problem. :math:`D` is the diffusion constant.
+    :math:`R` is a motion blur constant. :math:`\Delta t` is the time step and sigma represents the
+    dynamic localization error.
 
     One aspect that is import to consider is that this estimator uses every data point multiple
-    times. As a consequence the elements of rho_n are highly correlated. This means that
+    times. As a consequence the elements of :math:`\rho_n` are highly correlated. This means that
     including more points doesn't necessarily make the estimates better and can actually make
     the estimate worse.
 
     There are two ways around this. Either you determine an optimal number of points to use
-    in the estimation procedure (ols) [1] or you take into account the covariances present in
-    the mean squared difference estimates (gls) [2].
+    in the estimation procedure (ols) [4]_ or you take into account the covariances present in
+    the mean squared difference estimates (gls) [5]_.
 
     Note that this estimation procedure should only be used for pure diffusion in the absence
     of drift.
@@ -309,12 +321,12 @@ def estimate_diffusion_constant_simple(
         Number of lags to include. When omitted, the method will choose an appropriate number
         of lags to use.
         When the method chosen is "ols" an optimal number of lags is estimated as determined by
-        [1]. When the method is set to "gls" all lags are included.
+        [4]_. When the method is set to "gls" all lags are included.
     method : str
         Valid options are "ols" and "gls'.
 
-        - "ols" : Ordinary least squares [1]. Determines optimal number of lags.
-        - "gls" : Generalized least squares [2]. Takes into account covariance matrix (slower).
+        - "ols" : Ordinary least squares [4]_. Determines optimal number of lags.
+        - "gls" : Generalized least squares [5]_. Takes into account covariance matrix (slower).
     unit : str
         Unit of the diffusion constant.
     unit_label : str
@@ -322,9 +334,9 @@ def estimate_diffusion_constant_simple(
 
     References
     ----------
-    .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+    .. [4] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
            single-particle tracking. Physical Review E, 85(6), 061916.
-    .. [2] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
+    .. [5] Bullerjahn, J. T., von Bülow, S., & Hummer, G. (2020). Optimal estimates of
            self-diffusion coefficients from molecular dynamics simulations. The Journal of Chemical
            Physics, 153(2), 024116.
     """
@@ -355,11 +367,13 @@ def estimate_diffusion_constant_simple(
 
 
 def calculate_localization_error(frame_lags, msd):
-    """Determines the localization error, a metric used in the computation of the optimal number
+    r"""Determines the localization error, a metric used in the computation of the optimal number
     of points to include in the ordinary least squares estimate. The localization error is defined
     as:
 
-        localization_error = intercept / slope = sigma**2 / (D * delta_t) - 2 * R
+    .. math::
+
+        localization\_error = \frac{intercept}{slope} = \frac{sigma^2}{D \Delta t} - 2 R
 
     Parameters
     ----------
@@ -382,11 +396,12 @@ def calculate_localization_error(frame_lags, msd):
 
 def optimal_points(localization_error, num_points):
     """Empirical relationship described in Michalet et al for determining optimal number of points
-    to estimate slope or intercept. These equations minimize the relative error. See [1] for more
-    information.
+    to estimate slope or intercept. These equations [6]_ minimize the relative error.
 
-    1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-    single-particle tracking. Physical Review E, 85(6), 061916.
+    References
+    ----------
+    .. [6] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+           single-particle tracking. Physical Review E, 85(6), 061916.
     """
     if num_points <= 4:
         raise RuntimeError(
@@ -412,16 +427,18 @@ def optimal_points(localization_error, num_points):
 
 
 def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
-    """Calculate optimal number of points to include in the diffusion estimate according to [1].
+    """Calculate optimal number of points to include in the diffusion estimate according to [7]_.
 
     Including more lags than necessary in an ordinary least squares estimate leads to excessive
-    variance in the estimator due to the samples going into the MSD being highly correlated. The
-    equations in [1] provide a heuristic for determining the optimal number of points for different
-    diffusion constants based on theoretical considerations. For more information, please refer
-    to the paper.
+    variance in the estimator due to the samples going into the MSD being highly correlated.
+    Michalet et al. [7]_ provide a heuristic for determining the optimal number of points for
+    different diffusion constants based on theoretical considerations. For more information, please
+    refer to the paper.
 
-    1) Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
-    single-particle tracking. Physical Review E, 85(6), 061916.
+    References
+    ----------
+    .. [7] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+           single-particle tracking. Physical Review E, 85(6), 061916.
     """
     if not np.issubdtype(frame_idx.dtype, np.integer):
         raise TypeError("Frame indices need to be integer")
@@ -455,18 +472,14 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
 
 
 def _var_cve_unknown_var(
-    diffusion_constant: float,
-    variance_loc: float,
-    dt: float,
-    num_points: int,
-    blur_constant: float = 0,
-    avg_frame_steps: float = 1,
+    diffusion_constant, variance_loc, dt, num_points, blur_constant=0, avg_frame_steps=1
 ) -> float:
-    """Expected variance of the diffusion estimate obtained with CVE.
+    r"""Expected variance of the diffusion estimate obtained with CVE when the localization
+    variance is not known a priori.
 
     The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
-    This function is based on eqn 22 from Vestergaard et al [2] adapted for 1D. See also eqn 17 from
-    Vestergaard et al [1].
+    This function is based on equation 22 from Vestergaard [8]_ adapted for 1D. See also
+    equation 17 from Vestergaard [9]_.
 
     Parameters
     ----------
@@ -483,15 +496,24 @@ def _var_cve_unknown_var(
         more information.
     avg_frame_steps : float
         Average frame steps. This number is the average of the time between two localizations in
-        frames mean(delta time between frame / frame timestep). If all frames had successful
-        localization, this constant will be 1.
+        frames. This is given by:
+
+        .. math::
+
+            \frac{1}{N} \sum_{i=1}^{N_{frames - 1}} \frac{t_{i+1} - t_{i}}{dt}
+
+        where :math:`dt` is the time step. If all frames had successful localization, this constant
+        will be 1 [9]_.
 
     References
     ----------
-    .. [1] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+    .. [8] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
+           particles. Physical Review E, 94(2), 022401.
+    .. [9] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
            diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
            022726.
     """
+    # Note that it uses a different definition of epsilon to circumvent a division by zero for D=0.
     epsilon = variance_loc / dt - 2.0 * blur_constant * diffusion_constant
     avg_diff = avg_frame_steps * diffusion_constant
     numerator = 6.0 * avg_diff**2 + 4.0 * epsilon * avg_diff + 2.0 * epsilon**2
@@ -502,18 +524,20 @@ def _var_cve_unknown_var(
 
 
 def _var_cve_known_var(
-    diffusion_constant: float,
-    variance_loc: float,
-    variance_variance_loc: float,
-    dt: float,
-    num_points: int,
-    blur_constant: float = 0,
-    avg_frame_steps: float = 1,
+    diffusion_constant,
+    variance_loc,
+    variance_variance_loc,
+    dt,
+    num_points,
+    blur_constant=0,
+    avg_frame_steps=1,
 ) -> float:
-    """Expected variance of the diffusion estimate obtained with CVE.
+    r"""Expected variance of the diffusion estimate obtained with CVE when the localization
+    variance is known a-priori.
 
     The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
-    This function is based on eqn 24 from Vestergaard et al [2], but adapted for 1D.
+    This function is based on equation 24 from Vestergaard [10]_ adapted for 1D. See also equation
+    18 from Vestergaard [11]_.
 
     Parameters
     ----------
@@ -532,17 +556,24 @@ def _var_cve_known_var(
         more information.
     avg_frame_steps : float
         Average frame steps. This number is the average of the time between two localizations in
-        frames mean(delta time between frame / frame timestep). If all frames had successful
-        localization, this constant will be 1 [2].
+        frames. This is given by:
+
+        .. math::
+
+            \frac{1}{N} \sum_{i=1}^{N_{frames - 1}} \frac{t_{i+1} - t_{i}}{dt}
+
+        where :math:`dt` is the time step. If all frames had successful localization, this constant
+        will be 1 [10]_.
 
     References
     ----------
-    .. [1] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
-           diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
-           022726.
-    .. [2] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
-           particles. Physical Review E, 94(2), 022401.
+    .. [10] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
+            particles. Physical Review E, 94(2), 022401.
+    .. [11] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+            diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+            022726.
     """
+    # Note that it uses a different definition of epsilon to circumvent a division by zero for D=0.
     epsilon = variance_loc / dt - 2.0 * blur_constant * diffusion_constant
     blur_term = (avg_frame_steps - 2.0 * blur_constant) ** 2
     avg_diff = avg_frame_steps * diffusion_constant
@@ -554,28 +585,15 @@ def _var_cve_known_var(
 
 
 def _cve(
-    frame_indices: npt.ArrayLike,
-    x: npt.ArrayLike,
-    dt: float,
-    blur_constant: float = 0,
-    variance_loc: Optional[float] = None,
-    variance_variance_loc: Optional[float] = None,
+    frame_indices, x, dt, blur_constant=0, variance_loc=None, variance_variance_loc=None
 ) -> tuple:
-    """Covariance based estimator.
+    r"""Covariance based estimator.
 
     The covariance-based diffusion estimator provides a simple unbiased estimator of diffusion.
-    This estimator was introduced in the work of Vestergaard et al [1]. The correction for
-    missing data was introduced in [2].
+    This estimator was introduced in the work of Vestergaard [12]_. The correction for missing
+    data was introduced in [13]_.
 
     Note that this estimator is only valid in the case of pure diffusion without drift.
-
-    References
-    ----------
-    .. [1] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
-           diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
-           022726.
-    .. [2] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
-           particles. Physical Review E, 94(2), 022401.
 
     Parameters
     ----------
@@ -588,24 +606,26 @@ def _cve(
     blur_constant : float
         Motion blur coefficient. Should be between 0 and 1/4.
 
-        The normalized shutter function is defined as c(t), where c(t) represents whether the
-        shutter is open or closed. c(t) is normalized w.r.t. area. For no motion blur,
-        c(t) = delta(t_exposure), whereas for a constantly open shutter it is defined as
-        c(t) = 1 / dt.
+        The normalized shutter function is defined as :math:`c(t)`, where :math:`c(t)` represents
+        whether the shutter is open or closed. :math:`c(t)` is normalized w.r.t. area. For no
+        motion blur, :math:`c(t) = \delta(t_{exposure})`, whereas for a constantly open shutter it is
+        defined as :math:`c(t) = 1 / \Delta t`.
 
-        With c(t) defined as before, the motion blur constant is defined as:
+        With :math:`c(t)` defined as before, the motion blur constant is defined as:
 
         .. math::
+
             R = \frac{1}{\Delta t} \int_{0}^{\Delta t}S(t) \left(1 - S(t)\right)dt
 
         with
 
         .. math::
+
             S(t) = \int_{0}^{t} c(t') dt'
 
-        For no motion blur, we obtain: R = 0, while a continuously open shutter over the exposure
-        time results in R = 1/6. Note that when estimating both localization uncertainty and
-        the diffusion constant, the motion blur factor has no effect on the estimate of the
+        When there is no motion blur, we obtain: R = 0, whereas a continuously open shutter over the
+        exposure time results in R = 1/6. Note that when estimating both localization uncertainty
+        and the diffusion constant, the motion blur factor has no effect on the estimate of the
         diffusion constant itself, but it does affect the calculated uncertainties. In the case of
         a provided localization uncertainty, it does impact the estimate of the diffusion constant.
     variance_loc : float
@@ -618,13 +638,25 @@ def _cve(
     With the SNR defined as:
 
     .. math::
+
         \sqrt{D \Delta t} / \sigma
 
-    With D the diffusion constant and :math:`\sigma`
-    This method requires SNR > 1. Below SNR = 1 it degrades rapidly.
+    With :math:`D` the diffusion constant and :math:`\sigma`
+    This method requires SNR > 1. Below SNR = 1 it degrades rapidly [12]_.
+
+    References
+    ----------
+    .. [12] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+            diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+            022726.
+    .. [13] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
+            particles. Physical Review E, 94(2), 022401.
     """
-    if not 0 <= blur_constant < 0.25:
+    if not 0 <= blur_constant <= 0.25:
         raise ValueError("Motion blur constant should be between 0 and 1/4")
+
+    if len(x) < 3:
+        raise RuntimeError("Insufficient intervals for using the CVE")
 
     # Determine the average step size
     average_frame_step = np.mean(np.diff(frame_indices))
@@ -633,15 +665,12 @@ def _cve(
     dx = np.diff(x)
     mean_dx_squared = np.mean(dx**2)
 
-    if len(x) < 3:
-        raise RuntimeError("Insufficient intervals for using the CVE")
-
     if not variance_loc:
-        # Estimate the variance based on this frame
+        # Estimate the variance based on this track
         mean_dx_consecutive = np.mean(dx[1:] * dx[:-1])
-        # Equation 21 from [2] adapted for 1D.
+        # Equation 14 from [12] and 21 from [13] adapted for 1D.
         diffusion_constant = mean_dx_squared / (2 * avg_dt) + mean_dx_consecutive / avg_dt
-        # Equation 15 from [1]. Note that static loc uncertainty is not affected by frame skipping.
+        # Equation 15 from [12]. Note that static loc uncertainty is not affected by frame skipping.
         variance_loc = (
             blur_constant * mean_dx_squared + (2 * blur_constant - 1) * mean_dx_consecutive
         )
@@ -649,7 +678,7 @@ def _cve(
             diffusion_constant, variance_loc, dt, len(x), blur_constant, average_frame_step
         )
     else:
-        # We know the variance in advance. Equation 23 from [2] adapted for 1D.
+        # We know the variance in advance. Equation 16 from [12] and 23 from [13] adapted for 1D.
         diffusion_constant = (mean_dx_squared - 2.0 * variance_loc) / (
             2.0 * (avg_dt - 2.0 * blur_constant * dt)
         )
@@ -667,12 +696,7 @@ def _cve(
 
 
 def estimate_diffusion_cve(
-    frame_idx: npt.ArrayLike,
-    coordinate: npt.ArrayLike,
-    dt: float,
-    blur_constant: float,
-    unit: str,
-    unit_label: str,
+    frame_idx, coordinate, dt, blur_constant, unit, unit_label
 ) -> DiffusionEstimate:
     """Estimate diffusion constant based on covariance estimator
 
@@ -695,7 +719,6 @@ def estimate_diffusion_cve(
         Unit in TeX format used for plotting labels.
     """
 
-    # We hardcode the blur constant for confocal for now (no motion blur)
     diffusion, diffusion_variance, _ = _cve(frame_idx, coordinate, dt, blur_constant)
     return DiffusionEstimate(
         diffusion,
