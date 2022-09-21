@@ -427,6 +427,7 @@ class KymoTrack:
         }
 
         if method == "cve":
+            # We hardcode the blur constant for confocal for now (no motion blur)
             return estimate_diffusion_cve(
                 frame_idx, positions, self._line_time_seconds, **unit_labels, blur_constant=0
             )
