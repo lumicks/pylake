@@ -87,10 +87,10 @@ And fit the model::
 Set up the twistable worm like chain model
 ------------------------------------------
 
-By default, the `twlc_distance` model provided with pylake outputs the distance as a function of force. However, we
+By default, the :func:`~lumicks.pylake.twlc_distance()` model provided with pylake outputs the distance as a function of force. However, we
 typically want to fit force as a function of distance. To achieve this, we can invert the model using its `invert`
 function at the cost of slowing down the fit. Alternatively, we have a faster way of achieving this in pylake, by
-using the dedicated `twlc_force` model::
+using the dedicated :func:`~lumicks.pylake.twlc_force()` model::
 
     m_dna = lk.twlc_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_twlc = lk.FdFit(m_dna)

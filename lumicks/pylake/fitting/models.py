@@ -361,8 +361,8 @@ def ewlc_odijk_force(name):
     """Odijk's Extensible Worm-Like Chain model with force as dependent variable
 
     Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_. Note that
-    this implementation was analytically solved and is significantly faster than fitting the
-    model obtained with `lk.ewlc_odijk_distance("name").invert()`.
+    this implementation was analytically solved and is significantly faster than fitting the model
+    obtained with `lumicks.pylake.ewlc_odijk_distance("name").invert()`.
 
     Parameters
     ----------

@@ -329,7 +329,7 @@ How to do active calibration in Pylake
 
 Using `pylake`, the procedure to use active calibration is not very different from passive calibration.
 However, it does require some additional data channels as inputs.
-Instead of using the :class:`~.PassiveCalibrationModel` presented in the previous section, we now use the :class:`ActiveCalibrationModel`.
+Instead of using the :class:`~.PassiveCalibrationModel` presented in the previous section, we now use the :class:`~lumicks.pylake.ActiveCalibrationModel`.
 
 In this tutorial, we're going to assume the nanostage was used as driving input::
 

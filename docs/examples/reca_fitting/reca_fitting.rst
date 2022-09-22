@@ -49,7 +49,7 @@ For this we want to use an inverted worm-like chain model. We also include an es
 
     model = lk.ewlc_odijk_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
 
-We would like to fit this model to some data. So let's make a `FdFit`::
+We would like to fit this model to some data. So let's make a :class:`~lumicks.pylake.FdFit`::
 
     fit = lk.FdFit(model)
 
@@ -66,9 +66,9 @@ We have to be careful when loading the data, as the Odijk worm-like chain model 
 (0 - 30 pN). That means we'll have to crop out the section of the data that's outside this range. We can do this by
 creating a logical mask which is true for the data we wish to include and false for the data we wish to exclude.
 
-The data in an `FdCurve` can be referenced by invoking the f and d attribute for force and distance respectively. This
-returns `Slice` objects, from which we can extract the data by calling `.data`. Since we have to do this twice, let's
-make a little function that extracts the data from the `FdCurve` and filters it::
+The data in an :class:`~lumicks.pylake.fdcurve.FdCurve` can be referenced by invoking the f and d attribute for force and distance respectively. This
+returns :class:`~lumicks.pylake.channel.Slice` objects, from which we can extract the data by calling `.data`. Since we have to do this twice, let's
+make a little function that extracts the data from the :class:`~lumicks.pylake.fdcurve.FdCurve` and filters it::
 
     def extract_data(fdcurve, f_min, f_max):
         f = fdcurve.f.data
@@ -79,7 +79,7 @@ make a little function that extracts the data from the `FdCurve` and filters it:
     force_control, distance_control = extract_data(control_curve, 0, 30)
     force_reca, distance_reca = extract_data(reca_curve, 0, 30)
 
-We can load data into the `FdFit` by using the function `add_data`::
+We can load data into the :class:`~lumicks.pylake.FdFit` by using the function `add_data`::
 
     fit.add_data("Control", force_control, distance_control)
 
@@ -141,7 +141,7 @@ Everything is set up now and we can proceed to fit the model::
 Plot the fit
 ------------
 
-Calling the plot function on the `FdFit` (i.e. `fit.plot()`) plots the fit alongside the data::
+Calling the plot function on the :class:`~lumicks.pylake.FdFit` (i.e. `fit.plot()`) plots the fit alongside the data::
 
     fit.plot()
     plt.ylabel("Force [pN]")
@@ -297,7 +297,7 @@ A contour length per point
 --------------------------
 
 Now comes the more challenging part. Inverting the model for contour length. Luckily, this procedure has already been
-implemented in Pylake. The function `parameter_trace` inverts the model for a particular model parameter. Let's have
+implemented in Pylake. The function :func:`~lumicks.pylake.parameter_trace()` inverts the model for a particular model parameter. Let's have
 a look at the parameters it needs. We can look this up in the documentation for :func:`~lumicks.pylake.parameter_trace`
 or invoke help::
 

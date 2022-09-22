@@ -66,7 +66,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
     @classmethod
     def from_h5py(cls, h5py_file):
-        """Directly load an existing `h5py.File`"""
+        """Directly load an existing `h5py.File <https://docs.h5py.org/en/latest/high/file.html>`_"""
         new_file = cls.__new__(cls)
         new_file.h5 = h5py_file
         new_file._check_file_format()
@@ -267,22 +267,27 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
     @property
     def kymos(self) -> Dict[str, Kymo]:
+        """Kymos stored in the file"""
         return self._get_object_dictionary("Kymograph", Kymo)
 
     @property
     def point_scans(self) -> Dict[str, Scan]:
+        """Point Scans stored in the file"""
         return self._get_object_dictionary("Point Scan", PointScan)
 
     @property
     def scans(self) -> Dict[str, Scan]:
+        """Confocal Scans stored in the file"""
         return self._get_object_dictionary("Scan", Scan)
 
     @property
     def fdcurves(self) -> Dict[str, FdCurve]:
+        """FdCurves stored in the file"""
         return self._get_object_dictionary("FD Curve", FdCurve)
 
     @property
     def markers(self) -> Dict[str, Marker]:
+        """Markers stored in the file"""
         return self._get_object_dictionary("Marker", Marker)
 
     def save_as(self, filename, compression_level=5, omit_data={}):

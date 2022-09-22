@@ -22,9 +22,10 @@ regions using a widget. Let's load the file and run the widget::
 
 .. image:: slice_widget.png
 
-You can use the left mouse button to select time ranges (by clicking the left and then the right boundary of the region
-you wish to select). The right mouse button can be used to remove previous selections. We can access the selected
-timestamps of the ranges we selected by invoking `selector.ranges`::
+You can use the left mouse button to select time ranges (by clicking the left and then the right
+boundary of the region you wish to select). The right mouse button can be used to remove previous
+selections. We can access the selected timestamps of the ranges we selected by invoking
+:attr:`selector.ranges <lumicks.pylake.FdRangeSelector.ranges>`::
 
     >>> selector.ranges
     [array([1572279165841737600, 1572279191523516800], dtype=int64),
@@ -71,8 +72,9 @@ These timestamps can directly be used to extract the relevant data::
 
 .. image:: fd_widget2.png
 
-This produces a separate plot for each selection. There's also a more direct way to get these plots, namely through
-`FdRangeSelector.fdcurves`. This gives you an `FdCurve` for each section you selected::
+This produces a separate plot for each selection. There's also a more direct way to get these
+plots, namely through :attr:`FdRangeSelector.fdcurves <lumicks.pylake.FdRangeSelector.fdcurves>`.
+This gives you an :class:`~lumicks.pylake.fdcurve.FdCurve` for each section you selected::
 
     for fdcurve in selector.fdcurves["Fd pull #6"]:
         plt.figure()
@@ -117,7 +119,7 @@ It is also possible to select a portion of an F,d curve based on distance::
 
 .. image:: fd_dist_widget.png
 
-Again, we can retrieve the selected data just as with `FdRangeSelector`::
+Again, we can retrieve the selected data just as with :class:`~lumicks.pylake.FdRangeSelector`::
 
     original = fdcurves["Fd pull #6"]
     sliced = selector.fdcurves["Fd pull #6"][0]
@@ -142,7 +144,7 @@ trace falling slightly outside of the thresholds, as illustrated below:
 .. image:: fd_dist_widget3a.png
 
 To avoid premature truncation caused by this noise, there is an additional `max_gap` keyword argument
-to `FdDistanceRangeSelector` that can be used to adjust the acceptable length of noise gaps. The default values
+to :class:`~lumicks.pylake.FdDistanceRangeSelector` that can be used to adjust the acceptable length of noise gaps. The default values
 is zero, such that all data points are guaranteed to fall within the selected distance range. The effect of this
 argument is shown below for an F,d curve sliced with the same distance thresholds:
 
@@ -161,7 +163,7 @@ The selector widgets can also be easily accessed from single F,d curve instances
 Cropping and Rotating Image Stacks
 ----------------------------------
 
-You can interactively define the location of a tether for a `CorrelatedStack` by using::
+You can interactively define the location of a tether for a :class:`~lumicks.pylake.correlated_stack.CorrelatedStack` by using::
 
     stack = lk.CorrelatedStack("cas9_wf.tiff")
     editor = stack.crop_and_rotate()
@@ -185,9 +187,12 @@ you can edit the shape by right-clicking and dragging the various handles.
 
 You can also use the mouse wheel to scroll through the individual frames (if using Jupyter Lab, hold `Shift` while scrolling).
 
-*Note that* `CorrelatedStack.crop_and_rotate()` *accepts all of the arguments that can be used for* `CorrelatedStack.plot()`.
+*Note that* :meth:`CorrelatedStack.crop_and_rotate()
+<lumicks.pylake.correlated_stack.CorrelatedStack.crop_and_rotate()>` *accepts all of the arguments
+that can be used for* :meth:`CorrelatedStack.plot()
+<lumicks.pylake.correlated_stack.CorrelatedStack.plot()>`.
 
-To obtain a copy of the edited `CorrelatedStack` object, use::
+To obtain a copy of the edited :class:`~lumicks.pylake.correlated_stack.CorrelatedStack` object, use::
 
     new_stack = editor.image
     new_stack.plot()

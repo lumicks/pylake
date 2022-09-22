@@ -118,7 +118,7 @@ class Fit:
 
     @property
     def params(self):
-        """Fit parameters. See also `pylake.fitting.Params`"""
+        """Fit parameters. See also `pylake.fitting.parameters.Params`"""
         self._rebuild()
         return self._params
 
@@ -132,8 +132,8 @@ class Fit:
         return dirty
 
     def _rebuild(self):
-        """Checks whether the model state is up to date. Any user facing methods should ideally check whether the model
-        needs to be rebuilt."""
+        """Checks whether the model state is up to date. Any user facing methods should ideally
+        check whether the model needs to be rebuilt."""
         if self.dirty:
             self._build_fit()
 
@@ -141,8 +141,8 @@ class Fit:
         self._built = False
 
     def _build_fit(self):
-        """This function generates the global parameter list from the parameters of the individual sub models.
-        It also generates unique conditions from the data specification."""
+        """This function generates the global parameter list from the parameters of the individual
+        sub models. It also generates unique conditions from the data specification."""
         all_parameter_names = [
             p for data_set in self.datasets.values() for p in data_set._transformed_params
         ]
@@ -443,7 +443,7 @@ class Fit:
             Show data.
         overrides : dict
             Parameter / value pairs which override parameter values in the current fit. Should be
-            a dict of `{str: float}` that provides values for parameters which should be set to
+            a dict of ``{str: float}`` that provides values for parameters which should be set to
             particular values in the plot.
         ``**kwargs``
             Forwarded to :func:`matplotlib.pyplot.plot`.

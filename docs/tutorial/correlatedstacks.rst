@@ -6,7 +6,7 @@ Correlated stacks
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
 Bluelake has the ability to export videos from the camera's.
-These videos can be opened and sliced using `CorrelatedStack`::
+These videos can be opened and sliced using :class:`~lumicks.pylake.correlated_stack.CorrelatedStack`::
 
     stack = lk.CorrelatedStack("wf.tiff")  # Loading a stack.
     stack_slice = stack[2:10]  # Grab frame 2 to 9
@@ -19,7 +19,8 @@ You can easily load multiple TIFF files by simply listing them consecutively::
 
     stack = lk.CorrelatedStack("wf.tiff", "wf2.tiff")  # Loading two tiff files in a single stack.
 
-You can quickly plot an individual frame using the `plot()` method::
+You can quickly plot an individual frame using the
+:meth:`~lumicks.pylake.correlated_stack.CorrelatedStack.plot()` method::
 
     stack.plot(frame=0, channel="rgb")
 
@@ -42,7 +43,7 @@ For example, a gamma adjustment of `2` to the red channel can be applied as foll
     stack.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile", gamma=[2, 1, 1]))
 
 To define the location of the tether between beads, supply the `(x, y)` pixel coordinates of the end points
-to the `define_tether()` method::
+to the :func:`~lumicks.pylake.correlated_stack.CorrelatedStack.define_tether()` method::
 
     stack = stack.define_tether((126, 193), (341, 200))
     stack.plot()
@@ -50,9 +51,11 @@ to the `define_tether()` method::
 
 .. image:: correlatedstack_tether.png
 
-Note, after defining a tether location the image is rotated such that the tether is horizontal in the field of view.
-You can also plot the overlay of the tether location using `plot_tether(**kwargs)`, which also accepts keyword
-arguments that are passed to `plt.plot()`.
+Note, after defining a tether location the image is rotated such that the tether is horizontal in
+the field of view. You can also plot the overlay of the tether location using
+:func:`plot_tether(**kwargs) <lumicks.pylake.correlated_stack.CorrelatedStack.plot_tether()>`,
+which also accepts keyword arguments that are passed to :func:`plt.plot()
+<matplotlib.pyplot.plot()>`.
 
 You can also spatially crop to select a smaller region of interest::
 
@@ -65,14 +68,16 @@ Alternatively, you can crop directly by slicing the stack::
 
     stack_roi = stack[:, 150:245, 45:420]
 
-Here the first index can be used to select a subset of frames and the second and third indices perform a cropping operation.
-Note how the axes are switched when compared to `crop_by_pixels` to follow the numpy convention (rows and then columns).
+Here the first index can be used to select a subset of frames and the second and third indices
+perform a cropping operation. Note how the axes are switched when compared to
+:meth:`~lumicks.pylake.correlated_stack.CorrelatedStack.crop_by_pixels()` to follow the numpy
+convention (rows and then columns).
 
 Cropping can be useful, for instance, after applying color alignment to RGB images as the edges
 can become corrupted due to interpolation artifacts.
 
-You can also plot only a single color channel. Note that here we pass some additional formatting arguments, which are
-forwarded to `plt.imshow()`::
+You can also plot only a single color channel. Note that here we pass some additional formatting
+arguments, which are forwarded to :func:`plt.imshow() <matplotlib.pyplot.imshow()>`::
 
     stack_roi.plot(channel="red", cmap="magma", adjustment=lk.ColorAdjustment(550, 800))
 
@@ -87,7 +92,8 @@ from Bluelake if available. This functionality can be turned off with the option
 
 .. image:: correlatedstack_raw.png
 
-You can obtain the image stack data as a `numpy` array using the `get_image()` method::
+You can obtain the image stack data as a :class:`numpy <numpy.ndarray>` array using the
+:meth:`~lumicks.pylake.correlated_stack.CorrelatedStack.get_image()` method::
 
     red_data = stack.get_image(channel="red") # shape = [n_frames, y_pixels, x_pixels]
     rgb_data = stack.get_image(channel="rgb") # shape = [n_frames, y_pixels, x_pixels, 3 channels]
@@ -105,7 +111,7 @@ Correlating force with the image stack
 --------------------------------------
 
 Quite often, it is interesting to correlate events on the camera's to `channel` data.
-To quickly explore the correlation between images in a `CorrelatedStack` and channel data
+To quickly explore the correlation between images in a :class:`~lumicks.pylake.correlated_stack.CorrelatedStack` and channel data
 you can use the following function::
 
     # Making a plot where force is correlated to images in the stack.
@@ -119,7 +125,7 @@ on the left graph to select a particular force. The corresponding video frame wi
 
 In some cases, additional processing may be needed, and we wish to have the data
 downsampled over the video frames. This can be done using the function `Slice.downsampled_over`
-using timestamps obtained from the `CorrelatedStack`::
+using timestamps obtained from the :class:`~lumicks.pylake.correlated_stack.CorrelatedStack`::
 
     # Determine the force trace averaged over frame 2...9.
     file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges())

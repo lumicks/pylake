@@ -6,15 +6,17 @@ Confocal images
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
 The following code uses scans as an example.
-Kymographs work the same way -- just substitute `file.scans` with `file.kymos`.
-To load an HDF5 file and lists all of the scans inside of it, run::
+Kymographs work the same way -- just substitute :attr:`file.scans <lumicks.pylake.File.scans>` with
+:attr:`file.kymos <lumicks.pylake.File.kymos>`. To load an HDF5 file and list all of the scans
+inside of it, run::
 
     import lumicks.pylake as lk
 
     file = lk.File("example.h5")
     list(file.scans)  # e.g. shows: "['reference', 'bleach', 'imaging']"
 
-Once again, `.scans` is a regular Python dictionary so we can easily iterate over it::
+Once again, :attr:`.scans <lumicks.pylake.File.scans>` is a regular Python dictionary so we can
+easily iterate over it::
 
     # Plot all scans in a file
     for name, scan in file.scans.items():
@@ -29,7 +31,7 @@ Or just pick a single one::
 Scan data and details
 ---------------------
 
-You can access the raw image data directly. For a `Scan` with only a single frame::
+You can access the raw image data directly. For a :class:`~lumicks.pylake.scan.Scan` with only a single frame::
 
     rgb = scan.get_image("rgb")  # matrix with `shape == (h, w, 3)`
     blue = scan.get_image("blue")  # single color so `shape == (h, w)`
@@ -51,7 +53,7 @@ We can also slice out a subset of frames from an image stack::
 
     sliced_scan = multiframe_scan[5:10]
 
-This will return a new `Scan` containing data equivalent to::
+This will return a new :class:`~lumicks.pylake.scan.Scan` containing data equivalent to::
 
     multiframe_scan.get_image("rgb")[5:10, :, :, :]
 
@@ -73,20 +75,30 @@ For an even lower-level look at data, the raw photon count samples can be access
 
 There are also several properties available for convenient access to the scan metadata:
 
-* `scan.center_point_um` provides a dictionary of the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field of view
-* `scan.size_um` provides a list of scan sizes in micrometers along the axes of the scan
-* `scan.pixelsize_um` provides the pixel size in micrometers
-* `scan.lines_per_frame` provides the number scanned lines in each frame (number of rows in the raw data array)
-* `scan.pixels_per_line` provides the number of pixels in each line of the scan (number of columns in the raw data array)
-* `scan.fast_axis` provides the fastest axis that was scanned (x or y)
-* `scan.num_frames` provides the number of frames available
-* `kymo.pixel_time_seconds` provides the pixel dwell time.
+* :attr:`scan.center_point_um <lumicks.pylake.scan.Scan.center_point_um>` provides a dictionary of
+  the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field
+  of view
+* :attr:`scan.size_um <lumicks.pylake.scan.Scan.size_um>` provides a list of scan sizes in
+  micrometers along the axes of the scan
+* :attr:`scan.pixelsize_um <lumicks.pylake.scan.Scan.pixelsize_um>` provides the pixel size in
+  micrometers
+* :attr:`scan.lines_per_frame <lumicks.pylake.scan.Scan.lines_per_frame>` provides the number
+  scanned lines in each frame (number of rows in the raw data array)
+* :attr:`scan.pixels_per_line <lumicks.pylake.scan.Scan.pixels_per_line>` provides the number of
+  pixels in each line of the scan (number of columns in the raw data array)
+* :attr:`scan.fast_axis <lumicks.pylake.scan.Scan.fast_axis>` provides the fastest axis that was
+  scanned (x or y)
+* :attr:`scan.num_frames <lumicks.pylake.scan.Scan.num_frames>` provides the number of frames
+  available
+* :attr:`kymo.pixel_time_seconds <lumicks.pylake.scan.Scan.pixel_time_seconds>` provides the pixel
+  dwell time.
 
 
 Plotting and Exporting
 ----------------------
 
-As shown above, there are convenience functions for plotting either the full RGB image or a single color channel.
+As shown above, there are convenience functions for plotting either the full RGB image or a single
+color channel::
 
     scan.plot(channel="red")
 

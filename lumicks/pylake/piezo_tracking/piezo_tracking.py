@@ -16,9 +16,9 @@ class DistanceCalibration:
 
         Parameters
         ----------
-        trap_position : lumicks.pylake.Slice
+        trap_position : Slice
             Trap position.
-        camera_distance : lumicks.pylake.Slice
+        camera_distance : Slice
             Camera distance as determined by Bluelake.
             NOTE: The distance data should already have the bead diameter subtracted by Bluelake.
         degree : int
@@ -80,7 +80,7 @@ class DistanceCalibration:
 
         Parameters
         ----------
-        calibration_file : pylake.File
+        calibration_file : lumicks.pylake.File
         degree : int
             Polynomial order.
         """
@@ -99,7 +99,7 @@ class PiezoTrackingCalibration:
     ):
         """Set up piezo tracking calibration
 
-        trap_calibration : pylake.DistanceCalibration
+        trap_calibration : DistanceCalibration
             Calibration from trap position to trap to trap distance.
         signs : tuple(float, float)
             Sign convention for forces (e.g. (1, -1) indicates that force2 is negative).
@@ -121,11 +121,11 @@ class PiezoTrackingCalibration:
 
         Parameters
         ----------
-        trap_position : pylake.channel.Slice
+        trap_position : Slice
             Trap position.
-        force1 : pylake.channel.Slice
+        force1 : Slice
             First force channel to use for piezo tracking.
-        force2 : pylake.channel.Slice
+        force2 : Slice
             Second force channel to use for piezo tracking.
         downsampling_factor : Optional[int]
             Downsampling factor.
@@ -158,11 +158,11 @@ class PiezoForceDistance:
     ):
         """Set up piezo force distance data
 
-        trap_calibration : pylake.DistanceCalibration
+        trap_calibration : DistanceCalibration
             Calibration from trap position to trap to trap distance.
-        baseline_force1 : pylake.ForceBaseline
+        baseline_force1 : ForceBaseline
             Baseline for force1 (optional)
-        baseline_force2 : pylake.ForceBaseline
+        baseline_force2 : ForceBaseline
             Baseline for force2 (optional)
         signs : tuple(float, float)
             Sign convention for forces (e.g. (1, -1) indicates that force2 is negative).
@@ -198,11 +198,11 @@ class PiezoForceDistance:
 
         Parameters
         ----------
-        trap_position : pylake.channel.Slice
+        trap_position : Slice
             Trap position.
-        force1 : pylake.channel.Slice
+        force1 : Slice
             First force channel to use for piezo tracking.
-        force2 : pylake.channel.Slice
+        force2 : Slice
             Second force channel to use for piezo tracking.
         trim : bool
             Trim regions outside the calibration range.

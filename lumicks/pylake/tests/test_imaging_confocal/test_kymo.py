@@ -373,8 +373,11 @@ def test_save_tiff(tmpdir_factory, test_kymos):
     kymo = test_kymos["Kymo1"]
     kymo.export_tiff(f"{tmpdir}/kymo1.tiff")
     assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
-
-    with pytest.warns(DeprecationWarning, match="This method has been renamed to `export_tiff`"):
+    match = (
+        r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
+        r"exporting to a different format."
+    )
+    with pytest.warns(DeprecationWarning, match=match):
         kymo.save_tiff(f"{tmpdir}/kymo2.tiff")
         assert stat(f"{tmpdir}/kymo2.tiff").st_size > 0
 

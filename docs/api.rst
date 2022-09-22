@@ -29,14 +29,14 @@ Force calibration
 
     PassiveCalibrationModel
     ActiveCalibrationModel
+    force_calibration.power_spectrum.PowerSpectrum
+    force_calibration.power_spectrum_calibration.CalibrationResults
 
     :template: function.rst
 
     calibrate_force
     calculate_power_spectrum
     fit_power_spectrum
-    force_calibration.power_spectrum.PowerSpectrum
-    force_calibration.power_spectrum_calibration.CalibrationResults
     viscosity_of_water
 
 

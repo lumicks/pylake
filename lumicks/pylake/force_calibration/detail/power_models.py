@@ -24,7 +24,7 @@ def fit_analytical_lorentzian(ps):
         - `fc` : corner frequency [Hz]
         - `D`: diffusion constant [V^2/s]
         - `sigma_fc`, `sigma_D`: 1-sigma confidence intervals for `fc` and `D`
-        - `ps_fit`: `PowerSpectrum` object with model fit
+        - `ps_fit`: :class:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum` object with model fit
 
         Note: returns None if the fit fails.
     """

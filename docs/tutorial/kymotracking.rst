@@ -49,7 +49,7 @@ use the region from 7 to 22 micrometer. Let's have a look at what that looks lik
     >>> plt.ylim([22, 7])
 
 If we zoom in a bit, we can see that our tracks in this image are about 0.3 microns wide, so let's set this as our
-`track_width`. Note that we invoked `plt.colorbar()` to add a little color legend here.
+`track_width`. Note that we invoked :func:`plt.colorbar() <matplotlib.pyplot.colorbar()>` to add a little color legend here.
 
 .. image:: kymo_zoom.png
 
@@ -121,7 +121,7 @@ an acceptable result.
 Maximum Likelihood Estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The function `refine_tracks_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
+The function :func:`~lumicks.pylake.refine_tracks_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
 to characterize both the expected peak shape and photonic noise of the observed signal, adapted from :cite:`mortensen2010gauloc`.
 For each frame in the kymograph, we fit a small region around the tracked peak to the data by maximizing the following likelihood function:
 
@@ -179,7 +179,8 @@ Computing the appropriate photons/pixel background considering a Poissonian nois
 
     offset = np.mean(kymo_cropped.green_image)
 
-The independently determined offset (in photons per pixel) can then be provided directly to `lk.refine_tracks_gaussian`::
+The independently determined offset (in photons per pixel) can then be provided directly to
+:func:`lk.refine_tracks_gaussian <lumicks.pylake.refine_tracks_gaussian()>`::
 
     refined = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
 
@@ -256,27 +257,31 @@ We can easily plot some histograms of the binding events located with the kymotr
 
 .. image:: kymo_bind_histogram_1.png
 
-Here, the `kind="binding"` argument indicates that we only wish to analyze the initial binding events (the first
-position of each track). We can optionally supply a `bins` argument, which is forwarded to `np.histogram()`.
-For instance, we can increase the number of bins from 10 (the default) to 50::
+Here, the `kind="binding"` argument indicates that we only wish to analyze the initial binding
+events (the first position of each track). We can optionally supply a `bins` argument, which is
+forwarded to :func:`np.histogram() <numpy.histogram()>`. For instance, we can increase the number
+of bins from 10 (the default) to 50::
 
     plt.figure()
     tracks.plot_binding_histogram("binding", bins=50)
 
 .. image:: kymo_bind_histogram_2.png
 
-When an integer is supplied to the `bins` argument, the full position range is used to calculate the bin edges (this is
-equivalent to using `np.histogram(data, bins=n, range=(0, max_position))`). This facilitates comparison of histograms calculated
-from different kymographs, as the absolute x-scale is dependent on the kymograph acquisition options, rather than the positions
-of the tracks. Alternatively, it is possible to supply a custom array of bin edges, as demonstrated below::
+When an integer is supplied to the `bins` argument, the full position range is used to calculate
+the bin edges (this is equivalent to using :func:`np.histogram(data, bins=n, range=(0,
+max_position)) <numpy.histogram()>`). This facilitates comparison of histograms calculated from
+different kymographs, as the absolute x-scale is dependent on the kymograph acquisition options,
+rather than the positions of the tracks. Alternatively, it is possible to supply a custom array of
+bin edges, as demonstrated below::
 
     plt.figure()
     tracks.plot_binding_histogram("kind=all", bins=np.linspace(12, 18, 75), fc="#dcdcdc", ec="tab:blue")
 
 .. image:: kymo_bind_histogram_3.png
 
-Notice that here we use `kind="all"` to include all of the bound positions for each track. This snippet also demonstrates
-how we can pass keyword arguments (forwarded to `plt.bar()`) to format the histogram.
+Notice that here we use `kind="all"` to include all of the bound positions for each track. This
+snippet also demonstrates how we can pass keyword arguments (forwarded to :func:`plt.bar()
+<matplotlib.pyplot.bar()>`) to format the histogram.
 
 
 Exporting kymograph tracks
@@ -488,7 +493,7 @@ To fit the bound dwelltime distribution to a single exponential (the simplest ca
 
     dwell = traces.fit_binding_times(n_components=1)
 
-This returns a `DwelltimeModel` object which contains information about the optimized model, such as the lifetime of the state in seconds::
+This returns a :class:`~lumicks.pylake.DwelltimeModel` object which contains information about the optimized model, such as the lifetime of the state in seconds::
 
     print(dwell.lifetimes)
 
@@ -501,6 +506,6 @@ We can also try a double exponential fit::
 For a detailed description of the optimization method and available attributes/methods see the Dwelltime Analysis section
 in :doc:`Population Dynamics </tutorial/population_dynamics>`.
 
-Note: the `min_observation_time` and `max_observation_time` arguments to the underlying `DwelltimeModel` are set automatically by this method.
+Note: the `min_observation_time` and `max_observation_time` arguments to the underlying :class:`~lumicks.pylake.DwelltimeModel` are set automatically by this method.
 The minimum length of the tracks depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
 Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.

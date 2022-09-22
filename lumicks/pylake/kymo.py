@@ -216,7 +216,7 @@ class Kymo(ConfocalImage):
 
     @property
     def shape(self):
-        """Shape of the reconstructed `Kymo` image"""
+        """Shape of the reconstructed :class:`~lumicks.pylake.kymo.Kymo` image"""
         # For a kymo the only way to find the shape is to perform the reconstruction. While one
         # could traverse the info-wave for this purpose, we may as well just reconstruct the image
         # since that still has the potential to be useful in the future (since it is cached).
@@ -300,14 +300,14 @@ class Kymo(ConfocalImage):
         aspect_ratio: float
             aspect ratio of the axes (i.e. ratio of y-unit to x-unit)
         reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            Forwarded to :func:`Slice.downsampled_over`
+            The :mod:`numpy` function which is going to reduce multiple samples into one. Forwarded
+            to :meth:`Slice.downsampled_over() <lumicks.pylake.channel.Slice.downsampled_over()>`
         kymo_args : dict
-            Forwarded to :func:`matplotlib.pyplot.imshow`
+            Forwarded to :func:`matplotlib.pyplot.imshow()`
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
         **kwargs
-            Forwarded to :func:`Slice.plot`.
+            Forwarded to :meth:`Slice.plot() <lumicks.pylake.channel.Slice.plot()>`.
         """
 
         def set_aspect_ratio(axis, ar):
@@ -492,8 +492,8 @@ class Kymo(ConfocalImage):
         position_factor : int
             The number of pixels that will be averaged in space (default: 1).
         reduce : callable
-            The `numpy` function which is going to reduce multiple pixels into one.
-            The default is `np.sum`.
+            The :mod:`numpy` function which is going to reduce multiple pixels into one. The default
+            is :func:`np.sum <numpy.sum()>`.
         """
         result = copy(self)
 
@@ -542,6 +542,7 @@ class Kymo(ConfocalImage):
         return result
 
     def flip(self):
+        """Flip the kymograph along the positional axis"""
         result = copy(self)
 
         def image_factory(_, channel):
@@ -590,7 +591,7 @@ class Kymo(ConfocalImage):
             If provided, the kymo returned from the `image` property will be automatically
             calibrated to this tether length.
         **kwargs
-            Forwarded to :func:`Kymo.plot()`.
+            Forwarded to :meth:`Kymo.plot()`.
 
         Examples
         --------
@@ -632,7 +633,8 @@ class EmptyKymo(Kymo):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('red')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('red') "
+            "<get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -643,7 +645,8 @@ class EmptyKymo(Kymo):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('green')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('green') "
+            "<get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -654,7 +657,8 @@ class EmptyKymo(Kymo):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('blue')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('blue') "
+            "<get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -686,7 +690,7 @@ def _kymo_from_array(
     pixel_size_um=None,
     name="",
 ):
-    """Generate a `Kymo` instance from an image array.
+    """Generate a :class:`~lumicks.pylake.kymo.Kymo` instance from an image array.
 
     Parameters
     ----------
@@ -775,7 +779,7 @@ def _kymo_from_array(
 def _kymo_from_correlated_stack(
     corrstack, adjacent_lines=0, pixel_size_um=None, name="", reduce=np.mean
 ) -> Kymo:
-    """Generate a `Kymo` instance from a correlated stack.
+    """Generate a :class:`~lumicks.pylake.kymo.Kymo` instance from a correlated stack.
 
     Parameters
     ----------
@@ -793,7 +797,8 @@ def _kymo_from_correlated_stack(
         Kymo name.
     reduce : callable
         The function which is going to reduce multiple pixels into one. The default is
-        :func:`numpy.mean`, but :func:`numpy.max` could also be appropriate for some cases.
+        :func:`np.mean <numpy.mean()>, but :func:`np.max <numpy.max()>` could also be appropriate
+        for some cases.
     """
     # Ensure constant frame rate of the whole stack
     ts_ranges = np.array(corrstack.frame_timestamp_ranges())

@@ -7,7 +7,7 @@ from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 def test_kymotracker_test_bias_rect():
     """Computing the kymograph of a subset of the image should not affect the results of the
     tracking. If this test fires, it means that kymotracking on a subset of the image does not
-    produce the same result as on the full thing for `track_greedy()`.
+    produce the same result as on the full thing for :func:`~lumicks.pylake.track_greedy()`.
     """
 
     # Generate a checkerboard pattern with a single line that we wish to track. The line is on the

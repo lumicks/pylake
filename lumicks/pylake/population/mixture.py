@@ -26,7 +26,7 @@ class GaussianMixtureModel:
 
     Parameters
     ----------
-    data : array-like
+    data : array_like
         Data object used for model training.
     n_states : int
         The number of Gaussian components in the model.

@@ -143,7 +143,7 @@ class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
 
     @property
     def slices(self):
-        """Return list of selected slices of data as `lumicks.pylake.Slice`"""
+        """Return list of selected slices of data as :class:`~lumicks.pylake.channel.Slice`"""
         return [self.slice[start:stop] for start, stop in self._ranges]
 
 
@@ -154,7 +154,7 @@ class FdTimeRangeSelectorWidget(SliceRangeSelectorWidget):
 
     @property
     def fdcurves(self):
-        """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
+        """Return list of selected fdcurves of data as :class:`~lumicks.pylake.fdcurve.FdCurve`"""
         return [self.fd_curve[start:stop] for start, stop in self._ranges]
 
 
@@ -173,7 +173,7 @@ class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
 
     @property
     def fdcurves(self):
-        """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
+        """Return list of selected fdcurves of data as :class:`~lumicks.pylake.fdcurve.FdCurve`"""
         return [
             self.fd_curve._sliced_by_distance(min_dist, max_dist, self._max_gap)
             for min_dist, max_dist in self._ranges
@@ -187,7 +187,7 @@ class BaseRangeSelector:
         Parameters
         ----------
         fd_curves : dict
-            Dictionary of `lumicks.pylake.FdCurve`
+            Dictionary of :class:`~lumicks.pylake.fdcurve.FdCurve`
         """
         import ipywidgets
 
@@ -234,7 +234,7 @@ class BaseRangeSelector:
 
     @property
     def fdcurves(self):
-        """Return list of selected fdcurves of data as `lumicks.pylake.FdCurve`"""
+        """Return list of selected fdcurves of data as :class:`~lumicks.pylake.fdcurve.FdCurve`"""
         return {key: selector.fdcurves for key, selector in self.selectors.items()}
 
 

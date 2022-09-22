@@ -15,7 +15,7 @@ class FdCurve(DownsampledFD):
     """An FD curve exported from Bluelake
 
     By default, the primary force and distance channels are `downsampled_force2`
-    and `distance1`. Alternatives can be selected using `FdCurve.with_channels()`.
+    and `distance1`. Alternatives can be selected using :func:`FdCurve.with_channels()`.
     Note that it does not modify the FD curve in place but returns a copy.
 
     Attributes
@@ -218,7 +218,7 @@ class FdCurve(DownsampledFD):
         Parameters
         ----------
         **kwargs
-            Forwarded to `~matplotlib.pyplot.scatter`.
+            Forwarded to :func:`matplotlib.pyplot.scatter`.
         """
         import matplotlib.pyplot as plt
 

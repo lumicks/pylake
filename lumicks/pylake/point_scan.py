@@ -19,7 +19,7 @@ class PointScan(BaseScan):
     """
 
     def _get_plot_data(self, channel):
-        """Get photon count `Slice` for requested channel."""
+        """Get photon count :class:`~lumicks.pylake.channel.Slice` for requested channel."""
         return getattr(self, f"{channel}_photon_count")
 
     def _plot(self, channel, axes, **kwargs):

@@ -299,7 +299,7 @@ Note that you can slice channel data directly using markers (or any other item t
 Exporting h5 files
 ------------------
 
-We can save the Bluelake HDF5 file to a different filename by using :meth:`~lumicks.pylake.File.save_as`. When
+We can save the Bluelake HDF5 file to a different filename by using :meth:`~lumicks.pylake.File.save_as()`. When
 transferring data, it can be beneficial to omit some channels from the h5 file, or use a higher compression ratio. In
 particular, high frequency channels tend to take up a lot of space, and aren't always necessary for every analysis::
 

@@ -157,8 +157,8 @@ def reconstruct_image(data, infowave, shape, reduce=np.sum):
     shape: array_like
         The shape of the image ([optional: pixels on slow axis], pixels on fast axis)
     reduce : callable
-        A function which reduces multiple sample into a pixel. Usually `np.sum`
-        for photon counts and `np.mean` for force samples.
+        A function which reduces multiple sample into a pixel. Usually :func:`np.sum <numpy.sum>`
+        for photon counts and :func:`np.mean <numpy.mean>` for force samples.
 
     Returns
     -------
