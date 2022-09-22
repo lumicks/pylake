@@ -13,9 +13,9 @@ from .nb_widgets.range_selector import SliceRangeSelectorWidget
 class Slice:
     """A lazily evaluated slice of a timeline/HDF5 channel
 
-    Users will only ever get these as a result of slicing a timeline/HDF5
-    channel or slicing another slice (via this class' `__getitem__`), i.e.
-    the `__init__` method will never be invoked by users.
+    Users will only ever get this as a result of slicing a timeline/HDF5 channel or slicing another
+    slice (via this class's :meth:`__getitem__()`), i.e. the `__init__()` method should never be
+    directly invoked by users.
 
     Parameters
     ----------
@@ -240,9 +240,9 @@ class Slice:
             A list of (start, stop) tuples indicating over which ranges to apply the function.
             Start and stop have to be specified in nanoseconds.
         reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            The default is `np.mean`, but `np.sum` could also be appropriate for some
-            cases, e.g. photon counts.
+            The :mod:`numpy` function which is going to reduce multiple samples into one. The
+            default is :func:`np.mean <numpy.mean>`, but :func:`np.sum <numpy.sum>` could also be
+            appropriate for some cases, e.g. photon counts.
         where : str
             Where to put the final time point.
 
@@ -300,9 +300,9 @@ class Slice:
         frequency : int
             The desired downsampled frequency downsampled (Hz)
         reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            The default is `np.mean`, but `np.sum` could also be appropriate for some
-            cases, e.g. photon counts.
+            The :mod:`numpy` function which is going to reduce multiple samples into one. The
+            default is :func:`np.mean <numpy.mean>`, but :func:`np.sum <numpy.sum>` could also be
+            appropriate for some cases, e.g. photon counts.
         where : str
             Where to put the final time point.
 
@@ -377,9 +377,9 @@ class Slice:
         factor : int
             The size and sample rate of the data will be divided by this factor.
         reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            The default is `np.mean`, but `np.sum` could also be appropriate for some
-            cases, e.g. photon counts.
+            The :mod:`numpy` function which is going to reduce multiple samples into one. The
+            default is :func:`np.mean <numpy.mean>`, but :func:`np.sum <numpy.sum>` could also be
+            appropriate for some cases, e.g. photon counts.
         """
         return self._with_data_source(self._src.downsampled_by(factor, reduce))
 
@@ -389,18 +389,18 @@ class Slice:
         Note: some data required to reconstruct the first low frequency time point can actually occur before the starting
         timestamp of the marker and is therefore missing from the exported `.h5` file. Therefore, it is not always possible
         to downsample to all of the data points in the low frequency `other_slice`. This function returns both the
-        requested downsampled channel data *and* a copy of the input channel cropped such that both returned `Slice` objects
+        requested downsampled channel data *and* a copy of the input channel cropped such that both returned :class:`~lumicks.pylake.channel.Slice` objects
         have the same time points.
 
         Parameters
         ----------
         other_slice : Slice
-            Timeline channel to downsample like. This should be a low frequency channel that provides the timestamps
-            to downsample to.
+            Timeline channel to downsample like. This should be a low frequency channel that
+            provides the timestamps to downsample to.
         reduce : callable
-            The `numpy` function which is going to reduce multiple samples into one.
-            The default is `np.mean`, but `np.sum` could also be appropriate for some
-            cases, e.g. photon counts.
+            The :mod:`numpy` function which is going to reduce multiple samples into one. The
+            default is :func:`np.mean <numpy.mean>`, but :func:`np.sum <numpy.sum>` could also be
+            appropriate for some cases, e.g. photon counts.
 
         Returns
         -------

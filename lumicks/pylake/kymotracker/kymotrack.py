@@ -98,13 +98,13 @@ class KymoTrack:
 
     Parameters
     ----------
-    time_idx : array-like
+    time_idx : array_like
         Frame time indices.
-    localization : LocalizationModel or array-like
+    localization : LocalizationModel or array_like
         LocalizationModel instance containing localization parameters
         or list of (sub)pixel coordinates to be converted to spatial
         position via calibration with pixel size.
-    kymo : lk.kymo.Kymo
+    kymo : Kymo
         Kymograph instance.
     channel : {"red", "green", "blue"}
         Color channel to analyze
@@ -314,7 +314,7 @@ class KymoTrack:
 
         Parameters
         ----------
-        max_lag : int (optional)
+        max_lag : int, optional
             Maximum lag to include. When omitted, an optimal number of lags is chosen [2]_.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
@@ -412,7 +412,8 @@ class KymoTrack:
 
     @deprecated(
         reason=(
-            'This method is replaced by `KymoTrack.estimate_diffusion(method="ols")` to allow more '
+            'This method is replaced by :meth:`KymoTrack.estimate_diffusion(method="ols") '
+            "<lumicks.pylake.kymotracker.KymoTrack.estimate_diffusion()>` to allow more "
             "flexibility in the choice of algorithms and provide additional metadata."
         ),
         action="always",

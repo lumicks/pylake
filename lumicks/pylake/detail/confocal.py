@@ -264,7 +264,10 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         raise NotImplementedError
 
     @deprecated(
-        reason=("`plot_red()` is deprecated. Use `plot(channel='red')` instead."),
+        reason=(
+            "This method will be removed in a future release. Use :meth:`plot(channel='red') "
+            "<plot()>` instead."
+        ),
         version="0.11.1",
         action="always",
     )
@@ -273,7 +276,10 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return self.plot(channel="red", **kwargs)
 
     @deprecated(
-        reason="`plot_green()` is deprecated. Use `plot(channel='green')` instead.",
+        reason=(
+            "This method will be removed in a future release. Use :meth:`plot(channel='green') "
+            "<plot()>` instead."
+        ),
         version="0.11.1",
         action="always",
     )
@@ -282,7 +288,10 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return self.plot(channel="green", **kwargs)
 
     @deprecated(
-        reason="`plot_blue()` is deprecated. Use `plot(channel='blue')` instead.",
+        reason=(
+            "This method will be removed in a future release. Use :meth:`plot(channel='blue') "
+            "<plot()>` instead."
+        ),
         version="0.11.1",
         action="always",
     )
@@ -291,7 +300,10 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return self.plot(channel="blue", **kwargs)
 
     @deprecated(
-        reason="`plot_rgb()` is deprecated. Use `plot(channel='rgb')` instead.",
+        reason=(
+            "This method will be removed in a future release. Use :meth:`plot(channel='rgb') "
+            "<plot()>` instead."
+        ),
         version="0.11.1",
         action="always",
     )
@@ -400,8 +412,8 @@ class ConfocalImage(BaseScan):
 
     @deprecated(
         reason=(
-            "This method has been renamed to `export_tiff` to more accurately reflect that it is "
-            "exporting to a different format."
+            "This method has been renamed to :meth:`export_tiff()` to more accurately reflect that "
+            "it is exporting to a different format."
         ),
         action="always",
         version="0.13.0",
@@ -423,6 +435,7 @@ class ConfocalImage(BaseScan):
 
     @property
     def pixels_per_line(self):
+        """Number of pixels in each line"""
         return self._num_pixels[self._metadata.scan_order[0]]
 
     @property
@@ -431,6 +444,7 @@ class ConfocalImage(BaseScan):
 
     @property
     def fast_axis(self):
+        """The axis that was scanned (x or y)"""
         return self._metadata.fast_axis
 
     @property
@@ -463,7 +477,8 @@ class ConfocalImage(BaseScan):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('red')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('red') "
+            " <get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -475,7 +490,8 @@ class ConfocalImage(BaseScan):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('green')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('green') "
+            " <get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -487,7 +503,8 @@ class ConfocalImage(BaseScan):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('blue')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('blue') "
+            " <get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -499,7 +516,8 @@ class ConfocalImage(BaseScan):
     @property
     @deprecated(
         reason=(
-            "This property will be removed in a future release. Use `get_image('rgb')` instead."
+            "This property will be removed in a future release. Use :meth:`get_image('rgb') "
+            " <get_image()>` instead."
         ),
         action="always",
         version="0.12.0",
@@ -509,7 +527,7 @@ class ConfocalImage(BaseScan):
         return self.get_image("rgb")
 
     def get_image(self, channel="rgb") -> np.ndarray:
-        """Get image data for the full stack as an `np.ndarray`.
+        """Get image data for the full stack as an :class:`~numpy.ndarray`.
 
         Parameters
         ----------

@@ -12,7 +12,8 @@ To load an HDF5 file and lists all of the kymographs inside of it, run::
     file = lk.File("example.h5")
     list(file.kymos)  # e.g. shows: "['cas9', 'reference']"
 
-Once again, `.kymos` is a regular Python dictionary so we can easily iterate over it::
+Once again, :attr:`.kymos <lumicks.pylake.File.kymos>` is a regular Python dictionary so we can
+easily iterate over it::
 
     # Plot all kymos in a file
     >>> for name, kymo in file.kymos.items():
@@ -27,9 +28,10 @@ Or just pick a single one::
 
 .. image:: figures/kymographs/kymo_intro.png
 
-Here we see the `plot()` convenience function. The `channel` argument accepts the strings "red", "green",
-"blue", or "rgb". This function accepts keyword arguments that are passed to `plt.imshow()` internally.
-Note also, the axes are labeled with the appropriate time and position units.
+Here we see the :meth:`~lumicks.pylake.kymo.Kymo.plot()` convenience function. The `channel`
+argument accepts the strings "red", "green", "blue", or "rgb". This function accepts keyword
+arguments that are passed to :func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally. Note
+also, the axes are labeled with the appropriate time and position units.
 
 The kymograph can also be exported to TIFF format::
 
@@ -50,20 +52,29 @@ We can access the raw image data as `numpy` arrays::
 
 There are also several properties available for convenient access to the kymograph metadata:
 
-* `kymo.center_point_um` provides a dictionary of the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field of view
-* `kymo.size_um` provides a list of scan sizes in micrometers along the axes of the scan
-* `kymo.pixelsize_um` provides the pixel size in micrometers
-* `kymo.pixels_per_line` provides the number of pixels in each line of the kymograph
-* `kymo.fast_axis` provides the axis that was scanned (x or y)
-* `kymo.line_time_seconds` provides the time between successive lines
-* `kymo.pixel_time_seconds` provides the pixel dwell time.
+* :attr:`kymo.center_point_um <lumicks.pylake.kymo.Kymo.center_point_um>` provides a dictionary of
+  the central x, y, and z coordinates of the scan in micrometers relative to the brightfield field
+  of view
+* :attr:`kymo.size_um <lumicks.pylake.kymo.Kymo.size_um>` provides a list of scan sizes in
+  micrometers along the axes of the scan
+* :attr:`kymo.pixelsize_um <lumicks.pylake.kymo.Kymo.pixelsize_um>` provides the pixel size in
+  micrometers
+* :attr:`kymo.pixels_per_line <lumicks.pylake.kymo.Kymo.pixels_per_line>` provides the number of
+  pixels in each line of the kymograph
+* :attr:`kymo.fast_axis <lumicks.pylake.kymo.Kymo.fast_axis>` provides the axis that was scanned (x
+  or y)
+* :attr:`kymo.line_time_seconds <lumicks.pylake.kymo.Kymo.line_time_seconds>` provides the time
+  between successive lines
+* :attr:`kymo.pixel_time_seconds <lumicks.pylake.kymo.Kymo.pixel_time_seconds>` provides the pixel
+  dwell time.
 
 
 Cropping and slicing
 --------------------
 
-It is possible to crop a kymograph to a specific coordinate range, by using the function `Kymo.crop_by_distance`
-For example, we can crop the region from `6` micron to `24` micron using the following command::
+It is possible to crop a kymograph to a specific coordinate range, by using the function
+:func:`Kymo.crop_by_distance() <lumicks.pylake.kymo.Kymo.crop_by_distance>`. For example, we can
+crop the region from `6` micron to `24` micron using the following command::
 
     kymo.crop_by_distance(6, 24).plot("green)
 
@@ -123,7 +134,8 @@ If the optional `tether_length_kbp` argument is supplied, the kymograph is autom
 length in kilobase pairs. If this argument is missing (the default value `None`) the edited kymograph is only
 sliced and cropped.
 
-Note that you can also flip a kymograph along its positional axis using `kymo.flip()`. This returns a new (but flipped) `Kymo`.
+Note that you can also flip a kymograph along its positional axis using :meth:`kymo.flip()
+<lumicks.pylake.kymo.Kymo.flip()>`. This returns a new (but flipped) :class:`~lumicks.pylake.kymo.Kymo`.
 
 Downsampling
 ------------
@@ -171,7 +183,8 @@ The images can also be exported in the TIFF format::
 Correlating with force
 ----------------------
 
-We can downsample channel data according to the lines in a kymo. We can use :func:`~lumicks.pylake.scan.Kymo.line_timestamp_ranges()` for this::
+We can downsample channel data according to the lines in a kymo. We can use
+:func:`~lumicks.pylake.kymo.Kymo.line_timestamp_ranges()` for this::
 
     line_timestamp_ranges = kymo.line_timestamp_ranges()
 

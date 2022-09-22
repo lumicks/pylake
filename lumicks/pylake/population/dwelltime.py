@@ -152,7 +152,7 @@ class DwelltimeModel:
 
     Parameters
     ----------
-    dwelltimes : np.ndarray
+    dwelltimes : numpy.ndarray
         observations on which the model was trained. *Note: the units of the optimized lifetime
         will be in the units of the dwelltime data. If the dwelltimes are calculated as the number
         of frames, these then need to be multiplied by the frame time in order to obtain the
@@ -164,11 +164,11 @@ class DwelltimeModel:
     max_observation_time : float
         maximum experimental observation time.
     tol : float
-        The tolerance for optimization convergence. This parameter is forwarded as the `ftol` argument
-        to `scipy.minimize(method="SLSQP")`.
+        The tolerance for optimization convergence. This parameter is forwarded as the `ftol`
+        argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
     max_iter : int
-        The maximum number of iterations to perform. This parameter is forwarded as the `maxiter` argument
-        to `scipy.minimize(method="SLSQP")`.
+        The maximum number of iterations to perform. This parameter is forwarded as the `maxiter`
+        argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
     """
 
     def __init__(
@@ -246,8 +246,8 @@ class DwelltimeModel:
 
     @deprecated(
         reason=(
-            "This method has been renamed to more closely match its behavior. "
-            "Use `DwelltimeModel.hist()` instead."
+            "This method has been renamed to more closely match its behavior. Use "
+            ":meth:`DwelltimeModel.hist()` instead."
         ),
         action="always",
         version="0.12.0",

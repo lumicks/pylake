@@ -15,8 +15,10 @@ introduction to these fitting capabilities.
 Models
 ------
 
-When fitting data, everything revolves around models. One of these models is the so-called extensible worm-like-chain
-model by Odijk et al. Let's have a look at it. We can construct this model using the supplied function `lk.ewlc_odijk_distance()`.
+When fitting data, everything revolves around models. One of these models is the so-called
+extensible worm-like-chain model by Odijk et al. Let's have a look at it. We can construct this
+model using the supplied function :func:`lk.ewlc_odijk_distance()
+<lumicks.pylake.ewlc_odijk_distance()>`.
 
 Note that we also have to give it a name. This name will be prefixed to model specific parameters in this model::
 
@@ -152,9 +154,10 @@ or see :ref:`fd_models`.
 Fitting data
 ------------
 
-To fit Fd models, we have to create an `FdFit`. This object will collect all the parameters involved in the models and
-data, and will allow you to interact with the model parameters and fit them. We construct it using `lk.FdFit` and
-pass it one or more models. In return, we get an object we can interact with, which in this case we store in `fit`::
+To fit Fd models, we have to create an :class:`~lumicks.pylake.FdFit`. This object will collect all
+the parameters involved in the models and data, and will allow you to interact with the model
+parameters and fit them. We construct it using `lk.FdFit` and pass it one or more models. In
+return, we get an object we can interact with, which in this case we store in `fit`::
 
     fit = lk.FdFit(model)
 
@@ -177,16 +180,17 @@ More specifically, we renamed the parameter `DNA/Lc` to `DNA/Lc_RecA`.
 Setting parameter bounds
 ************************
 
-The parameters of the model can be accessed directly from `FdFit`. Note that by default, parameters tend to have
+The parameters of the model can be accessed directly from :class:`~lumicks.pylake.FdFit`. Note that by default, parameters tend to have
 reasonable initial guesses and bounds in pylake, but we can set our own as follows::
 
     fit["DNA/Lp"].value = 50
     fit["DNA/Lp"].lower_bound = 39
     fit["DNA/Lp"].upper_bound = 80
 
-After this, the model is ready to be fitted. We can fit the model to the data by calling the function `.fit()`. This
-estimates the model parameters by minimizing the least squares differences between the model's dependent variable and
-the data in the fit::
+After this, the model is ready to be fitted. We can fit the model to the data by calling the
+function :meth:`.fit() <lumicks.pylake.FdFit.fit()>`. This estimates the model parameters by
+minimizing the least squares differences between the model's dependent variable and the data in the
+fit::
 
     fit.fit()
 
@@ -298,7 +302,7 @@ be performed. We first set up a model and fit it to some data. This is all analo
     fit.fit()
 
 Now, we wish to allow the contour length to vary on a per data point basis. For this, we use the function
-`parameter_trace`. Here we see a few things happening. The first argument specifies the model to use for the inversion.
+:func:`~lumicks.pylake.parameter_trace()`. Here we see a few things happening. The first argument specifies the model to use for the inversion.
 
 The second argument should contain the parameters to be used in this method. Note how we select them from the parameters
 in the `fit` using the same syntax as before (i.e. `fit[data_name]`). Next, we specify which parameter has to be fitted
@@ -332,7 +336,7 @@ how this works, read up on Python fantastic f-Strings.
 Global fits versus single fits
 ******************************
 
-The `FdFit` object manages a fit. To illustrate its use, and how a global fit differs from a local fit, consider the
+The :class:`~lumicks.pylake.FdFit` object manages a fit. To illustrate its use, and how a global fit differs from a local fit, consider the
 following two examples::
 
     model = lk.ewlc_odijk_force("DNA")
@@ -351,10 +355,12 @@ and::
         fit.fit()
         print(fit["DNA/Lc"])
 
-The first example is what we refer to as a global fit whereas the second example is an example of a local fit. The
-difference between these two is that the former sets up one model that has to fit all the data whereas the latter fits
-all the data sets independently. The former has one parameter set, whereas the latter has a parameter set per data set.
-Also note how in the second example a new `Model` and `FdFit` is created at every cycle of the for loop.
+The first example is what we refer to as a global fit whereas the second example is an example of a
+local fit. The difference between these two is that the former sets up one model that has to fit
+all the data whereas the latter fits all the data sets independently. The former has one parameter
+set, whereas the latter has a parameter set per data set. Also note how in the second example a new
+:class:`~lumicks.pylake.fitting.model.Model` and :class:`~lumicks.pylake.FdFit` is created at every
+cycle of the for loop.
 
 Statistically, it is typically more optimal to fit data using global fitting (meaning you use one model to fit all the
 data, as opposed to recreating the model for each new set of data), as more information goes into estimates of
@@ -375,7 +381,7 @@ Multiple models
 ***************
 
 When working with multiple models, things can get a little more complicated. Let's say we have two models, `model1` and
-`model2` and we want to fit both in a global fit. Constructing the `FdFit` is easy::
+`model2` and we want to fit both in a global fit. Constructing the :class:`~lumicks.pylake.FdFit` is easy::
 
     model1 = lk.ewlc_odijk_force("DNA")
     model2 = (lk.ewlc_odijk_distance("DNA") + lk.ewlc_odijk_distance("protein")).invert()
@@ -387,7 +393,7 @@ But then the question arises, how do we add data to each model? Well, the trick 
     fit[model1].add_data("data for model 1", forces_1, distances_1)
     fit[model2].add_data("data for model 2", forces_2, distances_2)
 
-See how we used the model handles? They are used to let the `FdFit` know to which model each data set should be added.
+See how we used the model handles? They are used to let the :class:`~lumicks.pylake.FdFit` know to which model each data set should be added.
 You can add as many data sets as you want to both models and fit it all at once.
 
 Plotting is straightforward in this setting. We can plot the data sets corresponding to model 1 and 2 as follows::

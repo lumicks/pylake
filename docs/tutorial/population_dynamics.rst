@@ -83,7 +83,7 @@ in order to ensure robust results, it may be advisable to carry out the analysis
 Dwelltime analysis
 ------------------
 
-The lifetimes of bound states can be estimated by fitting to an Exponential distribution. The `DwelltimeModel` class can be used
+The lifetimes of bound states can be estimated by fitting to an Exponential distribution. The :class:`~lumicks.pylake.DwelltimeModel` class can be used
 to optimize the model parameters for an array of determined dwelltimes::
 
     dwell_1 = lk.DwelltimeModel(dwelltimes_seconds, n_components=1)

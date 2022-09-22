@@ -138,7 +138,10 @@ class CorrelatedStack(VideoExport, FrameIndex):
 
     @classmethod
     @deprecated(
-        reason=("Renamed to `from_dataset()` for consistency with `Kymo` and `Scan`."),
+        reason=(
+            "Renamed to :func:`from_dataset` for consistency with "
+            ":class:`~lumicks.pylake.kymo.Kymo` and :class:`~lumicks.pylake.scan.Scan`."
+        ),
         action="always",
         version="0.10.1",
     )
@@ -249,7 +252,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
             Controls display of auto-generated plot title
         axes : mpl.axes.Axes or None
             If supplied, the axes instance in which to plot.
-        image_handle : `matplotlib.image.AxesImage` or None
+        image_handle : matplotlib.image.AxesImage or None
             Optional image handle which is used to update plots with new data rather than
             reconstruct them (better for performance).
         **kwargs
@@ -372,8 +375,8 @@ class CorrelatedStack(VideoExport, FrameIndex):
             Frame to show.
         reduce : callable
             The function which is going to reduce multiple samples into one. The default is
-            :func:`numpy.mean`, but :func:`numpy.sum` could also be appropriate for some cases
-            e.g. photon counts.
+            :func:`np.mean <numpy.mean>`, but :func:`np.sum <numpy.sum>` could also be appropriate
+            for some cases e.g. photon counts.
         channel : 'rgb', 'red', 'green', 'blue', None; optional
             Channel to plot for RGB images (None defaults to 'rgb')
             Not used for grayscale images
@@ -480,9 +483,10 @@ class CorrelatedStack(VideoExport, FrameIndex):
     @property
     @deprecated(
         reason=(
-            "Access to raw frame instances will be removed in a future release. "
-            "All operations on these objects should be handled through the `CorrelatedStack` public API. "
-            "For example, to retrieve the image data as an `np.ndarray` please use `CorrelatedStack.get_image()`."
+            "Access to raw frame instances will be removed in a future release. All operations on "
+            "these objects should be handled through the :class:`CorrelatedStack` public API. For "
+            "example, to retrieve the image data as an :class:`numpy.ndarray` please use "
+            ":func:`get_image`."
         ),
         action="always",
         version="0.10.1",
@@ -508,7 +512,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
     @deprecated(
         reason=(
             "For camera based images only the integration start/stop timestamps are defined. "
-            "Use `CorrelatedStack.frame_timestamp_ranges()` instead."
+            "Use :func:`frame_timestamp_ranges` instead."
         ),
         action="always",
         version="0.11.1",

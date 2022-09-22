@@ -16,9 +16,9 @@ class ForceBaseLine:
         ----------
         model : callable
             Model which returns the baseline at specified points.
-        trap_data : lumicks.pylake.Slice
+        trap_data : Slice
             Trap mirror position data
-        force : lumicks.pylake.Slice
+        force : Slice
             Force data
         """
         self._model = model
@@ -38,9 +38,9 @@ class ForceBaseLine:
 
         Parameters
         ----------
-        force : lumicks.pylake.Slice
+        force : Slice
             Force data.
-        trap_position : lumicks.pylake.Slice
+        trap_position : Slice
             Trap position data (needs to be the same time range as the force data).
         """
 
@@ -66,7 +66,7 @@ class ForceBaseLine:
         Parameters
         ----------
         **kwargs
-            Forwarded to :func:`matplotlib.pyplot.scatter`.
+            Forwarded to :func:`matplotlib.pyplot.scatter()`.
         """
         plt.scatter(self._trap_data.data, self._force.data, s=2, **kwargs)
         plt.plot(self._trap_data.data, self._model(self._trap_data.data), "k")
@@ -98,9 +98,9 @@ class ForceBaseLine:
 
         Parameters
         ----------
-        trap_position : lumicks.pylake.Slice
+        trap_position : Slice
             Trap mirror position data
-        force : lumicks.pylake.Slice
+        force : Slice
             Force data
         degree : int
             Polynomial degree

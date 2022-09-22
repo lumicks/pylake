@@ -85,7 +85,7 @@ def track_greedy(
 
     Parameters
     ----------
-    kymograph : lumicks.pylake.Kymo
+    kymograph : Kymo
         The kymograph to track.
     channel : {'red', 'green', 'blue'}
         Color channel to track.
@@ -245,7 +245,7 @@ def track_lines(
 
     Parameters
     ----------
-    kymograph : lumicks.pylake.Kymo
+    kymograph : Kymo
         Kymograph.
     channel : str
         Kymograph channel.
@@ -295,7 +295,7 @@ def track_lines(
 
 
 @deprecated(
-    reason=("`filter_lines()` has been renamed to `filter_tracks()`."),
+    reason=("`filter_lines()` has been renamed to :func:`~lumicks.pylake.filter_tracks()`."),
     action="always",
     version="0.13.0",
 )
@@ -316,7 +316,7 @@ def filter_tracks(tracks, minimum_length):
 
     Parameters
     ----------
-    tracks : List[pylake.KymoTrack]
+    tracks : List[KymoTrack]
         Detected tracks on a kymograph.
     minimum_length : int
         Minimum length for the track to be accepted.
@@ -325,7 +325,9 @@ def filter_tracks(tracks, minimum_length):
 
 
 @deprecated(
-    reason=("`refine_lines_centroid()` has been renamed to `refine_tracks_centroid()`."),
+    reason=(
+        "`refine_lines_centroid()` has been renamed to :func:`~lumicks.pylake.refine_tracks_centroid()`."
+    ),
     action="always",
     version="0.13.0",
 )
@@ -358,7 +360,7 @@ def refine_tracks_centroid(tracks, track_width=None):
 
     Parameters
     ----------
-    tracks : List[pylake.KymoTrack]
+    tracks : List[KymoTrack]
         Detected tracks on a kymograph
     track_width : float
         Expected (spatial) spot size in physical units. Must be larger than zero.
@@ -401,7 +403,9 @@ def refine_tracks_centroid(tracks, track_width=None):
 
 
 @deprecated(
-    reason=("`refine_lines_gaussian()` has been renamed to `refine_tracks_gaussian()`."),
+    reason=(
+        "`refine_lines_gaussian()` has been renamed to :func:`~lumicks.pylake.refine_tracks_gaussian()`."
+    ),
     action="always",
     version="0.13.0",
 )
@@ -436,7 +440,7 @@ def refine_tracks_gaussian(
 
     Parameters
     ----------
-    tracks : List[pylake.KymoTrack] or pylake.KymoTrackGroup
+    tracks : List[KymoTrack] or KymoTrackGroup
         Detected tracks on a kymograph.
     window : int
         Number of pixels on either side of the estimated track to include in the optimization data.
@@ -445,11 +449,12 @@ def refine_tracks_gaussian(
     refine_missing_frames : bool
         Whether to estimate location for frames which were missed in initial peak finding.
     overlap_strategy : {'multiple', 'ignore', 'skip'}
-        How to deal with frames in which the fitting window of two `KymoTrack`'s overlap.
+        How to deal with frames in which the fitting window of two
+        :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`'s overlap.
 
         - 'multiple' : fit the peaks simultaneously.
         - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
-        - 'skip' : skip optimization of the frame; remove from returned `KymoTrack`.
+        - 'skip' : skip optimization of the frame; remove from returned :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
     initial_sigma : float
         Initial guess for the `sigma` parameter.
     fixed_background : float

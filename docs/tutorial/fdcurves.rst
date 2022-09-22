@@ -12,14 +12,15 @@ The following code loads an HDF5 file and lists all of the FD curves inside of i
     file = lk.File("example.h5")
     list(file.fdcurves)  # e.g. shows: "['baseline', '1', '2']"
 
-To visualizes an FD curve, you can use the built-in `.plot_scatter()` function::
+To visualizes an FD curve, you can use the built-in :meth:`.plot_scatter()
+<lumicks.pylake.fdcurve.FdCurve.plot_scatter()>` method::
 
     # Pick a single FD curve
     fd = file.fdcurves["baseline"]
     fd.plot_scatter()
 
-Here, `.fdcurves` is a standard Python dictionary, so we can do standard `dict` thing with it.
-For example, we can iterate over all the FD curve in a file and plot them::
+Here, :attr:`.fdcurves <lumicks.pylake.File.fdcurves>` is a standard Python dictionary, so we can
+do standard `dict` thing with it. For example, we can iterate over all the FD curve in a file and plot them::
 
     for name, fd in file.fdcurves.items():
         fd.plot_scatter()

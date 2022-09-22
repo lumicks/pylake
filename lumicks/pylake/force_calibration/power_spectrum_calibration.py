@@ -51,11 +51,11 @@ class CalibrationResults:
 
     Attributes
     ----------
-    model : `lumicks.pylake.force_calibration.CalibrationModel`
+    model : lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationModel
         Model used for calibration.
-    ps_model : `lumicks.pylake.PowerSpectrum`
+    ps_model : PowerSpectrum
         Power spectrum of the fitted model.
-    ps_data : `lumicks.pylake.PowerSpectrum`
+    ps_data : PowerSpectrum
         Power spectrum of the data that the model was fitted to.
     params : dict
         Dictionary of input parameters.
@@ -137,7 +137,8 @@ class CalibrationResults:
 def calculate_power_spectrum(
     data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=None
 ):
-    """Compute power spectrum and returns it as a :class:`~.PowerSpectrum`.
+    """Compute power spectrum and return it as a
+    :class:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum`.
 
     Parameters
     ----------
@@ -156,7 +157,7 @@ def calculate_power_spectrum(
 
     Returns
     -------
-    :class:`~.PowerSpectrum`
+    PowerSpectrum
         Estimated power spectrum based.
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
@@ -203,7 +204,7 @@ def fit_power_spectrum(
 
     Returns
     -------
-    :class:`~.CalibrationResults`
+    CalibrationResults
         Parameters obtained from the calibration procedure.
 
     References

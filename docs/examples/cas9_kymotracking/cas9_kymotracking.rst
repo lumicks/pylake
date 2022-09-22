@@ -156,7 +156,7 @@ This sums the photon counts from `pixel_position - sampling_width` to (and inclu
 Analyzing the results
 ---------------------
 
-The tracks are available in `kymowidget.tracks`, which returns a `KymoTrackGroup` object. The group is a customized list of `KymoTrack` objects
+The tracks are available in `kymowidget.tracks`, which returns a `KymoTrackGroup` object. The group is a customized list of :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` objects
 which contain lists of position and time coordinates for each tracked particle. These can be accessed with the `KymoTrack.position` and
 `KymoTrack.seconds` properties, respectively. Let's grab the longest track we found, and have a look at its position over time::
 

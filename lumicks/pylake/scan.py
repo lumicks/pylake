@@ -212,6 +212,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
     @property
     def num_frames(self):
+        """Number of available frames"""
         if self._metadata.num_frames == 0:
             self._metadata = self._metadata.with_num_frames(
                 reconstruct_num_frames(
@@ -354,6 +355,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
     @property
     def lines_per_frame(self):
+        """Number of scanned lines in each frame"""
         return self._num_pixels[self._metadata.scan_order[1]]
 
     @property
@@ -364,7 +366,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
     @property
     def shape(self):
-        """Shape of the reconstructed `Scan` image"""
+        """Shape of the reconstructed :class:`~lumicks.pylake.scan.Scan` image"""
         shape = reversed(self._num_pixels)
         return (self.num_frames, *shape, 3) if self.num_frames > 1 else (*shape, 3)
 

@@ -84,7 +84,7 @@ def test_uni_directional():
 def test_kymotracker_test_bias_rect_lines():
     """Computing the kymograph of a subset of the image should not affect the results of the
     tracking. If this test fires, it means that kymotracking on a subset of the image does not
-    produce the same result as on the full thing for `track_lines()`.
+    produce the same result as on the full thing for :func:`~lumicks.pylake.track_lines()`.
     """
 
     img_data = np.array(

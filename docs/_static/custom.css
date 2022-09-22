@@ -1,0 +1,7 @@
+/* Set color of python role cross references to same as color for links */
+code.xref.py {
+  color: #2980b9 !important;
+}
+code.xref.any.py {
+  color: #2980b9 !important;
+}

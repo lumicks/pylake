@@ -42,28 +42,29 @@ class Model:
         """
         Model constructor. A Model must be named, and this name will appear in the model parameters.
 
-        Ideally a jacobian and derivative w.r.t. the independent variable are provided with every model. This will
-        allow much higher performance when fitting. Jacobians and derivatives are automatically propagated to composite
-        models, inversions of models etc. provided that all participating models have jacobians and derivatives
-        specified.
+        Ideally a jacobian and derivative w.r.t. the independent variable are provided with every
+        model. This will allow much higher performance when fitting. Jacobians and derivatives are
+        automatically propagated to composite models, inversions of models etc. provided that all
+        participating models have jacobians and derivatives specified.
 
         Parameters
         ----------
         name : str
             Name for the model. This name will be prefixed to the model parameter names.
         model_function : callable
-            Function containing the model function. Must return the model prediction given values for the independent
-            variable and parameters.
+            Function containing the model function. Must return the model prediction given values
+            for the independent variable and parameters.
         dependent : str (optional)
             Name of the dependent variable
         independent : str (optional)
             Name of the independent variable
         jacobian : callable (optional)
-            Function which computes the first order derivatives with respect to the parameters for this model.
-            When supplied, this function is used to speed up the optimization considerably.
+            Function which computes the first order derivatives with respect to the parameters for
+            this model. When supplied, this function is used to speed up the optimization
+            considerably.
         derivative : callable (optional)
-            Function which computes the first order derivative with respect to the independent parameter. When supplied
-            this speeds up model inversions considerably.
+            Function which computes the first order derivative with respect to the independent
+            parameter. When supplied this speeds up model inversions considerably.
         eqn : str (optional)
             Equation that this model is specified by.
         eqn_tex : str (optional)
@@ -138,7 +139,7 @@ class Model:
         Parameters
         ----------
         independent : array_like
-        params : ``pylake.fitting.Params``
+        params : lumicks.pylake.fitting.parameters.Params
         """
         independent = np.asarray(independent, dtype=np.float64)
         missing_parameters = set(self.parameter_names) - set(params.keys())
@@ -226,11 +227,11 @@ class Model:
         This operation swaps the dependent and independent parameter and should be avoided if a
         faster alternative (such as an analytically inverted model) exists.
 
-        By default, this function returns an inverted version of the model, where the function
-        is inverted for each point using a least squares optimizer. Alternatively, one can use
-        an interpolation method to perform the inversion (here the relation is interpolated using
-        a spline and the result is looked up). Note that for the interpolation method, the range
-        used for the independent variable must be known a-priori.
+        By default, this function returns an inverted version of the model, where the function is
+        inverted for each point using a least squares optimizer. Alternatively, one can use an
+        interpolation method to perform the inversion (here the relation is interpolated using a
+        spline and the result is looked up). Note that for the interpolation method, the range used
+        for the independent variable must be known a-priori.
 
         Parameters
         ----------
@@ -345,8 +346,8 @@ class Model:
 
     def verify_jacobian(self, independent, params, plot=False, verbose=True, dx=1e-6, **kwargs):
         """
-        Verify this model's Jacobian with respect to the independent variable by comparing it to the Jacobian
-        obtained with finite differencing.
+        Verify this model's Jacobian with respect to the independent variable by comparing it to the
+        Jacobian obtained with finite differencing.
 
         Parameters
         ----------
@@ -361,7 +362,7 @@ class Model:
         dx : float
             Finite difference excursion.
         **kwargs :
-            Forwarded to `~matplotlib.pyplot.plot`.
+            Forwarded to :func:`matplotlib.pyplot.plot()`.
         """
         if len(params) != len(self._params):
             raise ValueError(
@@ -399,8 +400,8 @@ class Model:
 
     def verify_derivative(self, independent, params, dx=1e-6, **kwargs):
         """
-        Verify this model's derivative with respect to the independent variable by comparing it to the derivative
-        obtained with finite differencing.
+        Verify this model's derivative with respect to the independent variable by comparing it to
+        the derivative obtained with finite differencing.
 
         Parameters
         ----------
@@ -433,9 +434,9 @@ class Model:
         independent : array_like
             Array of values for the independent variable.
         fmt : str (optional)
-            Plot formatting string (see `matplotlib.pyplot.plot` documentation).
+            Plot formatting string (see :func:`matplotlib.pyplot.plot()` documentation).
         **kwargs :
-            Forwarded to `~matplotlib.pyplot.plot`.
+            Forwarded to :func:`matplotlib.pyplot.plot()`.
 
         Examples
         --------

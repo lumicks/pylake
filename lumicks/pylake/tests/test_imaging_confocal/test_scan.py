@@ -258,7 +258,11 @@ def test_export_tiff(tmpdir_factory, test_scans):
     assert stat(f"{tmpdir}/multi_frame.tiff").st_size > 0
 
     scan = test_scans["fast Y slow X"]
-    with pytest.warns(DeprecationWarning, match="This method has been renamed to `export_tiff`"):
+    match=(
+        r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
+        r"exporting to a different format."
+    )
+    with pytest.warns(DeprecationWarning, match=match):
         scan.save_tiff(f"{tmpdir}/single_frame_dep.tiff")
         assert stat(f"{tmpdir}/single_frame_dep.tiff").st_size > 0
 
