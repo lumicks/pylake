@@ -441,3 +441,30 @@ def test_cve_variances(
     )
 
     np.testing.assert_allclose(_var_cve_unknown_var(**shared_pars), ref_value_unknown)
+
+
+@pytest.mark.parametrize(
+    "means, counts, ref_weighted_mean, ref_weighted_variance, ref_counts, ref_ess",
+    [
+        (np.array([2.0, 2.0, 4.0, 4.0]), np.array([4, 4, 4, 4]), 3, 4 / 3, 16, 4),
+        (np.array([2.0, 2.0, 4.0]), np.array([2, 2, 4]), 3, 1.6, 8, 8 / 3),
+    ],
+)
+def test_weighted_variance(
+    means, counts, ref_weighted_mean, ref_weighted_variance, ref_counts, ref_ess
+):
+    weighted_mean, weighted_var, counts, ess = weighted_mean_and_sd(means, counts)
+    np.testing.assert_allclose(weighted_mean, ref_weighted_mean)
+    np.testing.assert_allclose(weighted_var, ref_weighted_variance)
+    np.testing.assert_allclose(counts, ref_counts)
+    np.testing.assert_allclose(ess, ref_ess)
+
+
+def test_weighted_variance_error_case():
+    with pytest.raises(
+        ValueError, match="Need more than one average to compute a weighted variance"
+    ):
+        weighted_mean_and_sd(np.array([1]), np.array([1]))
+
+    with pytest.raises(ValueError, match="Mean and count arrays must be the same size"):
+        weighted_mean_and_sd(np.array([2, 3]), np.array([2, 3, 4]))

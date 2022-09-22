@@ -45,6 +45,49 @@ class DiffusionEstimate:
         return float(self.value)
 
 
+def weighted_mean_and_sd(means, counts) -> Tuple[float, float, float, float]:
+    """Compute weighted mean, variance and effective sample size for a number of means.
+
+    Computes the weighted mean and variance of a number of means with unequal samples contributing
+    to them. Note that this function also returns the effective sample size which is required if
+    you want to compute the standard error of the mean.
+
+    Parameters
+    ----------
+    means : array_like
+        List of means.
+    counts : array_like
+        Number of samples used to compute means.
+    """
+    if len(counts) <= 1:
+        raise ValueError("Need more than one average to compute a weighted variance")
+
+    if len(means) != len(counts):
+        raise ValueError("Mean and count arrays must be the same size")
+
+    counts_sum = np.sum(counts)
+    weighted_mean = np.sum(means * counts) / counts_sum
+
+    # The variance also involves weighting the individual means R by w = N / sum(N). When computing
+    # the variance of this mean estimate, we need to do a bias correction because our effective
+    # sample size is smaller than our total number of samples. This bias correction is given by:
+    #
+    #   1 / (1 - sum(w**2) / sum(w)**2)
+    #
+    # In other words, correcting for an effective sample size of sum(w)**2 / sum(w**2)
+    #
+    # We don't explicitly normalize the weights first. So what we end up with is the following
+    # equation:
+    #
+    #   (sum(N) / (sum(N)**2 - sum(N**2)) * sum(N * (R - mean(R))**2)
+    counts_squared_sum = np.sum(counts**2)
+    normalization_constant = counts_sum / (counts_sum**2 - counts_squared_sum)
+    weighted_variance = np.sum(counts * (means - weighted_mean) ** 2) * normalization_constant
+    effective_sample_size = counts_sum**2 / counts_squared_sum
+
+    return weighted_mean, weighted_variance, counts_sum, effective_sample_size
+
+
 def calculate_msd(frame_idx, position, max_lag):
     r"""Estimate the Mean Squared Displacement (MSD) for various time lags.
 
