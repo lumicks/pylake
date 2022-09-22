@@ -573,10 +573,10 @@ class Fit:
 
     @property
     def aic(self):
-        """Calculates the Akaike Information Criterion:
+        r"""Calculates the Akaike Information Criterion:
 
         .. math::
-            AIC = 2 k - 2 \mathrm{ln}(L)
+            AIC = 2 k - 2 \ln{(L)}
 
         Where k refers to the number of parameters, n to the number of observations (or data
         points) and L to the maximized value of the likelihood function [6]_.
@@ -596,10 +596,10 @@ class Fit:
 
     @property
     def aicc(self):
-        """Calculates the Corrected Akaike Information Criterion:
+        r"""Calculates the Corrected Akaike Information Criterion:
 
         .. math::
-            AICc = AIC + \\frac{2 k^2 + 2 k}{n - k - 1}
+            AICc = AIC + \frac{2 k^2 + 2 k}{n - k - 1}
 
         Where k refers to the number of parameters, n to the number of observations (or data
         points) and L to the maximized value of the likelihood function [7]_.
@@ -620,10 +620,10 @@ class Fit:
 
     @property
     def bic(self):
-        """Calculates the Bayesian Information Criterion:
+        r"""Calculates the Bayesian Information Criterion:
 
         .. math::
-            BIC = k \mathrm{ln}(n) - 2 \mathrm{ln}(L)
+            BIC = k \ln{(n)} - 2 \ln{(L)}
 
         Where k refers to the number of parameters, n to the number of observations (or data points)
         and L to the maximized value of the likelihood function
