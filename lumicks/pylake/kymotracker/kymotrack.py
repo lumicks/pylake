@@ -93,6 +93,30 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
     )
 
 
+def _sample_from_image(image, row_indices, col_indices, num_pixels):
+    """Sample data from an image from `[column, row - num_pixels : row + num_pixels + 1]`
+
+    This can be used to extract pixels around the coordinates of a `KymoTrack`, for instance.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Image array.
+    row_indices : list
+        Row indices to sample around.
+    col_indices : list
+        Column indices to extract
+    num_pixels : int
+        Number of pixels in either direction to include in the sample
+    """
+    # Coordinates can be sub-pixel localization, need to be cast to an integer since
+    # we use them to index into a data array.
+    return [
+        image[max(int(row) - num_pixels, 0) : int(row) + num_pixels + 1, int(col)]
+        for row, col in zip(row_indices, col_indices)
+    ]
+
+
 class KymoTrack:
     """A tracked particle on a kymograph.
 
@@ -221,11 +245,8 @@ class KymoTrack:
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
         """
-        # Time and coordinates are being cast to an integer since we use them to index into a data array.
-        return [
-            reduce(self._image[max(int(c) - num_pixels, 0) : int(c) + num_pixels + 1, int(t)])
-            for t, c in zip(self.time_idx, self.coordinate_idx)
-        ]
+        data = _sample_from_image(self._image, self.coordinate_idx, self.time_idx, num_pixels)
+        return [reduce(column) for column in data]
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.

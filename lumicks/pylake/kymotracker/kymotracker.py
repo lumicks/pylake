@@ -1,6 +1,6 @@
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
-from .kymotrack import KymoTrack, KymoTrackGroup
+from .kymotrack import KymoTrack, KymoTrackGroup, _sample_from_image
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.peakfinding import (
     peak_estimate,
@@ -9,9 +9,8 @@ from .detail.peakfinding import (
     KymoPeaks,
 )
 from .detail.localization_models import GaussianLocalizationModel
-from ..kymo import _kymo_from_array
 import numpy as np
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, grey_dilation
 import warnings
 from deprecated.sphinx import deprecated
 
@@ -381,6 +380,7 @@ def refine_tracks_centroid(tracks, track_width=None, *, pixel_threshold=None):
         raise ValueError(f"track_width should be larger than zero")
 
     track_width_pixels = np.ceil(track_width / tracks._kymo.pixelsize[0])
+    half_width = np.ceil(0.5 * track_width_pixels).astype(int)
 
     interpolated_tracks = [track.interpolate() for track in tracks]
     image = tracks._kymo.get_image(tracks._channel)
@@ -390,25 +390,15 @@ def refine_tracks_centroid(tracks, track_width=None, *, pixel_threshold=None):
             raise ValueError(f"pixel_threshold should be larger than zero")
 
         blurred = gaussian_filter(image, [0.5, 0])
-        kymo = tracks._kymo
-        blurred_kymo = _kymo_from_array(
-            blurred,
-            tracks._channel[0],
-            kymo.line_time_seconds,
-            start=kymo.start,
-            pixel_size_um=kymo.pixelsize_um[0],
+        dilation_factor = int(np.ceil(half_width)) * 2 + 1
+        dilated = grey_dilation(blurred, (dilation_factor, 0))
+
+        sampler = lambda track: _sample_from_image(
+            dilated, track.coordinate_idx, track.time_idx, half_width
         )
+        samples = [np.vstack(sampler(track)).max(axis=1) for track in interpolated_tracks]
 
-        blurred_tracks = [
-            KymoTrack(track.time_idx, track.coordinate_idx, blurred_kymo, tracks._channel)
-            for track in interpolated_tracks
-        ]
-
-        sample_window = int(track_width_pixels / 2)
-        keep_nodes = [
-            np.array(track.sample_from_image(sample_window, np.max)) >= pixel_threshold
-            for track in blurred_tracks
-        ]
+        keep_nodes = [sample >= pixel_threshold for sample in samples]
 
         interpolated_tracks = [
             track._with_coordinates(track.time_idx[idx], track.coordinate_idx[idx])
@@ -426,7 +416,7 @@ def refine_tracks_centroid(tracks, track_width=None, *, pixel_threshold=None):
         image,
         coordinate_idx,
         time_idx,
-        np.ceil(0.5 * track_width_pixels),
+        half_width,
     )
 
     track_ids = np.hstack(
