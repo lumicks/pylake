@@ -4,6 +4,13 @@ from scipy.signal import convolve2d
 import math
 
 
+def blur_dilate_image(data, half_width):
+    dilation_factor = int(math.ceil(half_width)) * 2 + 1
+    blurred = gaussian_filter(data, [0.5, 0])
+    dilated = grey_dilation(blurred, (dilation_factor, 0))
+    return blurred, dilated
+
+
 def peak_estimate(data, half_width, thresh):
     """Estimate initial peak locations from data.
 
@@ -21,11 +28,9 @@ def peak_estimate(data, half_width, thresh):
     thresh : float
         Threshold for accepting something as a peak.
     """
-    dilation_factor = int(math.ceil(half_width)) * 2 + 1
-    data = gaussian_filter(data, [0.5, 0])
-    dilated = grey_dilation(data, (dilation_factor, 0))
+    blurred, dilated = blur_dilate_image(data, half_width)
     dilated[dilated < thresh] = -1
-    coordinates, time_points = np.where(data == dilated)
+    coordinates, time_points = np.where(blurred == dilated)
     return coordinates, time_points
 
 

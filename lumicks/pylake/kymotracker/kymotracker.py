@@ -3,6 +3,7 @@ from .detail.scoring_functions import kymo_score
 from .kymotrack import KymoTrack, KymoTrackGroup, _sample_from_image
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.peakfinding import (
+    blur_dilate_image,
     peak_estimate,
     refine_peak_based_on_moment,
     merge_close_peaks,
@@ -10,7 +11,6 @@ from .detail.peakfinding import (
 )
 from .detail.localization_models import GaussianLocalizationModel
 import numpy as np
-from scipy.ndimage import gaussian_filter, grey_dilation
 import warnings
 from deprecated.sphinx import deprecated
 
@@ -379,6 +379,7 @@ def refine_tracks_centroid(tracks, track_width=None, *, pixel_threshold=None):
         # Must be positive otherwise refinement fails
         raise ValueError(f"track_width should be larger than zero")
 
+    print(tracks)
     track_width_pixels = np.ceil(track_width / tracks._kymo.pixelsize[0])
     half_width = np.ceil(0.5 * track_width_pixels).astype(int)
 
@@ -389,9 +390,7 @@ def refine_tracks_centroid(tracks, track_width=None, *, pixel_threshold=None):
         if pixel_threshold <= 0:
             raise ValueError(f"pixel_threshold should be larger than zero")
 
-        blurred = gaussian_filter(image, [0.5, 0])
-        dilation_factor = int(np.ceil(half_width)) * 2 + 1
-        dilated = grey_dilation(blurred, (dilation_factor, 0))
+        _, dilated = blur_dilate_image(image, half_width)
 
         sampler = lambda track: _sample_from_image(
             dilated, track.coordinate_idx, track.time_idx, half_width
