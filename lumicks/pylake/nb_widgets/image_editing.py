@@ -158,7 +158,7 @@ class ImageEditorAxes(ImageStackAxes):
 
         if len(self.current_points) == 2:
             self._current_image = self._current_image.define_tether(*self.current_points)
-            temp_tether = np.vstack(self._current_image[0].src._tether.ends)
+            temp_tether = np.vstack(self._current_image[0]._src._tether.ends)
             self.current_points = []
         else:
             temp_tether = np.atleast_2d(np.vstack(self.current_points))

@@ -6,6 +6,10 @@
 
 * Fixed and reintroduced lazy loading for `TimeSeries` data. 
 
+#### Deprecations
+
+* Deprecated property `CorrelatedStack.src`.
+
 ### Other changes
 
 * Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.

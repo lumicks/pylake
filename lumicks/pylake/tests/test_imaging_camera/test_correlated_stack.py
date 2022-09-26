@@ -201,6 +201,18 @@ def test_slicing(shape):
             stack0[s]
 
 
+def test_deprecated_src():
+    fake_tiff = TiffStack(
+        [MockTiffFile(data=[np.ones((5, 4, 3))] * 6, times=make_frame_times(6))],
+        align_requested=False,
+    )
+    stack = CorrelatedStack.from_dataset(fake_tiff)
+    with pytest.warns(
+        DeprecationWarning, match="This property will be removed in a future release."
+    ):
+        assert stack.src is stack._src
+
+
 def test_deprecated_timestamps():
     fake_tiff = TiffStack(
         [MockTiffFile(data=[np.ones((5, 4, 3))] * 6, times=make_frame_times(6))],
@@ -485,7 +497,7 @@ def test_cropping(rgb_tiff_file, gray_tiff_file):
                 stack._get_frame(0).raw_data[25:50, 25:50],
                 err_msg=f"failed on {Path(filename).name}, align={align}, frame.raw_data",
             )
-            stack.src.close()
+            stack._src.close()
 
 
 def test_cropping_then_export(
@@ -504,7 +516,7 @@ def test_cropping_then_export(
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
-        stack.src.close()
+        stack._src.close()
 
 
 def test_get_image():
@@ -601,7 +613,7 @@ def test_define_tether():
     stack = stack.define_tether(*tether_ends)
     check_result(stack, ref_stack, 8)
     np.testing.assert_allclose(
-        stack.src._tether.ends, (horizontal_spot_coordinates[0], horizontal_spot_coordinates[-1])
+        stack._src._tether.ends, (horizontal_spot_coordinates[0], horizontal_spot_coordinates[-1])
     )
 
     # WT - RGB
@@ -609,7 +621,7 @@ def test_define_tether():
     stack = stack.define_tether(*tether_ends)
     check_result(stack, ref_stack, 16)
     np.testing.assert_allclose(
-        stack.src._tether.ends, (horizontal_spot_coordinates[0], horizontal_spot_coordinates[-1])
+        stack._src._tether.ends, (horizontal_spot_coordinates[0], horizontal_spot_coordinates[-1])
     )
 
     # test crop/tether permutations
@@ -632,14 +644,14 @@ def test_define_tether():
 
     # tether -> tether
     stack = original_stack.define_tether(*bad_tether_ends)
-    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    correct_points = stack._src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
     stack = stack.define_tether(*correct_points)
     check_result(stack, original_ref_stack, 16)
 
     # tether -> tether -> crop
     ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
     stack = original_stack.define_tether(*bad_tether_ends)
-    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    correct_points = stack._src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
     stack = stack.define_tether(*correct_points)
     stack = stack.crop_by_pixels(*crop_coordinates)
     check_result(stack, ref_stack, 16)
@@ -649,7 +661,7 @@ def test_define_tether():
     stack = original_stack.crop_by_pixels(*crop_coordinates)
     cropped_offset_tether_ends = offset_tether_ends + [[5, -10], [5, 10]]
     stack = stack.define_tether(*cropped_offset_tether_ends)
-    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    correct_points = stack._src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
     offset_correct_points = [np.array(pp) - (25, 25) for pp in correct_points]
     stack = stack.define_tether(*offset_correct_points)
     check_result(stack, ref_stack, 16)
@@ -658,7 +670,7 @@ def test_define_tether():
     ref_stack = original_ref_stack.crop_by_pixels(*crop_coordinates)
     stack = original_stack.define_tether(*bad_tether_ends)
     stack = stack.crop_by_pixels(*crop_coordinates)
-    correct_points = stack.src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
+    correct_points = stack._src._tether.rot_matrix.warp_coordinates([p for p in tether_ends])
     offset_correct_points = [np.array(pp) - (25, 25) for pp in correct_points]
     stack = stack.define_tether(*offset_correct_points)
     check_result(stack, ref_stack, 16)
