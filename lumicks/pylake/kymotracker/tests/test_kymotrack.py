@@ -157,6 +157,51 @@ def test_kymotrack_concat(blank_kymo):
     np.testing.assert_allclose(group[1].seconds, [3, 4, 5])
 
 
+def test_kymotrack_merge():
+    image = np.random.randint(0, 20, size=(10, 10, 3))
+    kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
+    kymo = _kymo_from_array(image, "rgb", **kwargs)
+
+    time_idx = ([1, 2, 3, 4, 5], [6, 7, 8], [6, 7, 8])
+    pos_idx = ([1, 1, 1, 3, 3], [4, 4, 4], [9, 9, 9])
+
+    make_tracks = lambda: KymoTrackGroup(
+        [KymoTrack(t, p, kymo, "green") for t, p in zip(time_idx, pos_idx)]
+    )
+
+    # connect first two
+    tracks = make_tracks()
+    tracks._merge_tracks(tracks[0], 2, tracks[1], 1)
+    assert len(tracks) == 2
+    np.testing.assert_equal(tracks[0].time_idx, [1, 2, 3, 7, 8])
+    np.testing.assert_almost_equal(tracks[0].coordinate_idx, [1, 1, 1, 4, 4])
+    np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
+    np.testing.assert_almost_equal(tracks[1].coordinate_idx, [9, 9, 9])
+
+    # connect last two
+    tracks = make_tracks()
+    tracks._merge_tracks(tracks[1], 1, tracks[2], 2)
+    assert len(tracks) == 2
+    np.testing.assert_equal(tracks[0].time_idx, [1, 2, 3, 4, 5])
+    np.testing.assert_almost_equal(tracks[0].coordinate_idx, [1, 1, 1, 3, 3])
+    np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
+    np.testing.assert_almost_equal(tracks[1].coordinate_idx, [4, 4, 9])
+
+    # connect first and last
+    tracks = make_tracks()
+    tracks._merge_tracks(tracks[0], 3, tracks[2], 1)
+    assert len(tracks) == 2
+    np.testing.assert_equal(tracks[0].time_idx, [1, 2, 3, 4, 7, 8])
+    np.testing.assert_almost_equal(tracks[0].coordinate_idx, [1, 1, 1, 3, 9, 9])
+    np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
+    np.testing.assert_almost_equal(tracks[1].coordinate_idx, [4, 4, 4])
+
+    # can't connect tracks from two groups
+    tracks2 = KymoTrackGroup([KymoTrack([1,2,3], [4,5,6], kymo, "green")])
+    with pytest.raises(RuntimeError, match="Both tracks need to be part of this group to be merged"):
+        tracks._merge_tracks(tracks[0], 2, tracks2[0], 0)
+
+
 @pytest.mark.parametrize(
     "time_scale, position_scale",
     [

@@ -488,6 +488,9 @@ class KymoTrackGroup:
         self._src.remove(ending_track)
 
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
+        if starting_track not in self._src or ending_track not in self._src:
+            raise RuntimeError("Both tracks need to be part of this group to be merged")
+
         starting_node = int(starting_node) + 1
         ending_node = int(ending_node)
 
