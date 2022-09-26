@@ -102,7 +102,7 @@ def test_cropping_clicks(region_select):
     events = region_select(50, 25, 150, 75)
     ax.handle_crop(*events)
     np.testing.assert_equal(ax.roi_limits, (50, 150, 25, 75))
-    np.testing.assert_equal(w.image.src._shape, (50, 100))
+    np.testing.assert_equal(w.image._src._shape, (50, 100))
 
 
 def test_kymo_cropping_clicks(kymograph, region_select):

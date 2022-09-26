@@ -41,14 +41,14 @@ class CorrelatedStack(VideoExport, FrameIndex):
     """
 
     def __init__(self, *image_names, align=True):
-        self.src = TiffStack.from_file(list(image_names), align_requested=align)
+        self._src = TiffStack.from_file(list(image_names), align_requested=align)
         self.name = (
             os.path.splitext(os.path.basename(str(image_names)))[0]
             if len(image_names) == 1
             else "Multi-file stack"
         )
         self._start_idx = 0
-        self._stop_idx = self.src.num_frames
+        self._stop_idx = self._src.num_frames
         self._step = 1
 
     def _handle_cropping(self, item):
@@ -67,7 +67,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
 
         rows = interpret_crop(item[1]) if len(item) >= 2 else (None, None)
         columns = interpret_crop(item[2]) if len(item) >= 3 else (None, None)
-        return self.src.with_roi(np.array([columns, rows]).flatten()), item[0]
+        return self._src.with_roi(np.array([columns, rows]).flatten()), item[0]
 
     def __getitem__(self, item):
         """Returns specific frame(s) and/or cropped stacks.
@@ -99,7 +99,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
             stack["1s":"5s"]  # Slice the stack from 1 to 5 seconds
             stack[:"-5s"]  # Slice the stack up to the last 5 seconds
         """
-        src, item = self._handle_cropping(item) if isinstance(item, tuple) else (self.src, item)
+        src, item = self._handle_cropping(item) if isinstance(item, tuple) else (self._src, item)
 
         if isinstance(item, slice):
             item = slice(
@@ -136,6 +136,16 @@ class CorrelatedStack(VideoExport, FrameIndex):
             yield self._get_frame(idx)
             idx += 1
 
+    @property
+    @deprecated(
+        reason="This property will be removed in a future release.",
+        version="0.13.2",
+        action="always",
+    )
+    def src(self):
+        """The `TiffStack` source of this :class:`CorrelatedStack`"""
+        return self._src
+
     @classmethod
     @deprecated(
         reason=(
@@ -150,8 +160,8 @@ class CorrelatedStack(VideoExport, FrameIndex):
 
     @property
     def shape(self):
-        base_shape = (self.num_frames, *self.src._shape)
-        return (*base_shape, 3) if self.src.is_rgb else base_shape
+        base_shape = (self.num_frames, *self._src._shape)
+        return (*base_shape, 3) if self._src.is_rgb else base_shape
 
     @classmethod
     def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None, step=1) -> "CorrelatedStack":
@@ -171,11 +181,11 @@ class CorrelatedStack(VideoExport, FrameIndex):
             Step value for slicing frames.
         """
         new_correlated_stack = cls.__new__(cls)
-        new_correlated_stack.src = data
+        new_correlated_stack._src = data
         new_correlated_stack.name = name
         new_correlated_stack._start_idx = start_idx
         new_correlated_stack._stop_idx = (
-            new_correlated_stack.src.num_frames if stop_idx is None else stop_idx
+            new_correlated_stack._src.num_frames if stop_idx is None else stop_idx
         )
         new_correlated_stack._step = step
         return new_correlated_stack
@@ -194,7 +204,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
         y_max : int
             maximum y pixel (exclusive, optional)
         """
-        data = self.src.with_roi(np.array([x_min, x_max, y_min, y_max]))
+        data = self._src.with_roi(np.array([x_min, x_max, y_min, y_max]))
         return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
 
     def define_tether(self, point1, point2):
@@ -208,7 +218,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
         point_2 : (float, float)
             (x, y) coordinates of the tether end point
         """
-        data = self.src.with_tether((point1, point2))
+        data = self._src.with_tether((point1, point2))
         return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
 
     def get_image(self, channel="rgb"):
@@ -220,7 +230,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
             The color channel of the requested data.
             For single-color data, this argument is ignored.
         """
-        if self.src._description.is_rgb:
+        if self._src._description.is_rgb:
             channel_indices = {"red": 0, "green": 1, "blue": 2, "rgb": slice(None)}
             slc = (slice(None), slice(None), channel_indices[channel])
         else:
@@ -296,13 +306,13 @@ class CorrelatedStack(VideoExport, FrameIndex):
         """
         import matplotlib.pyplot as plt
 
-        if not self.src._tether:
+        if not self._src._tether:
             raise ValueError("A tether is not defined yet for this image stack.")
 
         if axes is None:
             axes = plt.gca()
 
-        x, y = np.vstack(self.src._tether.ends).T
+        x, y = np.vstack(self._src._tether.ends).T
         tether_kwargs = {"c": "w", "marker": "o", "mfc": "none", "ls": ":", **kwargs}
         axes.plot(x, y, **tether_kwargs)
 
@@ -352,7 +362,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
     def _get_frame(self, frame=0):
         if frame >= self.num_frames or frame < 0:
             raise IndexError("Frame index out of range")
-        return self.src.get_frame(self._start_idx + frame * self._step)
+        return self._src.get_frame(self._start_idx + frame * self._step)
 
     def plot_correlated(
         self,
@@ -455,10 +465,10 @@ class CorrelatedStack(VideoExport, FrameIndex):
 
         # re-name alignment matrices fields in image description
         # to reflect the fact that the image has already been processed
-        description = self.src._description.for_export
+        description = self._src._description.for_export
 
         # add pylake to Software tag
-        software = self.src._description.software
+        software = self._src._description.software
         if "pylake" not in software:
             software += f", pylake v{version}"
 

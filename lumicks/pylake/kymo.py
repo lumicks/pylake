@@ -819,9 +819,9 @@ def _kymo_from_correlated_stack(
     start = ts_ranges[0, 0]
 
     # Ensure correlated stack has proper tether
-    if not corrstack.src._tether:
+    if not corrstack._src._tether:
         raise ValueError("The correlated stack does not have a tether.")
-    (x1, y1), (x2, y2) = corrstack.src._tether.ends
+    (x1, y1), (x2, y2) = corrstack._src._tether.ends
     if np.floor(y1) != np.floor(y2):
         raise ValueError("The correlated stack is not aligned along the tether axis.")
 

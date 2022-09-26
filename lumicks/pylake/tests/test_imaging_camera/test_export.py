@@ -12,7 +12,7 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
         stack = CorrelatedStack(str(filename), align=align)
         stack.export_tiff(savename)
-        stack.src.close()
+        stack._src.close()
         assert stat(savename).st_size > 0
 
         with tifffile.TiffFile(str(filename)) as tif0, tifffile.TiffFile(savename) as tif:
@@ -44,7 +44,7 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
 
-        stack.src.close()
+        stack._src.close()
 
 
 def test_stack_movie_export(
@@ -63,4 +63,4 @@ def test_stack_movie_export(
         with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):
             stack.export_video("gray", "dummy.gif")  # Gray is not a color!
 
-        stack.src.close()
+        stack._src.close()
