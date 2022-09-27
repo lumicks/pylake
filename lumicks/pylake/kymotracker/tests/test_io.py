@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
+import inspect
 import re
+import io
 from pathlib import Path
 from lumicks.pylake.kymotracker.kymotrack import (
     KymoTrack,
@@ -37,6 +39,13 @@ def read_txt(testfile, delimiter, with_version=True):
         return data, pylake_version, csv_version
 
 
+def compare_kymotrack_group(group1, group2):
+    assert len(group1) == len(group2)
+    for track1, track2 in zip(group1, group2):
+        for property in ("coordinate_idx", "time_idx", "position", "seconds"):
+            np.testing.assert_allclose(getattr(track1, property), getattr(track2, property))
+
+
 @pytest.mark.parametrize(
     "dt, dx, delimiter, sampling_width, sampling_outcome",
     [
@@ -49,7 +58,6 @@ def read_txt(testfile, delimiter, with_version=True):
     ],
 )
 def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sampling_outcome):
-
     track_coordinates = [
         ((1, 2, 3), (2, 3, 4)),
         ((2, 3, 4), (3, 4, 5)),
@@ -82,14 +90,9 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
     tracks.save(testfile, delimiter, sampling_width)
     imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
-
-    # Test raw fields
     data, pylake_version, csv_version = read_txt(testfile, delimiter)
-    assert len(imported_tracks) == len(tracks)
 
-    for track1, track2 in zip(tracks, imported_tracks):
-        np.testing.assert_allclose(np.array(track1.coordinate_idx), np.array(track2.coordinate_idx))
-        np.testing.assert_allclose(np.array(track1.time_idx), np.array(track2.time_idx))
+    compare_kymotrack_group(tracks, imported_tracks)
 
     for track1, time in zip(tracks, data["time (seconds)"]):
         np.testing.assert_allclose(track1.seconds, time)
@@ -103,6 +106,46 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
         count_field = [key for key in data.keys() if "counts" in key][0]
         for track1, cnt in zip(tracks, data[count_field]):
             np.testing.assert_allclose([sampling_outcome] * len(track1.coordinate_idx), cnt)
+
+
+@pytest.mark.parametrize(
+    "delimiter, sampling_width",
+    [[";", 0], [",", 0], [";", 1], [";", None]],
+)
+def test_roundtrip_without_file(delimiter, sampling_width, kymo_integration_test_data):
+    # Validate that this also works when providing a string handle (this is the API LV uses).
+
+    def get_args(func):
+        return list(inspect.signature(func).parameters.keys())
+
+    # This helps us ensure that if we get additional arguments to this function, we don't forget to
+    # add them to the parametrization here.
+    assert set(get_args(KymoTrackGroup.save)[2:]) == set(get_args(test_roundtrip_without_file)[:-1])
+
+    track_coordinates = [
+        ((1, 2, 3), (2, 3, 4)),
+        ((2, 3, 4), (3, 4, 5)),
+        ((3, 4, 5), (4, 5, 6)),
+        ((4, 5, 6), (5, 6, 7)),
+    ]
+
+    tracks = KymoTrackGroup(
+        [
+            KymoTrack(np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red")
+            for time_idx, position_idx in track_coordinates
+        ]
+    )
+
+    with io.StringIO() as s:
+        tracks.save(s, delimiter=delimiter, sampling_width=sampling_width)
+        string_representation = s.getvalue()
+
+    with io.StringIO(string_representation) as s:
+        read_tracks = import_kymotrackgroup_from_csv(
+            s, kymo_integration_test_data, "green", delimiter=delimiter
+        )
+
+    compare_kymotrack_group(tracks, read_tracks)
 
 
 @pytest.mark.parametrize(
