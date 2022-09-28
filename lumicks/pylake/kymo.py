@@ -188,6 +188,21 @@ class Kymo(ConfocalImage):
 
         return self._line_timestamp_ranges_factory(self, not include)
 
+    def _tiff_image_metadata(self) -> dict:
+        """Create metadata for the ImageDescription field of TIFFs used by `export_tiff()`."""
+        metadata = super()._tiff_image_metadata()
+        metadata["Line time (s)"] = self.line_time_seconds
+        # Cast numpy.int64 into Python int to make it compatible to json
+        metadata["Start pixel timestamp (ns)"] = int(self.line_timestamp_ranges()[0][0])
+        metadata["Stop pixel timestamp (ns)"] = int(self.line_timestamp_ranges()[-1][1])
+        return metadata
+
+    def _tiff_timestamp_ranges(self) -> list:
+        """Create Timestamp ranges for the DateTime field of TIFFs used by `export_tiff`."""
+        # As `Kymo` has only one frame, return a list with one timestamp range
+        ts_ranges = np.array(self.line_timestamp_ranges())
+        return [(np.min(ts_ranges), np.max(ts_ranges))]
+
     @cachetools.cachedmethod(lambda self: self._cache)
     def _line_start_timestamps(self):
         """Compute starting timestamp of each line (first DAQ sample corresponding to that line),

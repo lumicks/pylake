@@ -6,6 +6,7 @@
 
 * Fixed and reintroduced lazy loading for `TimeSeries` data.
 * You can now add two `KymoTrackGroups` tracked on the same kymo together with the `+` operator.
+* TIFFs exported from `Scan` and `Kymo` now contain metadata. The `DateTime` tag indicated the start/stop timestamp of each frame. The `ImageDescription` tag contains additional information about the confocal acquisition parameters. 
 
 #### Other changes
 

@@ -15,18 +15,25 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
         stack._src.close()
         assert stat(savename).st_size > 0
 
-        with tifffile.TiffFile(str(filename)) as tif0, tifffile.TiffFile(savename) as tif:
-            assert len(tif0.pages) == len(tif.pages)
-            assert tif0.pages[0].software != tif.pages[0].software
-            assert "pylake" in tif.pages[0].software
+        with tifffile.TiffFile(str(filename)) as tif_in, tifffile.TiffFile(savename) as tif_out:
+            # Check `_tiff_frames()` and `_tiff_timestamp_ranges()`:
+            assert len(tif_in.pages) == len(tif_out.pages)
+            # Check `_tiff_writer_kwargs()`:
+            assert (
+                tif_in.pages[0].software in tif_out.pages[0].software
+                and tif_in.pages[0].software != tif_out.pages[0].software
+            )
+            assert "Pylake" in tif_out.pages[0].software
+            # Check `_tiff_image_metadata()`:
             if stack._get_frame(0).is_rgb:
                 if stack._get_frame(0)._is_aligned:
-                    assert "Applied channel 0 alignment" in tif.pages[0].description
-                    assert "Channel 0 alignment" not in tif.pages[0].description
+                    assert "Applied channel 0 alignment" in tif_out.pages[0].description
+                    assert "Channel 0 alignment" not in tif_out.pages[0].description
                 else:
-                    assert "Applied channel 0 alignment" not in tif.pages[0].description
-                    assert "Channel 0 alignment" in tif.pages[0].description
-            for page0, page in zip(tif0.pages, tif.pages):
+                    assert "Applied channel 0 alignment" not in tif_out.pages[0].description
+                    assert "Channel 0 alignment" in tif_out.pages[0].description
+            # Check `_tiff_timestamp_ranges()`
+            for page0, page in zip(tif_in.pages, tif_out.pages):
                 assert page0.tags["DateTime"].value == page.tags["DateTime"].value
 
 

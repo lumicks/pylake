@@ -244,27 +244,52 @@ def test_deprecated_plotting(test_scans):
         scan.plot_rgb()
 
 
-def test_export_tiff(tmpdir_factory, test_scans):
+@pytest.mark.parametrize(
+    "scanname, tiffname",
+    [
+        ("fast Y slow X", "single_frame.tiff"),
+        ("fast Y slow X multiframe", "multi_frame.tiff"),
+    ],
+)
+def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
     from os import stat
 
-    tmpdir = tmpdir_factory.mktemp("pylake")
+    scan = test_scans[scanname]
+    filename = tmp_path / tiffname
+    scan.export_tiff(filename)
+    assert stat(filename).st_size > 0
+    # Check if tags were properly stored, i.e. test functionality of `_tiff_image_metadata()`,
+    # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
+    tiff_tags = grab_tiff_tags(filename)
+    assert len(tiff_tags) == scan.num_frames
+    for tags, timestamp_range in zip(tiff_tags, scan._tiff_timestamp_ranges()):
+        assert tags["ImageDescription"] == scan._tiff_image_metadata()
+        assert tags["DateTime"] == f"{timestamp_range[0]}:{timestamp_range[1]}"
+        assert tags["Software"] == scan._tiff_writer_kwargs()["software"]
+        np.testing.assert_allclose(
+            tags["XResolution"][0] / tags["XResolution"][1],
+            scan._tiff_writer_kwargs()["resolution"][0],
+            rtol=1e-1,
+        )
+        np.testing.assert_allclose(
+            tags["YResolution"][0] / tags["YResolution"][1],
+            scan._tiff_writer_kwargs()["resolution"][1],
+            rtol=1e-1
+        )
+        assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
+
+
+def test_deprecated_save_tiff(tmp_path, test_scans):
+    from os import stat
 
     scan = test_scans["fast Y slow X"]
-    scan.export_tiff(f"{tmpdir}/single_frame.tiff")
-    assert stat(f"{tmpdir}/single_frame.tiff").st_size > 0
-
-    scan = test_scans["fast Y slow X multiframe"]
-    scan.export_tiff(f"{tmpdir}/multi_frame.tiff")
-    assert stat(f"{tmpdir}/multi_frame.tiff").st_size > 0
-
-    scan = test_scans["fast Y slow X"]
-    match=(
+    match = (
         r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
         r"exporting to a different format."
     )
     with pytest.warns(DeprecationWarning, match=match):
-        scan.save_tiff(f"{tmpdir}/single_frame_dep.tiff")
-        assert stat(f"{tmpdir}/single_frame_dep.tiff").st_size > 0
+        scan.save_tiff(f"{tmp_path}/single_frame_dep.tiff")
+        assert stat(f"{tmp_path}/single_frame_dep.tiff").st_size > 0
 
 
 def test_movie_export(tmpdir_factory, test_scans):

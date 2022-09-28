@@ -1,14 +1,17 @@
-import numpy as np
 import os
-import tifffile
+from typing import Iterator, Union
+
+import numpy as np
+import numpy.typing as npt
 from deprecated.sphinx import deprecated
-from .detail.imaging_mixins import VideoExport, FrameIndex
+
 from .adjustments import ColorAdjustment
-from .detail.widefield import TiffStack
 from .detail.image import make_image_title
+from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
+from .detail.widefield import TiffStack
 
 
-class CorrelatedStack(VideoExport, FrameIndex):
+class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
     """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various
     formats. These can be opened and correlated to timeline data using CorrelatedStack.
 
@@ -230,7 +233,7 @@ class CorrelatedStack(VideoExport, FrameIndex):
             The color channel of the requested data.
             For single-color data, this argument is ignored.
         """
-        if self._src._description.is_rgb:
+        if self._src.is_rgb:
             channel_indices = {"red": 0, "green": 1, "blue": 2, "rgb": slice(None)}
             slc = (slice(None), slice(None), channel_indices[channel])
         else:
@@ -439,51 +442,39 @@ class CorrelatedStack(VideoExport, FrameIndex):
         Parameters
         ----------
         file_name : str
-            File name to export to.
+            The name of the TIFF file where the image will be saved.
         """
-        from . import __version__ as version
+        super().export_tiff(file_name, dtype=None, clip=False)
 
-        def parse_tags(frame):
-            # Parse original file tags into list of tuples
-            #   [(code, dtype, count, value, writeonce)]
-            #   code is defined by the TIFF specification
-            #   dtype is defined in tifffile
-            # Only tags that are not resolved automatically by `TiffWriter.save()` are needed
+    def _tiff_frames(self, iterator=False) -> Union[npt.ArrayLike, Iterator]:
+        """Create images for frames of TIFFs used by `export_tiff().`"""
+        return (frame.data for frame in self) if iterator else self.get_image()
 
-            # Orientation, uint16, len, ORIENTATION.TOPLEFT
-            orientation = (274, "H", 1, 1)
-
-            # SampleFormat, uint16, len, number of channels
-            n_channels = 3 if frame.is_rgb else 1
-            sample_format = (339, "H", n_channels, (1,) * n_channels)
-
-            # DateTime, str, len, start:stop
-            datetime = frame._page.tags["DateTime"].value
-            datetime = (306, "s", len(datetime), datetime)
-
-            return (orientation, sample_format, datetime)
-
+    def _tiff_image_metadata(self) -> dict:
+        """Create metadata stored in the ImageDescription field of TIFFs used by `export_tiff()`"""
         # re-name alignment matrices fields in image description
         # to reflect the fact that the image has already been processed
-        description = self._src._description.for_export
+        return self._src._description.for_export
+
+    def _tiff_timestamp_ranges(self) -> list:
+        """Create Timestamp ranges for DateTime field of TIFFs used by `export_tiff().`"""
+        return self.frame_timestamp_ranges()
+
+    def _tiff_writer_kwargs(self) -> dict:
+        """Create keyword arguments used for `TiffWriter.write()` in `self.export_tiff()`."""
+        from . import __version__ as version
 
         # add pylake to Software tag
         software = self._src._description.software
-        if "pylake" not in software:
-            software += f", pylake v{version}"
+        if "pylake" not in software.lower():
+            software += (", " if len(software) else "") + f"Pylake v{version}"
 
-        # write frames sequentially
-        with tifffile.TiffWriter(file_name) as tif:
-            for frame in self:
-                tif.write(
-                    frame.data,
-                    description=description,
-                    software=software,
-                    metadata=None,  # suppress tifffile default ImageDescription tag
-                    contiguous=False,  # needed to write tags on each page
-                    extratags=parse_tags(frame),
-                    photometric="rgb" if frame.is_rgb else "minisblack",
-                )
+        write_kwargs = {
+            "software": software,
+            "photometric": "rgb" if self._src.is_rgb else "minisblack",
+        }
+
+        return write_kwargs
 
     @property
     def num_frames(self):

@@ -365,21 +365,45 @@ def test_plotting_with_histograms(test_kymos):
         kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=6)
 
 
-def test_save_tiff(tmpdir_factory, test_kymos):
+def test_export_tiff(tmp_path, test_kymos, grab_tiff_tags):
     from os import stat
 
-    tmpdir = tmpdir_factory.mktemp("pylake")
+    kymo = test_kymos["Kymo1"]
+    kymo.export_tiff(tmp_path / "kymo1.tiff")
+    assert stat(tmp_path / "kymo1.tiff").st_size > 0
+
+    # Check if tags were properly stored, i.e. test functionality of `_tiff_image_metadata()`,
+    # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
+    tiff_tags = grab_tiff_tags(tmp_path / "kymo1.tiff")
+    assert len(tiff_tags) == 1
+    for tags, timestamp_range in zip(tiff_tags, kymo._tiff_timestamp_ranges()):
+        assert tags["ImageDescription"] == kymo._tiff_image_metadata()
+        assert tags["DateTime"] == f"{timestamp_range[0]}:{timestamp_range[1]}"
+        assert tags["Software"] == kymo._tiff_writer_kwargs()["software"]
+        np.testing.assert_allclose(
+            tags["XResolution"][0] / tags["XResolution"][1],
+            kymo._tiff_writer_kwargs()["resolution"][0],
+            rtol=1e-1,
+        )
+        np.testing.assert_allclose(
+            tags["YResolution"][0] / tags["YResolution"][1],
+            kymo._tiff_writer_kwargs()["resolution"][1],
+            rtol=1e-1
+        )
+        assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
+
+
+def test_deprecated_save_tiff(tmp_path, test_kymos):
+    from os import stat
 
     kymo = test_kymos["Kymo1"]
-    kymo.export_tiff(f"{tmpdir}/kymo1.tiff")
-    assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
     match = (
         r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
         r"exporting to a different format."
     )
     with pytest.warns(DeprecationWarning, match=match):
-        kymo.save_tiff(f"{tmpdir}/kymo2.tiff")
-        assert stat(f"{tmpdir}/kymo2.tiff").st_size > 0
+        kymo.save_tiff(f"{tmp_path}/kymo2.tiff")
+        assert stat(f"{tmp_path}/kymo2.tiff").st_size > 0
 
 
 def test_downsampled_kymo():
