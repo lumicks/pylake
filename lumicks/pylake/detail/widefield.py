@@ -365,7 +365,7 @@ class ImageDescription:
         if self._alignment.do_alignment:
             for j in range(3):
                 out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
-        return json.dumps(out, indent=4)
+        return out
 
 
 class AlignmentStatus(enum.Enum):

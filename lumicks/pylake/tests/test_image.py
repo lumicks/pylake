@@ -5,7 +5,6 @@ from lumicks.pylake.detail.image import (
     reconstruct_image,
     reconstruct_image_sum,
     reconstruct_num_frames,
-    save_tiff,
     line_timestamps_image,
     histogram_rows,
 )
@@ -74,81 +73,6 @@ def test_reconstruct_multiframe():
     assert reconstruct_num_frames(infowave, 2, 2) == 3
     assert reconstruct_num_frames(infowave, 2, 3) == 2
     assert reconstruct_num_frames(infowave, 2, 5) == 1
-
-
-def test_unsafe_int_export_tiff(tmpdir):
-    image16 = np.ones(shape=(10, 10, 3)) * np.iinfo(np.uint16).max
-
-    # Sufficient bit-depth
-    save_tiff(image16, str(tmpdir.join("uint16")), dtype=np.uint16)
-    save_tiff(image16, str(tmpdir.join("float32")), dtype=np.float32)
-
-    # Forced clamping
-    save_tiff(image16, str(tmpdir.join("clipped")), dtype=np.uint8, clip=True)
-
-    # Raise because unsafe
-    with pytest.raises(RuntimeError) as excinfo:
-        save_tiff(image16, str(tmpdir.join("uint8")), dtype=np.uint8)
-    assert "Can't safely export image with `dtype=uint8` channels" in str(excinfo.value)
-
-    with pytest.raises(RuntimeError) as excinfo:
-        save_tiff(image16, str(tmpdir.join("float16")), dtype=np.float16)
-    assert "Can't safely export image with `dtype=float16` channels" in str(excinfo.value)
-
-
-@pytest.mark.parametrize(
-    "export_sizes, export_pixel_time, resolution_x, resolution_y",
-    [
-        ([1.0e-3], 1.0e-3, 10000000, 10000000),
-        ([5.0e-3], 1.0e-3, 2000000, 2000000),
-        ([1.0e-3, 5.0e-3], 1.0e-3, 10000000, 2000000),
-    ],
-)
-def test_tiff_tags(export_sizes, export_pixel_time, resolution_x, resolution_y, tmpdir):
-    def grab_tags(file):
-        import tifffile
-        from ast import literal_eval
-
-        with tifffile.TiffFile(file) as tif:
-            tiff_tags = {}
-            for tag in tif.pages[0].tags.values():
-                name, value = tag.name, tag.value
-                try:
-                    tiff_tags[name] = literal_eval(value)
-                except (ValueError, SyntaxError):
-                    tiff_tags[name] = value
-            return tiff_tags
-
-    image16 = np.ones(shape=(10, 10, 3)) * np.iinfo(np.uint16).max
-    save_tiff(
-        image16,
-        str(tmpdir.join("1")),
-        dtype=np.uint16,
-        pixel_sizes_um=export_sizes,
-        pixel_time_seconds=export_pixel_time,
-    )
-
-    tags = grab_tags(str(tmpdir.join("1")))
-    assert str(tags["ResolutionUnit"]) == "RESUNIT.CENTIMETER"
-    np.testing.assert_allclose(tags["ImageDescription"]["PixelTime"], export_pixel_time)
-    assert tags["ImageDescription"]["PixelTimeUnit"] == "s"
-    np.testing.assert_allclose(tags["ImageDescription"]["shape"], [10, 10, 3])
-    np.testing.assert_allclose(tags["XResolution"][0], resolution_x)
-    np.testing.assert_allclose(tags["YResolution"][0], resolution_y)
-
-
-def test_float_tiff(tmpdir):
-    image32 = np.ones(shape=(10, 10, 3)) * np.finfo(np.float32).max
-    save_tiff(image32, str(tmpdir.join("1")), dtype=np.float32)
-    save_tiff(image32, str(tmpdir.join("2")), dtype=np.float16, clip=True)
-
-    with pytest.raises(RuntimeError) as excinfo:
-        save_tiff(image32, str(tmpdir.join("3")), dtype=np.float16)
-    assert "Can't safely export image with `dtype=float16` channels" in str(excinfo.value)
-
-    with pytest.raises(RuntimeError) as excinfo:
-        save_tiff(image32, str(tmpdir.join("1")), dtype=np.uint16)
-    assert "Can't safely export image with `dtype=uint16` channels" in str(excinfo.value)
 
 
 def test_histogram_rows():

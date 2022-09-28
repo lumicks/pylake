@@ -1,14 +1,15 @@
 import json
 import numpy as np
 import cachetools
+from numpy import typing as npt
 from deprecated.sphinx import deprecated
 from dataclasses import dataclass
 from typing import List
 import warnings
 
-from .mixin import PhotonCounts
-from .mixin import ExcitationLaserPower
-from .image import reconstruct_image_sum, reconstruct_image, save_tiff
+from .mixin import ExcitationLaserPower, PhotonCounts
+from .image import reconstruct_image_sum, reconstruct_image
+from .imaging_mixins import TiffExport
 from .utilities import could_sum_overflow
 from ..adjustments import ColorAdjustment
 from matplotlib.colors import LinearSegmentedColormap
@@ -344,7 +345,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         return self._metadata.center_point_um
 
 
-class ConfocalImage(BaseScan):
+class ConfocalImage(BaseScan, TiffExport):
     def _to_spatial(self, data):
         """Implements any necessary post-processing actions after image reconstruction from infowave"""
         raise NotImplementedError
@@ -390,6 +391,16 @@ class ConfocalImage(BaseScan):
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
         """
+        super().export_tiff(filename, dtype=dtype, clip=clip)
+
+    def _tiff_frames(self, iterator=False) -> npt.ArrayLike:
+        """Create frames of TIFFs used by `export_tiff().`"""
+        image = self.get_image()
+        return image if image.ndim >= 4 else np.expand_dims(image, axis=0)
+
+    def _tiff_image_metadata(self) -> dict:
+        """Create metadata stored in the ImageDescription field of TIFFs used by `export_tiff()`"""
+        # Try to get the pixel time
         try:
             pixel_time_seconds = self.pixel_time_seconds
         except NotImplementedError:
@@ -398,17 +409,45 @@ class ConfocalImage(BaseScan):
                 "The corresponding metadata in the output file is set to `None`."
             )
             pixel_time_seconds = None
-        if self.get_image("rgb").size > 0:
-            save_tiff(
-                self.get_image("rgb"),
-                filename,
-                dtype,
-                clip,
-                pixel_sizes_um=self.pixelsize_um,
-                pixel_time_seconds=pixel_time_seconds,
-            )
-        else:
-            raise RuntimeError("Can't export TIFF if there are no pixels")
+
+        # Build metadata dict
+        metadata = {
+            "Camera": f"Confocal{self.__class__.__name__}",
+            "Scan axes": [
+                {
+                    "Axis": sa.axis,
+                    "Label": sa.axis_label.lower(),
+                    "Number of pixels": sa.num_pixels,
+                    "Pixel size (um)": sa.pixel_size_um,
+                }
+                for sa in self._metadata.scan_axes
+            ],
+            "Fast axis": self.fast_axis.lower(),
+            "Center point (um)": self.center_point_um,
+            "Pixel time (s)": pixel_time_seconds,
+        }
+
+        return metadata
+
+    def _tiff_writer_kwargs(self) -> dict:
+        """Create keyword arguments used for `TiffWriter.write()` in `self.export_tiff()`."""
+        from .. import __version__ as version
+
+        write_kwargs = {
+            "software": f"Pylake v{version}",
+            "photometric": "rgb",
+        }
+
+        # Add resolution if pixelsize is available
+        pixel_sizes_um = self.pixelsize_um
+        pixel_size_x, pixel_size_y = (
+            pixel_sizes_um[0],
+            pixel_sizes_um[1] if len(pixel_sizes_um) == 2 else pixel_sizes_um[0],
+        )
+        if pixel_size_x:
+            write_kwargs["resolution"] = (1e4 / pixel_size_x, 1e4 / pixel_size_y, "CENTIMETER")
+
+        return write_kwargs
 
     @deprecated(
         reason=(

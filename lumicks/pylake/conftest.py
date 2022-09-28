@@ -88,3 +88,25 @@ def configure_mpl():
             yield
     finally:
         plt.close("all")
+
+
+@pytest.fixture
+def grab_tiff_tags():
+    def grab_tags(file):
+        import tifffile
+        from ast import literal_eval
+
+        tiff_tags = []
+        with tifffile.TiffFile(file) as tif:
+            for page in tif.pages:
+                page_tags = {}
+                for tag in page.tags.values():
+                    name, value = tag.name, tag.value
+                    try:
+                        page_tags[name] = literal_eval(value)
+                    except (ValueError, SyntaxError):
+                        page_tags[name] = value
+                tiff_tags.append(page_tags)
+        return tiff_tags
+
+    return grab_tags
