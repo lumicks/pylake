@@ -1,13 +1,15 @@
 import warnings
-import numpy as np
 from copy import copy
 from itertools import zip_longest
+
+import numpy as np
 from deprecated import deprecated
 
-from .detail.imaging_mixins import VideoExport, FrameIndex
 from .adjustments import ColorAdjustment
-from .detail.confocal import ConfocalImage, linear_colormaps
-from .detail.image import reconstruct_num_frames, make_image_title
+from .detail.confocal import ConfocalImage, _deprecate_basescan_plot_args, linear_colormaps
+from .detail.image import make_image_title, reconstruct_num_frames
+from .detail.imaging_mixins import FrameIndex, VideoExport
+from .detail.plotting import get_axes, show_image
 
 
 class Scan(ConfocalImage, VideoExport, FrameIndex):
@@ -404,35 +406,47 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         else:
             return data
 
-    def _plot(
+    @_deprecate_basescan_plot_args
+    def plot(
         self,
-        channel,
-        axes,
+        channel="rgb",
+        *,
         frame=0,
-        image_handle=None,
         adjustment=ColorAdjustment.nothing(),
+        axes=None,
+        image_handle=None,
+        show_title=True,
         **kwargs,
     ):
-        """Plot a scan frame for requested color channel(s).
+        """Plot a scan frame for the requested color channel(s).
 
         Parameters
         ----------
-        channel : {'red', 'green', 'blue', 'rgb'}
+        channel : {"red", "green", "blue", "rgb"}, optional
             Color channel to plot.
-        axes : mpl.axes.Axes
-            The axes instance in which to plot.
-        frame : int
-            Frame index.
+        frame : int, optional
+            Index of the frame to plot.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-        image_handle : `matplotlib.image.AxesImage` or None
+        axes : matplotlib.axes.Axes, optional
+            If supplied, the axes instance in which to plot.
+        image_handle : matplotlib.image.AxesImage or None
             Optional image handle which is used to update plots with new data rather than
             reconstruct them (better for performance).
+        show_title : bool, optional
+            Controls display of auto-generated plot title
         **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`
+            Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
+            `image_handle` is provided.
+
+        Returns
+        -------
+        matplotlib.image.AxesImage
+            The image handle representing the plotted image.
         """
         if frame < 0:
             raise IndexError("negative indexing is not supported.")
+        axes = get_axes(axes=axes, image_handle=image_handle)
 
         image = self._get_plot_data(
             channel, adjustment, frame=frame if self.num_frames != 1 else None
@@ -446,19 +460,19 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             cmap=linear_colormaps[channel],
         )
 
-        if not image_handle:
-            image_handle = axes.imshow(image, **{**default_kwargs, **kwargs})
-        else:
-            # Updating the image data in an existing plot is a lot faster than re-plotting with
-            # `imshow`.
-            image_handle.set_data(image)
-
-        adjustment._update_limits(image_handle, image, channel)
-
+        image_handle = show_image(
+            image,
+            adjustment,
+            channel,
+            image_handle=image_handle,
+            axes=axes,
+            **{**default_kwargs, **kwargs},
+        )
         scan_axes = self._metadata.ordered_axes
         axes.set_xlabel(rf"{scan_axes[0].axis_label.lower()} ($\mu$m)")
         axes.set_ylabel(rf"{scan_axes[1].axis_label.lower()} ($\mu$m)")
-        axes.set_title(make_image_title(self, frame))
+        if show_title:
+            axes.set_title(make_image_title(self, frame))
 
         return image_handle
 

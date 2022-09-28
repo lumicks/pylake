@@ -1,14 +1,21 @@
-import numpy as np
 import warnings
-import cachetools
-from dataclasses import dataclass
 from copy import copy
-from skimage.measure import block_reduce
-from deprecated.sphinx import deprecated
-from .adjustments import ColorAdjustment
-from .detail.confocal import ConfocalImage, linear_colormaps, ScanMetaData, ScanAxis
-from .detail.image import seek_timestamp_next_line, histogram_rows, round_down
+from dataclasses import dataclass
 
+import numpy as np
+from deprecated.sphinx import deprecated
+from skimage.measure import block_reduce
+
+from .adjustments import ColorAdjustment
+from .detail.confocal import (
+    ConfocalImage,
+    ScanAxis,
+    ScanMetaData,
+    _deprecate_basescan_plot_args,
+    linear_colormaps,
+)
+from .detail.image import histogram_rows, round_down, seek_timestamp_next_line
+from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
 
 
@@ -267,25 +274,47 @@ class Kymo(ConfocalImage):
         list corresponds to the number of scan axes."""
         return [self._calibration.value]
 
-    def _plot(self, channel, axes, adjustment=ColorAdjustment.nothing(), **kwargs):
-        """Plot a kymo for requested color channel(s).
+    @_deprecate_basescan_plot_args
+    def plot(
+        self,
+        channel="rgb",
+        *,
+        adjustment=ColorAdjustment.nothing(),
+        axes=None,
+        image_handle=None,
+        show_title=True,
+        **kwargs,
+    ):
+        """Plot a kymo for the requested color channel(s).
 
         Parameters
         ----------
-        channel : {'red', 'green', 'blue', 'rgb'}
+        channel : {"red", "green", "blue", "rgb"}, optional
             Color channel to plot.
-        axes : mpl.axes.Axes
-            The axes instance in which to plot.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-
+        axes : matplotlib.axes.Axes, optional
+            If supplied, the axes instance in which to plot.
+        image_handle : matplotlib.image.AxesImage or None
+            Optional image handle which is used to update plots with new data rather than
+            reconstruct them (better for performance).
+        show_title : bool, optional
+            Controls display of auto-generated plot title
         **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`
+            Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
+            `image_handle` is provided.
+
+        Returns
+        -------
+        matplotlib.image.AxesImage
+            The image handle representing the plotted image.
         """
+        axes = get_axes(axes=axes, image_handle=image_handle)
+
         image = self._get_plot_data(channel, adjustment)
+
         size_calibrated = self._calibration.value * self._num_pixels[0]
         duration = self.line_time_seconds * image.shape[1]
-
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             # pixel center aligned with mean time per line
@@ -299,11 +328,20 @@ class Kymo(ConfocalImage):
             cmap=linear_colormaps[channel],
         )
 
-        image_handle = axes.imshow(image, **{**default_kwargs, **kwargs})
+        image_handle = show_image(
+            image,
+            adjustment,
+            channel,
+            image_handle=image_handle,
+            axes=axes,
+            **{**default_kwargs, **kwargs},
+        )
         axes.set_xlabel("time (s)")
         axes.set_ylabel(f"position ({self._calibration.unit_label})")
-        axes.set_title(self.name)
-        adjustment._update_limits(image_handle, image, channel)
+        if show_title:
+            axes.set_title(self.name)
+
+        return image_handle
 
     def plot_with_force(
         self,
@@ -646,10 +684,8 @@ class Kymo(ConfocalImage):
 
 
 class EmptyKymo(Kymo):
-    def plot_rgb(self):
-        raise RuntimeError("Cannot plot empty kymograph")
-
-    def _plot(self, image, **kwargs):
+    @_deprecate_basescan_plot_args
+    def plot(self, channel="rgb", **kwargs):
         raise RuntimeError("Cannot plot empty kymograph")
 
     def _image(self, channel):

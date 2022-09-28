@@ -9,6 +9,13 @@
 * TIFFs exported from `Scan` and `Kymo` now contain metadata. The `DateTime` tag indicated the start/stop timestamp of each frame. The `ImageDescription` tag contains additional information about the confocal acquisition parameters.
 * Added covariance-based estimator (cve) option to `KymoTrack.estimate_diffusion()`. See [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
 * Added the optional `min_length` parameter to `KymoTrackGroup.estimate_diffusion()` to discard tracks shorter than a specified length from the analysis.
+* Harmonized method `plot()` call signature for `Scan`, `Kymo`, `PointScan` and `CorrelatedStack`:
+  * `Scan`, `Kymo` and `PointScan`: Made argument `channel` optional
+  * `Scan` and `PointScan`: Added argument `show_title`
+  * `Kymo`: Added arguments `image_handle` and `show_title`.
+  * `CorrelatedStack`: See deprecation changelog entry.
+* `Kymo.plot()` now returns a handle of the plotted image
+* `PointScan.plot()` now returns a list of handles of the plotted lines
 
 #### Other changes
 
@@ -18,6 +25,8 @@
 #### Deprecations
 
 * Deprecated property `CorrelatedStack.src`.
+* Reordered the keyword arguments of the method `CorrelatedStack.plot()` and enforced all parameters after `channel` to be keyword arguments. For details see the [docstring](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.correlated_stack.CorrelatedStack.html#lumicks.pylake.correlated_stack.CorrelatedStack.plot).
+* Enforced the argument `axes` of the method `plot()` for `Scan`, `Kymo` and `PointScan` to be a keyword argument.
 
 #### Bugfixes
 
@@ -32,6 +41,7 @@
 * Fixed a bug where the `pixel_threshold` could be set to zero for an empty image. Now the minimum `pixel_threshold` is one.
 * Fixed a bug where single pixel detections in a `KymoTrackGroup` would contribute values with a dwell time of zero. These are now dropped, the correct minimally observable time is set appropriately and a warning is issued.
 * Fixed slicing of a `Kymo` where slicing from a time point inside the last line to the end (e.g. `kymo["5s":]`) resulted in a `Kymo` which returned errors upon trying to access its contents. 
+
 ### Other changes
 
 * Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.

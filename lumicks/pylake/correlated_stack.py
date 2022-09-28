@@ -8,7 +8,58 @@ from deprecated.sphinx import deprecated
 from .adjustments import ColorAdjustment
 from .detail.image import make_image_title
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
+from .detail.plotting import get_axes, show_image
 from .detail.widefield import TiffStack
+
+
+def _deprecate_plot_arguments(plot):
+    """Decorator to deprecate old arguments of the method `CorrelatedStack.plot()`"""
+    import functools
+    import matplotlib
+    import warnings
+
+    def is_old_order(args):
+        # old arguments: frame, channel, show_title, axes, adjustment
+        old_arg_types = [int, str, bool, matplotlib.axes.Axes, ColorAdjustment]
+        nones_allowed = [False, True, False, True, False]
+        old_order = 1 <= len(args) <= 5
+        for arg, old_type, none_allowed in zip(args, old_arg_types, nones_allowed):
+            old_order = old_order and (isinstance(arg, old_type) or none_allowed and arg is None)
+        return old_order
+
+    @functools.wraps(plot)
+    def wrapper(self, *args, **kwargs):
+        # The plot function might be called with up to 5 positional arguments with the old order
+        # We can gracefully convert the old ordered positional arguments into keyword arguments
+        if is_old_order(args):
+            keys = ["frame", "channel", "show_title", "axes", "adjustment"]
+            defaults = [0, "rgb", True, None, ColorAdjustment.nothing()]
+            warn_on_keys = []
+            for arg, key, default in zip(args, keys, defaults):
+                if key in kwargs:
+                    raise TypeError(
+                        f"`{self.__class__.__name__}.plot()` got multiple values for argument `{key}`"
+                    )
+                kwargs[key] = default if arg is None else arg
+                if key != "channel":
+                    warn_on_keys.append(key)
+            warn_keys = (
+                f"`{warn_on_keys[0]}`"
+                if len(warn_on_keys) == 1
+                else f"`{'`, `'.join(warn_on_keys[:-1])}` and `{warn_on_keys[-1]}`"
+            )
+            warnings.warn(
+                DeprecationWarning(
+                    f"The call signature of `plot()` has changed: Please, provide {warn_keys} as "
+                    f"keyword argument{'s' if len(warn_on_keys) > 1 else ''}."
+                ),
+                stacklevel=2,
+            )
+            return plot(self, **kwargs)
+        else:
+            return plot(self, *args, **kwargs)
+
+    return wrapper
 
 
 class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
@@ -241,56 +292,53 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
 
         return np.stack([frame.data[slc] for frame in self], axis=0).squeeze()
 
+    @_deprecate_plot_arguments
     def plot(
         self,
-        frame=0,
         channel="rgb",
-        show_title=True,
-        axes=None,
-        adjustment=ColorAdjustment.nothing(),
         *,
+        frame=0,
+        adjustment=ColorAdjustment.nothing(),
+        axes=None,
         image_handle=None,
+        show_title=True,
         **kwargs,
     ):
-        """Plot image from image stack
+        """Plot a frame from the image stack for the requested color channel(s)
 
         Parameters
         ----------
+        channel : {"red", "green", "blue", "rgb"}, optional
+            Color channel to plot.
         frame : int, optional
             Index of the frame to plot.
-        channel : 'rgb', 'red', 'green', 'blue', None; optional
-            Channel to plot for RGB images (None defaults to 'rgb')
-            Not used for grayscale images
-        show_title : bool, optional
-            Controls display of auto-generated plot title
-        axes : mpl.axes.Axes or None
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
+        axes : matplotlib.axes.Axes, optional
             If supplied, the axes instance in which to plot.
         image_handle : matplotlib.image.AxesImage or None
             Optional image handle which is used to update plots with new data rather than
             reconstruct them (better for performance).
+        show_title : bool, optional
+            Controls display of auto-generated plot title
         **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
-        import matplotlib.pyplot as plt
+            Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
+            `image_handle` is provided.
 
-        if axes is None:
-            axes = plt.gca() if image_handle is None else image_handle.axes
-        elif image_handle is not None and id(axes) != id(image_handle.axes):
-            raise ValueError("Supplied image_handle with a different axes than the provided axes")
+        Returns
+        -------
+        matplotlib.image.AxesImage
+            The image handle representing the plotted image.
+        """
+        axes = get_axes(axes=axes, image_handle=image_handle)
+        image = self._get_frame(frame)._get_plot_data(channel, adjustment=adjustment)
 
         default_kwargs = dict(cmap="gray")
         kwargs = {**default_kwargs, **kwargs}
 
-        image = self._get_frame(frame)._get_plot_data(channel, adjustment=adjustment)
-
-        if not image_handle:
-            image_handle = axes.imshow(image, **kwargs)
-        else:
-            # Updating the image data in an existing plot is a lot faster than re-plotting with
-            # `imshow`.
-            image_handle.set_data(image)
-
-        adjustment._update_limits(image_handle, image, channel)
+        image_handle = show_image(
+            image, adjustment, channel, image_handle=image_handle, axes=axes, **kwargs
+        )
 
         if show_title:
             axes.set_title(make_image_title(self, frame))
@@ -302,7 +350,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
 
         Parameters
         ----------
-        axes : mpl.axes.Axes or None
+        axes : matplotlib.axes.Axes or None
             If supplied, the axes instance in which to plot.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.

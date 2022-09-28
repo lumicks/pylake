@@ -1,7 +1,6 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
-from lumicks import pylake
 
 
 def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
@@ -18,16 +17,14 @@ def test_plotting(test_point_scans):
     ps = test_point_scans["PointScan1"]
 
     for channel in ("red", "green", "blue"):
-        ps.plot(channel=channel)
+        xline, yline = ps.plot(channel=channel)[0].get_xydata().T
 
-        xline, yline = plt.gca().get_lines()[0].get_xydata().T
         count = getattr(ps, f"{channel}_photon_count")
         np.testing.assert_allclose(xline, (count.timestamps - count.timestamps[0]) * 1e-9)
         np.testing.assert_allclose(yline, count.data)
         plt.close()
 
-    ps.plot(channel="rgb", lw=5)
-    lines = plt.gca().get_lines()
+    lines = ps.plot(channel="rgb", lw=5)
     for channel, line in zip(("red", "green", "blue"), lines):
         xline, yline = line.get_xydata().T
         count = getattr(ps, f"{channel}_photon_count")
@@ -46,3 +43,20 @@ def test_deprecated_plotting(test_point_scans):
         ps.plot_blue()
     with pytest.deprecated_call():
         ps.plot_rgb()
+    with pytest.warns(
+        DeprecationWarning,
+        match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
+        "keyword argument."
+    ):
+        xline, yline = ps.plot("red", None)[0].get_xydata().T
+
+        count = getattr(ps, "red_photon_count")
+        np.testing.assert_allclose(xline, (count.timestamps - count.timestamps[0]) * 1e-9)
+        np.testing.assert_allclose(yline, count.data)
+        plt.close()
+    # Test rejection of deprecated call with positional `axes` and double keyword assignment
+    with pytest.raises(
+        TypeError,
+        match=r"`PointScan.plot\(\)` got multiple values for argument `axes`"
+    ):
+        ps.plot("rgb", None, axes=None)
