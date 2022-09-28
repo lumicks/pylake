@@ -385,7 +385,7 @@ def test_correlated_stack_plotting(rgb_alignment_image_data):
     assert id(image) == id(plt.gca().get_images()[0])
 
     with pytest.raises(
-            ValueError, match="Supplied image_handle with a different axes than the provided axes"
+            AssertionError, match="Supplied image_handle with a different axes than the provided axes"
     ):
         stack.plot(channel="blue", frame=0, image_handle=image, axes=plt.axes(label="a new axes"))
     # Plot to a new axis
@@ -398,6 +398,59 @@ def test_correlated_stack_plotting(rgb_alignment_image_data):
         stack.plot(channel="blue", frame=4)
     with pytest.raises(IndexError, match="Frame index out of range"):
         stack.plot(channel="blue", frame=-1)
+
+    # Test recognition of and plotting with deprecated order of arguments
+    # old arguments: frame, channel, show_title, axes, adjustment
+    # old_arg_types = [int, str, bool, matplotlib.axes.Axes, ColorAdjustment]
+    # nones_allowed = [False, True, False, True, False]
+    for args, key in zip(
+        [
+            [0],
+            [1, None],
+            [0, "blue"],
+            [0, None, True],
+            # We need to replace "SUPPLY_AXES" with an matplotlib.axes object later, as otherwise
+            # `plt.close()` would close the current, i.e. this figure and the corresponding axes
+            # during the first iteration of the for loop
+            [0, None, True, "SUPPLY_AXES"],
+            [0, None, True, None, ColorAdjustment.nothing()]
+        ],
+        [
+            "frame",
+            "channel",
+            "channel",
+            "show_title",
+            "axes",
+            "adjustment",
+        ]
+    ):
+        frame = args[0]
+        channel = "blue" if args[-1] == "blue" else "rgb"
+        # Replace "SUPPLY_AXES" with an axes object
+        args[-1] = plt.subplots()[1] if args[-1] == "SUPPLY_AXES" else args[-1]
+
+        # Test plotting with deprecated order
+        with pytest.warns(
+            DeprecationWarning,
+            match=r"The call signature of `plot\(\)` has changed: Please, provide .* "
+            "as keyword arguments?."
+        ):
+            image = stack.plot(*args)
+            assert image is plt.gca().get_images()[0]
+            ref_image = stack._get_frame(frame)._get_plot_data(channel=channel)
+            np.testing.assert_allclose(image.get_array(), ref_image)
+            plt.close()
+
+        # Test rejection of deprecated order and double keyword assignment
+        for i, name in enumerate(
+            ["frame", "channel", "show_title", "axes", "adjustment"][:len(args)]
+        ):
+            with pytest.raises(
+                TypeError,
+                match=rf"`CorrelatedStack.plot\(\)` got multiple values for argument `{name}`"
+            ):
+                kwargs = {name: args[i]}
+                image = stack.plot(*args, **kwargs)
 
 
 def test_plot_correlated():

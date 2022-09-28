@@ -242,7 +242,20 @@ def test_deprecated_plotting(test_scans):
         scan.plot_blue()
     with pytest.deprecated_call():
         scan.plot_rgb()
-
+    with pytest.warns(
+        DeprecationWarning,
+        match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
+        "keyword argument."
+    ):
+        ih = scan.plot("blue", None)
+        np.testing.assert_allclose(ih.get_array(), scan.get_image("blue")[0])
+        plt.close()
+    # Test rejection of deprecated call with positional `axes` and double keyword assignment
+    with pytest.raises(
+        TypeError,
+        match=r"`Scan.plot\(\)` got multiple values for argument `axes`"
+    ):
+        scan.plot("rgb", None, axes=None)
 
 @pytest.mark.parametrize(
     "scanname, tiffname",

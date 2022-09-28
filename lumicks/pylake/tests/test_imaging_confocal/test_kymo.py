@@ -118,8 +118,11 @@ def test_kymo_slicing(test_kymos):
     with pytest.raises(RuntimeError):
         empty_kymograph.export_tiff("test")
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError), pytest.warns(DeprecationWarning):
         empty_kymograph.plot_rgb()
+
+    with pytest.raises(RuntimeError):
+        empty_kymograph.plot()
 
     assert empty_kymograph.get_image("red").shape == (5, 0)
     assert empty_kymograph.infowave.data.size == 0
@@ -178,6 +181,20 @@ def test_deprecated_plotting(test_kymos):
         kymo.plot_blue()
     with pytest.deprecated_call():
         kymo.plot_rgb()
+    with pytest.warns(
+        DeprecationWarning,
+        match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
+        "keyword argument."
+    ):
+        ih = kymo.plot("red", None)
+        np.testing.assert_allclose(ih.get_array(), kymo.get_image("red"))
+        plt.close()
+    # Test rejection of deprecated call with positional `axes` and double keyword assignment
+    with pytest.raises(
+        TypeError,
+        match=r"`Kymo.plot\(\)` got multiple values for argument `axes`"
+    ):
+        kymo.plot("rgb", None, axes=None)
 
 
 def test_line_timestamp_ranges(test_kymos):

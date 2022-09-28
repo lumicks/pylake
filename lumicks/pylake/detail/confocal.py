@@ -1,18 +1,19 @@
 import json
-import numpy as np
-import cachetools
-from numpy import typing as npt
-from deprecated.sphinx import deprecated
+import warnings
 from dataclasses import dataclass
 from typing import List
-import warnings
 
-from .mixin import ExcitationLaserPower, PhotonCounts
-from .image import reconstruct_image_sum, reconstruct_image
-from .imaging_mixins import TiffExport
-from .utilities import could_sum_overflow
-from ..adjustments import ColorAdjustment
+import cachetools
+import numpy as np
+from deprecated.sphinx import deprecated
 from matplotlib.colors import LinearSegmentedColormap
+from numpy import typing as npt
+
+from ..adjustments import ColorAdjustment
+from .image import reconstruct_image, reconstruct_image_sum
+from .imaging_mixins import TiffExport
+from .mixin import ExcitationLaserPower, PhotonCounts
+from .utilities import could_sum_overflow
 
 linear_colormaps = {
     "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
@@ -146,6 +147,36 @@ class ScanMetaData:
         ]
 
         return cls(axes, json_dict["scan volume"]["center point (um)"], json_dict["scan count"])
+
+
+def _deprecate_basescan_plot_args(plot):
+    """Decorator to deprecate second positional argument 'axes' of the method `BaseScan.plot()`"""
+    import functools
+    import warnings
+    import matplotlib
+
+    @functools.wraps(plot)
+    def wrapper(self, *args, **kwargs):
+        # The plot function might be called with up to 2 positional arguments. We can gracefully
+        # convert the second positional argument (axes) into a keyword argument.
+        # old arguments: channel, axes
+        if len(args) == 2 and (isinstance(args[1], matplotlib.axes.Axes) or args[1] is None):
+            if "axes" in kwargs:
+                raise TypeError(
+                    f"`{self.__class__.__name__}.plot()` got multiple values for argument `axes`"
+                )
+            kwargs["axes"] = args[1]
+            args = args[:1]
+            warnings.warn(
+                DeprecationWarning(
+                    "The call signature of `plot()` has changed: Please, provide `axes` as a "
+                    "keyword argument."
+                ),
+                stacklevel=2,
+            )
+        return plot(self, *args, **kwargs)
+
+    return wrapper
 
 
 class BaseScan(PhotonCounts, ExcitationLaserPower):
@@ -316,27 +347,10 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         """Get data for plotting requested channel."""
         raise NotImplementedError
 
-    def _plot(self, channel, axes, **kwargs):
+    def plot(self, channel="rgb", **kwargs):
         """Internal implementation of the plotting."""
+        # TODO: Remove, when deprecated `plot_*()` functions were removed
         raise NotImplementedError
-
-    def plot(self, channel, axes=None, **kwargs):
-        """Show a formatted plot for the requested color channel.
-
-        Parameters
-        ----------
-        channel : {'red', 'green', 'blue', 'rgb'}
-            Color channel to plot.
-        axes : mpl.axes.Axes or None
-            If supplied, the axes instance in which to plot.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.plot` or :func:`matplotlib.pyplot.imshow`
-        """
-        import matplotlib.pyplot as plt
-
-        if axes is None:
-            axes = plt.gca()
-        return self._plot(channel, axes=axes, **kwargs)
 
     @property
     def center_point_um(self):
