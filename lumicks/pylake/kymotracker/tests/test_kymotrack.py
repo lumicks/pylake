@@ -191,8 +191,8 @@ def test_kymotrack_merge():
     kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
     kymo = _kymo_from_array(image, "rgb", **kwargs)
 
-    time_idx = ([1, 2, 3, 4, 5], [6, 7, 8], [6, 7, 8])
-    pos_idx = ([1, 1, 1, 3, 3], [4, 4, 4], [9, 9, 9])
+    time_idx = ([1, 2, 3, 4, 5], [6, 7, 8], [6, 7, 8], [1, 2, 3])
+    pos_idx = ([1, 1, 1, 3, 3], [4, 4, 4], [9, 9, 9], [10, 10, 10])
 
     make_tracks = lambda: KymoTrackGroup(
         [KymoTrack(t, p, kymo, "green") for t, p in zip(time_idx, pos_idx)]
@@ -201,7 +201,7 @@ def test_kymotrack_merge():
     # connect first two
     tracks = make_tracks()
     tracks._merge_tracks(tracks[0], 2, tracks[1], 1)
-    assert len(tracks) == 2
+    assert len(tracks) == 3
     np.testing.assert_equal(tracks[0].time_idx, [1, 2, 3, 7, 8])
     np.testing.assert_almost_equal(tracks[0].coordinate_idx, [1, 1, 1, 4, 4])
     np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
@@ -210,7 +210,7 @@ def test_kymotrack_merge():
     # connect last two
     tracks = make_tracks()
     tracks._merge_tracks(tracks[1], 1, tracks[2], 2)
-    assert len(tracks) == 2
+    assert len(tracks) == 3
     np.testing.assert_equal(tracks[0].time_idx, [1, 2, 3, 4, 5])
     np.testing.assert_almost_equal(tracks[0].coordinate_idx, [1, 1, 1, 3, 3])
     np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
@@ -219,16 +219,33 @@ def test_kymotrack_merge():
     # connect first and last
     tracks = make_tracks()
     tracks._merge_tracks(tracks[0], 3, tracks[2], 1)
-    assert len(tracks) == 2
+    assert len(tracks) == 3
     np.testing.assert_equal(tracks[0].time_idx, [1, 2, 3, 4, 7, 8])
     np.testing.assert_almost_equal(tracks[0].coordinate_idx, [1, 1, 1, 3, 9, 9])
     np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
     np.testing.assert_almost_equal(tracks[1].coordinate_idx, [4, 4, 4])
 
     # can't connect tracks from two groups
-    tracks2 = KymoTrackGroup([KymoTrack([1,2,3], [4,5,6], kymo, "green")])
-    with pytest.raises(RuntimeError, match="Both tracks need to be part of this group to be merged"):
+    tracks2 = KymoTrackGroup([KymoTrack([1, 2, 3], [4, 5, 6], kymo, "green")])
+    with pytest.raises(
+        RuntimeError, match="Both tracks need to be part of this group to be merged"
+    ):
         tracks._merge_tracks(tracks[0], 2, tracks2[0], 0)
+
+    # first node must be before second node, else switch order
+    tracks = make_tracks()
+    tracks._merge_tracks(tracks[0], 3, tracks[-1], 1)
+    np.testing.assert_equal(tracks[0].time_idx, [6, 7, 8])
+    np.testing.assert_almost_equal(tracks[0].coordinate_idx, [4, 4, 4])
+    np.testing.assert_equal(tracks[1].time_idx, [6, 7, 8])
+    np.testing.assert_almost_equal(tracks[1].coordinate_idx, [9, 9, 9])
+    np.testing.assert_equal(tracks[2].time_idx, [1, 2, 4, 5])
+    np.testing.assert_almost_equal(tracks[2].coordinate_idx, [10, 10, 3, 3])
+
+    # can't connect nodes with same time index
+    tracks = make_tracks()
+    with pytest.raises(AssertionError, match="Cannot connect two points with the same time index."):
+        tracks._merge_tracks(tracks[0], 1, tracks[-1], 1)
 
 
 @pytest.mark.parametrize(

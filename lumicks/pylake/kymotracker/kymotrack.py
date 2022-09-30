@@ -499,15 +499,42 @@ class KymoTrackGroup:
         self._src.remove(ending_track)
 
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
+        """Connect two tracks from any given nodes, removing the points in between.
+
+        Note: Any specialized refinement (eg. gaussian refinement) will be lost when
+        tracks are merged.
+
+        Parameters
+        ----------
+        starting_track: KymoTrack
+            First track to connect
+        starting_node : int
+            Index of the node in the track to connect from
+        ending_track: KymoTrack
+            Second track to connect
+        ending_node: int
+            Index of the node in the track to connect to
+        """
         if starting_track not in self._src or ending_track not in self._src:
             raise RuntimeError("Both tracks need to be part of this group to be merged")
 
-        starting_node = int(starting_node) + 1
+        starting_node = int(starting_node)
         ending_node = int(ending_node)
 
+        start_time_idx = starting_track.time_idx[starting_node]
+        end_time_idx = ending_track.time_idx[ending_node]
+        assert start_time_idx != end_time_idx, "Cannot connect two points with the same time index."
+
+        # ensure that tracks are properly ordered so resulting merge track
+        # has coordinates sorted in ascending time indices
+        if start_time_idx > end_time_idx:
+            starting_track, ending_track = ending_track, starting_track
+            starting_node, ending_node = ending_node, starting_node
+
+        # up to and *including* starting_node
         first_half = starting_track._with_coordinates(
-            starting_track.time_idx[:starting_node],
-            starting_track.coordinate_idx[:starting_node],
+            starting_track.time_idx[: starting_node + 1],
+            starting_track.coordinate_idx[: starting_node + 1],
         )
 
         last_half = ending_track._with_coordinates(
