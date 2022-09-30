@@ -239,7 +239,6 @@ class KymoWidget:
                 released_track_info = [self.tracks[int(track_index)], *track_info]
 
                 clicked = [clicked_track_info, released_track_info]
-                clicked.sort(key=lambda x: x[2])  # by time
                 tracks._merge_tracks(*clicked[0][:2], *clicked[1][:2])
 
                 self.tracks = tracks
