@@ -688,3 +688,61 @@ def test_diffusion_cve(blank_kymo):
     assert cve_est.method == 'cve'
     assert cve_est.unit == "um^2 / s"
     assert cve_est._unit_label == "$\\mu$m$^2$/s"
+
+
+@pytest.mark.parametrize("kbp_calibration, line_width", [(None, 7), (4, 7), (None, 8)])
+def test_ensemble_msd_calibration_from_kymo(blank_kymo, kbp_calibration, line_width):
+    """Checks whether all the properties are correctly forwarded from the Kymo"""
+    samples_per_pixel, dt, calibration_um = 10, np.int64(1e7), 2
+    kymo = generate_kymo(
+        "",
+        np.ones((line_width, 10)),
+        pixel_size_nm=calibration_um * 1000,
+        dt=dt,
+        samples_per_pixel=samples_per_pixel,
+        line_padding=0,
+    )
+
+    if kbp_calibration:
+        kymo = kymo.calibrate_to_kbp(kbp_calibration)
+
+    space_calibration = kbp_calibration / line_width / calibration_um if kbp_calibration else 1
+    frame = np.arange(1, 6)
+    tracks = KymoTrackGroup(
+        [
+            KymoTrack(t, coordinate, kymo, "red")
+            for (t, coordinate) in ((frame, frame + 0.1), (frame, frame - 0.1), (frame, frame))
+        ]
+    )
+
+    line_seconds = line_width * samples_per_pixel * dt / 1e9
+    result = tracks.ensemble_msd()
+    np.testing.assert_allclose(result.seconds, line_seconds * frame[:-1])
+    np.testing.assert_allclose(
+        result.msd, (frame[:-1] * calibration_um) ** 2 * space_calibration**2
+    )
+    np.testing.assert_allclose(result.sem, np.zeros(len(frame) - 1), atol=1e-14)  # zero
+    np.testing.assert_allclose(result._time_step, line_seconds)
+    np.testing.assert_allclose(result.effective_sample_size, np.ones(len(frame) - 1) * 3)
+
+    assert result.unit == "kbp^2" if kbp_calibration else "um^2"
+    assert result._unit_label == "kbp$^2$" if kbp_calibration else "um$^2$"
+
+
+def test_ensemble_api(blank_kymo):
+    """Test whether API arguments are forwarded"""
+    track = KymoTrack(np.arange(1, 6), np.arange(1, 6), blank_kymo, "red")
+    long_track = KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red")
+    tracks = KymoTrackGroup([track, track, track, long_track, long_track])
+
+    assert len(tracks.ensemble_msd(3).lags) == 3
+    assert len(tracks.ensemble_msd(100, 3).lags) == 4
+    assert len(tracks.ensemble_msd(100, 2).lags) == 5
+
+    # Because of the gaps in this track, we will be missing lags 1 and 3
+    gap_track = KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red")
+    tracks = KymoTrackGroup([track, track, gap_track, gap_track, gap_track])
+    np.testing.assert_allclose(tracks.ensemble_msd(100, 3).lags, [2, 4])
+    np.testing.assert_allclose(tracks.ensemble_msd(100, 3).msd, [4.0, 16.0])
+    np.testing.assert_allclose(tracks.ensemble_msd(100, 2).lags, [1, 2, 3, 4])
+    np.testing.assert_allclose(tracks.ensemble_msd(100, 2).msd, [1.0, 4.0, 9.0, 16.0])

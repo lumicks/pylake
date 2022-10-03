@@ -1,4 +1,5 @@
 from copy import copy
+from typing import Optional
 from deprecated.sphinx import deprecated
 from sklearn.neighbors import KernelDensity
 from ..detail.utilities import use_docstring_from
@@ -801,3 +802,63 @@ class KymoTrackGroup:
     @use_docstring_from(KymoTrack.estimate_diffusion)
     def estimate_diffusion(self, *args, **kwargs):
         return [k.estimate_diffusion(*args, **kwargs) for k in self._src]
+
+    def ensemble_msd(self, max_lag=None, min_count=2) -> EnsembleMSD:
+        r"""This method returns the weighted average of the Mean Squared Displacement (MSD) for all
+        tracks in this group.
+
+        This method determines the MSDs per track and determines the weighted average of them.
+        The intrinsic assumption made when computing this quantity is that all tracks are
+        independent and  all trajectories sample the same environment and undergo the same type of
+        diffusion.
+
+        The estimator for the MSD (:math:`\rho`) is defined as:
+
+        .. math::
+            \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n} \left(r_{i+n} - r_{i}\right)^2
+
+        For a diffusion process :math:`\rho_n` is gamma distributed. From the additivity of
+        independent gamma distributions we know that for :math:`N_T` tracks of equal length [1]_:
+
+        .. math::
+            E[\rho^{ens}_n] = \rho_n
+
+        and
+
+        .. math::
+            E[(\sigma^{ens})^2] = \frac{\sigma}{N_T}
+
+        In reality, the tracks will not have equal length, therefore the returned statistics are
+        weighted by the number of samples that contributed to the estimate. If all the tracks were
+        of equal length with no missing data points, the weighting will have no effect on the
+        estimates.
+
+        Note: This estimator leads to highly correlated estimates, which should not be treated
+        as independent measurements. See [1]_ for more information.
+
+        Parameters
+        ----------
+        max_lag : int
+            Maximum number of lags to compute.
+        min_count : int
+            If fewer than `min_count` tracks contribute to the MSD at a particular lag then that lag
+            is omitted.
+
+        References
+        ----------
+        .. [1] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
+               single-particle tracking. Physical Review E, 85(6), 061916.
+        """
+        track_msds = [
+            calculate_msd_counts(np.array(track.time_idx, dtype=int), track.position, max_lag)
+            for track in self._src
+        ]
+
+        src_calibration = self._kymo._calibration
+        return calculate_ensemble_msd(
+            line_msds=track_msds,
+            time_step=self._kymo.line_time_seconds,
+            unit=src_calibration.unit,
+            unit_label=src_calibration.unit_label,
+            min_count=min_count,
+        )
