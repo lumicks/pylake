@@ -173,7 +173,7 @@ def track_greedy(
         kymograph_data, np.ceil(0.5 * track_width_pixels), pixel_threshold
     )
     if len(coordinates) == 0:
-        return []
+        return KymoTrackGroup([])
 
     position, time, m0 = refine_peak_based_on_moment(
         kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)

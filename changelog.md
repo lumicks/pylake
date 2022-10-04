@@ -14,6 +14,10 @@
 
 * Deprecated property `CorrelatedStack.src`.
 
+#### Bugfixes
+
+* `lk.track_greedy` now returns an empty `KymoTrackGroup` instead of an empty list when no coordinates exceed the threshold.
+
 ### Other changes
 
 * Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.
