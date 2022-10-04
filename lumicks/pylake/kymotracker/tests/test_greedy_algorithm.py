@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.kymotracker import track_greedy, _default_track_widths
+from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
+from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup
 
 
 def test_kymotracker_test_bias_rect():
@@ -59,6 +60,14 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     tracks = track_greedy(test_data, "red", 3 * pixel_size, 4, rect=rect)
     np.testing.assert_allclose(tracks[0].coordinate_idx, [21] * np.ones(10))
     np.testing.assert_allclose(tracks[0].time_idx, np.arange(15, 25))
+
+
+def test_greedy_algorithm_empty_result(kymo_integration_test_data):
+    test_data = kymo_integration_test_data
+    # This tracking comes up empty because threshold is much higher than the data
+    tracks = track_greedy(test_data, "red", track_width=300, pixel_threshold=1337)
+    assert isinstance(tracks, KymoTrackGroup)
+    assert len(tracks) == 0
 
 
 def test_greedy_algorithm_input_validation(kymo_integration_test_data):
