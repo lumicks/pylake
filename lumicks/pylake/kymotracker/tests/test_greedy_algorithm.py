@@ -39,6 +39,14 @@ def test_kymotracker_subset_test_greedy(kymo_integration_test_data):
     np.testing.assert_allclose(tracks[0].sample_from_image(1), [40] * np.ones(10))
 
 
+def test_kymotracker_regression_test_subset_comes_up_empty(kymo_integration_test_data):
+    """Test whether we gracefully handle the case where the ROI results in no lines."""
+    tracks = track_greedy(
+        kymo_integration_test_data, "red", track_width=1, pixel_threshold=4, rect=[[0, 0], [1, 1]]
+    )
+    assert len(tracks) == 0
+
+
 def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_data):
     test_data = kymo_integration_test_data
     line_time = test_data.line_time_seconds

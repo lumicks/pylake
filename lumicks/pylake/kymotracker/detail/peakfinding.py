@@ -45,6 +45,7 @@ class KymoPeaks:
             self.unassigned = np.ones(self.time_points.shape, dtype=bool)
 
     def __init__(self, coordinates, time_points, peak_amplitudes):
+        assert len(time_points) > 0
         assert len(coordinates) == len(time_points)
         assert len(peak_amplitudes) == len(time_points)
 
