@@ -369,6 +369,10 @@ def refine_tracks_centroid(tracks, track_width=None):
         corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
     """
     tracks = KymoTrackGroup(tracks) if isinstance(tracks, (list, tuple)) else tracks
+
+    if not tracks:
+        return KymoTrackGroup([])
+
     if track_width is None:
         track_width = _default_track_widths[tracks._kymo._calibration.unit]
 
@@ -463,6 +467,10 @@ def refine_tracks_gaussian(
         When supplied, the background is not estimated but fixed at this value.
     """
     assert overlap_strategy in ("ignore", "skip", "multiple")
+
+    if not tracks:
+        return KymoTrackGroup([])
+
     if refine_missing_frames:
         tracks = KymoTrackGroup([track.interpolate() for track in tracks])
 

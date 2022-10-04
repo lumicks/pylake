@@ -229,3 +229,18 @@ def test_filter_tracks(blank_kymo):
 
     with pytest.warns(DeprecationWarning):
         filter_lines(tracks, 5)
+
+
+def test_empty_group():
+    """Validate that the refinement methods don't fail when applied to an empty group"""
+    tracks = KymoTrackGroup([])
+
+    result = refine_tracks_gaussian(tracks, 5, False, "multiple")
+    assert id(tracks) != result  # Validate that we get a new object
+    assert isinstance(result, KymoTrackGroup)
+    assert len(result) == 0
+
+    result = refine_tracks_centroid(tracks, 5)
+    assert id(tracks) != result
+    assert isinstance(result, KymoTrackGroup)
+    assert len(result) == 0

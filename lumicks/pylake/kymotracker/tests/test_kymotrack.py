@@ -406,6 +406,11 @@ def test_binding_histograms():
     np.testing.assert_allclose(edges, [2, 3, 4, 5, 6, 7, 8])
 
 
+def test_empty_binding_histogram():
+    with pytest.raises(RuntimeError, match="No tracks available for analysis"):
+        KymoTrackGroup([]).plot_binding_histogram("binding")
+
+
 def test_kymotrackgroup_source_kymo():
     # test that all tracks are from the same source Kymo and tracked
     # on the same color channel
@@ -575,6 +580,11 @@ def test_fit_binding_times(blank_kymo):
 
     dwells = tracks.fit_binding_times(1, exclude_ambiguous_dwells=False)
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
+
+
+def test_fit_binding_times_empty():
+    with pytest.raises(RuntimeError, match="No tracks available for analysis"):
+        KymoTrackGroup([]).fit_binding_times(1)
 
 
 @pytest.mark.parametrize("method,max_lags", [("ols", 2), ("ols", None), ("gls", 2), ("gls", None)])
