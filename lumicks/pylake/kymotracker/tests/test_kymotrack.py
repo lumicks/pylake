@@ -1,3 +1,4 @@
+import re
 import pytest
 import matplotlib.pyplot as plt
 from lumicks.pylake.kymotracker.kymotrack import *
@@ -439,6 +440,18 @@ def test_kymotrackgroup_source_kymo():
 
     tracks_empty = filter_tracks(tracks_a, 5)
     assert len(tracks_empty) == 0
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        tracks_empty._kymo
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No channel associated with this empty group (no tracks available)"),
+    ):
+        tracks_empty._channel
 
     # cannot make group from different source kymos
     with pytest.raises(AssertionError, match="All tracks must have the same source kymograph."):
