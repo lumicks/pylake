@@ -186,6 +186,9 @@ def track_greedy(
         mask = (position >= p0) & (position < p1) & (time >= t0) & (time < t1)
         position, time, m0 = position[mask], time[mask], m0[mask]
 
+        if len(position) == 0:
+            return KymoTrackGroup([])
+
     peaks = KymoPeaks(position, time, m0)
     peaks = merge_close_peaks(peaks, np.ceil(0.5 * track_width_pixels))
 
