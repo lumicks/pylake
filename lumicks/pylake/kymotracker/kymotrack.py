@@ -461,11 +461,17 @@ class KymoTrackGroup:
 
     @property
     def _kymo(self):
-        return self[0]._kymo
+        try:
+            return self[0]._kymo
+        except IndexError:
+            raise RuntimeError("No kymo associated with this empty group (no tracks available)")
 
     @property
     def _channel(self):
-        return self[0]._channel
+        try:
+            return self[0]._channel
+        except IndexError:
+            raise RuntimeError("No channel associated with this empty group (no tracks available)")
 
     def _concatenate_tracks(self, starting_track, ending_track):
         """Concatenate two tracks together.
