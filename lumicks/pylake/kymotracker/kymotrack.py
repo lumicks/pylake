@@ -608,7 +608,10 @@ class KymoTrackGroup:
         tracks = (
             filter(KymoTrack._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
         )
-        dwelltimes_sec = np.hstack([track.seconds[-1] - track.seconds[0] for track in tracks])
+        dwelltimes_sec = np.array([track.seconds[-1] - track.seconds[0] for track in tracks])
+
+        if dwelltimes_sec.size == 0:
+            raise RuntimeError("No tracks available for analysis")
 
         min_observation_time = np.min(dwelltimes_sec)
         max_observation_time = self[0]._image.shape[1] * self[0]._line_time_seconds
@@ -640,7 +643,12 @@ class KymoTrackGroup:
             slc = slice(0, 1)
         else:
             raise ValueError(f"`kind` argument '{kind}' must be 'all' or 'binding'.")
-        events = np.hstack([track.position[slc] for track in self])
+        tracks = [track.position[slc] for track in self]
+
+        if not tracks:
+            raise RuntimeError("No tracks available for analysis")
+
+        events = np.hstack(tracks)
 
         pos_range = (0, self[0]._pixelsize * self[0]._image.shape[0])
         return np.histogram(events, bins=bins, range=pos_range)
