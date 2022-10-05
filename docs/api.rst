@@ -82,6 +82,8 @@ Kymotracking
     :template: class.rst
 
     kymotracker.kymotrack.KymoTrack
+    kymotracker.kymotrack.KymoTrackGroup
+    kymotracker.detail.msd_estimation.EnsembleMSD
 
     :template: function.rst
 

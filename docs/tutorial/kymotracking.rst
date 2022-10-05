@@ -398,7 +398,31 @@ This returns a tuple of lags and MSD estimates. If we only wish MSDs up to a cer
     >>> tracks[0].msd(max_lag = 5)
     (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([ 3.63439512,  6.13181603,  9.08823918, 11.43574189, 12.61152129]))
 
-MSDs are typically used to calculate diffusion constants.
+Similarly, we can compute an averaged MSD estimate for a number of tracks in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` using :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_msd`::
+
+    ensemble_msd = tracks.ensemble_msd()
+
+This returns a weighted average of the MSDs coming from all the tracks (where the weight is determined by the number of points that contribute to each lag).
+Note that if the tracks are of equal length, this weighting will not have an effect (all the weights will be the same).
+The implicit assumption here is that all tracks are diffusive and their diffusion constants are the same.
+You can plot the ensemble msd as follows::
+
+    ensemble_msd.plot()
+
+The following properties can be read from :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD`:
+
+- `lags` : Lags at which the MSD was computed.
+- `msd` : Mean MSD for each lag.
+- `sem` :  Standard error of the mean corresponding to each MSD.
+- `variance` : Variance of each MSD average.
+- `count` : Number of elements that contributed to the estimate at this lag.
+- `effective_sample_size` : Effective sample size.
+
+One thing that is important to note is that the MSDs of one track for different lags are highly correlated.
+Therefore one should not take these estimates as independent data points.
+
+MSDs are typically used to calculate diffusion constants and Pylake offers some dedicated functionality that will correctly handle the data (more on this below).
+
 With pure diffusive motion (a complete absence of drift) in an isotropic medium, 1-dimensional MSDs can be fitted by the following relation:
 
 .. math::
