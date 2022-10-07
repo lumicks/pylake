@@ -389,6 +389,13 @@ class KymoTrack:
         if method not in ("gls", "ols"):
             raise ValueError('Invalid method selected. Method must be "gls" or "ols"')
 
+        if not self._kymo.contiguous:
+            raise NotImplementedError(
+                "Estimating diffusion constants from data which has been integrated over disjoint "
+                "sections of time is not supported. To estimate diffusion constants, do not "
+                "downsample the kymograph temporally prior to tracking."
+            )
+
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
         max_lag = (
             max_lag

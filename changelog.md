@@ -21,6 +21,7 @@
 * `lk.track_greedy` now returns an empty `KymoTrackGroup` instead of an empty list when no coordinates exceed the threshold.
 * Functions that use `KymoTrackGroup` now gracefully handle the cases where no tracks are available. The refinement functions `refine_tracks_centroid` and `refine_tracks_gaussian` return an empty list, while `KymoTrackGroup.fit_binding_times()` and `KymoTrackGroup.plot_binding_histogram()` raise an exception.
 * `lk.track_greedy` now returns an empty `KymoTrackGroup` instead of an error when an ROI is selected that results in no lines tracked.
+* Computing diffusion constants from temporally downsampled kymographs is now explicitly disallowed.
 * Fixed a bug where the `pixel_threshold` could be set to zero for an empty image. Now the minimum `pixel_threshold` is one.
 
 ### Other changes

@@ -70,6 +70,7 @@ class Kymo(ConfocalImage):
         self._line_time_factory = _default_line_time_factory
         self._line_timestamp_ranges_factory = _default_line_timestamp_ranges_factory
         self._position_offset = position_offset
+        self._contiguous = True
 
         self._calibration = (
             calibration
@@ -80,6 +81,14 @@ class Kymo(ConfocalImage):
                 else PositionCalibration("um", self.pixelsize_um[0], r"$\mu$m")
             )
         )
+
+    @property
+    def contiguous(self):
+        """Are the pixels integrated over a contiguous period of time
+
+        If this flag is false then pixels have been integrated over disjoint sections of time. This
+        can be the case when a kymograph has been downsampled over time."""
+        return self._contiguous
 
     def _has_default_factories(self):
         return (
@@ -558,6 +567,7 @@ class Kymo(ConfocalImage):
         result._pixelsize_factory = pixelsize_factory
         result._pixelcount_factory = pixelcount_factory
         result._calibration = self._calibration.downsample(position_factor)
+        result._contiguous = time_factor == 1 and self.contiguous
         return result
 
     def flip(self):
