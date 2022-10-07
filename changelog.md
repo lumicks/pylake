@@ -5,6 +5,7 @@
 #### New features
 
 * Fixed and reintroduced lazy loading for `TimeSeries` data.
+* You can now add two `KymoTrackGroups` tracked on the same kymo together with the `+` operator.
 
 #### Other changes
 

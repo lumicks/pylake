@@ -123,6 +123,34 @@ def test_kymotrackgroup(blank_kymo):
         tracks.extend(5)
 
 
+def test_kymotrackgroup(blank_kymo):
+    def validate_same(kymoline_group, ref_list, source_items, ref_kymo):
+        assert [k for k in kymoline_group] == ref_list
+        assert id(kymoline_group) not in (id(s) for s in source_items)
+        if ref_kymo:
+            assert id(kymoline_group._kymo) == id(ref_kymo)
+
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
+
+    tracks1 = KymoTrackGroup([k1, k2])
+    tracks2 = KymoTrackGroup([k3, k4])
+    empty_tracks = KymoTrackGroup([])
+
+    validate_same(tracks1 + tracks2, [k1, k2, k3, k4], {tracks1, tracks2}, k1._kymo)
+    validate_same(tracks1 + k4, [k1, k2, k4], {tracks1, k4}, k1._kymo)
+    validate_same(tracks1 + empty_tracks, [k1, k2], {tracks1, empty_tracks}, k1._kymo)
+    validate_same(empty_tracks + tracks2, [k3, k4], {empty_tracks, tracks2}, k3._kymo)
+    validate_same(empty_tracks + empty_tracks, [], {empty_tracks}, None)
+
+    with pytest.raises(
+        TypeError, match="You can only extend a KymoTrackGroup with a KymoTrackGroup or KymoTrack"
+    ):
+        tracks1 + 5
+
+
 def test_kymotrack_concat(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
     k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")

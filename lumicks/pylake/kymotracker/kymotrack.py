@@ -459,6 +459,11 @@ class KymoTrackGroup:
     def __copy__(self):
         return KymoTrackGroup(copy(self._src))
 
+    def __add__(self, other):
+        new_group = copy(self)
+        new_group.extend(other)
+        return new_group
+
     @property
     def _kymo(self):
         try:
@@ -518,21 +523,22 @@ class KymoTrackGroup:
         return len(self._src)
 
     def extend(self, other):
-        other = [other] if isinstance(other, KymoTrack) else other
+        if not other:
+            return self
 
+        if not (isinstance(other, KymoTrack) or isinstance(other, self.__class__)):
+            raise TypeError(
+                f"You can only extend a {self.__class__.__name__} with a {self.__class__.__name__} "
+                f"or {KymoTrack.__name__}"
+            )
+
+        other = self.__class__([other]) if isinstance(other, KymoTrack) else other
         other_kymo, other_channel = self._validate_single_source(other)
         if self:
             assert self._kymo._id == other_kymo, "All tracks must have the same source kymograph."
             assert self._channel == other_channel, "All tracks must be from the same color channel."
 
-        if isinstance(other, self.__class__):
-            self._src.extend(other._src)
-        elif isinstance(other, list):
-            self._src.extend(other)
-        else:
-            raise TypeError(
-                f"You can only extend a {self.__class__} with a {self.__class__} or " f"{KymoTrack}"
-            )
+        self._src.extend(other._src)
 
     @deprecated(
         reason=(
