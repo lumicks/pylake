@@ -653,3 +653,24 @@ def test_kymotrack_group_diffusion(blank_kymo, method, max_lags):
         np.testing.assert_allclose(float(est), float(diff_result.value))
         for attr in ("value", "std_err", "num_lags", "num_points"):
             np.testing.assert_allclose(getattr(est, attr), getattr(diff_result, attr))
+
+
+def test_disallowed_diffusion_est(blank_kymo):
+    contiguous_diffusion_error = (
+        "Estimating diffusion constants from data which has been integrated over disjoint "
+        "sections of time is not supported. To estimate diffusion constants, do not "
+        "downsample the kymograph temporally prior to tracking."
+    )
+
+    blank_kymo._contiguous = False
+    k = KymoTrack([0, 1, 2, 3, 4, 5], [0.0, 1.0, 1.5, 2.0, 2.5, 3.0], blank_kymo, "red")
+
+    with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
+        k.estimate_diffusion_ols()
+
+    with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
+        k.estimate_diffusion(method="ols")
+
+    group = KymoTrackGroup([k])
+    with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
+        group.estimate_diffusion(method="ols")

@@ -445,6 +445,7 @@ def test_downsampled_kymo():
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 1 / 1000)
     np.testing.assert_allclose(kymo_ds.pixelsize, 1 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 7 * (5 * 4 + 2 + 2) / 1e9)
+    assert not kymo_ds.contiguous
 
     with pytest.raises(
             NotImplementedError,
@@ -501,6 +502,7 @@ def test_downsampled_kymo_position():
     np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
     np.testing.assert_allclose(kymo_ds.pixelsize, 2 / 1000)
     np.testing.assert_allclose(kymo_ds.line_time_seconds, kymo.line_time_seconds)
+    assert kymo_ds.contiguous
 
     # We lost one line while downsampling
     np.testing.assert_allclose(kymo_ds.size_um[0], kymo.size_um[0] - kymo.pixelsize_um[0])
@@ -540,6 +542,7 @@ def test_downsampled_kymo_both_axes():
         np.testing.assert_allclose(kymo_ds.pixelsize_um, 2 / 1000)
         np.testing.assert_allclose(kymo_ds.pixelsize, 2 / 1000)
         np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 5 * (5 * 5 + 2 + 2) / 1e9)
+        assert not kymo_ds.contiguous
         with pytest.raises(
                 NotImplementedError,
                 match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
@@ -577,6 +580,7 @@ def test_side_no_side_effects_downsampling():
     np.testing.assert_allclose(kymo.pixelsize_um, 1 / 1000)
     np.testing.assert_allclose(kymo.line_time_seconds, 5 * (5 * 5 + 2 + 2) / 1e9)
     np.testing.assert_equal(kymo.timestamps, timestamps)
+    assert kymo.contiguous
 
 
 def test_downsampled_slice():
