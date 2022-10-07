@@ -735,8 +735,8 @@ def _get_default_parameters(kymo, channel):
             "Threshold",
             "Set the pixel threshold.",
             "int",
-            np.percentile(data.flatten(), 98),
-            *(1, np.max(data)),
+            max(1, int(np.percentile(data.flatten(), 98))),
+            *(1, max(2, np.max(data))),
             True,
         ),
         "track_width": KymotrackerParameter(

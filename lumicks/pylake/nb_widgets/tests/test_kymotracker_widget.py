@@ -1,5 +1,10 @@
-from lumicks.pylake.nb_widgets.kymotracker_widgets import KymoWidgetGreedy, KymotrackerParameter
+from lumicks.pylake.nb_widgets.kymotracker_widgets import (
+    KymoWidgetGreedy,
+    KymotrackerParameter,
+    _get_default_parameters,
+)
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
+from lumicks.pylake.kymo import _kymo_from_array
 import numpy as np
 import re
 import pytest
@@ -338,3 +343,31 @@ def test_keyword_args(kymograph):
     """Test that only 2 positional arguments can be used."""
     with pytest.raises(TypeError):
         KymoWidgetGreedy(kymograph, "red", 1, use_widgets=False)
+
+
+@pytest.mark.parametrize(
+    "gain,line_time,pixel_size,ref_values",
+    (
+        # fmt:off
+        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 5, 0 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
+        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2), "track_width": (4 * 5, 0 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
+        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 4, 0 * 4, 15 * 4), "sigma": (2 * 4, 1 * 4, 5 * 4), "vel": (0, -5 * 4/4, 5 * 4/4)}),
+        # fmt:on
+    ),
+)
+def test_default_params_img_dependent(gain, line_time, pixel_size, ref_values):
+    kymo = _kymo_from_array(
+        gain * np.tile(np.arange(100), (2, 1)),
+        "r",
+        line_time_seconds=line_time,
+        start=100,
+        pixel_size_um=pixel_size,
+        name="test_kymo",
+    )
+
+    default_params = _get_default_parameters(kymo, "red")
+    for key, param in ref_values.items():
+        value, mini, maxi = param
+        np.testing.assert_allclose(default_params[key].value, value, err_msg=f"{key}")
+        np.testing.assert_allclose(default_params[key].lower_bound, mini, err_msg=f"{key}")
+        np.testing.assert_allclose(default_params[key].upper_bound, maxi, err_msg=f"{key}")
