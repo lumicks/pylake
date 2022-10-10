@@ -713,6 +713,7 @@ class KymotrackerParameter:
     lower_bound: Number
     upper_bound: Number
     ui_visible: bool
+    extended_description: str
 
     def __post_init__(self):
         if self.ui_visible and (self.lower_bound is None or self.upper_bound is None):
@@ -732,57 +733,102 @@ def _get_default_parameters(kymo, channel):
 
     return {
         "pixel_threshold": KymotrackerParameter(
-            "Threshold",
-            "Set the pixel threshold.",
+            "Minimum intensity",
+            "Set the pixel intensity threshold.",
             "int",
             max(1, int(np.percentile(data.flatten(), 98))),
             *(1, max(2, np.max(data))),
             True,
-        ),
-        "track_width": KymotrackerParameter(
-            "Track width",
-            "Estimated spot width.",
-            "float",
-            4 * position_scale,
-            *(0.0, 15.0 * position_scale),
-            True,
-        ),
-        "window": KymotrackerParameter(
-            "Window", "How many frames can a track disappear.", "int", 4, *(1, 15), True
+            r"Minimum intensity defines the minimum signal required in a single pixel for it to be "
+            r"considered part of a track. This parameter should be chosen slightly above the "
+            r"background photon count. Higher values reject more noise, but parts of the track may "
+            r"be missed.",
         ),
         "sigma": KymotrackerParameter(
-            "Sigma",
+            "Positional search range",
             "How much does the track fluctuate?",
             "float",
             2 * position_scale,
             *(1.0 * position_scale, 5.0 * position_scale),
             True,
+            r"Search range defines how much the position of a particle is allowed to fluctuate "
+            r"from one time point to the next while still being considered part of the same "
+            r"track. Larger values will result in a wider range in which points are added to a "
+            r"track.",
         ),
-        "vel": KymotrackerParameter(
-            "Velocity",
-            "How fast does the particle move?",
-            "float",
-            0.0,
-            *(-5.0 * vel_calibration, 5.0 * vel_calibration),
+        "window": KymotrackerParameter(
+            "Maximum gap",
+            "How many frames can a track disappear.",
+            "int",
+            4,
+            *(1, 15),
             True,
-        ),
-        "diffusion": KymotrackerParameter(
-            "Diffusion", "Expected diffusion constant.", "float", 0.0, *(None, None), False
-        ),
-        "sigma_cutoff": KymotrackerParameter(
-            "Sigma cutoff",
-            "Number of standard deviations from the expected trajectory a particle no longer belongs to a trace.",
-            "float",
-            2.0,
-            *(None, None),
-            False,
+            r"Maximum gap defines how many scan lines without detected points can occur between "
+            r"two points and still be connected within a single track. This can occur, for "
+            r"instance, due to fluorophore blinking or the signal falling slightly below the "
+            r"intensity threshold. This value should be chosen such that small gaps in a track "
+            r"can be overcome and tracked as one, but not so large that separate tracks are strung "
+            r"together.",
         ),
         "min_length": KymotrackerParameter(
-            "Min length",
+            "Minimum length",
             "Minimum number of frames a spot has to be detected in to be considered.",
             "int",
             3,
             *(1, 10),
             True,
+            r"Minimum length defines the minimum number of points a tracked line must contain for "
+            r"it to be considered valid. Reducing this parameter can be effective in reducing "
+            r"tracking noise. Note that this length refers to the number of detected points, not "
+            r"length in time!",
+        ),
+        "track_width": KymotrackerParameter(
+            "Expected spot size",
+            "How big a particle needs to appear to be tracked as a single molecule.",
+            "float",
+            4 * position_scale,
+            *(0.0, 15.0 * position_scale),
+            True,
+            r"Expected spot size defines how big a bound particle needs to appear as on the "
+            r"kymograph for it to be tracked as a single molecule. This parameter should be set to "
+            r"roughly the width of the point spread function. Setting it larger rejects more "
+            r"noise, but at the cost of potentially merging tracks that are close together.",
+        ),
+        "vel": KymotrackerParameter(
+            "Expected velocity",
+            "How fast does the particle move?",
+            "float",
+            0.0,
+            *(-5.0 * vel_calibration, 5.0 * vel_calibration),
+            True,
+            r"Expected velocity defines how fast and in which direction particles are expected "
+            r"to move along the DNA on average. When tracking, the algorithm searches for points "
+            r"in future scan lines to connect. Points within a certain distance from the expected "
+            r"future position are connected.",
+        ),
+        "diffusion": KymotrackerParameter(
+            "Diffusion",
+            "Expected diffusion constant.",
+            "float",
+            0.0,
+            *(None, None),
+            False,
+            r"When tracking, the algorithm searches for points in future frames to connect. Points "
+            r"within a certain distance from the expected future position are connected. The "
+            r"diffusion parameter determines how quickly this distance grows over time.",
+        ),
+        "sigma_cutoff": KymotrackerParameter(
+            "Sigma cutoff",
+            "Number of standard deviations from the expected trajectory a particle no longer "
+            "belongs to a trace.",
+            "float",
+            2.0,
+            *(None, None),
+            False,
+            r"Search range (sigma) controls how much the location can fluctuate from one time "
+            r"point to the next while still being considered part of the same track. Sigma cutoff "
+            r"controls the actual threshold applied to the expected positional variability. Larger "
+            r"values for sigma or sigma_cutoff will be more permissive when it comes to connecting "
+            r"detected peaks into a track.",
         ),
     }

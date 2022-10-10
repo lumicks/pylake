@@ -336,7 +336,7 @@ def test_valid_default_parameters():
             ValueError,
             match="Lower and upper bounds must be supplied for widget to be set as visible.",
         ):
-            KymotrackerParameter("p", "d", "int", 5, *rng, True)
+            KymotrackerParameter("p", "d", "int", 5, *rng, True, "yes")
 
 
 def test_keyword_args(kymograph):
