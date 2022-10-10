@@ -41,17 +41,19 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
     jupyter notebook
 
-Note that if you are used to starting Jupyter notebook from the Anaconda Navigator, you will have to set the environment to `pylake` for it to have access to the environment where you just installed Pylake.
-You can do this in the drop down menu that normally defaults to the environment `base`.
+.. note::
 
-If you are used to starting Jupyter from the Anaconda prompt, then remember to activate the correct environment (pylake) prior to starting the notebook.
-You can activate this environment by calling::
+    Make sure to activate the correct environment when working with Pylake.
 
-    conda activate pylake
+    When starting Jupyter notebook from the Anaconda Navigator, first select the environment you installed Pylake in from the "Applications on" drop down menu (if you followed the above instructions, this environment will be named `pylake`). This drop down menu normally defaults to an environment named `base`.
 
-That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
-If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
+    From the command line, this is done by invoking `conda activate pylake`.
 
+.. warning::
+
+    If importing the package fails despite installing it in a fresh environment please refer to the `Frequently asked questions`_ for troubleshooting options.
+
+This concludes the Pylake installation procedure. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
 .. rubric:: Linux
 
@@ -92,9 +94,11 @@ Note that if you are used to starting Jupyter notebook from the Anaconda Navigat
 You can do this in the drop down menu that normally defaults to the environment `base`.
 If you are used to starting Jupyter notebook from the terminal, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
-That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
-If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
+This concludes the Pylake installation procedure. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
+.. warning::
+
+    If importing the package fails despite installing it in a fresh environment please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 .. rubric:: macOS
 
@@ -126,8 +130,11 @@ Note that if you are used to starting Jupyter notebook from the Anaconda Navigat
 You can do this in the drop down menu that normally defaults to the environment `base`.
 If you are used to starting Jupyter from `Terminal`, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
-That is all. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
-If importing the package fails please refer to the `Frequently asked questions`_ for troubleshooting options.
+This concludes the Pylake installation procedure. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
+
+.. warning::
+
+    If importing the package fails despite installing it in a fresh environment please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 Installation using pip
 ----------------------
