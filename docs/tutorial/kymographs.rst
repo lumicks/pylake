@@ -76,7 +76,7 @@ It is possible to crop a kymograph to a specific coordinate range, by using the 
 :func:`Kymo.crop_by_distance() <lumicks.pylake.kymo.Kymo.crop_by_distance>`. For example, we can
 crop the region from `6` micron to `24` micron using the following command::
 
-    kymo.crop_by_distance(6, 24).plot("green)
+    kymo.crop_by_distance(6, 24).plot("green")
 
 .. image:: figures/kymographs/kymo_cropped.png
 
