@@ -403,10 +403,8 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
 
     Parameters
     ----------
-    amplitudes : array_like
-        fractional amplitude parameters for each component
-    lifetimes : array_like
-        lifetime parameters for each component in seconds
+    params : array_like
+        array of model parameters (amplitude and lifetime per component)
     t : array_like
         dwelltime observations in seconds
     min_observation_time : float
@@ -414,9 +412,9 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
     max_observation_time : float
         maximum observation time in seconds
     """
-    params = np.reshape(params, (2, -1))
+    amplitudes, lifetimes = np.reshape(params, (2, -1))
     components = exponential_mixture_log_likelihood_components(
-        params[0], params[1], t, min_observation_time, max_observation_time
+        amplitudes, lifetimes, t, min_observation_time, max_observation_time
     )
     log_likelihood = logsumexp(components, axis=0)
     return -np.sum(log_likelihood)
