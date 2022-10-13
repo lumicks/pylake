@@ -627,6 +627,25 @@ def test_fit_binding_times(blank_kymo):
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
 
 
+def test_fit_binding_times_nonzero(blank_kymo):
+    k1 = KymoTrack(np.array([2]), np.zeros(3), blank_kymo, "red")
+    k2 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red")
+    tracks = KymoTrackGroup([k1, k2, k2, k2, k2])
+
+    with pytest.warns(
+        RuntimeWarning,
+        match=r"Some dwell times are zero. A dwell time of zero indicates that some of the tracks "
+              r"were only observed in a single frame. For these samples it is not possible to "
+              r"actually determine a dwell time. Therefore these samples are dropped from the "
+              r"analysis. If you wish to not see this warning, filter the tracks with "
+              r"`lk.filter_tracks` with a minimum length of 2 samples."
+    ):
+        dwelltime_model = tracks.fit_binding_times(1)
+        np.testing.assert_equal(dwelltime_model.dwelltimes, [4, 4, 4, 4])
+        np.testing.assert_equal(dwelltime_model._observation_limits[0], 4)
+        np.testing.assert_allclose(dwelltime_model.lifetimes[0], [0.4])
+
+
 def test_fit_binding_times_empty():
     with pytest.raises(RuntimeError, match="No tracks available for analysis"):
         KymoTrackGroup([]).fit_binding_times(1)

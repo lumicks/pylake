@@ -24,6 +24,7 @@
 * `lk.track_greedy` now returns an empty `KymoTrackGroup` instead of an error when an ROI is selected that results in no lines tracked.
 * Computing diffusion constants from temporally downsampled kymographs is now explicitly disallowed.
 * Fixed a bug where the `pixel_threshold` could be set to zero for an empty image. Now the minimum `pixel_threshold` is one.
+* Fixed a bug where single pixel detections in a `KymoTrackGroup` would contribute values with a dwell time of zero. These are now dropped, the correct minimally observable time is set appropriately and a warning is issued.
 
 ### Other changes
 

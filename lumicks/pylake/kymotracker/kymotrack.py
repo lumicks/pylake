@@ -687,14 +687,27 @@ class KymoTrackGroup:
         )
         dwelltimes_sec = np.array([track.seconds[-1] - track.seconds[0] for track in tracks])
 
-        if dwelltimes_sec.size == 0:
+        nonzero_dwelltimes_sec = dwelltimes_sec[dwelltimes_sec > 0]
+        if len(nonzero_dwelltimes_sec) != len(dwelltimes_sec):
+            warnings.warn(
+                RuntimeWarning(
+                    "Some dwell times are zero. A dwell time of zero indicates that some of the "
+                    "tracks were only observed in a single frame. For these samples it is not "
+                    "possible to actually determine a dwell time. Therefore these samples are "
+                    "dropped from the analysis. If you wish to not see this warning, filter the "
+                    "tracks with `lk.filter_tracks` with a minimum length of 2 samples."
+                ),
+                stacklevel=2,
+            )
+
+        if nonzero_dwelltimes_sec.size == 0:
             raise RuntimeError("No tracks available for analysis")
 
-        min_observation_time = np.min(dwelltimes_sec)
+        min_observation_time = np.min(nonzero_dwelltimes_sec)
         max_observation_time = self[0]._image.shape[1] * self[0]._line_time_seconds
 
         return DwelltimeModel(
-            dwelltimes_sec,
+            nonzero_dwelltimes_sec,
             n_components,
             min_observation_time=min_observation_time,
             max_observation_time=max_observation_time,
