@@ -1,7 +1,8 @@
+import warnings
 import numpy as np
 import numpy.typing as npt
-from typing import Optional
-import warnings
+import matplotlib.pyplot as plt
+from typing import Tuple, List, Optional
 from dataclasses import dataclass, field
 
 
@@ -21,7 +22,7 @@ class DiffusionEstimate:
         bias due to correlations between the estimated parameters and estimated variances. Instead,
         when calculating the weighted mean of estimates from time series of different lengths, the
         length :math:`N` of a time series should be used as weight, since it is known exactly.
-    num_lags : int
+    num_lags : Optional[int]
         Number of lags used to compute this estimate.
     num_points : int
         Number of points used to compute this estimate.
@@ -35,7 +36,7 @@ class DiffusionEstimate:
 
     value: float
     std_err: float
-    num_lags: int
+    num_lags: Optional[int]
     num_points: int
     method: str
     unit: str
@@ -43,6 +44,72 @@ class DiffusionEstimate:
 
     def __float__(self):
         return float(self.value)
+
+
+@dataclass
+class EnsembleMSD:
+    r"""Ensemble MSD result
+
+    Note that these values are obtained by using a weighted average of per-track MSDs. The
+    weighting factor is determined by the number of points that went into the individual estimates.
+    The standard error of the mean is computed using a weighted variance and the effective sample
+    size determined for this procedure:
+
+    .. math::
+
+        SEM_{i} = \frac{\sigma_{i}}{\sqrt{N_{i, effective}}}
+
+    with :math:`i` the lag index and :math:`N_{i, effective}` given by:
+
+    .. math::
+
+        N_{i, effective} = \frac{\left(\sum_{j}N_j\right)^2}{\sum_{j}N_{j}^2}
+
+    with :math:`j` the track index. If all tracks are of equal size, the weighting will have no
+    effect.
+
+    Attributes
+    ----------
+    lags : np.ndarray
+        Lags at which the MSD was computed.
+    msd : np.ndarray
+        Mean MSD for each lag.
+    sem :  np.ndarray
+        Standard error of the mean corresponding to each MSD.
+    variance : np.ndarray
+        Variance of each MSD average.
+    counts : np.ndarray
+        Number of elements that contributed to the estimate corresponding to each lag.
+    effective_sample_size : np.ndarray
+        Effective sample size.
+
+        Since the estimate is based on weighted data, each observation does not contribute equally
+        to the data. The effective sample size indicates the number of observations from an equally
+        weighted sample that would yield the same level of precision. If all tracks have equal
+        length and no missing data points, the effective sample size will simply equal the number of
+        tracks.
+    unit : str
+        Unit that the diffusion constant is specified in.
+    """
+
+    lags: np.ndarray
+    msd: np.ndarray
+    sem: np.ndarray
+    variance: np.ndarray
+    counts: np.ndarray
+    effective_sample_size: np.ndarray
+    unit: str
+    _time_step: float = field(repr=False)  # Time step in seconds
+    _unit_label: str = field(repr=False)  # Unit in TeX format used for plotting labels.
+
+    @property
+    def seconds(self):
+        return self.lags * self._time_step
+
+    def plot(self):
+        plt.errorbar(self.seconds, self.msd, self.sem)
+        plt.xlabel("Time [s]")
+        plt.ylabel(f"Squared Displacement [{self._unit_label}]")
 
 
 def weighted_mean_and_sd(means, counts) -> Tuple[float, float, float, float]:
@@ -85,7 +152,77 @@ def weighted_mean_and_sd(means, counts) -> Tuple[float, float, float, float]:
     weighted_variance = np.sum(counts * (means - weighted_mean) ** 2) * normalization_constant
     effective_sample_size = counts_sum**2 / counts_squared_sum
 
-    return weighted_mean, weighted_variance, counts_sum, effective_sample_size
+    return weighted_mean, weighted_variance, float(counts_sum), float(effective_sample_size)
+
+
+def calculate_msd_counts(
+    frame_idx, position, max_lag
+) -> Tuple[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
+    """Compute mean squared displacements (MSDs) and counts (see calculate_msd).
+
+    This function returns the mean squared displacement per lag along with the number of points
+    that were used to estimate it.
+
+    Parameters
+    ----------
+    frame_idx : array_like
+        List of frame indices (note that these have to be of integral type to prevent rounding
+        errors).
+    position : array_like
+        List of positions.
+    max_lag : int
+        Maximum number of lags to include (note that MSD estimates generally do not get better by
+        including several lag steps).
+    """
+    frame_mesh_1, frame_mesh_2 = np.meshgrid(frame_idx, frame_idx)
+    frame_diff = frame_mesh_1 - frame_mesh_2
+    frame_lags = np.unique(frame_diff)
+
+    position_mesh_1, position_mesh_2 = np.meshgrid(position, position)
+    squared_displacements = (position_mesh_1 - position_mesh_2) ** 2
+
+    # Look up only the rho elements we need
+    frame_lags = frame_lags[frame_lags > 0][:max_lag]
+    msds = [np.mean(squared_displacements[frame_diff == delta_frame]) for delta_frame in frame_lags]
+    counts_per_lag = [np.sum(frame_diff == delta_frame) for delta_frame in frame_lags]
+
+    return frame_lags, msds, counts_per_lag
+
+
+def merge_track_msds(
+    lags_msds_counts, min_count=0
+) -> Tuple[npt.ArrayLike, List[Tuple[npt.ArrayLike, npt.ArrayLike]]]:
+    r"""Aggregate unique lag, mean squared displacements and counts belonging to different tracks.
+
+    This function takes a list of tuples with lags, MSDs and counts per track and combines these.
+    The result is a list of unique lags and a list of MSD values and number of samples associated
+    with each lag.
+
+    Parameters
+    ----------
+    lags_msds_counts : list[tuple(array_like, array_like, array_like)]
+        Individual lags, MSD estimates and number of samples used to calculate each MSD for
+        multiple tracks.
+    min_count : int
+        Minimum count. Lags with fewer MSDs than `min_count` are omitted.
+    """
+    flattened_lags, flattened_msd_values, flattened_counts = (
+        np.hstack([m[idx] for m in lags_msds_counts]) for idx in (0, 1, 2)
+    )
+    lags, inverse, counts_per_unique_lag = np.unique(
+        flattened_lags, return_inverse=True, return_counts=True
+    )
+
+    filtered_lags = lags[counts_per_unique_lag >= min_count]
+
+    # Collect the values for msd and count per lag
+    msds_counts_per_lag = [
+        (flattened_msd_values[inverse == idx], flattened_counts[inverse == idx])
+        for idx, count in enumerate(counts_per_unique_lag)
+        if count >= min_count
+    ]
+
+    return filtered_lags, msds_counts_per_lag
 
 
 def calculate_msd(frame_idx, position, max_lag):
@@ -108,22 +245,54 @@ def calculate_msd(frame_idx, position, max_lag):
         errors).
     position : array_like
         List of positions.
-    max_lag : float
-        Maximum lag to include (note that MSD estimates generally do not get better by including
-        several lag steps).
+    max_lag : int
+        Maximum number of lags to include (note that MSD estimates generally do not get better by
+        including several lag steps).
     """
-    frame_mesh_1, frame_mesh_2 = np.meshgrid(frame_idx, frame_idx)
-    frame_diff = frame_mesh_1 - frame_mesh_2
-    frame_lags = np.unique(frame_diff)
+    frame_lags, msd_estimates, _ = calculate_msd_counts(frame_idx, position, max_lag)
+    return frame_lags, msd_estimates
 
-    position_mesh_1, position_mesh_2 = np.meshgrid(position, position)
-    summand = (position_mesh_1 - position_mesh_2) ** 2
 
-    # Look up only the rho elements we need
-    frame_lags = frame_lags[frame_lags > 0][:max_lag]
-    msd = np.array([np.mean(summand[frame_diff == delta_frame]) for delta_frame in frame_lags])
+def calculate_ensemble_msd(
+    line_msds, time_step, unit="au", unit_label="au", min_count=2
+) -> EnsembleMSD:
+    """Calculate ensemble MSDs.
 
-    return frame_lags, msd
+    Parameters
+    ----------
+    line_msds : list of tuple of ndarray
+        A list of tuples with three arrays. The three arrays are:
+            - lags : lags at which the estimator is computed.
+            - msds : MSD values.
+            - counts : number of values that went into the estimate.
+    time_step : float
+        Time step in seconds.
+    unit : str
+        Spatial unit
+    unit_label : str
+        Spatial unit intended for the figure label
+    min_count : int
+        If fewer than `min_count` tracks contribute to the MSD at a particular lag then that lag
+        is omitted
+    """
+    if len(line_msds) < 2:
+        raise ValueError("You need at least two tracks to compute the ensemble MSD")
+
+    lags, msds_counts_per_lag = merge_track_msds(line_msds, min_count)
+    stats_per_lag = [weighted_mean_and_sd(msd, count) for msd, count in msds_counts_per_lag]
+    mean, variance, counts, effective_sample_size = np.vstack(stats_per_lag).T
+
+    return EnsembleMSD(
+        lags=lags,
+        msd=mean,
+        sem=np.sqrt(variance / effective_sample_size),
+        variance=variance,
+        counts=counts,
+        effective_sample_size=effective_sample_size,
+        unit=f"{unit}^2",
+        _time_step=time_step,
+        _unit_label=f"{unit_label}$^2$",
+    )
 
 
 def _msd_diffusion_covariance(max_lags, n, intercept, slope):
