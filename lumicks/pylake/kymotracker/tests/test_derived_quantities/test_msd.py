@@ -1,5 +1,6 @@
 import pytest
 import contextlib
+import matplotlib.pyplot as plt
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.msd_estimation import (
     _var_cve_known_var,
@@ -468,3 +469,146 @@ def test_weighted_variance_error_case():
 
     with pytest.raises(ValueError, match="Mean and count arrays must be the same size"):
         weighted_mean_and_sd(np.array([2, 3]), np.array([2, 3, 4]))
+
+
+@pytest.mark.parametrize(
+    "frame_idx,position,max_lag,ref_lags,ref_msds,ref_samples",
+    [
+        [[1, 2, 3, 4], [1, 2, 3, 4], 1000, [1, 2, 3], [1.0, 4.0, 9.0], [3, 2, 1]],
+        [[1, 2, 4], [1, 2, 4], 1000, [1, 2, 3], [1.0, 4.0, 9.0], [1, 1, 1]],
+        [[1, 2, 5], [1, 2, 4], 1000, [1, 3, 4], [1.0, 4.0, 9.0], [1, 1, 1]],
+        [[1, 2, 5, 6], [1, 2, 4, 5], 1000, [1, 3, 4, 5], [1.0, 4.0, 9.0, 16.0], [2, 1, 2, 1]],
+        [
+            [1, 2, 5, 6],
+            [1.5, 0.5, 3.0, 5.5],
+            1000,
+            [1, 3, 4, 5],
+            [3.625, 6.25, 13.625, 16.0],
+            [2, 1, 2, 1],
+        ],
+        [[1, 2, 3, 4], [1, 2, 3, 4], 2, [1, 2], [1.0, 4.0], [3, 2]],  # test max_lag
+        # max_lag refers to number of lags, not maximum lag
+        [[1, 2, 5, 6], [1, 2, 4, 5], 3, [1, 3, 4], [1.0, 4.0, 9.0], [2, 1, 2]],
+    ],
+)
+def test_msds_counts(frame_idx, position, max_lag, ref_lags, ref_msds, ref_samples):
+    """Test function that computed squared displacement and sample counts"""
+    lags, msds, num_samples = calculate_msd_counts(
+        np.asarray(frame_idx), np.asarray(position), max_lag=max_lag
+    )
+    np.testing.assert_allclose(lags, ref_lags)
+    np.testing.assert_allclose(msds, ref_msds)
+    np.testing.assert_allclose(num_samples, ref_samples)
+
+
+def test_merge_msds():
+    """Test function which merges squared displacements obtained from various tracks"""
+
+    # Tracks are given as a list of numpy arrays with [lags, msds, number of samples]
+    trk = [np.array([1, 2, 3, 4]), np.array([1.0, 2.0, 3.0, 4.0]), np.array([4, 3, 2, 1])]
+    trk2 = [np.array([1, 2, 3, 5]), np.array([3.0, 2.0, 3.0, 10.0]), np.array([5, 3, 2, 1])]
+
+    lags, msds = merge_track_msds([trk, trk2, trk2], min_count=0)
+    ref_msds = [
+        [[1.0, 3.0, 3.0], [4, 5, 5]],
+        [[2.0, 2.0, 2.0], [3, 3, 3]],
+        [[3.0, 3.0, 3.0], [2, 2, 2]],
+        [[4.0], [1]],
+        [[10.0, 10.0], [1, 1]],
+    ]
+    np.testing.assert_allclose(lags, [1, 2, 3, 4, 5])
+    assert len(msds) == len(ref_msds)
+    for rho_count, ref_rho_count in zip(msds, ref_msds):
+        np.testing.assert_allclose(rho_count[0], ref_rho_count[0])  # Compare rho
+        np.testing.assert_allclose(rho_count[1], ref_rho_count[1])  # Compare count
+
+    # Include a filter
+    lags, msds = merge_track_msds([trk, trk2, trk2], min_count=2)
+    ref_msds = [
+        [[1.0, 3.0, 3.0], [4, 5, 5]],
+        [[2.0, 2.0, 2.0], [3, 3, 3]],
+        [[3.0, 3.0, 3.0], [2, 2, 2]],
+        [[10.0, 10.0], [1, 1]],
+    ]
+    np.testing.assert_allclose(lags, [1, 2, 3, 5])
+    assert len(msds) == len(ref_msds)
+    for rho_count, ref_rho_count in zip(msds, ref_msds):
+        np.testing.assert_allclose(rho_count[0], ref_rho_count[0])  # Compare rho
+        np.testing.assert_allclose(rho_count[1], ref_rho_count[1])  # Compare count
+
+    lags, msds = merge_track_msds([trk, trk2, trk2], min_count=6)
+    np.testing.assert_equal(lags, [])
+    np.testing.assert_equal(msds, [])
+
+
+def test_ensemble_msd():
+    frame_diffs = np.arange(1, 5, 1)
+
+    # Lags, mean squared displacements and counts for 3 tracks
+    track_msds = [
+        [frame_diffs, frame_diffs**2 + 0.1, np.arange(len(frame_diffs), 0, -1)],
+        [frame_diffs, frame_diffs**2 - 0.1, np.arange(len(frame_diffs), 0, -1)],
+        [np.array([1, 2, 3, 5]), np.array([1, 2, 3, 5]) ** 2, np.arange(len(frame_diffs), 0, -1)],
+    ]
+
+    # By default, the single lag rho (5) should be ignored
+    result = calculate_ensemble_msd(track_msds, 1.0, unit="what_a_unit", unit_label="label_ahoy")
+    np.testing.assert_allclose(result.lags, frame_diffs)
+    np.testing.assert_allclose(result.msd, frame_diffs**2)
+    num_means = np.array([3, 3, 3, 2])  # number of means contributing to the estimate
+    np.testing.assert_allclose(result.variance, 0.02 / (num_means - 1))
+    np.testing.assert_allclose(result.counts, [12, 9, 6, 2])
+    # Tracks are equal length, so the effective sample size is just the means that contributed
+    np.testing.assert_allclose(result.effective_sample_size, num_means)
+    np.testing.assert_allclose(result.sem, np.sqrt(0.02 / ((num_means - 1) * num_means)))
+    assert result.unit == "what_a_unit^2"
+    assert result._unit_label == "label_ahoy$^2$"
+
+
+def test_ensemble_msd_unequal_points():
+    frame_diffs = np.arange(1, 6, 1)
+
+    # Lags, mean squared displacements and counts for 3 tracks
+    track_msds = [
+        [frame_diffs, np.ones(frame_diffs.shape), [2, 2, 4, 4, 4]],
+        [frame_diffs, 4 * np.ones(frame_diffs.shape), [4, 4, 2, 2, 2]],
+    ]
+
+    result = calculate_ensemble_msd(track_msds, 1.0)
+    np.testing.assert_allclose(result.lags, frame_diffs)
+    np.testing.assert_allclose(result.msd, np.array([3, 3, 2, 2, 2]))
+    np.testing.assert_allclose(result.variance, np.ones(5) * 4.5)
+    np.testing.assert_allclose(result.counts, np.ones(5) * 6)
+    # ESS is less than 2 since we used weighting
+    np.testing.assert_allclose(result.effective_sample_size, np.ones(5) * 9 / 5)
+    np.testing.assert_allclose(result.sem, np.ones(5) * np.sqrt(5 / 2))
+
+
+def test_ensemble_msd_little_data():
+    frame_diffs = np.arange(1, 5, 1)
+    trk1 = [frame_diffs, frame_diffs**2, np.arange(len(frame_diffs), 0, -1)]
+    trk2 = [np.array([1, 2, 3, 5]), np.array([1, 2, 3, 5]) ** 2, np.arange(len(frame_diffs), 0, -1)]
+
+    with pytest.raises(
+        ValueError, match="Need more than one average to compute a weighted variance"
+    ):
+        calculate_ensemble_msd([trk1, trk1, trk2], 1.0, unit="au", unit_label="au", min_count=0)
+
+    for msds in ([trk1], []):
+        with pytest.raises(
+            ValueError, match="You need at least two tracks to compute the ensemble MSD"
+        ):
+            calculate_ensemble_msd(msds, 1.0, unit="au", unit_label="au", min_count=0)
+
+
+def test_ensemble_msd_plot():
+    """Test whether the plot spins up"""
+    frame_diffs = np.arange(1, 5, 1)
+    trk1 = [frame_diffs, frame_diffs**2, np.arange(len(frame_diffs), 0, -1)]
+    calculate_ensemble_msd([trk1, trk1, trk1], 1.0, unit="au", unit_label="label_unit").plot()
+    axis = plt.gca()
+    lines = axis.lines[0]
+    np.testing.assert_allclose(lines.get_xdata(), frame_diffs)
+    np.testing.assert_allclose(lines.get_ydata(), frame_diffs**2)
+    assert axis.xaxis.get_label().get_text() == "Time [s]"
+    assert axis.yaxis.get_label().get_text() == "Squared Displacement [label_unit$^2$]"
