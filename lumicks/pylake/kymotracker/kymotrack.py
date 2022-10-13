@@ -1,4 +1,5 @@
 from copy import copy
+import warnings
 from deprecated.sphinx import deprecated
 from sklearn.neighbors import KernelDensity
 from ..detail.utilities import use_docstring_from
@@ -386,9 +387,7 @@ class KymoTrack:
 
         Parameters
         ----------
-        method : str
-            Valid options are "cve", "ols" and "gls".
-
+        method : {"cve", "ols", "gls"}
             - "cve" : Covariance based estimator [5]_. Optimal if SNR > 1. Can only be used when
               track is equidistantly sampled.
             - "ols" : Ordinary least squares [3]_. Determines optimal number of lags.
@@ -814,9 +813,43 @@ class KymoTrackGroup:
 
         return x.squeeze(), densities
 
-    @use_docstring_from(KymoTrack.estimate_diffusion)
-    def estimate_diffusion(self, *args, **kwargs):
-        return [k.estimate_diffusion(*args, **kwargs) for k in self._src]
+    def estimate_diffusion(self, method, *args, min_length=None, **kwargs):
+        r"""Estimate diffusion constant for each track in the group.
+
+        Calls :meth:`KymoTrack.estimate_diffusion` for each track. See the documentation for that
+        method for more detailed information and references.
+
+        Parameters
+        ----------
+        method : {"cve", "ols", "gls"}
+            - "cve" : Covariance based estimator. Optimal if SNR > 1. Can only be used when
+              track is equidistantly sampled.
+            - "ols" : Ordinary least squares. Determines optimal number of lags.
+            - "gls" : Generalized least squares. Takes into account covariance matrix (slower).
+        max_lag : int (optional)
+            Number of lags to include when using an MSD-based estimator. When omitted, the method
+            will choose an appropriate number of lags to use. For the cve estimator this argument
+            is ignored.
+            When the method chosen is "ols" an optimal number of lags is estimated as determined by.
+            When the method is set to "gls" all lags are included.
+        min_length : None or int (optional)
+            Discards tracks shorter than a certain length from the analysis. If `None` (the default)
+            tracks shorter than 3 points if `method == "cve"` or 5 points if `method == "ols" or "gls"`
+            will be discarded.
+        """
+        required_length = (3 if method == "cve" else 5) if min_length is None else min_length
+        filtered_tracks = [track for track in self if len(track) >= required_length]
+        n_discarded = len(self) - len(filtered_tracks)
+
+        if n_discarded and min_length is None:
+            warnings.warn(
+                f"{n_discarded} tracks were shorter than the specified min_length "
+                "and discarded from the analysis.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
+        return [k.estimate_diffusion(method, *args, **kwargs) for k in filtered_tracks]
 
     def ensemble_msd(self, max_lag=None, min_count=2) -> EnsembleMSD:
         r"""This method returns the weighted average of the Mean Squared Displacement (MSD) for all

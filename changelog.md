@@ -7,11 +7,13 @@
 * Fixed and reintroduced lazy loading for `TimeSeries` data.
 * You can now add two `KymoTrackGroups` tracked on the same kymo together with the `+` operator.
 * TIFFs exported from `Scan` and `Kymo` now contain metadata. The `DateTime` tag indicated the start/stop timestamp of each frame. The `ImageDescription` tag contains additional information about the confocal acquisition parameters.
-* Added covariance-based estimator (cve) option to `KymoTrack.estimate_diffusion`. See [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
+* Added covariance-based estimator (cve) option to `KymoTrack.estimate_diffusion()`. See [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
+* Added the optional `min_length` parameter to `KymoTrackGroup.estimate_diffusion()` to discard tracks shorter than a specified length from the analysis.
 
 #### Other changes
 
 * All `KymoTrack` intances must have the same source `Kymo` and color channel in order to be in the same `KymoTrackGroup` instance. While this behavior was required previously for some downstream analyses on the tracks, it is now explicitly enforced upon `KymoTrackGroup` construction.
+* When calling `KymoTrackGroup.estimate_diffusion()` without specifying the `min_length` parameter, tracks which are shorter than the required length for the specified method will be discarded from analysis and a warning emitted. Previously, if any tracks were shorter than required, an error would be raised.
 
 #### Deprecations
 
