@@ -635,10 +635,10 @@ def test_fit_binding_times_nonzero(blank_kymo):
     with pytest.warns(
         RuntimeWarning,
         match=r"Some dwell times are zero. A dwell time of zero indicates that some of the tracks "
-              r"were only observed in a single frame. For these samples it is not possible to "
-              r"actually determine a dwell time. Therefore these samples are dropped from the "
-              r"analysis. If you wish to not see this warning, filter the tracks with "
-              r"`lk.filter_tracks` with a minimum length of 2 samples."
+        r"were only observed in a single frame. For these samples it is not possible to "
+        r"actually determine a dwell time. Therefore these samples are dropped from the "
+        r"analysis. If you wish to not see this warning, filter the tracks with "
+        r"`lk.filter_tracks` with a minimum length of 2 samples.",
     ):
         dwelltime_model = tracks.fit_binding_times(1)
         np.testing.assert_equal(dwelltime_model.dwelltimes, [4, 4, 4, 4])
@@ -704,9 +704,91 @@ def test_diffusion_cve(blank_kymo):
     np.testing.assert_allclose(cve_est.std_err, 1.3928388277184118)
     np.testing.assert_allclose(cve_est.num_points, 5)
     assert cve_est.num_lags is None
-    assert cve_est.method == 'cve'
+    assert cve_est.method == "cve"
     assert cve_est.unit == "um^2 / s"
     assert cve_est._unit_label == "$\\mu$m$^2$/s"
+
+
+def test_kymotrack_group_diffusion_filter():
+    """Tests whether we can call this function at the diffusion level"""
+    image = np.random.randint(0, 20, size=(10, 10, 3))
+    kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
+    kymo = _kymo_from_array(image, "rgb", **kwargs)
+
+    base_coordinates = (
+        np.arange(1, 10),
+        np.array([-1.0, 1.0, -1.0, -3.0, -5.0, -1.0, 1.0, -1.0, -3.0, -5.0]),
+    )
+
+    def make_coordinates(length, divisor):
+        t, p = [c[:length] for c in base_coordinates]
+        return t, p / divisor
+
+    tracks = KymoTrackGroup(
+        [
+            KymoTrack(time_idx, coordinate, kymo, "red")
+            for (time_idx, coordinate) in (
+                make_coordinates(5, 2),
+                make_coordinates(3, 3),
+                make_coordinates(2, 5),
+                make_coordinates(9, 1),
+                make_coordinates(8, 8),
+                make_coordinates(2, 4),
+            )
+        ]
+    )
+
+    good_tracks = KymoTrackGroup([track for j, track in enumerate(tracks) if j in (0, 3, 4)])
+
+    warning_string = lambda n_discarded: (
+        f"{n_discarded} tracks were shorter than the specified min_length "
+        "and discarded from the analysis."
+    )
+
+    # test algorithms with default min_length
+    with pytest.warns(RuntimeWarning, match=warning_string(3)):
+        d = tracks.estimate_diffusion("ols")
+        assert len(d) == 3
+
+    with pytest.warns(RuntimeWarning, match=warning_string(3)):
+        d = tracks.estimate_diffusion("gls")
+        assert len(d) == 3
+
+    with pytest.warns(RuntimeWarning, match=warning_string(2)):
+        d = tracks.estimate_diffusion("cve")
+        assert len(d) == 4
+
+    # test proper tracks are discarded
+    ref_d = [diff.value for diff in good_tracks.estimate_diffusion("ols")]
+    with pytest.warns(RuntimeWarning, match=warning_string(3)):
+        d = [diff.value for diff in tracks.estimate_diffusion("ols")]
+        np.testing.assert_allclose(d, ref_d)
+
+    # test proper forwarding of arguments
+    # don't warn if min_length is supplied
+    with pytest.warns(RuntimeWarning, match=warning_string(3)):
+        d = tracks.estimate_diffusion("ols", max_lag=5)
+        assert len(d) == 3
+
+    d = tracks.estimate_diffusion("ols", max_lag=5, min_length=6)
+    assert len(d) == 2
+
+    d = tracks.estimate_diffusion("ols", 5, min_length=6)
+    assert len(d) == 2
+
+    d = tracks.estimate_diffusion("ols", min_length=6)
+    assert len(d) == 2
+
+    # test empty result
+    d = tracks.estimate_diffusion("ols", min_length=200)
+    assert d == []
+
+    # test throw on invalid min_length
+    with pytest.raises(
+        RuntimeError,
+        match="You need at least 5 time points to estimate the number of points to include in the fit.",
+    ):
+        d = tracks.estimate_diffusion("ols", min_length=2)
 
 
 @pytest.mark.parametrize("kbp_calibration, line_width", [(None, 7), (4, 7), (None, 8)])
