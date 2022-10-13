@@ -510,7 +510,7 @@ This SNR is defined by:
 
     SNR = \frac{\sqrt{D \Delta t}}{{\sigma}}
 
-Here :math:`D` is the diffusion constant, :math:`Delta t` the time step and :math:`\sigma` the localization uncertainty.
+Here :math:`D` is the diffusion constant, :math:`\Delta t` the time step and :math:`\sigma` the localization uncertainty.
 Use of the CVE is indicated when the SNR is bigger than 1. For smaller values for the SNR, we recommend using OLS or GLS instead.
 
 Dwelltime analysis

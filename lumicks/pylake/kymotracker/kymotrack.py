@@ -1,5 +1,4 @@
 from copy import copy
-from typing import Optional
 from deprecated.sphinx import deprecated
 from sklearn.neighbors import KernelDensity
 from ..detail.utilities import use_docstring_from
@@ -356,17 +355,20 @@ class KymoTrack:
         The estimator for the MSD (:math:`\rho`) is defined as:
 
         .. math::
+
             \rho_n = \frac{1}{N-n} \sum_{i=1}^{N-n} \left(r_{i+n} - r_{i}\right)^2
 
         In a diffusion problem, the MSD can be fitted to a linear curve.
 
         .. math::
+
             \textrm{intercept} =& 2 d (\sigma^2 - 2 R D dt)
 
             \textrm{slope} =& 2 d D dt
 
-        Here d is the dimensionality of the problem. D is the diffusion constant. R is a motion blur
-        constant. dt is the time step and :math:`\sigma` represents the dynamic localization error.
+        Here :math:`d` is the dimensionality of the problem. :math:`D` is the diffusion constant.
+        :math:`R` is a motion blur constant. :math:`dt` is the time step and :math:`\sigma`
+        represents the dynamic localization error.
 
         One aspect that is import to consider is that this estimator uses every data point multiple
         times. As a consequence the elements of rho_n are highly correlated. This means that
