@@ -17,7 +17,9 @@ import filecmp
 import sphinx_rtd_theme
 
 sys.path.insert(0, os.path.abspath("./_ext"))
+sys.path.insert(0, os.path.abspath("./_static"))
 sys.path.insert(0, os.path.abspath(".."))
+
 from lumicks import pylake
 
 
@@ -173,6 +175,7 @@ html_static_path = ["_static"]
 # html_context = {'extra_css_files': ['_static/extra.css']}
 
 html_css_files = ["custom.css"]
+pygments_style = "pylake_syntax_theme.PylakeStyle"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
