@@ -1,5 +1,6 @@
 import pytest
 import contextlib
+import re
 import matplotlib.pyplot as plt
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.msd_estimation import (
@@ -269,15 +270,51 @@ def test_regression_ols_with_skipped_frames(
             np.random.shuffle(skipped_sampling)
 
         frame_idx, trace = np.arange(num_points)[skipped_sampling], trace[skipped_sampling]
-        diffusion_est = estimate_diffusion_constant_simple(
-            frame_idx, trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
-        )
+
+        with pytest.warns(RuntimeWarning, match="Your tracks have missing frames"):
+            diffusion_est = estimate_diffusion_constant_simple(
+                frame_idx, trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
+            )
 
     np.testing.assert_allclose(float(diffusion_est), diff_est)
     np.testing.assert_allclose(diffusion_est.value, diff_est)
     np.testing.assert_allclose(diffusion_est.num_lags, max_lag)
     np.testing.assert_allclose(diffusion_est.num_points, num_points // skip)
     np.testing.assert_allclose(diffusion_est.std_err, std_err_est)
+
+
+def test_skipped_sample_protection():
+    lag_idx = np.asarray([1, 2, 4, 5, 6, 7, 8])
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Your tracks cannot have missing frames when using the GLS estimator. Refine your "
+            "tracks using `lk.refine_tracks_centroid()`"
+        ),
+    ):
+        estimate_diffusion_constant_simple(lag_idx, lag_idx**2, 1, 2, method="gls")
+
+    with pytest.warns(
+        RuntimeWarning,
+        match=re.escape(
+            "Your tracks have missing frames. Note that this can lead to a suboptimal estimate "
+            "of the optimal number of lags when using OLS."
+        ),
+    ):
+        # We warn if the user tries to rely on the automatic lag estimation which according to the
+        # paper may be of arguable quality.
+        determine_optimal_points(lag_idx, lag_idx**2, max_iterations=100)
+
+    with pytest.warns(
+        RuntimeWarning,
+        match=re.escape(
+            "Your tracks have missing frames. Note that this results in a poor estimate of "
+            "the standard error of the estimate. To avoid this warning, you can refine "
+            "your tracks using `lk.refine_tracks_centroid()`. Please refer to "
+            "`help(lk.refine_tracks_centroid)` for more information."
+        ),
+    ):
+        estimate_diffusion_constant_simple(lag_idx, lag_idx**2, 1, 5, method="ols")
 
 
 @pytest.mark.parametrize(
