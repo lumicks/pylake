@@ -426,6 +426,8 @@ def _diffusion_gls(lag_idx, mean_squared_displacements, num_points, tolerance=1e
     This method takes into account the covariance matrix and thereby does not suffer from including
     more lags than the optimal number of lags [3]_.
 
+    Note that this method requires that no frames are missing from the result.
+
     Parameters
     ----------
     lag_idx : array_like
@@ -564,6 +566,23 @@ def estimate_diffusion_constant_simple(
     if max_lag < 2:
         raise ValueError("You need at least two lags to estimate a diffusion constant")
 
+    if any(np.diff(frame_idx) > 1):
+        if method == "gls":
+            raise RuntimeError(
+                "Your tracks cannot have missing frames when using the GLS estimator. Refine your "
+                "tracks using `lk.refine_tracks_centroid()`. Please refer to "
+                "`help(lk.refine_tracks_centroid)` for more information."
+            )
+        elif method == "ols":
+            warnings.warn(
+                RuntimeWarning(
+                    "Your tracks have missing frames. Note that this results in a poor estimate of "
+                    "the standard error of the estimate. To avoid this warning, you can refine "
+                    "your tracks using `lk.refine_tracks_centroid()`. Please refer to "
+                    "`help(lk.refine_tracks_centroid)` for more information."
+                )
+            )
+
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
 
     method_fun = _diffusion_gls if method == "gls" else _diffusion_ols
@@ -657,6 +676,14 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
     """
     if not np.issubdtype(frame_idx.dtype, np.integer):
         raise TypeError("Frame indices need to be integer")
+
+    if any(np.diff(frame_idx) > 1):
+        warnings.warn(
+            RuntimeWarning(
+                "Your tracks have missing frames. Note that this can lead to a suboptimal "
+                "estimate of the optimal number of lags when using OLS."
+            )
+        )
 
     num_slope = max(2, len(coordinate) // 10)  # Need at least two points for a linear regression!
     num_intercept = max(2, len(coordinate) // 10)
