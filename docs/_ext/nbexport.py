@@ -152,10 +152,14 @@ class NBTranslator(nodes.NodeVisitor):
         self.write_markdown("[")
 
     def depart_reference(self, node):
-        url = node["refuri"]
-        if node.get("internal"):
-            url = posixpath.join(self.config.nbexport_baseurl, self.docpath, url)
-        self.write_markdown("]({})".format(url))
+        if "refuri" in node:
+            url = node["refuri"]
+            if node.get("internal"):
+                url = posixpath.join(self.config.nbexport_baseurl, self.docpath, url)
+
+            self.write_markdown(f"]({url})")
+        else:
+            self.write_markdown(f"](#{node['refid']})")
 
     def visit_download_reference(self, node):
         if node.hasattr("filename"):
