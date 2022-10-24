@@ -214,7 +214,7 @@ def test_covariance_matrix(lags, num_points, intercept, slope, ref_matrix):
     ],
 )
 def test_ols_results(msd, num_points, ref_values):
-    np.testing.assert_allclose(_diffusion_ols(msd, num_points), ref_values)
+    np.testing.assert_allclose(_diffusion_ols(np.arange(len(msd)) + 1, msd, num_points), ref_values)
 
 
 @pytest.mark.parametrize(
@@ -247,6 +247,37 @@ def test_diffusion_estimate_ols(
         assert diffusion_est.method == "ols"
         assert diffusion_est.unit == "mu^2/s"
         assert diffusion_est._unit_label == r"$\mu^2/s$"
+
+
+@pytest.mark.parametrize(
+    "diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, skip, shuffle",
+    [
+        (2.0, 1000, 5, 0.01, 0.5, 2.0191353993755534, 0.2691422691544549, 2, False),
+        (2.0, 1000, 3, 0.01, 0.5, 1.5714322945079129, 0.8912916583320089, 2, True),
+        (2.0, 5000, 5, 0.01, 0.5, 1.9352306588121024, 0.23809537086111288, 2, True),
+    ]
+)
+def test_regression_ols_with_skipped_frames(
+    diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, skip, shuffle,
+):
+    with temp_seed(0):
+        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+
+        subsampling = np.zeros(skip - 1, dtype=bool)
+        skipped_sampling = np.tile(np.hstack((True, subsampling)), num_points // skip)
+        if shuffle:
+            np.random.shuffle(skipped_sampling)
+
+        frame_idx, trace = np.arange(num_points)[skipped_sampling], trace[skipped_sampling]
+        diffusion_est = estimate_diffusion_constant_simple(
+            frame_idx, trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
+        )
+
+    np.testing.assert_allclose(float(diffusion_est), diff_est)
+    np.testing.assert_allclose(diffusion_est.value, diff_est)
+    np.testing.assert_allclose(diffusion_est.num_lags, max_lag)
+    np.testing.assert_allclose(diffusion_est.num_points, num_points // skip)
+    np.testing.assert_allclose(diffusion_est.std_err, std_err_est)
 
 
 @pytest.mark.parametrize(

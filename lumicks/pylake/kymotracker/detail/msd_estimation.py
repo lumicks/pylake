@@ -343,11 +343,13 @@ def _msd_diffusion_covariance(max_lags, n, intercept, slope):
     return base_covariance + localization_part
 
 
-def _diffusion_ols(mean_squared_displacements, num_points):
+def _diffusion_ols(lag_idx, mean_squared_displacements, num_points):
     """Estimate the intercept, slope and standard deviation of the slope based on the msd [2]_
 
     Parameters
     ----------
+    lag_idx : array_like
+        lag time in frames
     mean_squared_displacements : array_like
         mean squared displacements to fit
     num_points : int
@@ -360,12 +362,11 @@ def _diffusion_ols(mean_squared_displacements, num_points):
            Physics, 153(2), 024116.
     """
     num_lags = len(mean_squared_displacements)
-    alpha = num_lags * (num_lags + 1.0) * 0.5
-    beta = alpha * (2.0 * num_lags + 1.0) / 3.0
+    alpha = float(np.sum(lag_idx))
+    beta = float(np.sum(lag_idx**2))
 
     # Estimate intercept and slope (Eq 5 from [2])
     gamma = np.sum(mean_squared_displacements)
-    lag_idx = np.arange(num_lags) + 1
     delta = np.sum(lag_idx * mean_squared_displacements)
     inv_denominator = 1.0 / (num_lags * beta - alpha**2)
     intercept = (beta * gamma - alpha * delta) * inv_denominator
@@ -419,7 +420,7 @@ def _update_gls_estimate(inverse_cov, mean_squared_displacements, intercept, slo
     return change, new_slope, new_intercept, var_slope
 
 
-def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_iter=100):
+def _diffusion_gls(lag_idx, mean_squared_displacements, num_points, tolerance=1e-4, max_iter=100):
     """Estimate the intercept, slope and standard deviation of the slope based on the msd
 
     This method takes into account the covariance matrix and thereby does not suffer from including
@@ -427,6 +428,8 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
 
     Parameters
     ----------
+    lag_idx : array_like
+        lag time in frames
     mean_squared_displacements : array_like
         mean squared displacements to fit
     num_points : int
@@ -452,7 +455,7 @@ def _diffusion_gls(mean_squared_displacements, num_points, tolerance=1e-4, max_i
     def fallback(warning_message):
         """Fallback method if the GLS fails"""
         warnings.warn(RuntimeWarning(f"{warning_message} Reverting to two-point OLS."))
-        return _diffusion_ols(mean_squared_displacements[:2], num_points)
+        return _diffusion_ols(lag_idx[:2], mean_squared_displacements[:2], num_points)
 
     # Since the covariance matrix depends on the parameters for the intercept and slope, we obtain
     # an implicit formulation. We use fixed point iteration to determine the parameters. If the
@@ -564,7 +567,7 @@ def estimate_diffusion_constant_simple(
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
 
     method_fun = _diffusion_gls if method == "gls" else _diffusion_ols
-    _, slope, var_slope = method_fun(msd, len(coordinate))
+    _, slope, var_slope = method_fun(frame_lags, msd, len(coordinate))
 
     to_time = 1.0 / (2.0 * time_step)
     return DiffusionEstimate(
