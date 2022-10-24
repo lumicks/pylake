@@ -86,6 +86,8 @@ Plotting all the detected tracks is also quite easy by iterating over the list o
 
 .. image:: kymotracked.png
 
+.. _localization_refinement:
+
 Localization refinement
 -----------------------
 
@@ -374,6 +376,14 @@ than in a uniform direction.
 Studying diffusion processes
 ----------------------------
 
+Pylake supports a number of methods for studying diffusive processes.
+These methods rely on estimating how much the particle moves between each frame of the kymograph.
+As such, tracked lines with many gaps in their tracking (due to the threshold not being met) should be refined using :func:`~lumicks.pylake.refine_tracks_centroid` prior to diffusive analysis.
+Ideally, regions without signal (such as when the fluorophore blinks) should not be tracked, since they can bias the results because the positions cannot reliably be estimated.
+
+Mean Squared Displacement
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 To study diffusive processes we can make use of the Mean Squared Displacement (MSD).
 There are multiple ways to estimate this quantity.
 We use the following estimator:
@@ -422,6 +432,11 @@ One thing that is important to note is that the MSDs of one track for different 
 Therefore one should not take these estimates as independent data points.
 
 MSDs are typically used to calculate diffusion constants and Pylake offers some dedicated functionality that will correctly handle the data (more on this below).
+
+.. _diffusion_ols:
+
+Ordinary Least Squares
+^^^^^^^^^^^^^^^^^^^^^^
 
 With pure diffusive motion (a complete absence of drift) in an isotropic medium, 1-dimensional MSDs can be fitted by the following relation:
 
@@ -493,6 +508,19 @@ By default, this will use the optimal number of lags (which in this case seems t
 .. image:: msdplot_100_lags.png
 
 It's not hard to see from this graph why taking too many lags results in unacceptably large variances (note how the traces diverge).
+
+.. note::
+
+    The uncertainty estimate and optimal number of lags obtained for Ordinary Least Squares relies on having a successful positional localization for every frame in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
+
+    If frames are missing, then this method will issue a warning with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
+    If this is not possible, please switch to :ref:`diffusion_cve`.
+
+.. _diffusion_gls:
+
+Generalized Least Squares
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Another option is to use generalized least squares :cite:`bullerjahn2020optimal`.
 This method is slower, since it has to solve some implicit equations, but it does not suffer from the large variance when including more lags (since it takes into account the covariance matrix of the MSD)::
 
@@ -501,8 +529,21 @@ This method is slower, since it has to solve some implicit equations, but it doe
      DiffusionEstimate(value=4.432955288469379, std_err=1.565056974828146, num_lags=30, num_points=80, method='gls', unit='um^2 / s'),
      DiffusionEstimate(value=5.378609478528924, std_err=1.7771064499907185, num_lags=30, num_points=80, method='gls', unit='um^2 / s')]
 
+.. note::
+
+    The Generalized Least Squares method for estimating the diffusion constant relies on having a successful positional localization for every frame in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
+
+    If frames are missing, then this method will raise an exception with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
+    If this is not possible, please switch to :ref:`diffusion_cve` or :ref:`diffusion_ols`.
+
+.. _diffusion_cve:
+
+Covariance-based estimator
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 A third more performant and unbiased method for computing the free diffusion is the covariance-based estimator (CVE) :cite:`vestergaard2014optimal,vestergaard2016optimizing`.
 The CVE does not rely on computing mean squared displacements and avoids the complications that arise from their use.
+The CVE method can also deal with tracks that have gaps due to blinking.
 The performance of this estimator can be characterized by its signal to noise ratio (SNR).
 This SNR is defined by:
 
