@@ -16,6 +16,7 @@
   * `CorrelatedStack`: See deprecation changelog entry.
 * `Kymo.plot()` now returns a handle of the plotted image
 * `PointScan.plot()` now returns a list of handles of the plotted lines
+* Added the `Kymo.duration` property.
 
 #### Other changes
 

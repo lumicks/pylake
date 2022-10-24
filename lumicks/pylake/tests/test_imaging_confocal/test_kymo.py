@@ -36,6 +36,7 @@ def test_kymo_properties(test_kymos):
     assert kymo.fast_axis == "X"
     np.testing.assert_allclose(kymo.pixelsize_um, 10/1000)
     np.testing.assert_allclose(kymo.line_time_seconds, 1.03125)
+    np.testing.assert_allclose(kymo.duration, 1.03125 * 4)
     np.testing.assert_allclose(kymo.center_point_um["x"], 58.075877109272604)
     np.testing.assert_allclose(kymo.center_point_um["y"], 31.978375270573267)
     np.testing.assert_allclose(kymo.center_point_um["z"], 0)
@@ -50,6 +51,25 @@ def test_kymo_properties(test_kymos):
         assert kymo.blue_image.shape == (5, 4)
     with pytest.deprecated_call():
         assert kymo.green_image.shape == (5, 4)
+
+
+def test_empty_kymo_properties(test_kymos):
+    kymo = test_kymos["Kymo1"]
+    empty_kymo = kymo["3s":"2s"]
+
+    assert empty_kymo.fast_axis == "X"
+    np.testing.assert_allclose(empty_kymo.pixelsize_um, 10/1000)
+    np.testing.assert_equal(empty_kymo.duration, 0)
+    np.testing.assert_allclose(empty_kymo.center_point_um["x"], 58.075877109272604)
+    np.testing.assert_allclose(empty_kymo.center_point_um["y"], 31.978375270573267)
+    np.testing.assert_allclose(empty_kymo.center_point_um["z"], 0)
+    np.testing.assert_allclose(empty_kymo.size_um, [0.050])
+
+    with pytest.raises(RuntimeError, match="Can't get pixel timestamps if there are no pixels"):
+        empty_kymo.line_time_seconds
+
+    with pytest.raises(RuntimeError, match="Can't get pixel timestamps if there are no pixels"):
+        empty_kymo.pixel_time_seconds
 
 
 def test_kymo_slicing(test_kymos):
