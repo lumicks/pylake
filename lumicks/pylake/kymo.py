@@ -269,6 +269,14 @@ class Kymo(ConfocalImage):
         return self._line_time_factory(self)
 
     @property
+    def duration(self):
+        """Duration of the kymograph in seconds. This value is equivalent to the number of scan
+        lines times the line time in seconds. It does not take into account incomplete scan
+        lines or mirror fly-in/out time.
+        """
+        return self.line_time_seconds * self.shape[1]
+
+    @property
     def pixelsize(self):
         """Returns a `List` of axes dimensions in calibrated units. The length of the
         list corresponds to the number of scan axes."""
@@ -314,17 +322,17 @@ class Kymo(ConfocalImage):
         image = self._get_plot_data(channel, adjustment)
 
         size_calibrated = self._calibration.value * self._num_pixels[0]
-        duration = self.line_time_seconds * image.shape[1]
+
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             # pixel center aligned with mean time per line
             extent=[
                 -0.5 * self.line_time_seconds,
-                duration - 0.5 * self.line_time_seconds,
+                self.duration - 0.5 * self.line_time_seconds,
                 size_calibrated - 0.5 * self.pixelsize[0],
                 -0.5 * self.pixelsize[0],
             ],
-            aspect=(image.shape[0] / image.shape[1]) * (duration / size_calibrated),
+            aspect=(image.shape[0] / image.shape[1]) * (self.duration / size_calibrated),
             cmap=linear_colormaps[channel],
         )
 
@@ -694,6 +702,10 @@ class EmptyKymo(Kymo):
 
     def get_image(self, channel="rgb"):
         return self._image(channel)
+
+    @property
+    def duration(self):
+        return 0
 
     @property
     @deprecated(

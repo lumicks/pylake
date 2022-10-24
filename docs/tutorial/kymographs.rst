@@ -67,6 +67,8 @@ There are also several properties available for convenient access to the kymogra
   between successive lines
 * :attr:`kymo.pixel_time_seconds <lumicks.pylake.kymo.Kymo.pixel_time_seconds>` provides the pixel
   dwell time.
+* :attr:`kymo.duration <lumicks.pylake.kymo.Kymo.duration>` provides the full duration of the kymograph
+  in seconds. This is equivalent to the number of scan lines times `line_time_seconds`.
 
 
 Cropping and slicing
