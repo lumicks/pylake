@@ -95,18 +95,18 @@ def test_kymos(reference_counts):
         [5],
         [100],
         infowave=infowave,
-        red_photon_counts=red_photon_count,
-        green_photon_counts=green_photon_count,
-        blue_photon_counts=blue_photon_count,
+        red_photon_counts=red_photon_count[0],
+        green_photon_counts=green_photon_count[0],
+        blue_photon_counts=blue_photon_count[0],
     )
     kymos["noise"] = Kymo("noise", mock_file, start, stop, metadata)
 
     mock_file, metadata, stop = MockConfocalFile.from_image(
         np.ones(shape=(5, 4, 3)),
         [10.0],
+        [0],
         start,
         dt,
-        [0],
         samples_per_pixel=5,
         line_padding=3
     )
@@ -208,9 +208,9 @@ def test_scans(reference_counts):
     mock_file, metadata, stop = MockConfocalFile.from_image(
         image,
         pixel_sizes_nm=[5, 5],
+        axes=[0, 1],
         start=start,
         dt=dt,
-        axes=[0, 1],
         samples_per_pixel=5,
         line_padding=3,
     )
