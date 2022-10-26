@@ -7,12 +7,8 @@ from skimage.measure import block_reduce
 from deprecated.sphinx import deprecated
 from .adjustments import ColorAdjustment
 from .detail.confocal import ConfocalImage, linear_colormaps, ScanMetaData, ScanAxis
-from .detail.image import (
-    line_timestamps_image,
-    seek_timestamp_next_line,
-    histogram_rows,
-    round_down,
-)
+from .detail.image import seek_timestamp_next_line, histogram_rows, round_down
+
 from .detail.timeindex import to_timestamp
 
 
@@ -133,24 +129,38 @@ class Kymo(ConfocalImage):
         stop = self.stop if item.stop is None else item.stop
         start, stop = (to_timestamp(v, self.start, self.stop) for v in (start, stop))
 
-        line_timestamps = self._line_start_timestamps()
-        i_min = np.searchsorted(line_timestamps, start, side="left")
-        i_max = np.searchsorted(line_timestamps, stop, side="left")
+        # Find the index of the first line where `start` (or `stop`) <= the start timestamp of the
+        # line. If there is no such line, the result will contain the number of lines/timestamps.
+        line_timestamp_ranges = np.array(self.line_timestamp_ranges(include_dead_time=False))
+        line_timestamp_starts = line_timestamp_ranges[:, 0]
+        i_min = np.searchsorted(line_timestamp_starts, start, side="left")
+        i_max = np.searchsorted(line_timestamp_starts, stop, side="left")
 
-        if i_min >= len(line_timestamps):
+        if i_min == len(line_timestamp_starts):
             return EmptyKymo(
-                self.name, self.file, line_timestamps[-1], line_timestamps[-1], self._metadata
+                self.name,
+                self.file,
+                line_timestamp_starts[-1],
+                line_timestamp_starts[-1],
+                self._metadata,
             )
 
         if i_min >= i_max:
             return EmptyKymo(
-                self.name, self.file, line_timestamps[i_min], line_timestamps[i_min], self._metadata
+                self.name,
+                self.file,
+                line_timestamp_starts[i_min],
+                line_timestamp_starts[i_min],
+                self._metadata,
             )
 
-        if i_max < len(line_timestamps):
-            stop = line_timestamps[i_max]
+        if i_max < len(line_timestamp_starts):
+            stop = line_timestamp_starts[i_max]
+        else:
+            # Set `stop` to at least the stop timestamp of the very last line
+            stop = max(stop, line_timestamp_ranges[-1, 1])
 
-        start = line_timestamps[i_min]
+        start = line_timestamp_starts[i_min]
 
         sliced_kymo = copy(self)
         sliced_kymo.start = start
@@ -211,16 +221,6 @@ class Kymo(ConfocalImage):
         # As `Kymo` has only one frame, return a list with one timestamp range
         ts_ranges = np.array(self.line_timestamp_ranges())
         return [(np.min(ts_ranges), np.max(ts_ranges))]
-
-    @cachetools.cachedmethod(lambda self: self._cache)
-    def _line_start_timestamps(self):
-        """Compute starting timestamp of each line (first DAQ sample corresponding to that line),
-        not the first pixel timestamp."""
-        timestamps = self.infowave.timestamps
-        line_timestamps = line_timestamps_image(
-            timestamps, self.infowave.data, self.pixels_per_line
-        )
-        return np.append(line_timestamps, timestamps[-1])
 
     def _fix_incorrect_start(self):
         """Resolve error when confocal scan starts before the timeline information.

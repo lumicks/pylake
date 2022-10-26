@@ -31,7 +31,7 @@
 * Computing diffusion constants from temporally downsampled kymographs is now explicitly disallowed.
 * Fixed a bug where the `pixel_threshold` could be set to zero for an empty image. Now the minimum `pixel_threshold` is one.
 * Fixed a bug where single pixel detections in a `KymoTrackGroup` would contribute values with a dwell time of zero. These are now dropped, the correct minimally observable time is set appropriately and a warning is issued.
-
+* Fixed slicing of a `Kymo` where slicing from a time point inside the last line to the end (e.g. `kymo["5s":]`) resulted in a `Kymo` which returned errors upon trying to access its contents. 
 ### Other changes
 
 * Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.
