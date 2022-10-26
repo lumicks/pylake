@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 
-def test_data():
+def data_for_testing():
     x = np.arange(10)
     y = np.array(
         [
@@ -46,7 +46,7 @@ def quadratic_func():
 
 
 def test_no_jac():
-    x, y = test_data()
+    x, y = data_for_testing()
 
     linear_model = Model("linear", linear_func()["model_function"])
     linear_fit = Fit(linear_model)
@@ -71,7 +71,7 @@ def test_no_jac():
     ],
 )
 def test_fit_metrics(model_funcs, sigma, aic, aicc, bic):
-    x, y = test_data()
+    x, y = data_for_testing()
 
     fit = Fit(Model("linear", **model_funcs()))
     fit._add_data("test", x, y)
@@ -85,7 +85,7 @@ def test_fit_metrics(model_funcs, sigma, aic, aicc, bic):
 
 def test_asymptotic_errs_all_parameters():
     """Tests whether the covariance matrix is computed correctly"""
-    x, y = test_data()
+    x, y = data_for_testing()
 
     quadratic_fit = Fit(Model("quadratic", **quadratic_func()))
     quadratic_fit._add_data("test", x, y)
@@ -112,7 +112,7 @@ def test_asymptotic_errs_subset_parameters():
 
     Fixing a parameter in quadratic function converts it to a linear one. This should result in
     identical standard errors and covariance matrix"""
-    x, y = test_data()
+    x, y = data_for_testing()
 
     linear_fit = Fit(Model("m", **linear_func()))
     linear_fit._add_data("test", x, y)
