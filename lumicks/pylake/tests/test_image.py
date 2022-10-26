@@ -5,28 +5,8 @@ from lumicks.pylake.detail.image import (
     reconstruct_image,
     reconstruct_image_sum,
     reconstruct_num_frames,
-    line_timestamps_image,
     histogram_rows,
 )
-
-
-@pytest.mark.parametrize("num_lines, pixels_per_line, pad_size", [(5, 3, 3), (5, 4, 2), (4, 7, 5)])
-def test_timestamps_image(num_lines, pixels_per_line, pad_size):
-    line_info_wave = np.tile(np.array([1, 1, 2], dtype=np.int32), (pixels_per_line,))
-    line_selector = np.zeros(line_info_wave.shape)
-    line_selector[0] = True
-    pad = np.zeros(pad_size, dtype=np.int32)
-    infowave = np.hstack([np.hstack([pad, line_info_wave, pad]) for _ in np.arange(num_lines)])
-    start_indices = np.hstack([np.hstack([pad, line_selector, pad]) for _ in np.arange(num_lines)])
-
-    # Generate list of timestamp data.
-    # It is important to use timestamps that are large enough such that floating point
-    # round-off errors will occur if the data is converted to floating point representation.
-    time = np.arange(len(infowave), dtype=np.int64) * int(700e9) + 1623965975045144000
-
-    line_stamps = line_timestamps_image(time, infowave, pixels_per_line)
-    assert line_stamps.shape == (sum(start_indices),)
-    np.testing.assert_equal(line_stamps, time[start_indices == 1])
 
 
 def test_reconstruct():

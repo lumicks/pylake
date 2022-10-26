@@ -128,6 +128,10 @@ def test_kymo_slicing(test_kymos):
     assert empty_kymograph.get_image("red").size == 0
     assert empty_kymograph.get_image("rgb").size == 0
 
+    kymo = test_kymos["slicing_regression"]
+    assert isinstance(kymo["23.0s":], EmptyKymo)
+    assert isinstance(kymo["24.2s":], EmptyKymo)
+
 
 def test_damaged_kymo(test_kymos):
     # Assume the user incorrectly exported only a partial Kymo

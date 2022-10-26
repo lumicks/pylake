@@ -101,6 +101,17 @@ def test_kymos(reference_counts):
     )
     kymos["noise"] = Kymo("noise", mock_file, start, stop, metadata)
 
+    mock_file, metadata, stop = MockConfocalFile.from_image(
+        np.ones(shape=(5, 4, 3)),
+        [10.0],
+        start,
+        dt,
+        [0],
+        samples_per_pixel=5,
+        line_padding=3
+    )
+    kymos["slicing_regression"] = Kymo("slicing_regression", mock_file, start, stop, metadata)
+
     return kymos
 
 
