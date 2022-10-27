@@ -79,6 +79,14 @@ def test_fit_analytic(
     np.testing.assert_allclose(fit.sigma_D, sigma_diffusion)
 
 
+def test_analytic_corner_case():
+    ps = PowerSpectrum([1, 2, 3], 78125)
+    ps.frequency = np.array([178.63690424, 335.92231409, 493.20772395, 650.4931338, 807.77854365])
+    ps.power = np.array([0.00029835, 0.00027251, 0.00027432, 0.00028302, 0.00029127])
+    fit = fit_analytical_lorentzian(ps)
+    assert fit.D > 0
+
+
 def test_analytic_low_frequency(reference_models):
     # When the corner frequency is below the lower bound of the fit, the analytic fit fails with a
     # non-informative error. The reason for this is that a term which produces the corner frequency
