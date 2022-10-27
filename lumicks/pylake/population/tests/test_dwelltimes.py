@@ -39,12 +39,14 @@ def test_fit_parameters(exponential_data):
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
     np.testing.assert_allclose(fit.amplitudes, [1])
     np.testing.assert_allclose(fit.lifetimes, [1.43481181], rtol=1e-5)
+    np.testing.assert_allclose(fit.rate_constants, [1 / 1.43481181], rtol=1e-5)
 
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
     np.testing.assert_allclose(fit.amplitudes, [0.46513486, 0.53486514], rtol=1e-5)
     np.testing.assert_allclose(fit.lifetimes, [1.50630877, 5.46212603], rtol=1e-5)
+    np.testing.assert_allclose(fit.rate_constants, [1 / 1.50630877, 1 / 5.46212603], rtol=1e-5)
 
 
 @pytest.mark.slow
