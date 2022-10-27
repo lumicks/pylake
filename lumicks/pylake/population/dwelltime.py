@@ -207,8 +207,13 @@ class DwelltimeModel:
 
     @property
     def lifetimes(self):
-        """Lifetime parameter (in seconds) of each model component."""
+        """Lifetime parameter (in time units) of each model component."""
         return self._parameters[self.n_components :]
+
+    @property
+    def rate_constants(self):
+        """First order rate constant (units of per time) of each model component."""
+        return 1 / self.lifetimes
 
     @property
     def log_likelihood(self):

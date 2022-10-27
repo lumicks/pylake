@@ -17,6 +17,7 @@
 * `Kymo.plot()` now returns a handle of the plotted image
 * `PointScan.plot()` now returns a list of handles of the plotted lines
 * Added the `Kymo.duration` property.
+* Added the `DwelltimeModel.rate_constants` property along with additional documentation explaining the assumptions that underlie using the exponential model. See the [dwell time analysis documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#dwelltime-analysis) for more information.
 
 #### Other changes
 

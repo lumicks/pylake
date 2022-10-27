@@ -80,16 +80,33 @@ two different states. The result is the creation of a new state that does not ar
 Furthermore, states with very short lifetimes can be averaged out of the data if the downsampling factor is too high. Therefore,
 in order to ensure robust results, it may be advisable to carry out the analysis at a few different downsampled rates.
 
-Dwelltime analysis
-------------------
+Dwell time analysis
+-------------------
 
-The lifetimes of bound states can be estimated by fitting to an Exponential distribution. The :class:`~lumicks.pylake.DwelltimeModel` class can be used
-to optimize the model parameters for an array of determined dwelltimes::
+The lifetimes of bound states can be estimated by fitting observed dwell times :math:`t` to a mixture of Exponential distributions.
+
+.. math::
+
+    \mathrm{Exp}\left( \tau \right) \sim \sum_i^M \frac{a_i}{\tau_i} \exp{\left( \frac{-t}{\tau_i} \right)}
+
+where each of the :math:`M` exponential components is characterized by a lifetime :math:`\tau_i` and an amplitude (or fractional contribution)
+:math:`a_i` under the constraint :math:`\sum_i a_i = 1`. The lifetime describes the mean time a state is expected to persist before transitioning
+to another state. The distribution can alternatively be parameterized by a rate constant :math:`k_i = 1 / \tau_i`.
+
+.. math::
+
+    \mathrm{Exp}\left( k \right) \sim \sum_i^M a_i k_i \exp{\left( -k_i t \right)}
+
+The :class:`~lumicks.pylake.DwelltimeModel` class can be used to optimize the model parameters for an array of determined dwell times::
 
     dwell_1 = lk.DwelltimeModel(dwelltimes_seconds, n_components=1)
 
 The model is optimized using Maximum Likelihood Estimation (MLE) :cite:`kaur2019dwell,woody2016memlet`. The advantage of this method
 is that it does not require binning the data. The number of exponential components to be used for the fit is chosen with the `n_components` argument.
+
+The optimized model parameters can be accessed with the :attr:`~lumicks.pylake.DwelltimeModel.lifetimes` and :attr:`~lumicks.pylake.DwelltimeModel.amplitudes`
+properties. In the case of first order kinetics, the rate constants can be accessed with the :attr:`~lumicks.pylake.DwelltimeModel.rate_constants` property.
+This value is simply the inverse of the optimized lifetime(s). See :ref:`rate_constants` for more information.
 
 We can visually inspect the result with::
 
@@ -99,15 +116,15 @@ We can visually inspect the result with::
 
 The `bin_spacing` argument can be either `"log"` or `"linear"` and controls the spacing of the bin edges.
 The scale of the x- and y-axes can be controlled with the optional `xscale` and `yscale` arguments; if they are not specified
-the default visualization is `lin-lin` for `bin_spacing="linear"` and `lin-log` for `bin_spacing="log"`.
+the default visualization is `lin-lin` for `bin_spacing="linear"` and `lin-log` for `bin_spacing="log"`. You can also optionally pass the number of
+bins to be plotted as `n_bins`.
 
-You can optionally pass the number of bins to be plotted as `n_bins`. Note that the number of bins
-is purely for visualization purposes; the model is optimized directly on the unbinned dwelltimes. This is the main
-advantage of the MLE method over analyses that use a least squares fitting to binned data, where the bin widths and number
-of bins can drastically affect the optimized parameters.
+.. note::
+    The number of bins is purely for visualization purposes; the model is optimized directly on the unbinned dwell times. This is the main
+    advantage of the MLE method over analyses that use a least squares fitting to binned data, where the bin widths and number
+    of bins can drastically affect the optimized parameters.
 
-We can clearly see that this distribution is not fit well by a single exponential decay.
-Let's now see what a double exponential distribution looks like::
+We can clearly see that this distribution is not fit well by a single exponential decay. Let's now see what a double exponential distribution looks like::
 
     dwell_2 = traces.fit_binding_times(n_components=2)
     dwell_2.plot(bin_spacing="log")
@@ -157,10 +174,64 @@ the distribution values are directly available through the properties `Dwelltime
 `DwelltimeModel.bootstrap.lifetime_distributions` which return the data as a `numpy` array with
 shape `[# components, # bootstrap samples]`.
 
+.. _rate_constants:
+
+Assumptions and limitations on determining rate constants
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using an exponential distribution to model biochemical kinetics, care must be taken to ensure that the model appropriately describes the
+observed system. Here we briefly describe the underlying assumptions and limitations for using this method.
+
+The exponential distribution describes the expected dwell times for states in a first order reaction where the rate of transitioning from
+the state is dependent on the concentration of a *single* component. A common example of this is the dissociation of a bound protein from
+a DNA strand:
+
+.. math::
+
+    \left[ \mathrm{DNA} \cdot \mathrm{protein} \right] \rightarrow \mathrm{DNA} + \mathrm{protein}
+
+This reaction is characterized by a rate constant :math:`k_\mathrm{off}` known as the dissociation rate constant with units of
+:math:`\mathrm{sec}^{-1}`.
+
+Second order reactions which are dependent on *two* reactants can also be determined in this way if certain conditions are met. Specifically,
+if the concentration of one reactant is much greater than that of the other, we can apply the *first order approximation*. This approximation
+assumes the concentration of the more abundant reactant remains approximately constant throughout the experiment and therefore does
+not contribute to the reaction rate. This condition is often met in single-molecule experiments; for example in a typical C-Trap experiment,
+the concentration of a protein in solution on the order of nM is significantly higher than the concentration of the single trapped tether.
+
+A common example of this is the binding of a protein to a DNA strand:
+
+.. math::
+
+    \mathrm{DNA} + \mathrm{protein} \rightarrow \left[ \mathrm{DNA} \cdot \mathrm{protein} \right]
+
+This reaction is described by the second order association rate constant :math:`k_\mathrm{on}` with units of :math:`\mathrm{M}^{-1}\mathrm{sec}^{-1}`.
+Under the first order approximation, this can be determined by fitting the appropriate dwell times to the exponential model and dividing
+the resulting rate constant by the concentration of the protein in solution.
+
+.. note::
+
+    The calculation of :math:`k_\mathrm{on}` relies on having an accurate measurement of the bulk concentration. Care should be taken as this can be
+    difficult to determine when working in the nanomolar regime, as nonspecific adsorption can lower the effective concentration at the experiment.
+
+A warning on reliability and interpretation of multi-exponential kinetics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Sometimes a process can best be described by two or more exponential distributions. This occurs when a system consists of multiple states
+with different kinetics that emit the same observable signal. For instance, the dissociation rate of a bound protein might depend on the microscopic
+conformation of the molecule that does not affect the emission intensity of an attached fluorophore used for tracking. Care must be taken when
+interpreting results from a mixture of exponential distributions.
+
+However, in the setting of a limited number of observations, the optimization of the exponential mixture can
+become non-identifiable, meaning that there are multiple sets of parameters that result in near equal likelihoods. A good first check on the quality of
+the optimization is to run a bootstrap simulation (as described above) and check the shape of the resulting distributions. Very wide, flat, or skewed
+distributions can indicate that the model was not fitted to a sufficient amount of data. For processes that are best described by two exponentials, it may
+be necessary to acquire more data to obtain a reliable fit.
+
 The Exponential (Mixture) Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The model likelihood :math:`\mathcal{L}` is defined for a mixture of exponential distributions as:
+The model likelihood :math:`\mathcal{L}` to be maximized is defined for a mixture of exponential distributions as:
 
 .. math::
 
