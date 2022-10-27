@@ -46,8 +46,9 @@ def fit_analytical_lorentzian(ps):
     )
 
     # Having a and b, calculating fc and D is trivial.
-    if a > 0:
-        fc = math.sqrt(a / b)  # corner frequency [Hz]
+    a_div_b = a / b
+    if a_div_b > 0:
+        fc = math.sqrt(a_div_b)  # corner frequency [Hz]
     else:
         # When the corner frequency is very low and the power spectrum doesn't reach all the way,
         # this can fail. As initial guess we then use the half the lowest nonzero frequency observed
@@ -55,7 +56,22 @@ def fit_analytical_lorentzian(ps):
         # isn't a valid choice, since this leads to nan's and infinities down the road.
         fc = 0.5 * (ps.frequency[0] if ps.frequency[0] > 0 else ps.frequency[1])
 
-    D = (1 / b) * (math.pi**2)  # diffusion constant [V^2/s]
+    if b > 0:
+        D = (1 / b) * (math.pi**2)  # diffusion constant [V^2/s]
+    else:
+        # If b <= 0, the analytic estimation procedure failed. Using a negative value for the
+        # diffusion would place the initial guess outside the feasible physical parameter range.
+        # This would result in a failing non-linear fit. In this case, we need a different way of
+        # estimating this quantity. The power spectral density at frequency zero is given by:
+        #
+        #   P0 = D / (pi**2 * fc**2)
+        #
+        # Therefore, an alternative method to get a rough estimate for this quantity would be:
+        #
+        #   D_guess = pi**2 * fc**2 * power[0]
+        #
+        # Where power[0] is the lowest frequency in the spectrum.
+        D = math.pi**2 * fc**2 * ps.power[0]
 
     # Fitted power spectrum values.
     ps_fit = ps.with_spectrum(1 / (a + b * np.power(ps.frequency, 2)))
