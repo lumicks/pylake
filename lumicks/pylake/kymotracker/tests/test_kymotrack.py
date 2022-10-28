@@ -674,6 +674,7 @@ def test_kymotrack_group_diffusion(blank_kymo, method, max_lags):
             np.testing.assert_allclose(getattr(est, attr), getattr(diff_result, attr))
 
 
+@pytest.mark.filterwarnings("ignore:Call to deprecated method estimate_diffusion_ols")
 def test_disallowed_diffusion_est(blank_kymo):
     contiguous_diffusion_error = (
         "Estimating diffusion constants from data which has been integrated over disjoint "
