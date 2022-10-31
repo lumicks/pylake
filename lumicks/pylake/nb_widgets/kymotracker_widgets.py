@@ -439,9 +439,17 @@ class KymoWidget:
         self._mode.observe(self._select_state, "value")
 
         output = ipywidgets.Output()
+
+        with output:
+            self._fig = plt.figure()
+            self._axes = self._fig.add_subplot(111)
+
+            # Without this, HBox fails to align horizontally.
+            self._fig.canvas.show()
+
         ui = ipywidgets.HBox(
             [
-                ipywidgets.VBox([output]),
+                output,
                 ipywidgets.VBox(
                     [
                         all_button,
@@ -461,9 +469,10 @@ class KymoWidget:
 
         display(ui)
 
-        with output:
-            self._fig = plt.figure()
-            self._axes = self._fig.add_subplot(111)
+        if "ipympl" not in plt.get_backend():
+            # Without this, the figure doesn't show up on non ipympl backends
+            with output:
+                display(self._fig)
 
     def _select_state(self, value):
         """Select a different state to operate the widget in. Note that the input argument is value
