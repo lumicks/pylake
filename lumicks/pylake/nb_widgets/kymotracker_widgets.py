@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 import inspect
 import numpy as np
 import matplotlib.pyplot as plt
@@ -328,8 +329,8 @@ class KymoWidget:
         return ipywidgets.interactive(
             set_value,
             value=slider_types[parameter.type](
-                description=parameter.name,
-                description_tooltip=parameter.description,
+                description=parameter.abridged_name,
+                description_tooltip=parameter.extended_description,
                 min=parameter.lower_bound,
                 max=parameter.upper_bound,
                 step=parameter.step_size,
@@ -723,12 +724,16 @@ class KymotrackerParameter:
     upper_bound: Number
     ui_visible: bool
     extended_description: str
+    abridged_name: Optional[str] = None
 
     def __post_init__(self):
         if self.ui_visible and (self.lower_bound is None or self.upper_bound is None):
             raise ValueError(
                 "Lower and upper bounds must be supplied for widget to be set as visible."
             )
+
+        if not self.abridged_name:
+            self.abridged_name = self.name
 
     @property
     def step_size(self):
@@ -752,6 +757,7 @@ def _get_default_parameters(kymo, channel):
             r"considered part of a track. This parameter should be chosen slightly above the "
             r"background photon count. Higher values reject more noise, but parts of the track may "
             r"be missed.",
+            abridged_name="Min intensity",
         ),
         "sigma": KymotrackerParameter(
             "Positional search range",
@@ -764,6 +770,7 @@ def _get_default_parameters(kymo, channel):
             r"from one time point to the next while still being considered part of the same "
             r"track. Larger values will result in a wider range in which points are added to a "
             r"track.",
+            abridged_name="Search range",
         ),
         "window": KymotrackerParameter(
             "Maximum gap",
@@ -778,6 +785,7 @@ def _get_default_parameters(kymo, channel):
             r"intensity threshold. This value should be chosen such that small gaps in a track "
             r"can be overcome and tracked as one, but not so large that separate tracks are strung "
             r"together.",
+            abridged_name="Max gap",
         ),
         "min_length": KymotrackerParameter(
             "Minimum length",
@@ -790,6 +798,7 @@ def _get_default_parameters(kymo, channel):
             r"it to be considered valid. Reducing this parameter can be effective in reducing "
             r"tracking noise. Note that this length refers to the number of detected points, not "
             r"length in time!",
+            abridged_name="Min length",
         ),
         "track_width": KymotrackerParameter(
             "Expected spot size",
@@ -802,6 +811,7 @@ def _get_default_parameters(kymo, channel):
             r"kymograph for it to be tracked as a single molecule. This parameter should be set to "
             r"roughly the width of the point spread function. Setting it larger rejects more "
             r"noise, but at the cost of potentially merging tracks that are close together.",
+            abridged_name="Spot size",
         ),
         "vel": KymotrackerParameter(
             "Expected velocity",
@@ -814,6 +824,7 @@ def _get_default_parameters(kymo, channel):
             r"to move along the DNA on average. When tracking, the algorithm searches for points "
             r"in future scan lines to connect. Points within a certain distance from the expected "
             r"future position are connected.",
+            abridged_name="Velocity",
         ),
         "diffusion": KymotrackerParameter(
             "Diffusion",
