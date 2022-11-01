@@ -266,6 +266,41 @@ class KymoTrack:
     def __len__(self):
         return len(self.coordinate_idx)
 
+    def plot(self, *, show_outline=True, show_labels=True, axes=None, **kwargs):
+        """A simple line plot to visualize the track coordinates.
+
+        Parameters
+        ----------
+        show_outline : bool
+            Whether to show black outline around the track.
+        show_labels : bool
+            Whether to add axes labels.
+        axes : matplotlib.axes.Axes, optional
+            If supplied, the axes instance in which to plot.
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
+        import matplotlib.patheffects as pe
+        from ..detail.plotting import get_axes
+
+        ax = get_axes(axes)
+
+        if show_outline:
+            linewidth = kwargs.get("lw", kwargs.get("linewidth", plt.rcParams["lines.linewidth"]))
+
+            ax.plot(
+                self.seconds,
+                self.position,
+                path_effects=[pe.Stroke(foreground="k", linewidth=linewidth * 2.5)],
+                **kwargs,
+            )
+
+        ax.plot(self.seconds, self.position, path_effects=[pe.Normal()], **kwargs)
+
+        if show_labels:
+            ax.set_ylabel(f"position ({self._kymo._calibration.unit_label})")
+            ax.set_xlabel("time (s)")
+
     def msd(self, max_lag=None):
         r"""Estimate the Mean Square Displacement (MSD) for various time lags.
 
@@ -639,6 +674,30 @@ class KymoTrackGroup:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self)})"
+
+    def plot(self, *, show_outline=True, show_labels=True, axes=None, **kwargs):
+        """Plot the track coordinates for all tracks in the group.
+
+        Parameters
+        ----------
+        show_outline : bool
+            Whether to show black outline around the tracks.
+        show_labels : bool
+            Whether to add axes labels.
+        axes : matplotlib.axes.Axes, optional
+            If supplied, the axes instance in which to plot.
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+        """
+        from ..detail.plotting import get_axes
+
+        ax = get_axes(axes)
+        for track in self:
+            track.plot(show_outline=show_outline, show_labels=False, axes=ax, **kwargs)
+
+        if show_labels:
+            ax.set_ylabel(f"position ({self.kymo._calibration.unit_label})")
+            ax.set_xlabel("time (s)")
 
     def save(self, filename, delimiter=";", sampling_width=None):
         """Export kymograph tracks to a csv file.
