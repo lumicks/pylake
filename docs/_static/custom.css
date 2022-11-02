@@ -119,6 +119,10 @@ code.xref.any.py {
   background-color: var(--mediumblue);
 }
 
+.rst-content .note a {
+  color: var(--darkblue);
+}
+
 /* warning box */
 .rst-content .warning .admonition-title {
   border-top-right-radius: 3px;

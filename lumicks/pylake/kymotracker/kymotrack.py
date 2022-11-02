@@ -170,10 +170,12 @@ class KymoTrack:
 
     @property
     def seconds(self):
+        """The tracked temporal coordinates in seconds."""
         return self._line_time_seconds * self.time_idx
 
     @property
     def position(self):
+        """The tracked positional coordinates. The units depend on the spatial units of the tracked kymo."""
         return self._localization.position
 
     @property
@@ -696,7 +698,7 @@ class KymoTrackGroup:
             track.plot(show_outline=show_outline, show_labels=False, axes=ax, **kwargs)
 
         if show_labels:
-            ax.set_ylabel(f"position ({self.kymo._calibration.unit_label})")
+            ax.set_ylabel(f"position ({self._kymo._calibration.unit_label})")
             ax.set_xlabel("time (s)")
 
     def save(self, filename, delimiter=";", sampling_width=None):

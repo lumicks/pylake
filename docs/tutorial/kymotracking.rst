@@ -19,72 +19,135 @@ particles moving directed in a particular orientation appear as diagonal tracks 
 Determining the spatial and temporal coordinates of these particles is the first step in various types of analysis, discussed below.
 Pylake comes with a few features that enable you to do so.
 
-
-Performing the tracking
------------------------
-
-Kymotracking is usually performed in two steps: an image processing step, followed by
-a tracking step, where the actual coordinates of bound particles are found.
+Kymotracking is usually performed in two steps: an image processing step, followed by a tracking step, where the actual coordinates
+of bound particles are found. Let's take a look at one particular implementation, the greedy algorithm:
 
 
 Using the greedy algorithm
 --------------------------
 
-First, we need to get an image to perform the tracking on. Let's grab a kymograph from a Bluelake file::
+First, we need to get a kymograph to perform the tracking on. Let's grab a kymograph from a Bluelake file and see what it looks like
+with the correlated force data::
+
+    # define a color adjustment so we can see the data better
+    adjustment = lk.ColorAdjustment(0, 99.5, mode="percentile")
 
     file = lk.File('kymograph.h5')
     name, kymo = file.kymos.popitem()
 
-Let's have a look at what it looks like::
+    kymo.plot_with_force("1x", "rgb", adjustment=adjustment, aspect_ratio=0.5)
 
-    kymo.plot_green(aspect="auto", vmax=5)
+.. image:: figures/kymotracking/kymo_force_correlated.png
 
-.. image:: kymo_unscaled.png
+This experiment shows stochastic binding of a fluorescently labeled protein to a DNA tether at various forces.
+We also see the bead edges in this kymograph as dark bands (the absence of background fluorescence from the bulk solution).
 
-What we also see is that we can clearly see the bead edges in the kymograph. Let's only take a subsection of the
-kymograph, to make sure that we don't get any spurious track detections that come from the bead edges. Let's only
-use the region from 7 to 22 micrometer. Let's have a look at what that looks like::
+Let's only take a subsection of the kymograph at 40 pN and without the beads to make sure that we don't get any spurious track detections
+from the bead edges. We'll store this as a new `Kymo` instance and see what it looks like::
 
-    >>> kymo.plot_green(aspect="auto", vmax=5)
-    >>> plt.ylim([22, 7])
+    kymo40 = kymo["127s":"162s"]
+    kymo40 = kymo40.crop_by_distance(9, 26)
 
-If we zoom in a bit, we can see that our tracks in this image are about 0.3 microns wide, so let's set this as our
-`track_width`. Note that we invoked :func:`plt.colorbar() <matplotlib.pyplot.colorbar()>` to add a little color legend here.
+    plt.figure()
+    kymo40.plot("green", aspect="auto", adjustment=adjustment)
+    plt.show()
 
-.. image:: kymo_zoom.png
+.. image:: figures/kymotracking/kymo40_sliced_cropped.png
 
-The peaks have an intensity of about 3-7 photon counts, whereas the background fluctuates around 0-2. Let's set our
-`pixel_threshold` to 3. We also see that sometimes, a particle momentarily disappears. To still connect these in a
-single track, we want to allow for some gaps in the connection step. Let's use a `window` size of 6 in this test.
-Considering that we only want to run the kymotracker on part of the image, we also pass the `rect` argument, which defines
-a rectangle over which to track peaks. In this case, we track particles between 0 and 350 seconds, and 7 and 22 micron.
 Running the algorithm is easy using the function :func:`~lumicks.pylake.track_greedy`::
 
-    tracks = lk.track_greedy(kymo, "green", track_width=0.3, pixel_threshold=3, window=6, rect=[[0, 7], [350, 22]])
+    tracks = lk.track_greedy(kymo40, "green")
 
-The result of tracking is a list of kymograph tracks::
+The result is a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup`::
 
-    >>> print(len(tracks))  # the number of tracks found in the kymo
-    7417
+    print(type(tracks))  # <class 'lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup'>
+    print(len(tracks))  # 123
 
-Sometimes, we can have very short spurious tracks. To remove these from the list of detected tracks we can use
-:func:`~lumicks.pylake.filter_tracks`. To omit all tracks with fewer than 4 detected points, we
-can invoke::
+This is a custom list of :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` objects. We can access the individual tracks by indexing just
+like an ordinary list::
 
-    >>> tracks = lk.filter_tracks(tracks, 4)
+    track = tracks[0]
 
-We can get the determined time and positions of these tracks from the `seconds` and `position`
-attributes. Let's plot the first track::
+    print(type(track))  # <class 'lumicks.pylake.kymotracker.kymotrack.KymoTrack'>
+    print(len(track))  # 1
 
-    plt.plot(tracks[0].seconds, tracks[0].position)
+We can access the determined time and positions of each track from the :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.seconds` and
+:attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.position` properties. For instance, if we want to plot the coordinates
+of the longest track we can do::
 
-Plotting all the detected tracks is also quite easy by iterating over the list of tracks::
+    longest_track_idx = np.argmax([len(track) for track in tracks])  # Get the index of the longest track
+    longest_track = tracks[longest_track_idx]
 
-    kymo.plot_green(aspect="auto")
-    for track in tracks:
-        plt.plot(track.seconds, track.position)
+    plt.figure()
+    plt.plot(longest_track.seconds, longest_track.position)
+    plt.show()
 
-.. image:: kymotracked.png
+.. image:: figures/kymotracking/longest_track.png
+
+Sometimes, we can have very short spurious tracks. To remove these we can use :func:`~lumicks.pylake.filter_tracks`.
+For example, to omit all tracks with fewer than 4 detected points, we can invoke::
+
+    print(len(tracks))  # the number of tracks originally detected -- 123
+
+    tracks = lk.filter_tracks(tracks, 4)
+    print(len(tracks))  # the number of tracks after filtering -- 34
+
+There are also convenience plotting functions for both :meth:`KymoTrack.plot() <lumicks.pylake.kymotracker.kymotrack.KymoTrack.plot>`
+and :meth:`KymoTrackGroup.plot() <lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.plot>`. We can see the detected tracks overlaid
+on the kymograph with just 2 lines of code::
+
+    plt.figure()
+    kymo40.plot(channel="green", aspect="auto", adjustment=adjustment)
+    tracks.plot()
+    plt.show()
+
+.. image:: figures/kymotracking/tracking_overlay.png
+
+We can improve the tracking results by adjusting a number of tracking parameters. For instace, we can inspect a track to estimate the spatial width
+and signal level by zooming in and adding a little color legend using :func:`plt.colorbar() <matplotlib.pyplot.colorbar()>` (if you're using an
+interactive backend you can also hover over a pixel in the image to inspect it's value)::
+
+    plt.figure()
+    # to show the color bar, we need the plotted image handle from the plot method
+    image = kymo40.plot("green", aspect="auto", adjustment=adjustment, interpolation="none")
+    plt.xlim(7.5, 25.5)
+    plt.ylim(8.8, 9.8)
+    plt.colorbar(image)
+    plt.show()
+
+.. image:: figures/kymotracking/zoom_track_colorbar.png
+
+We can see the tracks are about 0.3 microns wide and the signal level is around 10-14 counts. We can use this information when tracking
+by setting the `track_width` and `pixel_threshold` parameters, respectively. Larger values for `track_width` reject more noise, but at the cost of
+potentially merging tracks that are close together. We also see that sometimes a particle momentarily disappears or drops below
+the `pixel_threshold`, due to blinking for instance. To still connect these in a single track, we want to allow for some gaps in the connection step.
+We can set this with the `window` parameter; let's use a `window` size of 6 pixels in this test::
+
+    custom_tracks = lk.track_greedy(kymo40, "green", track_width=0.3, pixel_threshold=10, window=6)
+    custom_tracks = lk.filter_tracks(custom_tracks, minimum_length=4)
+    print(len(custom_tracks))  # 42
+
+    plt.figure()
+    kymo40.plot("green", aspect="auto", adjustment=adjustment)
+    custom_tracks.plot()
+    plt.show()
+
+.. image:: figures/kymotracking/tracking_overlay_custom_args.png
+
+Sometimes we want to track only part of a kymograph without manually slicing and cropping. We can do this by passing the `rect` argument to
+:func:`~lumicks.pylake.track_greedy`, which defines a rectangle over which to track peaks. The coordinates of this parameter are of the form
+`[[min_time, min_position], [max_time, max_position]]`. To track the same region as before, we can do::
+
+    tracks = lk.track_greedy(kymo, "green", rect=[[127, 9], [162, 26]])
+    tracks = lk.filter_tracks(tracks, 4)
+
+    plt.figure()
+    kymo.plot("green", aspect="auto", adjustment=adjustment)
+    tracks.plot()
+    plt.show()
+
+.. image:: figures/kymotracking/track_with_roi.png
+
 
 .. _localization_refinement:
 
@@ -98,23 +161,50 @@ Once we are happy with the tracks found by the algorithm, we may still want to r
 tracks by determining local peaks and stringing these together, it is possible that some scan lines in the kymograph
 don't have an explicit point on the track associated with them. Using :func:`~lumicks.pylake.refine_tracks_centroid` we
 can refine the tracks found by the algorithm. This function interpolates the tracks such that each time point gets its
-own point on the track. Subsequently, these points are then refined using a brightness weighted centroid. Let's perform
-track refinement and plot the longest track::
+own point on the track. Subsequently, these points are then refined using a brightness weighted centroid.
 
-    longest_track_idx = np.argmax([len(track) for track in tracks])  # Get the longest track
+Let's perform track refinement with two different values for `track_width` and plot the longest track::
 
+    # re-track our kymo
+    tracks = lk.track_greedy(kymo40, "green", track_width=0.3)
+    # refine with the same track_width
     refined = lk.refine_tracks_centroid(tracks, track_width=0.3)
+    # refine with a slightly wider track_width
+    refined_wider = lk.refine_tracks_centroid(tracks, track_width=0.35)
 
-    plt.plot(refined[longest_track_idx].seconds, refined[longest_track_idx].position, '.')
-    plt.plot(tracks[longest_track_idx].seconds, tracks[longest_track_idx].position, '.')
-    plt.legend(["Post refinement", "Pre-refinement"])
-    plt.ylabel('Position [um]')
-    plt.xlabel('Time [s]')
+    # Get the longest tracks
+    longest_track_idx = np.argmax([len(track) for track in tracks])
+    longest_original = tracks[longest_track_idx]
+    longest_refined = refined[longest_track_idx]
+    longest_wider = refined_wider[longest_track_idx]
 
-.. image:: kymo_refine.png
+    # simple function to format the plots
+    def plot_tracks(pre_refined, post_refined):
+        pre_refined.plot(marker="o", show_outline=False, label="pre-refinement")
+        post_refined.plot(marker="o", mfc="none", show_outline=False, label="post-refinement")
+        plt.ylabel('Position [um]')
+        plt.xlabel('Time [s]')
+        plt.xlim(3.5, 5)
+        plt.ylim(4.9, 5)
 
-We can see now that a few points were added post refinement (shown in blue). The others remain unchanged, since we used
-the same `track_width`.
+    # make the plot
+    plt.figure()
+    plt.subplot(211)
+    plot_tracks(longest_original, longest_refined)
+    plt.title("same track_width")
+
+    plt.subplot(212)
+    plot_tracks(longest_original, longest_wider)
+    plt.title("wider track_width")
+
+    plt.tight_layout()
+    plt.show()
+
+.. image:: figures/kymotracking/centroid_refinement.png
+
+Let's look at the top plot first where we refined with the same `track_width` as the original tracking step. We can see that a few points were
+added post refinement (shown in orange). The others remain unchanged, since we used the same `track_width`. In the bottom plot where we used
+a slightly wider `track_width` we can see that in addition to more points being added, the values of the original coordinates are slightly different.
 
 Fortunately, the signal to noise level in this kymograph is quite good. In practice, when the signal to noise is lower,
 one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
@@ -123,72 +213,97 @@ an acceptable result.
 Maximum Likelihood Estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The function :func:`~lumicks.pylake.refine_tracks_gaussian()` instead uses an MLE optimization of a Poisson likelihood with a Gaussian expectation
-to characterize both the expected peak shape and photonic noise of the observed signal, adapted from :cite:`mortensen2010gauloc`.
-For each frame in the kymograph, we fit a small region around the tracked peak to the data by maximizing the following likelihood function:
+While centroid refinement is fast, its results can be inaccurate in cases of high background or lines that are very close together. In such cases,
+it is better to rely on a different refinement method. One alternative is to use Maximum Likelihood Estimation (MLE). This method is available
+through the function :func:`~lumicks.pylake.refine_tracks_gaussian()`. Gaussian refinement assumes that the point spread function follows a Gaussian shape
+and the photon counts are Poisson distributed. It also includes an offset to model the background counts (adapted for 1D data from :cite:`mortensen2010gauloc`).
+
+For each frame in the kymograph, we fit a small region around the tracked peak to the data by maximizing
+the following likelihood function:
 
 .. math::
 
     \mathcal{L(\theta)} = \prod_i^M e^{-E_i(\theta)} \frac{E_i(\theta)^{n_i}}{n_i!}
 
-where :math:`\theta` represents the parameters to be fitted, :math:`M` is the number of pixels to be fit and :math:`n_i` and :math:`E_i(\theta)`
+where :math:`\theta` represents the parameters to be fitted, :math:`M` is the number of pixels and :math:`n_i` and :math:`E_i(\theta)`
 are the observed photon count and expectation value for pixel :math:`i`. The shape of the peak is described with a Gaussian expectation function
 
 .. math::
 
     E_i(\theta) = \frac{N a}{\sqrt{2 \pi \sigma^2}} \exp \left[ \frac{-(x_i-\mu)^2}{2 \sigma^2} \right] + b
 
-Here :math:`N` is the total photons emitted in the fitted image (line), :math:`a` is the pixel size, :math:`\mu` is the peak center,
+Here :math:`N` is the total photons emitted in the fitted image (scan line), :math:`a` is the pixel size, :math:`\mu` is the peak center,
 :math:`x_i` is the pixel center position, :math:`\sigma^2` is the variance, and :math:`b` is the background level in
 photons/pixel.
 
-This function is called in a similar manner as the centroid refinement::
+This function is called in a similar manner as the centroid refinement. Since the MLE optimization is significantly slower than the centroid
+method, let's refine just a single long track::
 
-    refined = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip")
+    # track a subsection of the kymo
+    cropped_kymo = kymo40.crop_by_distance(4.2, 5.8)
+    tracks = lk.track_greedy(cropped_kymo, "green", track_width=0.3, window=10, pixel_threshold=9)
+    tracks = lk.filter_tracks(tracks, minimum_length=10)
+
+    # perform the gaussian refinement
+    refined = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=False, overlap_strategy="skip")
+
+    plt.figure()
+    cropped_kymo.plot("green", adjustment=adjustment, aspect="auto")
+    refined.plot()
+    plt.show()
+
+.. image:: figures/kymotracking/gaussian_refined.png
 
 The number of pixels to be included in the fit is determined by the `window` argument, with a total size of `2*window+1` pixels.
 The exact value of this parameter is dependent on the quality of the data and should be balanced between including enough pixels to fully
 capture the peak lineshape while avoiding overlap with other traces or spurious high-photon count pixels due to noise or background.
 The effect of different window sizes are demonstrated in the following figure:
 
-.. image:: kymo_gau_window.png
+.. image:: figures/kymotracking/kymo_gau_window.png
 
-As noted in the above section, there may be intermediate frames which were not tracked in the original trace. As with the centroid fitting,
-we can optionally interpolate an initial guess for these frames before the Gaussian refinement by setting the argument
+As noted in the above section, there may be intermediate frames which were not detected in the original track. We can optionally interpolate
+an initial guess for these frames before the Gaussian refinement by setting the argument
 `refine_missing_frames=True`. It should be noted, however, that frames with low photons counts (for instance due to fluorophore blinking)
 may not be well fit by this algorithm.
 
 Additionally, the presence of a nearby track wherein the sampled pixels of the two tracks overlap may interfere with the
 refinement algorithm. How the algorithm handles this situation is determined by the `overlap_strategy` argument.
-Setting `overlap_strategy="ignore"` simply ignores the situation and fits the data.
+Setting `overlap_strategy="ignore"` simply ignores nearby tracks and fits the data. In this case, the resulting localization will be biased
+as signal from the nearby track will "pull" the location parameter towards it.
 A problem with the refinement in this case will manifest as the peak of the second track is found rather than that of the current track.
 Sometimes this can be avoided by decreasing the size of the `window` argument such that overlap no longer occurs.
 A better alternative is to use `overlap_strategy="multiple"`.
 When this option is specified, peaks where the windows overlap are fitted simultaneously (using a shared offset parameter).
 Alternatively, we can simply ignore these frames by using `overlap_strategy="skip"`, in which case these frames are simply dropped from the track.
 
-There is also an optional keyword argument `initial_sigma` that can be used to pass an initial guess for :math:`\sigma` in micrometers
-in the above expectation equation to the optimizer. The default value is `1.1*pixel_size`.
+There is also an optional keyword argument `initial_sigma` that can be used to pass an initial guess for :math:`\sigma`
+in the above expectation equation to the optimizer. The default value is `1.1 * pixel_size`.
 
 When tracks are well separated, it is possible to use a relatively large window and estimate the peak parameters and offset from the fit directly.
-When this is not the case, one can estimate the offset separately.
-To do this, crop an area of the Kymograph that only has background in it.
-Here we crop the kymograph from 14 to 15 seconds and 9 to 14.5 microns::
+When this is not the case, one can estimate the offset separately. To do this, crop an area of the kymograph that only has background in it. Computing
+the appropriate photons/pixel background considering a Poissonian noise model can be done by computing the mean of the pixels in this area.
+Here we crop the original kymograph from 25 to 27 seconds and 10 to 12 microns::
 
-    kymo_cropped = kymo["14s":"15s"].crop_by_distance(9, 14.5)
-
-Computing the appropriate photons/pixel background considering a Poissonian noise model can be done by computing the mean of the pixels in this area::
-
-    offset = np.mean(kymo_cropped.green_image)
+    background_kymo = kymo["25s":"27s"]
+    background_kymo = background_kymo.crop_by_distance(10, 12)
+    offset = np.mean(kymo_cropped.get_image("green"))
+    print(offset)
 
 The independently determined offset (in photons per pixel) can then be provided directly to
 :func:`lk.refine_tracks_gaussian <lumicks.pylake.refine_tracks_gaussian()>`::
 
-    refined = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
+    refined_with_offset = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
 
-In this case the parameter will not be fitted, but fixed to the user specified value.
-This can help reduce the variance of the parameter estimates.
-Note that this method can only be used if the background can be assumed to be constant over time and position.
+    plt.figure()
+    cropped_kymo.plot("green", adjustment=adjustment, aspect="auto")
+    refined.plot()
+    refined_with_offset.plot()
+    plt.show()
+
+.. image:: figures/kymotracking/gaussian_refined_offset.png
+
+In this case the parameter will not be fitted, but fixed to the user specified value. This can help reduce the variance of the parameter estimates.
+Note that this method should only be used if the background can be assumed to be constant over time and position.
 
 Using the kymotracker widget
 ----------------------------
@@ -198,22 +313,24 @@ when the signal to noise ratio is somewhat low. To help with this, we included a
 track subsections of the kymograph and iteratively tweak the algorithm parameters as you do so. You can open this widget
 by invoking the following command::
 
-    kymowidget = lk.KymoWidgetGreedy(kymo, "green")
+    kymowidget = lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2)
+
+Here we see the optional `axis_aspect_ratio` argument that allows us to control the aspect ratio of the plot and how much data is visible at a given time.
+You can easily pan horizontally by clicking and dragging left or right.
 
 You can optionally also pass algorithm parameters when opening the widget::
 
-    KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14)
+    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14)
 
-You can also change the range of each of the algorithm parameter sliders.
-To do this, simply pass a dictionary where the key indicates the algorithm parameter and the value contains its desired range in the form `(minimum bound, maximum bound)`.
-For example::
+You can also change the range of each of the algorithm parameter sliders. To do this, simply pass a dictionary where the key indicates the algorithm
+parameter and the value contains its desired range in the form `(minimum bound, maximum bound)`. For example::
 
-    KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, slider_ranges={"window": (0, 8)})
+    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, slider_ranges={"window": (0, 8)})
 
 Detected tracks are accessible through the `.tracks` property::
 
-    >>> tracks = kymowidget.tracks
-    KymoTrackGroup(N=199)
+    tracks = kymowidget.tracks
+    print(tracks)
 
 For more information on its use, please see the example :ref:`cas9_kymotracking`.
 
@@ -224,7 +341,7 @@ The second algorithm present is an algorithm that works purely on signal derivat
 the image, and then performing sub-pixel accurate line detection. It can be a bit more robust to low signal levels,
 but is generally less temporally and spatially accurate due to the blurring involved::
 
-    tracks = lk.track_lines(kymo, "green", line_width=0.3, max_lines=50)
+    tracked_lines = lk.track_lines(kymo40, "green", line_width=0.3, max_lines=50)
 
 The interface is mostly the same, aside from an extra required parameter named `max_lines` which indicates the maximum
 number of lines we want to detect.
@@ -237,72 +354,87 @@ Sometimes, it can be desirable to extract pixel intensities in a region around o
 extract these using the method :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`. For instance,
 if we want to sum the pixels in a 11 pixel area around the longest kymograph track, we can invoke::
 
-    plt.figure()
     longest_track_idx = np.argmax([len(track) for track in tracks])
     longest_track = tracks[longest_track_idx]
+
+    plt.figure()
     plt.plot(longest_track.seconds, longest_track.sample_from_image(num_pixels=5))
-    plt.xlabel('Time [s]')
-    plt.ylabel('Summed signal')
+    plt.xlabel('time (s)')
+    plt.ylabel('summed counts')
+    plt.show()
 
 Here `num_pixels` is the number of pixels to sum on either side of the track.
 
-.. image:: kymo_sumcounts.png
+.. image:: figures/kymotracking/sample_from_image.png
 
 
 Plotting binding histograms
 ---------------------------
 
-We can easily plot some histograms of the binding events located with the kymotracker. Simply use::
+We can easily plot some histograms of the binding events located with the kymotracker with
+:meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.plot_binding_histogram`::
+
+    # re-track so we have fresh data to work with
+    tracks = lk.track_greedy(kymo40, "green", track_width=0.3)
 
     plt.figure()
     tracks.plot_binding_histogram(kind="binding")
+    plt.show()
 
-.. image:: kymo_bind_histogram_1.png
+.. image:: figures/kymotracking/kymo_bind_histogram_1.png
 
-Here, the `kind="binding"` argument indicates that we only wish to analyze the initial binding
-events (the first position of each track). We can optionally supply a `bins` argument, which is
-forwarded to :func:`np.histogram() <numpy.histogram()>`. For instance, we can increase the number
-of bins from 10 (the default) to 50::
+The `kind` argument controls what we want to plot. Here `kind="binding"` indicates that we only wish to analyze
+the initial binding events (the first position of each track). We can also use `kind="all"` to include all of the
+bound positions for each track.
+
+We can optionally supply a `bins` argument, which is forwarded to :func:`np.histogram() <numpy.histogram()>`.
+For instance, we can increase the number of bins from 10 (the default) to 30::
 
     plt.figure()
-    tracks.plot_binding_histogram("binding", bins=50)
+    tracks.plot_binding_histogram("binding", bins=30)
+    plt.show()
 
-.. image:: kymo_bind_histogram_2.png
+.. image:: figures/kymotracking/kymo_bind_histogram_2.png
 
-When an integer is supplied to the `bins` argument, the full position range is used to calculate
+When an integer is supplied to the `bins` argument, the full position range of the kymograph is used to calculate
 the bin edges (this is equivalent to using :func:`np.histogram(data, bins=n, range=(0,
 max_position)) <numpy.histogram()>`). This facilitates comparison of histograms calculated from
 different kymographs, as the absolute x-scale is dependent on the kymograph acquisition options,
-rather than the positions of the tracks. Alternatively, it is possible to supply a custom array of
-bin edges, as demonstrated below::
+rather than the positions of the tracks.
+
+Alternatively, it is possible to supply a custom array of bin edges::
 
     plt.figure()
-    tracks.plot_binding_histogram("kind=all", bins=np.linspace(12, 18, 75), fc="#dcdcdc", ec="tab:blue")
+    tracks.plot_binding_histogram(kind="all", bins=np.linspace(12, 18, 75), fc="#dcdcdc", ec="tab:blue")
+    plt.show()
 
-.. image:: kymo_bind_histogram_3.png
+.. image:: figures/kymotracking/kymo_bind_histogram_3.png
 
-Notice that here we use `kind="all"` to include all of the bound positions for each track. This
-snippet also demonstrates how we can pass keyword arguments (forwarded to :func:`plt.bar()
+This snippet also demonstrates how we can pass keyword arguments (forwarded to :func:`plt.bar()
 <matplotlib.pyplot.bar()>`) to format the histogram.
 
 
 Exporting kymograph tracks
 --------------------------
 
-Exporting kymograph tracks to `csv` files is easy. Just invoke `save` on the returned value::
+We can export the coordinates of the tracks to a `csv` file using the :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.save`
+method with the desired file name::
 
     tracks.save("tracks.csv")
 
-We can also save photon counts by passing a width in pixels to sum counts over::
+We can include photon counts (calculated with :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`)
+by passing a width in pixels to sum counts over::
 
     tracks.save("tracks_signal.csv", sampling_width=3)
 
 
 How the algorithms work
 -----------------------
-:func:`~lumicks.pylake.track_greedy`
 
-The first method implemented for performing such a tracking is based on :cite:`sbalzarini2005feature,mangeol2016kymographclear`.
+`track_greedy`
+^^^^^^^^^^^^^^
+
+The first method :func:`~lumicks.pylake.track_greedy` implemented for performing such a tracking is based on :cite:`sbalzarini2005feature,mangeol2016kymographclear`.
 It starts by performing peak detection, performing a grey dilation on the image, and detection which pixels remain
 unchanged. Peaks that fall below a certain intensity threshold are discarded. Since this peak detection operates at a
 pixel granularity, it is followed up by a refinement step to attain subpixel accuracy. This refinement is performed by
@@ -310,7 +442,7 @@ computing an offset from a brightness-weighted centroid in a small neighborhood 
 
 .. math::
 
-    offset = \frac{1}{m} \sum_{i^2 < w^2} i I(x + i)
+    \mathrm{offset} = \frac{1}{m} \sum_{i^2 < w^2} i I(x + i)
 
 Where m is given by:
 
@@ -345,16 +477,17 @@ rate. This results in the following model for the connection score.
 
 .. math::
 
-    S(x, t) = N\left(x + v t, \sigma_{base} + \sigma_{diffusion} \sqrt{t}\right).
+    S(x, t) = N\left(x + v t, \sigma_\mathrm{base} + \sigma_\mathrm{diffusion} \sqrt{t}\right).
 
 Here `N` refers to a normal distribution. In addition to the model, we also have to set a cutoff, after which we deem
 peaks to be so unlikely to be connected that they shouldn't be. By default, this cutoff is set at two sigma. Scores
 outside this cutoff are set to zero which means they will not be accepted as a new point.
 
 
-:func:`~lumicks.pylake.track_lines`
+`track_lines`
+^^^^^^^^^^^^^
 
-The second algorithm is an algorithm that looks for curvilinear structures in an image. This method is based on sections
+The second algorithm :func:`~lumicks.pylake.track_lines` is an algorithm that looks for curvilinear structures in an image. This method is based on sections
 1, 2 and 3 from :cite:`steger1998unbiased`. This method attempts to find lines purely based on the derivatives of the
 image. It blurs the image based with a user specified line width and then attempts to find curvilinear sections.
 
@@ -499,13 +632,13 @@ We can also plot the MSD estimates::
 
     [track.plot_msd(marker='.') for track in tracks]
 
-.. image:: msdplot_default_lags.png
+.. image:: figures/kymotracking/msdplot_default_lags.png
 
 By default, this will use the optimal number of lags (which in this case seems to be around 3-4), but once again a `max_lag` parameter can be specified to plot a larger number of lags::
 
     [track.plot_msd(max_lag=100, marker='.') for track in tracks]
 
-.. image:: msdplot_100_lags.png
+.. image:: figures/kymotracking/msdplot_100_lags.png
 
 It's not hard to see from this graph why taking too many lags results in unacceptably large variances (note how the traces diverge).
 
@@ -557,18 +690,19 @@ Use of the CVE is indicated when the SNR is bigger than 1. For smaller values fo
 Dwelltime analysis
 ------------------
 
-The lifetime of the bound state(s) can be determined using `KymoTrackGroup.fit_binding_times()`. This method defines
+The lifetime of the bound state(s) can be determined using :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.fit_binding_times()`. This method defines
 the bound dwelltime as the length of each track in seconds.
 
-Note: tracks which start in the first frame of the kymograph or end in the last frame are excluded from the analysis. This is because, such tracks have
-ambiguous binding times as the start or end of the track is not known definitively. If these tracks were included in the analysis, this could lead to minor
-biases in the results, especially if the number of tracks that meet this criteriion is large relative to the total number.
-This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`.
+.. note::
+    Tracks which start in the first frame of the kymograph or end in the last frame are excluded from the analysis. This is because, such tracks have
+    ambiguous binding times as the start or end of the track is not known definitively. If these tracks were included in the analysis, this could lead to minor
+    biases in the results, especially if the number of tracks that meet this criterion is large relative to the total number.
+    This behavior can be overridden with the keyword argument `exclude_ambiguous_dwells=False`.
 
 
 To fit the bound dwelltime distribution to a single exponential (the simplest case) simply call::
 
-    dwell = traces.fit_binding_times(n_components=1)
+    dwell = tracks.fit_binding_times(n_components=1)
 
 This returns a :class:`~lumicks.pylake.DwelltimeModel` object which contains information about the optimized model, such as the lifetime of the state in seconds::
 
@@ -576,13 +710,14 @@ This returns a :class:`~lumicks.pylake.DwelltimeModel` object which contains inf
 
 We can also try a double exponential fit::
 
-    dwell2 = traces.fit_binding_times(n_components=2)
+    dwell2 = tracks.fit_binding_times(n_components=2)
     print(dwell2.lifetimes)  # list of bound lifetimes
     print(dwell2.amplitudes)  # list of fractional amplitudes for each component
 
 For a detailed description of the optimization method and available attributes/methods see the Dwelltime Analysis section
 in :doc:`Population Dynamics </tutorial/population_dynamics>`.
 
-Note: the `min_observation_time` and `max_observation_time` arguments to the underlying :class:`~lumicks.pylake.DwelltimeModel` are set automatically by this method.
-The minimum length of the tracks depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
-Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.
+.. note::
+    The `min_observation_time` and `max_observation_time` arguments to the underlying :class:`~lumicks.pylake.DwelltimeModel` are set automatically by this method.
+    The minimum length of the tracks depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
+    Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.

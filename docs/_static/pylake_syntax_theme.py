@@ -62,7 +62,7 @@ class PylakeStyle(Style):
         Name.Decorator: f'bold {colors["orange"]}',
         Name.Entity: f'bold {colors["pink"]}',
         Name.Exception: f'bold {colors["pink"]}',
-        Name.Function: f'bold {colors["orange"]}',
+        Name.Function: f'bold {colors["blue"]}',
         Name.Tag: f'bold {colors["blue"]}',
         Number: f'{colors["orange"]}',
         Operator: colors["blue"],
