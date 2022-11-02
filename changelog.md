@@ -3,6 +3,7 @@
 ## v0.13.3 | tbd
 
 #### New features
+
 * Added `KymoTrack.plot()` and `KymoTrackGroup.plot()` methods to conveniently plot the coordinates of tracked lines. See the [kymotracking documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more details.
 
 ## v0.13.2 | 2022-11-15
