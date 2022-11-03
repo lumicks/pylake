@@ -580,18 +580,30 @@ def test_binding_profile_histogram():
     k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), kymo, "red")
 
     tracks = KymoTrackGroup([k1, k2, k3, k4])
-    x, densities = tracks._histogram_binding_profile(3, 0.2, 4)
+
+    # full kymo
+    x, y_data = tracks._histogram_binding_profile(3, 0.2, 4)
+    y_ref = [
+        [3.86752108e-022, 1.00000000e000, 4.14559001e-073, 3.96110737e-266],
+        [8.32495048e-087, 2.32557804e-002, 1.55038536e-002, 5.54996698e-087],
+        [1.98055368e-266, 2.07279501e-073, 5.00000000e-001, 2.77988974e-049],
+    ]
 
     np.testing.assert_allclose(x, np.linspace(0, 10, 4))
-    np.testing.assert_allclose(
-        densities[0], [1.28243310e-022, 3.31590463e-001, 1.37463811e-073, 1.31346543e-266]
-    )
-    np.testing.assert_allclose(
-        densities[1], [1.03517782e-87, 2.89177312e-03, 1.92784875e-03, 6.90118545e-88]
-    )
-    np.testing.assert_allclose(
-        densities[2], [1.97019814e-266, 2.06195717e-073, 4.97385694e-001, 2.76535477e-049]
-    )
+    for j, (y, ref) in enumerate(zip(y_data, y_ref)):
+        np.testing.assert_allclose(y, ref, err_msg=f"failed on item {j}")
+
+    # ROI
+    x, y_data = tracks._histogram_binding_profile(3, 0.2, 4, roi=[[15, 3], [40, 6]])
+    y_ref = [
+        [1.24221001e-06, 6.42912623e-23, 4.62111561e-50, 4.61295977e-88],
+        [6.66662526e-01, 2.48442002e-06, 1.28582525e-22, 9.24223122e-50],
+        [3.72663003e-06, 9.99997516e-01, 1.00000000e00, 6.66667495e-01],
+    ]
+
+    np.testing.assert_allclose(x, np.linspace(3, 6, 4))
+    for j, (y, ref) in enumerate(zip(y_data, y_ref)):
+        np.testing.assert_allclose(y, ref, err_msg=f"failed on item {j}")
 
     # test empty bin than frames
     x, densities = tracks._histogram_binding_profile(10, 0.2, 4)

@@ -814,15 +814,21 @@ class KymoTrackGroup:
         for bin_index in np.arange(n_time_bins) + 1:
             binned_positions = positions[bin_labels == bin_index][:, np.newaxis]
             try:
+                # Each estimate is normalized to integrate to 1. For proper comparison
+                # need to weight each by the number of data points used to estimate
                 kde = KernelDensity(kernel="gaussian", bandwidth=bandwidth).fit(binned_positions)
-                densities.append(np.exp(kde.score_samples(x)))
+                densities.append(np.exp(kde.score_samples(x)) * binned_positions.size)
             except ValueError as err:
                 if len(binned_positions) == 0:
                     densities.append(np.zeros(x.size))
                 else:
                     raise err
 
-        return x.squeeze(), densities
+        # "normalize" such that the highest peak == 1. This helps with plotting such that
+        # the offset between bins does not strongly depend on the number of bins or data
+        y = densities / np.max(densities)
+
+        return x.squeeze(), y
 
     def estimate_diffusion(self, method, *args, min_length=None, **kwargs):
         r"""Estimate diffusion constant for each track in the group.
