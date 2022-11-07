@@ -425,10 +425,10 @@ class KymoTrack:
         Parameters
         ----------
         method : {"cve", "ols", "gls"}
-            - "cve" : Covariance based estimator [5]_. Optimal if SNR > 1. Can only be used when
-              track is equidistantly sampled.
+            - "cve" : Covariance based estimator [5]_. Optimal if SNR > 1.
             - "ols" : Ordinary least squares [3]_. Determines optimal number of lags.
             - "gls" : Generalized least squares [4]_. Takes into account covariance matrix (slower).
+              Can only be used when track is equidistantly sampled.
         max_lag : int (optional)
             Number of lags to include when using an MSD-based estimator. When omitted, the method
             will choose an appropriate number of lags to use. For the cve estimator this argument
@@ -900,10 +900,10 @@ class KymoTrackGroup:
         Parameters
         ----------
         method : {"cve", "ols", "gls"}
-            - "cve" : Covariance based estimator. Optimal if SNR > 1. Can only be used when
-              track is equidistantly sampled.
+            - "cve" : Covariance based estimator. Optimal if SNR > 1.
             - "ols" : Ordinary least squares. Determines optimal number of lags.
-            - "gls" : Generalized least squares. Takes into account covariance matrix (slower).
+            - "gls" : Generalized least squares. Takes into account covariance matrix (slower). Can
+              only be used when track is equidistantly sampled.
         max_lag : int (optional)
             Number of lags to include when using an MSD-based estimator. When omitted, the method
             will choose an appropriate number of lags to use. For the cve estimator this argument
