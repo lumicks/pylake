@@ -861,3 +861,38 @@ def test_ensemble_api(blank_kymo):
     np.testing.assert_allclose(tracks.ensemble_msd(100, 3).msd, [4.0, 16.0])
     np.testing.assert_allclose(tracks.ensemble_msd(100, 2).lags, [1, 2, 3, 4])
     np.testing.assert_allclose(tracks.ensemble_msd(100, 2).msd, [1.0, 4.0, 9.0, 16.0])
+
+
+def test_ensemble_cve(blank_kymo):
+    """Tests whether we can call this function at the diffusion level"""
+    kymotracks = KymoTrackGroup(
+        [
+            KymoTrack(time_idx, coordinate, blank_kymo, "red")
+            for (time_idx, coordinate) in (
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 5),
+            )
+        ]
+    )
+
+    ensemble_diffusion = kymotracks.ensemble_diffusion("cve")
+    np.testing.assert_allclose(ensemble_diffusion.value, 0.445679012345679)
+    np.testing.assert_allclose(ensemble_diffusion.std_err, 0.20555092123942093)
+    np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
+    assert ensemble_diffusion.method == "ensemble cve"
+    assert ensemble_diffusion.unit == "um^2 / s"
+    assert ensemble_diffusion._unit_label == "um^2 / s"
+
+    # Consistency check
+    single_group_msd = KymoTrackGroup([kymotracks._src[0]]).ensemble_diffusion("cve")
+    single_track_msd = kymotracks._src[0].estimate_diffusion("cve")
+    np.testing.assert_allclose(single_group_msd.value, single_track_msd.value)
+    np.testing.assert_allclose(single_group_msd.std_err, single_track_msd.std_err)
+
+
+def test_invalid_ensemble_diffusion(blank_kymo):
+    """Tests whether we can call this function at the diffusion level"""
+    kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red")])
+    with pytest.raises(ValueError, match=re.escape("Invalid method (egg) selected")):
+        kymotracks.ensemble_diffusion("egg")
