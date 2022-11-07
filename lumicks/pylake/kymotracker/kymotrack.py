@@ -1,8 +1,6 @@
 from copy import copy
-import warnings
 from deprecated.sphinx import deprecated
 from sklearn.neighbors import KernelDensity
-from ..detail.utilities import use_docstring_from
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel
 from .. import __version__
@@ -928,6 +926,33 @@ class KymoTrackGroup:
             )
 
         return [k.estimate_diffusion(method, *args, **kwargs) for k in filtered_tracks]
+
+    def ensemble_diffusion(self, method):
+        """Determine ensemble based diffusion estimates.
+
+        Determines ensemble based diffusion estimates for the entire group of KymoTracks. This
+        method assumes that all tracks experience the same diffusion and computes an averaged
+        diffusion estimate.
+
+        Parameters
+        ----------
+        method : {"cve"}
+            - "cve" : Covariance based estimator. Optimal if SNR > 1. Ensemble average is
+              determined by determining the weighted average of the individual track estimates. The
+              standard error is computed by determining the weighted average of the associated
+              standard errors for each estimate (Equation 57 and 58 from Vestergaard [7]_). See
+              :meth:`KymoTrack.estimate_diffusion` for more detailed information and references.
+
+        References
+        ----------
+        .. [7] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+               diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+               022726.
+        """
+        if method == "cve":
+            return ensemble_cve(self)
+        else:
+            raise ValueError(f'Invalid method ({method}) selected. Method must be "cve".')
 
     def ensemble_msd(self, max_lag=None, min_count=2) -> EnsembleMSD:
         r"""This method returns the weighted average of the Mean Squared Displacement (MSD) for all

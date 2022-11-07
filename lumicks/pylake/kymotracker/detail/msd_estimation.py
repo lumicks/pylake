@@ -971,3 +971,48 @@ def estimate_diffusion_cve(
         unit,
         unit_label,
     )
+
+
+def ensemble_cve(kymotracks):
+    """Calculate ensemble-based CVE.
+
+    Determines the weighted average of the mean and standard error of the CVE estimates.
+
+    See docstring for _cve for more information on the estimator itself. The averaging is handled
+    through equation 57 and 58 from [14]_.
+
+    Parameters
+    ----------
+    kymotracks : lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup
+        Group of kymotracks
+
+    References
+    ----------
+    .. [14] Vestergaard, C. L., Blainey, P. C., & Flyvbjerg, H. (2014). Optimal estimation of
+            diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
+            022726.
+    """
+    cve_based = kymotracks.estimate_diffusion(method="cve")
+
+    if len(cve_based) == 1:
+        return cve_based[0]
+
+    estimates = np.array([c.value for c in cve_based])
+    counts = np.array([c.num_points for c in cve_based])
+    counts_sum = np.sum(counts)
+
+    # Equation 58 and 57 from Vestergaard et al [14].
+    ensemble_mean = np.sum(estimates * counts) / counts_sum
+    ensemble_mean_var = np.sum(counts * (estimates - ensemble_mean) ** 2) / (
+        (counts.size - 1) * counts_sum
+    )
+
+    return DiffusionEstimate(
+        value=ensemble_mean,
+        std_err=np.sqrt(ensemble_mean_var),
+        num_lags=np.nan,
+        num_points=counts_sum,
+        method="ensemble cve",
+        unit=cve_based[0].unit,
+        _unit_label=cve_based[0].unit,
+    )
