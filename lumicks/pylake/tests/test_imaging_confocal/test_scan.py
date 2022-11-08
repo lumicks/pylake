@@ -1,146 +1,169 @@
-import pytest
 import matplotlib.pyplot as plt
 import numpy as np
-from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+import pytest
 from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.channel import empty_slice
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+
 from ..data.mock_confocal import generate_scan
 
+start = np.int64(20e9)
+dt = np.int64(62.5e9)
 
-def test_scan_attrs(test_scans):
-    scan = test_scans["fast Y slow X"]
-    assert repr(scan) == "Scan(pixels=(4, 5))"
 
-    # fmt: off
-    reference_timestamps = np.array([[2.006250e+10, 2.025000e+10, 2.043750e+10, 2.062500e+10],
-                                    [2.084375e+10, 2.109375e+10, 2.128125e+10, 2.146875e+10],
-                                    [2.165625e+10, 2.187500e+10, 2.206250e+10, 2.225000e+10],
-                                    [2.243750e+10, 2.262500e+10, 2.284375e+10, 2.309375e+10],
-                                    [2.328125e+10, 2.346875e+10, 2.365625e+10, 2.387500e+10]])
-    # fmt: on
+# CAVE: If you want to test a cached property, after having modified parameters that change the
+# value of the property, ensure to clear the `_cache` attribute before and after testing. To achieve
+# both, you can monkeypatch the `_cache` attribute with an empty dict.
+@pytest.fixture(scope="module")
+def test_scans():
+    scans = {}
 
-    np.testing.assert_allclose(scan.timestamps, np.transpose(reference_timestamps))
-    assert scan.num_frames == 1
-    assert scan.pixels_per_line == 4
-    assert scan.lines_per_frame == 5
-    assert len(scan.infowave) == 64
-    assert scan.get_image("rgb").shape == (4, 5, 3)
-    assert scan.get_image("red").shape == (4, 5)
-    assert scan.get_image("blue").shape == (4, 5)
-    assert scan.get_image("green").shape == (4, 5)
+    oneframe = np.random.poisson(10, (4, 5, 3))
+    multiframe = np.random.poisson(10, (2, 4, 3, 3))
+
+    scans["fast Y slow X"] = generate_scan(
+        "fast Y slow X",
+        oneframe,
+        pixel_sizes_nm=[191.0, 197.0],
+        axes=[1, 0],
+        with_ref=True,
+        multi_color=True,
+    )
+
+    scans["fast Y slow X multiframe"] = generate_scan(
+        "fast Y slow X multiframe",
+        multiframe,
+        pixel_sizes_nm=[191.0, 197.0],
+        axes=[1, 0],
+        with_ref=True,
+        multi_color=True,
+    )
+
+    scans["fast X slow Z multiframe"] = generate_scan(
+        "fast X slow Z multiframe",
+        multiframe,
+        pixel_sizes_nm=[191.0, 197.0],
+        axes=[0, 2],
+        with_ref=True,
+        multi_color=True,
+    )
+
+    scans["fast Y slow Z multiframe"] = generate_scan(
+        "fast Y slow Z multiframe",
+        multiframe,
+        pixel_sizes_nm=[191.0, 197.0],
+        axes=[1, 2],
+        with_ref=True,
+        multi_color=True,
+    )
+
+    image_wo_red = oneframe.copy()
+    image_wo_red[:, :, 0] = 0
+    scans["red channel missing"] = generate_scan(
+        "red channel missing",
+        image_wo_red,
+        pixel_sizes_nm=[191.0, 197.0],
+        axes=[1, 0],
+        with_ref=True,
+        multi_color=True,
+    )
+    setattr(scans["red channel missing"][0].file, "red_photon_count", empty_slice)
+
+    image_wo_rb = oneframe.copy()
+    image_wo_rb[:, :, (0, 2)] = 0
+    scans["rb channels missing"] = generate_scan(
+        "rb channels missing",
+        image_wo_rb,
+        pixel_sizes_nm=[191.0, 197.0],
+        axes=[1, 0],
+        with_ref=True,
+        multi_color=True,
+    )
+    setattr(scans["rb channels missing"][0].file, "red_photon_count", empty_slice)
+    setattr(scans["rb channels missing"][0].file, "blue_photon_count", empty_slice)
+
+    return scans
+
+
+@pytest.mark.parametrize(
+    "scanname",
+    [
+        "fast Y slow X",
+        "fast Y slow X multiframe",
+        "fast X slow Z multiframe",
+        "fast Y slow Z multiframe",
+    ],
+)
+def test_scan_attrs(test_scans, scanname):
+    scan, ref = test_scans[scanname]
+
+    assert repr(scan) == f"Scan(pixels=({ref.pixels_per_line}, {ref.lines_per_frame}))"
+    np.testing.assert_allclose(scan.timestamps, ref.timestamps)
+    assert scan.num_frames == ref.number_of_frames
+    assert scan.pixels_per_line == ref.pixels_per_line
+    assert scan.lines_per_frame == ref.lines_per_frame
+    assert len(scan.infowave) == len(ref.infowave)
+    assert scan.get_image("rgb").shape == ref.shape
+    assert scan.get_image("red").shape == ref.shape[:-1]
+    assert scan.get_image("blue").shape == ref.shape[:-1]
+    assert scan.get_image("green").shape == ref.shape[:-1]
+    assert scan.fast_axis == ref.fast_axis
+    np.testing.assert_allclose(scan.pixelsize_um, ref.pixelsize_um)
+    np.testing.assert_allclose(scan.center_point_um["x"], ref.center_point_um["x"])
+    np.testing.assert_allclose(scan.center_point_um["y"], ref.center_point_um["y"])
+    np.testing.assert_allclose(scan.center_point_um["z"], ref.center_point_um["z"])
+    np.testing.assert_allclose(scan.size_um, ref.size_um)
 
     with pytest.deprecated_call():
-        assert scan.rgb_image.shape == (4, 5, 3)
+        assert scan.rgb_image.shape == ref.shape
     with pytest.deprecated_call():
-        assert scan.red_image.shape == (4, 5)
+        assert scan.red_image.shape == ref.shape[:-1]
     with pytest.deprecated_call():
-        assert scan.blue_image.shape == (4, 5)
+        assert scan.blue_image.shape == ref.shape[:-1]
     with pytest.deprecated_call():
-        assert scan.green_image.shape == (4, 5)
+        assert scan.green_image.shape == ref.shape[:-1]
 
-    assert scan.fast_axis == "Y"
-    np.testing.assert_allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
-    np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(scan.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(scan.center_point_um["z"], 0)
-    np.testing.assert_allclose(scan.size_um, [0.197 * 5, 0.191 * 4])
 
-    scan = test_scans["fast Y slow X multiframe"]
-    reference_timestamps2 = np.zeros((2, 4, 3))
-    reference_timestamps2[0, :, :] = reference_timestamps.T[:, :3]
-    reference_timestamps2[1, :, :2] = reference_timestamps.T[:, 3:]
+@pytest.mark.parametrize(
+    "missing_channels",
+    [["red"], ["red", "blue"], ["red", "green", "blue"]],
+)
+def test_scan_attrs_missing_channels(test_scans, missing_channels, monkeypatch):
+    scan, ref = test_scans["fast Y slow X"]
+    for channel in missing_channels:
+        monkeypatch.setattr(scan.file, f"{channel}_photon_count", empty_slice)
+        monkeypatch.setattr(scan, "_cache", {})
 
-    np.testing.assert_allclose(scan.timestamps, reference_timestamps2)
-    assert scan.num_frames == 2
-    assert scan.pixels_per_line == 4
-    assert scan.lines_per_frame == 3
-    assert len(scan.infowave) == 64
-    assert scan.get_image("rgb").shape == (2, 4, 3, 3)
-    assert scan.get_image("red").shape == (2, 4, 3)
-    assert scan.get_image("blue").shape == (2, 4, 3)
-    assert scan.get_image("green").shape == (2, 4, 3)
-    assert scan.fast_axis == "Y"
-    np.testing.assert_allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
-    np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(scan.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(scan.center_point_um["z"], 0)
-    np.testing.assert_allclose(scan.size_um, [0.197 * 3, 0.191 * 4])
-
-    scan = test_scans["fast X slow Z multiframe"]
-    reference_timestamps2 = np.zeros((2, 4, 3))
-    reference_timestamps2[0, :, :] = reference_timestamps.T[:, :3]
-    reference_timestamps2[1, :, :2] = reference_timestamps.T[:, 3:]
-    reference_timestamps2 = reference_timestamps2.transpose([0, 2, 1])
-
-    np.testing.assert_allclose(scan.timestamps, reference_timestamps2)
-    assert scan.num_frames == 2
-    assert scan.pixels_per_line == 4
-    assert scan.lines_per_frame == 3
-    assert len(scan.infowave) == 64
-    assert scan.get_image("rgb").shape == (2, 3, 4, 3)
-    assert scan.get_image("red").shape == (2, 3, 4)
-    assert scan.get_image("blue").shape == (2, 3, 4)
-    assert scan.get_image("green").shape == (2, 3, 4)
-    assert scan.fast_axis == "X"
-    np.testing.assert_allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
-    np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(scan.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(scan.center_point_um["z"], 0)
-    np.testing.assert_allclose(scan.size_um, [0.191 * 4, 0.197 * 3])
-
-    scan = test_scans["fast Y slow Z multiframe"]
-    reference_timestamps2 = np.zeros((2, 4, 3))
-    reference_timestamps2[0, :, :] = reference_timestamps.T[:, :3]
-    reference_timestamps2[1, :, :2] = reference_timestamps.T[:, 3:]
-    reference_timestamps2 = reference_timestamps2.transpose([0, 2, 1])
-
-    np.testing.assert_allclose(scan.timestamps, reference_timestamps2)
-    assert scan.num_frames == 2
-    assert scan.pixels_per_line == 4
-    assert scan.lines_per_frame == 3
-    assert len(scan.infowave) == 64
-    assert scan.get_image("rgb").shape == (2, 3, 4, 3)
-    assert scan.get_image("red").shape == (2, 3, 4)
-    assert scan.get_image("blue").shape == (2, 3, 4)
-    assert scan.get_image("green").shape == (2, 3, 4)
-    assert scan.fast_axis == "Y"
-    np.testing.assert_allclose(scan.pixelsize_um, [191 / 1000, 197 / 1000])
-    np.testing.assert_allclose(scan.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(scan.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(scan.center_point_um["z"], 0)
-    np.testing.assert_allclose(scan.size_um, [0.191 * 4, 0.197 * 3])
-
-    scan = test_scans["red channel missing"]
     rgb = scan.get_image("rgb")
-    assert rgb.shape == (4, 5, 3)
-    assert not np.any(rgb[:, :, 0])
-    np.testing.assert_equal(scan.get_image("red"), np.zeros((4, 5)))
-
-    assert scan.get_image("blue").shape == (4, 5)
-    assert scan.get_image("green").shape == (4, 5)
-
-    scan = test_scans["rb channels missing"]
-    rgb = scan.get_image("rgb")
-    assert rgb.shape == (4, 5, 3)
-    assert not np.any(rgb[:, :, 0])
-    assert not np.any(rgb[:, :, 2])
-    np.testing.assert_equal(scan.get_image("red"), np.zeros((4, 5)))
-    np.testing.assert_equal(scan.get_image("blue"), np.zeros((4, 5)))
-    assert scan.get_image("green").shape == (4, 5)
-
-    scan = test_scans["all channels missing"]
-    np.testing.assert_equal(scan.get_image("red"), np.zeros((4, 5)))
-    np.testing.assert_equal(scan.get_image("green"), np.zeros((4, 5)))
-    np.testing.assert_equal(scan.get_image("blue"), np.zeros((4, 5)))
+    assert rgb.shape == ref.shape
+    for i, channel in enumerate(["red", "green", "blue"]):
+        if channel in missing_channels:
+            assert not np.any(rgb[:, :, :, i] if ref.multi_frame else rgb[:, :, i])
+            np.testing.assert_equal(scan.get_image(channel), np.zeros(ref.shape[:-1]))
+        else:
+            assert scan.get_image(channel).shape == ref.shape[:-1]
+            np.testing.assert_allclose(
+                scan.get_image(channel),
+                ref.image[:, :, :, i] if ref.multi_frame else ref.image[:, :, i],
+            )
 
 
 def test_slicing(test_scans):
-    scan0 = test_scans["multiframe_poisson"]
-    assert scan0.num_frames == 10
+    scan = generate_scan(
+        "multiframe_poisson",
+        np.random.poisson(10, (10, 3, 4)),
+        pixel_sizes_nm=[5, 5],
+        start=start,
+        dt=dt,
+        samples_per_pixel=5,
+        line_padding=3,
+    )
+    assert scan.num_frames == 10
 
     def compare_frames(original_frames, new_scan):
         assert new_scan.num_frames == len(original_frames)
         for new_frame_index, index in enumerate(original_frames):
-            frame = scan0.get_image("red")[index]
+            frame = scan.get_image("red")[index]
             new_frame = (
                 new_scan.get_image("red")[new_frame_index]
                 if new_scan.num_frames > 1
@@ -148,92 +171,91 @@ def test_slicing(test_scans):
             )
             np.testing.assert_equal(frame, new_frame)
 
-    compare_frames([0], scan0[0])  # first frame
-    compare_frames([9], scan0[-1])  # last frame
-    compare_frames([3], scan0[3])  # single frame
-    compare_frames([2, 3, 4], scan0[2:5])  # slice
-    compare_frames([0, 1, 2], scan0[:3])  # from beginning
-    compare_frames([8, 9], scan0[8:])  # until end
-    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[:])  # all
-    compare_frames([7], scan0[-3])  # negative index
-    compare_frames([0, 1, 2, 3], scan0[:-6])  # until negative index
-    compare_frames([5, 6, 7], scan0[5:-2])  # mixed sign indices
-    compare_frames([6, 7], scan0[-4:-2])  # full negative slice
-    compare_frames([2], scan0[2:3])  # slice to single frame
-    compare_frames([3, 4], scan0[2:6][1:3])  # iterative slicing
+    compare_frames([0], scan[0])  # first frame
+    compare_frames([9], scan[-1])  # last frame
+    compare_frames([3], scan[3])  # single frame
+    compare_frames([2, 3, 4], scan[2:5])  # slice
+    compare_frames([0, 1, 2], scan[:3])  # from beginning
+    compare_frames([8, 9], scan[8:])  # until end
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan[:])  # all
+    compare_frames([7], scan[-3])  # negative index
+    compare_frames([0, 1, 2, 3], scan[:-6])  # until negative index
+    compare_frames([5, 6, 7], scan[5:-2])  # mixed sign indices
+    compare_frames([6, 7], scan[-4:-2])  # full negative slice
+    compare_frames([2], scan[2:3])  # slice to single frame
+    compare_frames([3, 4], scan[2:6][1:3])  # iterative slicing
 
-    compare_frames([1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[1:100])  # test clamping past the end
-    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], scan0[-100:9])  # test clamping past the beginning
-    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[-100:100])  # test clamping both dirs
+    compare_frames([1, 2, 3, 4, 5, 6, 7, 8, 9], scan[1:100])  # test clamping past the end
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], scan[-100:9])  # test clamping past the beginning
+    compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan[-100:100])  # test clamping both dirs
 
     # reverse slice
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[5:3]
+        scan[5:3]
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[-2:-4]
+        scan[-2:-4]
 
     # empty slice
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[5:5]
+        scan[5:5]
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[15:16]
+        scan[15:16]
 
     # Verify no side effects
-    scan0[0]
-    assert scan0.num_frames == 10
+    scan[0]
+    assert scan.num_frames == 10
 
 
-def test_damaged_scan(test_scans):
-    # Assume the user incorrectly exported only a partial scan (62500000 is the time step)
-    scan = test_scans["truncated_scan"]
+def test_damaged_scan(test_scans, monkeypatch):
+    scan, ref = test_scans["fast Y slow X"]
+    middle = scan.red_photon_count.timestamps[scan.red_photon_count.timestamps.size // 2]
+
+    # Assume the user incorrectly exported only a partial scan
+    monkeypatch.setattr(scan, "start", ref.start - ref.dt)
+    monkeypatch.setattr(scan, "_cache", {})
+
     with pytest.raises(RuntimeError):
-        scan.get_image("red").shape
+        scan.get_image()
 
-    # Test for workaround for a bug in the STED delay mechanism which could result in scan start times ending up
-    # within the sample time.
-    scan = test_scans["sted bug"]
-    middle = test_scans["fast Y slow X"].red_photon_count.timestamps[5]
-    scan.get_image(
-        "red"
-    ).shape  # should not raise, but change the start appropriately to work around sted bug
+    # Test for workaround for a bug in the STED delay mechanism which could result in scan start
+    # times ending up within the sample time.
+    monkeypatch.setattr(scan, "start", middle - ref.dt + 1)
+    monkeypatch.setattr(scan, "_cache", {})
+
+    # `get_image()` should not raise, but change the start appropriately to work around sted bug
+    scan.get_image("red").shape
     np.testing.assert_allclose(scan.start, middle)
 
 
-def test_plotting(test_scans):
-    scan = test_scans["fast Y slow X multiframe"]
-    scan.plot(channel="blue")
+@pytest.mark.parametrize(
+    "scanname, channel",
+    [
+        ("fast Y slow X multiframe", "blue"),
+        ("fast X slow Z multiframe", "rgb"),
+        ("fast Y slow Z multiframe", "rgb"),
+    ],
+)
+def test_plotting(test_scans, scanname, channel):
+    scan, ref = test_scans[scanname]
+    scan.plot(channel=channel)
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), scan.get_image("blue")[0])
-    np.testing.assert_allclose(image.get_extent(), [0, 0.197 * 3, 0.191 * 4, 0])
+    scan_image = scan.get_image(channel)[0]
+    if channel == "rgb":
+        np.testing.assert_allclose(image.get_array(), scan_image / np.max(scan_image))
+    else:
+        np.testing.assert_allclose(image.get_array(), scan_image)
+    np.testing.assert_allclose(image.get_extent(), [0, *ref.size_um, 0])
     plt.close()
 
-    scan = test_scans["fast X slow Z multiframe"]
-    scan.plot(channel="rgb")
-    image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(
-        image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0])
-    )
-    np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
-    plt.close()
-
-    scan = test_scans["fast Y slow Z multiframe"]
-    scan.plot(channel="rgb")
-    image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(
-        image.get_array(), scan.get_image("rgb")[0] / np.max(scan.get_image("rgb")[0])
-    )
-    np.testing.assert_allclose(image.get_extent(), [0, 0.191 * 4, 0.197 * 3, 0])
-    plt.close()
-
-    # test invalid inidices (num_frames=2)
+    # test invalid indices (num_frames=2)
     with pytest.raises(IndexError):
-        scan.plot(channel="rgb", frame=4)
+        scan.plot(channel="rgb", frame=ref.number_of_frames + 1)
     with pytest.raises(IndexError, match="negative indexing is not supported."):
         scan.plot(channel="rgb", frame=-1)
 
 
 def test_deprecated_plotting(test_scans):
-    scan = test_scans["fast Y slow X multiframe"]
+    scan, _ = test_scans["fast Y slow X multiframe"]
     with pytest.deprecated_call():
         scan.plot_red()
     with pytest.deprecated_call():
@@ -245,17 +267,15 @@ def test_deprecated_plotting(test_scans):
     with pytest.warns(
         DeprecationWarning,
         match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
-        "keyword argument."
+        "keyword argument.",
     ):
         ih = scan.plot("blue", None)
         np.testing.assert_allclose(ih.get_array(), scan.get_image("blue")[0])
         plt.close()
     # Test rejection of deprecated call with positional `axes` and double keyword assignment
-    with pytest.raises(
-        TypeError,
-        match=r"`Scan.plot\(\)` got multiple values for argument `axes`"
-    ):
+    with pytest.raises(TypeError, match=r"`Scan.plot\(\)` got multiple values for argument `axes`"):
         scan.plot("rgb", None, axes=None)
+
 
 @pytest.mark.parametrize(
     "scanname, tiffname",
@@ -267,7 +287,7 @@ def test_deprecated_plotting(test_scans):
 def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
     from os import stat
 
-    scan = test_scans[scanname]
+    scan, _ = test_scans[scanname]
     filename = tmp_path / tiffname
     scan.export_tiff(filename)
     assert stat(filename).st_size > 0
@@ -287,7 +307,7 @@ def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
         np.testing.assert_allclose(
             tags["YResolution"][0] / tags["YResolution"][1],
             scan._tiff_writer_kwargs()["resolution"][1],
-            rtol=1e-1
+            rtol=1e-1,
         )
         assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
 
@@ -295,7 +315,7 @@ def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
 def test_deprecated_save_tiff(tmp_path, test_scans):
     from os import stat
 
-    scan = test_scans["fast Y slow X"]
+    scan, ref = test_scans["fast Y slow X"]
     match = (
         r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
         r"exporting to a different format."
@@ -310,7 +330,7 @@ def test_movie_export(tmpdir_factory, test_scans):
 
     tmpdir = tmpdir_factory.mktemp("pylake")
 
-    scan = test_scans["fast Y slow X multiframe"]
+    scan, _ = test_scans["fast Y slow X multiframe"]
     scan.export_video("red", f"{tmpdir}/red.gif", start_frame=0, stop_frame=2)
     assert stat(f"{tmpdir}/red.gif").st_size > 0
     scan.export_video("rgb", f"{tmpdir}/rgb.gif", start_frame=0, stop_frame=2)
@@ -328,7 +348,7 @@ def test_deprecated_movie_export(tmpdir_factory, test_scans):
     from os import stat
 
     tmpdir = tmpdir_factory.mktemp("pylake")
-    scan = test_scans["fast Y slow X multiframe"]
+    scan, _ = test_scans["fast Y slow X multiframe"]
     for channel in ("red", "green", "blue", "rgb"):
         with pytest.warns(DeprecationWarning):
             getattr(scan, f"export_video_{channel}")(
@@ -350,7 +370,7 @@ def test_single_frame_times(dim_x, dim_y, line_padding, start, dt, samples_per_p
     scan = generate_scan(
         "test",
         img,
-        [1, 1],
+        pixel_sizes_nm=[1, 1],
         start=start,
         dt=dt,
         samples_per_pixel=samples_per_pixel,
@@ -382,7 +402,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
     scan = generate_scan(
         "test",
         img,
-        [1, 1],
+        pixel_sizes_nm=[1, 1],
         start=start,
         dt=dt,
         samples_per_pixel=samples_per_pixel,
@@ -429,7 +449,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
 
 def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
     """Tests whether we can set an absolute color range for an RGB plot."""
-    scan = test_scans["fast Y slow X"]
+    scan, _ = test_scans["fast Y slow X"]
 
     fig = plt.figure()
     lb, ub = np.array([1, 2, 3]), np.array([2, 3, 4])
@@ -443,7 +463,7 @@ def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
 
 def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
     """Tests whether we can set an absolute color range for a single channel plot."""
-    scan = test_scans["fast Y slow X"]
+    scan, _ = test_scans["fast Y slow X"]
 
     lbs, ubs = np.array([1, 2, 3]), np.array([2, 3, 4])
     for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
@@ -470,7 +490,7 @@ def test_scan_plot_single_channel_absolute_color_adjustment(test_scans):
 
 def test_plot_rgb_percentile_color_adjustment(test_scans):
     """Tests whether we can set a percentile color range for an RGB plot."""
-    scan = test_scans["fast Y slow X multiframe"]
+    scan, _ = test_scans["fast Y slow X multiframe"]
 
     fig = plt.figure()
     lb, ub = np.array([1, 5, 10]), np.array([80, 90, 80])
@@ -491,7 +511,7 @@ def test_plot_rgb_percentile_color_adjustment(test_scans):
 
 def test_plot_single_channel_percentile_color_adjustment(test_scans):
     """Tests whether we can set a percentile color range for separate channel plots."""
-    scan = test_scans["fast Y slow X multiframe"]
+    scan, _ = test_scans["fast Y slow X multiframe"]
 
     lbs, ubs = np.array([1, 5, 10]), np.array([80, 90, 80])
     for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
@@ -510,17 +530,17 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans):
 
 
 @pytest.mark.parametrize(
-    "scan, pixel_time",
+    "scanname",
     [
-        ("fast Y slow X", 0.1875),
-        ("fast X slow Z multiframe", 0.1875),
-        ("fast Y slow X multiframe", 0.1875),
-        ("fast Y slow Z multiframe", 0.1875),
-        ("fast Y slow X", 0.1875),
+        "fast Y slow X",
+        "fast X slow Z multiframe",
+        "fast Y slow X multiframe",
+        "fast Y slow Z multiframe",
     ],
 )
-def test_scan_pixel_time(test_scans, scan, pixel_time):
-    np.testing.assert_allclose(test_scans[scan].pixel_time_seconds, pixel_time)
+def test_scan_pixel_time(test_scans, scanname):
+    scan, ref = test_scans[scanname]
+    np.testing.assert_allclose(scan.pixel_time_seconds, ref.dt * ref.samples_per_pixel * 1e-9)
 
 
 @pytest.mark.parametrize(
@@ -539,16 +559,15 @@ def test_scan_pixel_time(test_scans, scan, pixel_time):
 )
 def test_scan_cropping(x_min, x_max, y_min, y_max, test_scans):
     valid_scans = [
-        "fast Y slow X multiframe",
         "fast Y slow X",
+        "fast Y slow X multiframe",
         "fast X slow Z multiframe",
         "fast Y slow Z multiframe",
         "red channel missing",
         "rb channels missing",
     ]
-
     for key in valid_scans:
-        scan = test_scans[key]
+        scan, ref = test_scans[key]
 
         # Slice how we would with numpy
         all_slices = tuple([slice(None), slice(y_min, y_max), slice(x_min, x_max)])
@@ -592,8 +611,8 @@ def test_scan_get_item_slicing(all_slices, test_scans):
     """Test slicing, slicing is given as image, y, x"""
 
     valid_scans = [
-        "fast Y slow X multiframe",
         "fast Y slow X",
+        "fast Y slow X multiframe",
         "fast X slow Z multiframe",
         "fast Y slow Z multiframe",
         "red channel missing",
@@ -601,7 +620,7 @@ def test_scan_get_item_slicing(all_slices, test_scans):
     ]
 
     for key in valid_scans:
-        scan = test_scans[key]
+        scan, ref = test_scans[key]
 
         # Slice how we would with numpy
         slices = tuple(all_slices if scan.num_frames > 1 else all_slices[1:])
@@ -625,8 +644,8 @@ def test_slicing_cropping_separate_actions(test_scans):
     multi_frame, single_frame = (
         generate_scan(
             "test",
-            np.random.rand(num_frames, 5, 7),
-            [1, 1],
+            np.random.rand(num_frames, 7, 5),
+            pixel_sizes_nm=[1, 1],
             start=0,
             dt=100,
             samples_per_pixel=1,
@@ -654,8 +673,8 @@ def test_error_handling_multidim_indexing():
     multi_frame, single_frame = (
         generate_scan(
             "test",
-            np.random.rand(num_frames, 5, 7),
-            [1, 1],
+            np.random.rand(num_frames, 7, 5),
+            pixel_sizes_nm=[1, 1],
             start=0,
             dt=100,
             samples_per_pixel=1,
@@ -677,49 +696,53 @@ def test_error_handling_multidim_indexing():
 
 
 @pytest.mark.parametrize(
-    "name",
+    "scanname",
     [
-        "fast Y slow X multiframe",
         "fast Y slow X",
+        "fast Y slow X multiframe",
         "fast X slow Z multiframe",
         "fast Y slow Z multiframe",
         "red channel missing",
         "rb channels missing",
     ],
 )
-def test_empty_slices_due_to_out_of_bounds(name, test_scans):
-    shape = test_scans[name][0].get_image("green").shape
+def test_empty_slices_due_to_out_of_bounds(scanname, test_scans):
+    scan, _ = test_scans[scanname]
+    shape = scan[0].get_image("green").shape
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        test_scans[name][0][0, shape[0] : shape[0] + 10, 0:2]
+        scan[0][0, shape[0] : shape[0] + 10, 0:2]
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        test_scans[name][0][0, shape[0] : shape[0] + 10]
+        scan[0][0, shape[0] : shape[0] + 10]
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        test_scans[name][0][0, :, shape[1] : shape[1] + 10]
+        scan[0][0, :, shape[1] : shape[1] + 10]
     with pytest.raises(NotImplementedError, match="Slice is empty."):
-        test_scans[name][0][0, :, -10:0]
+        scan[0][0, :, -10:0]
 
 
 def test_slice_by_list_disallowed(test_scans):
-    with pytest.raises(IndexError, match="Indexing by list is not allowed"):
-        test_scans["fast Y slow X multiframe"][[0, 1], :, :]
+    scan, _ = test_scans["fast Y slow X multiframe"]
 
     with pytest.raises(IndexError, match="Indexing by list is not allowed"):
-        test_scans["fast Y slow X multiframe"][:, [0, 1], :]
+        scan[[0, 1], :, :]
+
+    with pytest.raises(IndexError, match="Indexing by list is not allowed"):
+        scan[:, [0, 1], :]
 
     class Dummy:
         pass
 
     with pytest.raises(IndexError, match="Indexing by Dummy is not allowed"):
-        test_scans["fast Y slow X multiframe"][Dummy(), :, :]
+        scan[Dummy(), :, :]
 
     with pytest.raises(IndexError, match="Slicing by Dummy is not supported"):
-        test_scans["fast Y slow X multiframe"][Dummy():Dummy(), :, :]
+        scan[Dummy():Dummy(), :, :]
 
 
 def test_crop_missing_channel(test_scans):
     """Make sure that missing channels are handled appropriately when cropping"""
+    scan, _ = test_scans["rb channels missing"]
     np.testing.assert_equal(
-        test_scans["rb channels missing"][:, 0:2, 1:3].get_image("red"),
+        scan[:, 0:2, 1:3].get_image("red"),
         np.zeros((2, 2))
     )
 
@@ -732,7 +755,7 @@ def test_scan_slicing_by_time():
     multi_frame = generate_scan(
         "test",
         np.random.randint(0, 10, size=(num_frames, 2, 2)),
-        [1, 1],
+        pixel_sizes_nm=[1, 1],
         start=start - line_padding * dt,
         dt=dt,
         samples_per_pixel=15,
