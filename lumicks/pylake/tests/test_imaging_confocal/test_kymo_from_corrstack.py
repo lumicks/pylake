@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
+import pytest
 from lumicks.pylake.correlated_stack import CorrelatedStack
-from lumicks.pylake.detail.widefield import TiffStack, Tether
-from lumicks.pylake.tests.data.mock_widefield import MockTiffFile
+from lumicks.pylake.detail.widefield import Tether, TiffStack
 from lumicks.pylake.kymo import _kymo_from_correlated_stack
+
+from ..data.mock_widefield import MockTiffFile
 
 
 def make_frame_times(n_frames, rate=10, step=8, start=10, framerate_jitter=0, step_jitter=0):
