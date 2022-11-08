@@ -1,12 +1,44 @@
 import re
-import numpy as np
-from lumicks import pylake
-import pytest
-from lumicks.pylake.channel import Slice, TimeSeries, empty_slice
-from lumicks.pylake.kymo import EmptyKymo
-from lumicks.pylake.adjustments import ColorAdjustment
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.channel import Continuous, Slice, TimeSeries, empty_slice
+from lumicks.pylake.kymo import EmptyKymo
+
 from ..data.mock_confocal import generate_kymo
+
+
+# CAVE: If you want to test a cached property, after having modified parameters that change the
+# value of the property, ensure to clear the `_cache` attribute before and after testing. To achieve
+# both, you can monkeypatch the `_cache` attribute with an empty dict.
+@pytest.fixture(scope="module")
+def test_kymos():
+    return {"standard": generate_kymo("standard", np.random.poisson(10, (5, 4, 3)), with_ref=True)}
+
+
+@pytest.fixture
+def add_force_channel(monkeypatch):
+    def do_add_force_channel(kymo, ref, head=30, tail=10, head_lines=2, channel="force1x"):
+
+        # Force channel that overlaps kymo; step from high to low force
+        # We want two lines of the kymo to have a force of 30 and the rest of the lines 10.
+        samples_per_line = ref.pixels_per_line * ref.samples_per_pixel + 2 * ref.line_padding
+        number_of_samples = ref.number_of_lines * samples_per_line
+        # First line starts after line_padding
+        first_pixels = ref.line_padding + head_lines * samples_per_line
+        force = np.r_[
+            np.ones(first_pixels) * head, np.ones(number_of_samples - first_pixels) * tail
+        ]
+
+        monkeypatch.setattr(
+            kymo.file, channel, Slice(Continuous(force, ref.start, ref.dt)), raising=False
+        )
+
+        return np.r_[np.ones(head_lines) * head, np.ones(ref.number_of_lines - head_lines) * tail]
+
+    return do_add_force_channel
 
 
 def with_offset(t, start_time=1592916040906356300):
@@ -14,103 +46,102 @@ def with_offset(t, start_time=1592916040906356300):
 
 
 def test_kymo_properties(test_kymos):
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
-    # fmt: off
-    reference_timestamps = np.array([[2.006250e+10, 2.109375e+10, 2.206250e+10, 2.309375e+10],
-                                    [2.025000e+10, 2.128125e+10, 2.225000e+10, 2.328125e+10],
-                                    [2.043750e+10, 2.146875e+10, 2.243750e+10, 2.346875e+10],
-                                    [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
-                                    [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]], np.int64)
-    # fmt: on
-
-    assert repr(kymo) == "Kymo(pixels=5)"
-    assert kymo.pixels_per_line == 5
-    assert len(kymo.infowave) == 64
-    assert kymo.shape == (5, 4, 3)
-    assert kymo.get_image("rgb").shape == (5, 4, 3)
-    assert kymo.get_image("red").shape == (5, 4)
-    assert kymo.get_image("blue").shape == (5, 4)
-    assert kymo.get_image("green").shape == (5, 4)
-    np.testing.assert_allclose(kymo.timestamps, reference_timestamps)
-    assert kymo.fast_axis == "X"
-    np.testing.assert_allclose(kymo.pixelsize_um, 10/1000)
-    np.testing.assert_allclose(kymo.line_time_seconds, 1.03125)
-    np.testing.assert_allclose(kymo.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(kymo.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(kymo.center_point_um["z"], 0)
-    np.testing.assert_allclose(kymo.size_um, [0.050])
-    np.testing.assert_allclose(kymo.pixel_time_seconds, 0.1875)
+    assert repr(kymo) == f"Kymo(pixels={ref.pixels_per_line})"
+    assert kymo.pixels_per_line == ref.pixels_per_line
+    assert len(kymo.infowave) == len(ref.infowave)
+    assert kymo.shape == ref.shape
+    assert kymo.get_image("rgb").shape == ref.shape
+    assert kymo.get_image("red").shape == ref.shape[:2]
+    assert kymo.get_image("blue").shape == ref.shape[:2]
+    assert kymo.get_image("green").shape == ref.shape[:2]
+    np.testing.assert_allclose(kymo.timestamps, ref.timestamps)
+    assert kymo.fast_axis == ref.fast_axis
+    np.testing.assert_allclose(kymo.pixelsize_um, ref.pixelsize_um)
+    np.testing.assert_allclose(kymo.line_time_seconds, ref.line_time_seconds)
+    np.testing.assert_allclose(kymo.center_point_um["x"], ref.center_point_um["x"])
+    np.testing.assert_allclose(kymo.center_point_um["y"], ref.center_point_um["y"])
+    np.testing.assert_allclose(kymo.center_point_um["z"], ref.center_point_um["z"])
+    np.testing.assert_allclose(kymo.size_um, ref.size_um)
+    np.testing.assert_allclose(kymo.pixel_time_seconds, ref.pixel_time_seconds)
 
     with pytest.deprecated_call():
-        assert kymo.rgb_image.shape == (5, 4, 3)
+        np.testing.assert_allclose(kymo.rgb_image, kymo.get_image("rgb"))
     with pytest.deprecated_call():
-        assert kymo.red_image.shape == (5, 4)
+        np.testing.assert_allclose(kymo.red_image, kymo.get_image("red"))
     with pytest.deprecated_call():
-        assert kymo.blue_image.shape == (5, 4)
+        np.testing.assert_allclose(kymo.blue_image, kymo.get_image("blue"))
     with pytest.deprecated_call():
-        assert kymo.green_image.shape == (5, 4)
+        np.testing.assert_allclose(kymo.green_image, kymo.get_image("green"))
 
 
 def test_kymo_slicing(test_kymos):
-    kymo = test_kymos["Kymo1"]
-    kymo_reference = np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
+    kymo, ref = test_kymos["standard"]
 
-    assert kymo.get_image("red").shape == (5, 4)
-    assert kymo.shape == (5, 4, 3)
-    np.testing.assert_allclose(kymo.get_image("red").data, kymo_reference)
+    assert kymo.shape == ref.shape
+    assert kymo.get_image().shape == ref.shape
+    np.testing.assert_allclose(kymo.get_image().data, ref.image)
 
-    sliced = kymo[:]
-    assert sliced.get_image("red").shape == (5, 4)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference)
+    def do_slice_test(start_in_s=None, stop_in_s=None):
+        """Slice a kymo with a given start and stop time and test its correctness"""
+        sliced = kymo[
+            slice(
+                f"{start_in_s:f}s" if start_in_s is not None else None,
+                f"{stop_in_s:f}s" if stop_in_s is not None else None,
+            )
+        ]
+        start_idx = ref.get_line_idx(start_in_s) if start_in_s is not None else 0
+        stop_idx = ref.get_line_idx(stop_in_s) if stop_in_s is not None else ref.number_of_lines
+        expected_number_of_lines = max(0, stop_idx - start_idx)
+        expected_shape = (ref.pixels_per_line, expected_number_of_lines, ref.shape[2])
+        assert sliced.shape == expected_shape
+        assert sliced.get_image().shape == expected_shape
+        np.testing.assert_allclose(sliced.get_image().data, ref.image[:, start_idx:stop_idx])
+        if expected_number_of_lines == 0:
+            assert isinstance(sliced, EmptyKymo)
 
-    sliced = kymo["1s":]
-    assert sliced.get_image("red").shape == (5, 3)
-    assert sliced.shape == (5, 3, 3)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 1:])
+    def triple(timestamp):
+        """Create three timestamps: before, timestamp, after"""
+        dt = ref.dt
+        return np.array([timestamp - dt / 2, timestamp, timestamp + dt / 2]) * 1e-9
 
-    sliced = kymo["0s":]
-    assert sliced.get_image("red").shape == (5, 4)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference)
+    # Select timestamps critical for slicing
+    tipping_points = np.unique(
+        [
+            ref.infowave.timestamps[0] - ref.start,
+            np.int64(0),
+            ref.line_timestamp_ranges[0, 0] - ref.start,
+            ref.line_timestamp_ranges[-1, 0] - ref.start,
+            ref.stop - ref.start - ref.dt,
+            ref.infowave.timestamps[-1] - ref.start,
+        ]
+    )
 
-    sliced = kymo["0s":"2s"]
-    assert sliced.get_image("red").shape == (5, 2)
-    assert sliced.shape == (5, 2, 3)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :2])
+    # Create list for slicing with critical start and stop times:
+    # [ None, *triple(info_first), *triple(kymo_first), *triple(lines_first), *triple(lines_last),
+    # *triple(kymo_last), *triple(info_last) ]
+    timestamps = [
+        timestamp
+        for triples in [triple(point) for point in tipping_points]
+        for timestamp in [None, *triples]
+    ]
 
-    sliced = kymo["0s":"-1s"]
-    assert sliced.get_image("red").shape == (5, 3)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :-1])
+    # Slice with all possible combinations of start and stop times. Note: this will also lead to
+    # empty kymos.
+    for start in timestamps:
+        for stop in timestamps:
+            do_slice_test(start, stop)
 
-    sliced = kymo["0s":"-2s"]
-    assert sliced.get_image("red").shape == (5, 2)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :-2])
-
-    sliced = kymo["0s":"3s"]
-    assert sliced.get_image("red").shape == (5, 3)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :3])
-
-    sliced = kymo["1s":"2s"]
-    assert sliced.get_image("red").shape == (5, 1)
-    assert sliced.shape == (5, 1, 3)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 1:2])
-
-    sliced = kymo["0s":"10s"]
-    assert sliced.get_image("red").shape == (5, 4)
-    assert sliced.shape == (5, 4, 3)
-    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 0:10])
-
+    # Test raising errors
     with pytest.raises(IndexError):
         kymo["0s"]
 
     with pytest.raises(IndexError):
         kymo["0s":"10s":"1s"]
 
-    empty_kymograph = kymo["3s":"2s"]
-    assert isinstance(empty_kymograph, EmptyKymo)
-
-    empty_kymograph = kymo["5s":]
-    assert isinstance(empty_kymograph, EmptyKymo)
+    # Some extra checks on an empty kymo
+    empty_kymograph = kymo[:"0s"]
 
     with pytest.raises(RuntimeError):
         empty_kymograph.timestamps
@@ -118,36 +149,32 @@ def test_kymo_slicing(test_kymos):
     with pytest.raises(RuntimeError):
         empty_kymograph.export_tiff("test")
 
-    with pytest.raises(RuntimeError), pytest.warns(DeprecationWarning):
-        empty_kymograph.plot_rgb()
-
     with pytest.raises(RuntimeError):
         empty_kymograph.plot()
 
-    assert empty_kymograph.get_image("red").shape == (5, 0)
     assert empty_kymograph.infowave.data.size == 0
-    assert empty_kymograph.shape == (5, 0, 3)
-    assert empty_kymograph.pixels_per_line == 5
-    assert empty_kymograph.get_image("red").size == 0
-    assert empty_kymograph.get_image("rgb").size == 0
-
-    kymo = test_kymos["slicing_regression"]
-    assert isinstance(kymo["23.0s":], EmptyKymo)
-    assert isinstance(kymo["24.2s":], EmptyKymo)
+    assert empty_kymograph.pixels_per_line == ref.pixels_per_line
 
 
-def test_damaged_kymo(test_kymos):
+def test_damaged_kymo(test_kymos, monkeypatch):
     # Assume the user incorrectly exported only a partial Kymo
-    kymo = test_kymos["truncated_kymo"]
-    kymo_reference = np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]])
+    kymo, ref = test_kymos["standard"]
+
+    # Truncated kymo: The start of the Kymo starts before the start (`start - dt`) of the
+    # corresponding channel data in the mock_file. The kymo should, if working correctly, ignore the
+    # first scanned line of pixels, i.e. the first column in the reconstructed kymo image.
+    # Therefore, the first column of the timestamps and the reference_image is removed in the
+    # reference kymo data.
+    monkeypatch.setattr(kymo, "start", ref.start - ref.dt)
+    monkeypatch.setattr(kymo, "_cache", {})
 
     with pytest.warns(RuntimeWarning):
-        assert kymo.get_image("red").shape == (5, 3)
-    np.testing.assert_allclose(kymo.get_image("red").data, kymo_reference[:, 1:])
+        assert kymo.get_image().shape == ref.image[:, 1:].shape
+    np.testing.assert_allclose(kymo.get_image(), ref.image[:, 1:])
 
 
 def test_plotting(test_kymos):
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
     plt.figure()
     kymo.plot(channel="red")
@@ -158,7 +185,17 @@ def test_plotting(test_kymos):
 
     image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), kymo.get_image("red"))
-    np.testing.assert_allclose(image.get_extent(), [-0.515625, 3.609375, 0.045, -0.005])
+    size_calibrated = ref.pixelsize_um * ref.pixels_per_line
+    duration = ref.line_time_seconds * ref.number_of_lines
+    np.testing.assert_allclose(
+        image.get_extent(),
+        [
+            -0.5 * ref.line_time_seconds,
+            duration - 0.5 * ref.line_time_seconds,
+            size_calibrated - 0.5 * ref.pixelsize_um,
+            -0.5 * ref.pixelsize_um,
+        ],
+    )
 
     # test original kymo is labeled with microns and
     # that kymo calibrated with base pairs has appropriate label
@@ -172,7 +209,8 @@ def test_plotting(test_kymos):
 
 
 def test_deprecated_plotting(test_kymos):
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
+
     with pytest.deprecated_call():
         kymo.plot_red()
     with pytest.deprecated_call():
@@ -184,56 +222,22 @@ def test_deprecated_plotting(test_kymos):
     with pytest.warns(
         DeprecationWarning,
         match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
-        "keyword argument."
+        "keyword argument.",
     ):
         ih = kymo.plot("red", None)
-        np.testing.assert_allclose(ih.get_array(), kymo.get_image("red"))
+        np.testing.assert_allclose(ih.get_array(), ref.image[:, :, 0])
         plt.close()
     # Test rejection of deprecated call with positional `axes` and double keyword assignment
-    with pytest.raises(
-        TypeError,
-        match=r"`Kymo.plot\(\)` got multiple values for argument `axes`"
-    ):
+    with pytest.raises(TypeError, match=r"`Kymo.plot\(\)` got multiple values for argument `axes`"):
         kymo.plot("rgb", None, axes=None)
 
 
 def test_line_timestamp_ranges(test_kymos):
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
-    expected_ranges = (
-        [
-            (20000000000, 21000000000),
-            (21062500000, 22000000000),
-            (22000000000, 23000000000),
-            (23062500000, 24000000000)
-        ],
-        [
-            (20000000000, 21062500000),
-            (21062500000, 22125000000),
-            (22000000000, 23062500000),
-            (23062500000, 24125000000)]
-    )
-    expected_iw_chunks = (
-        [
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2],
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
-        ],
-        [
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2, 0],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2, 1, 0],
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2, 0],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2]
-        ]
-    )
-
-    for include, ref_ranges, ref_iw_chunks in zip(
-        (False, True),
-        expected_ranges,
-        expected_iw_chunks
-    ):
+    for include in (False, True):
         ranges = kymo.line_timestamp_ranges(include_dead_time=include)
+        ref_ranges = ref.get_line_timestamp_ranges(include)
         np.testing.assert_equal(ranges, ref_ranges)
 
         with pytest.deprecated_call():
@@ -243,6 +247,7 @@ def test_line_timestamp_ranges(test_kymos):
             np.testing.assert_equal(kymo.line_timestamp_ranges(exclude=not include), ref_ranges)
 
         iw_chunks = [kymo.infowave[slice(*rng)].data for rng in ranges]
+        ref_iw_chunks = [ref.infowave[slice(*rng)].data for rng in ref_ranges]
         np.testing.assert_equal(iw_chunks, ref_iw_chunks)
 
     with pytest.raises(
@@ -251,51 +256,55 @@ def test_line_timestamp_ranges(test_kymos):
         kymo.line_timestamp_ranges(False, include_dead_time=False)
 
 
-def test_plotting_with_force_downsampling(kymo_h5_file):
-    f = pylake.File.from_h5py(kymo_h5_file)
-    kymo = f.kymos["Kymo1"]
+def test_plotting_with_force_downsampling(test_kymos, add_force_channel):
+    kymo, ref = test_kymos["standard"]
+    line_forces = add_force_channel(kymo, ref)
     ranges = kymo.line_timestamp_ranges(include_dead_time=False)
 
     # Check timestamps for downsampled channel
     # Note that if the kymo would have the same samples per pixel, a simple:
     #    np.testing.assert_allclose(np.mean(kymo.timestamps, axis=0)[:-1], ds.timestamps[:-1])
     # would have sufficed. However, in this case we need the following solution:
-    ds = f.force2x.downsampled_over(ranges)
-    min_ts, max_ts = (
-        reduce(kymo._timestamps("timestamps", reduce), axis=0) for reduce in (np.min, np.max)
-    )
-    target_timestamps = np.array(
-        [
-            np.mean(kymo.infowave[int(start) : int(stop) + 1].timestamps)
-            for start, stop in zip(min_ts, max_ts)
-        ]
-    )
-    np.testing.assert_allclose(ds.timestamps, target_timestamps)
-    np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+    ds = kymo.file.force1x.downsampled_over(ranges)
+    # min_ts, max_ts = (
+    #    reduce(kymo._timestamps("timestamps", reduce), axis=0) for reduce in (np.min, np.max)
+    # )
+    # target_timestamps = np.array(
+    #    [
+    #        np.mean(kymo.infowave[int(start) : int(stop) + 1].timestamps)
+    #        for start, stop in zip(min_ts, max_ts)
+    #    ]
+    # )
+    # np.testing.assert_allclose(ds.timestamps, target_timestamps)
+    np.testing.assert_allclose(np.mean(kymo.timestamps, axis=0), ds.timestamps)
+    np.testing.assert_allclose(ds.data, line_forces)
 
 
-def test_plotting_with_force(kymo_h5_file):
-    f = pylake.File.from_h5py(kymo_h5_file)
-    kymo = f.kymos["Kymo1"]
+def test_plotting_with_force(test_kymos, add_force_channel):
+    kymo, ref = test_kymos["standard"]
+    line_forces = add_force_channel(kymo, ref)
 
-    kymo.plot_with_force(force_channel="2x", color_channel="red")
-    np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), [30, 30, 10, 10])
+    kymo.plot_with_force(force_channel="1x", color_channel="red")
+    np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), line_forces)
 
     # The following assertion fails because of unequal line times in the test data. These
     # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
     # which is why the old version of this test fails.
     # np.testing.assert_allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
-    np.testing.assert_allclose(plt.xlim(), [-0.515625, 3.609375])
-    np.testing.assert_allclose(np.sort(plt.ylim()), [10, 30])
+    duration = ref.line_time_seconds * ref.number_of_lines
+    np.testing.assert_allclose(
+        plt.xlim(), [-0.5 * ref.line_time_seconds, duration - 0.5 * ref.line_time_seconds]
+    )
+    np.testing.assert_allclose(np.sort(plt.ylim()), [line_forces.min(), line_forces.max()])
 
 
-def test_downsample_channel_downsampled_kymo(kymo_h5_file):
-    f = pylake.File.from_h5py(kymo_h5_file)
-    kymo = f.kymos["Kymo1"]
+def test_downsample_channel_downsampled_kymo(test_kymos, add_force_channel):
+    kymo, ref = test_kymos["standard"]
+    line_forces = add_force_channel(kymo, ref)
     kymo_ds = kymo.downsampled_by(position_factor=2)
 
-    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
-    np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+    ds = kymo.file.force1x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
+    np.testing.assert_allclose(ds.data, line_forces)
 
     # Downsampling by a factor of two in position means that the last pixel will be dropped
     # from this kymo when downsampling (as it is 5 pixels wide). This is why the before last
@@ -306,7 +315,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
 
     # Downsampling by a factor of five in position means no pixel will be dropped.
     kymo_ds = kymo.downsampled_by(position_factor=5)
-    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
+    ds = kymo.file.force1x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
     mins = kymo._timestamp_factory(kymo, np.min)[0, :]
     maxs = kymo._timestamp_factory(kymo, np.max)[-1, :]
     np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
@@ -317,27 +326,29 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
         kymo.downsampled_by(time_factor=2).plot_with_force("1x", "red")
 
 
-def test_regression_plot_with_force(kymo_h5_file):
+def test_regression_plot_with_force(test_kymos, add_force_channel):
     # Plot_with_force used to fail when the last line of a kymograph was incomplete. The reason for
     # this was that the last few timestamps on the last line had zero as their timestamp. This meant
     # it was trying to downsample a range from X to 0, which made the downsampler think that there
     # was no overlap between the kymograph and the force channel (as it checks the last timestamp
     # of the ranges to downsample to against the first one of the channel to downsample).
-    f = pylake.File.from_h5py(kymo_h5_file)
+    kymo, ref = test_kymos["standard"]
 
     # Kymo ends before last pixel is finished. All but the last timestamps are OK.
-    kymo = f.kymos["Kymo1"]
-    kymo.stop = int(kymo.stop - 2 * 1e9 / 16)
-    kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
-    np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+    line_forces = add_force_channel(kymo, ref)
+    kymo.stop = ref.line_timestamp_ranges[-1, -1] - ref.dt * ref.samples_per_pixel
+    kymo.plot_with_force(force_channel="1x", color_channel="red")
+    ds = kymo.file.force1x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
+    np.testing.assert_allclose(ds.data, line_forces)
 
     # Kymo ends on a partial last line. Multiple timestamps are zero now.
-    kymo = f.kymos["Kymo1"]
-    kymo.stop = int(kymo.stop - 10 * 1e9 / 16)
-    kymo.plot_with_force(force_channel="2x", color_channel="red")
-    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
-    np.testing.assert_allclose(ds.data, [30, 30, 10, 10])
+    line_forces = add_force_channel(kymo, ref)
+    kymo.stop = ref.line_timestamp_ranges[-1, -1] - ref.dt * (
+        ref.samples_per_pixel * ref.pixels_per_line // 2
+    )
+    kymo.plot_with_force(force_channel="1x", color_channel="red")
+    ds = kymo.file.force1x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
+    np.testing.assert_allclose(ds.data, line_forces)
 
 
 def test_plotting_with_histograms(test_kymos):
@@ -346,50 +357,80 @@ def test_plotting_with_histograms(test_kymos):
         heights = [p.get_height() for p in plt.gca().patches]
         return widths, heights
 
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
     kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=1)
     w, h = get_rectangle_data()
-    np.testing.assert_allclose(h, 0.01)
-    assert np.all(np.equal(w, [3, 1, 1, 1, 3]))
-    np.testing.assert_allclose(np.sort(plt.xlim()), [0, 3], atol=0.05)
+    np.testing.assert_allclose(h, ref.pixelsize_um)
+    bins = ref.image[:, :, 0].sum(axis=1)
+    assert np.array_equal(w, bins)
+    np.testing.assert_allclose(plt.xlim(), [0, np.max(bins)], rtol=0.2)
 
-    plt.close('all')
+    plt.close("all")
     kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=1)
     w, h = get_rectangle_data()
-    np.testing.assert_allclose(w, 1.03, atol=0.002)
-    assert np.all(np.equal(h, [4, 0, 2, 3]))
-    np.testing.assert_allclose(np.sort(plt.ylim()), [0, 4], atol=0.05)
+    np.testing.assert_allclose(w, ref.line_time_seconds)
+    bins = ref.image[:, :, 0].sum(axis=0)
+    assert np.array_equal(h, bins)
+    np.testing.assert_allclose(np.sort(plt.ylim()), [0, np.max(bins)], rtol=0.2)
 
     with pytest.warns(UserWarning):
-        plt.close('all')
-        kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=3)
+        plt.close("all")
+        pixels_per_bin = 3
+        kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=pixels_per_bin)
         w, h = get_rectangle_data()
-        np.testing.assert_allclose(h, [0.03, 0.02])
-        assert np.all(np.equal(w, [5, 4]))
-        np.testing.assert_allclose(np.sort(plt.xlim()), [0, 5], atol=0.05)
+        np.testing.assert_allclose(
+            h,
+            np.r_[
+                ref.pixels_per_line // pixels_per_bin * (ref.pixelsize_um * pixels_per_bin,),
+                ref.pixels_per_line % pixels_per_bin * ref.pixelsize_um,
+            ],
+        )
+        missing = ref.pixels_per_line % pixels_per_bin
+        bins = (
+            np.r_[ref.image[:, :, 0].sum(axis=1), (0,) * (missing > 0) * (pixels_per_bin - missing)]
+            .reshape(-1, pixels_per_bin)
+            .sum(axis=1)
+        )
+        assert np.array_equal(w, bins)
+        np.testing.assert_allclose(plt.xlim(), [0, np.max(bins)], rtol=0.2)
 
     with pytest.warns(UserWarning):
-        plt.close('all')
-        kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=3)
+        plt.close("all")
+        pixels_per_bin = 3
+        kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=pixels_per_bin)
         w, h = get_rectangle_data()
-        np.testing.assert_allclose(w, [3.09, 1.03], atol=0.02)
-        assert np.all(np.equal(h, [6, 3]))
-        np.testing.assert_allclose(np.sort(plt.ylim()), [0, 6], atol=0.05)
+        np.testing.assert_allclose(
+            w,
+            np.r_[
+                ref.number_of_lines // pixels_per_bin * (ref.line_time_seconds * pixels_per_bin,),
+                ref.number_of_lines % pixels_per_bin * ref.line_time_seconds,
+            ],
+        )
+        missing = ref.number_of_lines % pixels_per_bin
+        bins = (
+            np.r_[ref.image[:, :, 0].sum(axis=0), (0,) * (missing > 0) * (pixels_per_bin - missing)]
+            .reshape(-1, pixels_per_bin)
+            .sum(axis=1)
+        )
+        assert np.array_equal(h, bins)
+        np.testing.assert_allclose(plt.ylim(), [0, np.max(bins)], rtol=0.2)
 
     with pytest.raises(ValueError):
-        plt.close('all')
-        kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=6)
+        plt.close("all")
+        kymo.plot_with_position_histogram(
+            color_channel="red", pixels_per_bin=ref.pixels_per_line + 1
+        )
 
     with pytest.raises(ValueError):
-        plt.close('all')
-        kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=6)
+        plt.close("all")
+        kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=ref.number_of_lines + 1)
 
 
 def test_export_tiff(tmp_path, test_kymos, grab_tiff_tags):
     from os import stat
 
-    kymo = test_kymos["Kymo1"]
+    kymo, _ = test_kymos["standard"]
     kymo.export_tiff(tmp_path / "kymo1.tiff")
     assert stat(tmp_path / "kymo1.tiff").st_size > 0
 
@@ -409,7 +450,7 @@ def test_export_tiff(tmp_path, test_kymos, grab_tiff_tags):
         np.testing.assert_allclose(
             tags["YResolution"][0] / tags["YResolution"][1],
             kymo._tiff_writer_kwargs()["resolution"][1],
-            rtol=1e-1
+            rtol=1e-1,
         )
         assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
 
@@ -417,7 +458,7 @@ def test_export_tiff(tmp_path, test_kymos, grab_tiff_tags):
 def test_deprecated_save_tiff(tmp_path, test_kymos):
     from os import stat
 
-    kymo = test_kymos["Kymo1"]
+    kymo, _ = test_kymos["standard"]
     match = (
         r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
         r"exporting to a different format."
@@ -435,7 +476,7 @@ def test_downsampled_kymo():
             [12, 0, 0, 0, 12, 6, 0],
             [0, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     kymo = generate_kymo(
@@ -445,7 +486,7 @@ def test_downsampled_kymo():
         start=with_offset(0),
         dt=7,
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     kymo_ds = kymo.downsampled_by(time_factor=2)
@@ -456,7 +497,7 @@ def test_downsampled_kymo():
             [12, 0, 18],
             [12, 24, 6],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     assert kymo_ds.name == "Mock"
@@ -469,17 +510,19 @@ def test_downsampled_kymo():
     assert not kymo_ds.contiguous
 
     with pytest.raises(
-            NotImplementedError,
-            match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
+        NotImplementedError,
+        match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
     ):
         kymo_ds.timestamps
 
     # Verify that we can pass a different reduce function
-    np.testing.assert_allclose(kymo.downsampled_by(time_factor=2, reduce=np.mean).get_image("red"), ds / 2)
+    np.testing.assert_allclose(
+        kymo.downsampled_by(time_factor=2, reduce=np.mean).get_image("red"), ds / 2
+    )
 
     with pytest.raises(
-            NotImplementedError,
-            match="Per-pixel timestamps are no longer available after downsampling",
+        NotImplementedError,
+        match="Per-pixel timestamps are no longer available after downsampling",
     ):
         kymo_ds.pixel_time_seconds
 
@@ -494,7 +537,7 @@ def test_downsampled_kymo_position():
             [0, 12, 12, 12, 0, 6, 0],
             [0, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     kymo = generate_kymo(
@@ -504,15 +547,15 @@ def test_downsampled_kymo_position():
         start=with_offset(100),
         dt=5,
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     kymo_ds = kymo.downsampled_by(position_factor=2)
     ds = np.array([[0, 12, 0, 12, 0, 12, 0], [12, 12, 12, 12, 12, 12, 0]], dtype=np.uint8)
     ds_ts = with_offset(
         [
-            [132.5,  277.5,  422.5,  567.5,  712.5,  857.5, 1002.5],
-            [182.5,  327.5,  472.5,  617.5,  762.5,  907.5, 1052.5],
+            [132.5, 277.5, 422.5, 567.5, 712.5, 857.5, 1002.5],
+            [182.5, 327.5, 472.5, 617.5, 762.5, 907.5, 1052.5],
         ],
     )
 
@@ -540,7 +583,7 @@ def test_downsampled_kymo_both_axes():
             [0, 12, 12, 12, 0, 6, 0],
             [0, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     kymo = generate_kymo(
@@ -552,7 +595,7 @@ def test_downsampled_kymo_both_axes():
         kymo.downsampled_by(time_factor=2, position_factor=2),
         # Test whether sequential downsampling works out correctly as well
         kymo.downsampled_by(position_factor=2).downsampled_by(time_factor=2),
-        kymo.downsampled_by(time_factor=2).downsampled_by(position_factor=2)
+        kymo.downsampled_by(time_factor=2).downsampled_by(position_factor=2),
     ]
 
     for kymo_ds in downsampled_kymos:
@@ -565,8 +608,8 @@ def test_downsampled_kymo_both_axes():
         np.testing.assert_allclose(kymo_ds.line_time_seconds, 2 * 5 * (5 * 5 + 2 + 2) / 1e9)
         assert not kymo_ds.contiguous
         with pytest.raises(
-                NotImplementedError,
-                match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
+            NotImplementedError,
+            match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
         ):
             kymo_ds.timestamps
 
@@ -581,7 +624,7 @@ def test_side_no_side_effects_downsampling():
             [0, 12, 12, 12, 0, 6, 0],
             [0, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     kymo = generate_kymo(
@@ -591,7 +634,7 @@ def test_side_no_side_effects_downsampling():
         start=with_offset(100),
         dt=5,
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
     timestamps = kymo.timestamps.copy()
     downsampled_kymos = kymo.downsampled_by(time_factor=2, position_factor=2)
@@ -631,7 +674,7 @@ def test_kymo_crop():
             [0, 12, 12, 12, 0, 6, 0],
             [0, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     # Test basic functionality
@@ -643,13 +686,12 @@ def test_kymo_crop():
         start=with_offset(100),
         dt=5,
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
     cropped = kymo.crop_by_distance(4e-3, 8e-3)
-    ref_img = np.array([
-        [12.0,  0.0,  0.0,  0.0, 12.0,  6.0,  0.0],
-        [0.0, 12.0, 12.0, 12.0,  0.0,  6.0,  0.0]
-    ])
+    ref_img = np.array(
+        [[12.0, 0.0, 0.0, 0.0, 12.0, 6.0, 0.0], [0.0, 12.0, 12.0, 12.0, 0.0, 6.0, 0.0]]
+    )
     np.testing.assert_allclose(cropped.get_image("red"), ref_img)
     np.testing.assert_allclose(cropped.get_image("rgb")[:, :, 0], ref_img)
     np.testing.assert_allclose(cropped.get_image("rgb")[:, :, 1], np.zeros(ref_img.shape))
@@ -681,31 +723,38 @@ def test_kymo_crop():
 
     # Test rounding internally
     np.testing.assert_allclose(
-        kymo.crop_by_distance(pixel_size_nm * 1.6 * 1e-3, pixel_size_nm * 1.6 * 1e-3).get_image("red"),
-        image[1:2, :]
+        kymo.crop_by_distance(pixel_size_nm * 1.6 * 1e-3, pixel_size_nm * 1.6 * 1e-3).get_image(
+            "red"
+        ),
+        image[1:2, :],
     )
     np.testing.assert_allclose(
-        kymo.crop_by_distance(pixel_size_nm * 1.6 * 1e-3, pixel_size_nm * 2.1 * 1e-3).get_image("red"),
-        image[1:3, :]
+        kymo.crop_by_distance(pixel_size_nm * 1.6 * 1e-3, pixel_size_nm * 2.1 * 1e-3).get_image(
+            "red"
+        ),
+        image[1:3, :],
     )
     np.testing.assert_allclose(
-        kymo.crop_by_distance(pixel_size_nm * 2.1 * 1e-3, pixel_size_nm * 2.1 * 1e-3).get_image("red"),
-        image[2:3, :]
+        kymo.crop_by_distance(pixel_size_nm * 2.1 * 1e-3, pixel_size_nm * 2.1 * 1e-3).get_image(
+            "red"
+        ),
+        image[2:3, :],
     )
 
     # Test cropping in base pairs
-    kymo_bp = kymo.calibrate_to_kbp(1.000) # pixelsize = 0.2 kbp
-    np.testing.assert_allclose(kymo_bp.crop_by_distance(0.2, 0.6).get_image("red"),
-                               [[0, 0, 0, 0, 0, 6, 0],
-                                [12, 0, 0, 0, 12, 6, 0]])
-    np.testing.assert_allclose(kymo_bp.crop_by_distance(0.2, 0.7).get_image("red"),
-                               [[0, 0, 0, 0, 0, 6, 0],
-                                [12, 0, 0, 0, 12, 6, 0],
-                                [0, 12, 12, 12, 0, 6, 0]])
-    np.testing.assert_allclose(kymo_bp.crop_by_distance(0.2, 0.8).get_image("red"),
-                               [[0, 0, 0, 0, 0, 6, 0],
-                                [12, 0, 0, 0, 12, 6, 0],
-                                [0, 12, 12, 12, 0, 6, 0]])
+    kymo_bp = kymo.calibrate_to_kbp(1.000)  # pixelsize = 0.2 kbp
+    np.testing.assert_allclose(
+        kymo_bp.crop_by_distance(0.2, 0.6).get_image("red"),
+        [[0, 0, 0, 0, 0, 6, 0], [12, 0, 0, 0, 12, 6, 0]],
+    )
+    np.testing.assert_allclose(
+        kymo_bp.crop_by_distance(0.2, 0.7).get_image("red"),
+        [[0, 0, 0, 0, 0, 6, 0], [12, 0, 0, 0, 12, 6, 0], [0, 12, 12, 12, 0, 6, 0]],
+    )
+    np.testing.assert_allclose(
+        kymo_bp.crop_by_distance(0.2, 0.8).get_image("red"),
+        [[0, 0, 0, 0, 0, 6, 0], [12, 0, 0, 0, 12, 6, 0], [0, 12, 12, 12, 0, 6, 0]],
+    )
 
 
 def test_kymo_crop_ds():
@@ -721,7 +770,7 @@ def test_kymo_crop_ds():
             [12, 12, 12, 12, 0, 6, 0],
             [24, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     pixel_size_nm = 2
@@ -732,7 +781,7 @@ def test_kymo_crop_ds():
         start=with_offset(100),
         dt=5,
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     kymo_ds_pos = kymo.downsampled_by(position_factor=2)
@@ -784,7 +833,7 @@ def test_kymo_slice_crop():
             [0, 12, 12, 12, 0, 6, 0],
             [0, 12, 12, 12, 0, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
     kymo = generate_kymo(
         "Mock",
@@ -793,7 +842,7 @@ def test_kymo_slice_crop():
         start=int(100e9),
         dt=int(5e9),
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     sliced_cropped = kymo["245s":"725s"].crop_by_distance(8e-3, 14e-3)
@@ -806,7 +855,6 @@ def test_kymo_slice_crop():
         sliced_cropped._timestamps("timestamps", reduce=np.min),
         [[450e9, 595e9, 740e9], [475e9, 620e9, 765e9]],
     )
-
 
 
 def test_incremental_offset():
@@ -829,7 +877,7 @@ def test_incremental_offset():
         start=with_offset(100),
         dt=5,
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
     cropped = kymo.crop_by_distance(2e-3, 8e-3)
     twice_cropped = cropped.crop_by_distance(2e-3, 8e-3)
@@ -856,7 +904,7 @@ def test_slice_timestamps():
             [0, 0, 0, 0, 0, 6, 0],
             [12, 0, 0, 0, 12, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     kymo = generate_kymo(
@@ -866,7 +914,7 @@ def test_slice_timestamps():
         start=1623965975045144000,
         dt=int(1e9),
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     # Kymo line is 3 * 5 samples long, while there is 2 pixel padding on each side.
@@ -901,7 +949,7 @@ def test_roundoff_errors_kymo():
             [12, 0, 0, 0, 12, 6, 0],
             [12, 0, 0, 0, 12, 6, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     test_parameters = {
@@ -944,7 +992,7 @@ def test_regression_unequal_timestamp_spacing():
         start=1536582124217030400,
         dt=int(1e9 / 78125),
         samples_per_pixel=47,
-        line_padding=0
+        line_padding=0,
     )
     assert len(np.unique(np.diff(kymo.timestamps))) == 1
 
@@ -960,7 +1008,7 @@ def test_calibrate_to_kbp():
             [0, 0, 6, 6, 0, 0, 12],
             [6, 12, 12, 0, 0, 0, 0],
         ],
-        dtype=np.uint8
+        dtype=np.uint8,
     )
 
     kymo = generate_kymo(
@@ -970,7 +1018,7 @@ def test_calibrate_to_kbp():
         start=1623965975045144000,
         dt=int(1e9),
         samples_per_pixel=5,
-        line_padding=2
+        line_padding=2,
     )
 
     kymo_bp = kymo.calibrate_to_kbp(12.000)
@@ -1009,10 +1057,10 @@ def test_calibrate_to_kbp():
     cropped_kymo = kymo.crop_by_distance(0, 0.5)
 
     ds_kymo_time_bp = ds_kymo_time.calibrate_to_kbp(12.000)
-    ds_kymo_pos_bp = ds_kymo_pos.calibrate_to_kbp(12.000) # total length does not change
+    ds_kymo_pos_bp = ds_kymo_pos.calibrate_to_kbp(12.000)  # total length does not change
     ds_kymo_both_bp = ds_kymo_both.calibrate_to_kbp(12.000)
     sliced_kymo_bp = sliced_kymo.calibrate_to_kbp(12.000)
-    cropped_kymo_bp = cropped_kymo.calibrate_to_kbp(int(12.000 * (5/6)))
+    cropped_kymo_bp = cropped_kymo.calibrate_to_kbp(int(12.000 * (5 / 6)))
 
     check_factory_forwarding(kymo, kymo_bp, True)
     check_factory_forwarding(ds_kymo_time, ds_kymo_time_bp, False)
@@ -1024,8 +1072,10 @@ def test_calibrate_to_kbp():
     # if properly calibrated, cropping should not change pixel size
     np.testing.assert_allclose(kymo_bp.pixelsize[0], cropped_kymo_bp.pixelsize[0])
     # but will change total length
-    np.testing.assert_allclose(kymo_bp._calibration.value * kymo._num_pixels[0] * 5/6,
-                               cropped_kymo_bp._calibration.value * cropped_kymo_bp._num_pixels[0])
+    np.testing.assert_allclose(
+        kymo_bp._calibration.value * kymo._num_pixels[0] * 5 / 6,
+        cropped_kymo_bp._calibration.value * cropped_kymo_bp._num_pixels[0],
+    )
 
 
 def test_partial_pixel_kymo():
@@ -1042,7 +1092,7 @@ def test_partial_pixel_kymo():
         start=1536582124217030400,
         dt=int(1e9 / 78125),
         samples_per_pixel=47,
-        line_padding=0
+        line_padding=0,
     )
 
     kymo.infowave.data[-60:] = 0  # Remove the last pixel entirely, and a partial pixel before that
@@ -1086,19 +1136,21 @@ def test_plot_with_lf_force():
 
 def test_kymo_plot_rgb_absolute_color_adjustment(test_kymos):
     """Tests whether we can set an absolute color range for the RGB plot."""
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
     fig = plt.figure()
     lb, ub = np.array([1, 2, 3]), np.array([2, 3, 4])
     kymo.plot(channel="rgb", adjustment=ColorAdjustment(lb, ub, mode="absolute"))
     image = plt.gca().get_images()[0]
-    np.testing.assert_allclose(image.get_array(), np.clip((kymo.get_image("rgb") - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(
+        image.get_array(), np.clip((kymo.get_image("rgb") - lb) / (ub - lb), 0, 1)
+    )
     plt.close(fig)
 
 
 def test_kymo_plot_rgb_percentile_color_adjustment(test_kymos):
     """Tests whether we can set a percentile color range for the RGB plot."""
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
     fig = plt.figure()
     lb, ub = np.array([10, 10, 10]), np.array([80, 80, 80])
@@ -1111,13 +1163,15 @@ def test_kymo_plot_rgb_percentile_color_adjustment(test_kymos):
         ]
     )
     lb, ub = (b for b in np.moveaxis(bounds, 1, 0))
-    np.testing.assert_allclose(image.get_array(), np.clip((kymo.get_image("rgb") - lb) / (ub - lb), 0, 1))
+    np.testing.assert_allclose(
+        image.get_array(), np.clip((kymo.get_image("rgb") - lb) / (ub - lb), 0, 1)
+    )
     plt.close(fig)
 
 
 def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
     """Tests whether we can set an absolute color range for a single channel plot."""
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
 
     lbs, ubs = np.array([1, 2, 3]), np.array([2, 3, 4])
     for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
@@ -1125,7 +1179,9 @@ def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
         fig = plt.figure()
         kymo.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), kymo.get_image(channel)) #getattr(kymo, f"{channel}_image"))
+        np.testing.assert_allclose(
+            image.get_array(), kymo.get_image(channel)
+        )  # getattr(kymo, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -1133,14 +1189,16 @@ def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
         fig = plt.figure()
         kymo.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), kymo.get_image(channel)) #getattr(kymo, f"{channel}_image"))
+        np.testing.assert_allclose(
+            image.get_array(), kymo.get_image(channel)
+        )  # getattr(kymo, f"{channel}_image"))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
 
 @pytest.mark.parametrize("crop", [False, True])
 def test_flip_kymo(test_kymos, crop):
-    kymo = test_kymos["Kymo1"]
+    kymo, ref = test_kymos["standard"]
     if crop:
         kymo = kymo.crop_by_distance(0.01, 0.03)
     kymo_flipped = kymo.flip()
