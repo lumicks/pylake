@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import itertools
-import matplotlib.pyplot as plt
+
+import numpy as np
+import pytest
 from lumicks.pylake.kymo import _kymo_from_array
 
+from ..data.mock_confocal import generate_kymo
 
 timestamp_err_msg = (
     "Per-pixel timestamps are not implemented. "
@@ -11,6 +12,14 @@ timestamp_err_msg = (
 )
 
 colors = ("red", "green", "blue")
+
+
+# CAVE: If you want to test a cached property, after having modified parameters that change the
+# value of the property, ensure to clear the `_cache` attribute before and after testing. To achieve
+# both, you can monkeypatch the `_cache` attribute with an empty dict.
+@pytest.fixture(scope="module")
+def test_kymos():
+    return {"noise": generate_kymo("noise", np.random.poisson(5, size=(5, 10, 3)))}
 
 
 def make_kymo_from_array(kymo, image, color_format, no_pxsize=False):
@@ -41,11 +50,11 @@ def test_from_array(test_kymos):
     np.testing.assert_equal(kymo.line_time_seconds, arr_kymo.line_time_seconds)
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=False),
-        arr_kymo.line_timestamp_ranges(include_dead_time=False)
+        arr_kymo.line_timestamp_ranges(include_dead_time=False),
     )
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=True),
-        arr_kymo.line_timestamp_ranges(include_dead_time=True)
+        arr_kymo.line_timestamp_ranges(include_dead_time=True),
     )
 
     np.testing.assert_equal(kymo.pixelsize_um, arr_kymo.pixelsize_um)
@@ -95,11 +104,11 @@ def test_from_array_no_pixelsize(test_kymos):
     np.testing.assert_equal(kymo.line_time_seconds, arr_kymo.line_time_seconds)
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=False),
-        arr_kymo.line_timestamp_ranges(include_dead_time=False)
+        arr_kymo.line_timestamp_ranges(include_dead_time=False),
     )
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=True),
-        arr_kymo.line_timestamp_ranges(include_dead_time=True)
+        arr_kymo.line_timestamp_ranges(include_dead_time=True),
     )
 
     assert arr_kymo.pixelsize_um == [None]
