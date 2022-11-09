@@ -2,6 +2,9 @@ name: no notebook deps
 
 on: [push]
 
+env:
+  JUPYTER_PLATFORM_DIRS: "1"
+
 jobs:
     build_no_nb:
         runs-on: ubuntu-latest

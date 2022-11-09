@@ -5,6 +5,9 @@ on:
     tags:
       - v*
 
+env:
+  JUPYTER_PLATFORM_DIRS: "1"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

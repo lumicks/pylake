@@ -2,6 +2,10 @@ name: pytest
 
 on: [push]
 
+env:
+  # See: https://github.com/jupyter/jupyter_core/pull/292#issuecomment-1258284246
+  JUPYTER_PLATFORM_DIRS: "1"
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
