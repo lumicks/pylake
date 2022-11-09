@@ -64,7 +64,7 @@ We can simulate the model by passing a dictionary with parameters values::
     plt.ylabel("Force")
     plt.xlabel("Distance")
 
-
+.. image:: figures/fdfitting/fdfitting_ewlc.png
 
 Model composition and inversion
 -------------------------------
@@ -187,6 +187,8 @@ initial guesses yourself.::
     plt.xlabel("Distance [$\\mu$M]")
     plt.title("Before fitting")
 
+.. image:: figures/fdfitting/fdfitting_reca_before.png
+
 After tuning the initial guesses, the model is ready to be fitted. We can fit the model to the data by calling the
 function :meth:`.fit() <lumicks.pylake.FdFit.fit()>`. This estimates the model parameters by
 minimizing the least squares differences between the model's dependent variable and the data in the
@@ -204,9 +206,13 @@ Plot the result of the fit::
     plt.xlabel("Distance [$\\mu$M]");
     plt.title("After fitting")
 
+.. image:: figures/fdfitting/fdfitting_reca_after.png
+
 If you wish to customize the label that appears in the legend, you can pass a custom `label` as an additional argument::
 
     fit.plot(label="my_fit")
+
+.. image:: figures/fdfitting/fdfitting_reca_myfit.png
 
 Sometimes, we want to plot the model over a range of
 values (in this case values from 2.0 to 5.0) for the conditions corresponding to the `Control` and `RecA` data. We can
@@ -215,15 +221,21 @@ do this as follows::
     fit.plot("Control", "k--", np.arange(2.0, 5.0, 0.01))
     fit.plot("RecA", "k--", np.arange(2.0, 5.0, 0.01))
 
+.. image:: figures/fdfitting/fdfitting_reca_range.png
+
 Plot the fitted model without data::
 
     fit.plot("Control", "k--", np.arange(2.0, 5.0, 0.01), plot_data=False)
+
+.. image:: figures/fdfitting/fdfitting_reca_model.png
 
 It is also possible to obtain simulations from the model directly, using the fitted parameters::
 
     distance = np.arange(2.0, 5.0, 0.01)
     simulated_force = model(distance, fit["Control"])
     plt.plot(distance, simulated_force)
+
+.. image:: figures/fdfitting/fdfitting_reca_simulations.png
 
 Here `fit["Control"]` grabs the parameters needed to simulate the condition corresponding to the dataset with the name `"Control"`.
 
@@ -281,6 +293,8 @@ point basis). This can be used to obtain dynamic contour lengths::
     distance3 = fd3.d.data
     fd3.plot_scatter()
 
+.. image:: figures/fdfitting/fdfitting_RecA_perpoint_Lc.png
+
 First set up a model and fit it to data without varying contour length::
 
     # Define the model to be fitted
@@ -298,6 +312,8 @@ Now, we wish to allow the contour length to vary on a per data point basis. For 
     plt.plot(distance3,lcs)
     plt.xlabel("Distance")
     plt.ylabel("Lc")
+
+.. image:: figures/fdfitting/fdfitting_reca_parameter_trace.png
 
 Here we see a few things happening. The first argument specifies the model to use for the inversion.
 The second argument should contain the parameters to be used in this method. Note how we select them from the parameters
@@ -344,11 +360,13 @@ be at those intersection points::
 
     profile.plot()
 
-.. image:: profile_good.png
+.. image:: figures/fdfitting/fdfitting_ml.png
 
 Another thing that may be of interest is to plot the relations between parameters in these profile likelihoods::
 
     profile.plot_relations()
+
+.. image:: figures/fdfitting/fdfitting_plot_relations.png
 
 These inferred relations can provide information on the coupling between different parameters. This can be quite
 informative when diagnosing fitting issues. For example, when fitting a contour length in the presence of an distance
@@ -356,7 +374,7 @@ offset, we can observe that the two are related. To produce the following figure
 of -0.1 and 0.1 for the distance respectively. We can see that the profile is perfectly flat until the distance reaches
 the bound. Only then does the profile suddenly jump.
 
-.. image:: profile_bad.png
+.. image:: figures/fdfitting/profile_bad.png
 
 What this shows is that a change in one parameter (`model/Lc`) can be compensated by a change in the other. This
 highlights the importance of constraining distance offset parameters when trying to estimate an absolute contour length.
@@ -491,6 +509,7 @@ Now we have fitted both the data before and after unfolding. The results can be 
     fit[model1].plot()
     fit[model2].plot()
 
+.. image:: figures/fdfitting/fdfitting_adk_twomodels.png
 
 Accessing the model parameters for a specific data set is a little more complicated in this setting. If we want to obtain the parameters for `“Before unfolding 1”`, we’d have to invoke::
 
