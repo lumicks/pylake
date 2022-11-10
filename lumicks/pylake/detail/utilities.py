@@ -101,3 +101,19 @@ def could_sum_overflow(a, axis=None):
     A `False` result is definitive. The sum will definitely not overflow.
     """
     return np.any(will_mul_overflow(np.max(a, axis), a.size if axis is None else a.shape[axis]))
+
+
+def hide_parameter(name):
+    """
+    A decorator for functions to remove a parameter from their call signature.
+    """
+    from inspect import signature
+
+    def hide_parameter_name(f):
+        # Remove parameter from signature and set cached signature attribute
+        sig = signature(f)
+        sig = sig.replace(parameters=(par for par in sig.parameters.values() if par.name != name))
+        f.__signature__ = sig
+        return f
+
+    return hide_parameter_name
