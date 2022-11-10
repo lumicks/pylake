@@ -5,11 +5,12 @@ from deprecated.sphinx import deprecated
 
 from ..detail.utilities import hide_parameter
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
+from .detail.localization_models import GaussianLocalizationModel
 from .detail.peakfinding import (
+    KymoPeaks,
+    merge_close_peaks,
     peak_estimate,
     refine_peak_based_on_moment,
-    merge_close_peaks,
-    KymoPeaks,
 )
 from .detail.scoring_functions import kymo_score
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
@@ -50,6 +51,7 @@ def _to_pixel_rect(rect, pixelsize, line_time_seconds):
     ]
 
 
+@hide_parameter("get_arg_defaults")
 def track_greedy(
     kymograph,
     channel,
@@ -62,6 +64,7 @@ def track_greedy(
     sigma_cutoff=2.0,
     rect=None,
     line_width=None,
+    get_arg_defaults=False,
 ):
     """Track particles on an image using a greedy algorithm.
 
@@ -174,12 +177,41 @@ def track_greedy(
     coordinates, time_points = peak_estimate(
         kymograph_data, np.ceil(0.5 * track_width_pixels), pixel_threshold
     )
-    if len(coordinates) == 0:
+    if len(coordinates) == 0 and not get_arg_defaults:
         return KymoTrackGroup([])
 
-    position, time, m0 = refine_peak_based_on_moment(
-        kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)
-    )
+    if len(coordinates) > 0:
+        position, time, m0 = refine_peak_based_on_moment(
+            kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)
+        )
+
+    if get_arg_defaults:
+        track_width_default = _default_track_widths[kymograph._calibration.unit]
+
+        def _to_rect(tmin, tmax, pmin, pmax):
+            return tuple(
+                (t * kymograph.line_time_seconds, p * kymograph.pixelsize[0])
+                for t, p in ((tmin, pmin), (tmax + 1, pmax + 1))
+            )
+
+        return (
+            {
+                "dependent": {
+                    "track_width": track_width,
+                    "pixel_threshold": pixel_threshold,
+                    "sigma": 0.5 * track_width,
+                    "rect": _to_rect(time.min(), time.max(), position.min(), position.max())
+                    if len(coordinates) > 0
+                    else ((0.0, 0.0), (0.0, 0.0)),
+                },
+                "independent": {
+                    "track_width": track_width_default,
+                    "pixel_threshold": np.percentile(kymograph.get_image(channel), 98),
+                    "sigma": 0.5 * track_width_default,
+                    "rect": _to_rect(0, kymograph.shape[1], 0, kymograph.shape[0]),
+                },
+            },
+        )
 
     if rect:
         (t0, p0), (t1, p1) = _to_pixel_rect(
