@@ -936,6 +936,34 @@ def test_ensemble_cve(blank_kymo):
     np.testing.assert_allclose(single_group_msd.std_err, single_track_msd.std_err)
 
 
+@pytest.mark.parametrize("max_lag, diffusion_ref, std_err_ref, localization_var_ref", [
+    (None, 0.44567901234567886, 0.27564925652921307, -0.17827160493827154),
+    (4, 0.3030617283950619, 0.2895503367634419, 0.08913580246913569),
+])
+def test_ensemble_ols(blank_kymo, max_lag, diffusion_ref, std_err_ref, localization_var_ref):
+    """Tests the ensemble diffusion estimate"""
+    kymotracks = KymoTrackGroup(
+        [
+            KymoTrack(time_idx, coordinate, blank_kymo, "red")
+            for (time_idx, coordinate) in (
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
+                (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 5),
+            )
+        ]
+    )
+
+    ensemble_diffusion = kymotracks.ensemble_diffusion("ols", max_lag=max_lag)
+    np.testing.assert_allclose(ensemble_diffusion.value, diffusion_ref)
+    np.testing.assert_allclose(ensemble_diffusion.std_err, std_err_ref)
+    np.testing.assert_allclose(ensemble_diffusion.localization_variance, localization_var_ref)
+    assert ensemble_diffusion.variance_of_localization_variance is None
+    np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
+    assert ensemble_diffusion.method == "ensemble ols"
+    assert ensemble_diffusion.unit == "um^2 / s"
+    assert ensemble_diffusion._unit_label == "$\\mu$m$^2$/s"
+
+
 def test_invalid_ensemble_diffusion(blank_kymo):
     """Tests whether we can call this function at the diffusion level"""
     kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red")])
