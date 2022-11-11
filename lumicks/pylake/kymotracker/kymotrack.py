@@ -947,7 +947,7 @@ class KymoTrackGroup:
 
         return [k.estimate_diffusion(method, *args, **kwargs) for k in filtered_tracks]
 
-    def ensemble_diffusion(self, method):
+    def ensemble_diffusion(self, method, *, max_lag=None):
         """Determine ensemble based diffusion estimates.
 
         Determines ensemble based diffusion estimates for the entire group of KymoTracks. This
@@ -956,12 +956,17 @@ class KymoTrackGroup:
 
         Parameters
         ----------
-        method : {"cve"}
+        method : {"cve", "ols"}
             - "cve" : Covariance based estimator. Optimal if SNR > 1. Ensemble average is
               determined by determining the weighted average of the individual track estimates. The
               standard error is computed by determining the weighted average of the associated
               standard errors for each estimate (Equation 57 and 58 from Vestergaard [7]_). See
               :meth:`KymoTrack.estimate_diffusion` for more detailed information and references.
+            - "ols" : Ordinary least squares. Determines the ensemble mean squared displacements for
+              the entire KymoTrackGroup and estimates a diffusion constant for it. See
+              :meth:`KymoTrack.estimate_diffusion` for more detailed information and references.
+        max_lag : int
+            Maximum number of lags to include when using the ordinary least squares method (OLS).
 
         References
         ----------
@@ -971,8 +976,10 @@ class KymoTrackGroup:
         """
         if method == "cve":
             return ensemble_cve(self)
+        elif method == "ols":
+            return ensemble_ols(self, max_lag)
         else:
-            raise ValueError(f'Invalid method ({method}) selected. Method must be "cve".')
+            raise ValueError(f'Invalid method ({method}) selected. Method must be "cve" or "ols".')
 
     def ensemble_msd(self, max_lag=None, min_count=2) -> EnsembleMSD:
         r"""This method returns the weighted average of the Mean Squared Displacement (MSD) for all

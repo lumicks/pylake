@@ -1056,3 +1056,66 @@ def ensemble_cve(kymotracks):
         _unit_label=cve_based[0].unit,
         variance_of_localization_variance=var_of_localization_var,
     )
+
+
+def _determine_optimal_points_ensemble(frame_lags, msds, n_coord, max_iterations=100):
+    """Calculate optimal number of points to include in the diffusion estimate.
+
+    See :func:`lumicks.pylake.kymotracker.detail.msd_estimation.determine_optimal_points`
+    for more information.
+    """
+    num_slope = max(2, n_coord // 10)  # Need at least two points for a linear regression!
+
+    num_slopes = set()
+    for _ in np.arange(max_iterations):
+        num_slopes.add(num_slope)
+
+        # Determine the number of points to include in the next fit
+        num_slope, _ = optimal_points(
+            calculate_localization_error(frame_lags[:num_slope], msds[:num_slope]), n_coord
+        )
+
+        if num_slope in num_slopes:
+            return num_slope
+
+    warnings.warn(
+        RuntimeWarning("Warning, maximum number of iterations exceeded. Returning best solution.")
+    )
+
+    return num_slope
+
+
+def ensemble_ols(kymotracks, max_lag):
+    ensemble_msd = kymotracks.ensemble_msd(max_lag)
+    track_length = len(ensemble_msd.counts) + 1
+
+    if any(np.diff(ensemble_msd.lags) > 1):
+        warnings.warn(
+            RuntimeWarning(
+                "Your tracks have missing frames. Note that this can lead to a suboptimal estimates"
+            )
+        )
+
+    optimal_lags = (
+        _determine_optimal_points_ensemble(ensemble_msd.lags, ensemble_msd.msd, track_length)
+        if not max_lag
+        else max_lag
+    )
+
+    intercept, slope, var_slope = _diffusion_ols(
+        ensemble_msd.lags[:optimal_lags], ensemble_msd.msd[:optimal_lags], track_length
+    )
+
+    time_step = kymotracks._kymo.line_time_seconds
+    to_time = 1.0 / (2.0 * time_step)
+    src_calibration = kymotracks._kymo._calibration
+    return DiffusionEstimate(
+        value=slope * to_time,
+        std_err=np.sqrt(var_slope / np.mean(ensemble_msd.effective_sample_size)) * to_time,
+        num_lags=optimal_lags,
+        num_points=sum(len(t) for t in kymotracks),
+        localization_variance=intercept / 2.0,
+        method="ensemble ols",
+        unit=f"{src_calibration.unit}^2 / s",
+        _unit_label=f"{src_calibration.unit_label}$^2$/s",
+    )
