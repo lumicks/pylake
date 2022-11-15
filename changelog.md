@@ -1,65 +1,62 @@
 # Changelog
 
-## v0.13.2 | tbd
+## v0.13.2 | 2022-11-15
 
 #### New features
 
-* Fixed and reintroduced lazy loading for `TimeSeries` data.
-* You can now add two `KymoTrackGroups` tracked on the same kymo together with the `+` operator.
-* TIFFs exported from `Scan` and `Kymo` now contain metadata. The `DateTime` tag indicated the start/stop timestamp of each frame. The `ImageDescription` tag contains additional information about the confocal acquisition parameters.
-* Added covariance-based estimator (cve) option to `KymoTrack.estimate_diffusion()`. See [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
+* Added covariance-based estimator (`cve`) option to `KymoTrack.estimate_diffusion()`. See [kymotracker documentation](https://lumicks-pylake.readthedocs.io/en/v0.13.2/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
+* TIFFs exported from `Scan` and `Kymo` now contain metadata. The `DateTime` tag indicates the start/stop timestamp of each frame. The `ImageDescription` tag contains additional information about the confocal acquisition parameters.
+* Added the `Kymo.duration` property to provide convenient access to the total scan time in seconds.
+* Added addition operator to `KymoTrackGroup`. `KymoTrackGroups` tracked on the same `Kymo` can be concatenated with the `+` operator.
 * Added the optional `min_length` parameter to `KymoTrackGroup.estimate_diffusion()` to discard tracks shorter than a specified length from the analysis.
-* Harmonized method `plot()` call signature for `Scan`, `Kymo`, `PointScan` and `CorrelatedStack`:
-  * `Scan`, `Kymo` and `PointScan`: Made argument `channel` optional
-  * `Scan` and `PointScan`: Added argument `show_title`
+* Added the `DwelltimeModel.rate_constants` property along with additional documentation explaining the assumptions that underlie using the exponential model. See the [dwell time analysis documentation](https://lumicks-pylake.readthedocs.io/en/v0.13.2/tutorial/population_dynamics.html#dwelltime-analysis) for more information.
+* Ensure same call signature for `plot()` methods for `Scan`, `Kymo`, `PointScan` and `CorrelatedStack`:
+  * `Scan`, `Kymo` and `PointScan`: Made argument `channel` optional.
+  * `Scan` and `PointScan`: Added argument `show_title`.
   * `Kymo`: Added arguments `image_handle` and `show_title`.
   * `CorrelatedStack`: See deprecation changelog entry.
-* `Kymo.plot()` now returns a handle of the plotted image
-* `PointScan.plot()` now returns a list of handles of the plotted lines
-* Added the `Kymo.duration` property.
-* Added the `DwelltimeModel.rate_constants` property along with additional documentation explaining the assumptions that underlie using the exponential model. See the [dwell time analysis documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#dwelltime-analysis) for more information.
-
-#### Other changes
-
-* All `KymoTrack` intances must have the same source `Kymo` and color channel in order to be in the same `KymoTrackGroup` instance. While this behavior was required previously for some downstream analyses on the tracks, it is now explicitly enforced upon `KymoTrackGroup` construction.
-* When calling `KymoTrackGroup.estimate_diffusion()` without specifying the `min_length` parameter, tracks which are shorter than the required length for the specified method will be discarded from analysis and a warning emitted. Previously, if any tracks were shorter than required, an error would be raised.
-
-#### Deprecations
-
-* Deprecated property `CorrelatedStack.src`.
-* Reordered the keyword arguments of the method `CorrelatedStack.plot()` and enforced all parameters after `channel` to be keyword arguments. For details see the [docstring](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.correlated_stack.CorrelatedStack.html#lumicks.pylake.correlated_stack.CorrelatedStack.plot).
-* Enforced the argument `axes` of the method `plot()` for `Scan`, `Kymo` and `PointScan` to be a keyword argument.
+* Introduced lazy loading for `TimeSeries` data. This means that the data corresponding to a `TimeSeries` channel is not read from disk until it is used.
 
 #### Bugfixes
 
+* Added a check which verifies that a `Kymo` is not downsampled prior to estimating a diffusion constant. Computing diffusion constants from temporally downsampled kymographs is now explicitly disallowed.
 * Fixed a bug in `KymoTrack.estimate_diffusion()` that could lead to biased estimates obtained with the `"ols"` estimator. For the diffusion estimate itself to be affected, specific lags have to be missing from the track (for example every second point in a track). This is a regression that was introduced in `v0.12.1`.
-* Added a warning to `KymoTrack.estimate_diffusion()` used with the `"ols"` method when several points are missing from a track. In this case the uncertainty estimate is also biased. See the section on [diffusive processes](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
+* Added a warning to `KymoTrack.estimate_diffusion()` used with the `"ols"` method when points are missing from a track. In this case the uncertainty estimate is biased. See the section on [diffusive processes](https://lumicks-pylake.readthedocs.io/en/v0.13.2/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
 * Added a warning that estimating the optimal number of points to use when using the `"ols"` method can be biased if many points are missing.
-* Fixed a bug in `KymoTrack.estimate_diffusion()` that could lead to biased estimates obtained with the `"gls"` estimator when gaps occur in the track. Such cases now produce an exception recommending the user to refine the track prior to diffusion estimation. See the section on [diffusive processes](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
-* `lk.track_greedy` now returns an empty `KymoTrackGroup` instead of an empty list when no coordinates exceed the threshold.
-* Functions that use `KymoTrackGroup` now gracefully handle the cases where no tracks are available. The refinement functions `refine_tracks_centroid` and `refine_tracks_gaussian` return an empty list, while `KymoTrackGroup.fit_binding_times()` and `KymoTrackGroup.plot_binding_histogram()` raise an exception.
-* `lk.track_greedy` now returns an empty `KymoTrackGroup` instead of an error when an ROI is selected that results in no lines tracked.
-* Computing diffusion constants from temporally downsampled kymographs is now explicitly disallowed.
+* Fixed a bug in `KymoTrack.estimate_diffusion()` that could lead to biased estimates obtained with the `"gls"` estimator when gaps occur in the track. Such cases now produce an exception recommending the user to refine the track prior to diffusion estimation. See the section on [diffusive processes](https://lumicks-pylake.readthedocs.io/en/v0.13.2/tutorial/kymotracking.html#studying-diffusion-processes) for more details.
+* Fixed issue where on Jupyter Lab the kymotracker widget would align the Kymograph and track parameters vertically rather than horizontally.
+* Functions that use `KymoTrackGroup` now gracefully handle the cases where no tracks are available. The refinement functions `refine_tracks_centroid()` and `refine_tracks_gaussian()` return an empty list, while `KymoTrackGroup.fit_binding_times()` and `KymoTrackGroup.plot_binding_histogram()` raise an exception.
+* `lk.track_greedy()` now returns an empty `KymoTrackGroup` instead of an empty list when no coordinates exceed the threshold.
+* `lk.track_greedy()` now returns an empty `KymoTrackGroup` instead of an error when an ROI is selected that results in no lines tracked.
 * Fixed a bug where the `pixel_threshold` could be set to zero for an empty image. Now the minimum `pixel_threshold` is one.
 * Fixed a bug where single pixel detections in a `KymoTrackGroup` would contribute values with a dwell time of zero. These are now dropped, the correct minimally observable time is set appropriately and a warning is issued.
-* Fixed slicing of a `Kymo` where slicing from a time point inside the last line to the end (e.g. `kymo["5s":]`) resulted in a `Kymo` which returned errors upon trying to access its contents. 
+* Fixed slicing of a `Kymo` where slicing from a time point inside the last line to the end (e.g. `kymo["5s":]`) resulted in a `Kymo` which returned errors upon trying to access its contents.
 * Fixed a minor bug in force calibration. In rare cases it was possible that the procedure to generate an initial guess for the power spectral fit failed. This seemed to occur when the spectrum supplied is a mostly flat plateau. After the fix, an alternative method to compute an initial guess is applied in cases where the regular method fails. Note that successful calibrations were not at risk for being incorrect due to this bug since they would have resulted in an exception rather than an invalid result.
-* Fixed issue where on Jupyter Lab the kymotracker widget would align the Kymograph and track parameters vertically rather than horizontally.
 
-### Other changes
+#### Deprecations
 
-* Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.
+* Deprecated property `CorrelatedStack.src`. In future versions, the contents of `src` will be considered an implementation detail that is not directly accessible. Data should be accessed through the [public API](https://lumicks-pylake.readthedocs.io/en/v0.13.2/_api/lumicks.pylake.correlated_stack.CorrelatedStack.html).
+* Reordered the keyword arguments of the method `CorrelatedStack.plot()` and enforced all parameters after `channel` to be keyword arguments. For details see the [docstring](https://lumicks-pylake.readthedocs.io/en/v0.13.2/_api/lumicks.pylake.correlated_stack.CorrelatedStack.html#lumicks.pylake.correlated_stack.CorrelatedStack.plot).
+* Enforced the argument `axes` of the method `plot()` for `Scan`, `Kymo` and `PointScan` to be a keyword argument.
 * Renamed force distance fitting functions. They are deprecated now and will be removed in the future:
-    *  `inverted_marko_siggia_simplified` -> `wlc_marko_siggia_distance`
-    *  `marko_siggia_simplified` -> `wlc_marko_siggia_force`
-    *  `marko_siggia_ewlc_distance` -> `ewlc_marko_siggia_distance`
-    *  `marko_siggia_ewlc_force` -> `ewlc_marko_siggia_force`
-    *  `odijk` -> `ewlc_odijk_distance`
-    *  `inverted_odijk` -> `ewlc_odijk_force`
-    *  `freely_jointed_chain` -> `efjc_distance`
-    *  `inverted_freely_jointed_chain` -> `efjc_force`
-    *  `twistable_wlc` -> `twlc_distance`
-    *  `inverted_twistable_wlc` -> `twlc_force`
+  * `inverted_marko_siggia_simplified` -> `wlc_marko_siggia_distance`
+  * `marko_siggia_simplified` -> `wlc_marko_siggia_force`
+  * `marko_siggia_ewlc_distance` -> `ewlc_marko_siggia_distance`
+  * `marko_siggia_ewlc_force` -> `ewlc_marko_siggia_force`
+  * `odijk` -> `ewlc_odijk_distance`
+  * `inverted_odijk` -> `ewlc_odijk_force`
+  * `freely_jointed_chain` -> `efjc_distance`
+  * `inverted_freely_jointed_chain` -> `efjc_force`
+  * `twistable_wlc` -> `twlc_distance`
+  * `inverted_twistable_wlc` -> `twlc_force`
+
+#### Other changes
+
+* All `KymoTrack` instances must have the same source `Kymo` and color channel in order to be in the same `KymoTrackGroup` instance. While this behavior was required previously for some downstream analyses on the tracks, it is now explicitly enforced upon `KymoTrackGroup` construction.
+* When calling `KymoTrackGroup.estimate_diffusion()` without specifying the `min_length` parameter, tracks which are shorter than the required length for the specified method will be discarded from analysis and a warning emitted. Previously, if any tracks were shorter than required, an error would be raised.
+* Updated benchmark to not use deprecated functions and arguments. Prior to this change, running the benchmark would produce deprecation warnings.
+* `Kymo.plot()` now returns a handle of the plotted image.
+* `PointScan.plot()` now returns a list of handles of the plotted lines.
 
 ## v0.13.1 | 2022-09-08
 
