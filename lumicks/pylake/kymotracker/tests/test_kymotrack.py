@@ -686,7 +686,6 @@ def test_kymotrack_group_diffusion(blank_kymo, method, max_lags):
             np.testing.assert_allclose(getattr(est, attr), getattr(diff_result, attr))
 
 
-@pytest.mark.filterwarnings("ignore:Call to deprecated method estimate_diffusion_ols")
 def test_disallowed_diffusion_est(blank_kymo):
     contiguous_diffusion_error = (
         "Estimating diffusion constants from data which has been integrated over disjoint "
@@ -697,7 +696,9 @@ def test_disallowed_diffusion_est(blank_kymo):
     blank_kymo._contiguous = False
     k = KymoTrack([0, 1, 2, 3, 4, 5], [0.0, 1.0, 1.5, 2.0, 2.5, 3.0], blank_kymo, "red")
 
-    with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
+    with pytest.raises(NotImplementedError, match=contiguous_diffusion_error), pytest.warns(
+        DeprecationWarning, match="Call to deprecated method estimate_diffusion_ols"
+    ):
         k.estimate_diffusion_ols()
 
     with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
