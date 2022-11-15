@@ -1,9 +1,10 @@
 import warnings
+from dataclasses import astuple, dataclass
+from typing import Union
 
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from ..detail.utilities import hide_parameter
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.localization_models import GaussianLocalizationModel
 from .detail.peakfinding import (
@@ -15,6 +16,12 @@ from .detail.peakfinding import (
 from .detail.scoring_functions import kymo_score
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .kymotrack import KymoTrack, KymoTrackGroup
+
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
+
 
 __all__ = [
     "track_greedy",
@@ -51,7 +58,39 @@ def _to_pixel_rect(rect, pixelsize, line_time_seconds):
     ]
 
 
-@hide_parameter("get_arg_defaults")
+def _track_greedy_args(kymograph, channel, track_width=None, pixel_threshold=None, sigma=None):
+    @dataclass(frozen=True)
+    class Constraints:
+        min: Union[int, float] = None
+        max: Union[int, float] = None
+        step: Union[int, float] = None
+        min_inclusive: bool = False
+        max_inclusive: bool = False
+        description: str = ""
+
+    @dataclass(frozen=True)
+    class TrackGreedyArgs:
+        track_width: Annotated[
+            float, Constraints(min=0.0, description="Track width in physical units")
+        ]
+        pixel_threshold: Annotated[
+            float, Constraints(min=0.0, description="Intensity threshold for the pixels")
+        ]
+        sigma: Annotated[float, Constraints(description="Uncertainty in the particle position")]
+
+    track_width = (
+        _default_track_widths[kymograph._calibration.unit] if track_width is None else track_width
+    )
+    pixel_threshold = (
+        np.percentile(kymograph.get_image(channel), 98)
+        if pixel_threshold is None
+        else pixel_threshold
+    )
+    sigma = 0.5 * track_width if sigma is None else sigma
+
+    return TrackGreedyArgs(track_width, pixel_threshold, sigma)
+
+
 def track_greedy(
     kymograph,
     channel,
@@ -64,7 +103,6 @@ def track_greedy(
     sigma_cutoff=2.0,
     rect=None,
     line_width=None,
-    get_arg_defaults=False,
 ):
     """Track particles on an image using a greedy algorithm.
 
@@ -142,22 +180,25 @@ def track_greedy(
            tools for the automated quantitative analysis of molecular and cellular dynamics using
            kymographs. Molecular biology of the cell, 27(12), 1948-1957.
     """
-
     # TODO: remove line_width argument deprecation path
-    if track_width is None:
-        if line_width is None:
-            track_width = _default_track_widths[kymograph._calibration.unit]
-        else:
-            track_width = line_width
-            warnings.warn(
-                DeprecationWarning(
-                    "The argument `line_width` is deprecated; use `track_width` instead."
-                ),
-                stacklevel=2,
-            )
+    if track_width is None and line_width is not None:
+        track_width = line_width
+        warnings.warn(
+            DeprecationWarning(
+                "The argument `line_width` is deprecated; use `track_width` instead."
+            ),
+            stacklevel=2,
+        )
 
-    if pixel_threshold is None:
-        pixel_threshold = np.percentile(kymograph.get_image(channel), 98)
+    track_width, pixel_threshold, sigma = astuple(
+        _track_greedy_args(
+            kymograph,
+            channel,
+            track_width=track_width,
+            pixel_threshold=pixel_threshold,
+            sigma=sigma,
+        )
+    )
 
     if track_width <= 0:
         # Must be positive otherwise refinement fails
@@ -177,41 +218,12 @@ def track_greedy(
     coordinates, time_points = peak_estimate(
         kymograph_data, np.ceil(0.5 * track_width_pixels), pixel_threshold
     )
-    if len(coordinates) == 0 and not get_arg_defaults:
+    if len(coordinates) == 0:
         return KymoTrackGroup([])
 
-    if len(coordinates) > 0:
-        position, time, m0 = refine_peak_based_on_moment(
-            kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)
-        )
-
-    if get_arg_defaults:
-        track_width_default = _default_track_widths[kymograph._calibration.unit]
-
-        def _to_rect(tmin, tmax, pmin, pmax):
-            return tuple(
-                (t * kymograph.line_time_seconds, p * kymograph.pixelsize[0])
-                for t, p in ((tmin, pmin), (tmax + 1, pmax + 1))
-            )
-
-        return (
-            {
-                "dependent": {
-                    "track_width": track_width,
-                    "pixel_threshold": pixel_threshold,
-                    "sigma": 0.5 * track_width,
-                    "rect": _to_rect(time.min(), time.max(), position.min(), position.max())
-                    if len(coordinates) > 0
-                    else ((0.0, 0.0), (0.0, 0.0)),
-                },
-                "independent": {
-                    "track_width": track_width_default,
-                    "pixel_threshold": np.percentile(kymograph.get_image(channel), 98),
-                    "sigma": 0.5 * track_width_default,
-                    "rect": _to_rect(0, kymograph.shape[1], 0, kymograph.shape[0]),
-                },
-            },
-        )
+    position, time, m0 = refine_peak_based_on_moment(
+        kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)
+    )
 
     if rect:
         (t0, p0), (t1, p1) = _to_pixel_rect(
@@ -229,7 +241,7 @@ def track_greedy(
     # Convert algorithm parameters to pixel units
     velocity_pixels = vel * kymograph.line_time_seconds / position_scale
     diffusion_pixels = diffusion / (position_scale**2 / kymograph.line_time_seconds)
-    sigma_pixels = sigma / position_scale if sigma else 0.5 * track_width_pixels
+    sigma_pixels = sigma / position_scale
 
     tracks = points_to_line_segments(
         peaks,
