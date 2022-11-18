@@ -7,8 +7,8 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
 .. currentmodule:: lumicks.pylake
 
 .. autosummary::
-    :template: class.rst
     :toctree: _api
+    :template: class.rst
 
     File
     channel.Slice
@@ -18,6 +18,10 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     point_scan.PointScan
     correlated_stack.CorrelatedStack
     ColorAdjustment
+
+    :template: instance.rst
+
+    colormaps
 
 
 Force calibration

@@ -5,8 +5,9 @@ from itertools import zip_longest
 import numpy as np
 from deprecated import deprecated
 
+from . import colormaps
 from .adjustments import no_adjustment
-from .detail.confocal import ConfocalImage, _deprecate_basescan_plot_args, linear_colormaps
+from .detail.confocal import ConfocalImage, _deprecate_basescan_plot_args
 from .detail.image import make_image_title, reconstruct_num_frames
 from .detail.imaging_mixins import FrameIndex, VideoExport
 from .detail.plotting import get_axes, show_image
@@ -339,7 +340,6 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             scan.plot_correlated(file.force1x, channel="red")
         """
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
-        from .detail.confocal import linear_colormaps
 
         def plot_channel(frame):
             if channel in ("red", "green", "blue", "rgb"):
@@ -362,7 +362,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             title_factory,
             frame,
             reduce,
-            colormap=linear_colormaps[channel],
+            colormap=getattr(colormaps, channel),
             figure_scale=figure_scale,
             post_update=post_update,
         )
@@ -459,7 +459,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um),
-            cmap=linear_colormaps[channel],
+            cmap=getattr(colormaps, channel),
         )
 
         image_handle = show_image(

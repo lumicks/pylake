@@ -6,7 +6,6 @@ from typing import List
 import cachetools
 import numpy as np
 from deprecated.sphinx import deprecated
-from matplotlib.colors import LinearSegmentedColormap
 from numpy import typing as npt
 
 from ..adjustments import no_adjustment
@@ -14,13 +13,6 @@ from .image import reconstruct_image, reconstruct_image_sum
 from .imaging_mixins import TiffExport
 from .mixin import ExcitationLaserPower, PhotonCounts
 from .utilities import could_sum_overflow
-
-linear_colormaps = {
-    "red": LinearSegmentedColormap.from_list("red", colors=[(0, 0, 0), (1, 0, 0)]),
-    "green": LinearSegmentedColormap.from_list("green", colors=[(0, 0, 0), (0, 1, 0)]),
-    "blue": LinearSegmentedColormap.from_list("blue", colors=[(0, 0, 0), (0, 0, 1)]),
-    "rgb": None,
-}
 
 
 def _int_mean(a, total_size, axis):

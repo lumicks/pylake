@@ -33,6 +33,11 @@ This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment`
     stack.plot(channel="red", adjustment=lk.ColorAdjustment([50, 50, 50], [100, 250, 196]))
 
 
+There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`; the available colormaps are:
+`.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image with the cyan colormap::
+
+    stack.plot(channel="blue", cmap=lk.colormaps.cyan)
+
 By default the limits should be provided in absolute values, although percentiles can be used instead for convenience::
 
     stack.plot(channel="red", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))

@@ -27,6 +27,8 @@ Or just pick a single one by providing the name of the scan as ``scan=file.scans
     scan = file.scans["41"]
     scan.plot("red")
 
+.. _confocal_plotting:
+
 Plotting and Exporting
 ----------------------
 
@@ -53,6 +55,11 @@ When this is the case, it may be beneficial to manually set the color limits for
 This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment` to plotting or export functions::
 
     scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
+
+There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`; the available colormaps are:
+`.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image with the cyan colormap::
+
+    scan.plot(channel="blue", cmap=lk.colormaps.cyan)
 
 Here the first array gives the minimal values for the color scale of red, green and blue respectively (here `[0, 0, 0]`) and the second array gives the maximum values for the color scales.
 The color scale is linear by default, but `Gamma correction <https://en.wikipedia.org/wiki/Gamma_correction>`_ can be applied in addition to the bounds by supplying an extra argument named `gamma`.
