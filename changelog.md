@@ -7,6 +7,7 @@
 * Added `KymoTrack.plot()` and `KymoTrackGroup.plot()` methods to conveniently plot the coordinates of tracked lines. See the [kymotracking documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more details.
 * Added `KymoTrackGroup.ensemble_diffusion()` for estimating an average diffusion for a collection of tracks.
 * Added the `lk.GaussianMixtureModel.extract_dwell_times()` method to calculate dwell-times for all states from channel data.
+* Added `lk.colormaps` with custom colormaps for plotting single-channel images. Note: this is a `namedtuple` so you can access the attributes using the dot notation (for example `kymo.plot("blue", cmap=lk.colormaps.cyan)`). The available attributes are `red`, `green`, `blue`, `magenta`, `yellow`, `cyan`.
 
 ## v0.13.2 | 2022-11-15
 

@@ -33,6 +33,10 @@ argument accepts the strings "red", "green", "blue", or "rgb". This function acc
 arguments that are passed to :func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally. Note
 also, the axes are labeled with the appropriate time and position units.
 
+.. note::
+
+    The same plotting options available for :ref:`confocal scans <confocal_plotting>` are also available for kymographs.
+
 The kymograph can also be exported to TIFF format::
 
     kymo.export_tiff("image.tiff")

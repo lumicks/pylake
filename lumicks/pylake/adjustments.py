@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib as mpl
+from matplotlib.colors import LinearSegmentedColormap
+from dataclasses import make_dataclass
 
 
 class ColorAdjustment:
@@ -121,3 +123,55 @@ class ColorAdjustment:
 
 
 no_adjustment = ColorAdjustment.nothing()
+
+
+def _make_cmap(name, color):
+    LinearSegmentedColormap.from_list(name, colors=[(0, 0, 0), color])
+
+
+_available_colormaps = {
+    "red": _make_cmap("red", (1, 0, 0)),
+    "green": _make_cmap("green", (0, 1, 0)),
+    "blue": _make_cmap("blue", (0, 0, 1)),
+    "magenta": _make_cmap("magenta", (1, 0, 1)),
+    "yellow": _make_cmap("yellow", (1, 1, 0)),
+    "cyan": _make_cmap("cyan", (0, 1, 1)),
+}
+
+
+class _ColorMaps(
+    make_dataclass(
+        "ColorMaps",
+        [(key, LinearSegmentedColormap) for key in _available_colormaps.keys()],
+        frozen=True,
+    )
+):
+    """Pylake custom colormaps.
+
+    Attributes
+    ----------
+    red
+    green
+    blue
+    magenta
+    yellow
+    cyan
+
+    Examples
+    --------
+    ::
+
+        # plot the blue image from a kymograph with cyan colormap
+        kymo.plot(channel="blue", cmap=lk.colormaps.cyan)
+
+    """
+
+    def __str__(self):
+        return f"Pylake custom colormaps; available colormaps:\n\t{', '.join(_available_colormaps.keys())}"
+
+    @property
+    def rgb(self):
+        return None
+
+
+colormaps = _ColorMaps(**_available_colormaps)

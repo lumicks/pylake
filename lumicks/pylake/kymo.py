@@ -6,13 +6,13 @@ import numpy as np
 from deprecated.sphinx import deprecated
 from skimage.measure import block_reduce
 
+from . import colormaps
 from .adjustments import no_adjustment
 from .detail.confocal import (
     ConfocalImage,
     ScanAxis,
     ScanMetaData,
     _deprecate_basescan_plot_args,
-    linear_colormaps,
 )
 from .detail.image import histogram_rows, round_down, seek_timestamp_next_line
 from .detail.plotting import get_axes, show_image
@@ -333,7 +333,7 @@ class Kymo(ConfocalImage):
                 -0.5 * self.pixelsize[0],
             ],
             aspect=(image.shape[0] / image.shape[1]) * (self.duration / size_calibrated),
-            cmap=linear_colormaps[channel],
+            cmap=getattr(colormaps, channel),
         )
 
         image_handle = show_image(
