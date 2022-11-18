@@ -1,6 +1,6 @@
 .. warning::
     This is early access alpha functionality. While usable, this has not yet been tested in a large number of different
-    scenarios. The API is still be subject to change *without any prior deprecation notice*! If you use this
+    scenarios. The API can still be subject to change *without any prior deprecation notice*! If you use this
     functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
 Population Dynamics
@@ -13,23 +13,24 @@ Population Dynamics
 
 The following tools enable analysis of experiments which can be described as a system of discrete states. Consider as an example
 a DNA hairpin which can exist in a folded and unfolded state. At equilibrium, the relative populations of the two states are
-governed by the interconversion kinetics described by the rate constants \\(k_{fold}\\) and \\(k_{unfold}\\)
-
-.. image:: hairpin_kinetics.png
+governed by the interconversion kinetics described by the rate constants :math:`k_\mathrm{fold}` and :math:`k_\mathrm{unfold}`
 
 First let's take a look at some example force channel data. We'll downsample the data in order to speed up the calculations
 and smooth some of the noise::
 
-    raw_force = file.force1x
+    file = lk.File("hairpin.h5")
+    raw_force = file.force2x
     force = raw_force.downsampled_by(78)
 
+    plt.figure()
     raw_force.plot()
     force.plot(start=raw_force.start)
-    plt.xlim(0, 3)
+    plt.xlim(0, 2)  # let's zoom to the first 2 seconds
+    plt.show()
 
-.. image:: pop_hairpin_trace.png
+.. image:: figures/population_dynamics/hairpin_trace.png
 
-Care must be taken in downsampling the data so as not to introduce signal artifacts in the data (see below for a more detailed discussion).
+Care must be taken in downsampling the data so as not to introduce signal artifacts in the data (see :ref:`below <downsampling_artifacts>` for a more detailed discussion).
 
 The goal of the analyses described below is to label each data point in a state in order to extract
 kinetic and thermodynamic information about the underlying system.
@@ -38,44 +39,91 @@ Gaussian Mixture Models
 -----------------------
 
 The Gaussian Mixture Model (GMM) is a simple probabilistic model that assumes all data points belong
-to one of a fixed number of states, each of which is described by a (weighted) normal distribution.
+to one of a fixed number of states (:math:`K`), each of which is described by a normal distribution :math:`\mathcal{N}(\mu, \sigma)` weighted
+by some factor :math:`\phi`. The probability distribution function of this model is
 
-We can initialize a model from a force channel as follows::
+.. math::
 
-    gmm = lk.GaussianMixtureModel.from_channel(force, n_states=2)
-    print(gmm.weights) # [0.53070846 0.46929154]
-    print(gmm.means)   # [10.72850757 12.22295543]
-    print(gmm.std)     # [0.21461742 0.21564235]
+    \mathrm{GMM}(x | \phi, \mu, \sigma) = \sum_i^K \phi_i \mathcal{N}(x|\mu_i, \sigma_i) = \sum_i^K \phi_i \frac{1}{\sqrt{2 \pi \sigma_i^2}} \exp{\left( -\frac{(x-\mu_i)^2}{2\sigma_i^2} \right)}
 
-Here the force data is used to train a 2 state GMM. The weights give the fraction of time spent each state
-while the means and standard deviations indicate the average signal and noise for each state, respectively.
+The weights :math:`\phi_i` give the fraction of time spent in each state with the constraint :math:`\sum_i^K \phi_i = 1`. The means :math:`\mu_i` and
+standard deviations :math:`\sigma_i` indicate the average signal and noise for each state, respectively.
+
+The Pylake GMM implementation :class:`~lumicks.pylake.GaussianMixtureModel` is a wrapper around :class:`sklearn.mixture.GaussianMixture` with some
+added convenience methods and properties for working with C-Trap data. We can initialize a model from a force channel using :meth:`~lumicks.pylake.GaussianMixtureModel.from_channel`. Here we train a two-state model using only the first 20 seconds of the force data to speed up the calculation::
+
+    gmm = lk.GaussianMixtureModel.from_channel(force["0s":"20s"], n_states=2)
+
+We can inspect the parameters of the model with the :attr:`~lumicks.pylake.GaussianMixtureModel.weights`, :attr:`~lumicks.pylake.GaussianMixtureModel.means`,
+and :attr:`~lumicks.pylake.GaussianMixtureModel.std` properties. Note that, unlike the `scikit-learn` implementation, the states here are always ordered from
+smallest to largest mean value::
+
+    print(gmm.weights)  # [0.55505362 0.44494638]
+    print(gmm.means)  # [8.70803166 10.01637358]
+    print(gmm.std)  # [0.27888473 0.27492966]
+
+.. note::
+
+    Note, in the following examples we do not have to use the same slice of data that was used to train the model;
+    once a model is trained, it can be used to infer the states from any data that is properly described by it.
+
+    A common strategy to minimize the amount of time spent on training the model is to do precisely what we did here -- train with only a small fraction of
+    the data and then use the trained model to infer results about the full dataset. This approach is only valid, however, if the training data fully captures
+    the behavior of the full dataset. It is good practice to inspect the histogram with the full data or a larger slice of the data than was used to train
+    the model to check the validity of the optimized parameters.
 
 We can visually inspect the quality of the fitted model by plotting a histogram of the data overlaid with the weighted normal distribution probability density functions::
 
-    gmm.hist(force)
+    plt.figure()
+    gmm.hist(force["0s":"20s"])
+    plt.show()
 
-.. image:: pop_gmm_hist.png
+.. image:: figures/population_dynamics/gmm_hist.png
 
-We can also plot the time trace with each data point labeled with the most likely state::
+We can also plot the time trace with each data point labeled with its most likely state::
 
-    gmm.plot(force['0s':'2s'])
+    plt.figure()
+    gmm.plot(force['0s':'1s'])
+    plt.show()
 
-.. image:: pop_gmm_labeled_trace.png
+.. image:: figures/population_dynamics/gmm_labeled_trace.png
 
-Note that the data does not have to be the same data used to train the model.
+We can extract a list of dwell times (how long the system stays in one state before transitioning to another) using the
+:meth:`~lumicks.pylake.GaussianMixtureModel.extract_dwell_times` method::
 
-Data Pre-processing
-^^^^^^^^^^^^^^^^^^^
+    dwell_times = gmm.extract_dwell_times(force)
 
-It can be desirable to downsample the raw channel data in order to decrease the number of data points used
-by the model training algorithm (in order to speed up the calculation) and to smooth experimental noise.
-However, great care must be taken in doing so in order to avoid introducing artifacts into the signal.
+In the next section we'll fit these data to obtain lifetimes for the model states.
 
-As shown in the histograms below, as the data is downsampled the state peaks narrow considerably, but density
-between the peaks remains (indicated by the arrow). These intermediate data points are the result of averaging over a span of data from
-two different states. The result is the creation of a new state that does not arise from any physically relevant mechanism.
+.. _downsampling_artifacts:
 
-.. image:: pop_downsampling_notes.png
+Downsampling and data artifacts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As mentioned before, it can be desirable to downsample the raw channel data in order to decrease the number of data points used
+by the model training algorithm (in order to speed up the calculation) and to smooth experimental noise. However, great care must be taken in doing so
+in order to avoid introducing artifacts in the signal.
+
+We can test this by training models on the same data downsampled by different factors::
+
+    plt.figure()
+
+    for j, ds_factor in enumerate([10, 78, 350]):
+        plt.subplot(3, 1, j+1)
+        ds = raw_force["0s":"20s"].downsampled_by(ds_factor)
+        tmp_gmm = lk.GaussianMixtureModel.from_channel(ds, n_states=2)
+        tmp_gmm.hist(ds)
+        plt.xlim(8, 11)
+        plt.title(f"downsampled by {ds_factor}")
+
+    plt.tight_layout()
+    plt.show()
+
+.. image:: figures/population_dynamics/downsampling_problems.png
+
+As shown in the histograms above, as the data is downsampled the state peaks narrow considerably, but density
+between the peaks remains. These intermediate data points are the result of averaging over a span of data from
+two different states and do not arise from any (bio)physically relevant mechanism.
 
 Furthermore, states with very short lifetimes can be averaged out of the data if the downsampling factor is too high. Therefore,
 in order to ensure robust results, it may be advisable to carry out the analysis at a few different downsampled rates.
@@ -87,7 +135,7 @@ The lifetimes of bound states can be estimated by fitting observed dwell times :
 
 .. math::
 
-    \mathrm{Exp}\left( \tau \right) \sim \sum_i^M \frac{a_i}{\tau_i} \exp{\left( \frac{-t}{\tau_i} \right)}
+    \mathrm{Exp}\left(t | a, \tau \right) = \sum_i^M \frac{a_i}{\tau_i} \exp{\left( \frac{-t}{\tau_i} \right)}
 
 where each of the :math:`M` exponential components is characterized by a lifetime :math:`\tau_i` and an amplitude (or fractional contribution)
 :math:`a_i` under the constraint :math:`\sum_i a_i = 1`. The lifetime describes the mean time a state is expected to persist before transitioning
@@ -95,11 +143,12 @@ to another state. The distribution can alternatively be parameterized by a rate 
 
 .. math::
 
-    \mathrm{Exp}\left( k \right) \sim \sum_i^M a_i k_i \exp{\left( -k_i t \right)}
+    \mathrm{Exp}\left(t | a, k \right) = \sum_i^M a_i k_i \exp{\left( -k_i t \right)}
 
-The :class:`~lumicks.pylake.DwelltimeModel` class can be used to optimize the model parameters for an array of determined dwell times::
+The :class:`~lumicks.pylake.DwelltimeModel` class can be used to optimize the model parameters for an array of determined dwell times.
+Here we'll use the dwell times determined above for the high force state::
 
-    dwell_1 = lk.DwelltimeModel(dwelltimes_seconds, n_components=1)
+    dwell_1 = lk.DwelltimeModel(dwell_times[1], n_components=1)
 
 The model is optimized using Maximum Likelihood Estimation (MLE) :cite:`kaur2019dwell,woody2016memlet`. The advantage of this method
 is that it does not require binning the data. The number of exponential components to be used for the fit is chosen with the `n_components` argument.
@@ -110,9 +159,11 @@ This value is simply the inverse of the optimized lifetime(s). See :ref:`rate_co
 
 We can visually inspect the result with::
 
-    dwell_1.plot(bin_spacing="log")
+    plt.figure()
+    dwell_1.hist(bin_spacing="log")
+    plt.show()
 
-.. image:: kymo_bind_dwell_1.png
+.. image:: figures/population_dynamics/dwell1_hist.png
 
 The `bin_spacing` argument can be either `"log"` or `"linear"` and controls the spacing of the bin edges.
 The scale of the x- and y-axes can be controlled with the optional `xscale` and `yscale` arguments; if they are not specified
@@ -124,55 +175,85 @@ bins to be plotted as `n_bins`.
     advantage of the MLE method over analyses that use a least squares fitting to binned data, where the bin widths and number
     of bins can drastically affect the optimized parameters.
 
-We can clearly see that this distribution is not fit well by a single exponential decay. Let's now see what a double exponential distribution looks like::
+This distribution seems to be fit well with a single exponential component, however there is some density at short dwell times that is missed.
+We can also try a double exponential fit to see if the fitting improves::
 
-    dwell_2 = traces.fit_binding_times(n_components=2)
-    dwell_2.plot(bin_spacing="log")
+    dwell_2 = lk.DwelltimeModel(dwell_times[1], n_components=2)
 
-.. image:: kymo_bind_dwell_2.png
+    plt.figure()
+    dwell_2.hist(bin_spacing="log")
+    plt.show()
 
-Here we see that the double exponential fit visually looks better and the log likelihood is also higher than that
-for the single exponential fit. However, the log likelihood does not take into account model complexity, and will
-always increase for a model with more degrees of freedom. Instead, we can look at the Bayesian Information Criterion (BIC)
-or Akaike Information Criterion (AIC) to determine which model is better::
+.. image:: figures/population_dynamics/dwell2_hist.png
 
-    >>> print(dwell_1.bic, dwell_1.aic)
-    532.3299315589168  529.0366267341923
+Here we see visually that there is no significant improvement in the quality of the fit, so the single exponential is probably a better
+model for these data.
 
-    >>> print(dwell_2.bic, dwell_2.aic)
-    520.4562630650156  510.5763485908421
+We can also use some statistics to help choose the most appropriate model. The MLE method maximizes a :ref:`likelihood function <exponential_likelihood>`,
+with the final value reported in the legend of the histogram. We see that the likelihood of the double exponential model is slightly higher
+than that of the single exponential model which might suggest that the double exponential model is better. However,
+the likelihood does not take into account model complexity and will always increase with increasing number of adjustable parameters.
 
-These information criterion values weigh the log likelihood against the model complexity, and as such are more useful for
+More informative statistics for model comparison are the Information Criteria. Two specific criteria are available from the model:
+the Bayesian Information Criterion (BIC) and the Akaike Information Criterion (AIC)::
+
+    print(dwell_1.bic, dwell_1.aic)  # -7597.384625071581 -7602.4312723494295
+    print(dwell_2.bic, dwell_2.aic)  # -7602.027247179558 -7617.167189013104
+
+These information criteria values weigh the log likelihood against the model complexity, and as such are more useful for
 model selection. In general, the model with the lowest value is optimal. We can see that both values are lower for the double
-exponential model, indicating that it is a better fit to the data.
+exponential model, but only slightly so it is not strong evidence to choose the more complex model.
 
-We can see this effect if we purposely overfit the data. The following plot shows the result of fitting simulated data (randomly sampled
-from a single exponential distribution) with either a one- or two-component model. In the figure legends we see that the log likelihood
-increases slightly for the two-component model because of the larger degrees of freedom. However, the BIC for the one-component model is
-indeed lower, as expected:
+Confidence intervals from bootstrapping
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: kymo_bic_compare.png
-
-Going back to our experimental data, we can next attempt to estimate confidence intervals (CI) for the parameters using bootstrapping.
-Here, a random dataset with the same size as the original is sampled (with replacement) from the original dataset. This sampled dataset
+As an additional check, we can estimate confidence intervals (CI) for the parameters using bootstrapping.
+Here, a dataset with the same size as the original is randomly sampled (with replacement) from the original dataset. This random sample
 is then fit using the MLE method, just as for the original dataset. The fit results in a new estimate for the model parameters.
-This process is repeated many times, and the distribution of the resulting parameters can be analyzed to estimate certain statistics about the them::
+This process is repeated many times, and the distribution of the resulting parameters can be analyzed to estimate certain statistics about them::
 
-    dwell_2.calculate_bootstrap(iterations=1000)
+    dwell_2.calculate_bootstrap(iterations=100)
+
+    plt.figure()
     dwell_2.bootstrap.plot(alpha=0.05)
+    plt.show()
 
-.. image:: kymo_bind_bootstrap_2.png
+.. image:: figures/population_dynamics/dwell2_bootstrap.png
 
-Here we see the distributions of the bootstrapped parameters. The vertical lines indicate the
-means of the distributions, while the red area indicates the estimated confidence intervals. The `alpha` argument determines
-the CI that is estimated as `100*(1-alpha)` % CI; in this case we're showing the estimate for the 95% CI. The values for the
-lower and upper bounds are the `100*(alpha/2)` and `100*(1-alpha/2)` percentiles of the distributions.
+Here we see the distributions of the bootstrapped parameters, each of which ideally should look like a Normal (Gaussian) distribution.
+The vertical lines indicate the means of the distributions, while the red area indicates the estimated confidence intervals.
+The `alpha` argument determines the CI that is estimated as `100*(1-alpha)` % CI; in this case we're showing the estimate for the 95% CI.
+The values for the lower and upper bounds are the `100*(alpha/2)` and `100*(1-alpha/2)` percentiles of the distributions.
 
-Note, however, that while the means correspond well with the optimized model parameters, the distributions are not symmetric.
-In such a case, the simple method of using percentiles as CI values may not be appropriate. For more advanced analysis,
-the distribution values are directly available through the properties `DwelltimeModel.bootstrap.amplitude_distributions` and
-`DwelltimeModel.bootstrap.lifetime_distributions` which return the data as a `numpy` array with
-shape `[# components, # bootstrap samples]`.
+Clearly the distributions here are not Gaussian. Specifically, the two distributions on the left for the fractional amplitudes
+are split. In fact, many amplitudes are estimated near zero which effectively removes that component from the model.
+This analysis strongly indicates that the single exponential model is preferable. We can also look at
+the bootstrap for that model to verify the results are satisfactory::
+
+    dwell_1.calculate_bootstrap(iterations=100)
+
+    plt.figure()
+    dwell_1.bootstrap.plot(alpha=0.05)
+    plt.show()
+
+.. image:: figures/population_dynamics/dwell1_bootstrap.png
+
+Here we only see one distribution since the fractional amplitude for a single exponential model is `1` by definition. The results
+look much better, with most of the distribution being fairly Gaussian with the exception of some outliers at longer lifetimes.
+These likely are the result of poorly fit or numerical unstable models.
+
+.. note::
+    As we have seen, care must be taken when choosing between different models and interpreting the bootstrapped confidence intervals.
+    The means of the bootstrap distribution should correspond well with the optimized model parameters from the original data.
+    Here, we only ran 100 iterations of the sampling to keep the analysis time short for exploratory purposes. When computing the distributions
+    to obtain final values when a model has been selected, you should generally run significantly more iterations.
+
+    As mentioned before, ideally the bootstrapped distributions should also be normally distributed. However sometimes even
+    valid models can yield skewed distributions. In such a case, the simple method of using percentiles as CI values may not be appropriate.
+    For more advanced analysis, the distribution values are directly available through the properties
+    :attr:`~lumicks.pylake.population.dwelltime.DwelltimeBootstrap.amplitude_distributions`
+    and :attr:`~lumicks.pylake.population.dwelltime.DwelltimeBootstrap.lifetime_distributions` which return the data as a `numpy` array with
+    shape `[# components, # bootstrap samples]`.
 
 .. _rate_constants:
 
@@ -227,6 +308,8 @@ become non-identifiable, meaning that there are multiple sets of parameters that
 the optimization is to run a bootstrap simulation (as described above) and check the shape of the resulting distributions. Very wide, flat, or skewed
 distributions can indicate that the model was not fitted to a sufficient amount of data. For processes that are best described by two exponentials, it may
 be necessary to acquire more data to obtain a reliable fit.
+
+.. _exponential_likelihood:
 
 The Exponential (Mixture) Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
