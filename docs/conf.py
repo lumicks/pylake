@@ -75,6 +75,7 @@ intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
     "matplotlib": ("http://matplotlib.org/", None),
+    "sklearn": ("http://scikit-learn.org/stable", (None, "./_intersphinx/sklearn-objects.inv")),
 }
 
 plot_include_source = True

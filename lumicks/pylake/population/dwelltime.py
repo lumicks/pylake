@@ -32,7 +32,7 @@ class DwelltimeBootstrap:
 
         Parameters
         ----------
-        optimized : BindingDwelltimes
+        optimized : DwelltimeModel
             optimized model results
         iterations : int
             number of iterations (random samples) to use for the bootstrap
