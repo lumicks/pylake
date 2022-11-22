@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 from lumicks.pylake import DwelltimeModel
+from lumicks.pylake.population.dwelltime import _dwellcounts_from_statepath
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
@@ -62,3 +63,43 @@ def test_bootstrap(exponential_data):
     np.testing.assert_allclose(mean, 0.4642469883372174, rtol=1e-5)
     np.testing.assert_allclose(ci, (0.3647038711684928, 0.5979550940729152), rtol=1e-5)
     np.random.seed()
+
+
+def test_dwellcounts_from_statepath():
+    def test_results(sp, exclude, ref_dwelltimes):
+        dwells, ranges = _dwellcounts_from_statepath(sp, exclude_ambiguous_dwells=exclude)
+        for key in ref_dwelltimes.keys():
+            # test dwelltimes
+            np.testing.assert_equal(dwells[key], ref_dwelltimes[key])
+            # test slicing, ignore if empty
+            if len(ranges[key]):
+                values = np.hstack([sp[slice(*r)] for r in ranges[key]])
+                np.testing.assert_equal(values, key)
+
+    sp = [0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0]
+    test_results(sp, True, {0: [2, 1], 1: [3, 1, 2]})
+    test_results(sp, False, {0: [1, 2, 1, 5], 1: [3, 1, 2]})
+
+    sp = [1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1]
+    test_results(sp, True, {0: [2, 1, 4], 1: [1, 2]})
+    test_results(sp, False, {0: [2, 1, 4], 1: [3, 1, 2, 1]})
+
+    sp = [0, 1, 1, 2, 0, 0, 1, 2, 2, 2, 0, 0, 0, 0, 1]
+    test_results(sp, True, {0: [2, 4], 1: [2, 1], 2: [1, 3]})
+    test_results(sp, False, {0: [1, 2, 4], 1: [2, 1, 1], 2: [1, 3]})
+
+    sp = [0, 1, 1, 3, 0, 0, 1, 3, 3, 3, 0, 0, 0, 0, 1]
+    test_results(sp, True, {0: [2, 4], 1: [2, 1], 3: [1, 3]})
+    test_results(sp, False, {0: [1, 2, 4], 1: [2, 1, 1], 3: [1, 3]})
+
+    sp = [0, 1, 1]
+    test_results(sp, True, {0: [], 1: []})
+    test_results(sp, False, {0: [1], 1: [2]})
+
+    sp = [0, 0, 0]
+    test_results(sp, True, {0: []})
+    test_results(sp, False, {0: [3]})
+
+    dwells, ranges = _dwellcounts_from_statepath([], exclude_ambiguous_dwells=True)
+    assert dwells == {}
+    assert ranges == {}
