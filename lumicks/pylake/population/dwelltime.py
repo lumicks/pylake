@@ -480,3 +480,55 @@ def _exponential_mle_optimize(
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood
     return result.x, -result.fun
+
+
+def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells=True):
+    """Calculate the dwell counts and slicing indices for all states in a state path trajectory.
+
+    Note: the counts are the number of frames or time points. To convert to proper
+    dwelltimes, multiply the counts by the time step between points.
+
+    Parameters
+    ----------
+    statepath : numpy.typing.ArrayLike
+        Time-ordered array of state labels
+    exclude_ambiguous_dwells : bool
+            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, tracks which
+            start in the first frame or end in the last frame of the kymograph are not used in the analysis,
+            since the exact start/stop times of the binding event are not definitively known.
+
+    Returns
+    -------
+    dict:
+        Dictionary of all dwell counts for each state. Keys are state labels.
+    dict:
+        Dictionary of slicing indices for all dwells for each state. Keys are state labels.
+    """
+    unique_states = np.unique(statepath)
+    # pad with extra state to catch first and last dwells
+    # this also effectively shifts our indexing by one so we
+    # keep the exclusive last index
+    assert np.all(np.isfinite(statepath))
+    padded_statepath = np.hstack((np.nan, statepath, np.nan))
+
+    # store list slicing indices for each dwell in a state
+    state_ranges = {}
+    for state in unique_states:
+        mask = np.array(padded_statepath == state).astype(int)
+        diff_mask = np.diff(mask)
+
+        # find slicing indices as [start:stop) pairs
+        # as rows in array
+        idx = np.argwhere(diff_mask != 0).squeeze()
+        idx = idx.reshape((-1, 2))
+
+        if exclude_ambiguous_dwells:
+            start = 1 if idx[0, 0] == 0 else 0
+            stop = -1 if idx[-1, 1] == len(statepath) else None
+            idx = idx[start:stop]
+
+        state_ranges[state] = idx
+
+    dwell_counts = {key: np.diff(idx, axis=1).squeeze() for key, idx in state_ranges.items()}
+
+    return dwell_counts, state_ranges
