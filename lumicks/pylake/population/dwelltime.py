@@ -482,7 +482,7 @@ def _exponential_mle_optimize(
     return result.x, -result.fun
 
 
-def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells=True):
+def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells):
     """Calculate the dwell counts and slicing indices for all states in a state path trajectory.
 
     Note: the counts are the number of frames or time points. To convert to proper
@@ -490,12 +490,12 @@ def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells=True):
 
     Parameters
     ----------
-    statepath : numpy.typing.ArrayLike
+    statepath : array_like
         Time-ordered array of state labels
     exclude_ambiguous_dwells : bool
-            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, tracks which
-            start in the first frame or end in the last frame of the kymograph are not used in the analysis,
-            since the exact start/stop times of the binding event are not definitively known.
+        Determines whether to exclude dwelltimes which are not exactly determined. If `True`, the first
+        and last dwells are not used in the analysis, since the exact start/stop times of these events are
+        not definitively known.
 
     Returns
     -------

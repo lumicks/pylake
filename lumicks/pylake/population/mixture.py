@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.mixture import GaussianMixture
 from scipy import stats
+from .dwelltime import _dwellcounts_from_statepath
 
 
 def as_sorted(fcn):
@@ -120,6 +121,34 @@ class GaussianMixtureModel:
         labels = self._model.predict(data)  # wrapped model labels
         output_states = np.argsort(self._map)  # output model state labels in wrapped model order
         return output_states[labels]  # output model labels
+
+    def extract_dwell_times(self, trace, *, exclude_ambiguous_dwells=True):
+        """Calculate lists of dwelltimes for each state in a time-ordered statepath array.
+
+        Parameters
+        ----------
+        trace : lumicks.pylake.channel.Slice
+            Channel data to be analyzed.
+        exclude_ambiguous_dwells : bool
+            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, the first
+            and last dwells are not used in the analysis, since the exact start/stop times of these events are
+            not definitively known.
+
+        Returns
+        -------
+        dict:
+            Dictionary of all dwell times (in seconds) for each state. Keys are state labels.
+        dict:
+            Dictionary of slicing indices for all dwell ranges for each state. Keys are state labels.
+        """
+        statepath = self.label(trace)
+        dt_seconds = 1.0 / trace.sample_rate
+
+        dwell_counts, _ = _dwellcounts_from_statepath(
+            statepath, exclude_ambiguous_dwells=exclude_ambiguous_dwells
+        )
+        dwell_times = {key: counts * dt_seconds for key, counts in dwell_counts.items()}
+        return dwell_times
 
     @property
     def bic(self):
