@@ -199,3 +199,37 @@ To obtain a copy of the edited :class:`~lumicks.pylake.correlated_stack.Correlat
     new_stack.plot_tether()
 
 .. image:: widget_stack_editor_4.png
+
+.. _kymotracker_widget:
+
+Kymotracking
+------------
+
+.. note::
+    For details of the tracking algorithms and downstream analyses see the :doc:`/tutorial/kymotracking` tutorial.
+
+For tracking binding events on a kymograph, using the :func:`~lumicks.pylake.track_greedy` algorithm purely by function calls can be challenging if not all parts
+of the kymograph look the same or when the signal to noise ratio is somewhat low. To help with this, we included a kymotracking widget that can help you
+track subsections of the kymograph and iteratively tweak the algorithm parameters as you do so. You can open this widget
+by invoking the following command::
+
+    kymowidget = lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2)
+
+Here we see the optional `axis_aspect_ratio` argument that allows us to control the aspect ratio of the plot and how much data is visible at a given time.
+You can easily pan horizontally by clicking and dragging left or right.
+
+You can optionally also pass algorithm parameters when opening the widget::
+
+    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14)
+
+You can also change the range of each of the algorithm parameter sliders. To do this, simply pass a dictionary where the key indicates the algorithm
+parameter and the value contains its desired range in the form `(minimum bound, maximum bound)`. For example::
+
+    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, slider_ranges={"window": (0, 8)})
+
+Detected tracks are accessible through the `.tracks` property::
+
+    tracks = kymowidget.tracks
+    print(tracks)
+
+For more information on its use, please see the example :ref:`cas9_kymotracking`.
