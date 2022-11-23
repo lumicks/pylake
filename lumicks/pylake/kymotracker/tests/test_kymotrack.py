@@ -2,6 +2,7 @@ import re
 import pytest
 import matplotlib.pyplot as plt
 from lumicks.pylake.kymotracker.kymotrack import *
+from lumicks.pylake.kymotracker.kymotrack import _split_points
 from lumicks.pylake.kymotracker.detail.localization_models import *
 from lumicks.pylake import filter_tracks
 from lumicks.pylake.kymo import _kymo_from_array
@@ -897,3 +898,47 @@ def test_invalid_ensemble_diffusion(blank_kymo):
     kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red")])
     with pytest.raises(ValueError, match=re.escape("Invalid method (egg) selected")):
         kymotracks.ensemble_diffusion("egg")
+
+
+@pytest.mark.parametrize(
+    "data, max_points, refs",
+    [
+        (np.array([]), 4, [[]]),
+        (np.array([1]), 4, [[1]]),
+        (np.array([1, 2, 3, 4, 5]), 2, [[1, 2], [3, 4], [5]]),
+        (np.array([1, 2, 3, 4, 5, 6]), 2, [[1, 2], [3, 4], [5, 6]]),  # Exact multiples, no gaps
+        (np.array([1, 2, 3]), 4, [[1, 2, 3]]),  # One group only
+        (np.array([1, 2, 4, 5]), None, [[1, 2], [4, 5]]),  # Split at gap
+        (np.array([1, 2, 4, 5, 7]), None, [[1, 2], [4, 5], [7]]),  # Split at multiple gaps
+        (
+            np.array([1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17]),
+            3,
+            [[1, 2], [4, 5, 6], [7, 8], [11, 12, 13], [14, 15, 16], [17]],
+        ),  # Split with gaps and maximum
+        (
+            np.array([2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17]),
+            2,
+            [[2], [4, 5], [6, 7], [8], [11, 12], [13, 14], [15, 16], [17]],
+        ),  # Split with gaps and different max points
+    ],
+)
+def test_split_points(data, max_points, refs):
+    splits = _split_points(data, max_points)
+    for chunk, ref in zip(np.array_split(data, splits), refs):
+        np.testing.assert_equal(chunk, ref)
+
+
+@pytest.mark.parametrize(
+    "max_points, ref_idx, ref_pos",
+    [
+        (4, [[]], [[]]),
+        (4, [[1, 2, 3], [5, 6, 7], [12, 13]], [[3, 4, 5], [6, 7, 4], [8, 9]]),
+        (None, [[1, 2, 3], [5, 6, 7], [12, 13]], [[3, 4, 5], [6, 7, 4], [8, 9]]),
+        (2, [[1, 2], [3], [5, 6], [7], [12, 13]], [[3, 4], [5], [6, 7], [4], [8, 9]]),
+    ],
+)
+def test_kymotrack_split(max_points, ref_idx, ref_pos, blank_kymo):
+    kymotrack = KymoTrack(np.hstack(ref_idx), np.hstack(ref_pos), blank_kymo, "red")
+    for s, idx, pos in zip(kymotrack.split(max_points), ref_idx, ref_pos):
+        np.testing.assert_equal(s.time_idx, idx)
+        np.testing.assert_equal(s.position, pos)

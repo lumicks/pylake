@@ -16,6 +16,9 @@ class LocalizationModel:
 
     position: np.ndarray
 
+    def _split(self, indices_or_sections):
+        return [LocalizationModel(p) for p in np.array_split(self.position, indices_or_sections)]
+
 
 @dataclass(frozen=True)
 class GaussianLocalizationModel(LocalizationModel):
@@ -39,3 +42,15 @@ class GaussianLocalizationModel(LocalizationModel):
     sigma: np.ndarray
     background: np.ndarray
     _overlap_fit: np.ndarray
+
+    def _split(self, indices_or_sections):
+        return [
+            GaussianLocalizationModel(position, total_photons, sigma, background, _overlap_fit)
+            for position, total_photons, sigma, background, _overlap_fit in zip(
+                np.array_split(self.position, indices_or_sections),
+                np.array_split(self.total_photons, indices_or_sections),
+                np.array_split(self.sigma, indices_or_sections),
+                np.array_split(self.background, indices_or_sections),
+                np.array_split(self._overlap_fit, indices_or_sections),
+            )
+        ]

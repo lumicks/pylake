@@ -7,6 +7,18 @@ from .. import __version__
 from ..population.dwelltime import DwelltimeModel
 
 
+def _split_points(data, max_points=None):
+    breakpoints = np.nonzero(np.diff(data) > 1)[0] + 1
+    if not max_points:
+        return breakpoints
+
+    # Split any longer than num_points into smaller chunks
+    start_stop = np.hstack((0, breakpoints, data.size))
+    return np.hstack(
+        [np.arange(start, stop, max_points) for start, stop in zip(start_stop, start_stop[1:])]
+    )[1:]
+
+
 def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_width):
     """Export KymoTrackGroup to a csv file.
 
@@ -144,6 +156,32 @@ class KymoTrack:
             self.time_idx + time_pixel_offset,
             self.coordinate_idx + coordinate_pixel_offset,
         )
+
+    def _split(self, indices_or_sections):
+        """Split KymoTrack into segments.
+
+        Splits a KymoTrack into segments using `numpy.array_split`.
+
+        Parameters
+        ----------
+        indices_or_sections : int or 1-D array
+            Forwarded to :func:`numpy.array_split`.
+        """
+        return [
+            self._with_coordinates(time_idx, localization)
+            for time_idx, localization in zip(
+                np.array_split(self._time_idx, indices_or_sections),
+                self._localization._split(indices_or_sections),
+            )
+        ]
+
+    def split(self, max_points=None):
+        """Split KymoTrack into segments
+
+        This method splits a KymoTrack into segments whenever there is missing data. When max_points
+        is specified, long tracks are then split up in segments of at most `max_points`.
+        """
+        return self._split(_split_points(self.time_idx, max_points))
 
     def __add__(self, other):
         """Concatenate two KymoTracks"""
@@ -713,6 +751,9 @@ class KymoTrackGroup:
             with the image. The value indicates the number of pixels in either direction to sum over.
         """
         export_kymotrackgroup_to_csv(filename, self, delimiter, sampling_width)
+
+    def split(self, max_points=None):
+        return KymoTrackGroup([t for track in self for t in track.split(max_points=max_points)])
 
     def fit_binding_times(
         self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
