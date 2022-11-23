@@ -1,14 +1,17 @@
 from dataclasses import dataclass
 from numbers import Integral
 from typing import List
+from pathlib import Path
 
 import numpy as np
 from lumicks.pylake.channel import Continuous, Slice, empty_slice
 from lumicks.pylake.detail.confocal import ConfocalImage, ScanMetaData
 from lumicks.pylake.detail.image import InfowaveCode
+from lumicks.pylake.file import File
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
 
+from .mock_file import MockDataFile_v2
 from .mock_json import mock_json
 
 
@@ -150,6 +153,123 @@ def generate_image_data(image_data, samples_per_pixel, line_padding, multi_color
             for channel in np.moveaxis(image_data, -1, 0)
         ),
     )
+
+
+def confocal_mock_file_h5(
+    path: Path,
+    name: str,
+    scan: bool,
+    json_confocal: str,
+    infowave: np.ndarray,
+    red_counts: np.ndarray = None,
+    green_counts: np.ndarray = None,
+    blue_counts: np.ndarray = None,
+    start: int = None,
+    dt: int = None,
+    force_data: np.ndarray = None,
+    force_start: int = None,
+    force_channel: str = "1x",
+):
+    """Create a context manager wrapping an H5 like `MockDataFile_v2` that contains data to create a
+    Kymo or a Scan.
+
+    Parameters
+    ----------
+    path : Path
+        Directory in which the mock file is created.
+    name : str
+        Name of the created confocal object.
+    scan : bool
+        Create a mock file with a Scan or a Kymo?
+    json_confocal : str
+        JSON string as returned by the function `generate_scan_json()`.
+    infowave : np.ndarray
+        Infowave for corresponding photon counts.
+    red_counts : Optional[np.ndarray]
+        Red channel photon counts. Per default the mock file does not provide a red photon counts
+        channel.
+    green_counts : Optional[np.ndarray]
+        Green channel photon counts. Per default the mock file does not provide a green photon
+        counts channel.
+    blue_counts : Optional[np.ndarray]
+        Blue channel photon counts. Per default the mock file does not provide a blue photon counts
+        channel.
+    start : Optional[int]
+        The start timestamp in ns of the `infowave` and corresponding photon counts.
+    dt : Optional[int]
+        The time increment between successive timestamps in ns.
+    force_data : Optional[np.ndarray]
+        Force channel data in pN. Per default the mock file does not provide a force channel.
+    force_start : Optional[int]
+        Start timestamp in ns of the force if `force_data` is provided, defaults to `start`.
+    force_channel : Optional[str]
+        Force channel to use for the force if `force_data` is provided, defaults to "1x".
+
+    Examples
+    --------
+    ::
+        # Create a kymo based on `MockConfocalFile` and reference
+        kymo, ref = test_kymos["standard"]
+        add_force_channel(kymo, ref, channel="force1x")
+
+        # Create a kymo based on a H5 like `MockDataFile_v2` as data source
+        json_confocal = generate_scan_json(
+            axes_dict_list(
+                [sa.axis for sa in kymo._metadata.scan_axes],
+                [sa.num_pixels for sa in kymo._metadata.scan_axes],
+                [sa.pixel_size_um * 1e3 for sa in kymo._metadata.scan_axes],
+            )
+        )
+        name = "standard"
+        with confocal_mock_file_h5(
+            path=tmp_path,
+            name=name,
+            scan=False,
+            json_confocal=json_confocal,
+            infowave=ref.infowave.data.data,
+            red_counts=kymo.file.red_photon_count.data,
+            green_counts=kymo.file.green_photon_count.data,
+            blue_counts=kymo.file.blue_photon_count.data,
+            start=ref.start,
+            dt=ref.timestamps.dt,
+            force_data=kymo.file.force1x.data,
+            force_start=ref.start,
+            force_channel="1x",
+        ) as file:
+
+            kymo_h5 = file.kymos[name]
+
+            # Do something with `kymo_h5` ...
+    """
+    mock_class = MockDataFile_v2
+    group = "Scan" if scan else "Kymograph"
+    mock_manager = mock_class(path / f"{group}_{mock_class.__name__}.h5")
+    mock_manager.write_metadata()
+
+    dset = mock_manager.make_json_data(group, name, json_confocal)
+
+    start = infowave.start if start is None else np.int64(start)
+    dt = infowave.dt if dt is None else np.int64(dt)
+    dset.attrs["Start time (ns)"] = start
+    dset.attrs["Stop time (ns)"] = start + len(infowave) * dt
+    mock_manager.make_continuous_channel("Info wave", "Info wave", start, dt, infowave)
+    for color, counts in zip(("Red", "Green", "Blue"), (red_counts, green_counts, blue_counts)):
+        mock_manager.make_continuous_channel("Photon count", color, start, dt, counts)
+
+    if force_data is not None:
+        force_start = start if force_start is None else np.int64(force_start)
+        mock_manager.make_continuous_channel(
+            "Force HF", f"Force {force_channel.lower()}", force_start, dt, force_data
+        )
+
+    class MockFileContext(File):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, type, value, traceback):
+            self.h5.close()
+
+    return MockFileContext.from_h5py(mock_manager.file)
 
 
 class MockConfocalFile:
