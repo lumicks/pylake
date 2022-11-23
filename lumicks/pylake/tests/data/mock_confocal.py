@@ -55,6 +55,39 @@ def generate_scan_json(axes):
     )
 
 
+def axes_dict_list(axes, num_of_pixels, pixel_sizes_nm):
+    """Create a list of axes dictionaries that can be used as parameter for `generate_scan_json()`
+
+    Parameters
+    ----------
+    axes : List[int]
+        List with physical order of axes.
+    num_of_pixels : List[int]
+        Number of pixels for each axis.
+    pixel_sizes_nm : List[float]
+        Size of pixels for each axis.
+
+    Returns
+    -------
+    List[dict]
+        List of dictionaries with an element for each axis:
+        "axis" : int
+            Axis order.
+        "num of pixels" : int
+            Number of pixels along this axis.
+        "pixel size (nm)" : float
+            Pixel size along this axis.
+    """
+    return [
+        {
+            "axis": axis,
+            "num of pixels": num_pixels,
+            "pixel size (nm)": pixel_size,
+        }
+        for axis, num_pixels, pixel_size in zip(axes, num_of_pixels, pixel_sizes_nm)
+    ]
+
+
 def generate_image_data(image_data, samples_per_pixel, line_padding, multi_color=False):
     """Generates the appropriate info_wave and photon_count data for image data.
 
@@ -155,16 +188,9 @@ class MockConfocalFile:
             image, samples_per_pixel, line_padding, multi_color=multi_color
         )
         json_string = generate_scan_json(
-            [
-                {
-                    "axis": axis,
-                    "num of pixels": num_pixels,
-                    "pixel size (nm)": pixel_size,
-                }
-                for pixel_size, axis, num_pixels in zip(
-                    pixel_sizes_nm, axes, image.shape[-2 - multi_color : image.ndim - multi_color]
-                )
-            ]
+            axes_dict_list(
+                axes, image.shape[-2 - multi_color : image.ndim - multi_color], pixel_sizes_nm
+            )
         )
 
         return (
@@ -197,16 +223,7 @@ class MockConfocalFile:
         if axes == [] and num_pixels == [] and pixel_sizes_nm == []:
             json_string = generate_scan_json([])
         else:
-            json_string = generate_scan_json(
-                [
-                    {
-                        "axis": axis,
-                        "num of pixels": num_pixels,
-                        "pixel size (nm)": pixel_size,
-                    }
-                    for (axis, pixel_size, num_pixels) in zip(axes, pixel_sizes_nm, num_pixels)
-                ]
-            )
+            json_string = generate_scan_json(axes_dict_list(axes, num_pixels, pixel_sizes_nm))
 
         return (
             MockConfocalFile(
