@@ -5,37 +5,46 @@ FD curves
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-The following code loads an HDF5 file and lists all of the FD curves inside of it::
+Load an HDF5 file and list all FD curves inside the file::
 
-    import lumicks.pylake as lk
+    >>> file = lk.File("20200430-192424 FD Curve FD_5_control_forw.h5")
+    >>> list(file.fdcurves)
+    ['FD_5_control_forw']
 
-    file = lk.File("example.h5")
-    list(file.fdcurves)  # e.g. shows: "['baseline', '1', '2']"
 
 To visualizes an FD curve, you can use the built-in :meth:`.plot_scatter()
 <lumicks.pylake.fdcurve.FdCurve.plot_scatter()>` method::
 
-    # Pick a single FD curve
-    fd = file.fdcurves["baseline"]
+    fd = file.fdcurves["FD_5_control_forw"]
     fd.plot_scatter()
 
+.. image:: figures/fdcurves/fdcurves_scatter.png
+
 Here, :attr:`.fdcurves <lumicks.pylake.File.fdcurves>` is a standard Python dictionary, so we can
-do standard `dict` thing with it. For example, we can iterate over all the FD curve in a file and plot them::
+do all the things you can do with a regular dictionary. For example, we can iterate over all the FD curves in a file and plot them::
 
     for name, fd in file.fdcurves.items():
         fd.plot_scatter()
-        plt.savefig(name)
+
+.. image:: figures/fdcurves/fdcurves_scatter.png
 
 By default, the FD channel pair is `downsampled_force2` and `distance1`.
 This assumes that the force extension was done by moving trap 1, which is the most common.
 In that situation the force measured by trap 2 is more precise because that trap is static.
 The channels can be switched with the following code::
 
-    alt_fd = fd.with_channels(force='1x', distance='2')
+    alt_fd = fd.with_channels(force='1x', distance='1')
     alt_fd.plot_scatter()
 
-    # or as quick one-liner for plotting
-    fd.with_channels(force='2y', distance='2').plot_scatter()
+.. image:: figures/fdcurves/fdcurves_scatter_f1x.png
+
+or as quick one-liner for plotting::
+
+    fd.with_channels(force='1x', distance='1').plot_scatter()
+
+.. image:: figures/fdcurves/fdcurves_scatter_f1x.png
+
+Other force channels that can be selected are `'1y'` and `'2y'` and the distance channel can also have value `'2'`.
 
 The raw data can be accessed as well::
 
@@ -44,20 +53,37 @@ The raw data can be accessed as well::
     distance = fd.d
 
     # Access the raw data: specific channels
-    force = fd.downsampled_force1y
-    distance = fd.distance2
+    force = fd.downsampled_force1x
+    distance = fd.distance1
 
-    # Plot manually: FD curve
+Plot FD curve manually::
+
     plt.scatter(distance.data, force.data)
-    # Plot manually: force timetrace
-    plt.plot(force.timestamps, force.data)
+    plt.ylabel("Force (pN)")
+    plt.xlabel("Distance ($\mu$m)")
+    plt.title("Manually plotted fd curve")
+
+.. image:: figures/fdcurves/fdcurves_scatter_manual.png
+
+Plot force versus time manually::
+
+    plt.plot(force.timestamps,force.data)
+    plt.ylabel("Force (pN)")
+    plt.xlabel("Timestamps (ns)")
+    plt.title("Force vs Time")
+
+.. image:: figures/fdcurves/fdcurves_f_vs_time.png
 
 FD Ensembles
 ------------
 
-It's also possible to work with multiple FD curves as an ensemble::
+FD curves can be aligned by combining them in an fd ensemble.
+If all the fd curves of interest are in the same file, the ensemble can be defined as
+`fd_ensemble = lk.FdEnsemble(ensemble_file.fdcurves)`. If the fd curves are in different files, the ensemble can be defined as follows::
 
-    fd_ensemble = lk.FdEnsemble(file.fdcurves)
+    ensemble_file1 = lk.File("20210728-115145 FD Curve FD hairpin forward.h5")
+    ensemble_file2 = lk.File('20210728-115145 FD Curve FD hairpin back.h5')
+    fd_ensemble = lk.FdEnsemble({**ensemble_file1.fdcurves,**ensemble_file2.fdcurves})
 
 We can align the FD curves using the align function::
 
@@ -72,9 +98,21 @@ and distance from such an ensemble using::
 
     f = fd_ensemble.f
     d = fd_ensemble.d
+    plt.scatter(d, f, s=1)
+    plt.ylabel("Force (pN)")
+    plt.xlabel("Distance $\mu$m")
+    plt.title("Two aligned fd curves")
+
+.. image:: figures/fdcurves/fdcurves_aligned.png
 
 Baseline Correction
 -------------------
+
+FD curves can also be constructed from baseline corrected force data if the channel was exported from Bluelake with a baseline correction applied::
+
+    file = lk.File("example.h5")
+    fd = file.fdcurves["baseline"]  # low frequency, uncorrected force magnitude
+    fd_bl = fd.with_baseline_corrected_x()  # low frequency, baseline corrected force x-component
 
 .. note::
     By default, FD curves are constructed using the force magnitude :math:`F = \sqrt{F_x^2 + F_y^2}`. However, baseline
@@ -84,9 +122,3 @@ Baseline Correction
 
     Additionally, baseline-corrected FD curves are read directly from the source HDF5 file. Therefore, any data processing previously
     applied to the FD curve used to obtain the baseline corrected curve is lost.
-
-FD curves can also be constructed from baseline corrected force data if the channel was exported from Bluelake with a baseline correction applied::
-
-    file = lk.File("example.h5")
-    fd = file.fdcurves["baseline"]          # low frequency, uncorrected force magnitude
-    fd_bl = fd.with_baseline_corrected_x() # low frequency, baseline corrected force x-component
