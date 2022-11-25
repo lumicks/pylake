@@ -350,7 +350,9 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         def post_update(image_handle, image):
             return adjustment._update_limits(image_handle, image, channel)
 
-        title_factory = lambda frame: make_image_title(self, frame, show_name=False)
+        def title_factory(frame):
+            return make_image_title(self, frame, show_name=False)
+
         frame_timestamps = self.frame_timestamp_ranges()
 
         plot_correlated(

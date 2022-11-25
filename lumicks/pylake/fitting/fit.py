@@ -155,7 +155,7 @@ class Fit:
         for data in self.datasets.values():
             data._link_data(parameter_lookup)
 
-        defaults = [all_defaults[all_parameter_names.index(l)] for l in unique_parameter_names]
+        defaults = [all_defaults[all_parameter_names.index(n)] for n in unique_parameter_names]
         self._params._set_params(unique_parameter_names, defaults)
         self._built = True
 
