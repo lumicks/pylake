@@ -103,3 +103,15 @@ def test_dwellcounts_from_statepath():
     dwells, ranges = _dwellcounts_from_statepath([], exclude_ambiguous_dwells=True)
     assert dwells == {}
     assert ranges == {}
+
+
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+def test_plots(exponential_data):
+    """Check if `DwelltimeModel` fits can be plotted without an exception"""
+    dataset = exponential_data["dataset_2exp"]
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
+    fit.hist()
+
+    np.random.seed(123)
+    fit.calculate_bootstrap(iterations=2)
+    fit.bootstrap.plot()

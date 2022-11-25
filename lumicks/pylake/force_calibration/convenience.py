@@ -18,7 +18,7 @@ def calibrate_force(
     sample_rate,
     viscosity=None,
     active_calibration=False,
-    driving_data=np.asarray([]),
+    driving_data=None,
     driving_frequency_guess=None,
     axial=False,
     hydrodynamically_correct=False,
@@ -28,7 +28,7 @@ def calibrate_force(
     fast_sensor=False,
     num_points_per_block=2000,
     fit_range=(1e2, 23e3),
-    excluded_ranges=[],
+    excluded_ranges=None,
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
@@ -116,7 +116,7 @@ def calibrate_force(
         raise ValueError("When using fast_sensor=True, there is no diode model to fix.")
 
     if active_calibration:
-        if driving_data.size == 0:
+        if driving_data is None or driving_data.size == 0:
             raise ValueError("Active calibration requires the driving_data to be defined.")
         if not driving_frequency_guess or driving_frequency_guess < 0:
             raise ValueError("Approximate driving frequency must be specified and larger than zero")

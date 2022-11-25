@@ -2,7 +2,7 @@ import h5py
 from fnmatch import fnmatch
 
 
-def write_h5(h5_file, output_filename, compression_level=5, omit_data={}):
+def write_h5(h5_file, output_filename, compression_level=5, omit_data=None):
     """Write a modified h5 file to disk.
 
     Parameters
@@ -13,14 +13,14 @@ def write_h5(h5_file, output_filename, compression_level=5, omit_data={}):
         Output file name.
     compression_level : int
         Compression level for gzip compression.
-    omit_data : Set[str]
+    omit_data : Optional[Set[str]]
         Which data sets to omit. Should be a set of h5 paths.
     """
 
     with h5py.File(output_filename, "w") as out_file:
 
         def traversal_function(name, node):
-            if any([fnmatch(name, o) for o in omit_data]):
+            if omit_data and any([fnmatch(name, o) for o in omit_data]):
                 print(f"Omitted {name} from export")
                 return
 

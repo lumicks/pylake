@@ -290,13 +290,14 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         """Markers stored in the file"""
         return self._get_object_dictionary("Marker", Marker)
 
-    def save_as(self, filename, compression_level=5, omit_data={}):
+    def save_as(self, filename, compression_level=5, omit_data=None):
         """Write a modified h5 file to disk.
 
-        When transferring data, it can be beneficial to omit some channels from the h5 file, or use a higher compression
-        ratio. High frequency channels tend to take up a lot of space and aren't always necessary for every single
-        analysis. It is also worth mentioning that Bluelake exports files at compression level 1 for performance
-        reasons, so this function can help reduce the file size even when no data is omitted.
+        When transferring data, it can be beneficial to omit some channels from the h5 file, or use
+        a higher compression ratio. High frequency channels tend to take up a lot of space and
+        aren't always necessary for every single analysis. It is also worth mentioning that
+        Bluelake exports files at compression level 1 for performance reasons, so this function
+        can help reduce the file size even when no data is omitted.
 
         Parameters
         ----------
@@ -304,9 +305,10 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             Output file name.
         compression_level : int
             Compression level for gzip compression (default: 5).
-        omit_data : Set[str]
-            Which data sets to omit. Should be a set of h5 paths (e.g. {"Force HF/Force 1y"}). `fnmatch` patterns are
-            used to specify which fields to omit, which means you can use wildcards as well (see examples below).
+        omit_data : Optional[Set[str]]
+            Which data sets to omit. Should be a set of h5 paths (e.g. {"Force HF/Force 1y"}).
+            `fnmatch` patterns are used to specify which fields to omit, which means you can use
+            wildcards as well (see examples below).
 
         Examples
         --------

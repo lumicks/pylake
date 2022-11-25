@@ -98,7 +98,7 @@ class DwelltimeBootstrap:
         upper = np.quantile(data, 1 - (alpha / 2))
         return mean, (lower, upper)
 
-    def plot(self, alpha=0.05, n_bins=25, hist_kwargs={}, span_kwargs={}, line_kwargs={}):
+    def plot(self, alpha=0.05, n_bins=25, hist_kwargs=None, span_kwargs=None, line_kwargs=None):
         """Plot the bootstrap distributions for the parameters of a model.
 
         Parameters
@@ -107,18 +107,18 @@ class DwelltimeBootstrap:
             confidence intervals are calculated as 100*(1-alpha)%
         n_bins : int
             number of bins in the histogram
-        hist_kwargs : dict
+        hist_kwargs : Optional[dict]
             dictionary of plotting kwargs applied to histogram
-        span_kwargs : dict
+        span_kwargs : Optional[dict]
             dictionary of plotting kwargs applied to the patch indicating the area
             spanned by the confidence intervals
-        line_kwargs : dict
+        line_kwargs : Optional[dict]
             dictionary of plotting kwargs applied to the line indicating the
             distribution means
         """
-        hist_kwargs = {"facecolor": "#c5c5c5", "edgecolor": "#888888", **hist_kwargs}
-        span_kwargs = {"facecolor": "tab:red", "alpha": 0.3, **span_kwargs}
-        line_kwargs = {"color": "k", **line_kwargs}
+        hist_kwargs = {"facecolor": "#c5c5c5", "edgecolor": "#888888", **(hist_kwargs or {})}
+        span_kwargs = {"facecolor": "tab:red", "alpha": 0.3, **(span_kwargs or {})}
+        line_kwargs = {"color": "k", **(line_kwargs or {})}
 
         def plot_axes(data, key, component, use_index):
             plt.hist(data, bins=n_bins, **hist_kwargs)
@@ -261,9 +261,9 @@ class DwelltimeModel:
         self,
         n_bins=25,
         bin_spacing="linear",
-        hist_kwargs={},
-        component_kwargs={},
-        fit_kwargs={},
+        hist_kwargs=None,
+        component_kwargs=None,
+        fit_kwargs=None,
         xscale=None,
         yscale=None,
     ):
@@ -273,9 +273,9 @@ class DwelltimeModel:
         self,
         n_bins=25,
         bin_spacing="linear",
-        hist_kwargs={},
-        component_kwargs={},
-        fit_kwargs={},
+        hist_kwargs=None,
+        component_kwargs=None,
+        fit_kwargs=None,
         xscale=None,
         yscale=None,
     ):
@@ -287,11 +287,11 @@ class DwelltimeModel:
             number of bins in the histogram
         bin_spacing : {"log", "linear"}
             determines how bin edges are spaced apart
-        hist_kwargs : dict
+        hist_kwargs : Optional[dict]
             dictionary of plotting kwargs applied to histogram
-        component_kwargs : dict
+        component_kwargs : Optional[dict]
             dictionary of plotting kwargs applied to the line plot for each component
-        fit_kwargs : dict
+        fit_kwargs : Optional[dict]
             dictionary of plotting kwargs applied to line plot for the total fit
         xscale : {"log", "linear", None}
             scaling for the x-axis; when `None` default is "linear"
@@ -314,9 +314,9 @@ class DwelltimeModel:
         bins = scale(*limits, n_bins)
         centers = bins[:-1] + (bins[1:] - bins[:-1]) / 2
 
-        hist_kwargs = {"facecolor": "#cdcdcd", "edgecolor": "#aaaaaa", **hist_kwargs}
-        component_kwargs = {"marker": "o", "ms": 3, **component_kwargs}
-        fit_kwargs = {"color": "k", **fit_kwargs}
+        hist_kwargs = {"facecolor": "#cdcdcd", "edgecolor": "#aaaaaa", **(hist_kwargs or {})}
+        component_kwargs = {"marker": "o", "ms": 3, **(component_kwargs or {})}
+        fit_kwargs = {"color": "k", **(fit_kwargs or {})}
 
         components = self.pdf(centers)
 
@@ -426,7 +426,7 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
 
 
 def _exponential_mle_optimize(
-    n_components, t, min_observation_time, max_observation_time, initial_guess=None, options={}
+    n_components, t, min_observation_time, max_observation_time, initial_guess=None, options=None
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -443,7 +443,7 @@ def _exponential_mle_optimize(
     initial_guess : array_like
         initial guess for the model parameters ordered as
         [amplitude1, amplitude2, ..., lifetime1, lifetime2, ...]
-    options : dict
+    options : Optional[dict]
         additional optimization parameters passed to `minimize(..., options)`.
     """
     if np.any(np.logical_or(t < min_observation_time, t > max_observation_time)):

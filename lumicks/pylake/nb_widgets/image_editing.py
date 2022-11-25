@@ -30,7 +30,7 @@ def add_selector(axes, callback, button=None, interactive=True, **kwargs):
 
 class ImageStackAxes(Axes):
     def __init__(
-        self, *args, image, frame=0, channel="rgb", show_title=True, plot_kwargs={}, **kwargs
+        self, *args, image, frame=0, channel="rgb", show_title=True, plot_kwargs, **kwargs
     ):
         """Custom axes to handle mouse events for rotating images about a defined tether.
 
@@ -94,7 +94,7 @@ class ImageStackAxes(Axes):
 
 class ImageEditorAxes(ImageStackAxes):
     def __init__(
-        self, *args, image, frame=0, channel="rgb", show_title=True, plot_kwargs={}, **kwargs
+        self, *args, image, frame=0, channel="rgb", show_title=True, plot_kwargs, **kwargs
     ):
         """Custom axes to handle mouse events for rotating images about a defined tether.
 
@@ -223,7 +223,7 @@ class ImageEditorWidget:
 
 
 class KymoEditorAxes(Axes):
-    def __init__(self, *args, kymo, channel="rgb", plot_kwargs={}, **kwargs):
+    def __init__(self, *args, kymo, channel="rgb", plot_kwargs, **kwargs):
         """Custom axes to handle mouse events for rotating images about a defined tether.
 
         Parameters
