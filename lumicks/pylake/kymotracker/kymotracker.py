@@ -156,13 +156,13 @@ def track_greedy(
 
     if track_width <= 0:
         # Must be positive otherwise refinement fails
-        raise ValueError(f"track_width should be larger than zero")
+        raise ValueError("track_width should be larger than zero")
 
     if pixel_threshold <= 0:
-        raise ValueError(f"pixel_threshold should be larger than zero")
+        raise ValueError("pixel_threshold should be larger than zero")
 
     if diffusion < 0:
-        raise ValueError(f"diffusion should be positive")  # Must be positive or score model fails
+        raise ValueError("diffusion should be positive")  # Must be positive or score model fails
 
     kymograph_data = kymograph.get_image(channel)
 
@@ -381,7 +381,7 @@ def refine_tracks_centroid(tracks, track_width=None):
 
     if track_width <= 0:
         # Must be positive otherwise refinement fails
-        raise ValueError(f"track_width should be larger than zero")
+        raise ValueError("track_width should be larger than zero")
 
     track_width_pixels = np.ceil(track_width / tracks._kymo.pixelsize[0])
 

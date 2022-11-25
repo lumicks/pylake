@@ -1,7 +1,6 @@
 import enum
 import numpy as np
 from dataclasses import dataclass
-from typing import List
 from .geometry_2d import is_in_2d, is_opposite, calculate_image_geometry, get_candidate_generator
 from .scoring_functions import build_score_matrix
 

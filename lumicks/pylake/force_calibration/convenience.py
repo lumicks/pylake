@@ -1,4 +1,3 @@
-import numpy as np
 from lumicks.pylake.force_calibration.calibration_models import (
     ActiveCalibrationModel,
     PassiveCalibrationModel,

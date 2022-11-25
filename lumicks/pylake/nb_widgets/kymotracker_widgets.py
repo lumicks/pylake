@@ -482,15 +482,15 @@ class KymoWidget:
         self._track_connector.set_active(False)
 
         if value["new"] == "Track":
-            self._set_label("status", f"Drag right mouse button to track an ROI")
+            self._set_label("status", "Drag right mouse button to track an ROI")
             self._area_selector.set_active(True)
             self._adding = True
         elif value["new"] == "Remove Tracks":
-            self._set_label("status", f"Drag right mouse button to remove tracks from an ROI")
+            self._set_label("status", "Drag right mouse button to remove tracks from an ROI")
             self._area_selector.set_active(True)
             self._adding = False
         elif value["new"] == "Connect Tracks":
-            self._set_label("status", f"Drag right mouse button to connect two tracks")
+            self._set_label("status", "Drag right mouse button to connect two tracks")
             self._track_connector.set_active(True)
 
     def _show(self, use_widgets, **kwargs):

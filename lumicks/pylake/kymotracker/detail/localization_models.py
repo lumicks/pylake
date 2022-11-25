@@ -1,7 +1,5 @@
 import numpy as np
-from scipy import integrate
 from dataclasses import dataclass
-from typing import ClassVar
 
 __all__ = ["LocalizationModel", "GaussianLocalizationModel"]
 

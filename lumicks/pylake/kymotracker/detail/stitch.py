@@ -1,5 +1,4 @@
 import numpy as np
-from copy import deepcopy
 
 
 def distance_line_to_point(line_pt1, line_pt2, point):

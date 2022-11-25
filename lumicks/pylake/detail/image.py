@@ -2,7 +2,6 @@ import enum
 import math
 import numpy as np
 import warnings
-from deprecated import deprecated
 
 
 class InfowaveCode(enum.IntEnum):
