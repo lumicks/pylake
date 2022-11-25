@@ -171,7 +171,7 @@ class GaussianMixtureModel:
         components = np.vstack([stats.norm(m, s).pdf(x) for m, s in zip(self.means, self.std)])
         return self.weights.reshape((-1, 1)) * components
 
-    def hist(self, trace, n_bins=100, plot_kwargs={}, hist_kwargs={}):
+    def hist(self, trace, n_bins=100, plot_kwargs=None, hist_kwargs=None):
         """Plot a histogram of the data overlaid with the model PDF.
 
         Parameters
@@ -180,14 +180,14 @@ class GaussianMixtureModel:
             Data object to histogram.
         n_bins : int
             Number of histogram bins.
-        plot_kwargs : dict
+        plot_kwargs : Optional[dict]
             Plotting keyword arguments passed to the PDF line plot.
-        hist_kwargs : dict
+        hist_kwargs : Optional[dict]
             Plotting keyword arguments passed to the histogram plot.
         """
         import matplotlib.pyplot as plt
 
-        hist_kwargs = {"facecolor": "#c5c5c5", **hist_kwargs}
+        hist_kwargs = {"facecolor": "#c5c5c5", **(hist_kwargs or {})}
 
         lims = (np.min(trace.data), np.max(trace.data))
         bins = np.linspace(*lims, num=n_bins)
@@ -198,11 +198,11 @@ class GaussianMixtureModel:
         plt.hist(trace.data, bins=bins, density=True, **hist_kwargs)
         # reset color cycle
         plt.gca().set_prop_cycle(None)
-        plt.plot(x, g_components.T, **plot_kwargs)
+        plt.plot(x, g_components.T, **(plot_kwargs or {}))
         plt.ylabel("density")
         plt.xlabel(trace.labels.get("y", "signal"))
 
-    def plot(self, trace, trace_kwargs={}, label_kwargs={}):
+    def plot(self, trace, trace_kwargs=None, label_kwargs=None):
         """Plot a time trace with each data point labeled with the state assignment.
 
         Parameters
@@ -216,8 +216,8 @@ class GaussianMixtureModel:
         """
         import matplotlib.pyplot as plt
 
-        trace_kwargs = {"c": "#c5c5c5", **trace_kwargs}
-        label_kwargs = {"marker": "o", "ls": "none", "ms": 3, **label_kwargs}
+        trace_kwargs = {"c": "#c5c5c5", **(trace_kwargs or {})}
+        label_kwargs = {"marker": "o", "ls": "none", "ms": 3, **(label_kwargs or {})}
 
         labels = self.label(trace)
         trace.plot(**trace_kwargs)

@@ -238,7 +238,7 @@ def remove_notebooks_from_deps(app, _):
     if not hasattr(env, "nbfiles"):
         return
 
-    for target_docname, ipynb_path in env.nbfiles.items():
+    for ipynb_path in env.nbfiles.values():
         for docname, deps in env.dependencies.items():
             docpath = os.path.dirname(docname)
             relpath = os.path.relpath(ipynb_path, os.path.join(env.srcdir, docpath))

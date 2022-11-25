@@ -357,7 +357,7 @@ class Kymo(ConfocalImage):
         color_channel,
         aspect_ratio=0.25,
         reduce=np.mean,
-        kymo_args={},
+        kymo_args=None,
         adjustment=no_adjustment,
         **kwargs,
     ):
@@ -376,7 +376,7 @@ class Kymo(ConfocalImage):
         reduce : callable
             The :mod:`numpy` function which is going to reduce multiple samples into one. Forwarded
             to :meth:`Slice.downsampled_over() <lumicks.pylake.channel.Slice.downsampled_over()>`
-        kymo_args : dict
+        kymo_args : Optional[dict]
             Forwarded to :func:`matplotlib.pyplot.imshow()`
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
@@ -393,7 +393,7 @@ class Kymo(ConfocalImage):
         _, (ax1, ax2) = plt.subplots(2, 1, sharex="all")
 
         # plot kymo
-        self.plot(channel=color_channel, axes=ax1, adjustment=adjustment, **kymo_args)
+        self.plot(channel=color_channel, axes=ax1, adjustment=adjustment, **(kymo_args or {}))
         ax1.set_xlabel(None)
         xlim_kymo = ax1.get_xlim()  # Stored since plotting the force channel will change the limits
 

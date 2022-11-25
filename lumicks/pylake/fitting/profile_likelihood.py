@@ -433,18 +433,18 @@ class ProfileLikelihood1D:
             ]
         )
 
-    def plot_relations(self, params={}, **kwargs):
+    def plot_relations(self, params=None, **kwargs):
         """Plot the relations between the different parameters.
 
         Parameters
         ----------
-        params : Set[str]
+        params : Optional[Set[str]]
             List of parameter names to plot (optional, omission plots all)
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`."""
         parameters = self.parameters
 
-        if len(params) == 0:
+        if not params:
             other = [
                 x
                 for x in range(parameters.shape[1])
