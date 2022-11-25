@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 
-from ..adjustments import ColorAdjustment
+from ..adjustments import no_adjustment
 
 
 def get_axes(axes=None, image_handle=None):
@@ -17,7 +17,7 @@ def get_axes(axes=None, image_handle=None):
 
 def show_image(
     image,
-    adjustment=ColorAdjustment.nothing(),
+    adjustment=no_adjustment,
     channel="rgb",
     image_handle=None,
     axes=None,

@@ -7,7 +7,7 @@ import warnings
 import enum
 from copy import copy
 from dataclasses import dataclass
-from ..adjustments import ColorAdjustment
+from ..adjustments import no_adjustment
 
 
 def _get_page_timestamps(page):
@@ -78,7 +78,7 @@ class TiffFrame:
     def is_rgb(self):
         return self._description.is_rgb
 
-    def _get_plot_data(self, channel="rgb", adjustment=ColorAdjustment.nothing()):
+    def _get_plot_data(self, channel="rgb", adjustment=no_adjustment):
         """Return data as a numpy array, appropriate for use by `imshow`.
 
         Parameters

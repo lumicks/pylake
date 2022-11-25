@@ -6,7 +6,7 @@ import numpy as np
 from deprecated.sphinx import deprecated
 from skimage.measure import block_reduce
 
-from .adjustments import ColorAdjustment
+from .adjustments import no_adjustment
 from .detail.confocal import (
     ConfocalImage,
     ScanAxis,
@@ -287,7 +287,7 @@ class Kymo(ConfocalImage):
         self,
         channel="rgb",
         *,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         axes=None,
         image_handle=None,
         show_title=True,
@@ -358,7 +358,7 @@ class Kymo(ConfocalImage):
         aspect_ratio=0.25,
         reduce=np.mean,
         kymo_args={},
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Plot kymo with force channel downsampled over scan lines
@@ -430,7 +430,7 @@ class Kymo(ConfocalImage):
         color_channel,
         pixels_per_bin=1,
         hist_ratio=0.25,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Plot kymo with histogram along position axis
@@ -470,7 +470,7 @@ class Kymo(ConfocalImage):
         color_channel,
         pixels_per_bin=1,
         hist_ratio=0.25,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Plot kymo with histogram along time axis

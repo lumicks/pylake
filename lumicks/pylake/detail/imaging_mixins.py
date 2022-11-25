@@ -4,7 +4,7 @@ import numpy.typing as npt
 import tifffile
 from typing import Iterator, Union
 
-from ..adjustments import ColorAdjustment
+from ..adjustments import no_adjustment
 from .timeindex import to_timestamp
 
 _FIRST_TIMESTAMP = 1388534400
@@ -107,7 +107,7 @@ class VideoExport:
         start_frame=None,
         stop_frame=None,
         fps=15,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Export a video
