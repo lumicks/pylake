@@ -553,7 +553,7 @@ class KymoWidgetGreedy(KymoWidget):
         min_length=None,
         use_widgets=True,
         output_filename="kymotracks.txt",
-        slider_ranges={},
+        slider_ranges=None,
         **kwargs,
     ):
         """Create a widget for performing kymotracking.
@@ -617,6 +617,7 @@ class KymoWidgetGreedy(KymoWidget):
         algorithm_parameters = _get_default_parameters(kymo, channel)
 
         # TODO: remove line_width argument deprecation path
+        slider_ranges = slider_ranges or {}
         if "line_width" in slider_ranges.keys():
             warnings.warn(
                 DeprecationWarning(
@@ -696,12 +697,15 @@ class KymoWidgetGreedy(KymoWidget):
 
         threshold_slider_index = list(self._algorithm_parameters.keys()).index("pixel_threshold")
         threshold_slider = slider_box.children[threshold_slider_index].children[0]
-        threshold_slider_callback = lambda change: self._set_label(
-            "warning",
-            ""
-            if change["new"] > min_threshold
-            else f"Tracking with threshold of {change['new']} may be slow.",
-        )
+
+        def threshold_slider_callback(change):
+            self._set_label(
+                "warning",
+                ""
+                if change["new"] > min_threshold
+                else f"Tracking with threshold of {change['new']} may be slow.",
+            )
+
         threshold_slider.observe(
             threshold_slider_callback,
             "value",

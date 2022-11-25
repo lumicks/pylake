@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("./_ext"))
 sys.path.insert(0, os.path.abspath("./_static"))
 sys.path.insert(0, os.path.abspath(".."))
 
-from lumicks import pylake
+from lumicks import pylake  # noqa: E402
 
 
 # -- Project information -----------------------------------------------------

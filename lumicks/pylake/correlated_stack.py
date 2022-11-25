@@ -464,9 +464,6 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         """
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
 
-        title_factory = lambda frame: make_image_title(self, frame, show_name=False)
-        frame_timestamps = self.frame_timestamp_ranges()
-
         def frame_grabber(frame_idx):
             return self._get_frame(frame_idx)._get_plot_data(channel, adjustment=adjustment)
 
@@ -474,12 +471,12 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
             return adjustment._update_limits(image_handle, image, channel)
 
         plot_correlated(
-            channel_slice,
-            frame_timestamps,
-            frame_grabber,
-            title_factory,
-            frame,
-            reduce,
+            channel_slice=channel_slice,
+            frame_timestamps=self.frame_timestamp_ranges(),
+            get_plot_data=frame_grabber,
+            title_factory=lambda frame: make_image_title(self, frame, show_name=False),
+            frame=frame,
+            reduce=reduce,
             figure_scale=figure_scale,
             post_update=post_update,
         )
