@@ -53,7 +53,7 @@ class Datasets:
 
         return count
 
-    def _add_data(self, name, x, y, params={}):
+    def _add_data(self, name, x, y, params=None):
         """
         Loads a data set.
 
@@ -65,7 +65,7 @@ class Datasets:
             Independent variable. NaNs are silently dropped.
         y : array_like
             Dependent variable. NaNs are silently dropped.
-        params : dict of {str : str or int}
+        params : Optional[dict of {str : str or int}]
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
 
@@ -203,7 +203,7 @@ class Datasets:
 
 
 class FdDatasets(Datasets):
-    def add_data(self, name, f, d, params={}):
+    def add_data(self, name, f, d, params=None):
         """
         Adds a data set to this fit.
 
@@ -215,7 +215,7 @@ class FdDatasets(Datasets):
             An array_like containing force data.
         d : array_like
             An array_like containing distance data.
-        params : dict of {str : str or int}
+        params : Optional[dict of {str : str or int}]
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
 
