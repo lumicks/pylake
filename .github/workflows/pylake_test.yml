@@ -38,3 +38,7 @@ jobs:
       run: |
         pip install black==22.3.0
         black --check --diff --color .
+    - name: flake8
+      run: |
+        pip install flake8 flake8-bugbear
+        flake8 .

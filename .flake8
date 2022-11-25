@@ -1,0 +1,31 @@
+[flake8]
+max-line-length = 100
+
+exclude =
+    .git,
+    __pycache__,
+    .ipynb_checkpoints,
+    .mypy_cache,
+    .pytest_cache,
+    .venv,
+    examples
+    | tests  # ignore test directories until we have a better solution for test datasets
+
+
+per-file-ignores =
+    # Ignore imported but not used for __init__.py files.
+    __init__.py:F401
+
+ignore =
+    # Don't complain about long docstring lines (yet).
+    W505,
+    # Allow whitespace before colon (black compatibility).
+    E203,
+    # Allow line break before binary operator (black compatibility).
+    W503,
+    # Don't fail over line length. We will clean them up as we go.
+    E501,
+    # Don't complain about star imports.
+    F403,F405,
+
+show-source = True
