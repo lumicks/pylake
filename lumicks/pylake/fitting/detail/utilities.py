@@ -12,8 +12,11 @@ def unique_idx(input_list):
     return unique_list, inverse_list
 
 
-def parse_transformation(params, param_transform={}):
+def parse_transformation(params, param_transform=None):
     transformed = OrderedDict(zip(params, params))
+
+    if not param_transform:
+        return transformed
 
     for key, value in param_transform.items():
         if key in transformed:

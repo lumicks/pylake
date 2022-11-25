@@ -82,7 +82,7 @@ class Fit:
 
         return front(self.datasets.values()).data
 
-    def _add_data(self, name, x, y, params={}):
+    def _add_data(self, name, x, y, params=None):
         if len(self.datasets) > 1:
             raise RuntimeError(
                 "This Fit is comprised of multiple models. Please add data to a particular model by "
@@ -340,7 +340,7 @@ class Fit:
             1,
         )
 
-        def trial(parameters=[]):
+        def trial(parameters=None):
             return -2.0 * self.log_likelihood(parameters, self.sigma)
 
         profile._extend_profile(trial, self._fit, self.params, num_steps, True, verbose)
@@ -350,9 +350,9 @@ class Fit:
 
         return profile
 
-    def _calculate_residual(self, parameter_values=[]):
+    def _calculate_residual(self, parameter_values=None):
         self._rebuild()
-        if len(parameter_values) == 0:
+        if parameter_values is None:
             parameter_values = self.params.values
 
         residual_idx = 0
@@ -367,9 +367,9 @@ class Fit:
 
         return residual
 
-    def _calculate_jacobian(self, parameter_values=[]):
+    def _calculate_jacobian(self, parameter_values=None):
         self._rebuild()
-        if len(parameter_values) == 0:
+        if parameter_values is None:
             parameter_values = self.params.values
 
         residual_idx = 0
@@ -556,7 +556,7 @@ class Fit:
 
         return est_sd * np.ones(len(res))
 
-    def log_likelihood(self, params=[], sigma=None):
+    def log_likelihood(self, params=None, sigma=None):
         """The model residual is given by chi squared = -2 log(L)"""
         self._rebuild()
         res = self._calculate_residual(params)
@@ -727,7 +727,7 @@ class FdFit(Fit):
 
         fit.plot("Dataset 1", "k--")  # Plot the fitted model"""
 
-    def add_data(self, name, f, d, params={}):
+    def add_data(self, name, f, d, params=None):
         """Adds a data set to this fit.
 
         Parameters
@@ -738,7 +738,7 @@ class FdFit(Fit):
             An array_like containing force data.
         d : array_like
             An array_like containing distance data.
-        params : dict of {str : str or int}
+        params : Optional[dict of {str : str or int}]
             List of parameter transformations. These can be used to convert one parameter in the
             model, to a new parameter name or constant for this specific data set (for more
             information, see the examples).
