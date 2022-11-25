@@ -2,7 +2,6 @@ import math
 import numpy as np
 from collections import namedtuple
 from itertools import product
-from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
 def fit_analytical_lorentzian(ps):

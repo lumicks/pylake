@@ -112,7 +112,7 @@ def refine_peak_based_on_moment(
     subpixel_offset = convolve2d(data, dir_kernel, "same") / (m0 + eps)
 
     max_coordinates = subpixel_offset.shape[0]
-    for iteration in range(max_iter):
+    for _ in range(max_iter):
         offsets = subpixel_offset[coordinates, time_points]
         (out_of_bounds,) = np.nonzero(abs(offsets) > 0.5)
         coordinates[out_of_bounds] += np.sign(offsets[out_of_bounds]).astype(int)

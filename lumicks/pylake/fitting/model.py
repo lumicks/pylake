@@ -381,10 +381,10 @@ class Model:
             n_x, n_y = optimal_plot_layout(len(self._params))
             for i_param, param in enumerate(self._params):
                 plt.subplot(n_x, n_y, i_param + 1)
-                l1 = plt.plot(independent, np.transpose(jacobian[i_param, :]))
-                l2 = plt.plot(independent, np.transpose(jacobian_fd[i_param, :]), "--")
+                plt.plot(independent, np.transpose(jacobian[i_param, :]), label="Analytic")
+                plt.plot(independent, np.transpose(jacobian_fd[i_param, :]), "--", label="FD")
                 plt.title(param)
-                plt.legend({"Analytic", "FD"})
+                plt.legend()
 
         is_close = np.allclose(jacobian, jacobian_fd, **kwargs)
         if not is_close:
