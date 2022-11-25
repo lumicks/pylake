@@ -118,3 +118,6 @@ class ColorAdjustment:
     @classmethod
     def nothing(cls):
         return cls(None, None, "nothing")
+
+
+no_adjustment = ColorAdjustment.nothing()

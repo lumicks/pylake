@@ -5,7 +5,7 @@ from itertools import zip_longest
 import numpy as np
 from deprecated import deprecated
 
-from .adjustments import ColorAdjustment
+from .adjustments import no_adjustment
 from .detail.confocal import ConfocalImage, _deprecate_basescan_plot_args, linear_colormaps
 from .detail.image import make_image_title, reconstruct_num_frames
 from .detail.imaging_mixins import FrameIndex, VideoExport
@@ -301,7 +301,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         reduce=np.mean,
         channel="rgb",
         figure_scale=0.75,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
@@ -412,7 +412,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         channel="rgb",
         *,
         frame=0,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         axes=None,
         image_handle=None,
         show_title=True,
@@ -489,7 +489,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         start_frame=None,
         end_frame=None,
         fps=15,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Export multi-frame scan as video.
@@ -532,7 +532,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         start_frame=None,
         end_frame=None,
         fps=15,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Export multi-frame scan as video.
@@ -575,7 +575,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         start_frame=None,
         end_frame=None,
         fps=15,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Export multi-frame scan as video.
@@ -618,7 +618,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         start_frame=None,
         end_frame=None,
         fps=15,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         **kwargs,
     ):
         """Export multi-frame scan as video.

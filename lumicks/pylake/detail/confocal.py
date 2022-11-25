@@ -9,7 +9,7 @@ from deprecated.sphinx import deprecated
 from matplotlib.colors import LinearSegmentedColormap
 from numpy import typing as npt
 
-from ..adjustments import ColorAdjustment
+from ..adjustments import no_adjustment
 from .image import reconstruct_image, reconstruct_image_sum
 from .imaging_mixins import TiffExport
 from .mixin import ExcitationLaserPower, PhotonCounts
@@ -374,7 +374,7 @@ class ConfocalImage(BaseScan, TiffExport):
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 
-    def _get_plot_data(self, channel, adjustment=ColorAdjustment.nothing(), frame=None):
+    def _get_plot_data(self, channel, adjustment=no_adjustment, frame=None):
         """Get image data for plotting requested channel.
 
         Parameters

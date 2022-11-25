@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 from deprecated.sphinx import deprecated
 
-from .adjustments import ColorAdjustment
+from .adjustments import ColorAdjustment, no_adjustment
 from .detail.image import make_image_title
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 from .detail.plotting import get_axes, show_image
@@ -33,7 +33,7 @@ def _deprecate_plot_arguments(plot):
         # We can gracefully convert the old ordered positional arguments into keyword arguments
         if is_old_order(args):
             keys = ["frame", "channel", "show_title", "axes", "adjustment"]
-            defaults = [0, "rgb", True, None, ColorAdjustment.nothing()]
+            defaults = [0, "rgb", True, None, no_adjustment]
             warn_on_keys = []
             for arg, key, default in zip(args, keys, defaults):
                 if key in kwargs:
@@ -298,7 +298,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         channel="rgb",
         *,
         frame=0,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
         axes=None,
         image_handle=None,
         show_title=True,
@@ -422,7 +422,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         reduce=np.mean,
         channel="rgb",
         figure_scale=0.75,
-        adjustment=ColorAdjustment.nothing(),
+        adjustment=no_adjustment,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. `np.mean`) is evaluated for the time between a start and end time of a
