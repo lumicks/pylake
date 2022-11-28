@@ -28,6 +28,7 @@
     install
     tutorial/index
     examples/index
+    theory/index
 
 
 .. toctree::
