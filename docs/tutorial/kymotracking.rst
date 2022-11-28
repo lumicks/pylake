@@ -481,187 +481,129 @@ Since this algorithm is specifically looking for curvilinear structures, it can 
 more blob-like (such as short-lived fluorescent events) or diffusive traces, where the particle moves randomly rather
 than in a uniform direction.
 
+.. _kymotracking-diffusion:
 
 Studying diffusion processes
 ----------------------------
 
 Pylake supports a number of methods for studying diffusive processes.
-These methods rely on estimating how much the particle moves between each frame of the kymograph.
-As such, tracked lines with many gaps in their tracking (due to the threshold not being met) should be refined using :func:`~lumicks.pylake.refine_tracks_centroid` prior to diffusive analysis.
-Ideally, regions without signal (such as when the fluorophore blinks) should not be tracked, since they can bias the results because the positions cannot reliably be estimated.
-
-Mean Squared Displacement
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To study diffusive processes we can make use of the Mean Squared Displacement (MSD).
-There are multiple ways to estimate this quantity.
-We use the following estimator:
-
-.. math::
-
-    \hat{\rho}[n] = \frac{1}{N - n} \sum_{i=1}^{N-n}\left(x_{i+n} - x_{i}\right)^2
-
-where :math:`\hat{\rho}[n]` corresponds to the estimate of the MSD for lag :math:`n`, :math:`N` is the number of time points in the track, and :math:`x_i` is the track position at time frame :math:`i`.
-
-What we can see in this definition is that it uses the same data points several times, thereby resulting in a well averaged estimate.
-However, the downside of this estimator is that the calculated values are highly correlated :cite:`qian1991single,michalet2010mean,michalet2012optimal` which needs to be accounted for in subsequent analyses.
-
-In the following, we'll use three simulated :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` instances of length 62 based on a diffusion constant of `10.0`.
-
-With Pylake, we can calculate the MSD from a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` with a single command::
-
-    tracks[0].msd()
-
-This returns a tuple of lags and MSD estimates. If we only wish MSDs up to a certain lag, we can provide a `max_lag` argument::
-
-    >>> tracks[0].msd(max_lag = 5)
-    (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([ 3.63439512,  6.13181603,  9.08823918, 11.43574189, 12.61152129]))
-
-Similarly, we can compute an averaged MSD estimate for a number of tracks in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` using :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_msd`::
-
-    ensemble_msd = tracks.ensemble_msd()
-
-This returns a weighted average of the MSDs coming from all the tracks (where the weight is determined by the number of points that contribute to each lag).
-Note that if the tracks are of equal length, this weighting will not have an effect (all the weights will be the same).
-The implicit assumption here is that all tracks are diffusive and their diffusion constants are the same.
-You can plot the ensemble msd as follows::
-
-    ensemble_msd.plot()
-
-The following properties can be read from :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD`:
-
-- `lags` : Lags at which the MSD was computed.
-- `msd` : Mean MSD for each lag.
-- `sem` :  Standard error of the mean corresponding to each MSD.
-- `variance` : Variance of each MSD average.
-- `count` : Number of elements that contributed to the estimate at this lag.
-- `effective_sample_size` : Effective sample size.
-
-One thing that is important to note is that the MSDs of one track for different lags are highly correlated.
-Therefore one should not take these estimates as independent data points.
-
-MSDs are typically used to calculate diffusion constants and Pylake offers some dedicated functionality that will correctly handle the data (more on this below).
-
-.. _diffusion_ols:
-
-Ordinary Least Squares
-^^^^^^^^^^^^^^^^^^^^^^
-
-With pure diffusive motion (a complete absence of drift) in an isotropic medium, 1-dimensional MSDs can be fitted by the following relation:
-
-.. math::
-
-    \rho[n] = 2 D n \Delta t + offset
-
-where :math:`D` is the diffusion constant in :math:`um^2/s`, :math:`\Delta t` is the time step, :math:`n` is the step index and the offset is determined by the localization accuracy:
-
-.. math::
-
-    offset = 2 \sigma^2 - 4 R D \Delta t
-
-where :math:`\sigma` is the static localization accuracy, :math:`R` is a motion blur constant and :math:`\Delta t` represents the time step.
-
-While it may be tempting to use a large number of lags in the diffusion estimation procedure, this actually produces poor estimates of the diffusion constant :cite:`qian1991single,michalet2010mean,michalet2012optimal`.
-There exists an optimal number of lags to fit such that the estimation error is minimal.
-This optimal number of lags depends on the ratio between the diffusion constant and the dynamic localization accuracy:
-
-.. math::
-
-    \epsilon_{localization} = \frac{offset}{slope} = \frac{2 \sigma^2 - 4 R D \Delta t}{2 D \Delta t} = \frac{\sigma^2}{D \Delta t} - 2 R
-
-When localization is infinitely accurate, the optimal number of points is two :cite:`michalet2010mean`.
-At the optimal number of lags, it doesn't matter whether we use a weighted or unweighted least squares algorithm to fit the curve :cite:`michalet2010mean`, and therefore we opt for the latter, analogously to :cite:`michalet2012optimal`.
-With Pylake, you can obtain an estimated diffusion constant by invoking::
-
-    >>> tracks[0].estimate_diffusion(method="ols")
-    DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols', unit='um^2 / s')
-
-Note that Pylake gives you both an estimate for the diffusion constant, as well as its expected uncertainty and the number of lags used in the computation.
-The uncertainty estimate in this case is based on equation A1b in :cite:`bullerjahn2020optimal`.
-
-Let's get diffusion constants for all three :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` instances::
-
-    >>> [track.estimate_diffusion(method="ols").value for track in tracks]
-    [DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols', unit='um^2 / s'),
-    DiffusionEstimate(value=3.8728160788405055, std_err=1.5207837420729884, num_lags=3, num_points=80, method='ols', unit='um^2 / s'),
-    DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols', unit='um^2 / s')]
-
-We can also directly determine them for an entire group by just invoking::
-
-    >>> tracks.estimate_diffusion(method="ols")
-    [DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols', unit='um^2 / s'),
-    DiffusionEstimate(value=3.8728160788405055, std_err=1.5207837420729884, num_lags=3, num_points=80, method='ols', unit='um^2 / s'),
-    DiffusionEstimate(value=4.9236019911012745, std_err=1.7399505893645122, num_lags=3, num_points=80, method='ols', unit='um^2 / s')]
-
-We can see that there is considerable variation in the estimates, which is unfortunately typical for diffusion coefficient estimates.
-By default, :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion` will use the optimal number of lags as specified in :cite:`michalet2012optimal`.
-You can however, override this optimal number of lags, by specifying a `max_lag` parameter::
-
-    >>> tracks.estimate_diffusion(method="ols", max_lag=30)
-    [DiffusionEstimate(value=11.949917925662831, std_err=10.394298104056345, num_lags=30, num_points=80, method='ols', unit='um^2 / s'),
-     DiffusionEstimate(value=4.904422868492953, std_err=4.3237670165379045, num_lags=30, num_points=80, method='ols', unit='um^2 / s'),
-     DiffusionEstimate(value=8.00626507619601, std_err=6.976860180814361, num_lags=30, num_points=80, method='ols', unit='um^2 / s')]
-
-Note however, that this will likely degrade your estimate (which you also see reflected in the estimated standard error).
-
-We can also plot the MSD estimates::
-
-    [track.plot_msd(marker='.') for track in tracks]
-
-.. image:: figures/kymotracking/msdplot_default_lags.png
-
-By default, this will use the optimal number of lags (which in this case seems to be around 3-4), but once again a `max_lag` parameter can be specified to plot a larger number of lags::
-
-    [track.plot_msd(max_lag=100, marker='.') for track in tracks]
-
-.. image:: figures/kymotracking/msdplot_100_lags.png
-
-It's not hard to see from this graph why taking too many lags results in unacceptably large variances (note how the traces diverge).
-
-.. note::
-
-    The uncertainty estimate and optimal number of lags obtained for Ordinary Least Squares relies on having a successful positional localization for every frame in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
-
-    If frames are missing, then this method will issue a warning with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
-    If this is not possible, please switch to :ref:`diffusion_cve`.
-
-.. _diffusion_gls:
-
-Generalized Least Squares
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Another option is to use generalized least squares :cite:`bullerjahn2020optimal`.
-This method is slower, since it has to solve some implicit equations, but it does not suffer from the large variance when including more lags (since it takes into account the covariance matrix of the MSD)::
-
-    >>> tracks.estimate_diffusion(method="gls", max_lag=30)
-    [DiffusionEstimate(value=8.044121097305448, std_err=2.4705039542680427, num_lags=30, num_points=80, method='gls', unit='um^2 / s'),
-     DiffusionEstimate(value=4.432955288469379, std_err=1.565056974828146, num_lags=30, num_points=80, method='gls', unit='um^2 / s'),
-     DiffusionEstimate(value=5.378609478528924, std_err=1.7771064499907185, num_lags=30, num_points=80, method='gls', unit='um^2 / s')]
-
-.. note::
-
-    The Generalized Least Squares method for estimating the diffusion constant relies on having a successful positional localization for every frame in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
-
-    If frames are missing, then this method will raise an exception with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
-    If this is not possible, please switch to :ref:`diffusion_cve` or :ref:`diffusion_ols`.
+These methods rely on quantifying how much the particle moves between each frame of the kymograph.
+Ideally, tracked lines with many gaps in their tracking (due to the threshold not being met) should be refined using :func:`~lumicks.pylake.refine_tracks_centroid` prior to diffusive analysis.
+Regions without signal (such as when the fluorophore blinks) should not be tracked, since they can bias the results because the positions cannot reliably be estimated.
 
 .. _diffusion_cve:
 
 Covariance-based estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A third more performant and unbiased method for computing the free diffusion is the covariance-based estimator (CVE) :cite:`vestergaard2014optimal,vestergaard2016optimizing`.
-The CVE does not rely on computing mean squared displacements and avoids the complications that arise from their use.
-The CVE method can also deal with tracks that have gaps due to blinking.
-The performance of this estimator can be characterized by its signal to noise ratio (SNR).
-This SNR is defined by:
+If the diffusive motion is clearly visible, then a generally robust and unbiased method method for computing the free diffusion is the covariance-based estimator (CVE) :cite:`vestergaard2014optimal,vestergaard2016optimizing`.
+It bases its estimate of the diffusion constant on the change in the particle position between observations.
+This method should generally be your first choice when trying to estimate diffusion constants from tracks.
+It is the easiest method to use (no parameters) and it can handle unequal length tracks and tracks which have untracked gaps due to blinking.
+To estimate the diffusion constant using the CVE for a single track, you can simply call :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion` while passing `"cve"` as method::
 
-.. math::
+    diffusion_estimate = tracks[0].estimate_diffusion(method="cve")
 
-    SNR = \frac{\sqrt{D \Delta t}}{{\sigma}}
+The results are provided as a :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate` which contains the requested estimates and some metadata.
+You can call the same estimation function on a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` which will give you a `list` containing estimates for each track in the group.
+If all the tracks in a group are expected to have the same diffusion constant, then the best estimate can be obtained by weighting the estimates for the individual tracks by the number of points contributing to each estimate.
+Pylake provides a convenience function for obtaining such estimates at the group level :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_diffusion`::
 
-Here :math:`D` is the diffusion constant, :math:`\Delta t` the time step and :math:`\sigma` the localization uncertainty.
-Use of the CVE is indicated when the SNR is bigger than 1. For smaller values for the SNR, we recommend using OLS or GLS instead.
+    tracks.ensemble_diffusion(method="cve")
+
+If it is safe to assume that the localization variance is the same for all the tracks, then one can achieve a more precise estimate for individual tracks by estimating this quantity at an ensemble level and then using that in the per-track estimation procedure::
+
+    ensemble_estimate = tracks.ensemble_diffusion("cve")
+
+    # Pass the ensemble localization uncertainties to the method
+    tracks.estimate_diffusion(
+        "cve",
+        localization_variance=ensemble_estimate.localization_variance,
+        localization_variance_variance=ensemble_estimate.localization_variance_variance
+    )
+
+For more information on this procedure and how it affects the estimation uncertainties, please refer to the :doc:`theory section on diffusive motion</theory/diffusion/diffusion>`.
+
+Mean Squared Displacements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Mean Squared Displacements (MSD) are a different quantity used to characterize particle motion.
+Purely diffusive processes leads to Mean Squared Displacements that linearly depend on the lag time (the time between two data points for which the displacement is calculated. Note this is not the same as the scan line time).
+MSDs for individual tracks are available through :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.msd`::
+
+    msd = tracks[0].msd()
+
+which returns a tuple of lags and MSD estimates. If we only wish MSDs up to a certain lag, we can provide a `max_lag` argument::
+
+    >>> tracks[0].msd(max_lag = 5)
+    (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([ 3.63439512,  6.13181603,  9.08823918, 11.43574189, 12.61152129]))
+
+If it is safe to assume that all particles exhibit the same diffusive motion, one can calculate the ensemble and time-averaged MSD for an entire group of tracks using the method :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_msd`::
+
+    ensemble_msd = tracks.ensemble_msd()
+
+This returns a :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD` class which contains the requested estimates and some metadata.
+The results can then easily be plotted::
+
+    ensemble_msd.plot()
+
+For purely diffusive motion, this plot should be a straight line.
+One thing that is important to note is that the MSDs of one track for different lags are highly correlated and that estimates at larger lags are far less reliable.
+Therefore one should not fit these values as though they were independent data points.
+Doing so leads to very imprecise estimates.
+For more information, see the :doc:`theory section for diffusive processes</theory/diffusion/diffusion>`.
+
+Ordinary Least Squares
+^^^^^^^^^^^^^^^^^^^^^^
+
+Considering that the MSDs follow a linear curve for pure diffusion, it makes sense to fit a linear curve to these estimates.
+We can do this using Ordinary Least Squares (OLS), which performs an unweighted fit of the data.
+In Pylake, you can obtain OLS estimates for a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` using::
+
+    >>> tracks[0].estimate_diffusion(method="ols")
+    DiffusionEstimate(value=7.804440367653842, std_err=2.527045387449447, num_lags=2, num_points=80, method='ols', unit='um^2 / s')
+
+This method performs a linear regression on the estimated MSD values.
+Fitting an appropriate number of lags given the observational noise is crucial for getting a good estimate with this method.
+By default, this method will determine the optimal number of lags to use in the fit as specified in :cite:`michalet2012optimal`.
+You can however, override this optimal number of lags, by specifying a `max_lag` parameter.
+
+.. warning::
+
+    It is not recommended to apply Ordinary Least Squares to invididual tracks if they are very short since it will produce biased results in such scenarios.
+    Care must also be taken when averaging results from multiple tracks to obtain a mean diffusion coefficient. While the estimated number of lags may be optimal for analyzing an individual track, averaging the results from tracks with different number of lags can lead to a biased estimate.
+    For more information on this, see the :doc:`theory section for diffusive processes</theory/diffusion/diffusion>`.
+
+    The uncertainty estimate and optimal number of lags obtained for Ordinary Least Squares relies on having a successful positional localization for every frame in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
+
+    If frames are missing, then this method will issue a warning with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
+    If this is not possible, please switch to :ref:`diffusion_cve`.
+
+If the diffusion constant can be assumed the same for an ensemble of tracks, it is possible to get a more precise estimate of the diffusion constant by first calculating the MSD for all of them, and then performing only a single fit.
+You can do this with Pylake by using :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_diffusion`::
+
+    tracks.ensemble_diffusion(method="ols")
+
+For more information on this procedure and its performance, please refer to the :doc:`theory section</theory/diffusion/diffusion>`.
+
+Generalized Least Squares
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generalized linear least squares suffers less from including more lags than are optimal as it takes into account the covariance matrix of the MSD :cite:`bullerjahn2020optimal`.
+This method is slower, since it has to solve some implicit equations. In addition to that, its current implementation cannot cope with missing frames.
+It can be selected by choosing `"gls"` for the method::
+
+    tracks.estimate_diffusion(method="gls", max_lag=30)
+
+Note that while the choice of number of lags to include is less critical, it is still a good idea to make sure not to include MSD values where very little averaging has taken place.
+Pylake does not offer an ensemble averaged variant of the generalized least squares estimator.
+
+.. note::
+
+    The Generalized Least Squares method for estimating the diffusion constant relies on having a successful positional localization for every frame in a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
+
+    If frames are missing, then this method will raise an exception with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
+    If this is not possible, please switch to :ref:`diffusion_cve`.
 
 Dwelltime analysis
 ------------------

@@ -130,3 +130,12 @@ Piezo tracking
     ForceBaseLine
     PiezoTrackingCalibration
     PiezoForceDistance
+
+Simulation
+----------
+
+.. autosummary::
+    :toctree: _api
+    :template: function.rst
+
+    simulation.simulate_diffusive_tracks
