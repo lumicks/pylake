@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import math
+import contextlib
 
 
 def use_docstring_from(copy_func):
@@ -101,3 +102,12 @@ def could_sum_overflow(a, axis=None):
     A `False` result is definitive. The sum will definitely not overflow.
     """
     return np.any(will_mul_overflow(np.max(a, axis), a.size if axis is None else a.shape[axis]))
+
+
+@contextlib.contextmanager
+def temp_seed(seed):
+    np.random.seed(seed)
+    try:
+        yield
+    finally:
+        np.random.seed(None)

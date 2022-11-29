@@ -35,6 +35,7 @@ from .force_calibration.power_spectrum_calibration import (
     calculate_power_spectrum,
     fit_power_spectrum,
 )
+from . import simulation
 
 
 def pytest(args=None, plugins=None):

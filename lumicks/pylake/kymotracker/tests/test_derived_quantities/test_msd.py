@@ -1,7 +1,8 @@
 import pytest
-import contextlib
 import re
 import matplotlib.pyplot as plt
+from lumicks.pylake.simulation.diffusion import _simulate_diffusion_1d
+from lumicks.pylake.detail.utilities import temp_seed
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.msd_estimation import (
     _var_cve_known_var,
@@ -11,38 +12,6 @@ from lumicks.pylake.kymotracker.detail.msd_estimation import (
     _cve,
     _determine_optimal_points_ensemble,
 )
-
-
-@contextlib.contextmanager
-def temp_seed(seed):
-    np.random.seed(seed)
-    try:
-        yield
-    finally:
-        np.random.seed(None)
-
-
-def simulate_diffusion_1d(diffusion, steps, dt, observation_noise):
-    """Simulate from a Wiener process
-
-    Parameters
-    ----------
-    diffusion : float
-        Diffusion constant.
-    steps : int
-        Number of steps to simulate.
-    dt : float
-        Time step.
-    observation_noise : float
-        Standard deviation of the observation noise.
-    """
-
-    def simulate_wiener(sigma, num_steps, time_step):
-        return np.cumsum(np.random.normal(0, sigma * np.sqrt(time_step), size=(num_steps,)))
-
-    return simulate_wiener(np.sqrt(2.0 * diffusion), steps, dt) + np.random.normal(
-        0, observation_noise, (steps,)
-    )
 
 
 @pytest.mark.parametrize(
@@ -148,7 +117,7 @@ def test_optimal_points(num_points, ref_slopes, ref_intercepts):
 )
 def test_determine_points_from_data(diffusion, num_steps, step, noise, n_optimal):
     with temp_seed(0):
-        coordinate = simulate_diffusion_1d(diffusion, num_steps, step, noise)
+        coordinate = _simulate_diffusion_1d(diffusion, num_steps, step, noise)
         np.testing.assert_allclose(
             determine_optimal_points(np.arange(num_steps), coordinate, max_iterations=100),
             n_optimal,
@@ -246,7 +215,7 @@ def test_diffusion_estimate_ols(
     diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, loc_variance
 ):
     with temp_seed(0):
-        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_constant_simple(
             np.arange(num_points), trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
         )
@@ -274,7 +243,7 @@ def test_regression_ols_with_skipped_frames(
     diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, skip, shuffle,
 ):
     with temp_seed(0):
-        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
 
         subsampling = np.zeros(skip - 1, dtype=bool)
         skipped_sampling = np.tile(np.hstack((True, subsampling)), num_points // skip)
@@ -347,7 +316,7 @@ def test_diffusion_estimate_gls(
     diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, loc_variance
 ):
     with temp_seed(0):
-        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_constant_simple(
             np.arange(num_points), trace, time_step, max_lag, "gls", "mu^2/s", r"$\mu^2/s$"
         )
@@ -375,7 +344,7 @@ def test_bad_input():
 
 def test_singular_handling():
     with temp_seed(0):
-        trace = simulate_diffusion_1d(0, 30, 3, 0)
+        trace = _simulate_diffusion_1d(0, 30, 3, 0)
         with pytest.warns(RuntimeWarning, match="Covariance matrix is singular"):
             estimate_diffusion_constant_simple(np.arange(len(trace)), trace, 1, 3, "gls", "unit")
 
@@ -406,7 +375,7 @@ def test_cve(
 ):
     with temp_seed(10):
         frame = np.arange(num_points)
-        coord = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        coord = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est, diffusion_var_est, localization_var_est = _cve(
             frame, coord, time_step, blur_constant, localization_var, var_of_localization_var
         )
@@ -441,7 +410,7 @@ def test_cve_skipped_samples(
 ):
     with temp_seed(10):
         frame = np.arange(num_points)
-        coord = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        coord = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         mask = np.full(len(frame), True, dtype=bool)
         mask[np.array([10, 20, 40, 41, 42, 43, 44])] = False
         diffusion_est, diffusion_var_est, localization_var_est = _cve(
@@ -484,7 +453,7 @@ def test_estimate_diffusion_cve(
     var_of_localization_var_ref,
 ):
     with temp_seed(10):
-        trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
+        trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_cve(
             np.arange(num_points),
             trace,
