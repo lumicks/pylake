@@ -26,18 +26,22 @@ class DiffusionEstimate:
         Number of lags used to compute this estimate.
     num_points : int
         Number of points used to compute this estimate.
+    localization_variance : float
+        Estimated localization variance.
+
+        Note: It is possible to obtain negative estimates for the localization variance when
+        estimating diffusion based on single tracks.
     method : str
         String identifying which method was used to estimate the parameters.
     unit : str
         Unit that the diffusion constant is specified in.
-    _unit_label : str
-        Unit in TeX format used for plotting labels.
     """
 
     value: float
     std_err: float
     num_lags: Optional[int]
     num_points: int
+    localization_variance: float
     method: str
     unit: str
     _unit_label: str = field(repr=False)
@@ -586,17 +590,18 @@ def estimate_diffusion_constant_simple(
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
 
     method_fun = _diffusion_gls if method == "gls" else _diffusion_ols
-    _, slope, var_slope = method_fun(frame_lags, msd, len(coordinate))
+    intercept, slope, var_slope = method_fun(frame_lags, msd, len(coordinate))
 
     to_time = 1.0 / (2.0 * time_step)
     return DiffusionEstimate(
-        slope * to_time,
-        np.sqrt(var_slope) * to_time,
-        max_lag,
-        len(coordinate),
-        method,
-        unit,
-        unit_label,
+        value=slope * to_time,
+        std_err=np.sqrt(var_slope) * to_time,
+        num_lags=max_lag,
+        num_points=len(coordinate),
+        localization_variance=intercept / 2.0,
+        method=method,
+        unit=unit,
+        _unit_label=unit_label,
     )
 
 
@@ -961,15 +966,16 @@ def estimate_diffusion_cve(
         Unit in TeX format used for plotting labels.
     """
 
-    diffusion, diffusion_variance, _ = _cve(frame_idx, coordinate, dt, blur_constant)
+    diffusion, diffusion_variance, variance_loc = _cve(frame_idx, coordinate, dt, blur_constant)
     return DiffusionEstimate(
-        diffusion,
-        np.sqrt(diffusion_variance),
-        None,
-        len(coordinate),
-        "cve",
-        unit,
-        unit_label,
+        value=diffusion,
+        std_err=np.sqrt(diffusion_variance),
+        num_lags=None,
+        num_points=len(coordinate),
+        localization_variance=variance_loc,
+        method="cve",
+        unit=unit,
+        _unit_label=unit_label,
     )
 
 
@@ -1007,11 +1013,15 @@ def ensemble_cve(kymotracks):
         (counts.size - 1) * counts_sum
     )
 
+    localization_variance_estimates = np.array([c.localization_variance for c in cve_based])
+    ensemble_localization_variance = np.sum(localization_variance_estimates * counts) / counts_sum
+
     return DiffusionEstimate(
         value=ensemble_mean,
         std_err=np.sqrt(ensemble_mean_var),
         num_lags=np.nan,
         num_points=counts_sum,
+        localization_variance=ensemble_localization_variance,
         method="ensemble cve",
         unit=cve_based[0].unit,
         _unit_label=cve_based[0].unit,
