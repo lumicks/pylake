@@ -879,6 +879,7 @@ def test_ensemble_cve(blank_kymo):
     ensemble_diffusion = kymotracks.ensemble_diffusion("cve")
     np.testing.assert_allclose(ensemble_diffusion.value, 0.445679012345679)
     np.testing.assert_allclose(ensemble_diffusion.std_err, 0.20555092123942093)
+    np.testing.assert_allclose(ensemble_diffusion.localization_variance, -0.1782716049382716)
     np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
     assert ensemble_diffusion.method == "ensemble cve"
     assert ensemble_diffusion.unit == "um^2 / s"
