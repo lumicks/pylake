@@ -9,6 +9,7 @@ from lumicks.pylake.kymotracker.detail.msd_estimation import (
     _msd_diffusion_covariance,
     _diffusion_ols,
     _cve,
+    _determine_optimal_points_ensemble,
 )
 
 
@@ -150,6 +151,14 @@ def test_determine_points_from_data(diffusion, num_steps, step, noise, n_optimal
         coordinate = simulate_diffusion_1d(diffusion, num_steps, step, noise)
         np.testing.assert_allclose(
             determine_optimal_points(np.arange(num_steps), coordinate, max_iterations=100),
+            n_optimal,
+        )
+        np.testing.assert_allclose(
+            _determine_optimal_points_ensemble(
+                *calculate_msd(np.arange(num_steps), coordinate, max_lag=None),
+                len(coordinate),
+                max_iterations=100,
+            ),
             n_optimal,
         )
 

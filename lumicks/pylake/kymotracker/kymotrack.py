@@ -461,7 +461,7 @@ class KymoTrack:
                diffusing particles. Physical Review E, 94(2), 022401.
         """
         if method not in ("cve", "gls", "ols"):
-            raise ValueError('Invalid method selected. Method must be "gls" or "ols"')
+            raise ValueError('Invalid method selected. Method must be "cve", "gls" or "ols"')
 
         if not self._kymo.contiguous:
             raise NotImplementedError(
