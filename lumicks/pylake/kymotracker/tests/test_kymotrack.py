@@ -709,18 +709,48 @@ def test_disallowed_diffusion_est(blank_kymo):
         group.estimate_diffusion(method="ols")
 
 
-def test_diffusion_cve(blank_kymo):
+@pytest.mark.parametrize(
+    "loc_var, loc_var_var, ref_diff, ref_std, ref_count, ref_loc",
+    [
+        (None, None, 1.5, 1.3928388277184118, 5, -1.0),
+        (0.1, 0.01, 0.4, 0.33466401061363027, 5, 0.1),
+    ],
+)
+def test_diffusion_cve(blank_kymo, loc_var, loc_var_var, ref_diff, ref_std, ref_count, ref_loc):
     """Test the API for the covariance based estimator"""
     k = KymoTrack(np.arange(5), np.arange(5), blank_kymo, "red")
-    cve_est = k.estimate_diffusion("cve")
+    cve_est = k.estimate_diffusion(
+        "cve", localization_variance=loc_var, variance_of_localization_variance=loc_var_var
+    )
 
-    np.testing.assert_allclose(cve_est.value, 1.5)
-    np.testing.assert_allclose(cve_est.std_err, 1.3928388277184118)
-    np.testing.assert_allclose(cve_est.num_points, 5)
+    np.testing.assert_allclose(cve_est.value, ref_diff)
+    np.testing.assert_allclose(cve_est.std_err, ref_std)
+    np.testing.assert_allclose(cve_est.num_points, ref_count)
+    np.testing.assert_allclose(cve_est.localization_variance, ref_loc)
+
     assert cve_est.num_lags is None
     assert cve_est.method == "cve"
     assert cve_est.unit == "um^2 / s"
     assert cve_est._unit_label == "$\\mu$m$^2$/s"
+
+
+def test_diffusion_invalid_loc_variance(blank_kymo):
+    """In some cases, specifying a localization variance is invalid"""
+    track = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
+    with pytest.raises(
+        NotImplementedError,
+        match="Passing in a localization error is only supported for method=`cve`",
+    ):
+        track.estimate_diffusion(
+            "ols", localization_variance=1, variance_of_localization_variance=1
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="When the localization variance is provided, the variance of this estimate should "
+        "also be provided",
+    ):
+        track.estimate_diffusion("cve", localization_variance=1)
 
 
 def test_kymotrack_group_diffusion_filter():
@@ -880,6 +910,9 @@ def test_ensemble_cve(blank_kymo):
     np.testing.assert_allclose(ensemble_diffusion.value, 0.445679012345679)
     np.testing.assert_allclose(ensemble_diffusion.std_err, 0.20555092123942093)
     np.testing.assert_allclose(ensemble_diffusion.localization_variance, -0.1782716049382716)
+    np.testing.assert_allclose(
+        ensemble_diffusion.variance_of_localization_variance, 0.006760188995579941
+    )
     np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
     assert ensemble_diffusion.method == "ensemble cve"
     assert ensemble_diffusion.unit == "um^2 / s"

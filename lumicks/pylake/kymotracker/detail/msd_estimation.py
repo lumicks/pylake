@@ -35,6 +35,8 @@ class DiffusionEstimate:
         String identifying which method was used to estimate the parameters.
     unit : str
         Unit that the diffusion constant is specified in.
+    variance_of_localization_variance : Optional[float]
+        Estimate of the variance of the estimated localization variance.
     """
 
     value: float
@@ -45,6 +47,7 @@ class DiffusionEstimate:
     method: str
     unit: str
     _unit_label: str = field(repr=False)
+    variance_of_localization_variance: Optional[float] = None
 
     def __float__(self):
         return float(self.value)
@@ -875,9 +878,10 @@ def _cve(
         and the diffusion constant, the motion blur factor has no effect on the estimate of the
         diffusion constant itself, but it does affect the calculated uncertainties. In the case of
         a provided localization uncertainty, it does impact the estimate of the diffusion constant.
-    variance_loc : float
-        Variance of the localization error if it has been determined independently.
-    variance_variance_loc : float
+    variance_loc : Optional[float]
+        Estimate of the localization error expressed as a variance, if it has been determined
+        independently.
+    variance_variance_loc : Optional[float]
         The variance of the localization variance estimate (needed if variance_loc is provided).
 
     Note
@@ -925,6 +929,12 @@ def _cve(
             diffusion_constant, variance_loc, dt, len(x), blur_constant, average_frame_step
         )
     else:
+        if variance_variance_loc is None:
+            raise ValueError(
+                "When the localization variance is provided, the variance of this estimate should "
+                "also be provided"
+            )
+
         # We know the variance in advance. Equation 16 from [12] and 23 from [13] adapted for 1D.
         diffusion_constant = (mean_dx_squared - 2.0 * variance_loc) / (
             2.0 * (avg_dt - 2.0 * blur_constant * dt)
@@ -943,7 +953,14 @@ def _cve(
 
 
 def estimate_diffusion_cve(
-    frame_idx, coordinate, dt, blur_constant, unit, unit_label
+    frame_idx,
+    coordinate,
+    dt,
+    blur_constant,
+    unit,
+    unit_label,
+    localization_var=None,
+    var_of_localization_var=None,
 ) -> DiffusionEstimate:
     """Estimate diffusion constant based on covariance estimator
 
@@ -964,18 +981,25 @@ def estimate_diffusion_cve(
         Unit that the diffusion constant is specified in.
     unit_label : str
         Unit in TeX format used for plotting labels.
+    localization_var : Optional[float]
+        Estimated localization variance.
+    var_of_localization_var : Optional[float]
+        Estimated variance of the localization variance estimate.
     """
 
-    diffusion, diffusion_variance, variance_loc = _cve(frame_idx, coordinate, dt, blur_constant)
+    diffusion, diffusion_variance, localization_var = _cve(
+        frame_idx, coordinate, dt, blur_constant, localization_var, var_of_localization_var
+    )
     return DiffusionEstimate(
         value=diffusion,
         std_err=np.sqrt(diffusion_variance),
         num_lags=None,
         num_points=len(coordinate),
-        localization_variance=variance_loc,
+        localization_variance=localization_var,
         method="cve",
         unit=unit,
         _unit_label=unit_label,
+        variance_of_localization_variance=var_of_localization_var,
     )
 
 
@@ -1000,29 +1024,35 @@ def ensemble_cve(kymotracks):
     """
     cve_based = kymotracks.estimate_diffusion(method="cve")
 
+    def mean_var(x, count, count_sum):
+        # Equation 58 and 57 from Vestergaard et al [14].
+        weighted_mean = np.sum(x * count) / count_sum
+        weighted_mean_var = np.sum(count * (x - weighted_mean) ** 2) / (
+            (count.size - 1) * count_sum
+        )
+        return weighted_mean, weighted_mean_var
+
     if len(cve_based) == 1:
         return cve_based[0]
 
-    estimates = np.array([c.value for c in cve_based])
     counts = np.array([c.num_points for c in cve_based])
-    counts_sum = np.sum(counts)
+    counts_sum = sum(counts)
 
-    # Equation 58 and 57 from Vestergaard et al [14].
-    ensemble_mean = np.sum(estimates * counts) / counts_sum
-    ensemble_mean_var = np.sum(counts * (estimates - ensemble_mean) ** 2) / (
-        (counts.size - 1) * counts_sum
+    ensemble_mean, ensemble_mean_var = mean_var(
+        np.array([c.value for c in cve_based]), counts, counts_sum
     )
-
-    localization_variance_estimates = np.array([c.localization_variance for c in cve_based])
-    ensemble_localization_variance = np.sum(localization_variance_estimates * counts) / counts_sum
+    ensemble_localization_var, var_of_localization_var = mean_var(
+        np.array([c.localization_variance for c in cve_based]), counts, counts_sum
+    )
 
     return DiffusionEstimate(
         value=ensemble_mean,
         std_err=np.sqrt(ensemble_mean_var),
         num_lags=np.nan,
         num_points=counts_sum,
-        localization_variance=ensemble_localization_variance,
+        localization_variance=ensemble_localization_var,
         method="ensemble cve",
         unit=cve_based[0].unit,
         _unit_label=cve_based[0].unit,
+        variance_of_localization_variance=var_of_localization_var,
     )

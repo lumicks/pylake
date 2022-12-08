@@ -9,6 +9,8 @@
 * Added the `lk.GaussianMixtureModel.extract_dwell_times()` method to calculate dwell-times for all states from channel data.
 * Added `lk.colormaps` with custom colormaps for plotting single-channel images. Note: this is a `namedtuple` so you can access the attributes using the dot notation (for example `kymo.plot("blue", cmap=lk.colormaps.cyan)`). The available attributes are `red`, `green`, `blue`, `magenta`, `yellow`, `cyan`.
 * Added `localization_variance` to [DiffusionEstimate](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html). This quantity is useful for determining the diffusive SNR.
+* Added `variance_of_localization_variance` to [DiffusionEstimate](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html) when calculating an ensemble CVE. This provides an estimate of the variance of the averaged localization uncertainty.
+* Added option to pass a localization variance and its uncertainty to [https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion](KymoTrack.estimate_diffusion()).
 
 ## v0.13.2 | 2022-11-15
 

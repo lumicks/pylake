@@ -369,7 +369,13 @@ class KymoTrack:
         plt.xlabel("Lag time [s]")
         plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}$^2$]")
 
-    def estimate_diffusion(self, method, max_lag=None):
+    def estimate_diffusion(
+        self,
+        method,
+        max_lag=None,
+        localization_variance=None,
+        variance_of_localization_variance=None,
+    ):
         r"""Estimate diffusion constant
 
         There are three algorithms to determine diffusion constants:
@@ -433,6 +439,13 @@ class KymoTrack:
             is ignored.
             When the method chosen is "ols" an optimal number of lags is estimated as determined by
             [3]_. When the method is set to "gls" all lags are included.
+        localization_variance : float (optional)
+            Estimate of the localization variance. This value can be obtained from estimating an
+            ensemble diffusion constant using `cve`. This parameter is only used when method="cve".
+        variance_of_localization_variance : float (optional)
+            Estimate of the variance of the localization variance estimate. This value can be
+            obtained from estimating an ensemble diffusion constant using `cve`. This parameter is
+            only used when method="cve".
 
         References
         ----------
@@ -466,7 +479,18 @@ class KymoTrack:
         if method == "cve":
             # We hardcode the blur constant for confocal for now (no motion blur)
             return estimate_diffusion_cve(
-                frame_idx, positions, self._line_time_seconds, **unit_labels, blur_constant=0
+                frame_idx,
+                positions,
+                self._line_time_seconds,
+                **unit_labels,
+                blur_constant=0,
+                localization_var=localization_variance,
+                var_of_localization_var=variance_of_localization_variance,
+            )
+
+        if localization_variance is not None or variance_of_localization_variance is not None:
+            raise NotImplementedError(
+                "Passing in a localization error is only supported for method=`cve`."
             )
 
         max_lag = (
@@ -902,16 +926,12 @@ class KymoTrackGroup:
             - "ols" : Ordinary least squares. Determines optimal number of lags.
             - "gls" : Generalized least squares. Takes into account covariance matrix (slower). Can
               only be used when track is equidistantly sampled.
-        max_lag : int (optional)
-            Number of lags to include when using an MSD-based estimator. When omitted, the method
-            will choose an appropriate number of lags to use. For the cve estimator this argument
-            is ignored.
-            When the method chosen is "ols" an optimal number of lags is estimated as determined by.
-            When the method is set to "gls" all lags are included.
         min_length : None or int (optional)
             Discards tracks shorter than a certain length from the analysis. If `None` (the default)
             tracks shorter than 3 points if `method == "cve"` or 5 points if `method == "ols" or "gls"`
             will be discarded.
+        **kwargs :
+            forwarded to :meth:`KymoTrack.estimate_diffusion`
         """
         required_length = (3 if method == "cve" else 5) if min_length is None else min_length
         filtered_tracks = [track for track in self if len(track) >= required_length]
