@@ -220,6 +220,7 @@ def test_ols_results(msd, num_points, ref_values):
 
 @pytest.mark.parametrize(
     "diffusion,num_points,max_lag,time_step,obs_noise,diff_est,std_err_est,loc_variance",
+    # fmt:off
     [
         (0, 30, 3, 3, 0.0, 0.0, 0.0, 0.0),
         (2, 500, 5, 0.01, 1.0, 1.9971773659882501, 1.545715391995203, 0.9711582323236502),
@@ -230,6 +231,7 @@ def test_ols_results(msd, num_points, ref_values):
         (0.1, 30, 2, 3, 1.0, 0.10575410549731264, 0.11092540144986164, 0.8589882417178512),
         (1.1, 80, 30, 3, 0.1, 2.4535935321735742, 2.1317623681445164, -24.181310284805875),  # Too many points bad
     ],
+    # fmt:on
 )
 def test_diffusion_estimate_ols(
     diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, loc_variance
@@ -320,6 +322,7 @@ def test_skipped_sample_protection():
 
 @pytest.mark.parametrize(
     "diffusion,num_points,max_lag,time_step,obs_noise,diff_est,std_err_est,loc_variance",
+    # fmt:off
     [
         (2, 500, 5, 0.01, 1.0, 1.9834877726431195, 1.5462259288408835, 0.9725695521205839),
         (1.5, 30, 3, 3, 1.0, 2.0372156730720934, 0.9522810729354054, 0.4172355292491052),
@@ -329,6 +332,7 @@ def test_skipped_sample_protection():
         (0.1, 30, 2, 3, 1.0, 0.10575410549731236, 0.11092540144986159, 0.8589882417178527),
         (1.1, 80, 30, 3, 0.1, 1.254440632135123, 0.3288129370162493, -0.5158647586841503),  # Too many points ok
     ],
+    # fmt:on
 )
 def test_diffusion_estimate_gls(
     diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, loc_variance
@@ -440,12 +444,14 @@ def test_cve_skipped_samples(
 
 
 @pytest.mark.parametrize(
-    "diffusion,obs_noise,num_points,time_step,blur_constant,"
-    "diffusion_ref,var_diffusion_ref,num_points_ref,loc_var_ref",
+    "diffusion,obs_noise,num_points,time_step,blur_constant,loc_var,loc_var_var,"
+    "diffusion_ref,var_diffusion_ref,num_points_ref,loc_var_ref, loc_var_var_ref",
     # fmt:off
     [
-        (2, 0.01, 50, 0.1, 0, 1.8984350363870435, 0.3972529037563432, 50, -0.028026554019435785),
-        (2, 0.01, 50, 0.1, 1/6, 1.8984350363870435, 0.3972529037563432, 50, 0.03525461386013233),
+        (2, 0.01, 50, 0.1, 0, None, None, 1.8984350363870435, 0.3972529037563432, 50, -0.028026554019435785, None),
+        (2, 0.01, 50, 0.1, 1/6, None, None, 1.8984350363870435, 0.3972529037563432, 50, 0.03525461386013233, None),
+        (2, 0.01, 50, 0.1, 0, 0.002, 0.0002, 1.5981694961926856, 0.12474690073633955, 50, 0.002, 0.0002),
+        (2, 0.01, 50, 0.1, 1/6, 0.002, 0.0002, 2.397254244289028, 0.3079763136689993, 50, 0.002, 0.0002),
     ]
 )
 def test_estimate_diffusion_cve(
@@ -454,15 +460,25 @@ def test_estimate_diffusion_cve(
     num_points,
     time_step,
     blur_constant,
+    loc_var,
+    loc_var_var,
     diffusion_ref,
     var_diffusion_ref,
     num_points_ref,
     loc_var_ref,
+    loc_var_var_ref,
 ):
     with temp_seed(10):
         trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_cve(
-            np.arange(num_points), trace, time_step, blur_constant, "mu^2/s", r"$\mu^2/s$"
+            np.arange(num_points),
+            trace,
+            time_step,
+            blur_constant,
+            "mu^2/s",
+            r"$\mu^2/s$",
+            loc_var,
+            loc_var_var,
         )
 
         np.testing.assert_allclose(float(diffusion_est), diffusion_ref)
@@ -471,6 +487,12 @@ def test_estimate_diffusion_cve(
         np.testing.assert_allclose(diffusion_est.num_points, num_points_ref)
         np.testing.assert_allclose(diffusion_est.std_err, np.sqrt(var_diffusion_ref))
         np.testing.assert_allclose(diffusion_est.localization_variance, loc_var_ref)
+        if loc_var_var_ref:
+            np.testing.assert_allclose(
+                diffusion_est.variance_of_localization_variance, loc_var_var_ref
+            )
+        else:
+            assert diffusion_est.variance_of_localization_variance is None
         assert diffusion_est.method == "cve"
         assert diffusion_est.unit == "mu^2/s"
         assert diffusion_est._unit_label == r"$\mu^2/s$"
