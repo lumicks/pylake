@@ -9,26 +9,37 @@ Piezo Tracking
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-In this tutorial, we will determine the high frequency distance (piezo distance) between the beads from the piezo mirror position of trap 1 and the corresponding force data.
-We will also show how to use the same reference curve to apply baseline correction for force signals in post processing.
+Buelake usually determines the distance between two trapped beads by recording brightfield images and tracking the positions of the beads in the images via template matching (low frequency distance).
+This approach is straightforward but has the following disadvantages:
+If the beads are close together, the tracking performs poorly, as the two bead templates might merge at close proximity (e.g. a tether with a short DNA construct :math:`\lesssim` 5 kbp).
+Additionally, the temporal resolution of the bead distance is limited to the maximum framerate of the camera.
+
+In this tutorial we will show you how to overcome these limitations and calculate a high frequency distance signal (piezo distance).
+We will calculate the piezo distance and corresponding high frequency force data by using the positional piezo mirror sensor signal of trap 1 in combination with the displacements of the beads measured by the positional sensitive devices.
+This involves the calibration of the positional signal of trap 1, calculation of a reference curve for a baseline correction of the force signal and calculation of the force-dependent bead displacement.
+Additionally, we will use the reference curve for applying a baseline correction to a force distance curve in post processing.
 
 Trap Positional Calibration
 ---------------------------
 
-The first step is to calibrate the high frequency trap position from the piezo mirror to the low frequency bead-to-bead distance measured by the camera.
+First we will calibrate the high frequency trap position from the piezo mirror with the low frequency bead-to-bead distance measured by the camera.
 
-For this calibration, we require a dataset (acquired in the absence of a tether) in which trap 1 is moved over the entire distance range intended for the experiment.
+For this calibration, we require a dataset in which trap 1 is moved over the entire distance range intended for the experiment.
+This dataset must be acquired while the beads diffuse freely in the trap, i.e. in the absence of a tether.
 The exported data file must contain the trap 1 position and camera-based distance channels.
+  
+.. image:: figures/piezotracking/trap_calibration.jpg
+  :nbattach:
 
-*Note that this dataset should be acquired such that the bead tracking templates do not overlap. In case of overlap, make sure to first slice the position and distance data such that this region is not included.*
+.. note:: 
+    This dataset should be acquired such that the bead tracking templates do not overlap.
+    In case of overlap, make sure to first slice the position and distance data such that this region is not included.
 
 Let's load this dataset and perform the distance calibration by invoking::
 
     no_tether_data = lk.File("Data/piezo_tracking_no_tether.h5")
-
-    distance_calibration = lk.DistanceCalibration(
-        no_tether_data["Trap position"]["1X"], no_tether_data.distance1, degree=2
-    )
+    
+    distance_calibration = lk.DistanceCalibration.from_file(no_tether_data, degree=2)
 
 This class performs a polynomial regression between the trap position and bead tracking distance.
 Note that this bead-to-bead distance already has the bead radius subtracted, therefore it reflects the surface-to-surface distance.

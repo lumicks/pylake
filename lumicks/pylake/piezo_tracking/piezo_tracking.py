@@ -81,6 +81,8 @@ class DistanceCalibration:
         Parameters
         ----------
         calibration_file : lumicks.pylake.File
+            The `calibration_file` needs to contain the channels of the template-tracking distance 1
+            and the position of trap 1.
         degree : int
             Polynomial order.
         """
