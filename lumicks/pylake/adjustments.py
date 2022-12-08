@@ -126,7 +126,7 @@ no_adjustment = ColorAdjustment.nothing()
 
 
 def _make_cmap(name, color):
-    LinearSegmentedColormap.from_list(name, colors=[(0, 0, 0), color])
+    return LinearSegmentedColormap.from_list(name, colors=[(0, 0, 0), color])
 
 
 _available_colormaps = {
