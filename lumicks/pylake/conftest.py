@@ -70,6 +70,11 @@ def configure_warnings():
         "ignore", category=ImportWarning, message=".*numpy.ufunc size changed.*"
     )
 
+    # Deprecation warnings from ipywidgets on import (types, _widget_types and _active_widgets)
+    warnings.filterwarnings(
+        "ignore", category=DeprecationWarning, message=r".*Widget.(\w*) is deprecated.*"
+    )
+
     # h5py triggers a numpy DeprecationWarning when accessing empty datasets (such as our json
     # fields). Here they pass a None shape argument where () is expected by numpy. This will likely
     # be fixed in next h5py release, see the following PR on h5py:
