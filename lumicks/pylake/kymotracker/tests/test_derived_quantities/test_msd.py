@@ -372,8 +372,8 @@ def test_singular_handling():
 
 
 @pytest.mark.parametrize(
-    "diffusion,obs_noise,num_points,time_step, blur_constant,variance_loc,variance_variance_loc,"
-    "diffusion_ref,var_diffusion_ref,variance_loc_ref",
+    "diffusion,obs_noise,num_points,time_step, blur_constant,localization_var,"
+    "var_of_localization_var,diffusion_ref,diffusion_var_ref,localization_var_ref",
     # fmt:off
     [
         (0.1, 0.01, 50, 0.1, 0, None, None, 0.09206101801689968, 0.0009716913812060779, -0.0008040516549331511),
@@ -389,26 +389,26 @@ def test_cve(
     num_points,
     time_step,
     blur_constant,
-    variance_loc,
-    variance_variance_loc,
+    localization_var,
+    var_of_localization_var,
     diffusion_ref,
-    var_diffusion_ref,
-    variance_loc_ref,
+    diffusion_var_ref,
+    localization_var_ref,
 ):
     with temp_seed(10):
         frame = np.arange(num_points)
         coord = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
-        diffusion_est, var_diffusion_est, variance_loc_est = _cve(
-            frame, coord, time_step, blur_constant, variance_loc, variance_variance_loc
+        diffusion_est, diffusion_var_est, localization_var_est = _cve(
+            frame, coord, time_step, blur_constant, localization_var, var_of_localization_var
         )
         np.testing.assert_allclose(diffusion_est, diffusion_ref)
-        np.testing.assert_allclose(var_diffusion_est, var_diffusion_ref)
-        np.testing.assert_allclose(variance_loc_est, variance_loc_ref)
+        np.testing.assert_allclose(diffusion_var_est, diffusion_var_ref)
+        np.testing.assert_allclose(localization_var_est, localization_var_ref)
 
 
 @pytest.mark.parametrize(
-    "diffusion,obs_noise,num_points,time_step, blur_constant,variance_loc,variance_variance_loc,"
-    "diffusion_ref,var_diffusion_ref,variance_loc_ref",
+    "diffusion,obs_noise,num_points,time_step, blur_constant,localization_var,"
+    "var_of_localization_var,diffusion_ref,diffusion_var_ref,localization_var_ref",
     # fmt:off
     [
         (0.1, 0.01, 50, 0.1, 0, None, None, 0.10637910762942307, 0.0015596341426062676, -0.0005047779987189253),
@@ -424,28 +424,34 @@ def test_cve_skipped_samples(
     num_points,
     time_step,
     blur_constant,
-    variance_loc,
-    variance_variance_loc,
+    localization_var,
+    var_of_localization_var,
     diffusion_ref,
-    var_diffusion_ref,
-    variance_loc_ref,
+    diffusion_var_ref,
+    localization_var_ref,
 ):
     with temp_seed(10):
         frame = np.arange(num_points)
         coord = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         mask = np.full(len(frame), True, dtype=bool)
         mask[np.array([10, 20, 40, 41, 42, 43, 44])] = False
-        diffusion_est, var_diffusion_est, variance_loc_est = _cve(
-            frame[mask], coord[mask], time_step, blur_constant, variance_loc, variance_variance_loc
+        diffusion_est, diffusion_var_est, localization_var_est = _cve(
+            frame[mask],
+            coord[mask],
+            time_step,
+            blur_constant,
+            localization_var,
+            var_of_localization_var
         )
         np.testing.assert_allclose(diffusion_est, diffusion_ref)
-        np.testing.assert_allclose(var_diffusion_est, var_diffusion_ref)
-        np.testing.assert_allclose(variance_loc_est, variance_loc_ref)
+        np.testing.assert_allclose(diffusion_var_est, diffusion_var_ref)
+        np.testing.assert_allclose(localization_var_est, localization_var_ref)
 
 
 @pytest.mark.parametrize(
-    "diffusion,obs_noise,num_points,time_step,blur_constant,loc_var,loc_var_var,"
-    "diffusion_ref,var_diffusion_ref,num_points_ref,loc_var_ref, loc_var_var_ref",
+    "diffusion,obs_noise,num_points,time_step,blur_constant,localization_var,"
+    "var_of_localization_var,diffusion_ref,diffusion_var_ref,num_points_ref,localization_var_ref, "
+    "var_of_localization_var_ref",
     # fmt:off
     [
         (2, 0.01, 50, 0.1, 0, None, None, 1.8984350363870435, 0.3972529037563432, 50, -0.028026554019435785, None),
@@ -460,13 +466,13 @@ def test_estimate_diffusion_cve(
     num_points,
     time_step,
     blur_constant,
-    loc_var,
-    loc_var_var,
+    localization_var,
+    var_of_localization_var,
     diffusion_ref,
-    var_diffusion_ref,
+    diffusion_var_ref,
     num_points_ref,
-    loc_var_ref,
-    loc_var_var_ref,
+    localization_var_ref,
+    var_of_localization_var_ref,
 ):
     with temp_seed(10):
         trace = simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
@@ -477,19 +483,19 @@ def test_estimate_diffusion_cve(
             blur_constant,
             "mu^2/s",
             r"$\mu^2/s$",
-            loc_var,
-            loc_var_var,
+            localization_var,
+            var_of_localization_var,
         )
 
         np.testing.assert_allclose(float(diffusion_est), diffusion_ref)
         np.testing.assert_allclose(diffusion_est.value, diffusion_ref)
         assert diffusion_est.num_lags is None
         np.testing.assert_allclose(diffusion_est.num_points, num_points_ref)
-        np.testing.assert_allclose(diffusion_est.std_err, np.sqrt(var_diffusion_ref))
-        np.testing.assert_allclose(diffusion_est.localization_variance, loc_var_ref)
-        if loc_var_var_ref:
+        np.testing.assert_allclose(diffusion_est.std_err, np.sqrt(diffusion_var_ref))
+        np.testing.assert_allclose(diffusion_est.localization_variance, localization_var_ref)
+        if var_of_localization_var_ref:
             np.testing.assert_allclose(
-                diffusion_est.variance_of_localization_variance, loc_var_var_ref
+                diffusion_est.variance_of_localization_variance, var_of_localization_var_ref
             )
         else:
             assert diffusion_est.variance_of_localization_variance is None
@@ -499,7 +505,8 @@ def test_estimate_diffusion_cve(
 
 
 @pytest.mark.parametrize(
-    "diffusion_constant,variance_loc,variance_variance_loc,dt,num_points,blur_constant,avg_frame_steps,ref_value_known,ref_value_unknown",
+    "diffusion_constant,localization_var,var_of_localization_var,dt,num_points,blur_constant,"
+    "avg_frame_steps,ref_value_known,ref_value_unknown",
     [
         (2.0, 0.0001, 0.00005, 0.1, 50, 0, 0.9, 0.16635069135802472, 0.48658494024691357),
         (2.0, 0.0002, 0.0001, 0.1, 50, 0, 0.9, 0.17270153086419754, 0.4867699832098765),
@@ -513,8 +520,8 @@ def test_estimate_diffusion_cve(
 )
 def test_cve_variances(
     diffusion_constant,
-    variance_loc,
-    variance_variance_loc,
+    localization_var,
+    var_of_localization_var,
     dt,
     num_points,
     blur_constant,
@@ -524,14 +531,14 @@ def test_cve_variances(
 ):
     shared_pars = {
         "diffusion_constant": diffusion_constant,
-        "variance_loc": variance_loc,
+        "localization_var": localization_var,
         "dt": dt,
         "num_points": num_points,
         "blur_constant": blur_constant,
         "avg_frame_steps": avg_frame_steps,
     }
     np.testing.assert_allclose(
-        _var_cve_known_var(**shared_pars, variance_variance_loc=variance_variance_loc),
+        _var_cve_known_var(**shared_pars, var_of_localization_var=var_of_localization_var),
         ref_value_known,
     )
 

@@ -722,7 +722,7 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
 
 
 def _var_cve_unknown_var(
-    diffusion_constant, variance_loc, dt, num_points, blur_constant=0, avg_frame_steps=1
+    diffusion_constant, localization_var, dt, num_points, blur_constant=0, avg_frame_steps=1
 ) -> float:
     r"""Expected variance of the diffusion estimate obtained with CVE when the localization
     variance is not known a priori.
@@ -735,7 +735,7 @@ def _var_cve_unknown_var(
     ----------
     diffusion_constant : float
         Estimate of the diffusion constant
-    variance_loc : float
+    localization_var : float
         Estimate of the localization variance
     dt : float
         Time step
@@ -764,7 +764,7 @@ def _var_cve_unknown_var(
            022726.
     """
     # Note that it uses a different definition of epsilon to circumvent a division by zero for D=0.
-    epsilon = variance_loc / dt - 2.0 * blur_constant * diffusion_constant
+    epsilon = localization_var / dt - 2.0 * blur_constant * diffusion_constant
     avg_diff = avg_frame_steps * diffusion_constant
     numerator = 6.0 * avg_diff**2 + 4.0 * epsilon * avg_diff + 2.0 * epsilon**2
     denominator = num_points * avg_frame_steps**2
@@ -775,8 +775,8 @@ def _var_cve_unknown_var(
 
 def _var_cve_known_var(
     diffusion_constant,
-    variance_loc,
-    variance_variance_loc,
+    localization_var,
+    var_of_localization_var,
     dt,
     num_points,
     blur_constant=0,
@@ -793,9 +793,9 @@ def _var_cve_known_var(
     ----------
     diffusion_constant : float
         Estimate of the diffusion constant
-    variance_loc : float
+    localization_var : float
         Estimate of the localization variance
-    variance_variance_loc : float
+    var_of_localization_var : float
         Variance of the localization variance estimate.
     dt : float
         Time step
@@ -824,18 +824,18 @@ def _var_cve_known_var(
             022726.
     """
     # Note that it uses a different definition of epsilon to circumvent a division by zero for D=0.
-    epsilon = variance_loc / dt - 2.0 * blur_constant * diffusion_constant
+    epsilon = localization_var / dt - 2.0 * blur_constant * diffusion_constant
     blur_term = (avg_frame_steps - 2.0 * blur_constant) ** 2
     avg_diff = avg_frame_steps * diffusion_constant
     numerator = 2.0 * avg_diff**2 + 4.0 * epsilon * avg_diff + 3.0 * epsilon**2
     denominator = num_points * blur_term
     term1 = numerator / denominator
-    term2 = variance_variance_loc / (blur_term * dt**2)
+    term2 = var_of_localization_var / (blur_term * dt**2)
     return term1 + term2
 
 
 def _cve(
-    frame_indices, x, dt, blur_constant=0, variance_loc=None, variance_variance_loc=None
+    frame_indices, x, dt, blur_constant=0, localization_var=None, var_of_localization_var=None
 ) -> tuple:
     r"""Covariance based estimator.
 
@@ -878,11 +878,11 @@ def _cve(
         and the diffusion constant, the motion blur factor has no effect on the estimate of the
         diffusion constant itself, but it does affect the calculated uncertainties. In the case of
         a provided localization uncertainty, it does impact the estimate of the diffusion constant.
-    variance_loc : Optional[float]
+    localization_var : Optional[float]
         Estimate of the localization error expressed as a variance, if it has been determined
         independently.
-    variance_variance_loc : Optional[float]
-        The variance of the localization variance estimate (needed if variance_loc is provided).
+    var_of_localization_var : Optional[float]
+        The variance of the localization variance estimate (needed if localization_var is provided).
 
     Note
     ----
@@ -916,40 +916,40 @@ def _cve(
     dx = np.diff(x)
     mean_dx_squared = np.mean(dx**2)
 
-    if not variance_loc:
+    if not localization_var:
         # Estimate the variance based on this track
         mean_dx_consecutive = np.mean(dx[1:] * dx[:-1])
         # Equation 14 from [12] and 21 from [13] adapted for 1D.
         diffusion_constant = mean_dx_squared / (2 * avg_dt) + mean_dx_consecutive / avg_dt
         # Equation 15 from [12]. Note that static loc uncertainty is not affected by frame skipping.
-        variance_loc = (
+        localization_var = (
             blur_constant * mean_dx_squared + (2 * blur_constant - 1) * mean_dx_consecutive
         )
-        var_diffusion = _var_cve_unknown_var(
-            diffusion_constant, variance_loc, dt, len(x), blur_constant, average_frame_step
+        diffusion_var = _var_cve_unknown_var(
+            diffusion_constant, localization_var, dt, len(x), blur_constant, average_frame_step
         )
     else:
-        if variance_variance_loc is None:
+        if var_of_localization_var is None:
             raise ValueError(
                 "When the localization variance is provided, the variance of this estimate should "
                 "also be provided"
             )
 
         # We know the variance in advance. Equation 16 from [12] and 23 from [13] adapted for 1D.
-        diffusion_constant = (mean_dx_squared - 2.0 * variance_loc) / (
+        diffusion_constant = (mean_dx_squared - 2.0 * localization_var) / (
             2.0 * (avg_dt - 2.0 * blur_constant * dt)
         )
-        var_diffusion = _var_cve_known_var(
+        diffusion_var = _var_cve_known_var(
             diffusion_constant,
-            variance_loc,
-            variance_variance_loc,
+            localization_var,
+            var_of_localization_var,
             dt,
             len(x),
             blur_constant,
             average_frame_step,
         )
 
-    return diffusion_constant, var_diffusion, variance_loc
+    return diffusion_constant, diffusion_var, localization_var
 
 
 def estimate_diffusion_cve(
@@ -987,12 +987,12 @@ def estimate_diffusion_cve(
         Estimated variance of the localization variance estimate.
     """
 
-    diffusion, diffusion_variance, localization_var = _cve(
+    diffusion, diffusion_var, localization_var = _cve(
         frame_idx, coordinate, dt, blur_constant, localization_var, var_of_localization_var
     )
     return DiffusionEstimate(
         value=diffusion,
-        std_err=np.sqrt(diffusion_variance),
+        std_err=np.sqrt(diffusion_var),
         num_lags=None,
         num_points=len(coordinate),
         localization_variance=localization_var,

@@ -710,23 +710,34 @@ def test_disallowed_diffusion_est(blank_kymo):
 
 
 @pytest.mark.parametrize(
-    "loc_var, loc_var_var, ref_diff, ref_std, ref_count, ref_loc",
+    "localization_var, var_of_localization_var, diffusion_ref, std_err_ref, count_ref,"
+    "localization_variance_ref",
     [
         (None, None, 1.5, 1.3928388277184118, 5, -1.0),
         (0.1, 0.01, 0.4, 0.33466401061363027, 5, 0.1),
     ],
 )
-def test_diffusion_cve(blank_kymo, loc_var, loc_var_var, ref_diff, ref_std, ref_count, ref_loc):
+def test_diffusion_cve(
+    blank_kymo,
+    localization_var,
+    var_of_localization_var,
+    diffusion_ref,
+    std_err_ref,
+    count_ref,
+    localization_variance_ref,
+):
     """Test the API for the covariance based estimator"""
     k = KymoTrack(np.arange(5), np.arange(5), blank_kymo, "red")
     cve_est = k.estimate_diffusion(
-        "cve", localization_variance=loc_var, variance_of_localization_variance=loc_var_var
+        "cve",
+        localization_variance=localization_var,
+        variance_of_localization_variance=var_of_localization_var,
     )
 
-    np.testing.assert_allclose(cve_est.value, ref_diff)
-    np.testing.assert_allclose(cve_est.std_err, ref_std)
-    np.testing.assert_allclose(cve_est.num_points, ref_count)
-    np.testing.assert_allclose(cve_est.localization_variance, ref_loc)
+    np.testing.assert_allclose(cve_est.value, diffusion_ref)
+    np.testing.assert_allclose(cve_est.std_err, std_err_ref)
+    np.testing.assert_allclose(cve_est.num_points, count_ref)
+    np.testing.assert_allclose(cve_est.localization_variance, localization_variance_ref)
 
     assert cve_est.num_lags is None
     assert cve_est.method == "cve"
