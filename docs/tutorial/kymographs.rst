@@ -5,37 +5,62 @@ Kymographs
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-To load an HDF5 file and lists all of the kymographs inside of it, run::
+We can use the :attr:`lk.File.kymos <lumicks.pylake.File.kymos>` attribute to access the kymographs from a file::
 
     import lumicks.pylake as lk
 
-    file = lk.File("example.h5")
-    list(file.kymos)  # e.g. shows: "['cas9', 'reference']"
+    file = lk.File("kymo.h5")
+    print(file.kymos)  # dict of available kymos: {'16': Kymo(pixels=699)}
 
-Once again, :attr:`.kymos <lumicks.pylake.File.kymos>` is a regular Python dictionary so we can
-easily iterate over it::
+This is a regular Python dictionary so we can easily iterate over it::
 
-    # Plot all kymos in a file
-    >>> for name, kymo in file.kymos.items():
-            print(f"{name}, starts at {kymo.start} ns")
-    cas9, starts at 1586776312560250200 ns
-    reference, starts at 1586777007674285402 ns
+    # print some details for all kymos in a file
+    for name, kymo in file.kymos.items():
+        print(f"kymograph '{name}', starts at {kymo.start} ns")
 
-Or just pick a single one::
+    # kymograph '16', starts at 1638534513847557200 ns
 
-    kymo = file.kymos["cas9"]
-    kymo.plot(channel="green", aspect="auto", adjustment=lk.ColorAdjustment(0, 5))
+Or access a particular `Kymo` object directly to work with::
+
+    # use the kymo name as a dict key
+    kymo = file.kymos["16"]
+
+Plotting and exporting
+----------------------
+
+We can use the :meth:`~lumicks.pylake.kymo.Kymo.plot()` convenience function to plot individual color channels and the full RGB image::
+
+    plt.figure()
+
+    # plot just the green channel
+    plt.subplot(2, 1, 1)
+    kymo.plot("green", adjustment=lk.ColorAdjustment(0, 15, mode="absolute"))
+
+    # plot full color
+    plt.subplot(2, 1, 2)
+    kymo.plot(channel="rgb", adjustment=lk.ColorAdjustment(0, 99, mode="percentile"))
+
+    plt.show()
 
 .. image:: figures/kymographs/kymo_intro.png
 
-Here we see the :meth:`~lumicks.pylake.kymo.Kymo.plot()` convenience function. The `channel`
-argument accepts the strings "red", "green", "blue", or "rgb". This function accepts keyword
-arguments that are passed to :func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally. Note
-also, the axes are labeled with the appropriate time and position units.
+Note that the axes are labeled with the appropriate time and position units.
 
-.. note::
+The first argument `channel` accepts the strings "red", "green", "blue", or "rgb". We also see that the color limits can be set easily using
+the :class:`~lumicks.pylake.ColorAdjustment` class. The first two arguments act like the `vmin` and `vmax` arguments used with
+:func:`plt.imshow() <matplotlib.pyplot.imshow()>` if `mode="absolute"`. In the second plot, we use `mode=percentile` to automatically calculate
+the limits at the 0th and 99th percentile of all of the pixel values. In addition, this method also accepts keyword arguments that are passed to
+:func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally.
 
-    The same plotting options available for :ref:`confocal scans <confocal_plotting>` are also available for kymographs.
+There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`;
+the available colormaps are: `.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image
+with the cyan colormap::
+
+    plt.figure()
+    kymo.plot(channel="blue", cmap=lk.colormaps.cyan)
+    plt.show()
+
+.. image:: figures/kymographs/kymo_blue.png
 
 The kymograph can also be exported to TIFF format::
 
@@ -44,13 +69,15 @@ The kymograph can also be exported to TIFF format::
 Kymo data and details
 ---------------------
 
-We can access the raw image data as `numpy` arrays::
+We can access the raw image data as a :class:`numpy.ndarray`::
 
-    rgb = kymo.get_image("rgb")  # matrix with `shape == (h, w, 3)`
-    blue = kymo.get_image("blue")  # single color so `shape == (h, w)`
+    rgb = kymo.get_image("rgb")  # matrix with `shape == (height, width, 3 colors)`
+    blue = kymo.get_image("blue")  # single color so `shape == (height, width)`
 
     # Plot manually
-    plt.imshow(kymo.get_image("green"), aspect="auto", adjustment=lk.ColorAdjustment(0, 5))
+    plt.figure()
+    plt.imshow(kymo.get_image("green"), aspect="auto", vmax=15)
+    plt.show()
 
 .. image:: figures/kymographs/kymo_manual_plotting.png
 
@@ -75,64 +102,103 @@ There are also several properties available for convenient access to the kymogra
   in seconds. This is equivalent to the number of scan lines times `line_time_seconds`.
 
 
-Cropping and slicing
---------------------
+Slicing, cropping & flipping
+----------------------------
 
-It is possible to crop a kymograph to a specific coordinate range, by using the function
-:func:`Kymo.crop_by_distance() <lumicks.pylake.kymo.Kymo.crop_by_distance>`. For example, we can
-crop the region from `6` micron to `24` micron using the following command::
+Kymographs can  be sliced in order to obtain a specific time range.
+For example, one can plot the region of the kymograph between 130 and 160 seconds using::
 
-    kymo.crop_by_distance(6, 24).plot("green")
-
-.. image:: figures/kymographs/kymo_cropped.png
-
-Kymographs can also be sliced in order to obtain a specific time range.
-For example, one can plot the region of the kymograph between 114.2 and 164.6 seconds using::
-
-    kymo["114.2s":"164.6s"].plot("green")
+    plt.figure()
+    kymo["130s":"160s"].plot("rgb", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+    plt.show()
 
 .. image:: figures/kymographs/kymo_sliced.png
 
-Note, slicing in time is currently only supported for unprocessed kymographs. If you want to both crop and slice a kymo,
-the order of operations is important::
+It is possible to crop a kymograph to a specific coordinate range, by using the function
+:func:`Kymo.crop_by_distance() <lumicks.pylake.kymo.Kymo.crop_by_distance>`. For example, we can
+crop the region from `9.5` micron to `26` microns using the following command::
 
-    kymo_sliced = kymo["114.2s":"164.6s"]
-    kymo_cropped = kymo_sliced.crop_by_distance(6, 24)
+    plt.figure()
+    kymo.crop_by_distance(9.5, 26).plot("rgb", aspect="auto", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+    plt.show()
 
-    kymo_cropped.plot("green")
+.. image:: figures/kymographs/kymo_cropped.png
 
-.. image:: figures/kymographs/kymo_cropped_and_sliced.png
+.. note::
+
+    Note, slicing in time is currently only supported for unprocessed kymographs. If you want to both crop and slice a kymo,
+    the order of operations is important -- you need to slice before cropping::
+
+        kymo_sliced = kymo["130s":"160s"]
+        kymo_cropped = kymo_sliced.crop_by_distance(9.5, 26)
+
+        plt.figure()
+        kymo_cropped.plot("rgb", adjustment=lk.ColorAdjustment(0, 99.9, mode="percentile"))
+        plt.show()
+
+    If you try to slice a kymograph that has already been cropped, a `NotImplementedError` will be raised.
+
+    .. image:: figures/kymographs/kymo_cropped_and_sliced.png
+
+Finally, we can also flip a kymograph along its positional axis using :meth:`~lumicks.pylake.kymo.Kymo.flip()`.
+This returns a new (but flipped) :class:`~lumicks.pylake.kymo.Kymo`::
+
+    kymo_flipped = kymo.flip()
+
+    plt.figure()
+    plt.subplot(211)
+    kymo.plot("rgb", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+
+    plt.subplot(212)
+    kymo_flipped.plot("rgb", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+
+    plt.tight_layout()
+    plt.show()
+
+.. image:: figures/kymographs/kymo_flipped.png
 
 Calibrating to base pairs
 -------------------------
 
-By default, kymographs are constructed with units of microns for the position axis. If, however, the kymograph spans a known length of DNA (for example,
-lambda DNA) we can calibrate the position axis to kilobase pairs::
+By default, kymographs are constructed with units of microns for the position axis. If, however, the kymograph spans a known length of DNA
+(here for example, lambda DNA) we can calibrate the position axis to kilobase pairs (kbp)::
 
     kymo_kbp = kymo_cropped.calibrate_to_kbp(48.502)
 
 Now if we plot the image, the y-axis will be labeled in kbp::
 
+    plt.figure()
     kymo_kbp.plot("green")
+    plt.show()
 
 .. image:: figures/kymographs/kymo_calibrated.png
 
-These units are also carried forward to any downstream operations such as
-kymotracking algorithms and MSD analysis, . *Note: currently this is a static calibration, meaning it is only valid
-if the traps do not change position during the time of the kymograph.*
+These units are also carried forward to any downstream operations such as kymotracking algorithms and MSD analysis.
 
-We can also interactively slice, crop, and calibrate kymographs using::
+.. warning::
 
-    widget = kymo.crop_and_calibrate(channel="green", tether_length_kbp=48.502)
-    plt.show()
+    Currently this is a static calibration, meaning it is only valid if the traps do not change position during the time of the kymograph.
+
+    Also, the accuracy of the calibration is dependent on how the kymo is cropped. If you crop the kymo by visually estimating the
+    bead edges, the resulting position should be taken as approximate.
+
+Interactive slicing, cropping & calibration
+-------------------------------------------
+
+We can also interactively slice, crop, and calibrate kymographs using :meth:`~lumicks.pylake.kymo.Kymo.crop_and_calibrate`::
+
+    widget = kymo.crop_and_calibrate(channel="rgb", tether_length_kbp=48.502, aspect="auto", adjustment=lk.ColorAdjustment(0, 99.5, mode="percentile"))
 
 .. image:: figures/kymographs/kymo_interactive.png
 
-Simply click and drag the rectangle selector to the desired ROI. After closing the widget, we can access the edited kymograph
+Simply click and drag the rectangle selector to the desired ROI. We can then access the edited kymograph
 with::
 
     new_kymo = widget.kymo
+
+    plt.figure()
     new_kymo.plot("green")
+    plt.show()
 
 .. image:: figures/kymographs/kymo_interactive_result.png
 
@@ -140,51 +206,51 @@ If the optional `tether_length_kbp` argument is supplied, the kymograph is autom
 length in kilobase pairs. If this argument is missing (the default value `None`) the edited kymograph is only
 sliced and cropped.
 
-Note that you can also flip a kymograph along its positional axis using :meth:`kymo.flip()
-<lumicks.pylake.kymo.Kymo.flip()>`. This returns a new (but flipped) :class:`~lumicks.pylake.kymo.Kymo`.
-
 Downsampling
 ------------
 
 We can downsample a kymograph in time by invoking::
 
-    kymo_ds = kymo_cropped.downsampled_by(time_factor=2)
-
-.. image:: figures/kymographs/kymo_downsampled_time.png
+    kymo_ds_time = kymo_cropped.downsampled_by(time_factor=2)
 
 Or in space by invoking::
 
-    kymo_ds = kymo_cropped.downsampled_by(position_factor=2)
-
-.. image:: figures/kymographs/kymo_downsampled_position.png
+    kymo_ds_position = kymo_cropped.downsampled_by(position_factor=2)
 
 Or both::
 
     kymo_ds = kymo_cropped.downsampled_by(time_factor=2, position_factor=2)
+    adjustment = lk.ColorAdjustment(0, 30, mode="absolute")
 
-.. image:: figures/kymographs/kymo_downsampled_time_and_position.png
+    plt.figure()
 
-Note however, that not all functionalities are present anymore when downsampling a kymograph. For
-example, if we downsample a kymograph by time, we can no longer access the per pixel timestamps::
+    plt.subplot(221)
+    kymo_cropped.plot("green", adjustment=adjustment)
+    plt.title("original")
+    plt.subplot(222)
+    kymo_ds_time.plot("green", adjustment=adjustment)
+    plt.title("downsampled time")
+    plt.subplot(223)
+    kymo_ds_position.plot("green", adjustment=adjustment)
+    plt.title("downsampled position")
+    plt.subplot(224)
+    kymo_ds.plot("green", adjustment=adjustment)
+    plt.title("downsampled both")
 
-    >>> kymo_ds.timestamps
-    AttributeError: Per pixel timestamps are no longer available after downsampling a kymograph in time since they
-    are not well defined (the downsampling occurs over a non contiguous time window). Line timestamps are still
-    available however. See: `Kymo.line_time_seconds`.
+    plt.tight_layout()
+    plt.show()
 
-Plotting and exporting
-----------------------
+.. image:: figures/kymographs/kymo_downsampled.png
 
-There are also convenience functions to plot individual color channels and the full RGB image::
+Note however, that not all functionalities are present anymore when downsampling a kymograph over time.
+This is because the downsampling occurs over non-contiguous sections of time (across multiple scan lines)
+and therefore each pixel no longer has an identifiable time. For example, we can no longer access the per pixel timestamps::
 
-    plt.subplot(2, 1, 1)
-    kymo.plot("rgb")
-    plt.subplot(2, 1, 2)
-    kymo.plot("blue")
+    # this cell will raise a `NotImplementedError`
+    kymo_ds.timestamps
 
-The images can also be exported in the TIFF format::
-
-    kymo.export_tiff("image.tiff")
+Additionally, a downsampled kymograph cannot be sliced (same as cropped kymographs mentioned above). Therefore you should
+first slice the kymograph and then downsample.
 
 Correlating with force
 ----------------------
@@ -197,18 +263,24 @@ We can downsample channel data according to the lines in a kymo. We can use
 This returns a list of start and stop timestamps that can be passed directly to :func:`~lumicks.pylake.channel.Slice.downsampled_to`,
 which will then return a :class:`~lumicks.pylake.channel.Slice` with a datapoint per line::
 
-    downsampled = f.force1x.downsampled_over(line_timestamp_ranges)
+    force = file.force1x
+    downsampled = force.downsampled_over(line_timestamp_ranges)
 
-There is also a convenience function to plot a kymograph along with a downsampled force trace::
+    plt.figure()
+    force.plot(label="high frequency")
+    downsampled.plot(start=force.start, label="downsampled like kymo")
+    plt.legend()
+    plt.show()
 
-    kymo.plot_with_force("1x", "green")
+.. image:: ./figures/kymographs/force_downsampled_like_kymo.png
+
+There is also a convenience function :meth:`~lumicks.pylake.kymo.Kymo.plot_with_force` to plot a kymograph along with a
+downsampled force trace::
+
+    kymo.plot_with_force("1x", "green", adjustment=lk.ColorAdjustment(0, 15))
 
 This will average the forces over each Kymograph line and plot them in a correlated fashion.
 The function can also take a dictionary of extra arguments to customize the kymograph plot.
 These parameter values get forwarded to :func:`matplotlib.pyplot.imshow`.
-For instance, if a few pixels dominate the image, it might be preferable to set the scale by hand.
-This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment`::
-
-    kymo.plot_with_force("1x", "green", adjustment=lk.ColorAdjustment(0, 3))
 
 .. image:: ./figures/kymographs/kymo_correlated.png
