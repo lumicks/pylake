@@ -372,9 +372,14 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
 
         Actions
         -------
-
-            * scrolling through frames using the mouse wheel
-            * left-click to define the location of the tether
+        mouse wheel
+            Scroll through frames of the stack.
+        left-click
+            Define the location of the tether. First click defines the start of the tether
+            and second click defines the end. Subsequent clicks will cycle back to re-defining
+            the start, etc.
+        right-click and drag
+            Define the ROI to be cropped.
 
         Parameters
         ----------
@@ -427,6 +432,11 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. `np.mean`) is evaluated for the time between a start and end time of a
         frame.
+
+        Actions
+        -------
+        left-click in the left axes
+            Show the corresponding image frame in the right axes.
 
         Parameters
         ----------
