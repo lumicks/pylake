@@ -309,6 +309,11 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         Note: In environments which support interactive figures (e.g. jupyter notebook with
         ipywidgets or interactive python) this plot will be interactive.
 
+        Actions
+        -------
+        left-click in the left axes
+            Show the corresponding image frame in the right axes.
+
         Parameters
         ----------
         channel_slice : pylake.channel.Slice

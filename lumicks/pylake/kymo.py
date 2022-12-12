@@ -653,8 +653,8 @@ class Kymo(ConfocalImage):
 
         Actions
         -------
-
-            * left-click and drag to define the cropped ROI
+        left-click and drag
+            Define the cropped ROI.
 
         Parameters
         ----------

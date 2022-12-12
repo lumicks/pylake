@@ -68,7 +68,7 @@ autosummary_generate = True
 # types are used
 autodoc_type_aliases = {"npt.ArrayLike": "numpy.typing.ArrayLike"}
 
-napoleon_custom_sections = ["Actions"]
+napoleon_custom_sections = [("Actions", "params_style")]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
