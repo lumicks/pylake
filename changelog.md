@@ -45,6 +45,7 @@
 * Fixed slicing of a `Kymo` where slicing from a time point inside the last line to the end (e.g. `kymo["5s":]`) resulted in a `Kymo` which returned errors upon trying to access its contents.
 * Fixed a minor bug in force calibration. In rare cases it was possible that the procedure to generate an initial guess for the power spectral fit failed. This seemed to occur when the spectrum supplied is a mostly flat plateau. After the fix, an alternative method to compute an initial guess is applied in cases where the regular method fails. Note that successful calibrations were not at risk for being incorrect due to this bug since they would have resulted in an exception rather than an invalid result.
 * Fixed a bug where `Scan.export_video()` and `CorrelatedStack.export_video()` would show elements from a previous plot.
+* Fixed a bug that caused a misalignment of half a pixel between the kymograph and its position histogram when using `Kymo.plot_with_position_histogram()`.
 
 #### Deprecations
 
