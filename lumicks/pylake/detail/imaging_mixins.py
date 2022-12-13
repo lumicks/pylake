@@ -162,7 +162,7 @@ class VideoExport:
             image_handle = plot_func(frame=start_frame + num, image_handle=image_handle)
             return plt.gca().get_children()
 
-        fig = plt.gcf()
+        fig = plt.figure()
         fig.patch.set_alpha(1.0)
         line_ani = animation.FuncAnimation(
             fig, plot, stop_frame - start_frame, interval=1, blit=True
