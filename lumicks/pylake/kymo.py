@@ -454,6 +454,7 @@ class Kymo(ConfocalImage):
         image = self.get_image(color_channel)
         pixel_width = self.pixelsize[0]
         edges, counts, bin_widths = histogram_rows(image, pixels_per_bin, pixel_width)
+        edges = edges - pixel_width / 2  # pixel centers are defined at the center of a pixel
 
         gs = GridSpec(1, 2, width_ratios=(1, hist_ratio))
         ax_kymo = plt.subplot(gs[0])
