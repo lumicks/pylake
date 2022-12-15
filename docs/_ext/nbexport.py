@@ -1,13 +1,15 @@
-import os
 import itertools
+import mimetypes
+import os
 import posixpath
-
-from sphinx import addnodes, roles
-from docutils import nodes, writers
+from base64 import b64encode
 
 import nbformat
+from docutils import nodes, writers
+from docutils.parsers.rst import directives
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
+from sphinx import addnodes, roles
 
 
 def _finilize_markdown_cells(nb):
@@ -53,13 +55,23 @@ def _split_doctest(code):
     return code_blocks
 
 
+def _image_url(imagepath):
+    with open(imagepath, "rb") as f:
+        image = f.read()
+    image_str = b64encode(image).decode("utf-8")
+    content_type = mimetypes.guess_type(imagepath)[0]
+    image_url = f"data:{content_type};base64,{image_str}"
+    return image_url
+
+
 # noinspection PyPep8Naming,PyUnusedLocal,PyMethodMayBeStatic
 class NBTranslator(nodes.NodeVisitor):
     def __init__(self, document, app, docpath):
-        nodes.NodeVisitor.__init__(self, document)
+        super().__init__(document)
         self.section_level = 0
         self.indent = 0
         self.paragraph_prefix = ""
+        self.paragraph_suffix = ""
 
         self.app = app
         self.config = app.config
@@ -88,6 +100,12 @@ class NBTranslator(nodes.NodeVisitor):
         if self.nb.cells[-1].cell_type != "markdown":
             return
         self.nb.cells[-1].source[-1] = self.nb.cells[-1].source[-1].rstrip(chars)
+
+    def add_attachment(self, id, image_url):
+        attachments = self.nb.cells[-1].setdefault("attachments", {})
+        encoding, image = image_url.split(",")
+        encoding = encoding.split(":")[-1].split(";")[0]
+        attachments[id] = {encoding: image}
 
     def add_codecell(self, code):
         self.nb.cells.append(
@@ -136,16 +154,28 @@ class NBTranslator(nodes.NodeVisitor):
         self.rstrip_markdown(" ")
 
     def visit_note(self, node):
-        self.paragraph_prefix = "> "
+        self.paragraph_prefix = '<div class="alert alert-block alert-info"><b>Note: </b>'
+        self.paragraph_suffix = "</div>"
 
     def depart_note(self, node):
         self.paragraph_prefix = ""
+        self.paragraph_suffix = ""
+
+    def visit_warning(self, node):
+        self.paragraph_prefix = '<div class="alert alert-block alert-danger"><b>Warning: </b>'
+        self.paragraph_suffix = "</div>"
+
+    def depart_warning(self, node):
+        self.paragraph_prefix = ""
+        self.paragraph_suffix = ""
 
     def visit_paragraph(self, node):
         if self.paragraph_prefix:
             self.write_markdown(self.paragraph_prefix)
 
     def depart_paragraph(self, node):
+        if self.paragraph_suffix:
+            self.write_markdown(self.paragraph_suffix)
         self.write_markdown("\n\n")
 
     def visit_reference(self, node):
@@ -199,6 +229,12 @@ class NBTranslator(nodes.NodeVisitor):
     def visit_math_block(self, node):
         self.write_markdown("$$\n{}\n$$\n\n".format(node.astext().strip()))
         raise nodes.SkipNode
+
+    def visit_image(self, node):
+        if "nbattach" in node and node["nbattach"]:
+            filename = os.path.basename(node["uri"])
+            self.write_markdown(f"![{filename}](attachment:{filename})\n")
+            self.add_attachment(filename, _image_url(os.path.join(self.app.srcdir, node["uri"])))
 
     def unknown_visit(self, node):
         pass
@@ -283,7 +319,22 @@ class NotebookExportRole(roles.XRefRole):
         return super().result_nodes(document, env, node, is_ref)
 
 
+class NBAttachImage(directives.images.Image):
+    """Extend the `Image` directive class with the option `:nbattach:` to enable attaching an image
+    to a notebook"""
+
+    option_spec = directives.images.Image.option_spec.copy()
+    option_spec["nbattach"] = directives.flag
+
+    def run(self):
+        self.options["nbattach"] = True if "nbattach" in self.options else False
+        return super().run()
+
+
 def setup(app):
+    # Replace standard image Docutils directive with extended `NBAttachImage` enabling `:nbattach`
+    app.add_directive("image", NBAttachImage, override=True)
+
     app.add_role("nbexport", NotebookExportRole(nodeclass=addnodes.download_reference))
 
     app.connect("doctree-resolved", export_notebooks)
@@ -294,4 +345,4 @@ def setup(app):
     app.add_config_value("nbexport_baseurl", "", "html")
     app.add_config_value("nbexport_execute", False, "html")
 
-    return {"version": "0.1"}
+    return {"version": "0.2"}
