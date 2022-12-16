@@ -1003,7 +1003,7 @@ def estimate_diffusion_cve(
     )
 
 
-def ensemble_cve(kymotracks):
+def ensemble_cve(kymotracks, motion_blur):
     """Calculate ensemble-based CVE.
 
     Determines the weighted average of the mean and standard error of the CVE estimates.
@@ -1015,6 +1015,8 @@ def ensemble_cve(kymotracks):
     ----------
     kymotracks : lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup
         Group of kymotracks
+    motion_blur : float
+        Motion blur constant.
 
     References
     ----------
@@ -1022,7 +1024,7 @@ def ensemble_cve(kymotracks):
             diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
             022726.
     """
-    cve_based = kymotracks.estimate_diffusion(method="cve")
+    cve_based = kymotracks.estimate_diffusion(method="cve", motion_blur=motion_blur)
 
     def mean_var(x, count, count_sum):
         # Equation 58 and 57 from Vestergaard et al [14].

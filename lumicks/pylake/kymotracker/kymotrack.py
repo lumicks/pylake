@@ -375,6 +375,7 @@ class KymoTrack:
         max_lag=None,
         localization_variance=None,
         variance_of_localization_variance=None,
+        motion_blur=None,
     ):
         r"""Estimate diffusion constant
 
@@ -446,6 +447,8 @@ class KymoTrack:
             Estimate of the variance of the localization variance estimate. This value can be
             obtained from estimating an ensemble diffusion constant using `cve`. This parameter is
             only used when method="cve".
+        motion_blur : float (optional)
+            Motion blur constant (only available if method="cve")
 
         References
         ----------
@@ -483,7 +486,7 @@ class KymoTrack:
                 positions,
                 self._line_time_seconds,
                 **unit_labels,
-                blur_constant=0,
+                blur_constant=motion_blur if motion_blur is not None else 0,
                 localization_var=localization_variance,
                 var_of_localization_var=variance_of_localization_variance,
             )
@@ -491,6 +494,11 @@ class KymoTrack:
         if localization_variance is not None or variance_of_localization_variance is not None:
             raise NotImplementedError(
                 "Passing in a localization error is only supported for method=`cve`."
+            )
+
+        if motion_blur is not None:
+            raise NotImplementedError(
+                "Passing in a motion blur is only supported for method=`cve`."
             )
 
         max_lag = (
@@ -947,7 +955,7 @@ class KymoTrackGroup:
 
         return [k.estimate_diffusion(method, *args, **kwargs) for k in filtered_tracks]
 
-    def ensemble_diffusion(self, method, *, max_lag=None):
+    def ensemble_diffusion(self, method, *, max_lag=None, motion_blur=None):
         """Determine ensemble based diffusion estimates.
 
         Determines ensemble based diffusion estimates for the entire group of KymoTracks. This
@@ -967,6 +975,8 @@ class KymoTrackGroup:
               :meth:`KymoTrack.estimate_diffusion` for more detailed information and references.
         max_lag : int
             Maximum number of lags to include when using the ordinary least squares method (OLS).
+        motion_blur : float
+            Motion blur constant.
 
         References
         ----------
@@ -974,8 +984,11 @@ class KymoTrackGroup:
                diffusion coefficients from single-particle trajectories. Physical Review E, 89(2),
                022726.
         """
+        if motion_blur and method != "cve":
+            raise NotImplementedError("Passing in motion blur constant is only supported for CVE")
+
         if method == "cve":
-            return ensemble_cve(self)
+            return ensemble_cve(self, motion_blur=motion_blur if motion_blur is not None else 0)
         elif method == "ols":
             return ensemble_ols(self, max_lag)
         else:
