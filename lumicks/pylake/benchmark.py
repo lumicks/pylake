@@ -60,7 +60,7 @@ def _generate_blank_kymo_data(samples=1000000):
 
 
 def _generate_test_stack(tiff_fn, pixel_size=0.1):
-    """Generate a tiff stack readable by CorrelatedStack that can be used for benchmarking"""
+    """Generate a tiff stack readable by ImageStack that can be used for benchmarking"""
     from lumicks.pylake.tests.data.mock_widefield import write_tiff_file, make_irm_description
 
     x, y = np.meshgrid(np.arange(-5, 5, pixel_size), np.arange(-5, 5, pixel_size))
@@ -157,12 +157,12 @@ class _ReadTIFF(_Benchmark):
             filename = os.path.join(tmpdir, "bench_tiff.tiff")
             _generate_test_stack(filename)
 
-            def read_correlated_stack():
-                stack = lk.CorrelatedStack(filename)
+            def read_image_stack():
+                stack = lk.ImageStack(filename)
                 stack.get_image()
                 stack._src.close()  # Explicitly close, otherwise cleanup will fail
 
-            yield read_correlated_stack
+            yield read_image_stack
 
 
 class _ProcessTIFF(_Benchmark):
@@ -173,7 +173,7 @@ class _ProcessTIFF(_Benchmark):
         with tempfile.TemporaryDirectory() as tmpdir:
             tiff_fn = os.path.join(tmpdir, "bench_tiff.tiff")
             _generate_test_stack(tiff_fn, pixel_size=0.23)
-            stack = lk.CorrelatedStack(tiff_fn)
+            stack = lk.ImageStack(tiff_fn)
             yield lambda: stack.define_tether((10, 10), (50, 50)).get_image()
             stack._src.close()  # Explicitly close, otherwise cleanup will fail
 

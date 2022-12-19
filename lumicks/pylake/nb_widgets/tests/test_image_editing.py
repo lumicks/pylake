@@ -4,7 +4,7 @@ import json
 
 from lumicks.pylake.tests.data.mock_widefield import make_alignment_image_data, MockTiffFile
 from lumicks.pylake.detail.widefield import TiffStack
-from lumicks.pylake import CorrelatedStack
+from lumicks.pylake import ImageStack
 from lumicks.pylake.nb_widgets.image_editing import ImageEditorWidget, KymoEditorWidget
 
 import matplotlib.pyplot as plt
@@ -32,7 +32,7 @@ def make_mock_stack():
         align_requested=True,
     )
 
-    return CorrelatedStack.from_dataset(tiff)
+    return ImageStack.from_dataset(tiff)
 
 
 def test_editor_scroll(mockevent):

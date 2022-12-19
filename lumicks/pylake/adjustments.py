@@ -45,7 +45,7 @@ class ColorAdjustment:
         adjustment = lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile")
         file.scans["scan"].plot(adjustment=adjustment)
 
-        stack = lk.CorrelatedStack("camera_recording.tiff")
+        stack = lk.ImageStack("camera_recording.tiff")
         # Plot force 1x with this stack and adjust the contrast by specifying an absolute upper
         # and lower bound for the intensities.
         absolute_adjustment = lk.ColorAdjustment([50, 30, 20], [1000, 195, 95])

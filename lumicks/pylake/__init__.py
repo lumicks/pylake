@@ -13,7 +13,7 @@ from .__about__ import (
 from .file_download import *
 from .benchmark import benchmark
 from .adjustments import ColorAdjustment, colormaps
-from .correlated_stack import CorrelatedStack
+from .image_stack import ImageStack, CorrelatedStack
 from .piezo_tracking.piezo_tracking import *
 from .piezo_tracking.baseline import *
 from .file import *

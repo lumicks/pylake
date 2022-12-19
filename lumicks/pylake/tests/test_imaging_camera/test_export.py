@@ -1,7 +1,7 @@
 import pytest
 import tifffile
 import itertools
-from lumicks.pylake import CorrelatedStack
+from lumicks.pylake import ImageStack
 
 
 def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
@@ -10,7 +10,7 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
     filenames = (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi)
     for filename, align in itertools.product(filenames, (True, False)):
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
-        stack = CorrelatedStack(str(filename), align=align)
+        stack = ImageStack(str(filename), align=align)
         stack.export_tiff(savename)
         stack._src.close()
         assert stat(savename).st_size > 0
@@ -42,7 +42,7 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
 
     for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
         savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
-        stack = CorrelatedStack(str(filename))[:, 20:80, 10:190]
+        stack = ImageStack(str(filename))[:, 20:80, 10:190]
 
         stack.export_tiff(savename)
         assert stat(savename).st_size > 0
@@ -62,7 +62,7 @@ def test_stack_movie_export(
     tmpdir = tmpdir_factory.mktemp("pylake")
 
     for idx, filename in enumerate((rgb_tiff_file_multi, gray_tiff_file_multi)):
-        stack = CorrelatedStack(str(filename))
+        stack = ImageStack(str(filename))
         fn = f"{tmpdir}/cstack{idx}.gif"
         stack.export_video("red", fn, start_frame=0, stop_frame=2)
         assert stat(fn).st_size > 0

@@ -151,7 +151,7 @@ class TiffStack:
         self._description = descriptions[0]
 
         # warn on file open if alignment is requested, but not possible
-        # stacklevel=4 corresponds to CorrelatedStack.__init__()
+        # stacklevel=4 corresponds to ImageStack.__init__()
         if self._description._alignment.has_problem:
             warnings.warn(self._description._alignment.status.value, stacklevel=4)
 

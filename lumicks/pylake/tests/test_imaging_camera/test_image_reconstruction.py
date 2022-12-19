@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import json
 from copy import deepcopy
-from lumicks.pylake import CorrelatedStack
+from lumicks.pylake import ImageStack
 from lumicks.pylake.detail.widefield import TiffStack
 from ..data.mock_widefield import MockTiffFile, make_frame_times
 
@@ -20,7 +20,7 @@ def test_image_reconstruction_grayscale(gray_alignment_image_data):
         ],
         align_requested=True,
     )
-    stack = CorrelatedStack.from_dataset(fake_tiff)
+    stack = ImageStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     assert not fr.is_rgb
@@ -41,7 +41,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
         ],
         align_requested=True,
     )
-    stack = CorrelatedStack.from_dataset(fake_tiff)
+    stack = ImageStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
@@ -82,7 +82,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
         ],
         align_requested=True,
     )
-    stack = CorrelatedStack.from_dataset(fake_tiff)
+    stack = ImageStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     assert fr.is_rgb
@@ -100,7 +100,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
         ],
         align_requested=True,
     )
-    stack = CorrelatedStack.from_dataset(fake_tiff)
+    stack = ImageStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
 
     original_data = (reference_image / (2**bit_depth - 1)).astype(float)
@@ -120,7 +120,7 @@ def test_no_alignment_requested(rgb_alignment_image_data):
         ],
         align_requested=False,
     )
-    stack = CorrelatedStack.from_dataset(fake_tiff)
+    stack = ImageStack.from_dataset(fake_tiff)
     fr = stack._get_frame(0)
     np.testing.assert_allclose(fr.data, warped_image)
 
@@ -138,7 +138,7 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
         ],
         align_requested=True,
     )
-    stack = CorrelatedStack.from_dataset(fake_tiff)
+    stack = ImageStack.from_dataset(fake_tiff)
     fr = stack._get_frame(2)
 
     assert fr.is_rgb
