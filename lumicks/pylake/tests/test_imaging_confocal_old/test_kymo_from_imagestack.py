@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
-from lumicks.pylake.correlated_stack import CorrelatedStack
+from lumicks.pylake.image_stack import ImageStack
 from lumicks.pylake.detail.widefield import TiffStack, Tether
 from lumicks.pylake.tests.data.mock_widefield import MockTiffFile
-from lumicks.pylake.kymo import _kymo_from_correlated_stack
+from lumicks.pylake.kymo import _kymo_from_image_stack
 
 
 def make_frame_times(n_frames, rate=10, step=8, start=10, framerate_jitter=0, step_jitter=0):
@@ -22,7 +22,7 @@ def make_frame_times(n_frames, rate=10, step=8, start=10, framerate_jitter=0, st
     ]
 
 
-def create_mock_corrstack(
+def create_mock_stack(
     n_frames=1, shape=None, image=None, framerate_jitter=0, step_jitter=0, tether_ends=None
 ):
     image = np.ones(shape) if image is None else image
@@ -33,7 +33,7 @@ def create_mock_corrstack(
         align_requested=False,
         tether=tether,
     )
-    return CorrelatedStack.from_dataset(fake_tiff)
+    return ImageStack.from_dataset(fake_tiff)
 
 
 def gaussian_2d(shape=(15, 15), limit=(3.0, 3.0), mean=(0.0, 0.0), std=(1.0, 1.0), rho=0.0):
@@ -62,73 +62,73 @@ def gaussian_2d(shape=(15, 15), limit=(3.0, 3.0), mean=(0.0, 0.0), std=(1.0, 1.0
     return multivariate_normal(mean=mean, cov=cov).pdf(mesh)
 
 
-# Test conditional errors for insufficient correlated stacks as input
+# Test conditional errors for insufficient image stacks as input
 def test_error_frame_rate_not_constant():
-    corrstack = create_mock_corrstack(3, (3, 3, 3), framerate_jitter=1)
+    stack = create_mock_stack(3, (3, 3, 3), framerate_jitter=1)
     with pytest.raises(
-        ValueError, match="The frame rate of the images of the correlated stack is not constant."
+        ValueError, match="The frame rate of the images of the image stack is not constant."
     ):
-        _kymo_from_correlated_stack(corrstack)
+        _kymo_from_image_stack(stack)
 
 
 def test_error_exposure_time_not_constant():
-    corrstack = create_mock_corrstack(3, (3, 3, 3), step_jitter=1)
+    stack = create_mock_stack(3, (3, 3, 3), step_jitter=1)
     with pytest.raises(
-        ValueError, match="The exposure time of the images of the correlated stack is not constant."
+        ValueError, match="The exposure time of the images of the image stack is not constant."
     ):
-        _kymo_from_correlated_stack(corrstack)
+        _kymo_from_image_stack(stack)
 
 
 def test_error_tether_not_exists():
-    corrstack = create_mock_corrstack(3, (3, 3, 3))
-    with pytest.raises(ValueError, match="The correlated stack does not have a tether."):
-        _kymo_from_correlated_stack(corrstack)
+    stack = create_mock_stack(3, (3, 3, 3))
+    with pytest.raises(ValueError, match="The image stack does not have a tether."):
+        _kymo_from_image_stack(stack)
 
 
 def test_error_negative_linewidth():
-    corrstack = create_mock_corrstack(3, (3, 3, 3), tether_ends=((0, 0), (4, 0)))
+    stack = create_mock_stack(3, (3, 3, 3), tether_ends=((0, 0), (4, 0)))
     with pytest.raises(
         ValueError, match="The requested number of `adjacent_lines` must not be negative."
     ):
-        _kymo_from_correlated_stack(corrstack, adjacent_lines=-1)
+        _kymo_from_image_stack(stack, adjacent_lines=-1)
 
 
 def test_error_tether_linewidth_exceeds_image():
-    corrstack = create_mock_corrstack(3, (3, 3, 3), tether_ends=((0, 0), (4, 0)))
+    stack = create_mock_stack(3, (3, 3, 3), tether_ends=((0, 0), (4, 0)))
     with pytest.raises(
         ValueError,
-        match="The number of `adjacent_lines` exceed the size of the correlated stack images.",
+        match="The number of `adjacent_lines` exceed the size of the image stack images.",
     ):
-        _kymo_from_correlated_stack(corrstack, adjacent_lines=3)
+        _kymo_from_image_stack(stack, adjacent_lines=3)
 
-    corrstack = create_mock_corrstack(3, (3, 3, 3), tether_ends=((0, 2), (4, 2)))
+    stack = create_mock_stack(3, (3, 3, 3), tether_ends=((0, 2), (4, 2)))
     with pytest.raises(
         ValueError,
-        match="The number of `adjacent_lines` exceed the size of the correlated stack images.",
+        match="The number of `adjacent_lines` exceed the size of the image stack images.",
     ):
-        _kymo_from_correlated_stack(corrstack, adjacent_lines=3)
+        _kymo_from_image_stack(stack, adjacent_lines=3)
 
 
 # Test proper shape of kymo
 def test_shape_of_kymo():
     # 5 pixels, 4 frames, 3 channels
-    corrstack = create_mock_corrstack(4, (5, 5, 3), tether_ends=((0, 2), (4, 2)))
-    kymo = _kymo_from_correlated_stack(corrstack)
+    stack = create_mock_stack(4, (5, 5, 3), tether_ends=((0, 2), (4, 2)))
+    kymo = _kymo_from_image_stack(stack)
     assert kymo.get_image().shape == (5, 4, 3)
 
     # 5 pixels (rounded), 4 frames, 3 channels
-    corrstack = create_mock_corrstack(4, (5, 5, 3), tether_ends=((0.5, 2), (4.5, 2)))
-    kymo = _kymo_from_correlated_stack(corrstack)
+    stack = create_mock_stack(4, (5, 5, 3), tether_ends=((0.5, 2), (4.5, 2)))
+    kymo = _kymo_from_image_stack(stack)
     assert kymo.get_image().shape == (5, 4, 3)
 
     # 3 pixels, 4 frames, 3 channels
-    corrstack = create_mock_corrstack(4, (5, 5, 3), tether_ends=((1, 2), (3, 2)))
-    kymo = _kymo_from_correlated_stack(corrstack)
+    stack = create_mock_stack(4, (5, 5, 3), tether_ends=((1, 2), (3, 2)))
+    kymo = _kymo_from_image_stack(stack)
     assert kymo.get_image().shape == (3, 4, 3)
 
     # 3 pixels, 10 frames, 1 channel
-    corrstack = create_mock_corrstack(10, (5, 5), tether_ends=((1, 2), (3, 2)))
-    kymo = _kymo_from_correlated_stack(corrstack)
+    stack = create_mock_stack(10, (5, 5), tether_ends=((1, 2), (3, 2)))
+    kymo = _kymo_from_image_stack(stack)
     assert kymo.get_image().shape == (3, 10, 3)
 
 
@@ -146,7 +146,7 @@ def test_data_identity_horizonal_tether(adjacent_lines, reduce=np.mean):
     ymin = y // 2 - adjacent_lines
     ymax = y // 2 + adjacent_lines + 1
     imageline = reduce(image[ymin:ymax], axis=0)
-    corrstack = create_mock_corrstack(5, image=image, tether_ends=((0, y // 2), (x - 1, y // 2)))
-    kymo = _kymo_from_correlated_stack(corrstack, adjacent_lines=adjacent_lines, reduce=reduce)
+    stack = create_mock_stack(5, image=image, tether_ends=((0, y // 2), (x - 1, y // 2)))
+    kymo = _kymo_from_image_stack(stack, adjacent_lines=adjacent_lines, reduce=reduce)
     for frameline in np.swapaxes(kymo.get_image(), 0, 1):
         assert np.array_equal(frameline, imageline)

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.widgets import RectangleSelector
-from ..correlated_stack import CorrelatedStack
+from ..image_stack import ImageStack
 from ..kymo import Kymo
 from ..detail.image import make_image_title
 
@@ -38,7 +38,7 @@ class ImageStackAxes(Axes):
         ----------
         *args
             positional arguments, forwarded to superclass
-        image : lk.CorrelatedStack
+        image : lk.ImageStack
             image object
         frame : int
             initial frame index to plot
@@ -102,7 +102,7 @@ class ImageEditorAxes(ImageStackAxes):
         ----------
         *args
             positional arguments, forwarded to superclass
-        image : lk.CorrelatedStack
+        image : lk.ImageStack
             image object
         frame : int
             initial frame index to plot
@@ -186,7 +186,7 @@ class ImageEditorAxes(ImageStackAxes):
 
 @dataclass
 class ImageEditorProjection:
-    image: CorrelatedStack
+    image: ImageStack
     frame: int
     channel: str
     show_title: bool
@@ -208,7 +208,7 @@ class ImageEditorWidget:
 
         Parameters
         ----------
-        image : lk.CorrelatedStack
+        image : lk.ImageStack
             Image stack object
         """
         plt.figure()

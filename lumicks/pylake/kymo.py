@@ -854,15 +854,15 @@ def _kymo_from_array(
     return kymo
 
 
-def _kymo_from_correlated_stack(
-    corrstack, adjacent_lines=0, pixel_size_um=None, name="", reduce=np.mean
+def _kymo_from_image_stack(
+    stack, adjacent_lines=0, pixel_size_um=None, name="", reduce=np.mean
 ) -> Kymo:
-    """Generate a :class:`~lumicks.pylake.kymo.Kymo` instance from a correlated stack.
+    """Generate a :class:`~lumicks.pylake.kymo.Kymo` instance from an image stack.
 
     Parameters
     ----------
-    corrstack : CorrelatedStack
-        An instance of a CorrelatedStack. The frame rate and the exposure time of the images need
+    stack : ImageStack
+        An instance of a ImageStack. The frame rate and the exposure time of the images need
         to be constant and `corrstack` needs to have a tether. The data for the kymograph will be
         taken along the line of the tether, including the pixels of the ends of the tether.
     adjacent_lines : int
@@ -879,29 +879,29 @@ def _kymo_from_correlated_stack(
         for some cases.
     """
     # Ensure constant frame rate of the whole stack
-    ts_ranges = np.array(corrstack.frame_timestamp_ranges())
+    ts_ranges = np.array(stack.frame_timestamp_ranges())
     line_times = np.diff(ts_ranges[:, 0])
     line_time = line_times[0]
     if not np.all(line_times == line_time):
-        raise ValueError("The frame rate of the images of the correlated stack is not constant.")
+        raise ValueError("The frame rate of the images of the image stack is not constant.")
     line_time_s = line_time * 1e-9
 
     # Ensure constant exposure time of the whole stack
     exp_times = ts_ranges[:, 1] - ts_ranges[:, 0]
     exp_time = exp_times[0]
     if not np.all(exp_times == exp_time):
-        raise ValueError("The exposure time of the images of the correlated stack is not constant.")
+        raise ValueError("The exposure time of the images of the image stack is not constant.")
     exp_time_s = exp_time * 1e-9
 
     # Start timestamp of the kymo is start timestamp of first image
     start = ts_ranges[0, 0]
 
-    # Ensure correlated stack has proper tether
-    if not corrstack._src._tether:
-        raise ValueError("The correlated stack does not have a tether.")
-    (x1, y1), (x2, y2) = corrstack._src._tether.ends
+    # Ensure image stack has proper tether
+    if not stack._src._tether:
+        raise ValueError("The image stack does not have a tether.")
+    (x1, y1), (x2, y2) = stack._src._tether.ends
     if np.floor(y1) != np.floor(y2):
-        raise ValueError("The correlated stack is not aligned along the tether axis.")
+        raise ValueError("The image stack is not aligned along the tether axis.")
 
     # Extract the kymograph data along the line of the tether
     if adjacent_lines < 0:
@@ -910,17 +910,17 @@ def _kymo_from_correlated_stack(
     xmax = int(np.floor(x2)) + 1
     ymin = int(np.floor(y1)) - adjacent_lines
     ymax = int(np.floor(y2)) + adjacent_lines + 1
-    if ymin < 0 or ymax > corrstack.shape[1]:
+    if ymin < 0 or ymax > stack.shape[1]:
         raise ValueError(
-            "The number of `adjacent_lines` exceed the size of the correlated stack images."
+            "The number of `adjacent_lines` exceed the size of the image stack images."
         )
-    kymostack = corrstack.crop_by_pixels(xmin, xmax, ymin, ymax)
+    kymostack = stack.crop_by_pixels(xmin, xmax, ymin, ymax)
     image = kymostack.get_image(channel="rgb")  # time, (y,) x, (c)
     if adjacent_lines > 0:
         image = reduce(image, axis=1)  # time, x, (c)
     image = np.swapaxes(image, 0, 1)  # x, time, (c)
 
-    # If correlated stack has only one channel, triplicate data to create "rgb" kymo
+    # If image stack has only one channel, triplicate data to create "rgb" kymo
     if image.ndim == 2:
         image = np.repeat(image, 3, axis=1).reshape(*image.shape, 3)  # x, time, c
 

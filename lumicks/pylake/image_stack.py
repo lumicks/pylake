@@ -13,7 +13,7 @@ from .detail.widefield import TiffStack
 
 
 def _deprecate_plot_arguments(plot):
-    """Decorator to deprecate old arguments of the method `CorrelatedStack.plot()`"""
+    """Decorator to deprecate old arguments of the method `ImageStack.plot()`"""
     import functools
     import matplotlib
     import warnings
@@ -62,9 +62,9 @@ def _deprecate_plot_arguments(plot):
     return wrapper
 
 
-class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
-    """CorrelatedStack acquired with Bluelake. Bluelake can export stacks of images to various
-    formats. These can be opened and correlated to timeline data using CorrelatedStack.
+class ImageStack(FrameIndex, TiffExport, VideoExport):
+    """Open a TIF file acquired with Bluelake. Bluelake can export stacks of images from various
+    cameras and these can be opened and correlated to timeline data.
 
     Parameters
     ----------
@@ -81,7 +81,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         from lumicks import pylake
 
         # Loading a stack.
-        stack = pylake.CorrelatedStack("example.tiff")
+        stack = pylake.ImageStack("example.tiff")
 
         # Making a plot where force is correlated to images in the stack.
         file = pylake.File("example.h5")
@@ -91,7 +91,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         file.force1x.downsampled_over(stack[2:10].frame_timestamp_ranges())
 
         # Loading multiple TIFFs into a stack.
-        stack = pylake.CorrelatedStack("example.tiff", "example2.tiff", "example3.tiff")
+        stack = pylake.ImageStack("example.tiff", "example2.tiff", "example3.tiff")
     """
 
     def __init__(self, *image_names, align=True):
@@ -117,7 +117,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
                 return item, item + 1
 
         if len(item) > 3:
-            raise IndexError("Only three indices are accepted when slicing CorrelatedStacks.")
+            raise IndexError("Only three indices are accepted when slicing an ImageStack.")
 
         rows = interpret_crop(item[1]) if len(item) >= 2 else (None, None)
         columns = interpret_crop(item[2]) if len(item) >= 3 else (None, None)
@@ -137,7 +137,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
 
             import lumicks.pylake as lk
 
-            stack = lk.CorrelatedStack("test.tiff")
+            stack = lk.ImageStack("test.tiff")
 
             stack[5]  # Gets the 6th frame of the scan (0 is the first).
             stack[1:5]  # Get scan frames 1, 2, 3 and 4.
@@ -173,7 +173,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
             if new_step < 0:
                 raise NotImplementedError("Reverse slicing is not supported")
 
-            return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop, new_step)
+            return ImageStack.from_dataset(src, self.name, new_start, new_stop, new_step)
         else:
             idx = item if item >= 0 else item + self.num_frames
             new_start = self._start_idx + self._step * idx
@@ -182,7 +182,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
 
             if new_start < self._start_idx or new_start >= self._stop_idx:
                 raise IndexError("Index out of bounds")
-            return CorrelatedStack.from_dataset(src, self.name, new_start, new_stop, new_step)
+            return ImageStack.from_dataset(src, self.name, new_start, new_stop, new_step)
 
     def __iter__(self):
         idx = 0
@@ -197,7 +197,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         action="always",
     )
     def src(self):
-        """The `TiffStack` source of this :class:`CorrelatedStack`"""
+        """The `TiffStack` source of this :class:`ImageStack`"""
         return self._src
 
     @classmethod
@@ -218,15 +218,15 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         return (*base_shape, 3) if self._src.is_rgb else base_shape
 
     @classmethod
-    def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None, step=1) -> "CorrelatedStack":
-        """Construct CorrelatedStack from image stack object
+    def from_dataset(cls, data, name=None, start_idx=0, stop_idx=None, step=1) -> "ImageStack":
+        """Construct ImageStack from image stack object
 
         Parameters
         ----------
         data : TiffStack
             TiffStack object.
         name : str
-            Plot label of the correlated stack
+            Plot label of the image stack
         start_idx : int
             Index at the first frame.
         stop_idx : int
@@ -234,15 +234,15 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
         step : int
             Step value for slicing frames.
         """
-        new_correlated_stack = cls.__new__(cls)
-        new_correlated_stack._src = data
-        new_correlated_stack.name = name
-        new_correlated_stack._start_idx = start_idx
-        new_correlated_stack._stop_idx = (
-            new_correlated_stack._src.num_frames if stop_idx is None else stop_idx
+        new_image_stack = cls.__new__(cls)
+        new_image_stack._src = data
+        new_image_stack.name = name
+        new_image_stack._start_idx = start_idx
+        new_image_stack._stop_idx = (
+            new_image_stack._src.num_frames if stop_idx is None else stop_idx
         )
-        new_correlated_stack._step = step
-        return new_correlated_stack
+        new_image_stack._step = step
+        return new_image_stack
 
     def crop_by_pixels(self, x_min, x_max, y_min, y_max):
         """Crop the image stack by pixel values.
@@ -401,7 +401,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
             import matplotlib.pyplot as plt
 
             # Loading a stack.
-            stack = pylake.CorrelatedStack("example.tiff")
+            stack = pylake.ImageStack("example.tiff")
             widget = stack.crop_and_rotate()
             plt.show()
 
@@ -469,7 +469,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
             from lumicks import pylake
 
             file = pylake.File("example.h5")
-            stack = pylake.CorrelatedStack("example.tiff")
+            stack = pylake.ImageStack("example.tiff")
             stack.plot_correlated(file.force1x, frame=5)
         """
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
@@ -540,7 +540,7 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
     @deprecated(
         reason=(
             "Access to raw frame instances will be removed in a future release. All operations on "
-            "these objects should be handled through the :class:`CorrelatedStack` public API. For "
+            "these objects should be handled through the :class:`ImageStack` public API. For "
             "example, to retrieve the image data as an :class:`numpy.ndarray` please use "
             ":func:`get_image`."
         ),
@@ -599,3 +599,24 @@ class CorrelatedStack(FrameIndex, TiffExport, VideoExport):
             return frame_ts
         else:
             return ts_ranges
+
+
+@deprecated(
+    reason="`CorrelatedStack` has been renamed to `ImageStack` and will be removed in the next release.",
+    version="0.13.3",
+    action="always",
+)
+def CorrelatedStack(*image_names, align=True):
+    """Open a TIF file acquired with Bluelake. Bluelake can export stacks of images from various
+    cameras and these can be opened and correlated to timeline data.
+
+    Parameters
+    ----------
+    *image_names : str
+        Filenames for the image stack. Typically a TIFF file recorded from a camera in Bluelake.
+    align : bool
+        If enabled, multi-channel images will be reconstructed from the image alignment metadata
+        from Bluelake. The default value is `True`.
+    """
+
+    return ImageStack(*image_names, align=align)
