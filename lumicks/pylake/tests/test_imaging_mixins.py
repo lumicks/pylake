@@ -115,6 +115,10 @@ def test_export_tiff_int(tmp_path):
         export_image16.export_tiff(tmp_path / "float16", dtype=np.float16)
 
 
+@pytest.mark.filterwarnings(
+    # Numpy 1.24 raises a RuntimeWarning upon overflow during type cast (see call with `clip=True`)
+    "ignore:overflow encountered in cast:RuntimeWarning:lumicks.pylake.detail.imaging_mixins:48"
+)
 def test_export_tiff_float(tmp_path):
     images = np.ones(shape=(2, 10, 10, 3))  # (n, h, w, c)
     export_image32 = tiffexport_factory(images * np.finfo(np.float32).max)
