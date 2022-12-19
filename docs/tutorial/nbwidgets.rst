@@ -163,9 +163,9 @@ The selector widgets can also be easily accessed from single F,d curve instances
 Cropping and Rotating Image Stacks
 ----------------------------------
 
-You can interactively define the location of a tether for a :class:`~lumicks.pylake.correlated_stack.CorrelatedStack` by using::
+You can interactively define the location of a tether for a :class:`~lumicks.pylake.ImageStack` by using::
 
-    stack = lk.CorrelatedStack("cas9_wf.tiff")
+    stack = lk.ImageStack("cas9_wf.tiff")
     editor = stack.crop_and_rotate()
     plt.show()
 
@@ -187,12 +187,12 @@ you can edit the shape by right-clicking and dragging the various handles.
 
 You can also use the mouse wheel to scroll through the individual frames (if using Jupyter Lab, hold `Shift` while scrolling).
 
-*Note that* :meth:`CorrelatedStack.crop_and_rotate()
-<lumicks.pylake.correlated_stack.CorrelatedStack.crop_and_rotate()>` *accepts all of the arguments
-that can be used for* :meth:`CorrelatedStack.plot()
-<lumicks.pylake.correlated_stack.CorrelatedStack.plot()>`.
+*Note that* :meth:`ImageStack.crop_and_rotate()
+<lumicks.pylake.ImageStack.crop_and_rotate()>` *accepts all of the arguments
+that can be used for* :meth:`ImageStack.plot()
+<lumicks.pylake.ImageStack.plot()>`.
 
-To obtain a copy of the edited :class:`~lumicks.pylake.correlated_stack.CorrelatedStack` object, use::
+To obtain a copy of the edited :class:`~lumicks.pylake.ImageStack` object, use::
 
     new_stack = editor.image
     new_stack.plot()
