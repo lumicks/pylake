@@ -26,10 +26,15 @@ These import conventions are used consistently in the tutorial.
     fdcurves
     images
     kymographs
-    correlatedstacks
+    imagestack
     fdfitting
     nbwidgets
     kymotracking
     force_calibration
     population_dynamics
     piezotracking
+
+.. toctree::
+    :hidden:
+
+    correlatedstacks
