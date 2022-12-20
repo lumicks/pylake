@@ -20,7 +20,7 @@ regions using a widget. Let's load the file and run the widget::
     channel = file["Force LF"]["Force 1x"]
     selector = channel.range_selector()
 
-.. image:: slice_widget.png
+.. image:: figures/nbwidgets/slice_widget.png
 
 You can use the left mouse button to select time ranges (by clicking the left and then the right
 boundary of the region you wish to select). The right mouse button can be used to remove previous
@@ -38,7 +38,7 @@ plot all of our selections in separate plots for instance, we can do the followi
         plt.figure()
         data_slice.plot()
 
-.. image:: slice_widget2.png
+.. image:: figures/nbwidgets/slice_widget2.png
 
 
 F,d selection
@@ -56,7 +56,7 @@ into two segments that we should be analyzing separately::
 This opens up a little widget, where you can use the left mouse button to select time ranges and the right mouse
 button to remove previous selections.
 
-.. image:: fd_widget.png
+.. image:: figures/nbwidgets/fd_widget.png
 
 Once we've selected some time ranges, we can output the timestamps::
 
@@ -70,7 +70,7 @@ These timestamps can directly be used to extract the relevant data::
         plt.figure()
         plt.plot(fdcurves["Fd pull #6"].f[t_start:t_stop].data)
 
-.. image:: fd_widget2.png
+.. image:: figures/nbwidgets/fd_widget2.png
 
 This produces a separate plot for each selection. There's also a more direct way to get these
 plots, namely through :attr:`FdRangeSelector.fdcurves <lumicks.pylake.FdRangeSelector.fdcurves>`.
@@ -80,7 +80,7 @@ This gives you an :class:`~lumicks.pylake.fdcurve.FdCurve` for each section you 
         plt.figure()
         fdcurve.plot_scatter()
 
-.. image:: fd_widget3.png
+.. image:: figures/nbwidgets/fd_widget3.png
 
 Processing multiple files
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -117,7 +117,7 @@ It is also possible to select a portion of an F,d curve based on distance::
 
     selector = lk.FdDistanceRangeSelector(fdcurves)
 
-.. image:: fd_dist_widget.png
+.. image:: figures/nbwidgets/fd_dist_widget.png
 
 Again, we can retrieve the selected data just as with :class:`~lumicks.pylake.FdRangeSelector`::
 
@@ -135,20 +135,20 @@ Again, we can retrieve the selected data just as with :class:`~lumicks.pylake.Fd
     original.f.plot()
     sliced.f.plot(start=original.start)
 
-.. image::  fd_dist_widget2.png
+.. image::  figures/nbwidgets/fd_dist_widget2.png
 
 The returned F,d curves correspond to the longest contiguous (in time) stretch of data that falls
 within the distance thresholds. However, noise in the distance measurement can lead to short gaps of the time
 trace falling slightly outside of the thresholds, as illustrated below:
 
-.. image:: fd_dist_widget3a.png
+.. image:: figures/nbwidgets/fd_dist_widget3a.png
 
 To avoid premature truncation caused by this noise, there is an additional `max_gap` keyword argument
 to :class:`~lumicks.pylake.FdDistanceRangeSelector` that can be used to adjust the acceptable length of noise gaps. The default values
 is zero, such that all data points are guaranteed to fall within the selected distance range. The effect of this
 argument is shown below for an F,d curve sliced with the same distance thresholds:
 
-.. image:: fd_dist_widget3.png
+.. image:: figures/nbwidgets/fd_dist_widget3.png
 
 Range selection of single curve
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -171,11 +171,11 @@ You can interactively define the location of a tether for a :class:`~lumicks.pyl
 
 Simply left-click on the start of the tether
 
-.. image:: widget_stack_editor_1.png
+.. image:: figures/nbwidgets/widget_stack_editor_1.png
 
 and then on the end of the tether
 
-.. image:: widget_stack_editor_2.png
+.. image:: figures/nbwidgets/widget_stack_editor_2.png
 
 After a tether is defined, the view will update showing the location of the tether and the
 image rotated such that the tether is horizontal.
@@ -183,7 +183,7 @@ image rotated such that the tether is horizontal.
 To crop an image, right-click and drag a rectangle around the region of interest. Once the rectangle is defined,
 you can edit the shape by right-clicking and dragging the various handles.
 
-.. image:: widget_stack_editor_3.png
+.. image:: figures/nbwidgets/widget_stack_editor_3.png
 
 You can also use the mouse wheel to scroll through the individual frames (if using Jupyter Lab, hold `Shift` while scrolling).
 
@@ -198,7 +198,7 @@ To obtain a copy of the edited :class:`~lumicks.pylake.correlated_stack.Correlat
     new_stack.plot()
     new_stack.plot_tether()
 
-.. image:: widget_stack_editor_4.png
+.. image:: figures/nbwidgets/widget_stack_editor_4.png
 
 .. _kymotracker_widget:
 
