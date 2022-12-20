@@ -24,7 +24,7 @@ You can quickly plot an individual frame using the
 
     stack.plot(frame=0, channel="rgb")
 
-.. image:: correlatedstack_aligned.png
+.. image:: figures/imagestack/imagestack_aligned.png
 
 Sometimes a few bright pixels can dominate the image.
 When this is the case, it may be beneficial to manually set the color limits for each of the channels.
@@ -54,7 +54,7 @@ to the :func:`~lumicks.pylake.ImageStack.define_tether()` method::
     stack.plot()
     stack.plot_tether(lw=0.7)
 
-.. image:: correlatedstack_tether.png
+.. image:: figures/imagestack/imagestack_tether.png
 
 Note, after defining a tether location the image is rotated such that the tether is horizontal in
 the field of view. You can also plot the overlay of the tether location using
@@ -67,7 +67,7 @@ You can also spatially crop to select a smaller region of interest::
     stack_roi = stack.crop_by_pixels(45, 420, 150, 245)  # pixel coordinates as x_min, x_max, y_min, y_max
     stack_roi.plot()  # note: the default channel is "rgb"
 
-.. image:: correlatedstack_cropped.png
+.. image:: figures/imagestack/imagestack_cropped.png
 
 Alternatively, you can crop directly by slicing the stack::
 
@@ -86,7 +86,7 @@ arguments, which are forwarded to :func:`plt.imshow() <matplotlib.pyplot.imshow(
 
     stack_roi.plot(channel="red", cmap="magma", adjustment=lk.ColorAdjustment(550, 800))
 
-.. image:: correlatedstack_red.png
+.. image:: figures/imagestack/imagestack_red.png
 
 Full color RGB images are automatically reconstructed using the alignment matrices
 from Bluelake if available. This functionality can be turned off with the optional
@@ -95,7 +95,7 @@ from Bluelake if available. This functionality can be turned off with the option
     stack2 = lk.ImageStack("wf.tiff", align=False)
     stack2.plot()
 
-.. image:: correlatedstack_raw.png
+.. image:: figures/imagestack/imagestack_raw.png
 
 You can obtain the image stack data as a :class:`numpy <numpy.ndarray>` array using the
 :meth:`~lumicks.pylake.ImageStack.get_image()` method::
@@ -123,7 +123,7 @@ you can use the following function::
     stack = lk.ImageStack("example.tiff")
     stack.plot_correlated(file.force1x)
 
-.. image:: correlatedstack.png
+.. image:: figures/imagestack/imagestack.png
 
 If the plot is interactive (for example, when `%matplotlib notebook` is used in a Jupyter notebook), you can click
 on the left graph to select a particular force. The corresponding video frame will then automatically appear on the right.
