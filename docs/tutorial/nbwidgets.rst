@@ -159,6 +159,7 @@ The selector widgets can also be easily accessed from single F,d curve instances
     t_selector = fdcurve.range_selector()
     d_selector = fdcurve.distance_range_selector(max_gap=3)
 
+.. _crop_and_rotate:
 
 Cropping and Rotating Image Stacks
 ----------------------------------
