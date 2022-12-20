@@ -33,8 +33,3 @@ These import conventions are used consistently in the tutorial.
     force_calibration
     population_dynamics
     piezotracking
-
-.. toctree::
-    :hidden:
-
-    correlatedstacks
