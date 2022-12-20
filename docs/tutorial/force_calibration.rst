@@ -38,7 +38,7 @@ This function returns a power_spectrum which we can plot::
 
     power_spectrum.plot()
 
-.. image:: force_calibration_blocked_spectrum.png
+.. image:: figures/force_calibration/force_calibration_blocked_spectrum.png
 
 Note that the computation of the power spectrum involves some downsampling.
 
@@ -108,7 +108,7 @@ To fit this model to the data, you can now invoke::
 
 This will produce a table with your fitted calibration parameters.
 
-.. image:: force_calibration_table.png
+.. image:: figures/force_calibration/force_calibration_table.png
 
 These parameters can be accessed as follows::
 
@@ -121,7 +121,7 @@ We can plot the calibration by calling::
 
     calibration.plot()
 
-.. image:: force_calibration_fit.png
+.. image:: figures/force_calibration/force_calibration_fit.png
 
 Note that by default, a bias correction is applied to the fitted results :cite:`norrelykke2010power`.
 This bias correction is applied to the diffusion constant and amounts to a correction of :math:`\frac{N}{N+1}`, where :math:`N` refers to the number of points used for a particular spectral data point.
@@ -182,7 +182,7 @@ It is recommended to use these equations when less than 10% systematic error is 
 
 The figure below shows the difference between the hydrodynamically correct spectrum and the regular Lorentzian for various bead sizes.
 
-.. image:: hydro.png
+.. image:: figures/force_calibration/hydro.png
 
 These more advanced models require a few extra parameters namely the density of the sample, density of the bead and distance to the surface (in meters)::
 
@@ -253,7 +253,7 @@ Note however, that this makes using the hydrodynamically correct model critical,
 This is illustrated in the figure below.
 Here we see the same power spectrum (acquired on a fast detector) fitted with three different models.
 
-.. image:: fast_hydro.png
+.. image:: figures/force_calibration/fast_hydro.png
 
 Here we can see that the fit with the Lorentzian model with the diode filtering effect seems to fit the data quite well.
 As we can see in the comparisons above with the hydrodynamics on and off, including hydrodynamics attenuates higher frequencies (an effect similar to a low pass filter).
@@ -282,7 +282,7 @@ Using power spectral analysis, the force can then be calibrated without prior kn
 
 When the power spectrum is computed from an integer number of oscillations, the driving peak is visible at a single data point at :math:`f_\mathrm{drive}`.
 
-.. image:: driving_input.png
+.. image:: figures/force_calibration/driving_input.png
 
 The physical spectrum is then given by a thermal part (like before) and an active part:
 
