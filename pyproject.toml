@@ -66,6 +66,7 @@ exclude = '''
     | build
     | dist
     | tests  # ignore test directories until we have a better solution for test datasets
+    | __pypackages__
   )/
 )
 '''
@@ -73,7 +74,7 @@ exclude = '''
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--doctest-modules --ignore=setup.py --ignore=docs/conf.py"
-norecursedirs = ".* *.egg build cpp* dist docs/*"
+norecursedirs = ".* *.egg build cpp* dist docs/* __pypackages__/*"
 filterwarnings = "error"
 
 [tool.setuptools]

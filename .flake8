@@ -4,6 +4,7 @@ max-line-length = 100
 exclude =
     .git,
     __pycache__,
+    __pypackages__,
     .ipynb_checkpoints,
     .mypy_cache,
     .pytest_cache,

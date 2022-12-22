@@ -8,6 +8,7 @@ docs/changelog.md
 docs/_api/
 
 __pycache__/
+__pypackages__/
 *.py[cod]
 .ipynb_checkpoints/
 .cache/
