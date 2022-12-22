@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0.0"]
+requires = ["setuptools >= 61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,7 +9,7 @@ dynamic = [
 ]
 description = "Bluelake data analysis tools"
 readme = "readme.md"
-requires-python = ">=3.7, <3.11"
+requires-python = ">= 3.7, < 3.11"
 license = {text = "Apache-2.0"}
 authors = [
   {name = "Lumicks B.V."},
@@ -25,25 +25,25 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "cachetools>=3.1",
-    "deprecated>=1.2.8",
-    "h5py>=3.4, <4",
-    "matplotlib>=2.2",
-    "numpy>=1.20, <2",
-    "opencv-python-headless>=3.0",
-    "pytest>=6.0",
-    "scipy>=1.1, <2",
-    "scikit-image>=0.17.2",
-    "scikit-learn>=0.18.0",
-    "tabulate>=0.8.8, <1.9",
-    "tifffile>=2020.9.30",
-    "tqdm>=4.27.0",  # tqdm introduced tqdm.auto which auto-selects notebook or console
+    "cachetools >= 3.1",
+    "deprecated >= 1.2.8",
+    "h5py >= 3.4, < 4",
+    "matplotlib >= 2.2",
+    "numpy >= 1.20, < 2",
+    "opencv-python-headless >= 3.0",
+    "pytest >= 6.0",
+    "scipy >= 1.1, < 2",
+    "scikit-image >= 0.17.2",
+    "scikit-learn >= 0.18.0",
+    "tabulate >= 0.8.8, < 1.9",
+    "tifffile >= 2020.9.30",
+    "tqdm >= 4.27.0",  # tqdm introduced tqdm.auto which auto-selects notebook or console
 ]
 
 [project.optional-dependencies]
 notebook = [
-  "notebook>=4.4.1",
-  "ipywidgets>=7.0.0",
+  "notebook >= 4.4.1",
+  "ipywidgets >= 7.0.0",
 ]
 
 [project.urls]
