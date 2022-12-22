@@ -25,7 +25,7 @@ from lumicks import pylake  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
-project = pylake.__title__
+project = pylake.__name__
 copyright = pylake.__copyright__
 author = pylake.__author__
 

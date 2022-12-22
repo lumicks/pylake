@@ -1,3 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumicks.pylake"
+dynamic = [
+  "version",
+]
+description = "Bluelake data analysis tools"
+readme = "readme.md"
+requires-python = ">=3.7, <3.11"
+license = {text = "Apache-2.0"}
+authors = [
+  {name = "Lumicks B.V."},
+  {email = "devteam@lumicks.com"},
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "cachetools>=3.1",
+    "deprecated>=1.2.8",
+    "h5py>=3.4, <4",
+    "matplotlib>=2.2",
+    "numpy>=1.20, <2",
+    "opencv-python-headless>=3.0",
+    "pytest>=6.0",
+    "scipy>=1.1, <2",
+    "scikit-image>=0.17.2",
+    "scikit-learn>=0.18.0",
+    "tabulate>=0.8.8, <1.9",
+    "tifffile>=2020.9.30",
+    "tqdm>=4.27.0",  # tqdm introduced tqdm.auto which auto-selects notebook or console
+]
+
+[project.optional-dependencies]
+notebook = [
+  "notebook>=4.4.1",
+  "ipywidgets>=7.0.0",
+]
+
+[project.urls]
+documentation = "https://lumicks-pylake.readthedocs.io"
+repository = "https://github.com/lumicks/pylake"
+
 [tool.black]
 line-length = 100
 target-version = ['py37']
@@ -17,3 +69,19 @@ exclude = '''
   )/
 )
 '''
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--doctest-modules --ignore=setup.py --ignore=docs/conf.py"
+norecursedirs = ".* *.egg build cpp* dist docs/*"
+filterwarnings = "error"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.dynamic]
+version = {attr = "lumicks.pylake.__about__.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["lumicks.*"]
