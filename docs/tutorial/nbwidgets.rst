@@ -1,4 +1,4 @@
-Notebook widgets
+Notebook Widgets
 ================
 
 .. only:: html
