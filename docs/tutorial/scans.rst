@@ -1,5 +1,5 @@
-Confocal images
-===============
+Confocal Scans
+==============
 
 .. only:: html
 

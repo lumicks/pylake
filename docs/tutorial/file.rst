@@ -1,4 +1,4 @@
-Files and channels
+Files and Channels
 ==================
 
 .. only:: html
@@ -8,7 +8,7 @@ Files and channels
 Open a Bluelake HDF5 file as follows::
 
     import lumicks.pylake as lk
-    
+
     file = lk.File("example.h5")
 
 Contents
@@ -19,8 +19,8 @@ To see a textual representation of the contents of a file::
     >>> print(file)
     File root metadata:
     - Bluelake version: experimental/workflows-1
-    - Description: 
-    - Experiment: 
+    - Description:
+    - Experiment:
     - Export time (ns): 1638534716503544400
     - File format version: 2
     - GUID: {3187B298-AF67-477C-98D0-CF176808E995}
@@ -120,7 +120,7 @@ All channel data can be accessed using the above method. High frequency force da
 
     file.force1x
 
-The only difference between the two above methods for accessing channel data, is that `file.force1x` allows you to access the force calibration data, as described below. 
+The only difference between the two above methods for accessing channel data, is that `file.force1x` allows you to access the force calibration data, as described below.
 Plotting the data can be done as follows::
 
     file.force1x.plot()

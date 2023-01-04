@@ -24,7 +24,7 @@ These import conventions are used consistently in the tutorial.
 
     file
     fdcurves
-    images
+    scans
     kymographs
     imagestack
     fdfitting
