@@ -61,12 +61,35 @@ def wlc_marko_siggia_force_equation_tex(d, Lp, Lc, kT):
 
 
 def wlc_marko_siggia_force(d, Lp, Lc, kT):
-    """Marko Siggia's Worm-like Chain model based on only entropic contributions. Valid for
-    F < 10 pN) [1]_.
+    r"""Marko Siggia's Worm-like Chain (WLC) model
+
+    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
+    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+
+    Here $S_t$ is the stretch modulus in [pN], all other parameters are defined below.
+
+    At higher forces an extensible WLC model (which takes into account enthalpic stretching) should
+    be used.
+
+    This model has force as the dependent variable. Differs from exact WLC solution by up to -10%
+    near F=0.1 pN. Approaches exact WLC solution at lower and higher forces [2]_.
+
+    Parameters
+    ----------
+    d : array_like
+        extension [um]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
 
     References
     ----------
     .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     if Lp <= 0 or Lc <= 0 or kT <= 0:
         raise ValueError("Persistence length, contour length and kT must be bigger than 0")
@@ -106,7 +129,9 @@ def ewlc_odijk_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
 
 
 def ewlc_odijk_distance(f, Lp, Lc, St, kT=4.11):
-    """Odijk's Extensible Worm-like Chain model [1]_ [2]_.
+    """Odijk's Extensible Worm-Like Chain model with distance as the dependent variable
+
+    Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_.
 
     Parameters
     ----------
@@ -165,6 +190,10 @@ def twlc_distance_equation_tex(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 def twlc_distance(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """Twistable Worm-like Chain model [1]_.
 
+    Twistable Worm-like Chain model [1]_ [2]_ that takes into account untwisting of the DNA at
+    high forces. Note that it is generally recommended to fit this model with force as the
+    dependent variable [2]_.
+
     Parameters
     ----------
     f : array_like
@@ -189,7 +218,9 @@ def twlc_distance(f, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     References
     ----------
     .. [1] P. Gross et al., Quantifying how DNA stretches, melts and changes twist under tension,
-    Nature Physics 7, 731-736 (2011).
+           Nature Physics 7, 731-736 (2011).
+    .. [2] Broekmans, Onno D., et al. DNA twist stability changes with magnesium (2+) concentration,
+           Physical review letters 116.25, 258102 (2016).
     """
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
@@ -261,7 +292,9 @@ def efjc_distance_equation_tex(f, Lp, Lc, St, kT=4.11):
 
 
 def efjc_distance(f, Lp, Lc, St, kT=4.11):
-    """Extensible Freely-Jointed Chain [1]_ [2]_.
+    """Extensible Freely jointed chain model.
+
+    Useful for modelling single stranded DNA [1]_ [2]_.
 
     Parameters
     ----------
@@ -366,7 +399,9 @@ def ewlc_odijk_force_equation_tex(d, Lp, Lc, St, kT=4.11):
 
 
 def ewlc_odijk_force(d, Lp, Lc, St, kT=4.11):
-    """Inverted Odijk's Worm-like Chain model [1]_ [2]_.
+    """Odijk's Extensible Worm-Like Chain model with force as the dependent variable
+
+    Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_.
 
     Parameters
     ----------
@@ -645,13 +680,17 @@ def twlc_solve_force_equation_tex(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
 def twlc_solve_force(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
     """Inverted Twistable Worm-like Chain model
 
-    Inverted form of the Twistable Worm-like Chain model that takes into account untwisting of the
-    DNA at high forces.
+    Twistable Worm-like Chain model [1]_ [2]_ that takes into account untwisting of the DNA at
+    high forces. This model uses a more performant implementation for inverting the model. It
+    inverts the model by interpolating the forward curve and using this interpolant to invert the
+    function.
 
     References
     ----------
     .. [1] P. Gross et al., Quantifying how DNA stretches, melts and changes twist under tension,
            Nature Physics 7, 731-736 (2011).
+    .. [2] Broekmans, Onno D., et al. DNA twist stability changes with magnesium (2+) concentration,
+           Physical review letters 116.25, 258102 (2016).
 
     Parameters
     ----------
@@ -765,10 +804,24 @@ def ewlc_marko_siggia_force_equation_tex(d, Lp, Lc, St, kT=4.11):
 
 
 def ewlc_marko_siggia_force(d, Lp, Lc, St, kT=4.11):
-    """Modified Marko Siggia's Worm-like Chain model with distance as dependent parameter.
+    """Marko Siggia's Worm-like Chain model with force as the dependent variable
 
-    Modification of Marko-Siggia formula [1] to incorporate enthalpic stretching. Has limitations
-    similar to Marko-Siggia near `F = 0.1 pN` [2]_.
+    Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
+    to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
+    near F = 0.1 pN [2]_.
+
+    Parameters
+    ----------
+    d : array_like
+        extension [um]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    St : float
+        stretching modulus [pN]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
 
     References
     ----------
@@ -781,7 +834,6 @@ def ewlc_marko_siggia_force(d, Lp, Lc, St, kT=4.11):
             "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
         )
 
-    """Margo-Siggia's Worm-like Chain model with distance as dependent parameter."""
     c = -(St**3) * d * kT * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / (Lc**3 * (Lp * St + kT))
     b = (
         St**2
@@ -951,6 +1003,37 @@ def wlc_marko_siggia_distance_coefficients(f, Lp, Lc, kT):
 
 
 def wlc_marko_siggia_distance(f, Lp, Lc, kT=4.11):
+    """Marko Siggia's Worm-like Chain (WLC) model.
+
+    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
+    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+
+    Here $S_t$ is the stretch modulus in [pN], all other parameters are defined below.
+
+    At higher forces an extensible WLC model (which takes into account enthalpic stretching) should
+    be used.
+
+    This model has distance as the dependent variable. Differs from exact WLC solution by up to -10%
+    near F=0.1 pN. Approaches exact WLC solution at lower and higher forces [2]_.
+
+    Parameters
+    ----------
+    f : array_like
+        force [pN]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
+    """
+
     if Lp <= 0 or Lc <= 0 or kT <= 0:
         raise ValueError("Persistence length, contour length and kT must be bigger than 0")
 
@@ -1009,6 +1092,30 @@ def wlc_marko_siggia_distance_equation_tex(f, Lp, Lc, kT=4.11):
 
 
 def ewlc_marko_siggia_distance(f, Lp, Lc, St, kT=4.11):
+    """Marko Siggia's Worm-like Chain model with distance as the dependent variable.
+
+    Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
+    to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
+    near F = 0.1 pN [2]_.
+
+    Parameters
+    ----------
+    f : array_like
+        force [pN]
+    Lp : float
+        persistence length [nm]
+    Lc : float
+        contour length [um]
+    St : float
+        stretching modulus [pN]
+    kT : float
+        Boltzmann's constant times temperature (default = 4.11 [pN nm]) [pN nm]
+
+    References
+    ----------
+    .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] Wang, M. D., Yin, H., Landick, R., Gelles, J., & Block, S. M. (1997). Stretching DNA
+           with optical tweezers. Biophysical journal, 72(3), 1335-1346."""
     if Lp <= 0 or Lc <= 0 or St <= 0 or kT <= 0:
         raise ValueError(
             "Persistence length, contour length, stretch modulus and kT must be bigger than 0"

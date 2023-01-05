@@ -46,7 +46,7 @@ distance_model_vars = {
 
 
 def force_offset(name):
-    """Offset on the the model output.
+    """Offset on the model output.
 
     Parameters
     ----------
@@ -75,7 +75,7 @@ def force_offset(name):
 
 
 def distance_offset(name):
-    """Offset on the the model output.
+    """Offset on the model output.
 
     Parameters
     ----------
@@ -104,11 +104,11 @@ def distance_offset(name):
 
 
 def ewlc_marko_siggia_force(name):
-    """Marko Siggia's Worm-like Chain model with force as dependent parameter.
+    """Marko Siggia's Worm-like Chain model with force as the dependent variable.
 
     Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
     to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
-    near `F = 0.1 pN` [2]_.
+    near F = 0.1 pN [2]_.
 
     Parameters
     ----------
@@ -147,11 +147,11 @@ def ewlc_marko_siggia_force(name):
 
 
 def ewlc_marko_siggia_distance(name):
-    """Marko Siggia's Worm-like Chain model with distance as dependent parameter
+    """Marko Siggia's Worm-like Chain model with distance as the dependent variable
 
     Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
     to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
-    near `F = 0.1 pN` [2]_.
+    near F = 0.1 pN [2]_.
 
     Parameters
     ----------
@@ -190,10 +190,13 @@ def ewlc_marko_siggia_distance(name):
 
 
 def wlc_marko_siggia_force(name):
-    """Marko Siggia's Worm-like Chain model.
+    """Marko Siggia's Worm-like Chain (WLC) model.
 
-    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). This model has
-    force as a dependent variable.
+    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
+    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+
+    This model has force as the dependent variable. Differs from exact WLC solution by up to -10%
+    near F=0.1 pN. Approaches exact WLC solution at lower and higher forces [2]_.
 
     Parameters
     ----------
@@ -203,6 +206,8 @@ def wlc_marko_siggia_force(name):
     References
     ----------
     .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -229,10 +234,13 @@ def wlc_marko_siggia_force(name):
 
 
 def wlc_marko_siggia_distance(name):
-    """Marko Siggia's Worm-like Chain model.
+    """Marko Siggia's Worm-like Chain (WLC) model.
 
-    This model is based on only entropic contributions [1]_ (valid for F << 10 pN). This model has
-    distance as a dependent variable.
+    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
+    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+
+    This model has distance as the dependent variable. Differs from exact WLC solution by up to -10%
+    near F=0.1 pN. Approaches exact WLC solution at lower and higher forces [2]_.
 
     Parameters
     ----------
@@ -242,6 +250,8 @@ def wlc_marko_siggia_distance(name):
     References
     ----------
     .. [1] J. Marko, E. D. Siggia. Stretching dna., Macromolecules 28.26, 8759-8770 (1995).
+    .. [2] M. D. Wang, H. Yin, R. Landick, J. Gelles, S. M. Block, Stretching DNA with optical
+           tweezers., Biophysical journal 72, 1335-46 (1997).
     """
     from .model import Model
     from .detail.model_implementation import (
@@ -268,7 +278,7 @@ def wlc_marko_siggia_distance(name):
 
 
 def ewlc_odijk_distance(name):
-    """Odijk's Extensible Worm-Like Chain model with distance as dependent variable
+    """Odijk's Extensible Worm-Like Chain model with distance as the dependent variable
 
     Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_.
 
@@ -358,7 +368,7 @@ def dsdna_ewlc_odijk_distance(name, dna_length_kbp, um_per_kbp=0.34, temperature
 
 
 def ewlc_odijk_force(name):
-    """Odijk's Extensible Worm-Like Chain model with force as dependent variable
+    """Odijk's Extensible Worm-Like Chain model with force as the dependent variable
 
     Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_. Note that
     this implementation was analytically solved and is significantly faster than fitting the model
@@ -401,7 +411,7 @@ def ewlc_odijk_force(name):
 
 
 def efjc_distance(name):
-    """Extensible Freely-Jointed Chain with distance as dependent parameter.
+    """Extensible Freely-Jointed Chain with distance as the dependent variable.
 
     Freely jointed chain model [1]_ [2]_. Useful for modelling single stranded DNA.
 
@@ -444,10 +454,10 @@ def efjc_distance(name):
 
 
 def ssdna_efjc_distance(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
-    """Model of ssDNA with distance as the dependent parameter.
+    """Model of ssDNA with distance as the dependent variable.
 
-    Extensible Freely-Jointed Chain model [1]_ [2]_ with distance as dependent parameter, using
-    user-specified kilobases with default parameters obtained from [3]_.
+    Extensible Freely-Jointed Chain model [1]_ [2]_ using user-specified kilobases with default
+    parameters obtained from [3]_.
 
     Parameters
     ----------
@@ -487,7 +497,7 @@ def ssdna_efjc_distance(name, dna_length_kb, um_per_kb=0.56, temperature=24.5360
 
 
 def efjc_force(name):
-    """Extensible Freely-Jointed Chain model with force as the dependent parameter.
+    """Extensible Freely-Jointed Chain model with force as the dependent variable.
 
     The Freely-Jointed Chain model [1]_ [2]_ is useful for modelling ssDNA.
 
@@ -510,7 +520,7 @@ def efjc_force(name):
 
 
 def twlc_distance(name):
-    """Twistable Worm-like Chain model with distance as dependent variable.
+    """Twistable Worm-like Chain model with distance as the dependent variable.
 
     Twistable Worm-like Chain model [1]_ [2]_ that takes into account untwisting of the DNA at
     high forces. Note that it is generally recommended to fit this model with force as the
@@ -613,11 +623,11 @@ def twlc_force(name):
     version="0.13.2",
 )
 def marko_siggia_ewlc_force(name):
-    """Marko Siggia's Worm-like Chain model with force as dependent parameter.
+    """Marko Siggia's Worm-like Chain model with force as the dependent variable.
 
     Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
     to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
-    near `F = 0.1 pN` [2]_.
+    near F = 0.1 pN [2]_.
 
     Parameters
     ----------
@@ -642,11 +652,11 @@ def marko_siggia_ewlc_force(name):
     version="0.13.2",
 )
 def marko_siggia_ewlc_distance(name):
-    """Marko Siggia's Worm-like Chain model with distance as dependent parameter
+    """Marko Siggia's Worm-like Chain model with distance as the dependent variable
 
     Modified Marko Siggia's Worm-like Chain model. Modification of Marko-Siggia formula [1]_
     to incorporate enthalpic stretching. Has limitations similar to Marko-Siggia
-    near `F = 0.1 pN` [2]_.
+    near F = 0.1 pN [2]_.
 
     Parameters
     ----------
@@ -671,7 +681,7 @@ def marko_siggia_simplified(name):
     """Marko Siggia's Worm-like Chain model.
 
     This model [1]_ is based on only entropic contributions (valid for F << 10 pN). This model has
-    force as a dependent variable.
+    force as the dependent variable.
 
     Parameters
     ----------
@@ -696,7 +706,7 @@ def inverted_marko_siggia_simplified(name):
     """Marko Siggia's Worm-like Chain model.
 
     This model is based on only entropic contributions [1]_ (valid for F << 10 pN). This model has
-    distance as a dependent variable.
+    distance as the dependent variable.
 
     Parameters
     ----------
@@ -719,7 +729,7 @@ def inverted_marko_siggia_simplified(name):
     version="0.13.2",
 )
 def odijk(name):
-    """Odijk's Extensible Worm-Like Chain model with distance as dependent variable
+    """Odijk's Extensible Worm-Like Chain model with distance as the dependent variable
 
     Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_.
 
@@ -746,11 +756,10 @@ def odijk(name):
     version="0.13.2",
 )
 def dsdna_odijk(name, dna_length_kbp, um_per_kbp=0.34, temperature=24.53608821):
-    """Model for dsDNA with distance as the dependent variable.
+    """Model for dsDNA with distance as the dependent variable
 
-    Odijk's Extensible Worm-Like Chain model [1]_ [2]_ with distance as the dependent
-    variable using user-specified kilobase-pairs (useful for 10 pN < F < 30 pN). Default model
-    parameters were obtained from [3]_ [4]_ and [5]_.
+    Odijk's Extensible Worm-Like Chain model [1]_ [2]_ using user-specified kilobase-pairs
+    (useful for 10 pN < F < 30 pN). Default parameters were obtained from [3]_ [4]_ and [5]_.
 
     Parameters
     ----------
@@ -795,7 +804,7 @@ def dsdna_odijk(name, dna_length_kbp, um_per_kbp=0.34, temperature=24.53608821):
     version="0.13.2",
 )
 def inverted_odijk(name):
-    """Odijk's Extensible Worm-Like Chain model with force as dependent variable
+    """Odijk's Extensible Worm-Like Chain model with force as the dependent variable
 
     Odijk's Extensible Worm-Like Chain model [1]_ is useful for 10 pN < F < 30 pN [2]_. Note that
     this implementation was analytically solved and is significantly faster than fitting the
@@ -823,7 +832,7 @@ def inverted_odijk(name):
     version="0.13.2",
 )
 def freely_jointed_chain(name):
-    """Freely-Jointed Chain with distance as dependent parameter.
+    """Freely-Jointed Chain with distance as the dependent variable.
 
     Freely jointed chain model [1]_ [2]_. Useful for modelling single stranded DNA.
 
@@ -852,10 +861,10 @@ def freely_jointed_chain(name):
     version="0.13.2",
 )
 def ssdna_fjc(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
-    """Model of ssDNA with distance as the dependent parameter.
+    """Model of ssDNA with distance as the dependent variable.
 
-    Freely-Jointed Chain model [1]_ [2]_ with distance as dependent parameter, using
-    user-specified kilobases with default parameters obtained from [3]_.
+    Freely-Jointed Chain model [1]_ [2]_ using user-specified kilobases with default parameters
+    obtained from [3]_.
 
     Parameters
     ----------
@@ -890,7 +899,7 @@ def ssdna_fjc(name, dna_length_kb, um_per_kb=0.56, temperature=24.53608821):
     version="0.13.2",
 )
 def inverted_freely_jointed_chain(name):
-    """Freely-Jointed Chain model with force as the dependent parameter.
+    """Freely-Jointed Chain model with force as the dependent variable.
 
     The Freely-Jointed Chain model [1]_ [2]_ is useful for modelling ssDNA.
 
@@ -918,7 +927,7 @@ def inverted_freely_jointed_chain(name):
     version="0.13.2",
 )
 def twistable_wlc(name):
-    """Twistable Worm-like Chain model with distance as dependent variable.
+    """Twistable Worm-like Chain model with distance as the dependent variable.
 
     Twistable Worm-like Chain model [1]_ [2]_ that takes into account untwisting of the DNA at
     high forces. Note that it is generally recommended to fit this model with force as the
