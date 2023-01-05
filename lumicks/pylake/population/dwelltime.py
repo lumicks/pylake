@@ -51,6 +51,25 @@ class DwelltimeBootstrap:
         samples = DwelltimeBootstrap._sample(optimized, iterations)
         return cls(optimized, samples[: optimized.n_components], samples[optimized.n_components :])
 
+    def extend(self, iterations):
+        """Extend the distribution by additional sampling iterations.
+
+        Parameters
+        ----------
+        iterations : int
+            number of iterations (random samples) to add to the bootstrap distribution
+        """
+        new_samples = DwelltimeBootstrap._sample(self.model, iterations)
+        n_components = self.model.n_components
+        new_amplitudes = new_samples[:n_components]
+        new_lifetimes = new_samples[n_components:]
+
+        return DwelltimeBootstrap(
+            self.model,
+            np.hstack([self.amplitude_distributions, new_amplitudes]),
+            np.hstack([self.lifetime_distributions, new_lifetimes]),
+        )
+
     @staticmethod
     def _sample(optimized, iterations):
 
