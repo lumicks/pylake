@@ -61,10 +61,15 @@ def wlc_marko_siggia_force_equation_tex(d, Lp, Lc, kT):
 
 
 def wlc_marko_siggia_force(d, Lp, Lc, kT):
-    r"""Marko Siggia's Worm-like Chain (WLC) model
+    r"""Marko Siggia's Worm-like Chain (WLC) model.
 
-    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
-    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+    This model [1]_ is based on only entropic contributions. This model is valid for low forces
+    where $F << \frac{1}{4} \left(k_B T S_t^2 / L_p\right)^\frac{1}{3}$ [2]_.
+
+    Here $S_t$ is the stretch modulus in [pN], all other parameters are defined below.
+
+    At higher forces an extensible WLC model (which takes into account enthalpic stretching) should
+    be used.
 
     Here $S_t$ is the stretch modulus in [pN], all other parameters are defined below.
 
@@ -1003,10 +1008,15 @@ def wlc_marko_siggia_distance_coefficients(f, Lp, Lc, kT):
 
 
 def wlc_marko_siggia_distance(f, Lp, Lc, kT=4.11):
-    """Marko Siggia's Worm-like Chain (WLC) model.
+    r"""Marko Siggia's Worm-like Chain (WLC) model.
 
-    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
-    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+    This model [1]_ is based on only entropic contributions. This model is valid for low forces
+    where $F << \frac{1}{4} \left(k_B T S_t^2 / L_p\right)^\frac{1}{3}$ [2]_.
+
+    Here $S_t$ is the stretch modulus in [pN], all other parameters are defined below.
+
+    At higher forces an extensible WLC model (which takes into account enthalpic stretching) should
+    be used.
 
     Here $S_t$ is the stretch modulus in [pN], all other parameters are defined below.
 
