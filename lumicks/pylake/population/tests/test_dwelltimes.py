@@ -65,6 +65,10 @@ def test_bootstrap(exponential_data):
     np.testing.assert_allclose(ci, (0.3647038711684928, 0.5979550940729152), rtol=1e-5)
     np.random.seed()
 
+    more_bootstrap = bootstrap.extend(iterations=10)
+    assert bootstrap.n_samples == 50
+    assert more_bootstrap.n_samples == 60
+
     # TODO: delete after property removal
     with pytest.warns(DeprecationWarning):
         fit.bootstrap

@@ -12,6 +12,7 @@
 * Added `variance_of_localization_variance` to [`DiffusionEstimate`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html) when calculating an ensemble CVE. This provides an estimate of the variance of the averaged localization uncertainty.
 * Added option to pass a localization variance and its uncertainty to [`KymoTrack.estimate_diffusion()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion).
 * Added option to calculate a diffusion estimate based on the ensemble MSDs using the Ordinary Least Squares (OLS) method.
+* Added `DwelltimeBootstrap.extend()` to draw additional samples for the distribution.
 
 #### Deprecations
 
