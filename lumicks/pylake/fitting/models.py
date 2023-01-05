@@ -190,10 +190,17 @@ def ewlc_marko_siggia_distance(name):
 
 
 def wlc_marko_siggia_force(name):
-    """Marko Siggia's Worm-like Chain (WLC) model.
+    r"""Marko Siggia's Worm-like Chain (WLC) model.
 
-    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
-    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+    This model [1]_ is based on only entropic contributions. This model is valid at low forces [2]_:
+
+    .. math::
+
+        F << \frac{1}{4} \left(k_B T S_t^2 / L_p\right)^\frac{1}{3}
+
+    Where :math:`k_B` is the Boltzmann constant, :math:`T` is the temperature, :math:`S_t` is the
+    stretch modulus and :math:`L_p` is the persistence length. At higher forces an extensible WLC
+    model (which takes into account enthalpic stretching) should be used.
 
     This model has force as the dependent variable. Differs from exact WLC solution by up to -10%
     near F=0.1 pN. Approaches exact WLC solution at lower and higher forces [2]_.
@@ -234,10 +241,17 @@ def wlc_marko_siggia_force(name):
 
 
 def wlc_marko_siggia_distance(name):
-    """Marko Siggia's Worm-like Chain (WLC) model.
+    r"""Marko Siggia's Worm-like Chain (WLC) model.
 
-    This model [1]_ is based on only entropic contributions (valid for F << 10 pN). At higher forces
-    an extensible WLC model (which takes into account enthalpic stretching) should be used.
+    This model [1]_ is based on only entropic contributions. This model is valid at low forces [2]_:
+
+    .. math::
+
+        F << \frac{1}{4} \left(k_B T S_t^2 / L_p\right)^\frac{1}{3}
+
+    Where :math:`k_B` is the Boltzmann constant, :math:`T` is the temperature, :math:`S_t` is the
+    stretch modulus and :math:`L_p` is the persistence length. At higher forces an extensible WLC
+    model (which takes into account enthalpic stretching) should be used.
 
     This model has distance as the dependent variable. Differs from exact WLC solution by up to -10%
     near F=0.1 pN. Approaches exact WLC solution at lower and higher forces [2]_.

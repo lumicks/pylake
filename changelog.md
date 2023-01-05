@@ -25,6 +25,11 @@
 * `DwelltimeBootstrap` is now a frozen dataclass.
 * Attempting to access `DwelltimeModel.bootstrap` before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
 
+#### Bugfixes
+
+* Fixed issue with model description not being available in Jupyter notebooks for some force-distance models.
+* Show validity criterion for Marko Siggia WLC models in terms of model parameters. Prior to this change the limit was simply denoted as `10 pN` where in reality it depends on the model parameters. The `10 pN` was a reasonable value for most DNA constructs.
+
 ## v0.13.2 | 2022-11-15
 
 #### New features
