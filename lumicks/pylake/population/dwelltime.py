@@ -98,22 +98,39 @@ class DwelltimeBootstrap:
         upper = np.quantile(data, 1 - (alpha / 2))
         return mean, (lower, upper)
 
+    @deprecated(
+        reason=(
+            "This method has been renamed to more closely match its behavior. Use "
+            ":meth:`DwelltimeBootstrap.hist()` instead."
+        ),
+        action="always",
+        version="0.13.3",
+    )
     def plot(self, alpha=0.05, n_bins=25, hist_kwargs=None, span_kwargs=None, line_kwargs=None):
+        self.hist(
+            n_bins=n_bins,
+            alpha=alpha,
+            hist_kwargs=hist_kwargs,
+            span_kwargs=span_kwargs,
+            line_kwargs=line_kwargs,
+        )
+
+    def hist(self, *, n_bins=25, alpha=0.05, hist_kwargs=None, span_kwargs=None, line_kwargs=None):
         """Plot the bootstrap distributions for the parameters of a model.
 
         Parameters
         ----------
-        alpha : float
-            confidence intervals are calculated as 100*(1-alpha)%
         n_bins : int
             number of bins in the histogram
-        hist_kwargs : Optional[dict]
-            dictionary of plotting kwargs applied to histogram
-        span_kwargs : Optional[dict]
-            dictionary of plotting kwargs applied to the patch indicating the area
+        alpha : float
+            confidence intervals are calculated as 100*(1-alpha)%
+        hist_kwargs : dict
+            dictionary of plotting `kwargs` applied to histogram
+        span_kwargs : dict
+            dictionary of plotting `kwargs` applied to the patch indicating the area
             spanned by the confidence intervals
-        line_kwargs : Optional[dict]
-            dictionary of plotting kwargs applied to the line indicating the
+        line_kwargs : dict
+            dictionary of plotting `kwargs` applied to the line indicating the
             distribution means
         """
         hist_kwargs = {"facecolor": "#c5c5c5", "edgecolor": "#888888", **(hist_kwargs or {})}
@@ -198,11 +215,24 @@ class DwelltimeModel:
             max_observation_time,
             options=self._optim_options,
         )
-        self.bootstrap = DwelltimeBootstrap()
+        self._bootstrap = DwelltimeBootstrap()
+
+    @property
+    @deprecated(
+        reason=(
+            "This property will be removed in a future release. Use the class "
+            ":class:`population.dwelltime.DwelltimeBootstrap` returned from :meth:`calculate_bootstrap` instead."
+        ),
+        action="always",
+        version="0.13.3",
+    )
+    def bootstrap(self):
+        """Bootstrap distribution."""
+        return self._bootstrap
 
     @property
     def amplitudes(self):
-        """Fractional amplitude of each model component"""
+        """Fractional amplitude of each model component."""
         return self._parameters[: self.n_components]
 
     @property
@@ -233,7 +263,17 @@ class DwelltimeModel:
         return k * np.log(n) - 2 * self.log_likelihood
 
     def calculate_bootstrap(self, iterations=500):
-        self.bootstrap._sample_distributions(self, iterations)
+        """Calculate a bootstrap distribution for the model.
+
+        Parameters
+        ----------
+        iterations : int
+            Number of iterations to sample for the distribution.
+        """
+        bootstrap = DwelltimeBootstrap()
+        bootstrap._sample_distributions(self, iterations)
+        self._bootstrap = bootstrap
+        return bootstrap
 
     def pdf(self, x):
         """Probability Distribution Function (states as rows).
