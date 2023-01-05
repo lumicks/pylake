@@ -7,24 +7,35 @@ import matplotlib.pyplot as plt
 from deprecated.sphinx import deprecated
 
 
-@dataclass
+@dataclass(frozen=True)
 class DwelltimeBootstrap:
     """Bootstrap distributions for a dwelltime model.
 
-    This class is stored in the `DwelltimeModel.bootstrap` attribute
-    and should not be constructed manually.
+    This class should be initialized using :meth:`lk.DwelltimeModel.calculate_bootstrap()
+    <lumicks.pylake.DwelltimeModel.calculate_bootstrap>` and should not be constructed manually.
 
     Attributes
     ----------
-    _samples : np.ndarray
-        array of optimized model parameters for each bootstrap sample pull; shape is
-        [number of parameters, number of samples]
+    model : :class:`~lumicks.pylake.DwelltimeModel`
+        Original model sampled for the bootstrap distribution
+    amplitude_distributions : np.ndarray
+        Array of sample optimized amplitude parameters; shape is [number of components, number of samples]
+    lifetime_distributions : np.ndarray
+        Array of sample optimized lifetime parameters; shape is [number of components, number of samples]
     """
 
-    _samples: np.ndarray = field(default_factory=lambda: np.array([]), repr=False)
+    model: "DwelltimeModel"
+    amplitude_distributions: np.ndarray = field(repr=False)
+    lifetime_distributions: np.ndarray = field(repr=False)
 
-    def _sample_distributions(self, optimized, iterations):
-        """Construct bootstrap distributions for parameters.
+    def __post_init__(self):
+        assert self.amplitude_distributions.shape[1] == self.lifetime_distributions.shape[1]
+        assert self.amplitude_distributions.shape[0] == self.model.n_components
+        assert self.lifetime_distributions.shape[0] == self.model.n_components
+
+    @classmethod
+    def _from_dwelltime_model(cls, optimized, iterations):
+        """Construct bootstrap distributions for parameters from an optimized :class:`~lumicks.pylake.DwelltimeModel`.
 
         For each iteration, a dataset is randomly selected (with replacement) with the same
         size as the data used to optimize the model. Model parameters are then optimized
@@ -37,8 +48,14 @@ class DwelltimeBootstrap:
         iterations : int
             number of iterations (random samples) to use for the bootstrap
         """
+        samples = DwelltimeBootstrap._sample(optimized, iterations)
+        return cls(optimized, samples[: optimized.n_components], samples[optimized.n_components :])
+
+    @staticmethod
+    def _sample(optimized, iterations):
+
         n_data = optimized.dwelltimes.size
-        self._samples = np.empty((optimized._parameters.size, iterations))
+        samples = np.empty((optimized._parameters.size, iterations))
         for itr in range(iterations):
             sample = np.random.choice(optimized.dwelltimes, size=n_data, replace=True)
             result, _ = _exponential_mle_optimize(
@@ -48,29 +65,19 @@ class DwelltimeBootstrap:
                 initial_guess=optimized._parameters,
                 options=optimized._optim_options,
             )
-            self._samples[:, itr] = result
+            samples[:, itr] = result
+
+        return samples
 
     @property
     def n_samples(self):
         """Number of samples in the bootstrap."""
-        return self._samples.shape[1]
+        return self.amplitude_distributions.shape[1]
 
     @property
     def n_components(self):
         """Number of components in the model."""
-        return int(self._samples.shape[0] / 2)
-
-    @property
-    def amplitude_distributions(self):
-        """Array of sample optimized amplitude parameters; shape is
-        [number of components, number of samples]"""
-        return self._samples[: self.n_components]
-
-    @property
-    def lifetime_distributions(self):
-        """Array of sample optimized lifetime parameters; shape is
-        [number of components, number of samples]"""
-        return self._samples[self.n_components :]
+        return self.model.n_components
 
     def calculate_stats(self, key, component, alpha=0.05):
         """Calculate the mean and confidence intervals of the bootstrap distribution for a parameter.
@@ -215,7 +222,10 @@ class DwelltimeModel:
             max_observation_time,
             options=self._optim_options,
         )
-        self._bootstrap = DwelltimeBootstrap()
+        # TODO: remove with deprecation
+        self._bootstrap = DwelltimeBootstrap(
+            self, np.empty((n_components, 0)), np.empty((n_components, 0))
+        )
 
     @property
     @deprecated(
@@ -228,6 +238,13 @@ class DwelltimeModel:
     )
     def bootstrap(self):
         """Bootstrap distribution."""
+
+        if self._bootstrap.n_samples == 0:
+            raise RuntimeError(
+                "The bootstrap distribution is currently empty. Use `DwelltimeModel.calculate_bootstrap()` "
+                "to sample a distribution before attempting downstream analysis."
+            )
+
         return self._bootstrap
 
     @property
@@ -270,8 +287,8 @@ class DwelltimeModel:
         iterations : int
             Number of iterations to sample for the distribution.
         """
-        bootstrap = DwelltimeBootstrap()
-        bootstrap._sample_distributions(self, iterations)
+        bootstrap = DwelltimeBootstrap._from_dwelltime_model(self, iterations)
+        # TODO: remove with deprecation
         self._bootstrap = bootstrap
         return bootstrap
 

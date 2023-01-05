@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import re
 
 from lumicks.pylake import DwelltimeModel
 from lumicks.pylake.population.dwelltime import _dwellcounts_from_statepath
@@ -67,6 +68,31 @@ def test_bootstrap(exponential_data):
     # TODO: delete after property removal
     with pytest.warns(DeprecationWarning):
         fit.bootstrap
+
+
+# TODO: remove with deprecation
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+def test_empty_bootstrap(exponential_data):
+    dataset = exponential_data["dataset_2exp"]
+
+    for n_components in (1, 2):
+        fit = DwelltimeModel(
+            dataset["data"], n_components, **dataset["parameters"].observation_limits
+        )
+
+        bootstrap = fit._bootstrap
+        assert bootstrap.n_components == fit.n_components
+        assert bootstrap.n_samples == 0
+
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "The bootstrap distribution is currently empty. Use `DwelltimeModel.calculate_bootstrap()` "
+                "to sample a distribution before attempting downstream analysis."
+            )
+        ):
+            fit.bootstrap
 
 
 def test_dwellcounts_from_statepath():

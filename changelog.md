@@ -19,6 +19,11 @@
 * Deprecated the `DwelltimeModel.bootstrap` attribute; this attribute will be removed in a future release. Instead, `DwelltimeModel.calculate_bootstrap()` now returns a `DwelltimeBootstrap` instance directly. See the [population dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#confidence-intervals-from-bootstrapping) documentation for more details.
 * Deprecated `DwelltimeBootstrap.plot()` and renamed to `DwelltimeBootstrap.hist()` to more closely match the figure that is generated.
 
+#### Other changes
+
+* `DwelltimeBootstrap` is now a frozen dataclass.
+* Attempting to access `DwelltimeModel.bootstrap` before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
+
 ## v0.13.2 | 2022-11-15
 
 #### New features
