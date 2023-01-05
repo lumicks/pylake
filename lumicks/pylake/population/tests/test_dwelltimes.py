@@ -58,11 +58,15 @@ def test_bootstrap(exponential_data):
     fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
 
     np.random.seed(123)
-    fit.calculate_bootstrap(iterations=50)
-    mean, ci = fit.bootstrap.calculate_stats("amplitude", 0)
+    bootstrap = fit.calculate_bootstrap(iterations=50)
+    mean, ci = bootstrap.calculate_stats("amplitude", 0)
     np.testing.assert_allclose(mean, 0.4642469883372174, rtol=1e-5)
     np.testing.assert_allclose(ci, (0.3647038711684928, 0.5979550940729152), rtol=1e-5)
     np.random.seed()
+
+    # TODO: delete after property removal
+    with pytest.warns(DeprecationWarning):
+        fit.bootstrap
 
 
 def test_dwellcounts_from_statepath():
@@ -113,5 +117,8 @@ def test_plots(exponential_data):
     fit.hist()
 
     np.random.seed(123)
-    fit.calculate_bootstrap(iterations=2)
-    fit.bootstrap.plot()
+    bootstrap = fit.calculate_bootstrap(iterations=2)
+    bootstrap.hist()
+
+    with pytest.warns(DeprecationWarning):
+        bootstrap.plot()

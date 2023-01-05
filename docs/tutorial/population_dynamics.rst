@@ -210,12 +210,14 @@ Confidence intervals from bootstrapping
 As an additional check, we can estimate confidence intervals (CI) for the parameters using bootstrapping.
 Here, a dataset with the same size as the original is randomly sampled (with replacement) from the original dataset. This random sample
 is then fit using the MLE method, just as for the original dataset. The fit results in a new estimate for the model parameters.
-This process is repeated many times, and the distribution of the resulting parameters can be analyzed to estimate certain statistics about them::
+This process is repeated many times, and the distribution of the resulting parameters can be analyzed to estimate certain statistics about them.
 
-    dwell_2.calculate_bootstrap(iterations=100)
+We can calculate a bootstrap distribution with :meth:`~lumicks.pylake.DwelltimeModel.calculate_bootstrap`::
+
+    bootstrap_2 = dwell_2.calculate_bootstrap(iterations=100)
 
     plt.figure()
-    dwell_2.bootstrap.plot(alpha=0.05)
+    bootstrap_2.hist(alpha=0.05)
     plt.show()
 
 .. image:: figures/population_dynamics/dwell2_bootstrap.png
@@ -230,10 +232,10 @@ are split. In fact, many amplitudes are estimated near zero which effectively re
 This analysis strongly indicates that the single exponential model is preferable. We can also look at
 the bootstrap for that model to verify the results are satisfactory::
 
-    dwell_1.calculate_bootstrap(iterations=100)
+    bootstrap_1 = dwell_1.calculate_bootstrap(iterations=100)
 
     plt.figure()
-    dwell_1.bootstrap.plot(alpha=0.05)
+    bootstrap_1.hist(alpha=0.05)
     plt.show()
 
 .. image:: figures/population_dynamics/dwell1_bootstrap.png
