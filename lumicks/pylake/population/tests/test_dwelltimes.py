@@ -60,8 +60,13 @@ def test_bootstrap(exponential_data):
 
     np.random.seed(123)
     bootstrap = fit.calculate_bootstrap(iterations=50)
-    mean, ci = bootstrap.calculate_stats("amplitude", 0)
-    np.testing.assert_allclose(mean, 0.4642469883372174, rtol=1e-5)
+
+    with pytest.warns(DeprecationWarning):
+        mean, ci = bootstrap.calculate_stats("amplitude", 0)
+        np.testing.assert_allclose(mean, 0.4642469883372174, rtol=1e-5)
+        np.testing.assert_allclose(ci, (0.3647038711684928, 0.5979550940729152), rtol=1e-5)
+
+    ci = bootstrap.get_interval("amplitude", 0, alpha=0.05)
     np.testing.assert_allclose(ci, (0.3647038711684928, 0.5979550940729152), rtol=1e-5)
     np.random.seed()
 

@@ -15,13 +15,16 @@
 * Added `DwelltimeBootstrap.extend()` to draw additional samples for the distribution.
 
 #### Bug fixes
+
 * Fixed bug in `DwelltimeBootstrap.hist()` (previously named `DwelltimeBootstrap.plot()`, see below). Previously, only up to two components were plotted; now all components are plotted appropriately.
+* `DwelltimeBootstrap.hist()` now displays the original parameter estimate rather than the mean of the bootstrap distribution; the bootstrap distribution is used solely to calculate the confidence intervals via `DwelltimeBootstrap.get_interval()`.
 
 #### Deprecations
 
 * Renamed `CorrelatedStack` to [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/imagestack.html).
 * Deprecated the `DwelltimeModel.bootstrap` attribute; this attribute will be removed in a future release. Instead, `DwelltimeModel.calculate_bootstrap()` now returns a `DwelltimeBootstrap` instance directly. See the [population dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#confidence-intervals-from-bootstrapping) documentation for more details.
 * Deprecated `DwelltimeBootstrap.plot()` and renamed to `DwelltimeBootstrap.hist()` to more closely match the figure that is generated.
+* Deprecated `DwelltimeBootstrap.calculate_stats()`. This method is replaced with `DwelltimeBootstrap.get_interval()` which returns the `100*(1-alpha)` % confidence interval; unlike `DwelltimeBootstrap.calculate_stats()`, it does not return the mean.
 
 #### Other changes
 
