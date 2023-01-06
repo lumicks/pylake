@@ -98,11 +98,25 @@ class DwelltimeBootstrap:
         """Number of components in the model."""
         return self.model.n_components
 
+    @deprecated(
+        reason=(
+            "This method will be removed in a future release. Use `DwelltimeBootstrap.get_interval() "
+            "to obtain the `1-alpha` interval."
+        ),
+        action="always",
+        version="0.13.3",
+    )
     def calculate_stats(self, key, component, alpha=0.05):
-        """Calculate the mean and confidence intervals of the bootstrap distribution for a parameter.
+        data = getattr(self, f"{key}_distributions")[component]
+        mean = np.mean(data)
+        interval = self.get_interval(key, component, alpha)
+        return mean, interval
+
+    def get_interval(self, key, component, alpha=0.05):
+        """Calculate the `1-alpha` interval of the bootstrap distribution for a specified parameter.
 
         *NOTE*: the `100*(1-alpha)` % confidence intervals calculated here correspond to the
-        `100*(alpha/2)` and `100*(1-(alpha/2))` quantiles of the distribution. For distributions
+        `alpha/2` and `1-(alpha/2)` quantiles of the distribution. For distributions
         which are not well approximated by a normal distribution these values are not reliable
         confidence intervals.
 
@@ -119,10 +133,9 @@ class DwelltimeBootstrap:
             raise KeyError("key must be either 'amplitude' or 'lifetime'")
 
         data = getattr(self, f"{key}_distributions")[component]
-        mean = np.mean(data)
         lower = np.quantile(data, alpha / 2)
         upper = np.quantile(data, 1 - (alpha / 2))
-        return mean, (lower, upper)
+        return lower, upper
 
     @deprecated(
         reason=(
@@ -165,7 +178,8 @@ class DwelltimeBootstrap:
 
         def plot_axes(data, key, component, use_index):
             plt.hist(data, bins=n_bins, **hist_kwargs)
-            mean, (lower, upper) = self.calculate_stats(key, component, alpha)
+            mean = getattr(self.model, f"{key}s")[component]
+            lower, upper = self.get_interval(key, component, alpha)
             plt.axvspan(lower, upper, **span_kwargs)
             plt.axvline(mean, **line_kwargs)
             plt.xlabel(f"{key}" if key == "amplitude" else f"{key} (sec)")
