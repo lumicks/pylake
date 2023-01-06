@@ -14,6 +14,9 @@
 * Added option to calculate a diffusion estimate based on the ensemble MSDs using the Ordinary Least Squares (OLS) method.
 * Added `DwelltimeBootstrap.extend()` to draw additional samples for the distribution.
 
+#### Bug fixes
+* Fixed bug in `DwelltimeBootstrap.hist()` (previously named `DwelltimeBootstrap.plot()`, see below). Previously, only up to two components were plotted; now all components are plotted appropriately.
+
 #### Deprecations
 
 * Renamed `CorrelatedStack` to [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/imagestack.html).

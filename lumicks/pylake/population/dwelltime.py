@@ -180,7 +180,7 @@ class DwelltimeBootstrap:
             data = self.lifetime_distributions.squeeze()
             plot_axes(data, "lifetime", 0, False)
         else:
-            for component in range(2):
+            for component in range(self.n_components):
                 for column, key in enumerate(("amplitude", "lifetime")):
                     data = getattr(self, f"{key}_distributions")[component]
                     column += 1
