@@ -31,6 +31,7 @@
 * `DwelltimeBootstrap` is now a frozen dataclass.
 * Attempting to access `DwelltimeModel.bootstrap` before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
 * Suppress legend entry for outline when invoking `KymoTrack.plot()`.
+* Allow pickling force calibration results (`CalibrationResults`). Prior to this change two functions involved in calculating upper parameter bounds prevented this class from being pickled.
 
 #### Bugfixes
 

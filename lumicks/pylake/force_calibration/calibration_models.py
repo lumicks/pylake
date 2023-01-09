@@ -142,6 +142,16 @@ class NoFilter(FilterBase):
         return 1
 
 
+# These are used for parameter bounds in the DiodeModel and have to be defined non-locally to ensure
+# that the class can be pickled.
+def _one(_):
+    return 1.0
+
+
+def _nyquist(sample_rate):
+    return sample_rate / 2.0
+
+
 class DiodeModel(FilterBase):
     def __init__(self):
         self.fitted_params = [
@@ -151,7 +161,7 @@ class DiodeModel(FilterBase):
                 unit="Hz",
                 initial=14000,
                 lower_bound=0.0,
-                upper_bound=lambda sample_rate: sample_rate / 2,
+                upper_bound=_nyquist,
             ),
             Param(
                 name="alpha",
@@ -159,7 +169,7 @@ class DiodeModel(FilterBase):
                 unit="",
                 initial=0.3,
                 lower_bound=0.0,
-                upper_bound=lambda _: 1.0,
+                upper_bound=_one,
             ),
         ]
 
