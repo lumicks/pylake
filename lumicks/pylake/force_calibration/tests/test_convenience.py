@@ -1,4 +1,5 @@
 import pytest
+import pickle
 import numpy as np
 from lumicks.pylake.force_calibration.convenience import calibrate_force
 from lumicks.pylake.force_calibration.calibration_models import (
@@ -163,3 +164,19 @@ def test_diode_fixing(reference_models):
 
     with pytest.raises(ValueError, match="Fixed diode frequency must be larger than zero."):
         calibrate_force(data, 1, 20, fixed_diode=0, sample_rate=78125)
+
+
+def test_pickling(tmpdir_factory, reference_models):
+    data, f_sample = reference_models.lorentzian_td(4000, 1, 0.4, 14000, 78125)
+    fit = calibrate_force(data, 1, 20, sample_rate=78125)
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    tmppath = f"{tmpdir}/test.pkl"
+    with open(tmppath, "wb") as f:
+        pickle.dump(fit, f)
+
+    # Verify that we can open the model again
+    with open(tmppath, "rb") as f:
+        pickled_fit = pickle.load(f)
+
+    np.testing.assert_allclose(pickled_fit["kappa"].value, 0.12173556860362873)
