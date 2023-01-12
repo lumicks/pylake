@@ -97,6 +97,113 @@ class KymoPeaks:
         return coordinates, time_points, peak_amplitudes
 
 
+def bounds_to_centroid_data(left_edge, right_edge):
+    """Helper function to return selection indices, pixel centers and weights.
+
+    This function generates indices for sampling based on the left-most and right-most
+    bound. It also generates appropriate pixel centers and weights that account for
+    the fact that they are only partial pixels.
+
+    Parameters
+    ----------
+    left_edge, right_edge : float
+        Lower and upper pixel edge
+
+    Returns
+    -------
+    selection : np.ndarray
+        Indices which select which points to use.
+    centers : np.ndarray
+        Pixel centers, where the edge pixels are corrected for being partial.
+    weights : np.ndarray
+        Weights that account for down-weighting the edges.
+    """
+    selection = np.arange(left_edge, np.ceil(right_edge), dtype=int)
+    centers = selection + 0.5
+    weights = np.ones(selection.size)
+    centers[0] = (left_edge + np.floor(left_edge) + 1) / 2
+    centers[-1] = (right_edge + np.ceil(right_edge) - 1) / 2
+    weights[0] = 1.0 - (left_edge - np.floor(left_edge))
+    weights[-1] = 1.0 - (np.ceil(right_edge) - right_edge)
+
+    return selection, centers, weights
+
+
+def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
+    """Perform an unbiased centroid estimation
+
+    The bias in centroid refinement is proportional to the asymmetry around the spot. To remove this
+    bias, we define a virtual window that's symmetric around the spot position. In practice, this
+    involves removing fractional pixels at the edges. If we want to shift the center of the image
+    by 1 pixel, we need to move an edge point 2 pixels.
+
+    Fractional pixels are dealt with by down-weighting edge pixels and recomputing a new pixel
+    center for those pixels.
+
+    For more information on this method, please refer to [1]_.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D array
+    tolerance : float
+        Convergence tolerance
+    max_iterations : int
+        Maximum iterations
+    epsilon : float
+        Small value to make sure we don't divide by zero
+
+    Returns
+    -------
+    estimated_position : float
+        Estimated subpixel position of the spot after bias correction. The origin (position 0) of
+        the position is defined at the window origin.
+
+    References
+    ----------
+    .. [1] Berglund, A. J., McMahon, M. D., McClelland, J. J., & Liddle, J. A. (2008).
+           Fast, bias-free algorithm for tracking single particles with variable size and
+           shape. Optics express, 16(18), 14064-14075.
+    """
+    lb = 0
+    ub = data.size
+
+    last_position = None
+    for _ in range(max_iterations):
+        # Too few pixels left to work with. Just return the last best guess or if none exists, the
+        # average.
+        if ub - lb < 2:
+            return last_position if last_position is not None else (lb + ub) / 2
+
+        selection, centers, weights = bounds_to_centroid_data(lb, ub)
+
+        range_center = (lb + ub) / 2
+        chunk = data[selection]
+        weighted_coord = np.sum(weights * centers * chunk)
+        weighted_sum = np.sum(weights * chunk)
+
+        if weighted_sum < epsilon:
+            # No photons here! Best guess is center of the range.
+            return range_center - 0.5
+
+        est_position = weighted_coord / weighted_sum
+
+        if est_position > range_center:
+            lb += 2 * (est_position - range_center)
+        else:
+            ub += 2 * (est_position - range_center)
+
+        if last_position and np.abs(est_position - last_position) < tolerance:
+            break
+
+        last_position = est_position
+
+    # Internally, we used a coordinate system that has pixel centers at 0.5, 1.5 etc. This is
+    # practical because it simplifies the code. Externally, we define pixel centers at 0, 1, 2 etc,
+    # so we subtract a half here.
+    return est_position - 0.5
+
+
 def refine_peak_based_on_moment(
     data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7
 ):
