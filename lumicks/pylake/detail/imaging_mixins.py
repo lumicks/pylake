@@ -38,12 +38,15 @@ class TiffExport:
         def cast_image(image, dtype=np.float32, clip=False):
             # Check if requested dtype can fit image values without an overflow
             info = np.finfo(dtype) if np.dtype(dtype).kind == "f" else np.iinfo(dtype)
-            if not clip and (np.min(image) < info.min or np.max(image) > info.max):
-                raise RuntimeError(
-                    f"Can't safely export image with `dtype={dtype.__name__}` channels."
-                    f" Switch to a larger `dtype` in order to safely store everything"
-                    f" or pass `force=True` to clip the data."
-                )
+            if np.min(image) < info.min or np.max(image) > info.max:
+                if clip:
+                    image = np.clip(image, info.min, info.max)
+                else:
+                    raise RuntimeError(
+                        f"Can't safely export image with `dtype={dtype.__name__}` channels. "
+                        f"Switch to a larger `dtype` in order to safely store everything or pass "
+                        f"`clip=True` to clip the data."
+                    )
 
             return image.astype(dtype)
 

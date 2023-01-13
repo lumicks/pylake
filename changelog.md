@@ -29,6 +29,7 @@
 
 * Fixed issue with model description not being available in Jupyter notebooks for some force-distance models.
 * Show validity criterion for Marko Siggia WLC models in terms of model parameters. Prior to this change the limit was simply denoted as `10 pN` where in reality it depends on the model parameters. The `10 pN` was a reasonable value for most DNA constructs.
+* Fixed bug which occurred when exporting images to TIFF files of a numerical type with insufficient range for the data with the flag `clip=True`. Prior to this change, values exceeding the range of the numerical type were not clearly defined. After this change values below and above the supported range are clipped to the lowest or highest value of the data type respectively.
 
 ## v0.13.2 | 2022-11-15
 
