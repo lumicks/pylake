@@ -633,10 +633,10 @@ def test_fit_binding_times(blank_kymo):
     tracks = KymoTrackGroup([k1, k2, k3, k4])
 
     dwells = tracks.fit_binding_times(1)
-    np.testing.assert_allclose(dwells.lifetimes, [1.002547])
+    np.testing.assert_allclose(dwells.lifetimes, [1.002744], rtol=1e-5)
 
     dwells = tracks.fit_binding_times(1, exclude_ambiguous_dwells=False)
-    np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
+    np.testing.assert_allclose(dwells.lifetimes, [1.257], rtol=1e-5)
 
 
 def test_fit_binding_times_nonzero(blank_kymo):

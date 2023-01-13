@@ -75,13 +75,18 @@ class DwelltimeBootstrap:
 
         n_data = optimized.dwelltimes.size
         samples = np.empty((optimized._parameters.size, iterations))
+
+        initial_guess = np.hstack(
+            (optimized.amplitudes[: optimized.n_components - 1], optimized.lifetimes)
+        )
+
         for itr in range(iterations):
             sample = np.random.choice(optimized.dwelltimes, size=n_data, replace=True)
             result, _ = _exponential_mle_optimize(
                 optimized.n_components,
                 sample,
                 *optimized._observation_limits,
-                initial_guess=optimized._parameters,
+                initial_guess=initial_guess,
                 options=optimized._optim_options,
             )
             samples[:, itr] = result
@@ -488,26 +493,35 @@ def exponential_mixture_log_likelihood_components(
     return -log_norm_factor + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
 
 
-def exponential_mixture_log_likelihood(params, t, min_observation_time, max_observation_time):
-    """Calculate the log likelihood of an exponential mixture distribution.
+def exponential_mixture_log_likelihood(
+    params, t, min_observation_time, max_observation_time, slice_index
+):
+    r"""Calculate the log likelihood of an exponential mixture distribution.
 
     The full log likelihood for a single observation is given by:
-        log(L) = log( sum_i( exp( log(component_i) ) ) )
 
-    where log(component_i) is output from `exponential_mixture_log_likelihood_components()`
+    .. math::
+        \log(L) = \log \left( \sum_i \exp( \log \mathrm{component}_i ) \right)
+
+    where :math:`\log(\mathrm{component}_i)` is output from `exponential_mixture_log_likelihood_components()`
 
     Parameters
     ----------
     params : array_like
-        array of model parameters (amplitude and lifetime per component)
+        array of amplitude and lifetime model parameters. For `K` components, this array is
+        `np.hstack((amplitudes[:K-1], lifetimes[:]))`
     t : array_like
         dwelltime observations in seconds
     min_observation_time : float
         minimum observation time in seconds
     max_observation_time : float
         maximum observation time in seconds
+    slice_index : int
+        index of position to split `params` into amplitudes and lifetimes
     """
-    amplitudes, lifetimes = np.reshape(params, (2, -1))
+    amplitudes = params[:slice_index]
+    amplitudes = np.hstack((amplitudes, 1 - np.sum(amplitudes)))
+    lifetimes = params[slice_index:]
     components = exponential_mixture_log_likelihood_components(
         amplitudes, lifetimes, t, min_observation_time, max_observation_time
     )
@@ -542,34 +556,37 @@ def _exponential_mle_optimize(
             "appropriate values for `min_observation_time` and/or `max_observation_time`."
         )
 
+    slice_index = n_components - 1
     cost_fun = partial(
         exponential_mixture_log_likelihood,
         t=t,
         min_observation_time=min_observation_time,
         max_observation_time=max_observation_time,
+        slice_index=slice_index,
     )
 
     if initial_guess is None:
         initial_guess_amplitudes = np.ones(n_components) / n_components
         initial_guess_lifetimes = np.mean(t) * np.arange(1, n_components + 1)
-        initial_guess = np.hstack([initial_guess_amplitudes, initial_guess_lifetimes])
+        initial_guess = np.hstack([initial_guess_amplitudes[:-1], initial_guess_lifetimes])
 
     bounds = (
-        *[(np.finfo(float).eps, 1) for _ in range(n_components)],
+        *[(0, 1) for _ in range(n_components - 1)],
         *[(min_observation_time * 0.1, max_observation_time * 1.1) for _ in range(n_components)],
     )
-    constraints = {"type": "eq", "fun": lambda x, n: 1 - sum(x[:n]), "args": [n_components]}
+
     result = minimize(
         cost_fun,
         initial_guess,
-        method="SLSQP",
+        method="L-BFGS-B",
         bounds=bounds,
-        constraints=constraints,
         options=options,
     )
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood
-    return result.x, -result.fun
+    amplitudes = result.x[:slice_index]
+    lifetimes = result.x[slice_index:]
+    return np.hstack((amplitudes, 1 - np.sum(amplitudes), lifetimes)), -result.fun
 
 
 def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells):
