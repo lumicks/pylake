@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 from lumicks.pylake.detail.imaging_mixins import TiffExport
+from tifffile import TiffFile
 
 
 def tiffexport_factory(
@@ -96,47 +97,69 @@ def test_export_tiff_empty(tmp_path):
         export_empty.export_tiff(filename, dtype=np.float32)
 
 
-def test_export_tiff_int(tmp_path):
-    images = np.ones(shape=(2, 10, 10, 3))  # (n, h, w, c)
-    export_image16 = tiffexport_factory(images * np.iinfo(np.uint16).max)
-
-    # Sufficient bit-depth or forced clipping
-    export_image16.export_tiff(tmp_path / "uint16", dtype=np.uint16)
-    export_image16.export_tiff(tmp_path / "float32", dtype=np.float32)
-    export_image16.export_tiff(tmp_path / "clipped", dtype=np.uint8, clip=True)
-
-    # Raise because unsafe
-    with pytest.raises(RuntimeError, match="Can't safely export image with `dtype=uint8` channels"):
-        export_image16.export_tiff(tmp_path / "uint8", dtype=np.uint8)
-
-    with pytest.raises(
-        RuntimeError, match="Can't safely export image with `dtype=float16` channels"
-    ):
-        export_image16.export_tiff(tmp_path / "float16", dtype=np.float16)
-
-
-@pytest.mark.filterwarnings(
-    # Numpy 1.24 raises a RuntimeWarning upon overflow during type cast (see call with `clip=True`)
-    "ignore:overflow encountered in cast:RuntimeWarning:lumicks.pylake.detail.imaging_mixins:48"
+@pytest.mark.parametrize(
+    "output_dtype, data_dtype",
+    [
+        (np.float32, np.float32),
+        (np.float32, np.float16),
+        (np.float32, np.uint32),
+        (np.float16, np.float16),
+        (np.uint32, np.uint16),
+        (np.uint32, np.uint8),
+        (np.uint16, np.uint16),
+        (np.uint16, np.uint8),
+    ],
 )
-def test_export_tiff_float(tmp_path):
-    images = np.ones(shape=(2, 10, 10, 3))  # (n, h, w, c)
-    export_image32 = tiffexport_factory(images * np.finfo(np.float32).max)
+def test_export_tiff_sufficient_range(tmp_path, output_dtype, data_dtype):
+    """Test TIFF export when the data type has sufficient range for the data stored"""
+    info = np.finfo(data_dtype) if np.dtype(data_dtype).kind == "f" else np.iinfo(data_dtype)
+    images = np.ones(shape=(2, 10, 10, 3)) * info.max  # (n, h, w, c)
+    images[0, 0, 0, 0] = info.min
+    export_image = tiffexport_factory(images)
+    export_image.export_tiff(tmp_path / "tmp", dtype=output_dtype)
 
-    # Sufficient bit-depth or forced clipping
-    export_image32.export_tiff(tmp_path / "float32", dtype=np.float32)
-    export_image32.export_tiff(tmp_path / "clipped", dtype=np.float16, clip=True)
+    # Validate data
+    with TiffFile(tmp_path / "tmp") as t:
+        np.testing.assert_allclose(t.asarray(), images)
+
+
+@pytest.mark.parametrize(
+    "output_dtype, data_dtype, test_max",
+    [
+        (np.float16, np.float32, True),
+        (np.uint8, np.float32, True),
+        (np.uint16, np.float32, True),
+        (np.uint32, np.float32, True),
+        (np.uint16, np.uint32, True),
+        (np.uint8, np.uint16, True),
+        (np.uint8, np.uint32, True),
+        (np.float16, np.float32, False),
+        (np.uint8, np.float32, False),
+    ],
+)
+def test_export_tiff_insufficient_range(tmp_path, output_dtype, data_dtype, test_max):
+    """Test TIFF export when the data type has insufficient range for the data stored"""
+    info = np.finfo(data_dtype) if np.dtype(data_dtype).kind == "f" else np.iinfo(data_dtype)
+    images = np.ones(shape=(2, 10, 10, 3)) * (info.max if test_max else info.min)  # (n, h, w, c)
+    export_image = tiffexport_factory(images)
+
+    file_name = tmp_path / output_dtype.__name__
+    export_image.export_tiff(file_name, dtype=output_dtype, clip=True)
+    out_info = (
+        np.finfo(output_dtype) if np.dtype(output_dtype).kind == "f" else np.iinfo(output_dtype)
+    )
+    with TiffFile(file_name) as t:
+        np.testing.assert_allclose(
+            t.asarray(),
+            np.ones(shape=(2, 10, 10, 3)) * (out_info.max if test_max else out_info.min),
+        )
 
     # Raise because unsafe
     with pytest.raises(
-        RuntimeError, match="Can't safely export image with `dtype=float16` channels"
+        RuntimeError,
+        match=f"Can't safely export image with `dtype={output_dtype.__name__}` channels",
     ):
-        export_image32.export_tiff(tmp_path / "float16", dtype=np.float16)
-
-    with pytest.raises(
-        RuntimeError, match="Can't safely export image with `dtype=uint16` channels"
-    ):
-        export_image32.export_tiff(tmp_path / "uint16", dtype=np.uint16)
+        export_image.export_tiff(file_name, dtype=output_dtype)
 
 
 @pytest.mark.parametrize(
