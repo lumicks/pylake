@@ -11,7 +11,7 @@ Piezo Tracking
 
 Buelake usually determines the distance between two trapped beads by recording brightfield images and tracking the positions of the beads in the images via template matching (low frequency distance).
 This approach is straightforward but has the following disadvantages:
-If the beads are close together, the tracking performs poorly, as the two bead templates might merge at close proximity (e.g. a tether with a short DNA construct :math:`\lesssim` 5 kbp).
+If the beads are close together, the tracking performs poorly, as the two bead templates might merge at close proximity (e.g. when using a tether with a short DNA construct :math:`\lesssim` 5 kbp).
 Additionally, the temporal resolution of the bead distance is limited to the maximum framerate of the camera.
 
 In this tutorial we will show you how to overcome these limitations and calculate a high frequency distance signal (piezo distance).
@@ -38,10 +38,10 @@ The exported data file must contain the trap 1 position and camera-based distanc
 Let's load this dataset and perform the distance calibration by invoking::
 
     no_tether_data = lk.File("Data/piezo_tracking_no_tether.h5")
-    
+
     distance_calibration = lk.DistanceCalibration.from_file(no_tether_data, degree=2)
 
-This class performs a polynomial regression between the trap position and bead tracking distance.
+The `distance_calibration` object performs a polynomial regression between the trap position and the bead tracking distance.
 Note that this bead-to-bead distance already has the bead radius subtracted, therefore it reflects the surface-to-surface distance.
 We can plot what this curve looks like by invoking `.plot()` on it::
 
@@ -58,6 +58,8 @@ We can see that there is some error (the discrepancy does not scatter randomly a
 
 Baseline correction
 -------------------
+
+We have to correct the force signal to have a baseline with zero force, before we show how to calculate the bead displacement from the force signal.
 
 Let's have a look at the force data::
 
