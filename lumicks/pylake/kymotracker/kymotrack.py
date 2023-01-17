@@ -292,7 +292,7 @@ class KymoTrack:
                 self.seconds,
                 self.position,
                 path_effects=[pe.Stroke(foreground="k", linewidth=linewidth * 2.5)],
-                **kwargs,
+                **{**kwargs, "label": "__no_label__"},
             )
 
         ax.plot(self.seconds, self.position, path_effects=[pe.Normal()], **kwargs)

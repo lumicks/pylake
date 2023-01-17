@@ -24,6 +24,7 @@
 
 * `DwelltimeBootstrap` is now a frozen dataclass.
 * Attempting to access `DwelltimeModel.bootstrap` before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
+* Suppress legend entry for outline when invoking `KymoTrack.plot()`.
 
 #### Bugfixes
 
