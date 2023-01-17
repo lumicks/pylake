@@ -74,6 +74,7 @@ def track_greedy(
     diffusion=0.0,
     sigma_cutoff=2.0,
     rect=None,
+    bias_correction=False,
     line_width=None,
 ):
     """Track particles on an image using a greedy algorithm.
@@ -142,6 +143,10 @@ def track_greedy(
         detection and refinement is performed over the full image, but the results are then filtered
         to omit the peaks that fall outside of the rect. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
+    bias_correction : bool
+        Correct coordinate bias by ensuring that the window is symmetric (see [3]_ for more
+        information). Note that while this increases the variance (reduces precision), it can
+        greatly reduce the bias when there is a high background.
     line_width : float
         **Deprecated** Forwarded to `track_width`.
 
@@ -153,6 +158,9 @@ def track_greedy(
     .. [2] Mangeol, P., Prevo, B., & Peterman, E. J. (2016). KymographClear and KymographDirect: two
            tools for the automated quantitative analysis of molecular and cellular dynamics using
            kymographs. Molecular biology of the cell, 27(12), 1948-1957.
+    .. [3] Berglund, A. J., McMahon, M. D., McClelland, J. J., & Liddle, J. A. (2008).
+           Fast, bias-free algorithm for tracking single particles with variable size and
+           shape. Optics express, 16(18), 14064-14075.
     """
 
     # TODO: remove line_width argument deprecation path
@@ -191,7 +199,11 @@ def track_greedy(
         return KymoTrackGroup([])
 
     position, time, m0 = refine_peak_based_on_moment(
-        kymograph_data, coordinates, time_points, half_width_pixels
+        kymograph_data,
+        coordinates,
+        time_points,
+        half_width_pixels,
+        bias_correction=bias_correction,
     )
 
     if rect:
@@ -365,7 +377,7 @@ def refine_lines_centroid(lines, line_width):
     return refine_tracks_centroid(lines, track_width)
 
 
-def refine_tracks_centroid(tracks, track_width=None):
+def refine_tracks_centroid(tracks, track_width=None, bias_correction=False):
     """Refine the tracks based on the brightness-weighted centroid.
 
     This function interpolates the determined tracks (in time) and then uses the pixels in the
@@ -384,9 +396,24 @@ def refine_tracks_centroid(tracks, track_width=None):
         Detected tracks on a kymograph
     track_width : float
         Expected (spatial) spot size in physical units. Must be larger than zero.
-        If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
-        for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
-        corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
+        If `None`, the default is 0.35 (half the wavelength of the red limit of the visible
+        spectrum) for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs
+        the corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
+    bias_correction : bool
+        Correct coordinate bias by ensuring that the window is symmetric (see [1]_ for more
+        information). Note that while this increases the variance (reduces precision), it can
+        greatly reduce the bias when there is a high background.
+
+    Returns
+    -------
+    refined_tracks : KymoTrackGroup
+        KymoTrackGroup with refined coordinates.
+
+    References
+    ----------
+    .. [1] Berglund, A. J., McMahon, M. D., McClelland, J. J., & Liddle, J. A. (2008).
+           Fast, bias-free algorithm for tracking single particles with variable size and
+           shape. Optics express, 16(18), 14064-14075.
     """
     tracks = KymoTrackGroup(tracks) if isinstance(tracks, (list, tuple)) else tracks
 
@@ -414,6 +441,7 @@ def refine_tracks_centroid(tracks, track_width=None):
         coordinate_idx,
         time_idx,
         half_width_pixels,
+        bias_correction=bias_correction,
     )
 
     track_ids = np.hstack(
@@ -485,7 +513,8 @@ def refine_tracks_gaussian(
         Fixed background parameter in photons per second.
         When supplied, the background is not estimated but fixed at this value.
     """
-    assert overlap_strategy in ("ignore", "skip", "multiple")
+    if overlap_strategy not in ("ignore", "skip", "multiple"):
+        raise ValueError("Invalid overlap strategy selected.")
 
     if not tracks:
         return KymoTrackGroup([])

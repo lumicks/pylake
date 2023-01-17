@@ -205,12 +205,13 @@ def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
 
 
 def refine_peak_based_on_moment(
-    data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7
+    data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7, bias_correction=True
 ):
-    """This function adjusts the coordinates estimate by a brightness weighted centroid around the initial estimate.
-    This estimate is obtained by filtering the image with a kernel. If a pixel offset has a larger magnitude than 0.5
-    then the pixel is moved and the centroid recomputed. The process is repeated until there are no more changes.
-    Convergence usually occurs within a few iterations.
+    """This function adjusts the coordinates estimate by a brightness weighted centroid around the
+    initial estimate. This estimate is obtained by filtering the image with a kernel. If a pixel
+    offset has a larger magnitude than 0.5 then the pixel is moved and the centroid recomputed. The
+    process is repeated until there are no more changes. Convergence usually occurs within a few
+    iterations.
 
     Parameters
     ----------
@@ -221,13 +222,24 @@ def refine_peak_based_on_moment(
     time_points : array_like
         Time points at which the coordinate estimates were made.
     half_kernel_size : int
-        Half of the kernel size in pixels. The kernel is used to refine the line estimate. The kernel size used for this
-        refinement will be 2 * half_kernel_size + 1.
+        Half of the kernel size in pixels. The kernel is used to refine the line estimate. The
+        kernel size used for this refinement will be 2 * half_kernel_size + 1.
     max_iter : int
         Maximum number of iterations
     eps : float
-        We add a little offset to the normalization to prevent divisions by zeros on pixels that did not have any photon
-        counts. Eps sets this offset.
+        We add a little offset to the normalization to prevent divisions by zeros on pixels that
+        did not have any photon counts. Eps sets this offset.
+    bias_correction : bool
+        Whether to apply a bias correction at the end of the centroid refinement.
+
+    Returns
+    -------
+    output_coords : np.ndarray
+        Refined output coordinates.
+    time_points : np.ndarray
+        Time points.
+    m0 : np.ndarray
+        Sum over the window.
     """
     if half_kernel_size < 1:
         raise ValueError("half_kernel_size may not be smaller than 1")
@@ -257,8 +269,20 @@ def refine_peak_based_on_moment(
     else:
         raise RuntimeError("Iteration limit exceeded")
 
+    output_coords = coordinates + subpixel_offset[coordinates, time_points]
+
+    # We found the rough location, time to refine and debias
+    if bias_correction:
+        data = np.copy(data)  # Our slicing operation is not allowed on a memoryview
+        output_coords = np.zeros(output_coords.size)
+        for idx, (coordinate, time_point) in enumerate(zip(coordinates, time_points)):
+            centroid_estimate = unbiased_centroid(
+                data[coordinate - half_kernel_size : coordinate + half_kernel_size + 1, time_point]
+            )
+            output_coords[idx] = coordinate + centroid_estimate - half_kernel_size
+
     return (
-        coordinates + subpixel_offset[coordinates, time_points],
+        output_coords,
         time_points,
         m0[coordinates, time_points],
     )

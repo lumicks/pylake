@@ -60,10 +60,9 @@ def test_refinement_2d():
 
 
 @pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
-def test_refinement_track(loc, inv_sigma=0.3):
-    # TODO: test does not run, same name as below
+def test_refinement_track(loc):
     xx = np.arange(0, 50) - loc
-    image = np.exp(-inv_sigma * xx * xx)
+    image = np.exp(-0.3 * xx * xx)
     # real kymo pixel values are integer photon counts
     # multiply by some value and convert to int, otherwise kymo.red_image is zeros
     image = np.array(image * 10).astype(int)
@@ -79,6 +78,22 @@ def test_refinement_track(loc, inv_sigma=0.3):
     )
 
     track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5)[0]
+    np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
+
+
+@pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
+def test_refinement_with_background(loc):
+    xx = np.arange(0, 50) - loc
+    image = np.array((np.exp(-0.3 * xx * xx) + 5) * 10).astype(int)
+    kymo = generate_kymo("", np.expand_dims(image, 1), pixel_size_nm=1000)
+
+    # Without bias correction, we should see worse quality estimates
+    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5, bias_correction=False)[0]
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
+
+    # With correction, this should resolve
+    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5, bias_correction=True)[0]
     np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
 
 
@@ -141,9 +156,8 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
         )
     assert len(refined) == 0
 
-    # invalid overlap strategy
-    with pytest.raises(AssertionError):
-        refined = refine_tracks_gaussian(
+    with pytest.raises(ValueError, match="Invalid overlap strategy selected."):
+        refine_tracks_gaussian(
             tracks, window=3, refine_missing_frames=True, overlap_strategy="something"
         )
 
@@ -250,3 +264,22 @@ def test_empty_group():
     assert id(tracks) != result
     assert isinstance(result, KymoTrackGroup)
     assert len(result) == 0
+
+
+def test_bias_corrected_refinement_background(kymogroups_2tracks):
+    tracks, _, _ = kymogroups_2tracks
+
+    refined = refine_tracks_centroid(
+        tracks,
+        track_width=2,
+        bias_correction=True,
+    )
+
+    assert np.allclose(
+        refined[0].position,
+        [3.53199999, 3.56773634, 3.48390805, 3.33971131, 3.487240685],
+    )
+    assert np.allclose(
+        refined[1].position,
+        [5.06666451, 4.83968723, 4.9625, 5.088, 5.02488394],
+    )
