@@ -16,8 +16,15 @@
 
 #### Bug fixes
 
+* Fixed a bug that resulted in an incorrect round-off of the window size to pixels when kymotracking. This bug resulted in using one more pixel on each side than intended for specific `track_widths`. Track width is selected by rounding to the next odd window size. Prior to this change, the number of points used would increase on even window sizes. As a result, requesting a track width of `2.5` pixels, would result in using a window of size `5`. Currently, requested a track width of `3` pixels results in a window of size 3, while `3.1` rounds up to the next odd window size (`5`). This bug affected the kymo tracking widget (tracking, refinement and photon count sampling during saving), `lk.track_greedy()` and `lk.refine_tracks_centroid()`.
+* Updated default slider ranges for the Kymotracker widget to reflect minimum track width required for tracking.
+* Fixed issue with model description not being available in Jupyter notebooks for some force-distance models.
+* Show validity criterion for Marko Siggia WLC models in terms of model parameters. Prior to this change the limit was simply denoted as `10 pN` where in reality it depends on the model parameters. The `10 pN` was a reasonable value for most DNA constructs.
+* Fixed bug which occurred when exporting images to TIFF files of a numerical type with insufficient range for the data with the flag `clip=True`. Prior to this change, values exceeding the range of the numerical type were not clearly defined. After this change values below and above the supported range are clipped to the lowest or highest value of the data type respectively.
 * Fixed bug in `DwelltimeBootstrap.hist()` (previously named `DwelltimeBootstrap.plot()`, see below). Previously, only up to two components were plotted; now all components are plotted appropriately.
 * `DwelltimeBootstrap.hist()` now displays the original parameter estimate rather than the mean of the bootstrap distribution; the bootstrap distribution is used solely to calculate the confidence intervals via `DwelltimeBootstrap.get_interval()`.
+* Fixed a bug where `Scan.export_video()` and `CorrelatedStack.export_video()` would show elements from a previous plot.
+* Fixed a bug that caused a misalignment of half a pixel between the kymograph and its position histogram when using `Kymo.plot_with_position_histogram()`.
 
 #### Deprecations
 
@@ -32,13 +39,6 @@
 * Attempting to access `DwelltimeModel.bootstrap` before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
 * Suppress legend entry for outline when invoking `KymoTrack.plot()`.
 * Allow pickling force calibration results (`CalibrationResults`). Prior to this change two functions involved in calculating upper parameter bounds prevented this class from being pickled.
-
-#### Bugfixes
-
-* Fixed a bug that resulted in an incorrect round-off of the window size to pixels when kymotracking. This bug resulted in using one more pixel on each side than intended for specific `track_widths`. Track width is selected by rounding to the next odd window size. Prior to this change, the number of points used would increase on even window sizes. As a result, requesting a track width of `2.5` pixels, would result in using a window of size `5`. Currently, requested a track width of `3` pixels results in a window of size 3, while `3.1` rounds up to the next odd window size (`5`). This bug affected the kymo tracking widget (tracking, refinement and photon count sampling during saving), `lk.track_greedy()` and `lk.refine_tracks_centroid()`.
-* Fixed issue with model description not being available in Jupyter notebooks for some force-distance models.
-* Show validity criterion for Marko Siggia WLC models in terms of model parameters. Prior to this change the limit was simply denoted as `10 pN` where in reality it depends on the model parameters. The `10 pN` was a reasonable value for most DNA constructs.
-* Fixed bug which occurred when exporting images to TIFF files of a numerical type with insufficient range for the data with the flag `clip=True`. Prior to this change, values exceeding the range of the numerical type were not clearly defined. After this change values below and above the supported range are clipped to the lowest or highest value of the data type respectively.
 
 ## v0.13.2 | 2022-11-15
 
@@ -72,8 +72,6 @@
 * Fixed a bug where single pixel detections in a `KymoTrackGroup` would contribute values with a dwell time of zero. These are now dropped, the correct minimally observable time is set appropriately and a warning is issued.
 * Fixed slicing of a `Kymo` where slicing from a time point inside the last line to the end (e.g. `kymo["5s":]`) resulted in a `Kymo` which returned errors upon trying to access its contents.
 * Fixed a minor bug in force calibration. In rare cases it was possible that the procedure to generate an initial guess for the power spectral fit failed. This seemed to occur when the spectrum supplied is a mostly flat plateau. After the fix, an alternative method to compute an initial guess is applied in cases where the regular method fails. Note that successful calibrations were not at risk for being incorrect due to this bug since they would have resulted in an exception rather than an invalid result.
-* Fixed a bug where `Scan.export_video()` and `CorrelatedStack.export_video()` would show elements from a previous plot.
-* Fixed a bug that caused a misalignment of half a pixel between the kymograph and its position histogram when using `Kymo.plot_with_position_histogram()`.
 
 #### Deprecations
 
