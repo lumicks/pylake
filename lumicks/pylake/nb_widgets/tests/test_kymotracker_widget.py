@@ -247,8 +247,16 @@ def test_stitch_anywhere(start, stop, same_track, kymograph, mockevent):
 
 
 def test_refine_track_width_units(kymograph, region_select):
+    # The lines of interest here are located at coordinate pixel 12 and 15. The line at 12 will
+    # start to incorporate contributions from the line at 15 if the window size is bigger than 5
+    # pixels, since a window of 7 leads to a half kernel size of n = 3 which is the lowest window
+    # size to incorporate this contribution.
     kymo_widget = KymoWidgetGreedy(
-        kymograph, "red", axis_aspect_ratio=1, track_width=2, use_widgets=False
+        kymograph,
+        "red",
+        axis_aspect_ratio=1,
+        track_width=5 * kymograph.pixelsize[0] + 0.0001,
+        use_widgets=False,
     )
     in_um, in_s = calibrate_to_kymo(kymograph)
 
@@ -349,9 +357,9 @@ def test_keyword_args(kymograph):
     "gain,line_time,pixel_size,ref_values",
     (
         # fmt:off
-        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 5, 0 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
-        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2), "track_width": (4 * 5, 0 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
-        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 4, 0 * 4, 15 * 4), "sigma": (2 * 4, 1 * 4, 5 * 4), "vel": (0, -5 * 4/4, 5 * 4/4)}),
+        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
+        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
+        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 4, 3 * 4, 15 * 4), "sigma": (2 * 4, 1 * 4, 5 * 4), "vel": (0, -5 * 4/4, 5 * 4/4)}),
         # fmt:on
     ),
 )

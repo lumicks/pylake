@@ -808,7 +808,7 @@ def _get_default_parameters(kymo, channel):
             "How big a particle needs to appear to be tracked as a single molecule.",
             "float",
             4 * position_scale,
-            *(0.0, 15.0 * position_scale),
+            *(3.0 * position_scale, 15.0 * position_scale),
             True,
             r"Expected spot size defines how big a bound particle needs to appear as on the "
             r"kymograph for it to be tracked as a single molecule. This parameter should be set to "
