@@ -88,7 +88,7 @@ def test_greedy_algorithm_input_validation(kymo_integration_test_data):
 
     for track_width in (-1, 0, 2.99 * test_data.pixelsize_um[0]):
         with pytest.raises(
-            ValueError, match=re.escape("track_width should at least be 3 pixels (0.150 [um])")
+            ValueError, match=re.escape("track_width must at least be 3 pixels (0.150 [um])")
         ):
             track_greedy(test_data, "red", track_width=track_width, pixel_threshold=10)
 
