@@ -11,6 +11,7 @@ from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
+from lumicks.pylake.kymotracker.kymotracker import _to_half_kernel_size
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
 
@@ -118,10 +119,6 @@ class KymoWidget:
     @tracks.setter
     def tracks(self, new_tracks):
         self._tracks_history.state = new_tracks
-
-    @property
-    def _track_width_pixels(self):
-        return np.ceil(self._algorithm_parameters["track_width"].value / self._kymo.pixelsize[0])
 
     def _track_kymo(self, click, release):
         """Handle mouse release event.
@@ -277,7 +274,9 @@ class KymoWidget:
         try:
             self.save_tracks(
                 self._output_filename,
-                sampling_width=int(np.ceil(0.5 * self._track_width_pixels)),
+                sampling_width=_to_half_kernel_size(
+                    self._algorithm_parameters["track_width"].value, self._kymo.pixelsize[0]
+                ),
             )
             self._set_label("status", f"Saved {self._output_filename}")
         except (RuntimeError, IOError) as exception:

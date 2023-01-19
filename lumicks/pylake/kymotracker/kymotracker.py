@@ -48,6 +48,14 @@ def _to_pixel_rect(rect, pixelsize, line_time_seconds):
     ]
 
 
+def _to_half_kernel_size(width, pixelsize):
+    """Converts a window width to a half kernel size.
+
+    This function is used to calculate how many pixels to add on each side of a center pixel to
+    generate an odd kernel used for filtering."""
+    return np.ceil(width / pixelsize).astype(int) // 2
+
+
 def track_greedy(
     kymograph,
     channel,
@@ -94,6 +102,9 @@ def track_greedy(
         If `None`, the default is 0.35 (half the wavelength of the red limit of the visible spectrum)
         for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
         corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
+
+        Note: For tracking purposes, the track width will be rounded up to the nearest odd number
+        of pixels. Note that it has to be at least 3 pixels.
     pixel_threshold : float or None
         Intensity threshold for the pixels. Local maxima above this intensity level will be
         designated as a track origin. Must be larger than zero. If `None`, the default is set to the
@@ -141,7 +152,9 @@ def track_greedy(
     # TODO: remove line_width argument deprecation path
     if track_width is None:
         if line_width is None:
-            track_width = _default_track_widths[kymograph._calibration.unit]
+            track_width = max(
+                _default_track_widths[kymograph._calibration.unit], 3 * kymograph.pixelsize[0]
+            )
         else:
             track_width = line_width
             warnings.warn(
@@ -154,9 +167,13 @@ def track_greedy(
     if pixel_threshold is None:
         pixel_threshold = np.percentile(kymograph.get_image(channel), 98)
 
-    if track_width <= 0:
-        # Must be positive otherwise refinement fails
-        raise ValueError("track_width should be larger than zero")
+    # We lower the minimum bound slightly to ensure that setting it to the minimum bound exactly
+    # becomes a valid value.
+    if track_width < np.nextafter(3 * kymograph.pixelsize[0], 0):
+        raise ValueError(
+            f"track_width should at least be 3 pixels ({3 * kymograph.pixelsize[0]:.3f} "
+            f"[{kymograph._calibration.unit}])"
+        )
 
     if pixel_threshold <= 0:
         raise ValueError("pixel_threshold should be larger than zero")
@@ -167,16 +184,14 @@ def track_greedy(
     kymograph_data = kymograph.get_image(channel)
 
     position_scale = kymograph.pixelsize[0]
-    track_width_pixels = track_width / position_scale
+    half_width_pixels = _to_half_kernel_size(track_width, position_scale)
 
-    coordinates, time_points = peak_estimate(
-        kymograph_data, np.ceil(0.5 * track_width_pixels), pixel_threshold
-    )
+    coordinates, time_points = peak_estimate(kymograph_data, half_width_pixels, pixel_threshold)
     if len(coordinates) == 0:
         return KymoTrackGroup([])
 
     position, time, m0 = refine_peak_based_on_moment(
-        kymograph_data, coordinates, time_points, np.ceil(0.5 * track_width_pixels)
+        kymograph_data, coordinates, time_points, half_width_pixels
     )
 
     if rect:
@@ -190,12 +205,12 @@ def track_greedy(
             return KymoTrackGroup([])
 
     peaks = KymoPeaks(position, time, m0)
-    peaks = merge_close_peaks(peaks, np.ceil(0.5 * track_width_pixels))
+    peaks = merge_close_peaks(peaks, half_width_pixels)
 
     # Convert algorithm parameters to pixel units
     velocity_pixels = vel * kymograph.line_time_seconds / position_scale
     diffusion_pixels = diffusion / (position_scale**2 / kymograph.line_time_seconds)
-    sigma_pixels = sigma / position_scale if sigma else 0.5 * track_width_pixels
+    sigma_pixels = sigma / position_scale if sigma else half_width_pixels
 
     tracks = points_to_line_segments(
         peaks,
@@ -383,7 +398,7 @@ def refine_tracks_centroid(tracks, track_width=None):
         # Must be positive otherwise refinement fails
         raise ValueError("track_width should be larger than zero")
 
-    track_width_pixels = np.ceil(track_width / tracks._kymo.pixelsize[0])
+    half_width_pixels = _to_half_kernel_size(track_width, tracks._kymo.pixelsize[0])
 
     interpolated_tracks = [track.interpolate() for track in tracks]
     time_idx = np.round(
@@ -397,7 +412,7 @@ def refine_tracks_centroid(tracks, track_width=None):
         interpolated_tracks[0]._image.data,
         coordinate_idx,
         time_idx,
-        np.ceil(0.5 * track_width_pixels),
+        half_width_pixels,
     )
 
     track_ids = np.hstack(
