@@ -23,7 +23,7 @@ def kymo_integration_test_data():
     return generate_kymo(
         "test",
         raw_test_data(),
-        pixel_size_nm=5000,
+        pixel_size_nm=50,
         start=int(4e9),
         dt=int(5e9 / 100),
         samples_per_pixel=3,

@@ -2,6 +2,7 @@ import re
 import pytest
 import matplotlib.pyplot as plt
 from lumicks.pylake.kymotracker.kymotrack import *
+from lumicks.pylake.kymotracker.kymotracker import _to_half_kernel_size
 from lumicks.pylake.kymotracker.detail.localization_models import *
 from lumicks.pylake import filter_tracks
 from lumicks.pylake.kymo import _kymo_from_array
@@ -969,3 +970,16 @@ def test_invalid_ensemble_diffusion(blank_kymo):
     kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red")])
     with pytest.raises(ValueError, match=re.escape("Invalid method (egg) selected")):
         kymotracks.ensemble_diffusion("egg")
+
+
+@pytest.mark.parametrize(
+    "window, pixelsize, result",
+    [
+        # fmt:off
+        (1.0, 1.0, 0), (2.0, 1.0, 1), (3.0, 1.0, 1), (3.01, 1.0, 2), (4.0, 1.0, 2), (4.99, 1.0, 2),
+        (1.0, 2.0, 0), (2.0, 2.0, 0), (6.0, 2.0, 1), (6.01, 2.0, 2), (7.0, 2.0, 2), (7.99, 2.0, 2),
+        # fmt:on
+    ]
+)
+def test_half_kernel(window, pixelsize, result):
+    assert _to_half_kernel_size(window, pixelsize) == result

@@ -35,6 +35,7 @@
 
 #### Bugfixes
 
+* Fixed a bug that resulted in an incorrect round-off of the window size to pixels when kymotracking. This bug resulted in using one more pixel on each side than intended for specific `track_widths`. Track width is selected by rounding to the next odd window size. Prior to this change, the number of points used would increase on even window sizes. As a result, requesting a track width of `2.5` pixels, would result in using a window of size `5`. Currently, requested a track width of `3` pixels results in a window of size 3, while `3.1` rounds up to the next odd window size (`5`). This bug affected the kymo tracking widget (tracking, refinement and photon count sampling during saving), `lk.track_greedy()` and `lk.refine_tracks_centroid()`.
 * Fixed issue with model description not being available in Jupyter notebooks for some force-distance models.
 * Show validity criterion for Marko Siggia WLC models in terms of model parameters. Prior to this change the limit was simply denoted as `10 pN` where in reality it depends on the model parameters. The `10 pN` was a reasonable value for most DNA constructs.
 * Fixed bug which occurred when exporting images to TIFF files of a numerical type with insufficient range for the data with the flag `clip=True`. Prior to this change, values exceeding the range of the numerical type were not clearly defined. After this change values below and above the supported range are clipped to the lowest or highest value of the data type respectively.

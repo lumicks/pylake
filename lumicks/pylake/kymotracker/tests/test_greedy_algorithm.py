@@ -1,4 +1,5 @@
 import pytest
+import re
 import numpy as np
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -42,7 +43,11 @@ def test_kymotracker_subset_test_greedy(kymo_integration_test_data):
 def test_kymotracker_regression_test_subset_comes_up_empty(kymo_integration_test_data):
     """Test whether we gracefully handle the case where the ROI results in no lines."""
     tracks = track_greedy(
-        kymo_integration_test_data, "red", track_width=1, pixel_threshold=4, rect=[[0, 0], [1, 1]]
+        kymo_integration_test_data,
+        "red",
+        track_width=3 * kymo_integration_test_data.pixelsize_um[0],  # Must be at least 3 pixels
+        pixel_threshold=4,
+        rect=[[0, 0], [1, 1]],
     )
     assert len(tracks) == 0
 
@@ -81,12 +86,14 @@ def test_greedy_algorithm_empty_result(kymo_integration_test_data):
 def test_greedy_algorithm_input_validation(kymo_integration_test_data):
     test_data = kymo_integration_test_data
 
-    for track_width in (-1, 0):
-        with pytest.raises(ValueError, match="should be larger than zero"):
+    for track_width in (-1, 0, 2.99 * test_data.pixelsize_um[0]):
+        with pytest.raises(
+            ValueError, match=re.escape("track_width should at least be 3 pixels (0.150 [um])")
+        ):
             track_greedy(test_data, "red", track_width=track_width, pixel_threshold=10)
 
-    # Any positive value will do
-    track_greedy(test_data, "red", track_width=0.00001, pixel_threshold=10)
+    # Width must be at least 3 pixels
+    track_greedy(test_data, "red", track_width=3 * test_data.pixelsize_um[0], pixel_threshold=10)
 
     with pytest.raises(ValueError, match="should be positive"):
         track_greedy(test_data, "red", track_width=10, diffusion=-1, pixel_threshold=10)
@@ -116,7 +123,8 @@ def test_default_parameters(kymo_pixel_calibrations):
         for ref, track in zip(ref_tracks, tracks):
             np.testing.assert_allclose(ref.position, track.position)
 
-        # test non-default args fails when compared to tracking with defaults
+        # We want to see that when setting the tracking parameter to something other than the
+        # defaults actually has an effect
         ref_tracks = track_greedy(kymo, "red", None, None)
         tracks = track_greedy(
             kymo, "red", track_width=None, pixel_threshold=default_threshold * 0.7
@@ -125,7 +133,10 @@ def test_default_parameters(kymo_pixel_calibrations):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
 
-        tracks = track_greedy(kymo, "red", track_width=default_width * 1.2, pixel_threshold=None)
+        # To verify this for the width, we have to make sure we go to the next odd window size.
+        tracks = track_greedy(
+            kymo, "red", track_width=default_width / kymo.pixelsize[0] + 2, pixel_threshold=None
+        )
         with pytest.raises(AssertionError):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
