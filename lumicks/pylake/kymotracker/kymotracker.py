@@ -56,6 +56,13 @@ def _to_half_kernel_size(width, pixelsize):
     return np.ceil(width / pixelsize).astype(int) // 2
 
 
+def _validate_track_width(track_width, bound, unit):
+    # We lower the minimum bound slightly to ensure that setting it to the minimum bound exactly
+    # becomes a valid value.
+    if track_width < np.nextafter(bound, 0):
+        raise ValueError(f"track_width must at least be 3 pixels ({bound:.3f} [{unit}])")
+
+
 def track_greedy(
     kymograph,
     channel,
@@ -71,9 +78,6 @@ def track_greedy(
 ):
     """Track particles on an image using a greedy algorithm.
 
-    Note: This is ALPHA functionality. It has not been tested in a sufficient number of cases yet,
-    and the API is still subject to change without a prior deprecation notice.
-
     A method based on connecting feature points. Detection of the feature points is done analogously
     to [1]_, using a greyscale dilation approach to detect peaks, followed by a local centroid
     computation to achieve subpixel accuracy. After peak detection the feature points are linked
@@ -87,9 +91,11 @@ def track_greedy(
     sigma and diffusion constant. The candidate point closest to the prediction is chosen and
     connected to the track. When no more candidates are available the track is terminated.
 
-    *Note: the `track_width` parameter is given in physical units, but the algorithm works with discrete
-    pixels. In order to avoid bias in the result, the number of pixels to use is rounded up to the
-    nearest odd value.*
+    .. note::
+
+        The `track_width` parameter is given in physical units, but the algorithm works with
+        discrete pixels. In order to avoid bias in the result, the number of pixels to use is
+        rounded up to the nearest odd value.
 
     Parameters
     ----------
@@ -103,8 +109,8 @@ def track_greedy(
         for kymographs calibrated in microns. For kymographs calibrated in kilobase pairs the
         corresponding value is calculated using 0.34 nm/bp (from duplex DNA).
 
-        Note: For tracking purposes, the track width will be rounded up to the nearest odd number
-        of pixels. Note that it has to be at least 3 pixels.
+        Note: For tracking purposes, the track width is rounded up to the nearest odd number of
+        pixels; the resulting value must be at least 3 pixels.
     pixel_threshold : float or None
         Intensity threshold for the pixels. Local maxima above this intensity level will be
         designated as a track origin. Must be larger than zero. If `None`, the default is set to the
@@ -167,13 +173,7 @@ def track_greedy(
     if pixel_threshold is None:
         pixel_threshold = np.percentile(kymograph.get_image(channel), 98)
 
-    # We lower the minimum bound slightly to ensure that setting it to the minimum bound exactly
-    # becomes a valid value.
-    if track_width < np.nextafter(3 * kymograph.pixelsize[0], 0):
-        raise ValueError(
-            f"track_width should at least be 3 pixels ({3 * kymograph.pixelsize[0]:.3f} "
-            f"[{kymograph._calibration.unit}])"
-        )
+    _validate_track_width(track_width, 3 * kymograph.pixelsize[0], kymograph._calibration.unit)
 
     if pixel_threshold <= 0:
         raise ValueError("pixel_threshold should be larger than zero")
@@ -368,13 +368,15 @@ def refine_lines_centroid(lines, line_width):
 def refine_tracks_centroid(tracks, track_width=None):
     """Refine the tracks based on the brightness-weighted centroid.
 
-    This function interpolates the determined tracks (in time) and then uses the pixels in the vicinity of the
-    tracks to make small adjustments to the estimated location. The refinement correction is
-    computed by considering the brightness weighted centroid.
+    This function interpolates the determined tracks (in time) and then uses the pixels in the
+    vicinity of the tracks to make small adjustments to the estimated location. The refinement
+    correction is computed by considering the brightness weighted centroid.
 
-    *Note: the `track_width` parameter is given in physical units, but the algorithm works with discrete
-    pixels. In order to avoid bias in the result, the number of pixels to use is rounded up to the
-    nearest odd value.*
+    .. note::
+
+        The `track_width` parameter is given in physical units, but the algorithm works with
+        discrete pixels. In order to avoid bias in the result, the number of pixels to use is
+        rounded up to the nearest odd value.
 
     Parameters
     ----------
@@ -391,12 +393,11 @@ def refine_tracks_centroid(tracks, track_width=None):
     if not tracks:
         return KymoTrackGroup([])
 
+    minimum_width = 3 * tracks._kymo.pixelsize[0]
     if track_width is None:
-        track_width = _default_track_widths[tracks._kymo._calibration.unit]
+        track_width = max(_default_track_widths[tracks._kymo._calibration.unit], minimum_width)
 
-    if track_width <= 0:
-        # Must be positive otherwise refinement fails
-        raise ValueError("track_width should be larger than zero")
+    _validate_track_width(track_width, minimum_width, tracks._kymo._calibration.unit)
 
     half_width_pixels = _to_half_kernel_size(track_width, tracks._kymo.pixelsize[0])
 

@@ -1,4 +1,5 @@
 import pytest
+import re
 import numpy as np
 from lumicks.pylake.kymotracker.kymotracker import *
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
@@ -82,8 +83,13 @@ def test_refinement_track(loc, inv_sigma=0.3):
 
 
 def test_refinement_error(kymo_integration_test_data):
-    with pytest.raises(ValueError, match="track_width should be larger than zero"):
-        refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0)[0]
+    with pytest.raises(
+        ValueError, match=re.escape("track_width must at least be 3 pixels (0.150 [um])")
+    ):
+        refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0.149)[0]
+
+    # This should be fine though
+    refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0.15)[0]
 
     with pytest.warns(DeprecationWarning):
         with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
