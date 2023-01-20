@@ -26,7 +26,9 @@ Kymotracker
 
 The line algorithm was based on sections 1, 2 and 3 from :cite:`steger1998unbiased` to find line centers based on local
 geometric considerations. The greedy algorithm was based on two papers. It initially detects feature points based on
-:cite:`sbalzarini2005feature`, followed by line tracing inspired by :cite:`mangeol2016kymographclear`.
+:cite:`sbalzarini2005feature`, followed by line tracing inspired by :cite:`mangeol2016kymographclear`. Instead of
+subtracting the background and thresholding the values below zero to zero, we perform a bias correction for background
+by symmetrizing the used window (:cite:`berglund2008fast`).
 
 Diffusion constant estimation
 -----------------------------
