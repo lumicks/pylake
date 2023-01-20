@@ -8,6 +8,7 @@ from lumicks.pylake.kymotracker.detail.peakfinding import (
     merge_close_peaks,
     bounds_to_centroid_data,
     unbiased_centroid,
+    _clip_kernel_to_edge,
 )
 
 
@@ -134,3 +135,17 @@ def test_bounds_to_centroid_data(bounds, selection_ref, center_ref, weights_ref)
 )
 def test_unbiased_centroid_estimator(data, ref_estimate):
     np.testing.assert_allclose(unbiased_centroid(data), ref_estimate)
+
+
+@pytest.mark.parametrize(
+    "coords, data_shape, half_width, ref",
+    [
+        (np.arange(0, 11), 11, 3, np.array([0, 1, 2, 3, 3, 3, 3, 3, 2, 1, 0])),
+        (np.arange(0, 11), 11, 4, np.array([0, 1, 2, 3, 4, 4, 4, 3, 2, 1, 0])),
+        (np.arange(1, 12), 12, 3, np.array([1, 2, 3, 3, 3, 3, 3, 3, 2, 1, 0])),
+        (np.arange(1, 12), 12, 4, np.array([1, 2, 3, 4, 4, 4, 4, 3, 2, 1, 0])),
+        (np.array([3, 4, 8, 9, 28, 29]), 30, 4, np.array([3, 4, 4, 4, 1, 0])),
+    ],
+)
+def test_clip_halfwidth(coords, data_shape, half_width, ref):
+    np.testing.assert_allclose(_clip_kernel_to_edge(half_width, coords, data_shape), ref)

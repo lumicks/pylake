@@ -204,6 +204,28 @@ def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
     return est_position - 0.5
 
 
+def _clip_kernel_to_edge(max_half_width, coordinates, dataset_width):
+    """Find the number of pixels between the coordinates and the image edge.
+
+    The kernel half width is defined as [center - hw : center + hw + 1].
+
+    Parameters
+    ----------
+    max_half_width : int
+        Desired kernel size. If the kernel completely fits, then this is the returned value.
+    coordinates : np.ndarray
+        1D array of coordinates
+    dataset_width : int
+        Shape of the data matrix to clip against (basically the maximum value for the coordinate)
+
+    Returns
+    -------
+    maximum_half_width : np.ndarray
+        Array containing number of pixels between given coordinates and the window edge.
+    """
+    return np.minimum(max_half_width, np.minimum(coordinates, dataset_width - coordinates - 1))
+
+
 def refine_peak_based_on_moment(
     data, coordinates, time_points, half_kernel_size, max_iter=100, eps=1e-7, bias_correction=True
 ):
@@ -274,12 +296,14 @@ def refine_peak_based_on_moment(
     # We found the rough location, time to refine and debias
     if bias_correction:
         data = np.copy(data)  # Our slicing operation is not allowed on a memoryview
-        output_coords = np.zeros(output_coords.size)
-        for idx, (coordinate, time_point) in enumerate(zip(coordinates, time_points)):
-            centroid_estimate = unbiased_centroid(
-                data[coordinate - half_kernel_size : coordinate + half_kernel_size + 1, time_point]
-            )
-            output_coords[idx] = coordinate + centroid_estimate - half_kernel_size
+
+        # We have to ensure that the full window fits, otherwise we get a big bias with this method
+        half_widths = _clip_kernel_to_edge(half_kernel_size, coordinates, data.shape[0])
+
+        for idx, (coord, time_point, hw) in enumerate(zip(coordinates, time_points, half_widths)):
+            if hw >= 1:  # We need a wide enough window to apply this method
+                centroid_estimate = unbiased_centroid(data[coord - hw : coord + hw + 1, time_point])
+                output_coords[idx] = coord + centroid_estimate - hw
 
     return (
         output_coords,
