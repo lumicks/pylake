@@ -168,6 +168,11 @@ don't have an explicit point on the track associated with them. Using :func:`~lu
 can refine the tracks found by the algorithm. This function interpolates the tracks such that each time point gets its
 own point on the track. Subsequently, these points are then refined using a brightness weighted centroid.
 
+Brightness weighted centroid refinement can suffer from a bias when there is background signal. This bias artificially
+pulls the localization towards the center of the pixel. By default, Pylake corrects for this by including a
+step that shrinks the window such that the spot always lands exactly in the middle of the window. For more information
+on this, please refer to :cite:`berglund2008fast`.
+
 Let's perform track refinement with two different values for `track_width` and plot the longest track::
 
     # re-track our kymo
