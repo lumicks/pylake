@@ -103,19 +103,25 @@ def test_peak_proximity_removal():
 @pytest.mark.parametrize(
     "bounds, selection_ref, center_ref, weights_ref",
     [
-        [(0, 4), [0, 1, 2, 3], [0.5, 1.5, 2.5, 3.5], [1, 1, 1, 1]],
-        [(0.5, 4), [0, 1, 2, 3], [0.75, 1.5, 2.5, 3.5], [0.5, 1, 1, 1]],
-        [(0.25, 4), [0, 1, 2, 3], [0.625, 1.5, 2.5, 3.5], [0.75, 1, 1, 1]],
-        [(1, 4), [1, 2, 3], [1.5, 2.5, 3.5], [1, 1, 1]],
-        [(1.25, 4), [1, 2, 3], [1.625, 2.5, 3.5], [0.75, 1, 1]],
-        [(0, 3), [0, 1, 2], [0.5, 1.5, 2.5], [1, 1, 1]],
-        [(0, 2.5), [0, 1, 2], [0.5, 1.5, 2.25], [1, 1, 0.5]],
-        [(0, 2.25), [0, 1, 2], [0.5, 1.5, 2.125], [1, 1, 0.25]],
-        [(1.25, 3.75), [1, 2, 3], [1.625, 2.5, 3.375], [0.75, 1, 0.75]],
+        # fmt:off
+        (
+            ((0, 0.5, 0.25, 1), (4, 4, 4, 4)),  # left bounds, right bounds
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [0, 1, 1, 1]]),  # selection mask
+            np.array([[0.5, 1.5, 2.5, 3.5], [0.75, 1.5, 2.5, 3.5], [0.625, 1.5, 2.5, 3.5], [0, 1.5, 2.5, 3.5]]),  # centers
+            np.array([[1, 1, 1, 1], [0.5, 1, 1, 1], [0.75, 1, 1, 1], [0, 1, 1, 1]]),  # weights
+        ),
+        (
+            ((1.25, 0, 0, 0, 1.25), (4, 3, 2.5, 2.25, 3.75)),  # left bounds, right bounds
+            np.array([[0, 1, 1, 1], [1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0], [0, 1, 1, 1]]),  # selection mask
+            np.array([[0, 1.625, 2.5, 3.5], [0.5, 1.5, 2.5, 0], [0.5, 1.5, 2.25, 0], [0.5, 1.5, 2.125, 0], [0, 1.625, 2.5, 3.375]]),  # centers
+            np.array([[0, 0.75, 1, 1], [1, 1, 1, 0], [1, 1, 0.5, 0], [1, 1, 0.25, 0], [0, 0.75, 1, 0.75]])  # weights
+        )
+        # fmt:on
     ],
 )
 def test_bounds_to_centroid_data(bounds, selection_ref, center_ref, weights_ref):
-    result = bounds_to_centroid_data(*bounds)
+    index_array = np.tile(np.arange(4), (len(bounds[0]), 1))
+    result = bounds_to_centroid_data(index_array, *bounds)
     np.testing.assert_equal(result[0], selection_ref)
     np.testing.assert_equal(result[1], center_ref)
     np.testing.assert_equal(result[2], weights_ref)
@@ -123,18 +129,19 @@ def test_bounds_to_centroid_data(bounds, selection_ref, center_ref, weights_ref)
 
 @pytest.mark.parametrize(
     "data, ref_estimate",
+    # fmt:off
     [
-        (np.array([0, 0, 3, 3, 3, 0, 0]), 3),  # No baseline (regular centroid would do fine)
-        (np.array([0, 0, 3, 3, 3, 3, 0]), 3.5),  # No baseline (regular centroid would do fine)
-        (np.array([2, 2, 2, 2, 2, 2, 2]), 3),
-        (np.array([2, 2, 3, 3, 3, 2, 2]), 3),
-        (np.array([2, 2, 3, 3, 3, 3, 2]), 3.497509),  # Should be 3.5
-        (np.array([2, 2, 2, 2, 2, 2, 2]), 3),  # Should be 3
-        (np.array([0, 0, 0, 0, 0, 0, 0]), 3),  # Tests prevention of div by zero
+        (np.array([[0, 0, 3, 3, 3, 0, 0], [0, 0, 3, 3, 3, 3, 0]], dtype=float), [3, 3.5]),  # No baseline (regular centroid would do fine)
+        (np.array([[2, 2, 2, 2, 2, 2, 2], [2, 2, 3, 3, 3, 2, 2]], dtype=float), [3, 3]),
+        (np.array([[2, 2, 3, 3, 3, 3, 2], [2, 2, 2, 2, 2, 2, 2]], dtype=float), [3.497509, 3]),  # Should be 3.5, 3
+        (np.array([[2, 2, 3, 3, 3, 3, 2], [0, 0, 0, 0, 0, 0, 0]], dtype=float), [3.497509, 3]),  # Should be 3.5, 3
     ],
+    # fmt:on
 )
 def test_unbiased_centroid_estimator(data, ref_estimate):
-    np.testing.assert_allclose(unbiased_centroid(data), ref_estimate)
+    np.testing.assert_allclose(
+        unbiased_centroid(np.array((3.5, 3.5)), data), ref_estimate
+    )
 
 
 @pytest.mark.parametrize(

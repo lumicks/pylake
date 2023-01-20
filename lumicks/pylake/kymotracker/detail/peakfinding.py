@@ -97,40 +97,62 @@ class KymoPeaks:
         return coordinates, time_points, peak_amplitudes
 
 
-def bounds_to_centroid_data(left_edge, right_edge):
+def bounds_to_centroid_data(index_array, left_edges, right_edges):
     """Helper function to return selection indices, pixel centers and weights.
 
-    This function generates indices for sampling based on the left-most and right-most
-    bound. It also generates appropriate pixel centers and weights that account for
-    the fact that they are only partial pixels.
+    This function generates indices for sampling based on the left-most and right-most bound. It
+    also generates appropriate pixel centers and weights that account for the fact that they are
+    only partial pixels.
 
     Parameters
     ----------
-    left_edge, right_edge : float
-        Lower and upper pixel edge
+    index_array: np.ndarray
+        2D pixel indices with shape `(N, M)` where `N` is the number of pixels being refined and
+        `M` is the window size used for refinement.
+    left_edges, right_edges : np.ndarray
+        Lower and upper pixel edges
 
     Returns
     -------
     selection : np.ndarray
-        Indices which select which points to use.
+        Boolean mask with shape `(N, M)` which select which points from the window to use.
+        `N` is the number of pixels being refined, while `M` is the window size used for refinement.
     centers : np.ndarray
-        Pixel centers, where the edge pixels are corrected for being partial.
+        Pixel center positions with shape `(N, M)` with edge pixel positions accounting for being
+        partial pixels. `N` is the number of pixels being refined, while `M` is the window size
+        used for refinement.
     weights : np.ndarray
-        Weights that account for down-weighting the edges.
+        Weights with shape `(N, M)` that account for down-weighting the edges.
+        `N` is the number of pixels being refined, while `M` is the window size used for refinement.
     """
-    selection = np.arange(left_edge, np.ceil(right_edge), dtype=int)
-    centers = selection + 0.5
-    weights = np.ones(selection.size)
-    centers[0] = (left_edge + np.floor(left_edge) + 1) / 2
-    centers[-1] = (right_edge + np.ceil(right_edge) - 1) / 2
-    weights[0] = 1.0 - (left_edge - np.floor(left_edge))
-    weights[-1] = 1.0 - (np.ceil(right_edge) - right_edge)
+    left_floor = np.floor(left_edges).astype(int)
+    right_ceil = np.ceil(right_edges).astype(int)
 
-    return selection, centers, weights
+    # Upper bound needs to be rounded inwards
+    right_floor = np.floor(np.nextafter(right_edges, 0)).astype(int)
+
+    # Find which pixels we are still using
+    active = np.logical_and(
+        index_array >= left_floor[:, np.newaxis], index_array < right_ceil[:, np.newaxis]
+    )
+
+    num_points = left_floor.size
+    centers = active * (index_array + 0.5)
+
+    centers[np.arange(num_points), left_floor] = (left_edges + left_floor + 1) / 2
+    centers[np.arange(num_points), right_floor] = (right_edges + right_ceil - 1) / 2
+
+    # Pixels outside the bounds are not used
+    weights = active.astype(float)
+
+    # Fractional pixels are down-weighted.
+    weights[np.arange(num_points), left_floor] = 1.0 - (left_edges - np.floor(left_edges))
+    weights[np.arange(num_points), right_floor] = 1.0 - (np.ceil(right_edges) - right_edges)
+    return active, centers, weights
 
 
-def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
-    """Perform an unbiased centroid estimation
+def unbiased_centroid(position, data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
+    """Perform an unbiased centroid estimation in a vectorized manner
 
     The bias in centroid refinement is proportional to the asymmetry around the spot. To remove this
     bias, we define a virtual window that's symmetric around the spot position. In practice, this
@@ -144,8 +166,12 @@ def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
 
     Parameters
     ----------
+    position : np.ndarray
+        Subpixel coordinates obtained with regular centroid method.
     data : np.ndarray
-        1D array
+        2D image array with data used for refinement. It contains a small region around each spot.
+        It has shape `(N, M)`, with `N` the number of pixels being refined, while `M` is the
+        window size used for refinement.
     tolerance : float
         Convergence tolerance
     max_iterations : int
@@ -155,8 +181,8 @@ def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
 
     Returns
     -------
-    estimated_position : float
-        Estimated subpixel position of the spot after bias correction. The origin (position 0) of
+    estimated_positions : np.ndarray
+        Estimated subpixel positions of the spot after bias correction. The origin (position 0) of
         the position is defined at the window origin.
 
     References
@@ -165,43 +191,43 @@ def unbiased_centroid(data, tolerance=1e-3, max_iterations=50, epsilon=1e-8):
            Fast, bias-free algorithm for tracking single particles with variable size and
            shape. Optics express, 16(18), 14064-14075.
     """
-    lb = 0
-    ub = data.size
+    lb = np.tile(0.0, data.shape[0])
+    ub = np.tile(float(data.shape[1]), data.shape[0])
+    index_array = np.tile(np.arange(data.shape[1]), (data.shape[0], 1))
 
-    last_position = None
+    # In this function we define the internal coordinate system with the origin at the pixel edge
+    last_position = position + 0.5
     for _ in range(max_iterations):
-        # Too few pixels left to work with. Just return the last best guess or if none exists, the
-        # average.
-        if ub - lb < 2:
-            return last_position if last_position is not None else (lb + ub) / 2
+        selection, centers, weights = bounds_to_centroid_data(index_array, lb, ub)
 
-        selection, centers, weights = bounds_to_centroid_data(lb, ub)
-
-        range_center = (lb + ub) / 2
-        chunk = data[selection]
-        weighted_coord = np.sum(weights * centers * chunk)
-        weighted_sum = np.sum(weights * chunk)
-
-        if weighted_sum < epsilon:
-            # No photons here! Best guess is center of the range.
-            return range_center - 0.5
+        range_center = (lb + ub) / 2.0
+        weights *= data
+        weighted_coord = np.sum(weights * centers, axis=1)
+        weighted_sum = np.sum(weights, axis=1)
+        empty_pixels = weighted_sum < epsilon
+        weighted_sum[empty_pixels] = 1.0  # We are not using these anyway
 
         est_position = weighted_coord / weighted_sum
 
-        if est_position > range_center:
-            lb += 2 * (est_position - range_center)
-        else:
-            ub += 2 * (est_position - range_center)
+        # Only consider those pixels where we had sufficient data
+        sufficient_data = np.logical_and(ub - lb > 2, np.logical_not(empty_pixels))
+        position[sufficient_data] = est_position[sufficient_data]
 
-        if last_position and np.abs(est_position - last_position) < tolerance:
+        move_lb = position > range_center
+        lb[move_lb] = lb[move_lb] + 2.0 * (position[move_lb] - range_center[move_lb])
+        move_ub = np.logical_not(move_lb)
+        ub[move_ub] = ub[move_ub] + 2.0 * (position[move_ub] - range_center[move_ub])
+
+        if np.max(np.abs(position - last_position)) < tolerance:
             break
 
-        last_position = est_position
+        # We change position in place each iteration, so we need to be explicit about the copy
+        last_position = position.copy()
 
     # Internally, we used a coordinate system that has pixel centers at 0.5, 1.5 etc. This is
     # practical because it simplifies the code. Externally, we define pixel centers at 0, 1, 2 etc,
     # so we subtract a half here.
-    return est_position - 0.5
+    return position - 0.5
 
 
 def _clip_kernel_to_edge(max_half_width, coordinates, dataset_width):
@@ -295,15 +321,27 @@ def refine_peak_based_on_moment(
 
     # We found the rough location, time to refine and debias
     if bias_correction:
-        data = np.copy(data)  # Our slicing operation is not allowed on a memoryview
+        data = np.copy(data)  # Our slicing operation is not allowed on a memory-view
 
         # We have to ensure that the full window fits, otherwise we get a big bias with this method
         half_widths = _clip_kernel_to_edge(half_kernel_size, coordinates, data.shape[0])
 
-        for idx, (coord, time_point, hw) in enumerate(zip(coordinates, time_points, half_widths)):
-            if hw >= 1:  # We need a wide enough window to apply this method
-                centroid_estimate = unbiased_centroid(data[coord - hw : coord + hw + 1, time_point])
-                output_coords[idx] = coord + centroid_estimate - hw
+        # First do the ones where we actually have a full kernel
+        for hw in range(1, half_kernel_size + 1):
+            to_process = half_widths == hw
+
+            if np.any(to_process):
+                tp, coords = time_points[to_process], coordinates[to_process]
+                init_guess = subpixel_offset[coords, tp]
+
+                # This is kind of like data[coords - hw : coords + hw + 1, :]
+                selection = (
+                    np.tile(np.arange(-hw, hw + 1), (tp.shape[0], 1)) + coords[:, np.newaxis]
+                )
+                selected_data = data[selection, tp[:, np.newaxis]]
+
+                centroid_estimate = unbiased_centroid(init_guess, selected_data)
+                output_coords[to_process] = coords + centroid_estimate - hw
 
     return (
         output_coords,

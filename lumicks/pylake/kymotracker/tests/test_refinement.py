@@ -277,9 +277,9 @@ def test_bias_corrected_refinement_background(kymogroups_2tracks):
 
     assert np.allclose(
         refined[0].position,
-        [3.53198535, 3.56770477, 3.48393027, 3.33972994, 3.48729841],
+        [3.53199999, 3.56773634, 3.48390805, 3.33971131, 3.48724068],
     )
     assert np.allclose(
         refined[1].position,
-        [5.06661771, 4.83971404, 4.9625, 5.088, 5.02488394],
+        [5.06666451, 4.83968723, 4.9625, 5.088, 5.02488394],
     )
