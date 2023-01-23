@@ -113,8 +113,15 @@ class EnsembleMSD:
     def seconds(self):
         return self.lags * self._time_step
 
-    def plot(self):
-        plt.errorbar(self.seconds, self.msd, self.sem)
+    def plot(self, **kwargs):
+        """Plot Ensemble MSDs
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.errorbar`.
+        """
+        plt.errorbar(self.seconds, self.msd, self.sem, **kwargs)
         plt.xlabel("Time [s]")
         plt.ylabel(f"Squared Displacement [{self._unit_label}]")
 
