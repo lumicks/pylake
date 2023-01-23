@@ -45,7 +45,7 @@ def test_refinement_2d():
     )
 
     track = KymoTrack(time_idx[::2], coordinate_idx[::2], kymo, "red")
-    refined_track = refine_tracks_centroid([track], 5)[0]
+    refined_track = refine_tracks_centroid([track], 5, bias_correction=False)[0]
     np.testing.assert_allclose(refined_track.time_idx, time_idx)
     np.testing.assert_allclose(refined_track.coordinate_idx, coordinate_idx + offset)
 

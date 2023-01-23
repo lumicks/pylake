@@ -135,7 +135,10 @@ def test_default_parameters(kymo_pixel_calibrations):
 
         # To verify this for the width, we have to make sure we go to the next odd window size.
         tracks = track_greedy(
-            kymo, "red", track_width=default_width / kymo.pixelsize[0] + 2, pixel_threshold=None
+            kymo, "red",
+            track_width=default_width / kymo.pixelsize[0] + 2,
+            pixel_threshold=None,
+            bias_correction=False,
         )
         with pytest.raises(AssertionError):
             for ref, track in zip(ref_tracks, tracks):

@@ -4,6 +4,7 @@
 
 #### Breaking changes
 
+* When performing particle tracking on kymographs, bias correction is now enabled by default; without this correction, kymographs with high background signal will suffer from biased localization estimates. To disable bias correction, specify `bias_correction=False` to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).
 * Changed several `asserts` to `Exceptions`.
   * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
   * Attempting to extend `KymoTracks` by `KymoTracks` originating from a different `Kymograph` now results in a `ValueError`.
