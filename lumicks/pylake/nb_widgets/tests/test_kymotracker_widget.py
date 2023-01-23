@@ -265,7 +265,7 @@ def test_refine_track_width_units(kymograph, region_select):
     kymo_widget._refine()
 
     # With this track_width we'll include the two dim pixels in the test data
-    true_coordinate = [12.176471] * 15
+    true_coordinate = [12.299547] * 15
     true_coordinate[2] = 12
     true_coordinate[3] = 12
     np.testing.assert_allclose(kymo_widget.tracks[0].coordinate_idx, true_coordinate)

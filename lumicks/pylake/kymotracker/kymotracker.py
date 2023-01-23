@@ -74,7 +74,7 @@ def track_greedy(
     diffusion=0.0,
     sigma_cutoff=2.0,
     rect=None,
-    bias_correction=False,
+    bias_correction=True,
     line_width=None,
 ):
     """Track particles on an image using a greedy algorithm.
@@ -377,7 +377,7 @@ def refine_lines_centroid(lines, line_width):
     return refine_tracks_centroid(lines, track_width)
 
 
-def refine_tracks_centroid(tracks, track_width=None, bias_correction=False):
+def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
     """Refine the tracks based on the brightness-weighted centroid.
 
     This function interpolates the determined tracks (in time) and then uses the pixels in the
