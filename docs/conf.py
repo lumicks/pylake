@@ -97,7 +97,9 @@ nbexport_pre_code = (
 %matplotlib inline
 """
 )
-nbexport_baseurl = ""
+target_version = os.environ.get("READTHEDOCS_VERSION")
+target_version = target_version if target_version is not None else "stable"
+nbexport_baseurl = f"https://lumicks-pylake.readthedocs.io/en/{target_version}/"
 nbexport_execute = False
 
 # Add any paths that contain templates here, relative to this directory.
