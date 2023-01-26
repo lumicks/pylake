@@ -24,7 +24,7 @@ class PointScan(BaseScan):
         return getattr(self, f"{channel}_photon_count")
 
     @_deprecate_basescan_plot_args
-    def plot(self, channel="rgb", *, axes=None, show_title=True, **kwargs):
+    def plot(self, channel="rgb", *, axes=None, show_title=True, show_axes=True, **kwargs):
         """Plot photon counts for the selected channel(s).
 
         Parameters
@@ -35,6 +35,8 @@ class PointScan(BaseScan):
             If supplied, the axes instance in which to plot.
         show_title : bool, optional
             Controls display of auto-generated plot title
+        show_axes : bool, optional
+            Setting show_axes to False hides the axes.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`
 
@@ -45,6 +47,10 @@ class PointScan(BaseScan):
         """
         channels = ["red", "green", "blue"] if channel == "rgb" else [channel]
         axes = get_axes(axes=axes)
+
+        if show_axes is False:
+            axes.set_axis_off()
+
         for channel in channels:
             count = self._get_plot_data(channel)
             time = (count.timestamps - count.timestamps[0]) * 1e-9

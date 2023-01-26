@@ -423,6 +423,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         axes=None,
         image_handle=None,
         show_title=True,
+        show_axes=True,
         **kwargs,
     ):
         """Plot a scan frame for the requested color channel(s).
@@ -442,6 +443,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             reconstruct them (better for performance).
         show_title : bool, optional
             Controls display of auto-generated plot title
+        show_axes : bool, optional
+            Setting show_axes to False hides the axes.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
             `image_handle` is provided.
@@ -454,6 +457,9 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         if frame < 0:
             raise IndexError("negative indexing is not supported.")
         axes = get_axes(axes=axes, image_handle=image_handle)
+
+        if show_axes is False:
+            axes.set_axis_off()
 
         image = self._get_plot_data(
             channel, adjustment, frame=frame if self.num_frames != 1 else None

@@ -291,6 +291,7 @@ class Kymo(ConfocalImage):
         axes=None,
         image_handle=None,
         show_title=True,
+        show_axes=True,
         **kwargs,
     ):
         """Plot a kymo for the requested color channel(s).
@@ -308,6 +309,8 @@ class Kymo(ConfocalImage):
             reconstruct them (better for performance).
         show_title : bool, optional
             Controls display of auto-generated plot title
+        show_axes : bool, optional
+            Setting show_axes to False hides the axes.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
             `image_handle` is provided.
@@ -318,6 +321,9 @@ class Kymo(ConfocalImage):
             The image handle representing the plotted image.
         """
         axes = get_axes(axes=axes, image_handle=image_handle)
+
+        if show_axes is False:
+            axes.set_axis_off()
 
         image = self._get_plot_data(channel, adjustment)
 

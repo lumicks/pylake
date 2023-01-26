@@ -106,6 +106,7 @@ def _plot_interface_parameters(image=False, stack=False):
         ["general", ("axes", Parameter.KEYWORD_ONLY)],
         ["image", ("image_handle", Parameter.KEYWORD_ONLY)],
         ["general", ("show_title", Parameter.KEYWORD_ONLY)],
+        ["general", ("show_axes", Parameter.KEYWORD_ONLY)],
         ["general", ("kwargs", Parameter.VAR_KEYWORD)],
     ]
 
