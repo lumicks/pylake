@@ -1,44 +1,45 @@
 # Changelog
 
-## v0.13.3 | tbd
+## v0.13.3 | 2023-01-26
 
 #### New features
 
-* Added `KymoTrack.plot()` and `KymoTrackGroup.plot()` methods to conveniently plot the coordinates of tracked lines. See the [kymotracking documentation](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymotracking.html) for more details.
-* Added `KymoTrackGroup.ensemble_diffusion()` for estimating an average diffusion for a collection of tracks.
-* Added the `lk.GaussianMixtureModel.extract_dwell_times()` method to calculate dwell-times for all states from channel data.
-* Added `lk.colormaps` with custom colormaps for plotting single-channel images. Note: this is a `namedtuple` so you can access the attributes using the dot notation (for example `kymo.plot("blue", cmap=lk.colormaps.cyan)`). The available attributes are `red`, `green`, `blue`, `magenta`, `yellow`, `cyan`.
-* Added `localization_variance` to [`DiffusionEstimate`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html). This quantity is useful for determining the diffusive SNR.
-* Added `variance_of_localization_variance` to [`DiffusionEstimate`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html) when calculating an ensemble CVE. This provides an estimate of the variance of the averaged localization uncertainty.
-* Added option to pass a localization variance and its uncertainty to [`KymoTrack.estimate_diffusion()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion).
+* Added [`KymoTrackGroup.ensemble_diffusion()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_diffusion) for estimating an average diffusion constant for a collection of tracks.
+* Added [diffusion theory](https://lumicks-pylake.readthedocs.io/en/v0.13.3/theory/diffusion/diffusion.html) section which details methods used for quantifying diffusive motion. Note that this documentation can be downloaded and run inside a Jupyter notebook.
+* Added [`KymoTrack.plot()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.plot) and [`KymoTrackGroup.plot()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.plot) methods to conveniently plot the coordinates of tracked lines. See the [kymotracking documentation](https://lumicks-pylake.readthedocs.io/en/v0.13.3/tutorial/kymotracking.html) for more details.
+* Added the [`lk.GaussianMixtureModel.extract_dwell_times()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.extract_dwell_times) method to calculate dwell-times for all states from channel data.
+* Added [`lk.colormaps`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.colormaps.html) with custom colormaps for plotting single-channel images. Note: this is a `namedtuple` so you can access the attributes using the dot notation (for example `kymo.plot("blue", cmap=lk.colormaps.cyan)`). The available attributes are `red`, `green`, `blue`, `magenta`, `yellow`, `cyan`.
+* Added `localization_variance` to [`DiffusionEstimate`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html). This quantity is useful for determining the diffusive SNR.
+* Added `variance_of_localization_variance` to [`DiffusionEstimate`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymotracker.detail.msd_estimation.DiffusionEstimate.html) when calculating an ensemble CVE. This provides an estimate of the variance of the averaged localization uncertainty.
+* Added option to pass a localization variance and its uncertainty to [`KymoTrack.estimate_diffusion()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.estimate_diffusion).
 * Added option to calculate a diffusion estimate based on the ensemble MSDs using the Ordinary Least Squares (OLS) method.
-* Added `DwelltimeBootstrap.extend()` to draw additional samples for the distribution.
+* Added [`DwelltimeBootstrap.extend()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.population.dwelltime.DwelltimeBootstrap.html#lumicks.pylake.population.dwelltime.DwelltimeBootstrap.extend) to draw additional samples for the distribution.
 
 #### Bug fixes
 
-* Fixed a bug that resulted in an incorrect round-off of the window size to pixels when kymotracking. This bug resulted in using one more pixel on each side than intended for specific `track_widths`. Track width is selected by rounding to the next odd window size. Prior to this change, the number of points used would increase on even window sizes. As a result, requesting a track width of `2.5` pixels, would result in using a window of size `5`. Currently, requested a track width of `3` pixels results in a window of size 3, while `3.1` rounds up to the next odd window size (`5`). This bug affected the kymo tracking widget (tracking, refinement and photon count sampling during saving), `lk.track_greedy()` and `lk.refine_tracks_centroid()`.
+* Fixed a bug that resulted in an incorrect round-off of the window size to pixels when kymotracking. This bug resulted in using one more pixel on each side than intended for specific `track_widths`. Track width is selected by rounding to the next odd window size. Prior to this change, the number of points used would increase on even window sizes. As a result, requesting a track width of `2.5` pixels, would result in using a window of size `5`. Currently, requested a track width of `3` pixels results in a window of size 3, while `3.1` rounds up to the next odd window size (`5`). This bug affected the kymo tracking widget (tracking, refinement and photon count sampling during saving), [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.refine_tracks_centroid.html).
 * Updated default slider ranges for the Kymotracker widget to reflect minimum track width required for tracking.
 * Fixed issue with model description not being available in Jupyter notebooks for some force-distance models.
 * Show validity criterion for Marko Siggia WLC models in terms of model parameters. Prior to this change the limit was simply denoted as `10 pN` where in reality it depends on the model parameters. The `10 pN` was a reasonable value for most DNA constructs.
 * Fixed bug which occurred when exporting images to TIFF files of a numerical type with insufficient range for the data with the flag `clip=True`. Prior to this change, values exceeding the range of the numerical type were not clearly defined. After this change values below and above the supported range are clipped to the lowest or highest value of the data type respectively.
-* Fixed bug in `DwelltimeBootstrap.hist()` (previously named `DwelltimeBootstrap.plot()`, see below). Previously, only up to two components were plotted; now all components are plotted appropriately.
-* `DwelltimeBootstrap.hist()` now displays the original parameter estimate rather than the mean of the bootstrap distribution; the bootstrap distribution is used solely to calculate the confidence intervals via `DwelltimeBootstrap.get_interval()`.
-* Fixed a bug where `Scan.export_video()` and `CorrelatedStack.export_video()` would show elements from a previous plot.
-* Fixed a bug that caused a misalignment of half a pixel between the kymograph and its position histogram when using `Kymo.plot_with_position_histogram()`.
+* Fixed bug in [`DwelltimeBootstrap.hist()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.population.dwelltime.DwelltimeBootstrap.html#lumicks.pylake.population.dwelltime.DwelltimeBootstrap.hist) (previously named `DwelltimeBootstrap.plot()`, see below). Previously, only up to two components were plotted; now all components are plotted appropriately.
+* [`DwelltimeBootstrap.hist()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.population.dwelltime.DwelltimeBootstrap.html#lumicks.pylake.population.dwelltime.DwelltimeBootstrap.hist) now displays the original parameter estimate rather than the mean of the bootstrap distribution; the bootstrap distribution is used solely to calculate the confidence intervals via `DwelltimeBootstrap.get_interval()`.
+* Fixed a bug where [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video) and [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video) would show elements from a previous plot.
+* Fixed a bug that caused a misalignment of half a pixel between the kymograph and its position histogram when using [`Kymo.plot_with_position_histogram()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_position_histogram).
 
 #### Deprecations
 
-* Renamed `CorrelatedStack` to [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/imagestack.html).
-* Deprecated the `DwelltimeModel.bootstrap` attribute; this attribute will be removed in a future release. Instead, `DwelltimeModel.calculate_bootstrap()` now returns a `DwelltimeBootstrap` instance directly. See the [population dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#confidence-intervals-from-bootstrapping) documentation for more details.
-* Deprecated `DwelltimeBootstrap.plot()` and renamed to `DwelltimeBootstrap.hist()` to more closely match the figure that is generated.
-* Deprecated `DwelltimeBootstrap.calculate_stats()`. This method is replaced with `DwelltimeBootstrap.get_interval()` which returns the `100*(1-alpha)` % confidence interval; unlike `DwelltimeBootstrap.calculate_stats()`, it does not return the mean.
+* Renamed `CorrelatedStack` to [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/tutorial/imagestack.html).
+* Deprecated the `DwelltimeModel.bootstrap` attribute; this attribute will be removed in a future release. Instead, `DwelltimeModel.calculate_bootstrap()` now returns a `DwelltimeBootstrap` instance directly. See the [population dynamics](https://lumicks-pylake.readthedocs.io/en/v0.13.3/tutorial/population_dynamics.html#confidence-intervals-from-bootstrapping) documentation for more details.
+* Deprecated `DwelltimeBootstrap.plot()` and renamed to [`DwelltimeBootstrap.hist()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.population.dwelltime.DwelltimeBootstrap.html#lumicks.pylake.population.dwelltime.DwelltimeBootstrap.hist) to more closely match the figure that is generated.
+* Deprecated `DwelltimeBootstrap.calculate_stats()`. This method is replaced with [`DwelltimeBootstrap.get_interval()`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.population.dwelltime.DwelltimeBootstrap.html#lumicks.pylake.population.dwelltime.DwelltimeBootstrap.get_interval) which returns the `100*(1-alpha)` % confidence interval; unlike `DwelltimeBootstrap.calculate_stats()`, it does not return the mean.
 
 #### Other changes
 
-* `DwelltimeBootstrap` is now a frozen dataclass.
-* Attempting to access `DwelltimeModel.bootstrap` before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
+* [`DwelltimeBootstrap`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.population.dwelltime.DwelltimeBootstrap.html) is now a frozen dataclass.
+* Attempting to access [`DwelltimeModel.bootstrap`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.bootstrap) before sampling now raises a `RuntimeError`; however, see the deprecation note above for proper API to access bootstrapping distributions.
 * Suppress legend entry for outline when invoking `KymoTrack.plot()`.
-* Allow pickling force calibration results (`CalibrationResults`). Prior to this change two functions involved in calculating upper parameter bounds prevented this class from being pickled.
+* Allow pickling force calibration results ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/v0.13.3/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)). Prior to this change two functions involved in calculating upper parameter bounds prevented this class from being pickled.
 
 ## v0.13.2 | 2022-11-15
 
