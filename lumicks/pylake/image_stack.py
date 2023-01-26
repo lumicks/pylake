@@ -302,6 +302,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         axes=None,
         image_handle=None,
         show_title=True,
+        show_axes=True,
         **kwargs,
     ):
         """Plot a frame from the image stack for the requested color channel(s)
@@ -321,6 +322,8 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             reconstruct them (better for performance).
         show_title : bool, optional
             Controls display of auto-generated plot title
+        show_axes : bool, optional
+            Setting show_axes to False hides the axes.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
             `image_handle` is provided.
@@ -331,6 +334,10 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             The image handle representing the plotted image.
         """
         axes = get_axes(axes=axes, image_handle=image_handle)
+
+        if show_axes is False:
+            axes.set_axis_off()
+
         image = self._get_frame(frame)._get_plot_data(channel, adjustment=adjustment)
 
         default_kwargs = dict(cmap="gray")
