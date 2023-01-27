@@ -111,6 +111,7 @@ class VideoExport:
         stop_frame=None,
         fps=15,
         adjustment=no_adjustment,
+        scale_bar=None,
         **kwargs,
     ):
         """Export a video
@@ -129,6 +130,8 @@ class VideoExport:
             Frame rate.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
+        scale_bar : lk.ScaleBar
+            Scale bar to add to the figure.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`."""
         from matplotlib import animation
@@ -155,6 +158,7 @@ class VideoExport:
                 frame=frame,
                 image_handle=image_handle,
                 adjustment=adjustment,
+                scale_bar=scale_bar,
                 **kwargs,
             )
 

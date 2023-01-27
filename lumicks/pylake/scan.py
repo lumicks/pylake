@@ -424,6 +424,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         image_handle=None,
         show_title=True,
         show_axes=True,
+        scale_bar=None,
         **kwargs,
     ):
         """Plot a scan frame for the requested color channel(s).
@@ -445,6 +446,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             Controls display of auto-generated plot title
         show_axes : bool, optional
             Setting show_axes to False hides the axes.
+        scale_bar : lk.ScaleBar, optional
+            Scale bar to add to the figure.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`. These arguments are ignored if
             `image_handle` is provided.
@@ -460,6 +463,10 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
         if show_axes is False:
             axes.set_axis_off()
+
+        positional_unit = r"$\mu$m"
+        if scale_bar and not image_handle:
+            scale_bar._attach_scale_bar(axes, 1.0, 1.0, positional_unit, positional_unit)
 
         image = self._get_plot_data(
             channel, adjustment, frame=frame if self.num_frames != 1 else None
@@ -482,8 +489,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             **{**default_kwargs, **kwargs},
         )
         scan_axes = self._metadata.ordered_axes
-        axes.set_xlabel(rf"{scan_axes[0].axis_label.lower()} ($\mu$m)")
-        axes.set_ylabel(rf"{scan_axes[1].axis_label.lower()} ($\mu$m)")
+        axes.set_xlabel(rf"{scan_axes[0].axis_label.lower()} ({positional_unit})")
+        axes.set_ylabel(rf"{scan_axes[1].axis_label.lower()} ({positional_unit})")
         if show_title:
             axes.set_title(make_image_title(self, frame))
 
