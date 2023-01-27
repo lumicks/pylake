@@ -1,6 +1,11 @@
 import pytest
 import matplotlib.pyplot as plt
-from lumicks.pylake.scalebar import _create_scale_legend
+import numpy as np
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.image_stack import ImageStack, TiffStack
+from .data.mock_confocal import generate_scan
+from .data.mock_widefield import MockTiffFile, make_frame_times
+from lumicks.pylake.scalebar import _create_scale_legend, ScaleBar
 
 
 def _validate_elements(ref_elements, item):
@@ -69,3 +74,66 @@ def test_scalebar(
     _validate_elements(reference, box)
     if reference:
         raise AssertionError(f"Not all elements were accounted for: {reference}")
+
+
+def validate_args(refs):
+    def evaluate_args(*args):
+        for val, ref in zip(args[1:], refs):
+            assert val == ref
+
+        return _create_scale_legend(*args)
+
+    return evaluate_args
+
+
+@pytest.mark.parametrize(
+    "scale_args, refs, calibrate",
+    [
+        # fmt:off
+        ({}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None], False),
+        ({"label_x": "hi"}, [60.0, 1.0, "hi", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None], False),
+        ({"label_y": "hi"}, [60.0, 1.0, "60.0 s", "hi", "upper right", "white", 2.0, None, None], False),
+        ({"size_x": 10}, [10.0, 1.0, "10 s", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None], False),
+        ({"size_y": 10}, [60.0, 10.0, "60.0 s", "10 $\\mu$m", "upper right", "white", 2.0, None, None], False),
+        ({"loc": "lower right"}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "lower right", "white", 2.0, None, None], False),
+        ({"color": "blue"}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "blue", 2.0, None, None], False),
+        ({"separation": 5}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 5.0, None, None], False),
+        ({"barwidth": 12}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 2.0, 12, None], False),
+        ({"fontsize": 16}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 2.0, None, 16], False),
+        ({}, [60.0, 1.0, "60.0 s", "1.0 kbp", "upper right", "white", 2.0, None, None], True),
+        ({"size_y": 2}, [60.0, 2.0, "60.0 s", "2 kbp", "upper right", "white", 2.0, None, None], True),
+        # fmt:on
+    ],
+)
+def test_scalebar_kymo(monkeypatch, scale_args, refs, calibrate):
+    """Tests integration with Kymo and whether arguments are appropriately weighted (user arguments
+    have higher precedence than defaults from the Kymo"""
+
+    with monkeypatch.context() as m:
+        kymo = _kymo_from_array(np.ones((2, 2)), "r", line_time_seconds=5, pixel_size_um=2)
+
+        if calibrate:
+            kymo = kymo.calibrate_to_kbp(25)
+
+        m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
+        kymo.plot(channel="red", scale_bar=ScaleBar(**scale_args))
+
+
+def test_scalebar_integration(monkeypatch):
+    """ "For Scan and ImageStack we only test the defaults since we extensively tested Kymo"""
+    with monkeypatch.context() as m:
+        scan = generate_scan("test", np.random.randint(0, 10, size=(1, 2, 2)), [3, 2])
+        refs = [1.0, 1.0, "1.0 $\\mu$m", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None]
+        m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
+        scan.plot("red", scale_bar=ScaleBar())
+
+    with monkeypatch.context() as m:
+        stack = ImageStack.from_dataset(
+            TiffStack(
+                [MockTiffFile(data=[np.ones((1, 1))] * 2, times=make_frame_times(2))],
+                align_requested=False,
+            )
+        )
+        refs = [100, 100, "100 px", "100 px", "upper right", "white", 2.0, None, None]
+        m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
+        stack.plot("red", scale_bar=ScaleBar())
