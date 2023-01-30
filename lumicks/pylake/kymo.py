@@ -688,7 +688,7 @@ class Kymo(ConfocalImage):
             from lumicks import pylake
             import matplotlib.pyplot as plt
 
-            # Loading a stack.
+            # Loading a kymograph.
             h5_file = pylake.File("example.h5")
             _, kymo = h5_file.kymos.popitem()
             widget = kymo.crop_and_calibrate("green", 48.502)

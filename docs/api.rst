@@ -18,6 +18,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     point_scan.PointScan
     ImageStack
     ColorAdjustment
+    ScaleBar
 
     :template: instance.rst
 

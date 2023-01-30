@@ -94,6 +94,24 @@ class ScaleBar:
         Font size to use for the labels.
     **kwargs
         additional arguments passed to :class:`matplotlib.offsetbox.AnchoredOffsetBox`.
+
+    Examples
+    --------
+    ::
+
+        import lumicks.pylake as lk
+
+        # Loading a kymograph.
+        h5_file = pylake.File("example.h5")
+        _, kymo = h5_file.kymos.popitem()
+
+        # Show default scale bar
+        kymo.plot("green", scale_bar=lk.ScaleBar())
+        plt.show()
+
+        # Show scale bar with a scale of 10 seconds on the x axis
+        kymo.plot("green", scale_bar=lk.ScaleBar(size_x=10))
+        plt.show()
     """
 
     size_x: Optional[float] = None

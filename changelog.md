@@ -1,10 +1,11 @@
 # Changelog
 
-## v1.0.0 | In development
+## v1.0.0 | t.b.d.
 
 #### New features
 
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.
+* Added option to add a scale bar to by providing a [`lk.ScaleBar()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ScaleBar.html) to plotting or export functions.
 
 ## v0.13.3 | 2023-01-26
 
