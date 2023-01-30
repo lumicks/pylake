@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.0 | In development
+
+#### New features
+
+* Added API for notes, i.e. `file.notes` returns a dictionary of notes.
+
 ## v0.13.3 | 2023-01-26
 
 #### New features

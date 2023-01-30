@@ -107,3 +107,14 @@ def test_kymos(h5_file):
             kymo.get_image("red"),
             np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]),
         )
+
+
+def test_notes(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        name = "test_note"
+        note = f.notes[name]
+        assert note.name == name
+        assert note.text == "Note content"
+        assert note.start == 100
+        assert note.stop == 100
