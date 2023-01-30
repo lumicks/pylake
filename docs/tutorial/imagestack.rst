@@ -103,6 +103,8 @@ for each of the channels. This can be accomplished by providing a :class:`~lumic
 
 .. image:: figures/imagestack/imagestack_adjust_absolute.png
 
+Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
+
 By default the limits should be provided in absolute values, although percentiles can be used instead for convenience::
 
     plt.figure()

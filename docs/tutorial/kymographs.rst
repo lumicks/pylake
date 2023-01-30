@@ -49,8 +49,9 @@ Note that the axes are labeled with the appropriate time and position units.
 The first argument `channel` accepts the strings "red", "green", "blue", or "rgb". We also see that the color limits can be set easily using
 the :class:`~lumicks.pylake.ColorAdjustment` class. The first two arguments act like the `vmin` and `vmax` arguments used with
 :func:`plt.imshow() <matplotlib.pyplot.imshow()>` if `mode="absolute"`. In the second plot, we use `mode=percentile` to automatically calculate
-the limits at the 0th and 99th percentile of all of the pixel values. In addition, this method also accepts keyword arguments that are passed to
-:func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally.
+the limits at the 0th and 99th percentile of all of the pixel values.
+Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
+In addition, this method also accepts keyword arguments that are passed to :func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally.
 
 There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`;
 the available colormaps are: `.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image

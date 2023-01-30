@@ -56,6 +56,8 @@ This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment`
 
     scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
 
+Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
+
 There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`; the available colormaps are:
 `.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image with the cyan colormap::
 
