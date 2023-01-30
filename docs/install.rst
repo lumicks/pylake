@@ -282,6 +282,28 @@ If you have already activated the correct environment, but you still do not see 
 Frequently asked questions
 --------------------------
 
+**I tried the installation instructions on Windows, but I get a CondaSSLError**
+
+The full error message is::
+
+    Collecting package metadata (current_repodata.json): failed
+
+    CondaSSLError: OpenSSL appears to be unavailable on this machine. OpenSSL is required to
+    download and install packages.
+
+    Exception: HTTPSConnectionPool(host='conda.anaconda.org', port=443): Max retries exceeded with url: /conda-forge/win-64/current_repodata.json (Caused by SSLError("Can't connect to HTTPS URL because the SSL module is not available."))
+    
+This issue has to be solved by conda. Until that happens, a possible solution is to use an older conda version::
+
+    conda create -n pylake conda=4.9
+    
+And then follow the rest of the installation instructions. 
+If you already have an environment named pylake, you can remove this environment, before creating it again with an older conda version. Another option is to create an environment with a different name, eg::
+
+    conda create -n pylake2 conda=4.9
+    conda activate pylake2
+
+
 **I tried the installation instructions, but I cannot import Pylake inside a Jupyter notebook**
 
 If Python claims there is no package with the name `lumicks.pylake` or it fails with a `DLL load failed` error, even after you're followed the above installation instructions, then please check the following:
