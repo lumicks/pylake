@@ -181,6 +181,9 @@ def test_repr_and_str(h5_file):
               - fast Y slow X
               - fast Y slow X multiframe
               - fast Y slow Z multiframe
+            
+            .notes
+              - test_note
 
             .force1x
               .calibration

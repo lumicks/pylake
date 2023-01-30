@@ -14,6 +14,7 @@ from .kymo import Kymo
 from .point_scan import PointScan
 from .scan import Scan
 from .marker import Marker
+from .note import Note
 
 __all__ = ["File"]
 
@@ -61,6 +62,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
                 ("FD Curve", "fdcurves"),
                 ("Kymograph", "kymos"),
                 ("Scan", "scans"),
+                ("Note", "notes"),
             ]
         )
 
@@ -289,6 +291,11 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     def markers(self) -> Dict[str, Marker]:
         """Markers stored in the file"""
         return self._get_object_dictionary("Marker", Marker)
+
+    @property
+    def notes(self) -> Dict[str, Note]:
+        """Notes stored in the file"""
+        return self._get_object_dictionary("Note", Note)
 
     def save_as(self, filename, compression_level=5, omit_data=None):
         """Write a modified h5 file to disk.

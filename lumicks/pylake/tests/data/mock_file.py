@@ -1,6 +1,6 @@
 import numpy as np
 import h5py
-
+import json
 
 # We generate mock data files for different versions of the Bluelake HDF5 file
 # format:
@@ -84,6 +84,19 @@ class MockDataFile_v2(MockDataFile_v1):
             payload_string = f', "payload":{payload}' if payload else ""
             dset = self.file["Marker"].create_dataset(
                 marker_name, data=f'{{"name":"{marker_name}"{payload_string}}}'
+            )
+
+            for i, v in attributes.items():
+                dset.attrs[i] = v
+    
+    def make_note(self, note_name, attributes, note_text):
+        if "Note" not in self.file:
+            self.file.create_group("Note")
+
+        if note_name not in self.file["Note"]:
+            payload = {"name": note_name, "Note text": note_text}
+            dset = self.file["Note"].create_dataset(
+                note_name, data=json.dumps(payload)
             )
 
             for i, v in attributes.items():
