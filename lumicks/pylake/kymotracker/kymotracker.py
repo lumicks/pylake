@@ -242,6 +242,34 @@ def track_greedy(
     return KymoTrackGroup(tracks)
 
 
+def _interp_to_frame(time_idx, coordinate):
+    """Interpolate a set of time and positional coordinates back to integer frames
+
+    Note
+    ----
+    Beyond the line edges, this function keeps the coordinate value constant. The reason why this
+    is preferable over extrapolation is that the line detection phase can detect vertical lines.
+    If such a vertical line occurs, the extrapolated value is typically highly inaccurate.
+
+    Parameters
+    ----------
+    time_idx : array_like
+        Time indices.
+    coordinate : array_like
+        Positional coordinates.
+
+    Returns
+    -------
+    new_time_idx : np.ndarray
+    interpolated_coordinate : np.ndarray
+    """
+    new_time_idx = np.arange(
+        int(np.floor(time_idx[0] + 0.5)),  # consistently rounds halves down
+        int(np.ceil(time_idx[-1] - 0.5)) + 1,  # consistently rounds halves up and adds one
+    )
+    return new_time_idx, np.interp(new_time_idx, time_idx, coordinate)
+
+
 def track_lines(
     kymograph,
     channel,
@@ -320,7 +348,10 @@ def track_lines(
     )
 
     return KymoTrackGroup(
-        [KymoTrack(line.time_idx, line.coordinate_idx, kymograph, channel) for line in lines]
+        [
+            KymoTrack(*_interp_to_frame(line.time_idx, line.coordinate_idx), kymograph, channel)
+            for line in lines
+        ]
     )
 
 

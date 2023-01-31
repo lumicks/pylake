@@ -33,6 +33,10 @@
 * Added option to add a scale bar to by providing a [`lk.ScaleBar()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ScaleBar.html) to plotting or export functions.
 * Implemented bias correction for centroid refinement that shrinks the window to reduce estimation bias. This bias correction can be toggled by passing a `bias_correction` argument to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).
 
+#### Bug fixes
+
+* Fixed incorrect behaviour in `lk.track_lines()` by interpolating back to integer frame times. Prior to this change, `lk.track_lines()` would provide a subpixel accurate position along the time axis of the kymograph as well. However, this position was specified with respect to the coordinate system of the image, rather than actual acquisition times. As such, it would produce incorrect results when performing downstream analysis that rely on the time corresponding to an actual time. Note that `lk.track_greedy()` is not affected. 
+
 ## v0.13.3 | 2023-01-26
 
 #### New features

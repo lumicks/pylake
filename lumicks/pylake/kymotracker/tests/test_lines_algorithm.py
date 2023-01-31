@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from copy import deepcopy
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
-from lumicks.pylake.kymotracker.kymotracker import track_lines
+from lumicks.pylake.kymotracker.kymotracker import track_lines, _interp_to_frame
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from lumicks.pylake.kymotracker.detail.geometry_2d import get_candidate_generator
 
@@ -139,3 +139,28 @@ def test_lines_algorithm_input_validation(kymo_integration_test_data):
     for line_width in (-1, 0):
         with pytest.raises(ValueError, match="should be larger than zero"):
             track_lines(kymo_integration_test_data, "red", line_width=line_width, max_lines=1000)
+
+
+@pytest.mark.parametrize(
+    "time, coord, ref_time, ref_coord",
+    [
+        ([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], [1, 2, 3], [1.0, 2.0, 3.0]),
+        ([1.0, 2.0, 2.48], [1.0, 2.0, 2.98], [1, 2], [1.0, 2.0]),
+        ([1.49, 2.0, 3.0], [1.49, 2.0, 3.0], [1, 2, 3], [1.49, 2.0, 3.0]),
+        ([1.5, 2.0, 3.0], [1.5, 2.0, 3.0], [2, 3], [2.0, 3.0]),
+        # Include both even and odd rounding test cases (top)
+        ([0, 1.6, 2.0, 2.5], [0, 1.6, 2.0, 2.5], [0, 1, 2], [0.0, 1.0, 2.0]),
+        ([0, 1.6, 2.0, 2.501], [0, 1.6, 2.0, 2.501], [0, 1, 2, 3], [0.0, 1.0, 2.0, 2.501]),
+        ([0, 1.6, 3.5], [0, 1.6, 3.5], [0, 1, 2, 3], [0.0, 1.0, 2.0, 3.0]),
+        ([0, 1.6, 3.501], [0, 1.6, 3.501], [0, 1, 2, 3, 4], [0.0, 1.0, 2.0, 3.0, 3.501]),
+        # Include both even and odd rounding test cases (bottom)
+        ([0.49, 2.501], [0.49, 2.501], [0, 1, 2, 3], [0.49, 1.0, 2.0, 2.501]),
+        ([0.5, 2.501], [0.5, 2.501], [1, 2, 3], [1.0, 2.0, 2.501]),
+        ([1.49, 2.501], [1.49, 2.501], [1, 2, 3], [1.49, 2.0, 2.501]),
+        ([1.5, 2.501], [1.5, 2.501], [2, 3], [2.0, 2.501]),
+    ],
+)
+def test_back_interpolation(time, coord, ref_time, ref_coord):
+    interp_time, interp_coord = _interp_to_frame(time, coord)
+    np.testing.assert_equal(interp_time, ref_time)
+    np.testing.assert_allclose(interp_coord, ref_coord)
