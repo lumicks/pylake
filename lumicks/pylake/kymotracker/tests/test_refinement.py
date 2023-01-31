@@ -7,16 +7,16 @@ from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
 def test_kymotrack_interpolation(blank_kymo):
-    time_idx = np.array([1.0, 3.0, 5.0])
+    time_idx = np.array([1, 3, 5])
     coordinate_idx = np.array([1.0, 3.0, 3.0])
     kymotrack = KymoTrack(time_idx, coordinate_idx, blank_kymo, "red")
     interpolated = kymotrack.interpolate()
-    np.testing.assert_allclose(interpolated.time_idx, [1.0, 2.0, 3.0, 4.0, 5.0])
+    np.testing.assert_equal(interpolated.time_idx, [1, 2, 3, 4, 5])
     np.testing.assert_allclose(interpolated.coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0])
 
     # Test whether concatenation still works after interpolation
-    np.testing.assert_allclose(
-        (interpolated + kymotrack).time_idx, [1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 3.0, 5.0]
+    np.testing.assert_equal(
+        (interpolated + kymotrack).time_idx, [1, 2, 3, 4, 5, 1, 3, 5]
     )
     np.testing.assert_allclose(
         (interpolated + kymotrack).coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0, 1.0, 3.0, 3.0]
