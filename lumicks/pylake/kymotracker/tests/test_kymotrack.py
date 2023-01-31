@@ -985,3 +985,8 @@ def test_invalid_ensemble_diffusion(blank_kymo):
 )
 def test_half_kernel(window, pixelsize, result):
     assert _to_half_kernel_size(window, pixelsize) == result
+
+
+def test_integral_times_kymotrack(blank_kymo):
+    with pytest.raises(TypeError, match="Time indices should be of integer type, got float64"):
+        KymoTrack([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], blank_kymo, "red")

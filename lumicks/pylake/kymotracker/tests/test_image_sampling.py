@@ -34,12 +34,12 @@ def test_sampling():
         KymoTrack([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red").sample_from_image(0), [0, 0, 1, 1, 0]
     )
 
-    kymotrack = KymoTrack([0.1, 1.1, 2.1, 3.1, 4.1], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red")
+    kymotrack = KymoTrack([0, 1, 2, 3, 4], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red")
     np.testing.assert_allclose(kymotrack.sample_from_image(50), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(2), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(1), [0, 2, 2, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 1, 1, 1, 0])
-    kymotrack = KymoTrack([0.1, 1.1, 2.1, 3.1, 4.1], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red")
+    kymotrack = KymoTrack([0, 1, 2, 3, 4], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red")
     np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 0, 1, 1, 0])
 
 

@@ -100,10 +100,23 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
         raise IOError("Invalid file format!")
 
     indices = data[:, 0]
+    time_idx = data[:, 1]
     tracks = np.unique(indices)
 
+    if np.any(np.floor(time_idx) != time_idx):
+        warnings.warn(
+            RuntimeWarning(
+                "File contains non-integer time indices; round-off errors may have occurred when "
+                "loading the data"
+            ),
+            stacklevel=2,
+        )
+
     return KymoTrackGroup(
-        [KymoTrack(data[indices == k, 1], data[indices == k, 2], kymo, channel) for k in tracks]
+        [
+            KymoTrack(time_idx[indices == k].astype(int), data[indices == k, 2], kymo, channel)
+            for k in tracks
+        ]
     )
 
 
@@ -113,7 +126,7 @@ class KymoTrack:
     Parameters
     ----------
     time_idx : array_like
-        Frame time indices.
+        Frame time indices. Note that these should be of integer type.
     localization : LocalizationModel or array_like
         LocalizationModel instance containing localization parameters
         or list of (sub)pixel coordinates to be converted to spatial
@@ -121,7 +134,12 @@ class KymoTrack:
     kymo : Kymo
         Kymograph instance.
     channel : {"red", "green", "blue"}
-        Color channel to analyze
+        Color channel to analyze.
+
+    Raises
+    ------
+    TypeError
+        If time indices are not of integer type.
     """
 
     __slots__ = ["_time_idx", "_localization", "_kymo", "_channel"]
@@ -130,6 +148,10 @@ class KymoTrack:
         self._kymo = kymo
         self._channel = channel
         self._time_idx = np.asarray(time_idx)
+
+        if np.any(self._time_idx) and not np.issubdtype(self._time_idx.dtype, np.integer):
+            raise TypeError(f"Time indices should be of integer type, got {self._time_idx.dtype}.")
+
         self._localization = (
             localization
             if isinstance(localization, LocalizationModel)

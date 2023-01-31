@@ -23,7 +23,7 @@ def test_stitching(blank_kymo):
     segment_1c = KymoTrack([-1, 0, 1], [0, 0, 1], blank_kymo, "red")
 
     radius = 0.05
-    segment_1d = KymoTrack([0.0, 1.0], [radius + 0.01, radius + 0.01], blank_kymo, "red")
+    segment_1d = KymoTrack([0, 1], [radius + 0.01, radius + 0.01], blank_kymo, "red")
 
     # Out of stitch range (maximum extension = 1)
     assert len(stitch_kymo_lines([segment_1, segment_3, segment_2], radius, 1, 2)) == 3
@@ -52,13 +52,13 @@ def test_stitching(blank_kymo):
     # Check whether the alignment has to work in both directions
     # - and - should connect
     track1, track2 = KymoTrack(
-        [0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 2.01], [0, 0], blank_kymo, "red"
+        [0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 3], [0, 0], blank_kymo, "red"
     )
     assert len(stitch_kymo_lines([track1, track2], radius, 1, 2)) == 1
 
     # - and | should not connect.
     track1, track2 = KymoTrack(
-        [0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 2.01], [0, 1], blank_kymo, "red"
+        [0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 3], [0, 1], blank_kymo, "red"
     )
     assert len(stitch_kymo_lines([track1, track2], radius, 1, 2)) == 2
 
