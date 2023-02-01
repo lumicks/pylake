@@ -285,10 +285,10 @@ def test_correlation(shape):
     with pytest.raises(ValueError):
         cc.downsampled_over(stack[1:4].frame_timestamp_ranges(), where="up")
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError, match="No overlap between range and selected channel."):
         cc["0ns":"20ns"].downsampled_over(stack[3:4].frame_timestamp_ranges())
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError, match="No overlap between range and selected channel."):
         cc["40ns":"70ns"].downsampled_over(stack[0:1].frame_timestamp_ranges())
 
     assert stack[0]._get_frame(0).start == 10
