@@ -89,7 +89,7 @@ def test_model_composition():
     np.testing.assert_allclose(m1._raw_call(t, p1), m2._raw_call(t, p2))
 
     # Check whether incompatible variables are found
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="These models are incompatible"):
         distance_offset("d") + force_offset("f")
 
     composite = distance_offset("d") + ewlc_odijk_distance("DNA")
@@ -134,6 +134,16 @@ def test_interpolation_inversion():
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
     np.testing.assert_allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
+
+
+@pytest.mark.parametrize(
+    "param", [{"independent_max": np.inf}, {"independent_min": -np.inf}]
+)
+def test_interpolation_invalid_range(param):
+    with pytest.raises(
+        ValueError, match="Inversion limits have to be finite when using interpolation method"
+    ):
+        ewlc_odijk_distance("Nucleosome").invert(**param, interpolate=True)
 
 
 def test_uuids():

@@ -88,14 +88,19 @@ class Model:
 
             fit.plot("my data", "k--")  # Plot the fitted model
         """
-        assert isinstance(name, str), "First argument must be a model name."
-        assert isinstance(model_function, types.FunctionType), "Model must be a callable."
+        if not isinstance(name, str):
+            raise TypeError("First argument must be a model name.")
+
+        if not isinstance(model_function, types.FunctionType):
+            raise TypeError("Model must be a callable.")
 
         if jacobian:
-            assert isinstance(jacobian, types.FunctionType), "Jacobian must be a callable."
+            if not isinstance(jacobian, types.FunctionType):
+                raise TypeError("Jacobian must be a callable.")
 
         if derivative:
-            assert isinstance(derivative, types.FunctionType), "Derivative must be a callable."
+            if not isinstance(derivative, types.FunctionType):
+                raise TypeError("Derivative must be a callable.")
 
         def formatter(x):
             return f"{name}/{x}"
@@ -113,16 +118,14 @@ class Model:
         self._dependent_unit = dependent_unit
 
         for key in kwargs:
-            assert (
-                key in parameter_names
-            ), "Attempted to set default for parameter which is not present in model."
+            if key not in parameter_names:
+                raise KeyError("Attempted to set default for parameter which is not in the model.")
 
         self._params = OrderedDict()
         for key in parameter_names:
             if key in kwargs:
-                assert isinstance(
-                    kwargs[key], Parameter
-                ), "Passed a non-parameter as model default."
+                if not isinstance(kwargs[key], Parameter):  # TODO: See if this can be more pythonic
+                    raise TypeError("Only an instance of `Parameter` is allowed as model default.")
                 if kwargs[key].shared:
                     self._params[key] = deepcopy(kwargs[key])
                 else:
@@ -476,13 +479,17 @@ class CompositeModel(Model):
         self.lhs = lhs
         self.rhs = rhs
 
-        assert (
-            self.lhs.independent == self.rhs.independent
-        ), f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
+        if self.lhs.independent != self.rhs.independent:
+            raise ValueError(
+                f"Error: These models are incompatible since they are specified with respect to "
+                f"different independent variables {self.lhs.independent} and {self.rhs.independent}"
+            )
 
-        assert (
-            self.lhs.dependent == self.rhs.dependent
-        ), f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+        if self.lhs.dependent != self.rhs.dependent:
+            raise ValueError(
+                f"Error: These models are incompatible since they are specified with respect to "
+                f"different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+            )
 
         self.name = self.lhs.name + "_with_" + self.rhs.name
         self.uuid = uuid.uuid1()
@@ -590,9 +597,10 @@ class InverseModel(Model):
         self.independent_min = independent_min
         self.independent_max = independent_max
         if self.interpolate:
-            assert np.isfinite(independent_min) and np.isfinite(
-                independent_max
-            ), "Inversion limits have to be finite when using interpolation method."
+            if not np.isfinite(independent_min) or not np.isfinite(independent_max):
+                raise ValueError(
+                    "Inversion limits have to be finite when using interpolation method."
+                )
 
     @property
     def dependent(self):

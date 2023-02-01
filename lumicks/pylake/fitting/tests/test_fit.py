@@ -32,8 +32,9 @@ def test_model_defaults():
     assert fit.params["f/new"].value == 6
     assert fit.params["M/f"].value == 5
 
-    # Test whether providing a default for a parameter that doesn't exist throws
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        KeyError, match="Attempted to set default for parameter which is not in the model"
+    ):
         Model("M", g, z=Parameter(5))
 
     # Verify that the defaults are in fact copies
@@ -41,6 +42,20 @@ def test_model_defaults():
     model = Model("M", g, f=default)
     model._params["M/f"].value = 6
     assert default.value == 5
+
+
+def test_bad_model_construction():
+    with pytest.raises(TypeError, match="First argument must be a model name"):
+        Model(5, 5)
+
+    with pytest.raises(TypeError, match="Model must be a callable"):
+        Model("Ya", 5)
+
+    with pytest.raises(TypeError, match="Jacobian must be a callable"):
+        Model("Ya", lambda x: x, jacobian=5)
+
+    with pytest.raises(TypeError, match="Derivative must be a callable"):
+        Model("Ya", lambda x: x, derivative=5)
 
 
 def test_datasets_build_status():
