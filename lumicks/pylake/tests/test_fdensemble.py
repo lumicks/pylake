@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from lumicks.pylake.detail.alignment import align_force_simple, align_distance_simple, align_fd_simple
 from lumicks.pylake.fdcurve import FdCurve
@@ -146,3 +147,13 @@ def test_fd_ensemble_accessors():
 
     fd_ensemble.align_linear(20, 20)
     np.testing.assert_allclose(fd_ensemble.f, np.array([0, 1, 2, 0, 1, 2, 0, 1, 2]))
+
+
+@pytest.mark.parametrize("alignment_function", [align_force_simple, align_distance_simple])
+def test_minimum_curves(alignment_function):
+    fds = {"fd1": make_mock_fd(force=np.arange(3), distance=np.arange(3), start=0)}
+
+    with pytest.raises(
+        ValueError, match="Alignment only makes sense when there is more than 1 curve, got 1"
+    ):
+        alignment_function(fds, distance_range=50)
