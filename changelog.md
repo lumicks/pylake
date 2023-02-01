@@ -7,6 +7,7 @@
 * Changed several `asserts` to `Exceptions`.
   * Attempting to use `Slice.downsampled_over()` or `Slice.downsampled_like()` with timestamps ranges or another channel that doesn't overlap with the channel now produces a `RuntimeError`.
   * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `RuntimeError`.
+  * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
 
 #### New features
 
