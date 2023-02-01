@@ -76,8 +76,8 @@ class Fit:
     def data(self):
         if len(self.datasets) > 1:
             raise RuntimeError(
-                "This Fit is comprised of multiple models. Please access data for a particular model by "
-                "invoking fit[model].data[dataset_name]."
+                "This Fit is comprised of multiple models. Please access data for a particular "
+                "model by invoking fit[model].data[dataset_name]."
             )
 
         return front(self.datasets.values()).data
@@ -85,8 +85,8 @@ class Fit:
     def _add_data(self, name, x, y, params=None):
         if len(self.datasets) > 1:
             raise RuntimeError(
-                "This Fit is comprised of multiple models. Please add data to a particular model by "
-                "invoking fit[model].add_data(...)"
+                "This Fit is comprised of multiple models. Please add data to a particular model "
+                "by invoking fit[model].add_data(...)"
             )
 
         return front(self.datasets.values())._add_data(name, x, y, params)
@@ -163,8 +163,12 @@ class Fit:
         """Checks whether the model is ready for fitting and returns the current parameter values, which parameters are
         fitted and the parameter bounds."""
         self._rebuild()
-        assert self.n_residuals > 0, "This model has no data associated with it."
-        assert self.n_params > 0, "This model has no parameters. There is nothing to fit."
+        if not self.n_residuals:
+            raise RuntimeError("This model has no data associated with it.")
+
+        if not np.any(self.params.fitted):
+            raise RuntimeError("This model has no free parameters. There is nothing to fit.")
+
         return (
             self.params.values,
             self.params.fitted,
@@ -234,6 +238,15 @@ class Fit:
         ----------
         show_fit : bool
             Show the fitting procedure as it is progressing.
+
+        Raises
+        ------
+        ValueError
+            If the initial parameters are outside the parameter bounds.
+        RuntimeError
+            If this `Fit` has no data associated with it.
+        RuntimeError
+            If this `Fit` has no free parameters.
         """
         parameter_vector, fitted, lb, ub = self._prepare_fit()
 
@@ -243,8 +256,8 @@ class Fit:
         if np.any(out_of_bounds):
             raise ValueError(
                 f"Initial parameters {self.params.keys()[fitted][out_of_bounds]} are outside the "
-                f"parameter bounds. Please set value, lower_bound and upper_bound for these parameters"
-                f"to consistent values."
+                "parameter bounds. Please set the model parameters, lower_bound and upper_bound "
+                "for these parameters to consistent values."
             )
 
         parameter_vector = self._fit(parameter_vector, lb, ub, fitted, show_fit=show_fit, **kwargs)
@@ -308,6 +321,17 @@ class Fit:
         verbose: bool
             Controls the verbosity of the output.
 
+        Raises
+        ------
+        KeyError
+            If `parameter_name` is not present in the `Fit`.
+        RuntimeError
+            If `parameter_name` is a fixed parameter in the `Fit`.
+        ValueError
+            If `max_step` < `min_step`.
+        ValueError
+            If `max_chi2_step` < `min_chi2_step`.
+
         References
         ----------
         .. [4] Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M., Klingmüller, U.,
@@ -325,8 +349,17 @@ class Fit:
         if self.params[parameter_name].fixed:
             raise RuntimeError(f"Parameter {parameter_name} is fixed in the fitting object.")
 
-        assert max_step > min_step
-        assert max_chi2_step > min_chi2_step
+        if max_step <= min_step:
+            raise ValueError(
+                f"max_step must be larger than min_step, got max_step={max_step} and "
+                f"min_step={min_step}"
+            )
+
+        if max_chi2_step <= min_chi2_step:
+            raise ValueError(
+                "max_chi2_step must be larger than min_chi2_step, got "
+                f"max_chi2_step={max_chi2_step} and min_chi2_step={min_chi2_step}"
+            )
 
         profile = ProfileLikelihood1D(
             parameter_name,
@@ -448,6 +481,13 @@ class Fit:
         ``**kwargs``
             Forwarded to :func:`matplotlib.pyplot.plot`.
 
+        Raises
+        ------
+        KeyError
+            If the argument `data` is supplied but no dataset with that name is found in the `Fit`.
+        RuntimeError
+            If the `Fit` uses multiple models, but no `Model` is selected beforehand.
+
         Examples
         --------
         ::
@@ -477,7 +517,9 @@ class Fit:
             fit[model1].plot("Control")  # Plots data set Control for model 1
             fit[model2].plot("Control")  # Plots data set Control for model 2
         """
-        assert len(self.models) == 1, "Please select a model to plot using fit[model].plot(...)."
+        if len(self.models) > 1:
+            raise RuntimeError("Please select a model to plot using fit[model].plot(...).")
+
         self._plot(
             front(self.models.values()),
             data,
@@ -518,7 +560,8 @@ class Fit:
                 )
 
         if data:
-            assert data in dataset.data, f"Error: Did not find dataset with name {data}"
+            if data not in dataset.data:
+                raise KeyError(f"Did not find dataset with name {data}")
             plot(dataset.data[data])
         else:
             for data in dataset.data.values():

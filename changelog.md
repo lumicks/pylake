@@ -8,7 +8,11 @@
   * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
   * Attempting to extend `KymoTracks` by `KymoTracks` originating from a different `Kymograph` now results in a `ValueError`.
   * Attempting to connect two tracks with the same start and ending time point now raises a `ValueError`. 
-
+  * FdFitter: `FdFit.fit()` now raises a `RuntimeError` when a fit has no data or fittable parameters.
+  * FdFitter: `FdFit.plot()` now raises a `KeyError` when trying to plot data that does not exist.
+  * FdFitter: `FdFit.plot()` now raises a `RuntimeError` when trying to plot a fit with multiple models without selecting a model using angular brackets `[]` first.
+  * FdFitter: `FdFit.profile()` now raises a `ValueError` when `max_step <= min_step` or `max_chi2_step <= min_chi2_step`.
+  
 #### New features
 
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.

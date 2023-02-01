@@ -212,3 +212,14 @@ def test_fit_failure():
 
     with pytest.warns(RuntimeWarning, match="Optimization error encountered"):
         fit.profile_likelihood("model/a", num_steps=100, max_step=10, max_chi2_step=10.0)
+
+
+def test_invalid_input():
+    fit = Fit(Model("model", linear))
+    fit._add_data("data", np.arange(6), np.arange(6))
+
+    with pytest.raises(ValueError, match="max_step must be larger than min_step"):
+        fit.profile_likelihood("model/a", num_steps=100, max_step=10, min_step=12)
+
+    with pytest.raises(ValueError, match="max_chi2_step must be larger than min_chi2_step"):
+        fit.profile_likelihood("model/a", num_steps=100, max_chi2_step=10, min_chi2_step=12)
