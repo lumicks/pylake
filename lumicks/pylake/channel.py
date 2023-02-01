@@ -230,9 +230,11 @@ class Slice:
             )
 
     def downsampled_over(self, range_list, reduce=np.mean, where="center"):
-        """Downsample channel data based on timestamp ranges. The downsampling function (e.g.
-        np.mean) is evaluated for the time between a start and end time of each block. A list is
-        returned that contains the data corresponding to each block.
+        """Downsample channel data based on timestamp ranges.
+
+        The downsampling function (e.g. np.mean) is evaluated for the time between a start and end
+        time of each block. A :class:`Slice` is returned where each data point corresponds to the
+        channel data downsampled over a block.
 
         Parameters
         ----------
@@ -251,6 +253,23 @@ class Slice:
               the timestamps corresponding to the samples being downsampled over.
             - "left" : Time points are set to the starting timestamp of the downsampled data.
 
+        Returns
+        -------
+        slice : Slice
+            A slice containing data that was downsampled over the desired time ranges.
+
+        Raises
+        ------
+        TypeError
+            If something other than a list is passed to `range_list`.
+        ValueError
+            If `range_list` does not contain a non-empty list of tuples of two elements (start and
+            stop).
+            If `where` is not set to either `"center"` or `"left"`.
+        RuntimeError
+            If there is no overlap between the time ranges specified in `range_list` and the
+            :class:`Slice` which is to be downsampled.
+
         Examples
         --------
         ::
@@ -264,9 +283,11 @@ class Slice:
         if not isinstance(range_list, list):
             raise TypeError("Did not pass timestamps to range_list.")
 
-        assert len(range_list[0]) == 2, "Did not pass timestamps to range_list."
-        assert self._src.start < range_list[-1][1], "No overlap between range and selected channel."
-        assert self._src.stop > range_list[0][0], "No overlap between range and selected channel"
+        if len(range_list) == 0 or len(range_list[0]) != 2:
+            raise ValueError("Did not pass timestamps to range_list.")
+
+        if self._src.start >= range_list[-1][1] or self._src.stop <= range_list[0][0]:
+            raise RuntimeError("No overlap between range and selected channel.")
 
         if where != "center" and where != "left":
             raise ValueError("Invalid argument for where. Valid options are center and left")
@@ -384,13 +405,15 @@ class Slice:
         return self._with_data_source(self._src.downsampled_by(factor, reduce))
 
     def downsampled_like(self, other_slice, reduce=np.mean):
-        """Downsample high frequency data analogously to a low frequency channel in the same way that Bluelake does it.
+        """Downsample high frequency data analogously to a low frequency channel in the same way
+        that Bluelake does it.
 
-        Note: some data required to reconstruct the first low frequency time point can actually occur before the starting
-        timestamp of the marker and is therefore missing from the exported `.h5` file. Therefore, it is not always possible
-        to downsample to all of the data points in the low frequency `other_slice`. This function returns both the
-        requested downsampled channel data *and* a copy of the input channel cropped such that both returned :class:`~lumicks.pylake.channel.Slice` objects
-        have the same time points.
+        Note: some data required to reconstruct the first low frequency time point can actually
+        occur before the starting timestamp of the marker and is therefore missing from the
+        exported `.h5` file. Therefore, it is not always possible to downsample to all of the data
+        points in the low frequency `other_slice`. This function returns both the requested
+        downsampled channel data *and* a copy of the input channel cropped such that both
+        returned :class:`~lumicks.pylake.channel.Slice` objects have the same time points.
 
         Parameters
         ----------
@@ -407,11 +430,22 @@ class Slice:
         downsampled_slice : Slice
             This channel downsampled to the same timestamp ranges as `other_slice`.
         cropped_other_slice : Slice
-            A copy of `other_slice` cropped such that the timestamps match those of `downsampled_slice`.
+            A copy of `other_slice` cropped such that the timestamps match those of
+            `downsampled_slice`.
+
+        Raises
+        ------
+        TypeError
+            If the other slice is not a low frequency channel slice.
+        NotImplementedError
+            If this slice is a low frequency channel slice.
+        RuntimeError
+            If there is no overlap between the two slices.
         """
-        assert isinstance(other_slice._src, TimeSeries), (
-            "You did not pass a low frequency channel to serve as " "reference channel."
-        )
+        if not isinstance(other_slice._src, TimeSeries):
+            raise TypeError(
+                "You did not pass a low frequency channel to serve as reference channel."
+            )
 
         if not isinstance(self._src, Continuous):
             raise NotImplementedError(
@@ -421,13 +455,11 @@ class Slice:
         timestamps = other_slice.timestamps
         delta_time = np.diff(timestamps)
 
-        assert self._src.start < timestamps[-1], "No overlap between range and selected channel."
-        assert (
-            self._src.stop > timestamps[0] - delta_time[0]
-        ), "No overlap between range and selected channel"
+        if self._src.start >= timestamps[-1] or self._src.stop <= timestamps[0] - delta_time[0]:
+            raise RuntimeError("No overlap between slices.")
 
-        # When the frame rate changes, one frame is very long due to the delay of the camera. It should default to
-        # the new frame rate.
+        # When the frame rate changes, one frame is very long due to the delay of the camera. It
+        # should default to the new frame rate.
         (change_points,) = np.nonzero(np.abs(np.diff(delta_time) > 0))
         try:
             for i in change_points:
@@ -563,10 +595,20 @@ class TimeSeries:
         Anything that's convertible to an `np.ndarray`.
     timestamps : array_like
         An array of integer timestamps.
+
+    Raises
+    ------
+    ValueError
+        If the number of data points and the number of timestamps are unequal.
     """
 
     def __init__(self, data, timestamps):
-        assert len(data) == len(timestamps)
+        if len(data) != len(timestamps):
+            raise ValueError(
+                f"Number of data points ({len(data)}) should be the same as number of timestamps "
+                f"({len(timestamps)})."
+            )
+
         self._src_data = data
         self._cached_data = None
         self._src_timestamps = timestamps

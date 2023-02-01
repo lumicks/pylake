@@ -18,7 +18,9 @@
   * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`.
   * FdFitting: Attempting to evaluate a parameter trace with `lk.parameter_trace()` for a parameter that is not part of the model now results in a `ValueError`.
   * FdFitting: Attempting to compute a parameter trace while providing an incomplete set of parameters will now result in a `ValueError`.
-  
+  * Attempting to use `Slice.downsampled_over()` or `Slice.downsampled_like()` with timestamps ranges or another channel that doesn't overlap with the channel now produces a `ValueError`.
+  * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `ValueError`.
+
 #### New features
 
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.

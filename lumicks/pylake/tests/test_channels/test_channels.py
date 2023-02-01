@@ -177,6 +177,14 @@ def test_slice_properties():
         s._timesteps
 
 
+def test_unequal_length_timeseries():
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Number of data points (4) should be the same as number of timestamps (3)"),
+    ):
+        channel.TimeSeries(np.arange(4), np.arange(3))
+
+
 def test_labels():
     """Slicing must preserve labels"""
     size = 5
@@ -713,11 +721,21 @@ def test_downsampling_like():
     np.testing.assert_equal(t_downsampled[1:-1], ds.timestamps)
     np.testing.assert_allclose(y_downsampled[1:-1], ds.data)
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(
+        NotImplementedError, match="Downsampled_like is only available for high frequency channels"
+    ):
         reference.downsampled_like(reference)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        TypeError, match="You did not pass a low frequency channel to serve as reference channel"
+    ):
         s.downsampled_like(s)
+
+    for offset in (-4 * 4, t_downsampled[-1] + 1):
+        with pytest.raises(RuntimeError, match="No overlap between slices"):
+            s = channel.Slice(channel.Continuous(np.array([1, 2, 3, 4]), with_offset(offset), 4))
+            s.downsampled_like(reference)
+
 
 def test_channel_plot():
     def testLine(x, y):
