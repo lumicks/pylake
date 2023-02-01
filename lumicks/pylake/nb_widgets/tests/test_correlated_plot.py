@@ -31,5 +31,5 @@ def test_plot_correlated():
     np.testing.assert_allclose(imgs[0].get_array(), np.ones((5, 4)))
 
     # When no data overlaps, we need to raise.
-    with pytest.raises(AssertionError, match="No overlap between range and selected channel"):
+    with pytest.raises(RuntimeError, match="No overlap between range and selected channel"):
         scan.plot_correlated(cc["500s":], channel="red", frame=1)

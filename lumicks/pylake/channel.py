@@ -230,9 +230,10 @@ class Slice:
             )
 
     def downsampled_over(self, range_list, reduce=np.mean, where="center"):
-        """Downsample channel data based on timestamp ranges. The downsampling function (e.g.
-        np.mean) is evaluated for the time between a start and end time of each block. A list is
-        returned that contains the data corresponding to each block.
+        """Downsample channel data based on timestamp ranges.
+
+        The downsampling function (e.g. np.mean) is evaluated for the time between a start and end
+        time of each block. A list is returned that contains the data corresponding to each block.
 
         Parameters
         ----------
@@ -251,6 +252,11 @@ class Slice:
               the timestamps corresponding to the samples being downsampled over.
             - "left" : Time points are set to the starting timestamp of the downsampled data.
 
+        Returns
+        -------
+        slice : Slice
+            A slice containing data that was downsampled over the desired time ranges.
+
         Examples
         --------
         ::
@@ -264,9 +270,11 @@ class Slice:
         if not isinstance(range_list, list):
             raise TypeError("Did not pass timestamps to range_list.")
 
-        assert len(range_list[0]) == 2, "Did not pass timestamps to range_list."
-        assert self._src.start < range_list[-1][1], "No overlap between range and selected channel."
-        assert self._src.stop > range_list[0][0], "No overlap between range and selected channel"
+        if len(range_list[0]) != 2:
+            raise RuntimeError("Did not pass timestamps to range_list.")
+
+        if self._src.start >= range_list[-1][1] or self._src.stop <= range_list[0][0]:
+            raise RuntimeError("No overlap between range and selected channel.")
 
         if where != "center" and where != "left":
             raise ValueError("Invalid argument for where. Valid options are center and left")
@@ -409,9 +417,10 @@ class Slice:
         cropped_other_slice : Slice
             A copy of `other_slice` cropped such that the timestamps match those of `downsampled_slice`.
         """
-        assert isinstance(other_slice._src, TimeSeries), (
-            "You did not pass a low frequency channel to serve as " "reference channel."
-        )
+        if not isinstance(other_slice._src, TimeSeries):
+            raise TypeError(
+                "You did not pass a low frequency channel to serve as reference channel."
+            )
 
         if not isinstance(self._src, Continuous):
             raise NotImplementedError(
@@ -421,10 +430,8 @@ class Slice:
         timestamps = other_slice.timestamps
         delta_time = np.diff(timestamps)
 
-        assert self._src.start < timestamps[-1], "No overlap between range and selected channel."
-        assert (
-            self._src.stop > timestamps[0] - delta_time[0]
-        ), "No overlap between range and selected channel"
+        if self._src.start >= timestamps[-1] or self._src.stop <= timestamps[0] - delta_time[0]:
+            raise RuntimeError("No overlap between range and selected channel.")
 
         # When the frame rate changes, one frame is very long due to the delay of the camera. It should default to
         # the new frame rate.
@@ -566,7 +573,9 @@ class TimeSeries:
     """
 
     def __init__(self, data, timestamps):
-        assert len(data) == len(timestamps)
+        if len(data) != len(timestamps):
+            raise RuntimeError("Number of data points should be the same as number of timestamps")
+
         self._src_data = data
         self._cached_data = None
         self._src_timestamps = timestamps

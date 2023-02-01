@@ -2,6 +2,12 @@
 
 ## v1.0.0 | t.b.d.
 
+#### Breaking changes
+
+* Changed several `asserts` to `Exceptions`.
+  * Attempting to use `Slice.downsampled_over()` or `Slice.downsampled_like()` with timestamps ranges or another channel that doesn't overlap with the channel now produces a `RuntimeError`.
+  * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `RuntimeError`.
+
 #### New features
 
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.
