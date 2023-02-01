@@ -77,7 +77,7 @@ Plot force versus time manually::
 FD Ensembles
 ------------
 
-FD curves can be aligned by combining them in an fd ensemble.
+FD curves can be aligned by combining them in an :class:`~lumicks.pylake.fdensemble.FdEnsemble`.
 If all the fd curves of interest are in the same file, the ensemble can be defined as
 `fd_ensemble = lk.FdEnsemble(ensemble_file.fdcurves)`. If the fd curves are in different files, the ensemble can be defined as follows::
 
