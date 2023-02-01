@@ -72,6 +72,18 @@ class Model:
         **kwargs
             Key pairs containing parameter defaults. For instance, Lc=Parameter(...)
 
+        Raises
+        ------
+        TypeError
+            If `name` is not a string.
+        TypeError
+            If `model_function`, `jacobian` or `derivative` are not callable.
+        KeyError
+            If a default parameter is provided for a parameter which is not a function argument of
+            `model_function`.
+        TypeError
+            If a default parameter is provided that is not an instance of `Parameter`.
+
         Examples
         --------
         ::
@@ -88,14 +100,19 @@ class Model:
 
             fit.plot("my data", "k--")  # Plot the fitted model
         """
-        assert isinstance(name, str), "First argument must be a model name."
-        assert isinstance(model_function, types.FunctionType), "Model must be a callable."
+        if not isinstance(name, str):
+            raise TypeError(f"First argument must be a model name, got {name}.")
+
+        if not callable(model_function):
+            raise TypeError(f"Model must be a callable, got {type(model_function)}.")
 
         if jacobian:
-            assert isinstance(jacobian, types.FunctionType), "Jacobian must be a callable."
+            if not callable(jacobian):
+                raise TypeError(f"Jacobian must be a callable, got {type(jacobian)}.")
 
         if derivative:
-            assert isinstance(derivative, types.FunctionType), "Derivative must be a callable."
+            if not callable(derivative):
+                raise TypeError(f"Derivative must be a callable, got {type(derivative)}.")
 
         def formatter(x):
             return f"{name}/{x}"
@@ -113,16 +130,19 @@ class Model:
         self._dependent_unit = dependent_unit
 
         for key in kwargs:
-            assert (
-                key in parameter_names
-            ), "Attempted to set default for parameter which is not present in model."
+            if key not in parameter_names:
+                raise KeyError(
+                    f"Attempted to set default for parameter ({key}) which is not in the model."
+                )
 
         self._params = OrderedDict()
         for key in parameter_names:
             if key in kwargs:
-                assert isinstance(
-                    kwargs[key], Parameter
-                ), "Passed a non-parameter as model default."
+                if not isinstance(kwargs[key], Parameter):  # TODO: See if this can be more pythonic
+                    raise TypeError(
+                        "Only an instance of `Parameter` is allowed as model default, "
+                        f"got {type(kwargs[key])}."
+                    )
                 if kwargs[key].shared:
                     self._params[key] = deepcopy(kwargs[key])
                 else:
@@ -472,17 +492,26 @@ class CompositeModel(Model):
         ----------
         lhs : Model
         rhs : Model
+
+        Raises
+        ------
+        ValueError
+            If models are specified with respect to different independent or dependent variables.
         """
         self.lhs = lhs
         self.rhs = rhs
 
-        assert (
-            self.lhs.independent == self.rhs.independent
-        ), f"Error: Models contain different independent variables {self.lhs.independent} and {self.rhs.independent}"
+        if self.lhs.independent != self.rhs.independent:
+            raise ValueError(
+                "These models are incompatible since they are specified with respect to different "
+                f"independent variables {self.lhs.independent} and {self.rhs.independent}"
+            )
 
-        assert (
-            self.lhs.dependent == self.rhs.dependent
-        ), f"Error: Models contain different dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+        if self.lhs.dependent != self.rhs.dependent:
+            raise ValueError(
+                "These models are incompatible since they are specified with respect to different "
+                f"dependent variables {self.lhs.dependent} and {self.rhs.dependent}"
+            )
 
         self.name = self.lhs.name + "_with_" + self.rhs.name
         self.uuid = uuid.uuid1()
@@ -582,6 +611,12 @@ class InverseModel(Model):
             Note that a finite maximum has to be specified if you wish to use the interpolation mode.
         interpolate : bool
             Use interpolation approximation. Default: False.
+
+        Raises
+        ------
+        ValueError
+            If the inversion limits `independent_min` or `independent_max` are set to non-finite
+            values.
         """
         self.model = model
         self.name = "inv(" + model.name + ")"
@@ -590,9 +625,10 @@ class InverseModel(Model):
         self.independent_min = independent_min
         self.independent_max = independent_max
         if self.interpolate:
-            assert np.isfinite(independent_min) and np.isfinite(
-                independent_max
-            ), "Inversion limits have to be finite when using interpolation method."
+            if not np.isfinite(independent_min) or not np.isfinite(independent_max):
+                raise ValueError(
+                    "Inversion limits have to be finite when using interpolation method."
+                )
 
     @property
     def dependent(self):
