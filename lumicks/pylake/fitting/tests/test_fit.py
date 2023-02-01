@@ -2,6 +2,7 @@ from lumicks.pylake.fitting.models import ewlc_odijk_distance, ewlc_odijk_force
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.fit import Fit, FdFit, Params, Datasets
 from lumicks.pylake.fitting.parameters import Parameter
+import re
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -390,6 +391,10 @@ def test_parameter_availability():
 def test_data_loading():
     m = Model("M", lambda x, a: a * x)
     fit = Fit(m)
+
+    with pytest.raises(RuntimeError, match="This model has no data associated with it."):
+        fit.fit()
+
     fit._add_data("test", [1, np.nan, 3], [2, np.nan, 4])
     np.testing.assert_allclose(fit[m].data["test"].x, [1, 3])
     np.testing.assert_allclose(fit[m].data["test"].y, [2, 4])
@@ -408,6 +413,16 @@ def test_data_loading():
 
     with pytest.raises(AssertionError):
         fit._add_data("test4", [[1, 3, 5]], [[2, 4, 5]])
+
+
+def test_no_free_parameters():
+    fit = FdFit(ewlc_odijk_force("DNA"))
+    fit._add_data("RecA", [1, 2, 3], [1, 2, 3])
+    for pars in ("DNA/Lp", "DNA/Lc", "DNA/St"):
+        fit[pars].fixed = True
+
+    with pytest.raises(RuntimeError, match="This model has no free parameters"):
+        fit.fit()
 
 
 def test_parameter_access():
@@ -560,7 +575,7 @@ def test_plotting():
     fit[m]._add_data("data_1", [1, 2, 3], [2, 3, 4])
     fit.plot()
     fit.plot("data_1")
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError, match="Error: Did not find dataset with name non-existent-data"):
         fit.plot("non-existent-data")
 
     fit.plot(overrides={"DNA/Lc": 12})
@@ -580,18 +595,20 @@ def test_plotting():
     fit[m2]._add_data("dataset_2", [1, 2, 3], [2, 3, 4], {"protein/Lc": "protein/Lc_2"})
     fit[m2]._add_data("dataset 3", [1, 2, 3], [2, 3, 4], {"protein/Lc": "protein/Lc_2"})
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        RuntimeError, match=re.escape("Please select a model to plot using fit[model].plot(...)")
+    ):
         fit.plot()
 
     fit[m].plot()
     fit[m2].plot()
     fit[m].plot("data_1")
 
-    with pytest.raises(AssertionError):
-        fit.plot(m, "non-existent-data")
+    with pytest.raises(KeyError, match="Error: Did not find dataset with name non-existent-data"):
+        fit[m].plot("non-existent-data")
 
     fit[m2].plot("dataset 3")
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError, match="Error: Did not find dataset with name dataset 3"):
         fit[m].plot("dataset 3")
 
     fit[m].plot(overrides={"DNA/Lc": 12})

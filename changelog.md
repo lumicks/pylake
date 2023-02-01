@@ -9,6 +9,9 @@
   * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `RuntimeError`.
   * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
   * Image reconstruction now raises a `ValueError` if the length of the data and infowave are not equal.
+  * FdFitter: now raises a `RuntimeError` when a fit has no data or fittable parameters.
+  * FdFitter: now raises a `KeyError` when trying to access data that does not exist.
+  * FdFitter: now raises a `RuntimeError` when trying to plot a fit with multiple models without selecting a model using angular brackets `[]` first.
 
 #### New features
 

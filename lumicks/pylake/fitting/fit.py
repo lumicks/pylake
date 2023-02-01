@@ -163,8 +163,12 @@ class Fit:
         """Checks whether the model is ready for fitting and returns the current parameter values, which parameters are
         fitted and the parameter bounds."""
         self._rebuild()
-        assert self.n_residuals > 0, "This model has no data associated with it."
-        assert self.n_params > 0, "This model has no parameters. There is nothing to fit."
+        if not self.n_residuals:
+            raise RuntimeError("This model has no data associated with it.")
+
+        if not np.any(self.params.fitted):
+            raise RuntimeError("This model has no free parameters. There is nothing to fit.")
+
         return (
             self.params.values,
             self.params.fitted,
@@ -325,8 +329,11 @@ class Fit:
         if self.params[parameter_name].fixed:
             raise RuntimeError(f"Parameter {parameter_name} is fixed in the fitting object.")
 
-        assert max_step > min_step
-        assert max_chi2_step > min_chi2_step
+        if max_step <= min_step:
+            raise ValueError("max_step must be larger than min_step")
+
+        if max_chi2_step <= min_chi2_step:
+            raise ValueError("max_chi2_step must be larger than min_chi2_step")
 
         profile = ProfileLikelihood1D(
             parameter_name,
@@ -477,7 +484,9 @@ class Fit:
             fit[model1].plot("Control")  # Plots data set Control for model 1
             fit[model2].plot("Control")  # Plots data set Control for model 2
         """
-        assert len(self.models) == 1, "Please select a model to plot using fit[model].plot(...)."
+        if len(self.models) > 1:
+            raise RuntimeError("Please select a model to plot using fit[model].plot(...).")
+
         self._plot(
             front(self.models.values()),
             data,
@@ -518,7 +527,8 @@ class Fit:
                 )
 
         if data:
-            assert data in dataset.data, f"Error: Did not find dataset with name {data}"
+            if data not in dataset.data:
+                raise KeyError(f"Error: Did not find dataset with name {data}")
             plot(dataset.data[data])
         else:
             for data in dataset.data.values():
