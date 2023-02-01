@@ -118,7 +118,9 @@ def reconstruct_image_sum(data, infowave, shape):
     -------
     np.ndarray
     """
-    assert data.size == infowave.size
+    if data.size != infowave.size:
+        raise ValueError("Data size should be the same as the infowave size")
+
     subset, valid_idx = discard_zeros(infowave)
     cumulative = np.cumsum(data[valid_idx])
     pixel_ends = cumulative[subset == InfowaveCode.pixel_boundary]
@@ -145,7 +147,9 @@ def reconstruct_image(data, infowave, shape, reduce=np.sum):
     -------
     np.ndarray
     """
-    assert data.size == infowave.size
+    if data.size != infowave.size:
+        raise ValueError("Data size should be the same as the infowave size")
+
     subset, valid_idx = discard_zeros(infowave)
     # This should be:
     #   pixel_sizes = np.diff(np.flatnonzero(infowave == InfowaveCode.pixel_boundary))
