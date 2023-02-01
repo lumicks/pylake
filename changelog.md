@@ -21,6 +21,7 @@
   * Attempting to use `Slice.downsampled_over()` or `Slice.downsampled_like()` with timestamps ranges or another channel that doesn't overlap with the channel now produces a `ValueError`.
   * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `ValueError`.
   * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
+  * Image reconstruction now raises a `ValueError` if the length of the data and infowave are not equal.
 
 #### New features
 

@@ -1,4 +1,5 @@
 import pytest
+import re
 import numpy as np
 from lumicks.pylake.adjustments import ColorAdjustment
 from lumicks.pylake.detail.image import (
@@ -28,6 +29,14 @@ def test_reconstruct():
     image = reconstruct_image_sum(the_data, infowave, (2,))
     assert image.shape == (2, 2)
     assert np.all(image == [[4, 8], [12, 0]])
+
+
+@pytest.mark.parametrize("reconstruction_func", [reconstruct_image_sum, reconstruct_image])
+def test_unequal_length(reconstruction_func):
+    with pytest.raises(
+        ValueError, match=re.escape("Data size (3) must be the same as the infowave size (2)")
+    ):
+        reconstruction_func(np.array([1, 2, 3]), np.array([1, 1]), (2, 1))
 
 
 def test_reconstruct_multiframe():
