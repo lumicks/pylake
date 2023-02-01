@@ -54,8 +54,7 @@ class Datasets:
         return count
 
     def _add_data(self, name, x, y, params=None):
-        """
-        Loads a data set.
+        """Loads a data set.
 
         Parameters
         ----------
@@ -66,8 +65,22 @@ class Datasets:
         y : array_like
             Dependent variable. NaNs are silently dropped.
         params : Optional[dict of {str : str or int}]
-            List of parameter transformations. These can be used to convert one parameter in the model, to a new
-            parameter name or constant for this specific data set (for more information, see the examples).
+            List of parameter transformations. These can be used to convert one parameter in the
+            model, to a new parameter name or constant for this specific data set (for more
+            information, see the examples).
+
+        Returns
+        -------
+        dataset : FitData
+            Handle to added dataset.
+
+        Raises
+        ------
+        KeyError
+            If the `name` of the dataset is not unique.
+        ValueError
+            If the independent and dependent variables are not one dimensional or are of unequal
+            length.
 
         Examples
         --------
@@ -83,11 +96,19 @@ class Datasets:
 
         x = np.asarray(x, dtype=np.float64)
         y = np.asarray(y, dtype=np.float64)
-        assert x.ndim == 1, "Independent variable should be one dimension"
-        assert y.ndim == 1, "Dependent variable should be one dimension"
-        assert len(x) == len(
-            y
-        ), "Every value for the independent variable should have a corresponding data point"
+        if x.ndim != 1:
+            raise ValueError(
+                f"Independent variable x should be one dimensional, but has shape {x.shape}."
+            )
+        if y.ndim != 1:
+            raise ValueError(
+                f"Dependent variable y should be one dimensional, but has shape {y.shape}."
+            )
+        if len(x) != len(y):
+            raise ValueError(
+                "Every value for the independent variable x should have a corresponding data point "
+                "for the dependent variable y."
+            )
 
         filter_nan = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
         y = y[filter_nan]
@@ -114,22 +135,22 @@ class Datasets:
 
         Parameters
         ----------
-            data : str
-                Name of the data set to plot (optional, omission plots all for that model).
-            fmt : str
-                Format string, forwarded to :func:`matplotlib.pyplot.plot`.
-            independent : array_like
-                Array with values for the independent variable (used when plotting the model).
-            legend : bool
-                Show legend (default: True).
-            plot_data : bool
-                Show data (default: True).
-            overrides : dict
-                Parameter / value pairs which override parameter values in the current fit. Should be a dict of
-                {str: float} that provides values for parameters which should be set to particular values in the plot
-                (default: None);
-            ``**kwargs``
-                Forwarded to :func:`matplotlib.pyplot.plot`.
+        data : str
+            Name of the data set to plot (optional, omission plots all for that model).
+        fmt : str
+            Format string, forwarded to :func:`matplotlib.pyplot.plot`.
+        independent : array_like
+            Array with values for the independent variable (used when plotting the model).
+        legend : bool
+            Show legend (default: True).
+        plot_data : bool
+            Show data (default: True).
+        overrides : dict
+            Parameter / value pairs which override parameter values in the current fit. Should be a dict of
+            {str: float} that provides values for parameters which should be set to particular values in the plot
+            (default: None);
+        ``**kwargs``
+            Forwarded to :func:`matplotlib.pyplot.plot`.
 
         Examples
         --------
@@ -204,8 +225,7 @@ class Datasets:
 
 class FdDatasets(Datasets):
     def add_data(self, name, f, d, params=None):
-        """
-        Adds a data set to this fit.
+        """Adds a data set to this fit.
 
         Parameters
         ----------
@@ -218,6 +238,19 @@ class FdDatasets(Datasets):
         params : Optional[dict of {str : str or int}]
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
+
+        Returns
+        -------
+        dataset : FitData
+            Handle to added dataset.
+
+        Raises
+        ------
+        KeyError
+            If the `name` of the dataset is not unique.
+        ValueError
+            If the independent and dependent variables are not one dimensional or are of unequal
+            length.
 
         Examples
         --------

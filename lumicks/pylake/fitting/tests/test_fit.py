@@ -32,8 +32,10 @@ def test_model_defaults():
     assert fit.params["f/new"].value == 6
     assert fit.params["M/f"].value == 5
 
-    # Test whether providing a default for a parameter that doesn't exist throws
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        KeyError,
+        match=re.escape("Attempted to set default for parameter (z) which is not in the model"),
+    ):
         Model("M", g, z=Parameter(5))
 
     # Verify that the defaults are in fact copies
@@ -41,6 +43,20 @@ def test_model_defaults():
     model = Model("M", g, f=default)
     model._params["M/f"].value = 6
     assert default.value == 5
+
+
+def test_bad_model_construction():
+    with pytest.raises(TypeError, match="First argument must be a model name"):
+        Model(5, 5)
+
+    with pytest.raises(TypeError, match="Model must be a callable, got <class 'int'>"):
+        Model("Ya", 5)
+
+    with pytest.raises(TypeError, match="Jacobian must be a callable, got <class 'int'>"):
+        Model("Ya", lambda x: x, jacobian=5)
+
+    with pytest.raises(TypeError, match="Derivative must be a callable, got <class 'int'>"):
+        Model("Ya", lambda x: x, derivative=5)
 
 
 def test_datasets_build_status():
@@ -405,14 +421,25 @@ def test_data_loading():
     with pytest.raises(KeyError):
         fit._add_data("test", [1, 3, 5], [2, 4, 5])
 
-    with pytest.raises(AssertionError):
-        fit._add_data("test2", [1, 3], [2, 4, 5])
+    for x, y in (([1, 3], [2, 4, 5]), ([1, 3, 5], [2, 4])):
+        with pytest.raises(
+            ValueError,
+            match="Every value for the independent variable x should have a corresponding data "
+                  "point for the dependent variable y",
+        ):
+            fit._add_data("test2", x, y)
 
-    with pytest.raises(AssertionError):
-        fit._add_data("test3", [1, 3, 5], [2, 4])
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Independent variable x should be one dimensional, but has shape (1, 3)"),
+    ):
+        fit._add_data("test4", [[1, 3, 5]], [2, 4, 5])
 
-    with pytest.raises(AssertionError):
-        fit._add_data("test4", [[1, 3, 5]], [[2, 4, 5]])
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Dependent variable y should be one dimensional, but has shape (1, 3)"),
+    ):
+        fit._add_data("test4", [1, 3, 5], [[2, 4, 5]])
 
 
 def test_no_free_parameters():
