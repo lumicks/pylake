@@ -70,7 +70,11 @@ def test_localization_error_calculation(intercept, slope, result):
 
 
 def test_localization_eq():
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        ValueError,
+        match="To calculate localization error, you need to supply an MSD estimate for each lag "
+        "time",
+    ):
         calculate_localization_error(np.array([1, 2, 3]), np.array([1, 2]))
 
 

@@ -630,8 +630,17 @@ def calculate_localization_error(frame_lags, msd):
         frame lags to include.
     msd : array_like
         (Correlated) Mean Squared Distance estimates as obtained by `calculate_msd`.
+
+    Returns
+    -------
+    localization_error : float
+        Localization error given by the ratio of the localization uncertainty and diffusive motion.
     """
-    assert len(frame_lags) == len(msd), "Need to supply an MSD estimate per lag time"
+    if len(frame_lags) != len(msd):
+        raise ValueError(
+            "To calculate localization error, you need to supply an MSD estimate for each lag time."
+        )
+
     coefficients = np.polyfit(frame_lags, msd, 1)
     slope, intercept = coefficients[0], coefficients[1]
 
