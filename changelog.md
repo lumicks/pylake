@@ -15,7 +15,8 @@
   * FdFitter: when inverting a model with `interpolate=True`, Pylake now raises a `ValueError` if the minimum or maximum is not finite.
   * FdFitter: a `ValueError` is raised when adding incompatible models.
   * FdFitter: When adding data to a fit, adding data with an unequal number of points for the dependent and independent variable will now raise a `ValueError`.
-  * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`. 
+  * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`.
+  * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided. 
   
 #### New features
 
