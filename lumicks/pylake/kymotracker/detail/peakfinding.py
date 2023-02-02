@@ -45,9 +45,31 @@ class KymoPeaks:
             self.unassigned = np.ones(self.time_points.shape, dtype=bool)
 
     def __init__(self, coordinates, time_points, peak_amplitudes):
-        assert len(time_points) > 0
-        assert len(coordinates) == len(time_points)
-        assert len(peak_amplitudes) == len(time_points)
+        """Kymograph peaks
+
+        Parameters
+        ----------
+        coordinates : np.ndarray
+            Positional coordinates of detected peaks
+        time_points : np.ndarray
+            Time points (in frame indices) of detected peaks
+        peak_amplitudes : np.ndarray
+            Peak amplitudes of detected peaks
+
+        Raises
+        ------
+        ValueError
+            When no points are given or when `coordinates`, `time_points` and `peak_amplitudes`
+            don't have the same number of elements.
+        """
+        if len(time_points) == 0:
+            raise ValueError("You need to provide at least one time point")
+
+        if any(len(time_points) != len(x) for x in (coordinates, peak_amplitudes)):
+            raise ValueError(
+                f"Number of time points ({len(time_points)}), coordinates ({len(coordinates)}) and "
+                f"peak amplitudes ({len(peak_amplitudes)}) must be equal"
+            )
 
         self.frames = []
         max_frame = math.ceil(np.max(time_points))

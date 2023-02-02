@@ -189,3 +189,10 @@ def test_csv_version(version, read_with_version):
     for j, track in enumerate(imported_tracks):
         np.testing.assert_allclose(track.time_idx, data["time (pixels)"][j])
         np.testing.assert_allclose(track.coordinate_idx, data["coordinate (pixels)"][j])
+
+
+@pytest.mark.parametrize("filename", ["csv_bad_format.csv", "csv_unparseable.csv"])
+def test_bad_csv(filename, tmpdir_factory, blank_kymo):
+    with pytest.raises(IOError, match="Invalid file format!"):
+        file = Path(__file__).parent / "data" / filename
+        import_kymotrackgroup_from_csv(file, blank_kymo, "red", delimiter=";")

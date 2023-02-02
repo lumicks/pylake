@@ -4,34 +4,51 @@ import numpy as np
 def kymo_diff_score(t, coordinate, t_prediction, vel, sigma, sigma_diffusion):
     """Estimate mean and sigma for future time points.
 
-    This function returns a mean and sigma based on a velocity, fixed uncertainty and diffusion rate. This is used to
-    compute a scoring function to determine whether two local maxima should be linked.
+    This function returns a mean and sigma based on a velocity, fixed uncertainty and diffusion
+    rate. This is used to compute a scoring function to determine whether two local maxima should
+    be linked.
 
-    We expect the future to be a combination of a base uncertainty, a diffusion and a constant velocity. The stdev for
-    the particle at time point t for the diffusion process is given by:
+    We expect the future to be a combination of a base uncertainty, a diffusion and a constant
+    velocity. The stdev for the particle at time point t for the diffusion process is given by:
         sigma(t) = N(mu(t), sigma*sqrt(t)).
     mu is simply given by the prediction based on constant velocity in this model.
 
     Parameters
     ----------
-        t : float
-            Current time
-        coordinate : float
-            Current position
-        t_prediction : array_like
-            Coordinates for which to compute a probability
-        vel : float
-            Estimated velocity of the particle
-        sigma: float
-            Starting uncertainty of the cone.
-        sigma_diffusion : float
-            Sigma representing diffusion. For diffusion, the spread is characterized by:
-              Sigma(t) = sigma_diffusion * sqrt(t)
-            Note that sigma_diffusion equates to sqrt(2*D) where D is the diffusion constant.
+    t : float
+        Current time
+    coordinate : float
+        Current position
+    t_prediction : np.ndarray
+        Coordinates for which to compute a probability
+    vel : float
+        Estimated velocity of the particle
+    sigma: float
+        Starting uncertainty of the cone.
+    sigma_diffusion : float
+        Sigma representing diffusion. For diffusion, the spread is characterized by:
+          Sigma(t) = sigma_diffusion * sqrt(t)
+        Note that sigma_diffusion equates to sqrt(2*D) where D is the diffusion constant.
+
+    Returns
+    -------
+    mu_t : np.ndarray
+        Mean of considered time points.
+    sigma_t : np.ndarray
+        Standard deviation of considered time points.
+
+    Raises
+    ------
+    RuntimeError
+        If predictive distributions are requested for points that aren't in the future.
     """
 
     temporal_diff = t_prediction - t
-    assert np.all(temporal_diff > 0)
+    if np.any(temporal_diff <= 0):
+        raise RuntimeError(
+            "Kymotracker requested predictive distribution for a point that isn't in the future."
+        )
+
     mu_t = coordinate + vel * temporal_diff
     sigma_t = sigma + sigma_diffusion * np.sqrt(temporal_diff)
 

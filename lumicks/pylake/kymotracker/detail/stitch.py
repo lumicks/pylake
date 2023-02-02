@@ -16,7 +16,8 @@ def distance_line_to_point(line_pt1, line_pt2, point):
     line_length = np.sum(vector_p2_p1 * vector_p2_p1)
 
     # If points coincide we have a problem
-    assert line_length > 1e-8, "Line points coincide"
+    if line_length <= 1e-8:
+        raise RuntimeError("Line points coincide")
 
     distance_point_x1 = point - line_pt1
     u = np.sum(distance_point_x1 * vector_p2_p1) / line_length
