@@ -3,7 +3,7 @@ import numpy as np
 import re
 
 from lumicks.pylake import DwelltimeModel
-from lumicks.pylake.population.dwelltime import _dwellcounts_from_statepath
+from lumicks.pylake.population.dwelltime import _dwellcounts_from_statepath, DwelltimeBootstrap
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
@@ -99,7 +99,7 @@ def test_empty_bootstrap(exponential_data):
             match=re.escape(
                 "The bootstrap distribution is currently empty. Use `DwelltimeModel.calculate_bootstrap()` "
                 "to sample a distribution before attempting downstream analysis."
-            )
+            ),
         ):
             fit.bootstrap
 
@@ -157,3 +157,23 @@ def test_plots(exponential_data):
 
     with pytest.warns(DeprecationWarning):
         bootstrap.plot()
+
+
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+def test_invalid_bootstrap(exponential_data):
+    dataset = exponential_data["dataset_2exp"]
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Number of parameters should be the same as the number of components (1)"),
+    ):
+        DwelltimeBootstrap(fit, np.zeros((3, 1)), np.zeros((3, 1)))
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Number of amplitude samples (2) should be the same as number of lifetime samples (1)"
+        ),
+    ):
+        DwelltimeBootstrap(fit, np.zeros((3, 2)), np.zeros((3, 1)))
