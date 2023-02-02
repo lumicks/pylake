@@ -551,8 +551,11 @@ class KymoTrackGroup:
         kymos = set([track._kymo._id for track in kymo_tracks])
         channels = set([track._channel for track in kymo_tracks])
 
-        assert len(kymos) == 1, "All tracks must have the same source kymograph."
-        assert len(channels) == 1, "All tracks must be from the same color channel."
+        if len(kymos) > 1:
+            raise ValueError("All tracks must have the same source kymograph.")
+
+        if len(channels) > 1:
+            raise ValueError("All tracks must be from the same color channel.")
 
         return next(iter(kymos)), next(iter(channels))
 
@@ -677,8 +680,11 @@ class KymoTrackGroup:
         other = self.__class__([other]) if isinstance(other, KymoTrack) else other
         other_kymo, other_channel = self._validate_single_source(other)
         if self:
-            assert self._kymo._id == other_kymo, "All tracks must have the same source kymograph."
-            assert self._channel == other_channel, "All tracks must be from the same color channel."
+            if self._kymo._id != other_kymo:
+                raise ValueError("All tracks must have the same source kymograph.")
+
+            if self._channel != other_channel:
+                raise ValueError("All tracks must be from the same color channel.")
 
         self._src.extend(other._src)
 
