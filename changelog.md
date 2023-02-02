@@ -23,6 +23,7 @@
   * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
   * Image reconstruction now raises a `ValueError` if the length of the data and infowave are not equal.
   * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided. 
+  * Widefield: Attempting to open multiple `TIFF` as a single ImageStack will now raise a `ValueError` if the alignment matrices of the individual `TIFF` are different.
 
 #### New features
 

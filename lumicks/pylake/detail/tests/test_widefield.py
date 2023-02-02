@@ -23,6 +23,13 @@ def test_transform_default():
     np.testing.assert_equal(transform.matrix, np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
 
 
+def test_transform_mul_type():
+    with pytest.raises(
+        TypeError, match="Operands must be of type `TransformMatrix`, got <class 'int'>."
+    ):
+        widefield.TransformMatrix() * 1
+
+
 def test_transform_inversion():
     theta = np.radians(20)
     m = np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
