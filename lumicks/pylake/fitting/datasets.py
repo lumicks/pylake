@@ -54,8 +54,7 @@ class Datasets:
         return count
 
     def _add_data(self, name, x, y, params=None):
-        """
-        Loads a data set.
+        """Loads a data set.
 
         Parameters
         ----------
@@ -68,6 +67,11 @@ class Datasets:
         params : Optional[dict of {str : str or int}]
             List of parameter transformations. These can be used to convert one parameter in the model, to a new
             parameter name or constant for this specific data set (for more information, see the examples).
+
+        Returns
+        -------
+        dataset : FitData
+            Handle to added dataset.
 
         Examples
         --------
@@ -83,11 +87,14 @@ class Datasets:
 
         x = np.asarray(x, dtype=np.float64)
         y = np.asarray(y, dtype=np.float64)
-        assert x.ndim == 1, "Independent variable should be one dimension"
-        assert y.ndim == 1, "Dependent variable should be one dimension"
-        assert len(x) == len(
-            y
-        ), "Every value for the independent variable should have a corresponding data point"
+        if x.ndim != 1:
+            raise ValueError("Independent variable should be one dimension.")
+        if y.ndim != 1:
+            raise ValueError("Dependent variable should be one dimension.")
+        if len(x) != len(y):
+            raise ValueError(
+                "Every value for the independent variable should have a corresponding data point."
+            )
 
         filter_nan = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
         y = y[filter_nan]

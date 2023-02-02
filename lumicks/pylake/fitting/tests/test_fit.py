@@ -420,14 +420,18 @@ def test_data_loading():
     with pytest.raises(KeyError):
         fit._add_data("test", [1, 3, 5], [2, 4, 5])
 
-    with pytest.raises(AssertionError):
-        fit._add_data("test2", [1, 3], [2, 4, 5])
+    for x, y in (([1, 3], [2, 4, 5]), ([1, 3, 5], [2, 4])):
+        with pytest.raises(
+            ValueError,
+            match="Every value for the independent variable should have a corresponding data point"
+        ):
+            fit._add_data("test2", x, y)
 
-    with pytest.raises(AssertionError):
-        fit._add_data("test3", [1, 3, 5], [2, 4])
+    with pytest.raises(ValueError, match="Independent variable should be one dimension"):
+        fit._add_data("test4", [[1, 3, 5]], [2, 4, 5])
 
-    with pytest.raises(AssertionError):
-        fit._add_data("test4", [[1, 3, 5]], [[2, 4, 5]])
+    with pytest.raises(ValueError, match="Dependent variable should be one dimension"):
+        fit._add_data("test4", [1, 3, 5], [[2, 4, 5]])
 
 
 def test_no_free_parameters():
