@@ -78,11 +78,21 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
         color channel that was used for tracking.
     delimiter : str
         The string used to separate columns.
+
+    Returns
+    -------
+    kymotrack_group : KymoTrackGroup
+        Tracked kymograph lines that were stored in the file.
     """
 
-    data = np.loadtxt(filename, delimiter=delimiter)
-    assert len(data.shape) == 2, "Invalid file format"
-    assert data.shape[0] > 2, "Invalid file format"
+    # TODO: File format validation could use some improvement
+    try:
+        data = np.loadtxt(filename, delimiter=delimiter)
+    except ValueError:  # Could not convert to float
+        raise IOError("Invalid file format!")
+
+    if data.ndim != 2 or data.shape[0] <= 2:
+        raise IOError("Invalid file format!")
 
     indices = data[:, 0]
     tracks = np.unique(indices)
@@ -319,9 +329,9 @@ class KymoTrack:
 
         Returns
         -------
-        lag_time : array_like
+        lag_time : np.ndarray
             array of lag times
-        msd : array_like
+        msd : np.ndarray
             array of mean square distance estimates for the corresponding lag times
 
         References

@@ -21,7 +21,8 @@
   * FdFitting: Attempting to evaluate a parameter trace with `lk.parameter_trace()` for a parameter that is not part of the model now results in a `ValueError`.
   * FdFitting: Attempting to compute a parameter trace while providing an incomplete set of parameters will now result in a `ValueError`.
   * PowerSpectrum: Attempting to replace the power spectral values of a `PowerSpectrum` using `with_spectrum` using a vector of incorrect length will raise a `ValueError`.
-  
+  * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
+
 #### New features
 
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.
