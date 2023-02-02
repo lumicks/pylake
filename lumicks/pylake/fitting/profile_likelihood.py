@@ -7,22 +7,40 @@ import enum
 
 
 def clamp_step(x_origin, x_step, lb, ub):
-    """Shortens a step to stay within some box constraints."""
-    assert np.all(
-        np.logical_and(x_origin >= lb, x_origin <= ub)
-    ), "Initial position was not in box constraints."
+    """Shortens a step to stay within some box constraints.
+
+    Parameters
+    ----------
+    x_origin : np.ndarray
+        Parameter position we are stepping from.
+    x_step : np.ndarray
+        Step direction.
+    lb, ub : np.ndarray
+        Lower and upper bound for the parameter vector.
+
+    Returns
+    -------
+    new_position : np.ndarray
+        New position
+    scaling : bool
+        Have we shrunk the step?
+    """
+    if np.any(np.logical_or(x_origin < lb, x_origin > ub)):
+        raise RuntimeError("Initial position was not in box constraints.")
 
     alpha_ub = np.inf * np.ones(x_step.shape)
     alpha_lb = np.inf * np.ones(x_step.shape)
 
-    # Fetch distance to the boundary in multiples of the step size. Steps towards the boundary are positive.
+    # Fetch distance to the boundary in multiples of the step size. Steps towards the boundary are
+    # positive.
     mask = x_step != 0
     alpha_ub[mask] = (ub[mask] - x_origin[mask]) / x_step[mask]
     alpha_lb[mask] = (lb[mask] - x_origin[mask]) / x_step[mask]
 
-    # 1. Grab the distances that are moving towards the boundary (np.maximum). One will typically be negative, moving
-    # away from the boundary, the other will be positive.
-    # 2. Take the one that is closest to the boundary (np.min). If it's smaller than one, we need to shrink the step.
+    # 1. Grab the distances that are moving towards the boundary (np.maximum). One will typically
+    #    be negative, moving away from the boundary, the other will be positive.
+    # 2. Take the one that is closest to the boundary (np.min). If it's smaller than one, we need
+    #    to shrink the step.
     scaling = np.min(np.maximum(alpha_ub, alpha_lb))
     if scaling > 1.0:
         scaling = 1.0
@@ -134,7 +152,8 @@ def do_step(
 
     step_direction = step_direction_function()
     while last_step != StepCode.nochange:
-        # Make sure the parameter step doesn't exceed the bounds. If it goes over the edge, scale it back.
+        # Make sure the parameter step doesn't exceed the bounds. If it goes over the edge, scale
+        # it back.
         current_step_size = new_step_size
         p_trial, clamped = clamp_step(
             parameter_vector,
