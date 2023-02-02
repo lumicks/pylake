@@ -19,7 +19,6 @@ from copy import deepcopy
 
 import uuid
 import inspect
-import types
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -6,23 +6,47 @@ from warnings import warn
 import enum
 
 
-def clamp_step(x_origin, x_step, lb, ub):
-    """Shortens a step to stay within some box constraints."""
-    assert np.all(
-        np.logical_and(x_origin >= lb, x_origin <= ub)
-    ), "Initial position was not in box constraints."
+def clamp_step(x_origin, x_step, lower_bound, upper_bound):
+    """Shortens a step to stay within some box constraints.
+
+    Parameters
+    ----------
+    x_origin : np.ndarray
+        Parameter position we are stepping from.
+    x_step : np.ndarray
+        Step direction.
+    lower_bound, upper_bound : np.ndarray
+        Lower and upper bound for the parameter vector.
+
+    Returns
+    -------
+    new_position : np.ndarray
+        New position
+    scaling : bool
+        Have we shrunk the step?
+
+    Raises
+    ------
+    RuntimeError
+        If the initial position `x_origin` is not within the box constraints given by `lower_bound`
+        and `upper_bound`.
+    """
+    if np.any(np.logical_or(x_origin < lower_bound, x_origin > upper_bound)):
+        raise RuntimeError("Initial position was not in box constraints.")
 
     alpha_ub = np.inf * np.ones(x_step.shape)
     alpha_lb = np.inf * np.ones(x_step.shape)
 
-    # Fetch distance to the boundary in multiples of the step size. Steps towards the boundary are positive.
+    # Fetch distance to the boundary in multiples of the step size. Steps towards the boundary are
+    # positive.
     mask = x_step != 0
-    alpha_ub[mask] = (ub[mask] - x_origin[mask]) / x_step[mask]
-    alpha_lb[mask] = (lb[mask] - x_origin[mask]) / x_step[mask]
+    alpha_ub[mask] = (upper_bound[mask] - x_origin[mask]) / x_step[mask]
+    alpha_lb[mask] = (lower_bound[mask] - x_origin[mask]) / x_step[mask]
 
-    # 1. Grab the distances that are moving towards the boundary (np.maximum). One will typically be negative, moving
-    # away from the boundary, the other will be positive.
-    # 2. Take the one that is closest to the boundary (np.min). If it's smaller than one, we need to shrink the step.
+    # 1. Grab the distances that are moving towards the boundary (np.maximum). One will typically
+    #    be negative, moving away from the boundary, the other will be positive.
+    # 2. Take the one that is closest to the boundary (np.min). If it's smaller than one, we need
+    #    to shrink the step.
     scaling = np.min(np.maximum(alpha_ub, alpha_lb))
     if scaling > 1.0:
         scaling = 1.0
@@ -134,7 +158,8 @@ def do_step(
 
     step_direction = step_direction_function()
     while last_step != StepCode.nochange:
-        # Make sure the parameter step doesn't exceed the bounds. If it goes over the edge, scale it back.
+        # Make sure the parameter step doesn't exceed the bounds. If it goes over the edge, scale
+        # it back.
         current_step_size = new_step_size
         p_trial, clamped = clamp_step(
             parameter_vector,
@@ -205,7 +230,6 @@ def scan_dir_optimisation(
         produce verbose output
     """
     current_step_size = 1
-    step = 0
     p_next = parameter_vector
     chi2_list = []
     parameter_vectors = []
@@ -267,8 +291,8 @@ class ProfileLikelihood1D:
     ):
         self.parameter_name = parameter_name
 
-        # These are the user exposed options. They can be modified by the user in the struct if desired. THey are parsed
-        # into actual algorithm parameters once the algorithm starts.
+        # These are the user exposed options. They can be modified by the user in the struct if
+        # desired. They are parsed into actual algorithm parameters once the algorithm starts.
         self.options = {
             "min_step": min_step,
             "max_step": max_step,
@@ -297,10 +321,42 @@ class ProfileLikelihood1D:
         )
 
     def prepare_profile(self, chi2_function, fit_function, parameters, parameter_name):
-        options = self.options
+        """Sets up internal data structure for performing a profile likelihood.
 
-        assert options["max_step"] > options["min_step"]
-        assert options["max_chi2_step"] > options["min_chi2_step"]
+        Parameters
+        ----------
+        chi2_function : callable
+            Function which takes Parameters and returns a chi-squared value.
+        fit_function : callable
+            Function which takes a parameter vector and bounds and performs parameter optimization.
+        parameters : pylake.fitting.parameters.Params
+            Initial model parameters (best fit values).
+        parameter_name : str
+            Parameter to profile.
+
+        Returns
+        -------
+        scan_direction : callable
+            Function which makes a 1D scan, optimizing parameters at every level.
+
+        Raises
+        ------
+        RuntimeError
+            If `options["max_step"]` < `options["min_step"]` or
+            `options["max_chi2_step"]` < `options["min_chi2_step"]`.
+        """
+        options = self.options
+        if options["max_step"] <= options["min_step"]:
+            raise RuntimeError(
+                f"max_step must be larger than min_step, got max_step={options['max_step']} and "
+                f"min_step={options['min_step']}."
+            )
+
+        if options["max_chi2_step"] <= options["min_chi2_step"]:
+            raise RuntimeError(
+                "max_chi2_step must be larger than min_chi2_step, got max_chi2_step="
+                f"{options['max_chi2_step']} and min_chi2_step={options['min_chi2_step']}."
+            )
 
         self.profile_info = ProfileInfo(
             minimum_chi2=chi2_function(parameters.values),
