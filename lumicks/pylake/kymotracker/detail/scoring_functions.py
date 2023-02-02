@@ -14,24 +14,35 @@ def kymo_diff_score(t, coordinate, t_prediction, vel, sigma, sigma_diffusion):
 
     Parameters
     ----------
-        t : float
-            Current time
-        coordinate : float
-            Current position
-        t_prediction : array_like
-            Coordinates for which to compute a probability
-        vel : float
-            Estimated velocity of the particle
-        sigma: float
-            Starting uncertainty of the cone.
-        sigma_diffusion : float
-            Sigma representing diffusion. For diffusion, the spread is characterized by:
-              Sigma(t) = sigma_diffusion * sqrt(t)
-            Note that sigma_diffusion equates to sqrt(2*D) where D is the diffusion constant.
+    t : float
+        Current time
+    coordinate : float
+        Current position
+    t_prediction : np.ndarray
+        Coordinates for which to compute a probability
+    vel : float
+        Estimated velocity of the particle
+    sigma: float
+        Starting uncertainty of the cone.
+    sigma_diffusion : float
+        Sigma representing diffusion. For diffusion, the spread is characterized by:
+          Sigma(t) = sigma_diffusion * sqrt(t)
+        Note that sigma_diffusion equates to sqrt(2*D) where D is the diffusion constant.
+
+    Returns
+    -------
+    mu_t : np.ndarray
+        Mean of considered time points.
+    sigma_t : np.ndarray
+        Standard deviation of considered time points.
     """
 
     temporal_diff = t_prediction - t
-    assert np.all(temporal_diff > 0)
+    if np.any(temporal_diff <= 0):
+        raise RuntimeError(
+            "Kymotracker requested predictive distribution for a point that isn't in the future."
+        )
+
     mu_t = coordinate + vel * temporal_diff
     sigma_t = sigma + sigma_diffusion * np.sqrt(temporal_diff)
 

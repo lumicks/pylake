@@ -22,6 +22,17 @@ def test_peak_estimation(location):
     assert np.abs(peaks.frames[0].coordinates[0] - location) < 1e-3
 
 
+def test_invalid_peak_construction():
+    with pytest.raises(ValueError, match="You need to provide at least one time point"):
+        KymoPeaks(np.array([]), np.array([]), np.array([]))
+
+    for coordinates, amplitudes in (([3, 4], [3, 4, 5]), ([3, 4, 5], [3, 4])):
+        with pytest.raises(
+            ValueError, match="Length of time points, coordinates and peak amplitudes must be equal"
+        ):
+            KymoPeaks(np.array([1, 2, 3]), coordinates, amplitudes)
+
+
 def test_peak_refinement_input_validation():
     """When the kernel size is zero, then centroid refinement simply does nothing. Since this could
     lead to unexpected results (i.e. no subpixel accuracy), we throw."""
