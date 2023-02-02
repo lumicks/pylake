@@ -4,7 +4,7 @@ import numpy as np
 from textwrap import dedent
 from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
-from lumicks.pylake.fitting.parameters import Parameter
+from lumicks.pylake.fitting.parameters import Parameter, Params
 
 
 def linear(x, a=1, b=1):
@@ -223,3 +223,22 @@ def test_invalid_input():
 
     with pytest.raises(ValueError, match="max_chi2_step must be larger than min_chi2_step"):
         fit.profile_likelihood("model/a", num_steps=100, max_chi2_step=10, min_chi2_step=12)
+
+
+def test_bad_runtime_option_change():
+    fit = Fit(Model("model", linear))
+    fit._add_data("data", np.arange(6), np.arange(6))
+    fit["model/a"].value = 1
+
+    def chi2(parameters):
+        return -2.0 * fit.log_likelihood(parameters, fit.sigma)
+
+    profile = fit.profile_likelihood("model/a", num_steps=1, min_step=1e-1, max_step=20)
+    with pytest.raises(RuntimeError, match="max_step must be larger than min_step"):
+        profile.options["min_step"] = 35
+        profile.prepare_profile(chi2, fit._fit, fit.params, "model/a")
+
+    profile = fit.profile_likelihood("model/a", num_steps=1, min_step=1e-1, max_step=20)
+    with pytest.raises(RuntimeError, match="max_chi2_step must be larger than min_chi2_step"):
+        profile.options["min_chi2_step"] = 35
+        profile.prepare_profile(chi2, fit._fit, fit.params, "model/a")

@@ -205,7 +205,6 @@ def scan_dir_optimisation(
         produce verbose output
     """
     current_step_size = 1
-    step = 0
     p_next = parameter_vector
     chi2_list = []
     parameter_vectors = []
@@ -267,8 +266,8 @@ class ProfileLikelihood1D:
     ):
         self.parameter_name = parameter_name
 
-        # These are the user exposed options. They can be modified by the user in the struct if desired. THey are parsed
-        # into actual algorithm parameters once the algorithm starts.
+        # These are the user exposed options. They can be modified by the user in the struct if
+        # desired. They are parsed into actual algorithm parameters once the algorithm starts.
         self.options = {
             "min_step": min_step,
             "max_step": max_step,
@@ -297,10 +296,30 @@ class ProfileLikelihood1D:
         )
 
     def prepare_profile(self, chi2_function, fit_function, parameters, parameter_name):
-        options = self.options
+        """Sets up internal data structure for performing a profile likelihood.
 
-        assert options["max_step"] > options["min_step"]
-        assert options["max_chi2_step"] > options["min_chi2_step"]
+        Parameters
+        ----------
+        chi2_function : callable
+            Function which takes Parameters and returns a chi-squared value.
+        fit_function : callable
+            Function which takes a parameter vector and bounds and performs parameter optimization.
+        parameters : pylake.fitting.parameters.Params
+            Initial model parameters (best fit values).
+        parameter_name : str
+            Parameter to profile.
+
+        Returns
+        -------
+        scan_direction : callable
+            Function which makes a 1D scan, optimizing parameters at every level.
+        """
+        options = self.options
+        if options["max_step"] <= options["min_step"]:
+            raise RuntimeError("max_step must be larger than min_step")
+
+        if options["max_chi2_step"] <= options["min_chi2_step"]:
+            raise RuntimeError("max_chi2_step must be larger than min_chi2_step")
 
         self.profile_info = ProfileInfo(
             minimum_chi2=chi2_function(parameters.values),
