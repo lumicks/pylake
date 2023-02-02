@@ -24,7 +24,7 @@ def test_get_axes():
     ax = get_axes(axes=ax1, image_handle=ih1)
     assert ax is ax1
     with pytest.raises(
-        AssertionError, match="Supplied image_handle with a different axes than the provided axes"
+        ValueError, match="Supplied image_handle with a different axes than the provided axes"
     ):
         ax = get_axes(axes=ax1, image_handle=ih2)
 
@@ -39,7 +39,7 @@ def test_show_image():
     ih1 = ax1.imshow(im1)
 
     with pytest.raises(
-        AssertionError, match="Supplied image_handle with a different axes than the provided axes"
+        ValueError, match="Supplied image_handle with a different axes than the provided axes"
     ):
         show_image(im1, image_handle=ih1, axes=ax2)
 

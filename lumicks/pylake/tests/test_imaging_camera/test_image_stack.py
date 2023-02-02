@@ -392,7 +392,7 @@ def test_image_stack_plotting(rgb_alignment_image_data):
     assert id(image) == id(plt.gca().get_images()[0])
 
     with pytest.raises(
-            AssertionError, match="Supplied image_handle with a different axes than the provided axes"
+        ValueError, match="Supplied image_handle with a different axes than the provided axes"
     ):
         stack.plot(channel="blue", frame=0, image_handle=image, axes=plt.axes(label="a new axes"))
     # Plot to a new axis

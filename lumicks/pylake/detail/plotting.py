@@ -9,9 +9,8 @@ def get_axes(axes=None, image_handle=None):
     if axes is None:
         axes = plt.gca() if image_handle is None else image_handle.axes
     if image_handle:
-        assert (
-            axes == image_handle.axes
-        ), "Supplied image_handle with a different axes than the provided axes"
+        if axes != image_handle.axes:
+            raise ValueError("Supplied image_handle with a different axes than the provided axes")
     return axes
 
 

@@ -22,6 +22,7 @@
   * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `ValueError`.
   * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
   * Image reconstruction now raises a `ValueError` if the length of the data and infowave are not equal.
+  * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided. 
 
 #### New features
 
