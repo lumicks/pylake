@@ -2,6 +2,13 @@
 
 ## v1.0.0 | t.b.d.
 
+#### Breaking changes
+
+* Changed several `asserts` to `Exceptions`.
+  * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
+  * Attempting to extend `KymoTracks` by `KymoTracks` originating from a different `Kymograph` now results in a `ValueError`.
+  * Attempting to connect two tracks with the same start and ending time point now raises a `ValueError`. 
+
 #### New features
 
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.

@@ -1,4 +1,5 @@
 import pytest
+import re
 import numpy as np
 from lumicks.pylake.kymotracker.detail.peakfinding import (
     peak_estimate,
@@ -20,6 +21,21 @@ def test_peak_estimation(location):
     position = position + 5
     peaks = KymoPeaks(*refine_peak_based_on_moment(data, position, time, 4))
     assert np.abs(peaks.frames[0].coordinates[0] - location) < 1e-3
+
+
+def test_invalid_peak_construction():
+    with pytest.raises(ValueError, match="You need to provide at least one time point"):
+        KymoPeaks(np.array([]), np.array([]), np.array([]))
+
+    for coordinates, amplitudes in (([3, 4], [3, 4, 5]), ([3, 4, 5], [3, 4])):
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                f"Number of time points (3), coordinates ({len(coordinates)}) and peak amplitudes "
+                f"({len(amplitudes)}) must be equal"
+            ),
+        ):
+            KymoPeaks(coordinates, np.array([1, 2, 3]), amplitudes)
 
 
 def test_peak_refinement_input_validation():

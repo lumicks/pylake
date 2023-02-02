@@ -78,11 +78,26 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
         color channel that was used for tracking.
     delimiter : str
         The string used to separate columns.
+
+    Returns
+    -------
+    kymotrack_group : KymoTrackGroup
+        Tracked kymograph lines that were stored in the file.
+
+    Raises
+    ------
+    IOError
+        If the file format is not as expected.
     """
 
-    data = np.loadtxt(filename, delimiter=delimiter)
-    assert len(data.shape) == 2, "Invalid file format"
-    assert data.shape[0] > 2, "Invalid file format"
+    # TODO: File format validation could use some improvement
+    try:
+        data = np.loadtxt(filename, delimiter=delimiter)
+    except ValueError:  # Could not convert to float
+        raise IOError("Invalid file format!")
+
+    if data.ndim != 2 or data.shape[0] <= 2:
+        raise IOError("Invalid file format!")
 
     indices = data[:, 0]
     tracks = np.unique(indices)
@@ -239,9 +254,20 @@ class KymoTrack:
             Number of points to use for linear regression.
         extrapolation_length: float
             How far to extrapolate.
+
+        Raises
+        ------
+        ValueError
+            If there are insufficient points to extrapolate a linear curve from (two points). This
+            can be due to too few points being available, or `n_estimate` being smaller than two.
+        RuntimeError
+            If this line consists of fewer than two points, it cannot be extrapolated.
         """
-        assert n_estimate > 1, "Too few time points to extrapolate"
-        assert len(self.time_idx) > 1, "Cannot extrapolate linearly with less than one time point"
+        if n_estimate < 2:
+            raise ValueError("Cannot extrapolate linearly with fewer than two timepoints")
+
+        if len(self.time_idx) < 2:
+            raise RuntimeError("Cannot extrapolate linearly with fewer than two timepoints")
 
         time_idx = np.array(self.time_idx)
         coordinate_idx = np.array(self.coordinate_idx)
@@ -319,9 +345,9 @@ class KymoTrack:
 
         Returns
         -------
-        lag_time : array_like
+        lag_time : np.ndarray
             array of lag times
-        msd : array_like
+        msd : np.ndarray
             array of mean square distance estimates for the corresponding lag times
 
         References
@@ -538,8 +564,11 @@ class KymoTrackGroup:
         kymos = set([track._kymo._id for track in kymo_tracks])
         channels = set([track._channel for track in kymo_tracks])
 
-        assert len(kymos) == 1, "All tracks must have the same source kymograph."
-        assert len(channels) == 1, "All tracks must be from the same color channel."
+        if len(kymos) > 1:
+            raise ValueError("All tracks must have the same source kymograph.")
+
+        if len(channels) > 1:
+            raise ValueError("All tracks must be from the same color channel.")
 
         return next(iter(kymos)), next(iter(channels))
 
@@ -616,6 +645,13 @@ class KymoTrackGroup:
             Second track to connect
         ending_node: int
             Index of the node in the track to connect to
+
+        Raises
+        ------
+        RuntimeError
+            If the two tracks do not belong to the same group.
+        ValueError
+            If the two points we are attempting to connect are part of the same frame.
         """
         if starting_track not in self._src or ending_track not in self._src:
             raise RuntimeError("Both tracks need to be part of this group to be merged")
@@ -625,7 +661,8 @@ class KymoTrackGroup:
 
         start_time_idx = starting_track.time_idx[starting_node]
         end_time_idx = ending_track.time_idx[ending_node]
-        assert start_time_idx != end_time_idx, "Cannot connect two points with the same time index."
+        if start_time_idx == end_time_idx:
+            raise ValueError("Cannot connect two points with the same time index.")
 
         # ensure that tracks are properly ordered so resulting merge track
         # has coordinates sorted in ascending time indices
@@ -652,6 +689,22 @@ class KymoTrackGroup:
         return len(self._src)
 
     def extend(self, other):
+        """Extend this group with additional `KymoTrack` instances.
+
+        Parameters
+        ----------
+        other : `KymoTrack` or `KymoTrackGroup`
+            `Kymograph` tracks to extend this group with.
+
+        Raises
+        ------
+        TypeError
+            If the data to extend this group with isn't a KymoTrack or a KymoTrackGroup
+        ValueError
+            If the `KymoTrack` instances that we want to extend this one with weren't tracked on
+            the same source kymograph.
+        """
+
         if not other:
             return self
 
@@ -664,8 +717,11 @@ class KymoTrackGroup:
         other = self.__class__([other]) if isinstance(other, KymoTrack) else other
         other_kymo, other_channel = self._validate_single_source(other)
         if self:
-            assert self._kymo._id == other_kymo, "All tracks must have the same source kymograph."
-            assert self._channel == other_channel, "All tracks must be from the same color channel."
+            if self._kymo._id != other_kymo:
+                raise ValueError("All tracks must have the same source kymograph.")
+
+            if self._channel != other_channel:
+                raise ValueError("All tracks must be from the same color channel.")
 
         self._src.extend(other._src)
 

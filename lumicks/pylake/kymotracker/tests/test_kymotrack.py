@@ -20,11 +20,14 @@ def test_kymo_track(blank_kymo):
     np.testing.assert_allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
     np.testing.assert_allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
-    # Need at least 2 points for linear extrapolation
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        RuntimeError, match="Cannot extrapolate linearly with fewer than two timepoints"
+    ):
         KymoTrack([1], [1], blank_kymo, "red").extrapolate(True, 5, 2.0)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        ValueError, match="Cannot extrapolate linearly with fewer than two timepoints"
+    ):
         KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red").extrapolate(True, 1, 2.0)
 
     k1 = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
@@ -243,9 +246,8 @@ def test_kymotrack_merge():
     np.testing.assert_equal(tracks[2].time_idx, [1, 2, 4, 5])
     np.testing.assert_almost_equal(tracks[2].coordinate_idx, [10, 10, 3, 3])
 
-    # can't connect nodes with same time index
     tracks = make_tracks()
-    with pytest.raises(AssertionError, match="Cannot connect two points with the same time index."):
+    with pytest.raises(ValueError, match="Cannot connect two points with the same time index."):
         tracks._merge_tracks(tracks[0], 1, tracks[-1], 1)
 
 
@@ -505,7 +507,7 @@ def test_kymotrackgroup_source_kymo():
         tracks_empty._channel
 
     # cannot make group from different source kymos
-    with pytest.raises(AssertionError, match="All tracks must have the same source kymograph."):
+    with pytest.raises(ValueError, match="All tracks must have the same source kymograph."):
         KymoTrackGroup([*green_tracks_a, *green_tracks_b])
 
     # test extend with single track
@@ -517,7 +519,7 @@ def test_kymotrackgroup_source_kymo():
     assert len(tracks_a) == 4
 
     # cannot extend with different source kymos
-    with pytest.raises(AssertionError, match="All tracks must have the same source kymograph."):
+    with pytest.raises(ValueError, match="All tracks must have the same source kymograph."):
         tracks_a.extend(tracks_b)
 
     # test extend from empty group
@@ -526,13 +528,13 @@ def test_kymotrackgroup_source_kymo():
     assert len(tracks_empty) == 4
 
     # cannot make group from different color channels
-    with pytest.raises(AssertionError, match="All tracks must be from the same color channel."):
+    with pytest.raises(ValueError, match="All tracks must be from the same color channel."):
         KymoTrackGroup([*green_tracks_a, *red_tracks_a])
 
     # cannot extend with different color channels
-    with pytest.raises(AssertionError, match="All tracks must be from the same color channel."):
+    with pytest.raises(ValueError, match="All tracks must be from the same color channel."):
         tracks_a.extend(red_tracks_a[0])
-    with pytest.raises(AssertionError, match="All tracks must be from the same color channel."):
+    with pytest.raises(ValueError, match="All tracks must be from the same color channel."):
         tracks_a.extend(KymoTrackGroup(red_tracks_a))
 
 
