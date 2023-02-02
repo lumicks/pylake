@@ -15,7 +15,9 @@
   * FdFitter: when inverting a model with `interpolate=True`, Pylake now raises a `ValueError` if the minimum or maximum is not finite.
   * FdFitter: a `ValueError` is raised when adding incompatible models.
   * FdFitter: When adding data to a fit, adding data with an unequal number of points for the dependent and independent variable will now raise a `ValueError`.
-  * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`. 
+  * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`.
+  * FdFitting: Attempting to evaluate a parameter trace with `lk.parameter_trace()` for a parameter that is not part of the model now results in a `ValueError`.
+  * FdFitting: Attempting to compute a parameter trace while providing an incomplete set of parameters will now result in a `ValueError`.
   
 #### New features
 
