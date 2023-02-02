@@ -246,9 +246,8 @@ def test_kymotrack_merge():
     np.testing.assert_equal(tracks[2].time_idx, [1, 2, 4, 5])
     np.testing.assert_almost_equal(tracks[2].coordinate_idx, [10, 10, 3, 3])
 
-    # can't connect nodes with same time index
     tracks = make_tracks()
-    with pytest.raises(AssertionError, match="Cannot connect two points with the same time index."):
+    with pytest.raises(ValueError, match="Cannot connect two points with the same time index."):
         tracks._merge_tracks(tracks[0], 1, tracks[-1], 1)
 
 

@@ -23,6 +23,7 @@
   * PowerSpectrum: Attempting to replace the power spectral values of a `PowerSpectrum` using `with_spectrum` using a vector of incorrect length will raise a `ValueError`.
   * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
   * Attempting to extend `KymoTracks` by `KymoTracks` originating from a different `Kymograph` now results in a `ValueError`.
+  * Attempting to connect two tracks with the same start and ending time point now raises a `ValueError`. 
 
 #### New features
 

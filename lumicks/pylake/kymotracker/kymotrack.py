@@ -641,7 +641,8 @@ class KymoTrackGroup:
 
         start_time_idx = starting_track.time_idx[starting_node]
         end_time_idx = ending_track.time_idx[ending_node]
-        assert start_time_idx != end_time_idx, "Cannot connect two points with the same time index."
+        if start_time_idx == end_time_idx:
+            raise ValueError("Cannot connect two points with the same time index.")
 
         # ensure that tracks are properly ordered so resulting merge track
         # has coordinates sorted in ascending time indices
