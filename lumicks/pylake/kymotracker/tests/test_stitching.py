@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
@@ -50,9 +51,31 @@ def test_stitching(blank_kymo):
 
     # Check whether the alignment has to work in both directions
     # - and - should connect
-    track1, track2 = KymoTrack([0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 2.01], [0, 0], blank_kymo, "red")
+    track1, track2 = KymoTrack(
+        [0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 2.01], [0, 0], blank_kymo, "red"
+    )
     assert len(stitch_kymo_lines([track1, track2], radius, 1, 2)) == 1
 
     # - and | should not connect.
-    track1, track2 = KymoTrack([0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 2.01], [0, 1], blank_kymo, "red")
+    track1, track2 = KymoTrack(
+        [0, 1], [0, 0], blank_kymo, "red"), KymoTrack([2, 2.01], [0, 1], blank_kymo, "red"
+    )
     assert len(stitch_kymo_lines([track1, track2], radius, 1, 2)) == 2
+
+
+def test_invalid_stitching(blank_kymo):
+    segment_1 = KymoTrack([0], [0], blank_kymo, "red")
+    segment_2 = KymoTrack([2], [2], blank_kymo, "red")
+
+    with pytest.raises(
+        RuntimeError, match="Cannot extrapolate linearly with fewer than two timepoints"
+    ):
+        stitch_kymo_lines([segment_1, segment_2], radius=2, max_extension=2, n_points=2)
+
+    segment_1 = KymoTrack([0, 1], [0, 1], blank_kymo, "red")
+    segment_2 = KymoTrack([2, 3], [2, 2], blank_kymo, "red")
+
+    with pytest.raises(
+        ValueError, match="Cannot extrapolate linearly with fewer than two timepoints"
+    ):
+        stitch_kymo_lines([segment_1, segment_2], radius=2, max_extension=2, n_points=1)

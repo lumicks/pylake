@@ -250,8 +250,11 @@ class KymoTrack:
         extrapolation_length: float
             How far to extrapolate.
         """
-        assert n_estimate > 1, "Too few time points to extrapolate"
-        assert len(self.time_idx) > 1, "Cannot extrapolate linearly with less than one time point"
+        if n_estimate < 2:
+            raise ValueError("Cannot extrapolate linearly with fewer than two timepoints")
+
+        if len(self.time_idx) < 2:
+            raise RuntimeError("Cannot extrapolate linearly with fewer than two timepoints")
 
         time_idx = np.array(self.time_idx)
         coordinate_idx = np.array(self.coordinate_idx)

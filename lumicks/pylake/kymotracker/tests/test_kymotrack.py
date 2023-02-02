@@ -20,11 +20,14 @@ def test_kymo_track(blank_kymo):
     np.testing.assert_allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
     np.testing.assert_allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
-    # Need at least 2 points for linear extrapolation
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        RuntimeError, match="Cannot extrapolate linearly with fewer than two timepoints"
+    ):
         KymoTrack([1], [1], blank_kymo, "red").extrapolate(True, 5, 2.0)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        ValueError, match="Cannot extrapolate linearly with fewer than two timepoints"
+    ):
         KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red").extrapolate(True, 1, 2.0)
 
     k1 = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
