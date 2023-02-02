@@ -323,7 +323,15 @@ class ImageDescription:
             self._alignment = Alignment(align_requested, AlignmentStatus.missing, False)
 
     def verify_stack_similarity(self, other):
-        """Verifies that the metadata for these images reflects a compatible image"""
+        """Verifies that the metadata for these images reflects a compatible image
+
+        Parameters
+        ----------
+        self : ImageDescription
+            Image metadata.
+        other : ImageDescription
+            Image metadata
+        """
 
         if self.is_rgb != other.is_rgb:
             raise ValueError("Cannot mix RGB and non-RGB stacks.")
@@ -333,16 +341,24 @@ class ImageDescription:
 
         # We only allow merging stacks with the exact same alignment settings
         if self._alignment_matrices or other._alignment_matrices:
+            if self._alignment.do_alignment != other._alignment.do_alignment:
+                raise ValueError("Alignment matrices must be the same for stacks to be merged.")
+
             # Checks whether they both have alignment matrices and whether they are the same
-            try:
-                assert self._alignment.do_alignment == other._alignment.do_alignment
+            diff_keys = set(self._alignment_matrices.keys()) - set(other._alignment_matrices.keys())
+            if diff_keys:
+                raise ValueError(
+                    "Alignment matrices must be the same for stacks to be merged. The following "
+                    f"alignment matrices were found in one stack but not the other {diff_keys}."
+                )
 
-                # Check the actual matrices we have here
-                for channel, mat in self._alignment_matrices.items():
-                    assert mat == other._alignment_matrices[channel]
-
-            except (AssertionError, KeyError):  # Check different (assert) or missing (KeyError)
-                raise ValueError("Alignment matrices must be the same for the two stacks.")
+            # Check the actual matrices we have here
+            for channel, mat in self._alignment_matrices.items():
+                if mat != other._alignment_matrices[channel]:
+                    raise ValueError(
+                        f"Alignment matrices must be the same for stacks to be merged. The "
+                        f"alignment matrix for channel {channel} is different."
+                    )
 
     @property
     def alignment_roi(self):
@@ -450,7 +466,8 @@ class TransformMatrix:
 
     def __mul__(self, mat):
         """Perform matrix multiplication such that `self * mat == np.matmul(self, mat)`."""
-        assert isinstance(mat, TransformMatrix), "Operands must be of type `TransformMatrix`."
+        if not isinstance(mat, TransformMatrix):
+            raise TypeError("Operands must be of type `TransformMatrix`.")
         return TransformMatrix(np.matmul(self.matrix, mat.matrix)[:2])
 
     def __eq__(self, other):

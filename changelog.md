@@ -16,7 +16,8 @@
   * FdFitter: a `ValueError` is raised when adding incompatible models.
   * FdFitter: When adding data to a fit, adding data with an unequal number of points for the dependent and independent variable will now raise a `ValueError`.
   * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`.
-  * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided. 
+  * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided.
+  * Widefield: Attempting to open multiple `TIFF` as a single ImageStack will now raise a `ValueError` if the alignment matrices of the individual `TIFF` are different.
   
 #### New features
 

@@ -1,5 +1,6 @@
 import numpy as np
 import json
+import re
 import tifffile
 from pathlib import Path
 import pytest
@@ -956,13 +957,14 @@ def test_alignment_multistack_failure_modes(
     """Check whether we enforce that the metadata agrees."""
 
     def check_error(dataset1, dataset2, error_message):
-        with pytest.raises(ValueError, match=error_message):
+        with pytest.raises(ValueError, match=re.escape(error_message)):
             TiffStack([to_tiff(*dataset1[1:]), to_tiff(*dataset2[1:])], align_requested=False)
 
     check_error(
         rgb_alignment_image_data,
         rgb_alignment_image_data_offset,
-        "Alignment matrices must be the same",
+        "Alignment matrices must be the same for stacks to be merged. The alignment matrix for "
+        "channel 0 is different.",
     )
     check_error(
         rgb_alignment_image_data, gray_alignment_image_data, "Cannot mix RGB and non-RGB stacks"
@@ -975,7 +977,8 @@ def test_alignment_multistack_failure_modes(
     check_error(
         rgb_alignment_image_data,
         rgb_alignment_image_data_no_metadata,
-        "Alignment matrices must be the same",
+        "Alignment matrices must be the same for stacks to be merged. The following alignment "
+        "matrices were found in one stack but not the other {0, 1, 2}.",
     )
 
 
