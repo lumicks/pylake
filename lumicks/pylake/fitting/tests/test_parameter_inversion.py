@@ -2,6 +2,7 @@ from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.parameter_trace import parameter_trace
 import numpy as np
+import pytest
 
 
 def test_parameter_inversion():
@@ -51,3 +52,17 @@ def test_parameter_inversion():
     fit.params["f/b"].value = b_true
     fit.params["f/d"].value = 1.0
     np.testing.assert_allclose(parameter_trace(model, fit.params, "f/d", x, f_plus_g_data), d_true)
+
+
+def test_parameter_trace_invalid_args():
+    def f(independent, a, b):
+        return a + b * independent
+
+    model = Model("f", f)
+    data = {"dependent": np.arange(3), "independent": np.arange(3)}
+
+    with pytest.raises(ValueError, match="Inverted parameter not in model parameter vector"):
+        parameter_trace(model, {"f/a": 5, "f/b": 3}, inverted_parameter="f/c", **data)
+
+    with pytest.raises(ValueError, match=r"Missing parameter f/b in supplied parameter vector"):
+        parameter_trace(model, {"f/a": 5}, inverted_parameter="f/a", **data)

@@ -18,6 +18,8 @@
   * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`.
   * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided.
   * Widefield: Attempting to open multiple `TIFF` as a single ImageStack will now raise a `ValueError` if the alignment matrices of the individual `TIFF` are different.
+  * FdFitting: Attempting to evaluate a parameter trace with `lk.parameter_trace()` for a parameter that is not part of the model now results in a `ValueError`.
+  * FdFitting: Attempting to compute a parameter trace while providing an incomplete set of parameters will now result in a `ValueError`.
   
 #### New features
 
