@@ -25,17 +25,23 @@ def test_build_conditions():
         [1, 2, 3],
         parse_transformation(param_names, {"c": "i_should_not_exist"}),
     )
-    with pytest.raises(AssertionError):
-        assert generate_conditions(
-            {"name1": d1, "name2": d2, "name4": d4}, parameter_lookup, param_names
-        )
+    with pytest.raises(
+        RuntimeError,
+        match="Parameter transformations of data_sets contain transformed parameter names that are "
+              "not in the combined parameter list parameter_lookup"
+    ):
+        generate_conditions({"name1": d1, "name2": d2, "name4": d4}, parameter_lookup, param_names)
 
     # Tests whether we pick up on when a parameter exists in the model, but there's no
     # transformation for it.
     d5 = FitData("name5", [1, 2, 3], [1, 2, 3], parse_transformation(param_names))
     param_names = ["a", "b", "c", "i_am_new"]
     parameter_lookup = OrderedDict(zip(param_names, np.arange(len(param_names))))
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        RuntimeError,
+        match="Source parameters in the data parameter transformations of data_sets are "
+              "incompatible with the specified model parameters in model_params"
+    ):
         assert generate_conditions(
             {"name1": d1, "name2": d2, "name5": d5}, parameter_lookup, param_names
         )
