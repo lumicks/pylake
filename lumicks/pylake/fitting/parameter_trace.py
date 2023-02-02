@@ -3,9 +3,11 @@ import scipy.optimize as optim
 
 
 def parameter_trace(model, params, inverted_parameter, independent, dependent, **kwargs):
-    """Invert a model with respect to one parameter. This function fits a unique parameter for every data point in
-    this data-set while keeping all other parameters fixed. This can be used to for example invert the model with
-    respect to the contour length or some other parameter.
+    """Fit a model with respect to one parameter for each data point.
+
+    This function fits a unique parameter value for every data point in this data-set while keeping
+    all other parameters fixed. This can be used to for example invert the model with respect to
+    the contour length or some other parameter.
 
     Parameters
     ----------
@@ -21,6 +23,20 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
         Vector of values for the dependent variable
     **kwargs :
         Forwarded to scipy.optimize.least_squares
+
+    Returns
+    -------
+    parameter_trace : np.ndarray
+        Array of fitted parameter values for the parameter being fitted.
+
+    Raises
+    ------
+    ValueError
+        If specifying a parameter to invert over (`inverted_parameter`) that is not part of the
+        model.
+    ValueError
+        If a parameter required for model simulation is missing from the supplied parameters in
+        `params`.
 
     Examples
     --------
@@ -39,11 +55,14 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
         lcs = parameter_trace(model, current_fit[data_handle], "model/Lc", distance, force)
     """
     param_names = model.parameter_names
-    assert (
-        inverted_parameter in params
-    ), f"Inverted parameter not in model parameter vector {params}."
+    if inverted_parameter not in params:
+        raise ValueError(
+            f"Inverted parameter {inverted_parameter} not in model parameters {params}."
+        )
+
     for key in param_names:
-        assert key in params, f"Missing parameter {key} in supplied parameter vector."
+        if key not in params:
+            raise ValueError(f"Missing parameter {key} in supplied params.")
 
     # Grab reference parameter vector and index for the parameter list
     param_vector = [params[key].value for key in param_names]
