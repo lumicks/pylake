@@ -111,8 +111,27 @@ class PowerSpectrum:
         return self.frequency.size
 
     def with_spectrum(self, power, num_points_per_block=1):
-        """Return a copy with a different spectrum"""
-        assert len(power) == len(self.power), "Power has incorrect length"
+        """Return a copy with a different spectrum
+
+        Parameters
+        ----------
+        power : np.ndarray
+            Vector of power spectral values
+        num_points_per_block : int
+            Number of points per block used to obtain power spectral values.
+
+        Returns
+        -------
+        power_spectrum : PowerSpectrum
+            Power spectrum with new spectral density values.
+
+        Raises
+        ------
+        ValueError
+            If the power spectrum provided has a different length from the current one.
+        """
+        if len(power) != len(self.power):
+            raise ValueError("New power spectral density vector has incorrect length")
 
         ps = copy(self)
         ps.power = power

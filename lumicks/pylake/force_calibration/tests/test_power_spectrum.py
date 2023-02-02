@@ -174,6 +174,9 @@ def test_replace_spectrum():
     np.testing.assert_allclose(replaced.sample_rate, power_spectrum.sample_rate)
     np.testing.assert_allclose(replaced.total_duration, power_spectrum.total_duration)
 
+    with pytest.raises(ValueError, match="New power spectral density vector has incorrect length"):
+        power_spectrum.with_spectrum(np.arange(7))
+
 
 @pytest.mark.parametrize(
     "exclusion_ranges, result_frequency, result_power",
