@@ -22,6 +22,12 @@ class DwelltimeBootstrap:
         Array of sample optimized amplitude parameters; shape is [number of components, number of samples]
     lifetime_distributions : np.ndarray
         Array of sample optimized lifetime parameters; shape is [number of components, number of samples]
+
+    Raises
+    ------
+    ValueError
+        If the number of amplitude samples isn't the same as the number of lifetime samples.
+        If the number of parameters isn't the same as the number of components.
     """
 
     model: "DwelltimeModel"
@@ -29,9 +35,20 @@ class DwelltimeBootstrap:
     lifetime_distributions: np.ndarray = field(repr=False)
 
     def __post_init__(self):
-        assert self.amplitude_distributions.shape[1] == self.lifetime_distributions.shape[1]
-        assert self.amplitude_distributions.shape[0] == self.model.n_components
-        assert self.lifetime_distributions.shape[0] == self.model.n_components
+        if self.amplitude_distributions.shape[1] != self.lifetime_distributions.shape[1]:
+            raise ValueError(
+                f"Number of amplitude samples ({self.amplitude_distributions.shape[1]}) should be "
+                f"the same as number of lifetime samples ({self.lifetime_distributions.shape[1]})."
+            )
+
+        if any(
+            arr.shape[0] != self.model.n_components
+            for arr in (self.amplitude_distributions, self.lifetime_distributions)
+        ):
+            raise ValueError(
+                "Number of parameters should be the same as the number of components "
+                f"({self.model.n_components})."
+            )
 
     @classmethod
     def _from_dwelltime_model(cls, optimized, iterations):
