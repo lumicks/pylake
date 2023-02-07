@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from copy import deepcopy
+from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
 from lumicks.pylake.kymotracker.kymotracker import track_lines, _interp_to_frame
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -97,7 +98,7 @@ def test_kymotracker_test_bias_rect_lines():
 
     kymo = generate_kymo("chan", img_data, dt=int(0.01e9), pixel_size_nm=1e3)
 
-    tracking_settings = {"line_width": 1.5, "max_lines": 0}
+    tracking_settings = {"line_width": 3.0, "max_lines": 0}
     traces_rect = track_lines(kymo, "red", **tracking_settings, rect=[[0, 2], [22, 12]])
     traces_full = track_lines(kymo, "red", **tracking_settings)
 
@@ -164,3 +165,35 @@ def test_back_interpolation(time, coord, ref_time, ref_coord):
     interp_time, interp_coord = _interp_to_frame(time, coord)
     np.testing.assert_equal(interp_time, ref_time)
     np.testing.assert_allclose(interp_coord, ref_coord)
+
+
+def test_lines_refine():
+    """To test this case we make a specific Kymo that has the following pattern:
+
+    _|_|_|_|_|_|_|_|_|_|_|
+    _|_|_|X|_|_|_|_|_|_|_|
+    _|_|_|_|X|_|_|_|_|_|_|
+    _|_|_|_|_|X|_|_|_|_|_|
+    _|_|_|_|_|_|X|_|_|_|_|
+    _|_|_|_|_|_|_|X|_|_|_|
+    _|_|_|_|_|_|_|_|_|_|_|
+    _|_|_|_|_|_|_|X|_|_|_|
+    _|_|_|_|_|_|_|_|_|_|_|
+
+    Without refinement, the last element will simply be the lowest most point. With refinement,
+    we will get the center of those two pixels.
+    """
+    image = np.ones((12, 11))
+    image[9, 7] = 10
+    for k in np.arange(3, 8):
+        image[k, k] = 10
+
+    kymo = _kymo_from_array(image, "r", line_time_seconds=0.5)
+
+    for refine, reference_values in zip(
+        (True, False),
+        ([3.0, 4.0, 5.0, 6.0, 8.0], [2.999466, 4.000197, 5.017996, 6.181978, 8.719971]),
+    ):
+        lines = track_lines(kymo, "red", 4, 1, refine=refine)
+        np.testing.assert_allclose(lines[0].coordinate_idx, reference_values)
+
