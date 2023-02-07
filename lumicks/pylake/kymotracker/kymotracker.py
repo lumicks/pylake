@@ -279,6 +279,7 @@ def track_lines(
     continuation_threshold=0.005,
     angle_weight=10.0,
     rect=None,
+    refine=True,
 ):
     """Track particles on an image using an algorithm that looks for line-like structures.
 
@@ -298,6 +299,9 @@ def track_lines(
     ambiguity arises, on which point to connect next, a score comprised of the distance to the next
     subpixel minimum and angle between the successive normal vectors is computed. The candidate
     with the lowest score is then selected.
+
+    If desired (`refine=True`), each spot is subsequently refined by performing a bias-corrected
+    centroid optimization according to [2]_.
 
     For more information, please refer to the paper.
 
@@ -322,11 +326,26 @@ def track_lines(
     rect : tuple of two coordinates
         Only perform tracking over a subset of the image. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
+    refine : bool
+        Perform bias corrected centroid refinement after tracking the lines.
+
+    Returns
+    -------
+    kymotrack_group : KymoTrackGroup
+
+    Raises
+    ------
+    ValueError
+        If the line_width is not larger than zero if no refinement is enabled (`refine=False`) or 3
+        pixels if refinement is selected.
 
     References
     ----------
     .. [1] Steger, C. (1998). An unbiased detector of curvilinear structures. IEEE Transactions on
            pattern analysis and machine intelligence, 20(2), 113-125.
+    .. [2] Berglund, A. J., McMahon, M. D., McClelland, J. J., & Liddle, J. A. (2008).
+           Fast, bias-free algorithm for tracking single particles with variable size and
+           shape. Optics express, 16(18), 14064-14075.
     """
     if line_width <= 0:
         raise ValueError("line_width should be larger than zero")
@@ -347,11 +366,17 @@ def track_lines(
         roi=roi,
     )
 
-    return KymoTrackGroup(
+    kymotrack_group = KymoTrackGroup(
         [
             KymoTrack(*_interp_to_frame(line.time_idx, line.coordinate_idx), kymograph, channel)
             for line in lines
         ]
+    )
+
+    return (
+        refine_tracks_centroid(kymotrack_group, track_width=line_width, bias_correction=True)
+        if refine
+        else kymotrack_group
     )
 
 
@@ -439,6 +464,11 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
     -------
     refined_tracks : KymoTrackGroup
         KymoTrackGroup with refined coordinates.
+
+    Raises
+    ------
+    ValueError
+        If the track width is not at least 3 pixels.
 
     References
     ----------
