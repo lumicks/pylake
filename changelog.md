@@ -37,7 +37,7 @@
 #### Bug fixes
 
 * Fixed incorrect behaviour in `lk.track_lines()` by interpolating back to integer frame times. Prior to this change, `lk.track_lines()` would provide a subpixel accurate position along the time axis of the kymograph as well. However, this position was specified with respect to the coordinate system of the image, rather than actual acquisition times. As such, it would produce incorrect results when performing downstream analysis that rely on the time corresponding to an actual time. Note that `lk.track_greedy()` is not affected.
-* Fixed bug in `lk.track_lines()` which made it return one more line than requested through the parameter `max_lines`.
+* Fixed bug in `lk.track_lines()` where one extra line was returned rather than the number requested through the parameter `max_lines`.
 
 ## v0.13.3 | 2023-01-26
 

@@ -191,3 +191,16 @@ def test_lines_refine():
     kymo = _kymo_from_array(image, "r", line_time_seconds=0.5)
     lines = track_lines(kymo, "red", 4, 1)
     np.testing.assert_allclose(lines[0].coordinate_idx, [3.0, 4.0, 5.0, 6.0, 8.0])
+
+
+def test_tracking_max_lines():
+    image = np.ones((30, 20))
+    for k in range(1, 7):
+        image[4 * k, 2:-1] = 10
+
+    kymo = _kymo_from_array(image, "r", line_time_seconds=0.5)
+    lines = track_lines(kymo, "red", line_width=3, max_lines=100)
+    assert len(lines) > 5  # Note that it finds more than 6, some single spurious noise peaks
+
+    lines = track_lines(kymo, "red", line_width=3, max_lines=4)
+    assert len(lines) == 4
