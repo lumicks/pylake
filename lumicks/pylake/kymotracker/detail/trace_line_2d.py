@@ -319,7 +319,7 @@ def detect_lines_from_geometry(
         if masked_derivative[idx[0], idx[1]] == KymoCode.seen:
             continue
 
-        if masked_derivative[idx[0], idx[1]] >= thresh or len(lines) > max_lines:
+        if masked_derivative[idx[0], idx[1]] >= thresh or len(lines) >= max_lines:
             break
 
         # Traverse the line. Note that traverse_line modifies the masked_derivative image by marking some as seen.
