@@ -16,3 +16,4 @@ For all of the examples, it is assumed that the following lines precede any othe
     :maxdepth: 1
 
     diffusion/diffusion
+    force_calibration/force_calibration
