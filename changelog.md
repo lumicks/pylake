@@ -37,6 +37,7 @@
 * Implemented bias correction for centroid refinement that shrinks the window to reduce estimation bias. This bias correction can be toggled by passing a `bias_correction` argument to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).
 * Added `KymoTrackGroup.remove()` to remove a `KymoTrack` from a `KymoTrackGroup`.
 * Allow boolean array indexing (e.g. `tracks[[False, False, True]]`) and indexing with arrays of indices (e.g. `tracks[[1, 3]]`) for `KymoTrackGroup`. See the [API documentation](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup) for more information.
+* Improved force calibration documentation. See the new [Tutorial](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/tutorial/force_calibration.html) and [Theory section](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/theory/force_calibration/force_calibration.html).
 
 #### Bug fixes
 
