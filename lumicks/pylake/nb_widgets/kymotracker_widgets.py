@@ -129,7 +129,7 @@ class KymoWidget:
 
         # Explicit copy to make modifications. Current state pushed to undo stack on assignment.
         tracks = copy(self.tracks)
-        tracks.remove_tracks_in_rect([p1, p2])
+        tracks.remove_tracks_in_rect([p1, p2], not self._adding)
 
         if self._adding:
             new_tracks = self._track(rect=[p1, p2])

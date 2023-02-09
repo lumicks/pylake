@@ -227,17 +227,24 @@ class KymoTrack:
         """Checks if beginning and end of the track are not in the first/last frame."""
         return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.shape[1] - 1
 
-    def in_rect(self, rect):
-        """Check whether any point of this KymoTrack falls in the rect given in rect.
+    def in_rect(self, rect, all_points=False):
+        """Check whether points of this KymoTrack fall in the given rect.
 
         Parameters
         ----------
         rect : Tuple[Tuple[float, float], Tuple[float, float]]
             Coordinates should be given as ((min_time, min_coord), (max_time, max_coord)).
+        all_points : bool
+            Require that all points fall inside the rectangle.
+
+        Returns
+        -------
+        is_inside : bool
         """
         time_match = np.logical_and(self.seconds < rect[1][0], self.seconds >= rect[0][0])
         position_match = np.logical_and(self.position < rect[1][1], self.position >= rect[0][1])
-        return np.any(np.logical_and(time_match, position_match))
+        criterion = np.all if all_points else np.any
+        return criterion(np.logical_and(time_match, position_match))
 
     def interpolate(self):
         """Interpolate KymoTrack to whole pixel values"""
@@ -757,14 +764,15 @@ class KymoTrackGroup:
     def remove_lines_in_rect(self, rect):
         self.remove_tracks_in_rect(rect)
 
-    def remove_tracks_in_rect(self, rect):
-        """Removes tracks that fall in a particular region. Note that if any point on a track falls
-        inside the selected region it will be removed.
+    def remove_tracks_in_rect(self, rect, all_points=False):
+        """Removes tracks that fall in a particular region.
 
         Parameters
         ----------
         rect : array_like
             Array of 2D coordinates in time and space units (not pixels)
+        all_points : bool
+            Only remove tracks that are completely inside the rectangle.
         """
         if rect[0][0] > rect[1][0]:
             rect[0][0], rect[1][0] = rect[1][0], rect[0][0]
@@ -772,7 +780,7 @@ class KymoTrackGroup:
         if rect[0][1] > rect[1][1]:
             rect[0][1], rect[1][1] = rect[1][1], rect[0][1]
 
-        self._src = [track for track in self._src if not track.in_rect(rect)]
+        self._src = [track for track in self._src if not track.in_rect(rect, all_points)]
 
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self)})"
