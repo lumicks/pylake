@@ -73,26 +73,36 @@ def test_kymotrack_selection_non_unit_calibration():
     assert KymoTrack(time, pos, kymo, "red").in_rect(((4, 6 * 5), (6, 8 * 5)))
 
 
-def test_kymotracks_removal(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([2, 2, 2]), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([3, 3, 3]), blank_kymo, "red")
+@pytest.mark.parametrize(
+    "rect, remaining_lines, fully_in_rect",
+    [
+        ([[5, 3], [6, 4]], [True, True, False], False),
+        ([[6, 3], [5, 4]], [True, True, False], False),
+        ([[6, 5], [5, 3]], [True, True, False], False),
+        ([[1, 1], [4, 2]], [False, True, True], True),
+        ([[1, 1], [4, 2]], [False, True, True], False),
+        ([[1, 1], [3, 2]], [True, True, True], True),  # Not fully inside
+        ([[1, 1], [3, 2]], [False, True, True], False),
+        ([[0, 0], [5, 5]], [False, False, False], False),
+        ([[15, 3], [16, 4]], [True, True, True], False),
+    ],
+)
+def test_kymotracks_removal(blank_kymo, rect, remaining_lines, fully_in_rect):
+    """Tests removal of KymoTracks within a particular rectangle.
+
+    Note that the rectangle is given as (min time, min coord) to (max time, max coord)"""
+    k0 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([2, 3, 4]), np.array([2, 2, 2]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([3, 4, 5]), np.array([3, 3, 3]), blank_kymo, "red")
+    tracks = [k0, k1, k2]
 
     def verify(rect, resulting_tracks):
-        k = KymoTrackGroup([k1, k2, k3])
-        k.remove_tracks_in_rect(rect)
+        k = KymoTrackGroup(tracks)
+        k.remove_tracks_in_rect(rect, fully_in_rect)
         assert len(k._src) == len(resulting_tracks)
         assert all([l1 == l2 for l1, l2 in zip(k._src, resulting_tracks)])
 
-    verify([[5, 3], [6, 4]], [k1, k2])
-    verify([[6, 3], [5, 4]], [k1, k2])
-    verify([[6, 5], [5, 3]], [k1, k2])
-    verify([[0, 0], [5, 5]], [])
-    verify([[15, 3], [16, 4]], [k1, k2, k3])
-
-    with pytest.warns(DeprecationWarning):
-        k = KymoTrackGroup([k1, k2, k3])
-        k.remove_lines_in_rect([[5, 3], [6, 4]])
+    verify(rect, [track for track, should_remain in zip(tracks, remaining_lines) if should_remain])
 
 
 def test_kymotrackgroup(blank_kymo):

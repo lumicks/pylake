@@ -100,9 +100,15 @@ def test_track_kymo(kymograph, region_select):
     kymo_widget._track_all()
     assert len(kymo_widget.tracks) == 3
 
+    # Use remove, but don't actually remove the track because it is only partially inside the
+    # rectangle.
+    kymo_widget._adding = False
+    kymo_widget._track_kymo(*region_select(in_s(12), in_um(8), in_s(15), in_um(9)))
+    assert len(kymo_widget.tracks) == 3
+
     # Remove a single track
     kymo_widget._adding = False
-    kymo_widget._track_kymo(*region_select(in_s(15), in_um(8), in_s(20), in_um(9)))
+    kymo_widget._track_kymo(*region_select(in_s(10), in_um(8), in_s(15), in_um(9)))
     assert len(kymo_widget.tracks) == 2
 
 
