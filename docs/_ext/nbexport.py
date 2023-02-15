@@ -72,6 +72,7 @@ class NBTranslator(nodes.NodeVisitor):
         self.indent = 0
         self.paragraph_prefix = ""
         self.paragraph_suffix = ""
+        self.paragraph_html = False
 
         self.app = app
         self.config = app.config
@@ -156,18 +157,22 @@ class NBTranslator(nodes.NodeVisitor):
     def visit_note(self, node):
         self.paragraph_prefix = '<div class="alert alert-block alert-info"><b>Note: </b>'
         self.paragraph_suffix = "</div>"
+        self.paragraph_html = True
 
     def depart_note(self, node):
         self.paragraph_prefix = ""
         self.paragraph_suffix = ""
+        self.paragraph_html = False
 
     def visit_warning(self, node):
         self.paragraph_prefix = '<div class="alert alert-block alert-danger"><b>Warning: </b>'
         self.paragraph_suffix = "</div>"
+        self.paragraph_html = True
 
     def depart_warning(self, node):
         self.paragraph_prefix = ""
         self.paragraph_suffix = ""
+        self.paragraph_html = False
 
     def visit_paragraph(self, node):
         if self.paragraph_prefix:
@@ -178,18 +183,19 @@ class NBTranslator(nodes.NodeVisitor):
             self.write_markdown(self.paragraph_suffix)
         self.write_markdown("\n\n")
 
-    def visit_reference(self, node):
-        self.write_markdown("[")
-
-    def depart_reference(self, node):
+    def _grab_target(self, node):
         if "refuri" in node:
             url = node["refuri"]
             if node.get("internal"):
-                url = posixpath.join(self.config.nbexport_baseurl, self.docpath, url)
-
-            self.write_markdown(f"]({url})")
+                return posixpath.join(self.config.nbexport_baseurl, self.docpath, url)
         else:
-            self.write_markdown(f"](#{node['refid']})")
+            return f"#{node['refid']}"
+
+    def visit_reference(self, node):
+        self.write_markdown(f'<a href="{self._grab_target(node)}">' if self.paragraph_html else "[")
+
+    def depart_reference(self, node):
+        self.write_markdown("</a>" if self.paragraph_html else f"]({self._grab_target(node)})")
 
     def visit_download_reference(self, node):
         if node.hasattr("filename"):
