@@ -47,9 +47,16 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
     conda config --add channels conda-forge
 
-#. We can install Pylake in this environment by invoking the following command::
+#. We can install Pylake in this environment by invoking the following command:
 
-    conda install lumicks.pylake
+    .. code-block::
+
+        conda install lumicks.pylake "jupyter_client<8"
+
+    .. note::
+
+        There is currently an `open issue <https://github.com/jupyter/notebook/issues/6748>`_ with Jupyter that results in communication problems between Jupyter notebooks and the Jupyter kernel.
+        As a workaround, we temporarily suggest adding the constraint `jupyter_client<8` to install an older version of this kernel.
 
 #. It should be possible to open a jupyter notebook in this environment by calling::
 
@@ -92,9 +99,16 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 
     conda config --add channels conda-forge
 
-#. We can install Pylake in this environment by invoking the following command::
+#. We can install Pylake in this environment by invoking the following command:
 
-    conda install lumicks.pylake
+    .. code-block::
+
+        conda install lumicks.pylake "jupyter_client<8"
+
+    .. note::
+
+        There is currently an `open issue <https://github.com/jupyter/notebook/issues/6748>`_ with Jupyter that results in communication problems between Jupyter notebooks and the Jupyter kernel.
+        As a workaround, we temporarily suggest adding the constraint `jupyter_client<8` to install an older version of this kernel.
 
 #. You can open a Jupyter notebook in this environment by calling `jupyter notebook` from the terminal.
 
@@ -124,9 +138,16 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 
     conda config --add channels conda-forge
 
-#. Install Pylake in this environment by invoking the following command::
+#. Install Pylake in this environment by invoking the following command:
 
-    conda install lumicks.pylake
+    .. code-block::
+
+        conda install lumicks.pylake "jupyter_client<8"
+
+    .. note::
+
+        There is currently an `open issue <https://github.com/jupyter/notebook/issues/6748>`_ with Jupyter that results in communication problems between Jupyter notebooks and the Jupyter kernel.
+        As a workaround, we temporarily suggest adding the constraint `jupyter_client<8` to install an older version of this kernel.
 
 #. You can open a jupyter notebook in this environment by calling::
 
