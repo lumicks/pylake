@@ -27,8 +27,5 @@ ignore =
     E501,
     # Don't complain about star imports.
     F403,F405,
-    # Don't complain about f"'{x}'" quotes. `!r` is not particularly readable, especially not for
-    # cases where one would have to resort to f"{str(x)!r}"
-    B028,
 
 show-source = True
