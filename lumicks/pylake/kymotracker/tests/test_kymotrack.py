@@ -39,6 +39,7 @@ def test_kymo_track(blank_kymo):
     assert k2._kymo == blank_kymo
     assert k1._channel == "red"
     assert k2._channel == "red"
+    assert str(k1) == "KymoTrack(N=3)"
 
 
 def test_kymotrack_selection(blank_kymo):
@@ -105,7 +106,7 @@ def test_kymotracks_removal(blank_kymo, rect, remaining_lines, fully_in_rect):
     verify(rect, [track for track, should_remain in zip(tracks, remaining_lines) if should_remain])
 
 
-def test_kymotrackgroup(blank_kymo):
+def test_kymotrack_group_getitem(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
     k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
@@ -116,14 +117,29 @@ def test_kymotrackgroup(blank_kymo):
     assert len(tracks) == 4
     assert tracks[0] == k1
     assert tracks[1] == k2
+    assert tracks[-1] == k4
+    assert len(tracks[0:2]) == 2
     assert tracks[0:2][0] == k1
     assert tracks[0:2][1] == k2
+    assert tracks[1:3][0] == k2
+    assert tracks[1:3][1] == k3
+    assert tracks[2:-1][0] == k3
+    assert len(tracks[2:-1]) == 1
+    assert tracks[2:][0] == k3
+    assert tracks[2:][1] == k4
 
     with pytest.raises(IndexError):
         tracks[0:2][2]
 
     with pytest.raises(NotImplementedError):
         tracks[1] = 4
+
+
+def test_kymotrack_group_extend(blank_kymo):
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
 
     tracks = KymoTrackGroup([k1, k2])
     tracks.extend(KymoTrackGroup([k3, k4]))
@@ -137,7 +153,7 @@ def test_kymotrackgroup(blank_kymo):
         tracks.extend(5)
 
 
-def test_kymotrackgroup(blank_kymo):
+def test_kymotrack_group(blank_kymo):
     def validate_same(kymoline_group, ref_list, source_items, ref_kymo):
         assert [k for k in kymoline_group] == ref_list
         assert id(kymoline_group) not in (id(s) for s in source_items)
