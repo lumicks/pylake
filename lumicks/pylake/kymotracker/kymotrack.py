@@ -162,6 +162,9 @@ class KymoTrack:
     def _image(self):
         return self._kymo.get_image(self._channel)
 
+    def __str__(self):
+        return f"KymoTrack(N={len(self._time_idx)})"
+
     def _with_coordinates(self, time_idx, localization):
         """Return a copy of the KymoTrack with new spatial/temporal coordinates."""
         return KymoTrack(
