@@ -189,11 +189,5 @@ def test_lines_refine():
         image[k, k] = 10
 
     kymo = _kymo_from_array(image, "r", line_time_seconds=0.5)
-
-    for refine, reference_values in zip(
-        (True, False),
-        ([3.0, 4.0, 5.0, 6.0, 8.0], [2.999466, 4.000197, 5.017996, 6.181978, 8.719971]),
-    ):
-        lines = track_lines(kymo, "red", 4, 1, refine=refine)
-        np.testing.assert_allclose(lines[0].coordinate_idx, reference_values)
-
+    lines = track_lines(kymo, "red", 4, 1)
+    np.testing.assert_allclose(lines[0].coordinate_idx, [3.0, 4.0, 5.0, 6.0, 8.0])

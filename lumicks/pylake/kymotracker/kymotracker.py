@@ -279,7 +279,6 @@ def track_lines(
     continuation_threshold=0.005,
     angle_weight=10.0,
     rect=None,
-    refine=True,
 ):
     """Track particles on an image using an algorithm that looks for line-like structures.
 
@@ -287,7 +286,8 @@ def track_lines(
     and the API is still subject to change without a prior deprecation notice.
 
     This function tracks particles in an image. It takes a pixel image, and traces lines on it.
-    These lines can subsequently be refined and/or used to extract intensities or other parameters.
+    These lines are subsequently refined and/or used to extract intensities or other parameters.
+    Refinement is performed using a bias-corrected centroid optimization according to [2]_.
 
     This method is based on sections 1, 2 and 3 from [1]_. This method attempts to find lines purely
     based on differential geometric considerations. It blurs the image based with a user specified
@@ -299,9 +299,6 @@ def track_lines(
     ambiguity arises, on which point to connect next, a score comprised of the distance to the next
     subpixel minimum and angle between the successive normal vectors is computed. The candidate
     with the lowest score is then selected.
-
-    If desired (`refine=True`), each spot is subsequently refined by performing a bias-corrected
-    centroid optimization according to [2]_.
 
     For more information, please refer to the paper.
 
@@ -326,8 +323,6 @@ def track_lines(
     rect : tuple of two coordinates
         Only perform tracking over a subset of the image. Coordinates should be given as:
         ((min_time, min_coord), (max_time, max_coord)).
-    refine : bool
-        Perform bias corrected centroid refinement after tracking the lines.
 
     Returns
     -------
@@ -336,8 +331,7 @@ def track_lines(
     Raises
     ------
     ValueError
-        If the line_width is not larger than zero if no refinement is enabled (`refine=False`) or 3
-        pixels if refinement is selected.
+        If the line_width is not larger than 3 pixels if refinement is selected.
 
     References
     ----------
@@ -373,11 +367,7 @@ def track_lines(
         ]
     )
 
-    return (
-        refine_tracks_centroid(kymotrack_group, track_width=line_width, bias_correction=True)
-        if refine
-        else kymotrack_group
-    )
+    return refine_tracks_centroid(kymotrack_group, track_width=line_width, bias_correction=True)
 
 
 @deprecated(
