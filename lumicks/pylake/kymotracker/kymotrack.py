@@ -641,26 +641,6 @@ class KymoTrackGroup:
         except IndexError:
             raise RuntimeError("No channel associated with this empty group (no tracks available)")
 
-    def _concatenate_tracks(self, starting_track, ending_track):
-        """Concatenate two tracks together.
-
-        Parameters
-        ----------
-        starting_track : KymoTrack
-            Note that this track has to start before the second one.
-        ending_track : KymoTrack
-        """
-        if starting_track not in self._src or ending_track not in self._src:
-            raise RuntimeError("Both tracks need to be part of this group to be concatenated")
-
-        if starting_track.seconds[-1] >= ending_track.seconds[0]:
-            raise RuntimeError(
-                "First track needs to end before the second starts for concatenation"
-            )
-
-        self._src[self._src.index(starting_track)] = starting_track + ending_track
-        self._src.remove(ending_track)
-
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
         """Connect two tracks from any given nodes, removing the points in between.
 
