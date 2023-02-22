@@ -135,6 +135,31 @@ def test_kymotrack_group_getitem(blank_kymo):
         tracks[1] = 4
 
 
+@pytest.mark.parametrize(
+    "remove,remaining",
+    [
+        ([1], [True, False, True]),
+        ([0, 1], [False, False, True]),
+        ([2, 1], [True, False, False]),
+    ],
+)
+def test_kymotrackgroup_remove(blank_kymo, remove, remaining):
+    src_tracks = [
+        KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red"),
+        KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red"),
+        KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red"),
+    ]
+
+    tracks = KymoTrackGroup(src_tracks)
+    for track in remove:
+        tracks.remove(src_tracks[track])
+    for track, should_be_present in zip(src_tracks, remaining):
+        if remaining:
+            assert track in tracks
+        else:
+            assert track not in tracks
+
+
 def test_kymotrack_group_extend(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")

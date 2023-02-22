@@ -627,6 +627,16 @@ class KymoTrackGroup:
         new_group.extend(other)
         return new_group
 
+    def remove(self, track: KymoTrack):
+        """Remove a KymoTrack from the KymoTrackGroup
+
+        Parameters
+        ----------
+        track : KymoTrack
+            track to remove from the group
+        """
+        self._src.remove(track)
+
     @property
     def _kymo(self):
         try:
