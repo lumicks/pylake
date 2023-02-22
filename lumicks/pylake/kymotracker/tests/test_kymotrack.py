@@ -181,41 +181,6 @@ def test_kymotrack_group(blank_kymo):
         tracks1 + 5
 
 
-def test_kymotrack_concat(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([3, 3, 3]), blank_kymo, "red")
-    k4 = KymoTrack(np.array([8, 9, 10]), np.array([3, 3, 3]), blank_kymo, "red")
-    group = KymoTrackGroup([k1, k2, k3])
-
-    # Test whether overlapping time raises.
-    with pytest.raises(RuntimeError):
-        group._concatenate_tracks(k1, k3)
-
-    # Kymotracks have to be added sequentially. Check whether the wrong order raises.
-    with pytest.raises(RuntimeError):
-        group._concatenate_tracks(k2, k1)
-
-    # Check whether a track that's not in the group raises (should only be able to merge
-    # within group)
-    with pytest.raises(RuntimeError):
-        group._concatenate_tracks(k1, k4)
-
-    # Check whether a track that's not in the group raises (should only be able to merge
-    # within group)
-    with pytest.raises(RuntimeError):
-        group._concatenate_tracks(k4, k1)
-
-    # Check whether an invalid type raises correctly
-    with pytest.raises(RuntimeError):
-        group._concatenate_tracks(k1, 5)
-
-    # Finally do a correct merge
-    group._concatenate_tracks(k1, k2)
-    np.testing.assert_allclose(group[0].seconds, [1, 2, 3, 6, 7, 8])
-    np.testing.assert_allclose(group[1].seconds, [3, 4, 5])
-
-
 def test_kymotrack_merge():
     image = np.random.randint(0, 20, size=(10, 10, 3))
     kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
@@ -586,8 +551,8 @@ def test_kymotrack_concat_gaussians(blank_kymo):
     assert isinstance(k1._localization, LocalizationModel)
     assert isinstance(k2._localization, GaussianLocalizationModel)
 
-    # test concatenation clears gaussian parameters
-    group._concatenate_tracks(k1, k2)
+    # test merging clears gaussian parameters
+    group._merge_tracks(k1, 2, k2, 2)
     assert len(group) == 1
     assert isinstance(group[0]._localization, LocalizationModel)
 
