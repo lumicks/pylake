@@ -627,6 +627,20 @@ class KymoTrackGroup:
         new_group.extend(other)
         return new_group
 
+    def _get_track_by_id(self, python_id):
+        """Finds a track by its python identity
+
+        Parameters
+        ----------
+        python_id : int
+            python identity
+
+        Returns
+        -------
+        track : KymoTrack or None
+        """
+        return next((track for track in self._src if id(track) == python_id), None)
+
     def remove(self, track: KymoTrack):
         """Remove a KymoTrack from the KymoTrackGroup
 
