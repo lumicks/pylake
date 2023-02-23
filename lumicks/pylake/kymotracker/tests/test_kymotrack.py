@@ -160,6 +160,23 @@ def test_kymotrackgroup_remove(blank_kymo, remove, remaining):
             assert track not in tracks
 
 
+def test_kymotrackgroup_lookup(blank_kymo):
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+
+    tracks = KymoTrackGroup([k1, k2, k3])
+    assert tracks._get_track_by_id(id(k1)) is k1
+    assert tracks._get_track_by_id(id(k2)) is k2
+    tracks.remove(k2)
+    assert tracks._get_track_by_id(id(k2)) is None
+    assert tracks._get_track_by_id(id(k3)) is k3
+    assert tracks._get_track_by_id(-1) is None
+
+    tracks = KymoTrackGroup([])
+    assert tracks._get_track_by_id(id(k1)) is None
+
+
 def test_kymotrack_group_extend(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
