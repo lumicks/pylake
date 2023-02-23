@@ -177,6 +177,27 @@ def test_kymotrackgroup_lookup(blank_kymo):
     assert tracks._get_track_by_id(id(k1)) is None
 
 
+def test_kymotrack_group_indexing(blank_kymo):
+    k0 = KymoTrack(np.array([1, 2, 3, 4]), np.array([2, 3, 4, 5]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.array([3, 4, 5, 6, 7]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+    group = KymoTrackGroup([k0, k1, k2])
+
+    def verify_group(group, ref_list):
+        assert len(group) == len(ref_list)
+        for t1, t2 in zip(group, ref_list):
+            assert t1 is t2
+
+    # Boolean array indexing
+    verify_group(group[[len(t) > 3 for t in group]], [k0, k1])
+    verify_group(group[[len(t) < 4 for t in group]], [k2])
+
+    # Regular array indexing
+    verify_group(group[np.asarray([0, 2])], [k0, k2])
+    verify_group(group[[0, 2]], [k0, k2])
+    verify_group(group[[-2]], [k1])
+
+
 def test_kymotrack_group_extend(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
