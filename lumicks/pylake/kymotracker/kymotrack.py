@@ -1,5 +1,6 @@
 from copy import copy
 from sklearn.neighbors import KernelDensity
+import itertools
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel
 from .. import __version__
@@ -657,19 +658,36 @@ class KymoTrackGroup:
                     "Some tracks appear multiple times. The provided tracks must be unique."
                 )
 
-            self._validate_single_source(kymo_tracks)
+        	self._validate_compatible_sources()
 
-    def _validate_single_source(self, kymo_tracks):
-        kymos = set([track._kymo._id for track in kymo_tracks])
-        channels = set([track._channel for track in kymo_tracks])
+    def _validate_compatible_sources(self, *kymo_tracks):
+        """Check that source kymos for all tracks (including in self) are compatible.
 
-        if len(kymos) > 1:
-            raise ValueError("All tracks must have the same source kymograph.")
+        Parameters
+        ----------
+        *kymo_tracks : KymoTrackGroup
+            Additional tracks to be added to the current instance.
+        """
+        tracks = list(itertools.chain(self, *kymo_tracks))
+        if not len(tracks):
+            return
 
+        channels = set([track._channel for track in tracks])
         if len(channels) > 1:
-            raise ValueError("All tracks must be from the same color channel.")
+            raise ValueError(f"All tracks must be from the same color channel, got {channels}.")
 
-        return next(iter(kymos)), next(iter(channels))
+        linetimes = set([track._kymo.line_time_seconds for track in tracks])
+        if len(linetimes) > 1:
+            linetimes = set([f"{lt:0.4e}" for lt in linetimes])
+            raise ValueError(f"All tracks must calibrated in the same units, got {linetimes} seconds.")
+
+        calibrations = set([track._kymo._calibration.unit for track in tracks])
+        if len(calibrations) > 1:
+            raise ValueError(f"All tracks must calibrated in the same units, got {calibrations}.")
+
+        pixelsizes = set([track._kymo.pixelsize[0] for track in tracks])
+        if len(pixelsizes) > 1:
+            raise ValueError(f"All tracks must have the same pixel size, got {pixelsizes} {list(calibrations)[0]}.")
 
     def __iter__(self):
         return self._src.__iter__()
@@ -838,6 +856,7 @@ class KymoTrackGroup:
                 "group"
             )
 
+        self._validate_compatible_sources(other)
         self._src.extend(other._src)
 
     def remove_tracks_in_rect(self, rect, all_points=False):
