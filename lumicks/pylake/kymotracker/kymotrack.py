@@ -585,7 +585,41 @@ class KymoTrack:
 
 
 class KymoTrackGroup:
-    """Tracks on a kymograph."""
+    """Tracks on a kymograph.
+
+    :class:`KymoTrackGroup` instances are typically returned from tracking or refinement algorithms. They
+    contain a number of :class:`KymoTrack` instances.
+
+    Parameters
+    ----------
+    kymo_tracks : list of :class:`KymoTrack`
+        Kymograph tracks.
+
+    Raises
+    ------
+    ValueError
+        If the :class:`KymoTrack` instances weren't tracked on the same source kymograph.
+
+    Examples
+    --------
+    ::
+
+        from lumicks import pylake
+
+        tracks = lk.track_greedy(kymo, channel="red", pixel_threshold=5)
+
+        tracks[1]  # Extract the second `KymoTrack` from the group.
+        tracks[-1]  # Extract the last `KymoTrack` from the group.
+        tracks[1:3]  # Extract a `KymoTrackGroup` with the second and third kymotrack in the group.
+
+        # You can also perform boolean array indexing. For example, one can extract a
+        # `KymoTrackGroup` containing all tracks with more than 3 points.
+        tracks[[len(track) > 3 for track in tracks]]
+
+        # Or index by a list or numpy array
+        tracks[[1, 3]]  # Extract the second and fourth track.
+        tracks[np.asarray([1, 3])]  # Same as above.
+    """
 
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
@@ -610,8 +644,11 @@ class KymoTrackGroup:
     def __getitem__(self, item):
         if isinstance(item, slice):
             return KymoTrackGroup(self._src[item])
-        else:
+
+        try:
             return self._src[item]
+        except TypeError:  # Not an integer
+            return KymoTrackGroup([self._src[idx] for idx in np.arange(len(self))[item]])
 
     def __setitem__(self, item, value):
         raise NotImplementedError("Cannot overwrite KymoTracks.")
