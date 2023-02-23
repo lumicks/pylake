@@ -101,7 +101,7 @@ def test_kymotracks_removal(blank_kymo, rect, remaining_lines, fully_in_rect):
         k = KymoTrackGroup(tracks)
         k.remove_tracks_in_rect(rect, fully_in_rect)
         assert len(k._src) == len(resulting_tracks)
-        assert all([l1 == l2 for l1, l2 in zip(k._src, resulting_tracks)])
+        assert all([l1 == l2 for l1, l2 in zip(k, resulting_tracks)])
 
     verify(rect, [track for track, should_remain in zip(tracks, remaining_lines) if should_remain])
 
@@ -160,6 +160,17 @@ def test_kymotrackgroup_remove(blank_kymo, remove, remaining):
             assert track not in tracks
 
 
+def test_kymotrack_group_unique_construction(blank_kymo):
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
+    with pytest.raises(
+        ValueError, match="Some tracks appear multiple times. The provided tracks must be unique."
+    ):
+        KymoTrackGroup([k1, k2, k2])
+
+    KymoTrackGroup([])  # An empty one should be ok
+
+
 def test_kymotrackgroup_lookup(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
@@ -212,8 +223,21 @@ def test_kymotrack_group_extend(blank_kymo):
     tracks.extend(k4)
     assert [k for k in tracks] == [k1, k2, k3, k4]
 
-    with pytest.raises(TypeError):
-        tracks.extend(5)
+    tracks = KymoTrackGroup([k1, k2, k3])
+
+    duplicate_error = "Cannot extend this KymoTrackGroup with a KymoTrack that is already " \
+                      "part of the group"
+
+    for extension, exception, error in (
+        (5, TypeError, "You can only extend a KymoTrackGroup with a KymoTrackGroup or KymoTrack"),
+        (KymoTrackGroup([k3, k4]), ValueError, duplicate_error),
+        (k3, ValueError, duplicate_error),
+    ):
+        with pytest.raises(exception, match=error):
+            tracks.extend(extension)
+
+        # Validate that we did not modify the list when it failed
+        assert [k for k in tracks] == [k1, k2, k3]
 
 
 def test_kymotrack_group(blank_kymo):
@@ -698,8 +722,11 @@ def test_fit_binding_times(blank_kymo):
 
 def test_fit_binding_times_nonzero(blank_kymo):
     k1 = KymoTrack(np.array([2]), np.zeros(3), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red")
-    tracks = KymoTrackGroup([k1, k2, k2, k2, k2])
+    k2, k3, k4, k5 = (
+        KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red")
+        for _ in range(4)
+    )
+    tracks = KymoTrackGroup([k1, k2, k3, k4, k5])
 
     with pytest.warns(
         RuntimeWarning,
@@ -944,17 +971,25 @@ def test_ensemble_msd_calibration_from_kymo(blank_kymo, kbp_calibration, line_wi
 
 def test_ensemble_api(blank_kymo):
     """Test whether API arguments are forwarded"""
-    track = KymoTrack(np.arange(1, 6), np.arange(1, 6), blank_kymo, "red")
-    long_track = KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red")
-    tracks = KymoTrackGroup([track, track, track, long_track, long_track])
+    short_tracks = [
+        KymoTrack(np.arange(1, 6), np.arange(1, 6), blank_kymo, "red") for _ in range(3)
+    ]
+    long_tracks = [
+        KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red")
+        for _ in range(2)
+    ]
+    tracks = KymoTrackGroup(short_tracks + long_tracks)
 
     assert len(tracks.ensemble_msd(3).lags) == 3
     assert len(tracks.ensemble_msd(100, 3).lags) == 4
     assert len(tracks.ensemble_msd(100, 2).lags) == 5
 
     # Because of the gaps in this track, we will be missing lags 1 and 3
-    gap_track = KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red")
-    tracks = KymoTrackGroup([track, track, gap_track, gap_track, gap_track])
+    gap_tracks = [
+        KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red")
+        for _ in range(3)
+    ]
+    tracks = KymoTrackGroup(short_tracks[0:2] + gap_tracks)
     np.testing.assert_allclose(tracks.ensemble_msd(100, 3).lags, [2, 4])
     np.testing.assert_allclose(tracks.ensemble_msd(100, 3).msd, [4.0, 16.0])
     np.testing.assert_allclose(tracks.ensemble_msd(100, 2).lags, [1, 2, 3, 4])
@@ -987,8 +1022,8 @@ def test_ensemble_cve(blank_kymo):
     assert ensemble_diffusion._unit_label == "um^2 / s"
 
     # Consistency check
-    single_group_msd = KymoTrackGroup([kymotracks._src[0]]).ensemble_diffusion("cve")
-    single_track_msd = kymotracks._src[0].estimate_diffusion("cve")
+    single_group_msd = KymoTrackGroup([kymotracks[0]]).ensemble_diffusion("cve")
+    single_track_msd = kymotracks[0].estimate_diffusion("cve")
     np.testing.assert_allclose(single_group_msd.value, single_track_msd.value)
     np.testing.assert_allclose(single_group_msd.std_err, single_track_msd.std_err)
 

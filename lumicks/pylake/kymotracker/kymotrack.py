@@ -599,6 +599,8 @@ class KymoTrackGroup:
     ------
     ValueError
         If the :class:`KymoTrack` instances weren't tracked on the same source kymograph.
+    ValueError
+        If the :class:`KymoTrack` instances provided in the list are not unique.
 
     Examples
     --------
@@ -624,6 +626,11 @@ class KymoTrackGroup:
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
         if self:
+            if len(set(kymo_tracks)) != len(kymo_tracks):
+                raise ValueError(
+                    "Some tracks appear multiple times. The provided tracks must be unique."
+                )
+
             self._validate_single_source(kymo_tracks)
 
     def _validate_single_source(self, kymo_tracks):
@@ -756,7 +763,7 @@ class KymoTrackGroup:
 
         self._src[self._src.index(starting_track)] = first_half + last_half
         if starting_track != ending_track:
-            self._src.remove(ending_track)
+            self.remove(ending_track)
 
     def __len__(self):
         return len(self._src)
@@ -776,6 +783,9 @@ class KymoTrackGroup:
         ValueError
             If the `KymoTrack` instances that we want to extend this one with weren't tracked on
             the same source kymograph.
+        ValueError
+            If any of the `KymoTrack` instaces we are trying to extend this group with are already
+            part of this group.
         """
 
         if not other:
@@ -795,6 +805,12 @@ class KymoTrackGroup:
 
             if self._channel != other_channel:
                 raise ValueError("All tracks must be from the same color channel.")
+
+        if len(set(other._src) | set(self._src)) != len(self._src) + len(other._src):
+            raise ValueError(
+                "Cannot extend this KymoTrackGroup with a KymoTrack that is already part of the "
+                "group"
+            )
 
         self._src.extend(other._src)
 
