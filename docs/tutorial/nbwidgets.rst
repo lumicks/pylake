@@ -13,30 +13,37 @@ to help you analyze your data. To enable such widgets, start the notebook with::
 Channel slicing
 ---------------
 
-Let's say we want to do some analyses on slices of channel data. It would be nice to just quickly visually select some
-regions using a widget. Let's load the file and run the widget::
+Let's say we want to do some analyses on slices of channel data.
+It would be nice to just quickly visually select some regions using a widget.
+Let's load the file and open an interactive plot using the :meth:`~lumicks.pylake.channel.Slice.range_selector()` method::
 
-    file = lk.File("file.h5")
-    channel = file["Force LF"]["Force 1x"]
+    file = lk.File("kymo.h5")
+    channel = file["Force HF"]["Force 1x"]
+
+    plt.figure()
     selector = channel.range_selector()
 
 .. image:: figures/nbwidgets/slice_widget.png
 
+This returns a :class:`~lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget`.
 You can use the left mouse button to select time ranges (by clicking the left and then the right
-boundary of the region you wish to select). The right mouse button can be used to remove previous
-selections. We can access the selected timestamps of the ranges we selected by invoking
-:attr:`selector.ranges <lumicks.pylake.FdRangeSelector.ranges>`::
+boundary of the region you wish to select).
+The right mouse button can be used to remove previous selections.
+We can access the selected timestamps of the ranges we selected by accessing the :attr:`~lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget.ranges` property::
 
     >>> selector.ranges
-    [array([1572279165841737600, 1572279191523516800], dtype=int64),
-    array([1572279201850211200, 1572279224153072000], dtype=int64)]
+    array([[1638534508099192400, 1638534546751480400],
+           [1638534592854827600, 1638534628712978000]], dtype=int64)
 
-And the actual slices from `selector.slices`. If we want to
-plot all of our selections in separate plots for instance, we can do the following::
+And the actual slices from :attr:`~lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget.slices`.
+If we want to plot all of our selections in separate plots for instance, we can do the following::
 
-    for data_slice in selector.slices:
-        plt.figure()
+    plt.figure(figsize=(3, 6))
+    for idx, data_slice in enumerate(selector.slices):
+        plt.subplot(len(selector.slices), 1, idx + 1)
         data_slice.plot()
+
+    plt.tight_layout()
 
 .. image:: figures/nbwidgets/slice_widget2.png
 
@@ -47,37 +54,48 @@ F,d selection
 Range selection by time
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Assume we have an F,d curve we want to analyze. We know that this file contains one F,d curve which should be split up
-into two segments that we should be analyzing separately::
+Assume we have an F,d curve we want to analyze.
+We know that this file contains one F,d curve which should be split up into three segments that should be analyzed separately.
+Let's open the :class:`~lumicks.pylake.FdRangeSelector` and make a few selections::
 
+    file = lk.File("fd_multiple_Lc.h5")
     fdcurves = file.fdcurves
     selector = lk.FdRangeSelector(fdcurves)
 
-This opens up a little widget, where you can use the left mouse button to select time ranges and the right mouse
-button to remove previous selections.
+This opens up a little widget, where you can use the left mouse button to select time ranges and the right mouse button to remove previous selections.
 
 .. image:: figures/nbwidgets/fd_widget.png
 
-Once we've selected some time ranges, we can output the timestamps::
+After making a few selections, the properties :attr:`~lumicks.pylake.FdRangeSelector.ranges` and :attr:`~lumicks.pylake.FdRangeSelector.fdcurves` contain the time ranges and force extension curves corrseponding to our selection.
+Once we've selected some time ranges, we can output the timestamps using the :attr:`~lumicks.pylake.FdRangeSelector.ranges` property::
 
     >>> selector.ranges
 
-    {'Fd pull #6': [array([1572278052698057600, 1572278078909667200], dtype=int64), array([1572278086737161600, 1572278099133193600], dtype=int64)]}
+    {'40': array([[1588263182203865800, 1588263189671475400], [1588263189981376200, 1588263190821107400], [1588263191131008200, 1588263195189709000]], dtype=int64)}
 
 These timestamps can directly be used to extract the relevant data::
 
-    for t_start, t_stop in selector.ranges["Fd pull #6"]:
-        plt.figure()
-        plt.plot(fdcurves["Fd pull #6"].f[t_start:t_stop].data)
+    plt.figure(figsize=(8, 2.5))
+    for idx, (t_start, t_stop) in enumerate(selector.ranges["40"]):
+        plt.subplot(1, len(selector.ranges["40"]), idx + 1)
+        plt.scatter(
+            fdcurves["40"].d[t_start:t_stop].data,
+            fdcurves["40"].f[t_start:t_stop].data,
+            s=2,  # Use a smaller marker size
+        )
+        plt.xlabel("Distance [$\mu$m]")
+        plt.ylabel("Force [pN]")
+
+    plt.tight_layout()
 
 .. image:: figures/nbwidgets/fd_widget2.png
 
-This produces a separate plot for each selection. There's also a more direct way to get these
-plots, namely through :attr:`FdRangeSelector.fdcurves <lumicks.pylake.FdRangeSelector.fdcurves>`.
+This produces a separate plot for each selection.
+There's also a more direct way to get these plots, namely through :attr:`~lumicks.pylake.FdRangeSelector.fdcurves`.
 This gives you an :class:`~lumicks.pylake.fdcurve.FdCurve` for each section you selected::
 
-    for fdcurve in selector.fdcurves["Fd pull #6"]:
-        plt.figure()
+    plt.figure()
+    for fdcurve in selector.fdcurves["40"]:
         fdcurve.plot_scatter()
 
 .. image:: figures/nbwidgets/fd_widget3.png
@@ -93,7 +111,7 @@ Then, for all those files, we add each individual curves to our variable `fdcurv
     import glob
 
     fdcurves = {}
-    for filename in glob.glob('my_directory/*.h5'):
+    for filename in glob.glob('*.h5'):
         file = lk.File(filename)
         for key, curve in file.fdcurves.items():
             fdcurves[key] = curve
@@ -102,27 +120,34 @@ Using this dictionary, we can open our widget and see all the data at once::
 
     selector = lk.FdRangeSelector(fdcurves)
 
+.. image:: figures/nbwidgets/fd_widget4.png
+
 Plotting the curves can be done similarly as before. Here `.values()` indicates that we want the values from the
 dictionary of curve sets, and not the keys (which in our case are the curve names)::
 
     for curve_set in selector.fdcurves.values():
-        for fdcurve in curve_set:
+        if curve_set:
+            # Open a figure only if we selected regions in this dataset
             plt.figure()
+        for fdcurve in curve_set:
             fdcurve.plot_scatter()
+
+.. image:: figures/nbwidgets/fd_widget5.png
+.. image:: figures/nbwidgets/fd_widget6.png
 
 Range selection by distance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is also possible to select a portion of an F,d curve based on distance::
+It is also possible to select a portion of an F,d curve based on distance using the :class:`~lumicks.pylake.FdDistanceRangeSelector`::
 
     selector = lk.FdDistanceRangeSelector(fdcurves)
 
 .. image:: figures/nbwidgets/fd_dist_widget.png
 
-Again, we can retrieve the selected data just as with :class:`~lumicks.pylake.FdRangeSelector`::
+Again, we can retrieve the selected data from :attr:`~lumicks.pylake.FdDistanceRangeSelector.ranges` and :attr:`~lumicks.pylake.FdDistanceRangeSelector.fdcurves` just as with :class:`~lumicks.pylake.FdRangeSelector`::
 
-    original = fdcurves["Fd pull #6"]
-    sliced = selector.fdcurves["Fd pull #6"][0]
+    original = fdcurves["40"]
+    sliced = selector.fdcurves["40"][0]
 
     plt.figure()
 
@@ -135,36 +160,36 @@ Again, we can retrieve the selected data just as with :class:`~lumicks.pylake.Fd
     original.f.plot()
     sliced.f.plot(start=original.start)
 
-.. image::  figures/nbwidgets/fd_dist_widget2.png
+    plt.tight_layout()
+
+.. image:: figures/nbwidgets/fd_dist_widget2.png
 
 The returned F,d curves correspond to the longest contiguous (in time) stretch of data that falls
-within the distance thresholds. However, noise in the distance measurement can lead to short gaps of the time
-trace falling slightly outside of the thresholds, as illustrated below:
-
-.. image:: figures/nbwidgets/fd_dist_widget3a.png
-
-To avoid premature truncation caused by this noise, there is an additional `max_gap` keyword argument
-to :class:`~lumicks.pylake.FdDistanceRangeSelector` that can be used to adjust the acceptable length of noise gaps. The default values
-is zero, such that all data points are guaranteed to fall within the selected distance range. The effect of this
-argument is shown below for an F,d curve sliced with the same distance thresholds:
-
-.. image:: figures/nbwidgets/fd_dist_widget3.png
+within the distance thresholds.
 
 Range selection of single curve
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The selector widgets can also be easily accessed from single F,d curve instances::
+The selector widgets can also be easily accessed from single :class:`~lumicks.pylake.fdcurve.FdCurve` instances using :meth:`~lumicks.pylake.fdcurve.FdCurve.range_selector`::
 
-    fdcurve = fdcurves["Fd pull #6"]
+    plt.figure()
+    fdcurve = fdcurves["40"]
     t_selector = fdcurve.range_selector()
-    d_selector = fdcurve.distance_range_selector(max_gap=3)
+
+.. image:: figures/nbwidgets/single_curve_widget1.png
+
+And for the distance-based selector we can use :meth:`~lumicks.pylake.fdcurve.FdCurve.distance_range_selector`::
+
+    d_selector = fdcurve.distance_range_selector()
+
+.. image:: figures/nbwidgets/single_curve_widget2.png
 
 .. _crop_and_rotate:
 
 Cropping and Rotating Image Stacks
 ----------------------------------
 
-You can interactively define the location of a tether for a :class:`~lumicks.pylake.ImageStack` by using::
+You can interactively define the location of a tether for a :class:`~lumicks.pylake.ImageStack` by using :meth:`~lumicks.pylake.ImageStack.crop_and_rotate`::
 
     stack = lk.ImageStack("cas9_wf.tiff")
     editor = stack.crop_and_rotate()
@@ -173,10 +198,12 @@ You can interactively define the location of a tether for a :class:`~lumicks.pyl
 Simply left-click on the start of the tether
 
 .. image:: figures/nbwidgets/widget_stack_editor_1.png
+  :nbattach:
 
 and then on the end of the tether
 
 .. image:: figures/nbwidgets/widget_stack_editor_2.png
+  :nbattach:
 
 After a tether is defined, the view will update showing the location of the tether and the
 image rotated such that the tether is horizontal.
@@ -185,16 +212,16 @@ To crop an image, right-click and drag a rectangle around the region of interest
 you can edit the shape by right-clicking and dragging the various handles.
 
 .. image:: figures/nbwidgets/widget_stack_editor_3.png
+  :nbattach:
 
 You can also use the mouse wheel to scroll through the individual frames (if using Jupyter Lab, hold `Shift` while scrolling).
 
-*Note that* :meth:`ImageStack.crop_and_rotate()
-<lumicks.pylake.ImageStack.crop_and_rotate()>` *accepts all of the arguments
-that can be used for* :meth:`ImageStack.plot()
-<lumicks.pylake.ImageStack.plot()>`.
+*Note that* :meth:`~lumicks.pylake.ImageStack.crop_and_rotate` *accepts all of the arguments
+that can be used for* :meth:`~lumicks.pylake.ImageStack.plot()`.
 
 To obtain a copy of the edited :class:`~lumicks.pylake.ImageStack` object, use::
 
+    plt.figure()
     new_stack = editor.image
     new_stack.plot()
     new_stack.plot_tether()
@@ -210,27 +237,47 @@ Kymotracking
     For details of the tracking algorithms and downstream analyses see the :doc:`/tutorial/kymotracking` tutorial.
 
 For tracking binding events on a kymograph, using the :func:`~lumicks.pylake.track_greedy` algorithm purely by function calls can be challenging if not all parts
-of the kymograph look the same or when the signal to noise ratio is somewhat low. To help with this, we included a kymotracking widget that can help you
-track subsections of the kymograph and iteratively tweak the algorithm parameters as you do so. You can open this widget
-by invoking the following command::
+of the kymograph look the same or when the signal to noise ratio is somewhat low.
+To help with this, we included a kymotracking widget that can help you track subsections of the kymograph and iteratively tweak the algorithm parameters as you do so.
+You can open this widget by creating a :class:`~lumicks.pylake.KymoWidgetGreedy` as follows::
 
+    file = lk.File("kymo.h5")
+    kymo = file.kymos["16"]
     kymowidget = lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2)
+
+.. image:: figures/nbwidgets/kymotracker.png
 
 Here we see the optional `axis_aspect_ratio` argument that allows us to control the aspect ratio of the plot and how much data is visible at a given time.
 You can easily pan horizontally by clicking and dragging left or right.
 
 You can optionally also pass algorithm parameters when opening the widget::
 
-    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=3, window=6, sigma=0.14)
+    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=9, window=6, sigma=0.2)
+
+.. image:: figures/nbwidgets/kymotracker2.png
 
 You can also change the range of each of the algorithm parameter sliders. To do this, simply pass a dictionary where the key indicates the algorithm
 parameter and the value contains its desired range in the form `(minimum bound, maximum bound)`. For example::
 
-    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, slider_ranges={"window": (0, 8)})
+    widget = lk.KymoWidgetGreedy(
+        kymo,
+        "green",
+        axis_aspect_ratio=2,
+        min_length=4,
+        pixel_threshold=9,
+        slider_ranges={"window": (0, 20)},
+        window=20,
+    )
 
-Detected tracks are accessible through the `.tracks` property::
+.. image:: figures/nbwidgets/kymotracker3.png
 
-    tracks = kymowidget.tracks
-    print(tracks)
+You can perform tracking by clicking the `Track all` button.
+
+.. image:: figures/nbwidgets/kymotracker4.png
+
+Detected tracks are accessible through the :attr:`~lumicks.pylake.KymoWidgetGreedy.tracks` property::
+
+    >>> print(kymowidget.tracks)
+    KymoTrackGroup(N=132)
 
 For more information on its use, please see the example :ref:`cas9_kymotracking`.

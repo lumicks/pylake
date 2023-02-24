@@ -107,6 +107,7 @@ Notebook widgets
     :toctree: _api
     :template: class.rst
 
+    lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget
     FdRangeSelector
     FdDistanceRangeSelector
 
