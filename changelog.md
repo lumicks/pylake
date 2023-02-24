@@ -45,6 +45,7 @@
 * Improved force calibration documentation. See the new [Tutorial](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/tutorial/force_calibration.html) and [Theory section](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/theory/force_calibration/force_calibration.html).
 * Added API to look up (pixel)size of an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html). See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) for more information.
 * Plot images with microns on the axes for TIFFs where the pixel size is available in the metadata.
+* Allow forwarding plot style arguments to `Slice.range_selector()`. Prior to this change, a plot with markers was always opened. This can result in very poor performance when plotting high frequency data however.
 
 #### Bug fixes
 

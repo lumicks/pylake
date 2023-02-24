@@ -503,8 +503,35 @@ class Slice:
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
 
-    def range_selector(self, show=True):
-        return SliceRangeSelectorWidget(self, show=show)
+    def range_selector(self, show=True, **kwargs) -> SliceRangeSelectorWidget:
+        """Show a range selector widget
+
+        Opens a widget used to select time ranges. The timestamps of these time ranges can then be
+        extracted from
+        :attr:`selector.ranges <lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget.ranges>`,
+        while the slices can be extracted from
+        :attr:`selector.slices <lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget.slices>`.
+
+        Actions
+        -------
+        left-click
+            Define time ranges by clicking the left and then the right boundary of the region you
+            wish to select.
+        right-click
+            Remove previously selected time range.
+
+        Parameters
+        ----------
+        show : bool, optional
+            Show the plot. Default is True.
+        **kwargs
+            Forwarded to :func:`matplotlib.pyplot.plot`.
+
+        Returns
+        -------
+        SliceRangeSelectorWidget
+        """
+        return SliceRangeSelectorWidget(self, show=show, **kwargs)
 
 
 class Continuous:
