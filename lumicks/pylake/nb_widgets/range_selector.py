@@ -8,7 +8,7 @@ class BaseRangeSelectorWidget:
     Takes care of setting up connections and internal event handling.
 
     Parameters
-    __________
+    ----------
     axes : matplotlib.axes.Axes
         Axes instance used for plotting
     show : bool
@@ -122,7 +122,8 @@ class BaseRangeSelectorWidget:
 
 
 class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
-    def __init__(self, channel_slice, axes=None, show=True):
+    def __init__(self, channel_slice, axes=None, show=True, **kwargs):
+        self.kwargs = kwargs
         self.slice = channel_slice
         self.time = self.slice.timestamps
         super().__init__(axes, show, self.to_seconds)
@@ -139,7 +140,7 @@ class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
         super().handle_button_event(event)
 
     def _plot_data(self):
-        self.slice.plot(linestyle="", marker=".", markersize=1)
+        self.slice.plot(**self.kwargs)
 
     @property
     def slices(self):
