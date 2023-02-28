@@ -3,6 +3,12 @@ Installation
 
 Pylake can be installed on Windows, Linux and Mac and requires Python 3.7 or newer.
 
+.. note::
+
+    While we strive to make our instructions as easy to follow as possible, sometimes things can go wrong.
+    Should anything return an error while installing `pylake`, please refer to the `Frequently asked questions`_ for troubleshooting options.
+    If your error message is not listed there, please feel free to open an issue `on our GitHub repository <https://github.com/lumicks/pylake/issues>`_ and we will have a look at it.
+
 Installation using Anaconda
 ---------------------------
 
@@ -19,9 +25,17 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
 #. Open `Anaconda Prompt` from the `Start` menu.
 
-#. Create a new environment for Pylake named pylake by invoking the following command::
+#. Create a new environment for Pylake named pylake by invoking the following command:
 
-    conda create -n pylake
+    .. code-block:: python
+
+        conda create -n pylake conda=4.9
+
+    .. note::
+
+        On Windows, there are issues with OpenSSL that preclude a successful installation on the latest version of conda.
+        This is why it is recommended to create an environment specifically with conda version `4.9` for now.
+        See `OpenSSL Error`_ for more information.
 
 #. The environment can then be activated::
 
@@ -48,10 +62,6 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
     When starting Jupyter notebook from the Anaconda Navigator, first select the environment you installed Pylake in from the "Applications on" drop down menu (if you followed the above instructions, this environment will be named `pylake`). This drop down menu normally defaults to an environment named `base`.
 
     From the command line, this is done by invoking `conda activate pylake`.
-
-.. warning::
-
-    If importing the package fails despite installing it in a fresh environment please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 This concludes the Pylake installation procedure. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
@@ -96,10 +106,6 @@ If you are used to starting Jupyter notebook from the terminal, then remember to
 
 This concludes the Pylake installation procedure. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
 
-.. warning::
-
-    If importing the package fails despite installing it in a fresh environment please refer to the `Frequently asked questions`_ for troubleshooting options.
-
 .. rubric:: macOS
 
 #. Go to the `Anaconda`_ website and download the Python 3.7 (or newer) installer.
@@ -131,10 +137,6 @@ You can do this in the drop down menu that normally defaults to the environment 
 If you are used to starting Jupyter from `Terminal`, then remember to activate the correct environment (pylake) prior to starting the notebook.
 
 This concludes the Pylake installation procedure. Check out the :doc:`Tutorial </tutorial/index>` for some example code and Jupyter notebooks to get started.
-
-.. warning::
-
-    If importing the package fails despite installing it in a fresh environment please refer to the `Frequently asked questions`_ for troubleshooting options.
 
 Installation using pip
 ----------------------
@@ -278,9 +280,10 @@ If you see that `pip` is either not on your path or it is being fetched from a d
 You can activate an environment by invoking `conda activate <environment name>`, where `<environment name>` should be replaced with the environment you want to activate.
 If you have already activated the correct environment, but you still do not see `pip` being fetched from it then you can install it into this environment by invoking `conda install pip`.
 
-
 Frequently asked questions
 --------------------------
+
+.. _OpenSSL Error:
 
 **I tried the installation instructions on Windows, but I get a CondaSSLError**
 
@@ -302,7 +305,6 @@ If you already have an environment named pylake, you can remove this environment
 
     conda create -n pylake2 conda=4.9
     conda activate pylake2
-
 
 **I tried the installation instructions, but I cannot import Pylake inside a Jupyter notebook**
 
