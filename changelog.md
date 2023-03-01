@@ -4,6 +4,7 @@
 
 #### Breaking changes
 
+* Pylake now requires Python version `>= v3.9` and matplotlib version `>= v3.5`
 * Optional arguments for [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_lines.html#) are now enforced as keyword only.
 * The `vel` argument has been renamed to `velocity` for [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#).
 * When performing particle tracking on kymographs, bias correction is now enabled by default; without this correction, kymographs with high background signal will suffer from biased localization estimates. To disable bias correction, specify `bias_correction=False` to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).

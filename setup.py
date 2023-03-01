@@ -3,8 +3,8 @@ import sys
 from setuptools import setup, PEP420PackageFinder
 from setuptools.command.egg_info import manifest_maker
 
-if sys.version_info[:2] < (3, 7):
-    print("Python >= 3.7 is required.")
+if sys.version_info[:2] < (3, 9):
+    print("Python >= 3.9 is required.")
     sys.exit(-1)
 
 
@@ -43,18 +43,18 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
     ],
     packages=PEP420PackageFinder.find(include=["lumicks.*"]),
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     install_requires=[
         "pytest>=3.5",
         "h5py>=3.4, <4",
         "numpy>=1.20, <2",
         "scipy>=1.1, <2",
-        "matplotlib>=2.2",
+        "matplotlib>=3.5",
         "tifffile>=2020.9.30",
         "tabulate>=0.8.8, <0.9",
         "opencv-python-headless>=3.0",
