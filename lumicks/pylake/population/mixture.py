@@ -138,8 +138,6 @@ class GaussianMixtureModel:
         -------
         dict:
             Dictionary of all dwell times (in seconds) for each state. Keys are state labels.
-        dict:
-            Dictionary of slicing indices for all dwell ranges for each state. Keys are state labels.
         """
         statepath = self.label(trace)
         dt_seconds = 1.0 / trace.sample_rate
