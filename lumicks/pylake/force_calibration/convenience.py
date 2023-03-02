@@ -55,7 +55,7 @@ def calibrate_force(
 
     Parameters
     ----------
-    force_voltage_data : array_like
+    force_voltage_data : numpy.ndarray
         Uncalibrated force data in volts.
     bead_diameter : float
         Bead diameter [um].
@@ -69,7 +69,7 @@ def calibrate_force(
         particular temperature.
     active_calibration : bool, optional
         Active calibration, when set to True, driving_data must also be provided.
-    driving_data : array_like, optional
+    driving_data : numpy.ndarray, optional
         Array of driving data.
     driving_frequency_guess : float, optional
          Guess of the driving frequency. Required for active calibration.
