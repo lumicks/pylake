@@ -75,6 +75,10 @@ code.xref.any.py {
 }
 
 /* API docs, blocks */
+.rst-content  dl.py.property {
+  width: 100%;
+}
+
 .rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple)>dt {
   border-top: solid 5px var(--darkblue) !important;
   background-color: var(--lightblue) !important;
