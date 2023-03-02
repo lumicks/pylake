@@ -231,7 +231,7 @@ class PassiveCalibrationModel:
     :doc:`tutorial</tutorial/force_calibration>` on force calibration for more information on the
     calibration methods implemented.
 
-    Attributes
+    Parameters
     ----------
     bead_diameter : float
         Bead diameter [um].
@@ -570,16 +570,18 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
     :doc:`tutorial</tutorial/force_calibration>` on force calibration for more information on the
     calibration methods implemented.
 
-    Attributes
+    Parameters
     ----------
+    driving_data : numpy.ndarray
+        Array of driving data.
+    force_voltage_data : numpy.ndarray
+        Uncalibrated force data in volts.
     sample_rate : float
-        Sample rate at which the signals we acquired.
+        Sample rate at which the signals were acquired.
     bead_diameter : float
         Bead diameter [um].
-    driving_frequency : float
-        Estimated driving frequency [Hz].
-    driving_amplitude : float
-        Estimated driving amplitude [m].
+    driving_frequency_guess : float
+        Guess of the driving frequency.
     viscosity : float, optional
         Liquid viscosity [Pa*s].
         When omitted, the temperature will be used to look up the viscosity of water at that
@@ -588,17 +590,29 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Liquid temperature [Celsius].
     num_windows : int, optional
         Number of windows to average for the uncalibrated force. Using a larger number of
-        windows potentially increases the bleed, but may be useful when the SNR is low.
+        windows potentially increases spectral bleed from adjacent peaks, but may be useful when
+        the SNR is low.
     hydrodynamically_correct : bool, optional
-        Enable hydrodynamically correct spectrum.
+        Enable hydrodynamically correct model.
     distance_to_surface : float, optional
-        Distance from bead center to the surface [um].
+        Distance from bead center to the surface [um]
         When specifying `None`, the model will use an approximation which is only suitable for
         measurements performed deep in bulk.
     rho_sample : float, optional
-        Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
+        Density of the sample [kg/m**3]. Only used when using hydrodynamically correct model.
     rho_bead : float, optional
-        Density of the bead [kg/m^3]. Only used when using hydrodynamic corrections.
+        Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
+    fast_sensor : bool
+        Fast sensor? Fast sensors do not have the diode effect included in the model.
+
+    Attributes
+    ----------
+    driving_frequency : float
+        Estimated driving frequency [Hz].
+    driving_amplitude : float
+        Estimated driving amplitude [m].
+    viscosity : float, optional
+        Liquid viscosity [Pa*s].
 
     Raises
     ------
@@ -689,45 +703,6 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         rho_bead=1060.0,
         fast_sensor=False,
     ):
-        """
-        Active Calibration Model.
-
-        This model fits data acquired in the presence of nanostage or mirror oscillation.
-
-        Parameters
-        ----------
-        driving_data : numpy.ndarray
-            Array of driving data.
-        force_voltage_data : numpy.ndarray
-            Uncalibrated force data in volts.
-        sample_rate : float
-            Sample rate at which the signals we acquired.
-        bead_diameter : float
-            Bead diameter [um].
-        driving_frequency_guess : float
-            Guess of the driving frequency.
-        viscosity : float, optional
-            Liquid viscosity [Pa*s].
-            When omitted, the temperature will be used to look up the viscosity of water at that
-            particular temperature.
-        temperature : float, optional
-            Liquid temperature [Celsius].
-        num_windows : int, optional
-            Number of windows to average for the uncalibrated force. Using a larger number of
-            windows potentially increases the bleed, but may be useful when the SNR is low.
-        hydrodynamically_correct : bool, optional
-            Enable hydrodynamically correct model.
-        distance_to_surface : float, optional
-            Distance from bead center to the surface [um]
-            When specifying `None`, the model will use an approximation which is only suitable for
-            measurements performed deep in bulk.
-        rho_sample : float, optional
-            Density of the sample [kg/m**3]. Only used when using hydrodynamically correct model.
-        rho_bead : float, optional
-            Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
-        fast_sensor : bool
-            Fast sensor? Fast sensors do not have the diode effect included in the model.
-        """
         super().__init__(
             bead_diameter,
             viscosity,
