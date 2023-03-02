@@ -5,9 +5,13 @@ from .dwelltime import _dwellcounts_from_statepath
 
 
 def as_sorted(fcn):
-    """Decorator to return results sorted according to mapping array."""
+    """Decorator to return results sorted according to mapping array.
 
-    def wrapper(self, *args, **kwargs):
+    To be used as a method decorator in a class that supplies an index
+    mapping array via the `._map` attribute.
+    """
+
+    def wrapper(self, *args, **kwargs) -> np.ndarray:
         result = fcn(self, *args, **kwargs)
         return result[self._map]
 
@@ -17,22 +21,23 @@ def as_sorted(fcn):
 
 
 class GaussianMixtureModel:
-    """A wrapper around scikit-learn's GMM.
+    """A wrapper around :class:`sklearn.mixture.GaussianMixture`.
 
-    This model accepts a 1D array as training data. The state parameters are sorted according
-    to state mean in order to facilitate comparison of models with different number of states
+    This model accepts a 1D array as training data. *The state parameters are sorted according
+    to state mean* in order to facilitate comparison of models with different number of states
     or trained on different datasets. As the current implementation is designed to specifically
-    handle 1D data, model parameters are also returned as 1D arrays (np.squeeze() is applied to the results)
-    so that users do not have to be concerned with the shape of the output results.
+    handle 1D data, model parameters are also returned as 1D arrays (:func:`numpy.squeeze()` is applied to
+    the results) so that users do not have to be concerned with the shape of the output results.
 
     Parameters
     ----------
-    data : array_like
-        Data object used for model training.
+    data : numpy.ndarray
+        Data array used for model training.
     n_states : int
         The number of Gaussian components in the model.
-    init_method : 'kmeans' or 'random'
-        The method used to initialize parameters.
+    init_method : {'kmeans', 'random'}
+        - "kmeans" : parameters are initialized via k-means algorithm
+        - "random" : parameters are initialized randomly
     n_init : int
         The number of initializations to perform.
     tol : float
@@ -65,8 +70,9 @@ class GaussianMixtureModel:
             Channel data used for model training.
         n_states : int
             The number of Gaussian components in the model.
-        init_method : 'kmeans' or 'random'
-            The method used to initialize parameters.
+        init_method : {'kmeans', 'random'}
+            - "kmeans" : parameters are initialized via k-means algorithm
+            - "random" : parameters are initialized randomly
         n_init : int
             The number of initializations to perform.
         tol : float
@@ -79,7 +85,7 @@ class GaussianMixtureModel:
         )
 
     @property
-    def exit_flag(self):
+    def exit_flag(self) -> dict:
         """Model optimization information."""
         return {
             "converged": self._model.converged_,
@@ -88,7 +94,7 @@ class GaussianMixtureModel:
         }
 
     @property
-    def _map(self):
+    def _map(self) -> np.ndarray:
         """Indices of sorted means."""
         return np.argsort(self._model.means_.squeeze())
 
@@ -111,12 +117,18 @@ class GaussianMixtureModel:
         return self._model.covariances_.squeeze()
 
     @property
-    def std(self):
+    def std(self) -> np.ndarray:
         """Model state standard deviations."""
         return np.sqrt(self.variances)
 
     def label(self, trace):
-        """Label channel trace data as states."""
+        """Label channel data as states.
+
+        Parameters
+        ----------
+        trace : Slice
+            Channel data to label.
+        """
         data = trace.data.reshape((-1, 1))
         labels = self._model.predict(data)  # wrapped model labels
         output_states = np.argsort(self._map)  # output model state labels in wrapped model order
@@ -127,7 +139,7 @@ class GaussianMixtureModel:
 
         Parameters
         ----------
-        trace : lumicks.pylake.channel.Slice
+        trace : Slice
             Channel data to be analyzed.
         exclude_ambiguous_dwells : bool
             Determines whether to exclude dwelltimes which are not exactly determined. If `True`, the first
@@ -149,22 +161,42 @@ class GaussianMixtureModel:
         return dwell_times
 
     @property
-    def bic(self):
-        """Bayesian Information Criterion."""
+    def bic(self) -> float:
+        r"""Calculates the Bayesian Information Criterion:
+
+        .. math::
+            BIC = k \ln{(n)} - 2 \ln{(L)}
+
+        Where k refers to the number of parameters, n to the number of observations (or data points)
+        and L to the maximized value of the likelihood function
+        """
         return self._bic
 
     @property
-    def aic(self):
-        """Akaike Information Criterion."""
+    def aic(self) -> float:
+        r"""Calculates the Akaike Information Criterion:
+
+        .. math::
+            AIC = 2 k - 2 \ln{(L)}
+
+        Where k refers to the number of parameters, n to the number of observations (or data
+        points) and L to the maximized value of the likelihood function.
+        """
         return self._aic
 
     def pdf(self, x):
-        """Probability Distribution Function (states as rows).
+        """Calculate the Probability Distribution Function (PDF) given the independent data array `x`.
 
         Parameters
         ----------
-        x : np.array
-            array of independent variable values at which to calculate the PDF.
+        x : numpy.ndarray
+            Array of independent variable values at which to calculate the PDF.
+
+        Returns
+        -------
+        numpy.ndarray:
+            PDF array split into components for each state with shape (n_states, x.size).
+            The full normalized PDF can be calculated by summing across rows.
         """
         components = np.vstack([stats.norm(m, s).pdf(x) for m, s in zip(self.means, self.std)])
         return self.weights.reshape((-1, 1)) * components
@@ -174,7 +206,7 @@ class GaussianMixtureModel:
 
         Parameters
         ----------
-        trace : Slice-like
+        trace : Slice
             Data object to histogram.
         n_bins : int
             Number of histogram bins.
@@ -205,11 +237,11 @@ class GaussianMixtureModel:
 
         Parameters
         ----------
-        trace : Slice-like
+        trace : Slice
             Data object to histogram.
-        trace_kwargs : dict
+        trace_kwargs : Optional[dict]
             Plotting keyword arguments passed to the data line plot.
-        label_kwargs : dict
+        label_kwargs : Optional[dict]
             Plotting keyword arguments passed to the state labels plot.
         """
         import matplotlib.pyplot as plt
