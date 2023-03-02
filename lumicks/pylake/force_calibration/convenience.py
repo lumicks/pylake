@@ -35,27 +35,23 @@ def calibrate_force(
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
-    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
-    [6]_.
+    This function can be used to perform both active and passive calibration.
 
-    References
-    ----------
-    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
-           Instrum. 75, 594 (2004).
-    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
-           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
-    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
-           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
-           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
-    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
-           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
-           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
-    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
-           fitting: amplitude bias and its elimination, with application to optical tweezers and
-           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
-    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
-           Calibration of optical tweezers with positional detection in the back focal plane,
-           Review of scientific instruments 77, 103101 (2006).
+    - For experiments performed near the surface, it is recommended to provide a
+      `distance_to_surface`.
+    - For lateral calibration with beads larger than 1 micron, it is recommended to use the
+      hydrodynamically correct theory (`hydrodynamically_correct=True`), unless so close to the
+      surface (0.75 x diameter) that this model becomes invalid.
+    - For axial calibration the flag `axial=True` should be set.
+    - In the case of a pre-characterized diode, the values for its parameters can be passed to
+      `fixed_alpha` and `fixed_diode`.
+    - In the case of active calibration, it is mandatory to provide a nanostage signal, as well as a
+      guess of the driving frequency.
+
+    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
+    [6]_. Please refer to the :doc:`theory section</theory/force_calibration/force_calibration>` and
+    :doc:`tutorial</tutorial/force_calibration>` on force calibration for more information on the
+    calibration methods implemented.
 
     Parameters
     ----------
@@ -105,6 +101,42 @@ def calibrate_force(
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
         Fix diode relaxation factor to particular value.
+
+    Raises
+    ------
+    ValueError
+        If physical parameters are provided that are outside their sensible range.
+    ValueError
+        If the distance from the bead center to the surface is set smaller than the bead radius.
+    ValueError
+        If the hydrodynamically correct model is enabled, but the distance to the surface is
+        specified below 0.75 times the bead diameter (this model is not valid so close to the
+        surface).
+    NotImplementedError
+        If the hydrodynamically correct model is selected in conjunction with axial force
+        calibration.
+    RuntimeError
+        If active calibration is selected, but the driving peak can't be found near the guess of
+        its frequency.
+
+    References
+    ----------
+    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
+           Instrum. 75, 594 (2004).
+    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
+           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
+    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
+           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
+           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
+    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
+           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
+           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
+    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
+           fitting: amplitude bias and its elimination, with application to optical tweezers and
+           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
+    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
+           Calibration of optical tweezers with positional detection in the back focal plane,
+           Review of scientific instruments 77, 103101 (2006).
     """
     if active_calibration:
         if axial:

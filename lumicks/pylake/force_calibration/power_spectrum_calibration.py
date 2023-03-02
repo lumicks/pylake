@@ -130,13 +130,13 @@ class CalibrationResults:
     def _repr_html_(self):
         return self._print_data(tablefmt="html")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._print_data()
 
 
 def calculate_power_spectrum(
     data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=None
-):
+) -> PowerSpectrum:
     """Compute power spectrum and return it as a
     :class:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum`.
 
@@ -158,7 +158,11 @@ def calculate_power_spectrum(
     Returns
     -------
     PowerSpectrum
-        Estimated power spectrum based.
+
+    Raises
+    ------
+    TypeError
+        If the data is not a one-dimensional numpy array.
     """
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
@@ -177,11 +181,11 @@ def fit_power_spectrum(
     ftol=1e-7,
     max_function_evals=10000,
     bias_correction=True,
-):
-    """Power Spectrum Calibration
+) -> CalibrationResults:
+    """Fit a power spectrum.
 
-    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
-    [6]_.
+    Performs force calibration. The power spectrum calibration algorithms implemented here are
+    based on [1]_ [2]_ [3]_ [4]_ [5]_ [6]_.
 
     Parameters
     ----------
@@ -206,6 +210,15 @@ def fit_power_spectrum(
     -------
     CalibrationResults
         Parameters obtained from the calibration procedure.
+
+    Raises
+    ------
+    RuntimeError
+        If there are fewer than 4 data points to fit in the power spectrum.
+    TypeError
+        If the supplied power spectrum is not of the type `PowerSpectrum`.
+    RuntimeError
+        If there is insufficient data to perform the analytical fit used as initial condition.
 
     References
     ----------

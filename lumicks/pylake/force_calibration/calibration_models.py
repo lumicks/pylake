@@ -78,9 +78,13 @@ def viscosity_of_water(temperature):
     array_like
         Viscosity of water [Pa*s]
 
+    Raises
+    ------
+    ValueError
+        If the requested temperature is outside the valid range of -20°C <= T < 110°C.
+
     References
     ----------
-
     .. [1] Huber, M. L., Perkins, R. A., Laesecke, A., Friend, D. G., Sengers, J. V.,
            Assael, M. J., & Miyagawa, K. (2009). New international formulation for the viscosity of
            H2O. Journal of Physical and Chemical Reference Data, 38(2), 101-125.
@@ -218,27 +222,14 @@ class FixedDiodeModel(FilterBase):
 class PassiveCalibrationModel:
     """Model to fit data acquired during passive calibration.
 
-    The power spectrum calibration algorithm implemented here is based on a number of publications
-    by the Flyvbjerg group at DTU [1]_ [2]_ [3]_ [4]_ [5]_ [6]_.
+    Passive calibration involves fitting a power spectral density using a physical model of
+    Brownian motion of a bead inside an optical trap.
 
-    References
-    ----------
-    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
-           Instrum. 75, 594 (2004).
-    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
-           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
-    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
-           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
-           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
-    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
-           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
-           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
-    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
-           fitting: amplitude bias and its elimination, with application to optical tweezers and
-           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
-    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
-           Calibration of optical tweezers with positional detection in the back focal plane,
-           Review of scientific instruments 77, 103101 (2006).
+    The power spectrum calibration algorithm implemented here is based on a number of publications
+    by the Flyvbjerg group at DTU [1]_ [2]_ [3]_ [4]_ [5]_ [6]_. Please refer to the
+    :doc:`theory section</theory/force_calibration/force_calibration>` and
+    :doc:`tutorial</tutorial/force_calibration>` on force calibration for more information on the
+    calibration methods implemented.
 
     Attributes
     ----------
@@ -264,6 +255,39 @@ class PassiveCalibrationModel:
         Fast sensor? Fast sensors do not have the diode effect included in the model.
     axial : bool
         Is this an axial force model?
+
+    Raises
+    ------
+    ValueError
+        If physical parameters are provided that are outside their sensible range.
+    ValueError
+        If the distance from the bead center to the surface is set smaller than the bead radius.
+    ValueError
+        If the hydrodynamically correct model is enabled, but the distance to the surface is
+        specified below 0.75 times the bead diameter (this model is not valid so close to the
+        surface).
+    NotImplementedError
+        If the hydrodynamically correct model is selected in conjunction with axial force
+        calibration.
+
+    References
+    ----------
+    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
+           Instrum. 75, 594 (2004).
+    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
+           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
+    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
+           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
+           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
+    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
+           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
+           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
+    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
+           fitting: amplitude bias and its elimination, with application to optical tweezers and
+           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
+    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
+           Calibration of optical tweezers with positional detection in the back focal plane,
+           Review of scientific instruments 77, 103101 (2006).
     """
 
     def __name__(self):
@@ -364,7 +388,7 @@ class PassiveCalibrationModel:
         physical_spectrum = self._passive_power_spectrum_model(f, fc, diffusion_constant)
         return physical_spectrum * self._filter(f, *filter_params)
 
-    def __call__(self, f, fc, diffusion_constant, *filter_params):
+    def __call__(self, f, fc, diffusion_constant, *filter_params) -> np.ndarray:
         return self._calculate_power_spectral_density(f, fc, diffusion_constant, *filter_params)
 
     def _alias_model(self, sample_rate, num_aliases):
@@ -405,7 +429,7 @@ class PassiveCalibrationModel:
         self._drag_fieldname = new_name
         self._drag_description = new_description
 
-    def calibration_parameters(self):
+    def calibration_parameters(self) -> dict:
         hydrodynamic_parameters = (
             {
                 "Sample density": CalibrationParameter(
@@ -458,7 +482,7 @@ class PassiveCalibrationModel:
         fc_err,
         diffusion_constant_volts_err,
         filter_params_err,
-    ):
+    ) -> dict:
         """Compute calibration parameters from cutoff frequency and diffusion constant.
 
         Parameters
@@ -511,27 +535,14 @@ class PassiveCalibrationModel:
 class ActiveCalibrationModel(PassiveCalibrationModel):
     """Model to fit data acquired during active calibration.
 
-    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
-    [6]_.
+    In active calibration, we oscillate the stage with a known frequency and amplitude. This
+    introduces an extra peak in the power spectrum which allows the trap to be calibrated with
+    fewer assumptions. This trades some precision for accuracy.
 
-    References
-    ----------
-    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
-           Instrum. 75, 594 (2004).
-    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
-           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
-    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
-           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
-           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
-    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
-           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
-           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
-    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
-           fitting: amplitude bias and its elimination, with application to optical tweezers and
-           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
-    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
-           Calibration of optical tweezers with positional detection in the back focal plane,
-           Review of scientific instruments 77, 103101 (2006).
+    The power spectrum calibration algorithm implemented here is based on [1]_ [2]_ [3]_ [4]_ [5]_
+    [6]_. Please refer to the :doc:`theory section</theory/force_calibration/force_calibration>` and
+    :doc:`tutorial</tutorial/force_calibration>` on force calibration for more information on the
+    calibration methods implemented.
 
     Attributes
     ----------
@@ -562,9 +573,44 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Density of the sample [kg/m^3]. Only used when using hydrodynamic corrections.
     rho_bead : float, optional
         Density of the bead [kg/m^3]. Only used when using hydrodynamic corrections.
+
+    Raises
+    ------
+    ValueError
+        If physical parameters are provided that are outside their sensible range.
+    ValueError
+        If the distance from the bead center to the surface is set smaller than the bead radius.
+    ValueError
+        If the hydrodynamically correct model is enabled, but the distance to the surface is
+        specified below 0.75 times the bead diameter (this model is not valid so close to the
+        surface).
+    NotImplementedError
+        If the hydrodynamically correct model is selected in conjunction with axial force
+        calibration.
+    RuntimeError
+        If the driving peak can't be found near the guess of its frequency.
+
+    References
+    ----------
+    .. [1] Berg-Sørensen, K. & Flyvbjerg, H. Power spectrum analysis for optical tweezers. Rev. Sci.
+           Instrum. 75, 594 (2004).
+    .. [2] Tolić-Nørrelykke, I. M., Berg-Sørensen, K. & Flyvbjerg, H. MatLab program for precision
+           calibration of optical tweezers. Comput. Phys. Commun. 159, 225–240 (2004).
+    .. [3] Hansen, P. M., Tolic-Nørrelykke, I. M., Flyvbjerg, H. & Berg-Sørensen, K.
+           tweezercalib 2.1: Faster version of MatLab package for precise calibration of optical
+           tweezers. Comput. Phys. Commun. 175, 572–573 (2006).
+    .. [4] Berg-Sørensen, K., Peterman, E. J. G., Weber, T., Schmidt, C. F. & Flyvbjerg, H. Power
+           spectrum analysis for optical tweezers. II: Laser wavelength dependence of parasitic
+           filtering, and how to achieve high bandwidth. Rev. Sci. Instrum. 77, 063106 (2006).
+    .. [5] Tolić-Nørrelykke, S. F, and Flyvbjerg, H, "Power spectrum analysis with least-squares
+           fitting: amplitude bias and its elimination, with application to optical tweezers and
+           atomic force microscope cantilevers." Review of Scientific Instruments 81.7 (2010)
+    .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
+           Calibration of optical tweezers with positional detection in the back focal plane,
+           Review of scientific instruments 77, 103101 (2006).
     """
 
-    def __name__(self):
+    def __name__(self) -> str:
         return "ActiveCalibrationModel"
 
     def __init__(
@@ -670,7 +716,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
                 driving_amplitude=self.driving_amplitude,
             )
 
-    def calibration_parameters(self):
+    def calibration_parameters(self) -> dict:
         return {
             **super().calibration_parameters(),
             "Driving frequency (guess)": CalibrationParameter(
@@ -696,7 +742,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         fc_err,
         diffusion_constant_volts_err,
         filter_params_err,
-    ):
+    ) -> dict:
         """Compute active calibration parameters from cutoff frequency and diffusion constant.
 
         Parameters

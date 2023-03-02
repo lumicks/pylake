@@ -69,7 +69,7 @@ class PowerSpectrum:
         self.total_duration = data.size / sample_rate
         self.num_points_per_block = len(squared_fft_chunks)
 
-    def downsampled_by(self, factor, reduce=np.mean):
+    def downsampled_by(self, factor, reduce=np.mean) -> "PowerSpectrum":
         """Returns a spectrum downsampled by a given factor."""
         ba = copy(self)
         ba.frequency = downsample(self.frequency, factor, reduce)
@@ -78,7 +78,7 @@ class PowerSpectrum:
 
         return ba
 
-    def _exclude_range(self, excluded_ranges):
+    def _exclude_range(self, excluded_ranges) -> "PowerSpectrum":
         """Exclude given frequency ranges from the power spectrum.
 
         This function can be used to exclude noise peaks.
@@ -99,7 +99,7 @@ class PowerSpectrum:
         ps.power = ps.power[indices]
         return ps
 
-    def in_range(self, frequency_min, frequency_max):
+    def in_range(self, frequency_min, frequency_max) -> "PowerSpectrum":
         """Returns part of the power spectrum within a given frequency range."""
         ir = copy(self)
         mask = (self.frequency > frequency_min) & (self.frequency <= frequency_max)
@@ -107,15 +107,15 @@ class PowerSpectrum:
         ir.power = self.power[mask]
         return ir
 
-    def num_samples(self):
+    def num_samples(self) -> int:
         return self.frequency.size
 
-    def with_spectrum(self, power, num_points_per_block=1):
+    def with_spectrum(self, power, num_points_per_block=1) -> "PowerSpectrum":
         """Return a copy with a different spectrum
 
         Parameters
         ----------
-        power : np.ndarray
+        power : numpy.ndarray
             Vector of power spectral values
         num_points_per_block : int
             Number of points per block used to obtain power spectral values.
