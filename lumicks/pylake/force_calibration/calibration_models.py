@@ -636,9 +636,9 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
 
         Parameters
         ----------
-        driving_data : array_like
+        driving_data : numpy.ndarray
             Array of driving data.
-        force_voltage_data : array_like
+        force_voltage_data : numpy.ndarray
             Uncalibrated force data in volts.
         sample_rate : float
             Sample rate at which the signals we acquired.
