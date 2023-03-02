@@ -288,6 +288,32 @@ class PassiveCalibrationModel:
     .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
            Calibration of optical tweezers with positional detection in the back focal plane,
            Review of scientific instruments 77, 103101 (2006).
+
+    Examples
+    --------
+    ::
+
+        f = lk.File("passive_calibration.h5")
+        force_slice = f.force1x
+
+        # Decalibrate existing data
+        volts = force_slice / force_slice.calibration[0]["Response (pN/V)"]
+
+        power_spectrum = lk.calculate_power_spectrum(
+            volts.data,
+            sample_rate=78125,
+            excluded_ranges=[[4400, 4500]],  # Exclude a noise peak
+            num_points_per_block=350,
+        )
+
+        model = lk.PassiveCalibrationModel(
+            bead_diameter=4.89,
+            temperature=25,
+            hydrodynamically_correct=True,  # Should use hydrodynamic model for big beads
+        )
+
+        fit = lk.fit_power_spectrum(power_spectrum, model)
+        fit.plot()
     """
 
     def __name__(self):
@@ -608,6 +634,40 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
     .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
            Calibration of optical tweezers with positional detection in the back focal plane,
            Review of scientific instruments 77, 103101 (2006).
+
+    Examples
+    --------
+    ::
+
+        f = lk.File("near_surface_active_calibration.h5")
+
+        force_slice = f.force1x
+
+        # Decalibrate existing data
+        volts = force_slice / force_slice.calibration[0]["Response (pN/V)"]
+
+        power_spectrum = lk.calculate_power_spectrum(
+            volts.data,
+            sample_rate=78125,
+            excluded_ranges=[[4400, 4500]],  # Exclude a noise peak
+            num_points_per_block=350,
+        )
+
+        model = lk.ActiveCalibrationModel(
+            f["Nanostage position"]["X"].data,  # Driving data
+            volts.data,  # Position sensitive detector data
+            temperature=25,
+            sample_rate=78125,
+            bead_diameter=4.89,
+            driving_frequency_guess=37,  # Have to provide a guess for the frequency
+            hydrodynamically_correct=True,  # Big bead, so use hydrodynamic model
+            distance_to_surface=10,  # Experiment performed 10 microns from surface
+        )
+
+        print(model.driving_frequency)  # Verify correct frequency determination
+
+        fit = lk.fit_power_spectrum(power_spectrum, model)
+        fit.plot()
     """
 
     def __name__(self) -> str:

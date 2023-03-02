@@ -137,6 +137,44 @@ def calibrate_force(
     .. [6] Tolić-Nørrelykke S. F, Schäffer E, Howard J, Pavone F. S, Jülicher F and Flyvbjerg, H.
            Calibration of optical tweezers with positional detection in the back focal plane,
            Review of scientific instruments 77, 103101 (2006).
+
+    Examples
+    --------
+    ::
+
+        import lumicks.pylake as lk
+        f = lk.File("calibration_file.h5")
+        force_slice = f.force1x
+
+        # Decalibrate existing data
+        volts = force_slice / force_slice.calibration[0]["Response (pN/V)"]
+
+        # Determine calibration factors using the viscosity of water at T=25 C.
+        lk.calibrate_force(volts.data, bead_diameter=0.58, temperature=25, sample_rate=78125)
+
+        # Determine calibration factors using the hydrodynamically correct model
+        lk.calibrate_force(
+            volts.data,
+            bead_diameter=4.89,
+            temperature=25,
+            sample_rate=78125,
+            hydrodynamically_correct=True
+        )
+
+        # Determine calibration factors using the hydrodynamically correct model with active
+        # calibration at a distance of 7 micron from the surface
+        driving_data = f["Nanostage position"]["X"]
+        lk.calibrate_force(
+            volts.data,
+            bead_diameter=4.89,
+            temperature=25,
+            sample_rate=78125,
+            hydrodynamically_correct=True,
+            distance_to_surface=7,
+            driving_data=driving_data.data,
+            driving_frequency_guess=37,
+            active_calibration=True
+        )
     """
     if active_calibration:
         if axial:
