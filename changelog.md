@@ -38,6 +38,7 @@
 * Added `KymoTrackGroup.remove()` to remove a `KymoTrack` from a `KymoTrackGroup`.
 * Allow boolean array indexing (e.g. `tracks[[False, False, True]]`) and indexing with arrays of indices (e.g. `tracks[[1, 3]]`) for `KymoTrackGroup`. See the [API documentation](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup) for more information.
 * Improved force calibration documentation. See the new [Tutorial](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/tutorial/force_calibration.html) and [Theory section](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/theory/force_calibration/force_calibration.html).
+* Added API to look up (pixel)size of an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html). See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) for more information.
 
 #### Bug fixes
 

@@ -1060,3 +1060,32 @@ def test_frame_timestamp_ranges_snapshot():
 
     for include, ranges in zip([True, False], [[(10, 16)], [(10, 16)]]):
         np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)
+
+
+@pytest.mark.parametrize(
+    "num_frames, dims, ref_pixelsize_um, ref_size_um",
+    [
+        (3, (10, 5, 3), 0.1, (0.5, 1.0)),
+        (3, (10, 5), 0.1, (0.5, 1.0)),
+        (1, (10, 5), 0.2, (1.0, 2.0)),
+        (1, (10, 5), None, (1.0, 2.0)),
+    ],
+)
+def test_pixel_calibration(num_frames, dims, ref_pixelsize_um, ref_size_um):
+    description = (
+        {"Pixel calibration (nm/pix)": 1000 * ref_pixelsize_um} if ref_pixelsize_um else {}
+    )
+    fake_tiff = TiffStack(
+        [to_tiff(np.zeros(dims), description, 16, start_time=1, num_images=num_frames)],
+        align_requested=False,
+    )
+    stack = ImageStack.from_dataset(fake_tiff)
+    if ref_pixelsize_um:
+        np.testing.assert_allclose(stack.pixelsize_um, [ref_pixelsize_um] * 2)
+        np.testing.assert_allclose(stack.size_um, ref_size_um)
+        np.testing.assert_allclose(
+            stack[:, :3, :4].size_um, [ref_pixelsize_um * 4, ref_pixelsize_um * 3]
+        )
+    else:
+        assert stack.size_um is None
+        assert stack.pixelsize_um is None

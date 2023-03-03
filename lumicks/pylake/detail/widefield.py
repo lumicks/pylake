@@ -292,6 +292,7 @@ class ImageDescription:
         self.width = tags["ImageWidth"].value
         self.height = tags["ImageLength"].value
         self.software = tags["Software"].value if "Software" in tags else ""
+        self.pixelsize_um = None
         self._alignment_matrices = {}
 
         # parse json string stored in ImageDescription tag
@@ -304,6 +305,12 @@ class ImageDescription:
         if len(self.json) == 0:
             self._alignment = Alignment(align_requested, AlignmentStatus.empty, False)
             return
+
+        self.pixelsize_um = (
+            float(self.json["Pixel calibration (nm/pix)"]) / 1000
+            if "Pixel calibration (nm/pix)" in self.json
+            else None
+        )
 
         # update json fields if necessary
         if "Alignment red channel" in self.json:
