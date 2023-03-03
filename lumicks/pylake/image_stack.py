@@ -97,7 +97,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
     def __init__(self, *image_names, align=True):
         self._src = TiffStack.from_file(list(image_names), align_requested=align)
         self.name = (
-            os.path.splitext(os.path.basename(str(image_names)))[0]
+            os.path.splitext(os.path.basename(str(image_names[0])))[0]
             if len(image_names) == 1
             else "Multi-file stack"
         )
