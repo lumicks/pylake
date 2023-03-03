@@ -1,3 +1,4 @@
+import json
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
@@ -127,13 +128,23 @@ def test_scalebar_integration(monkeypatch):
         m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
         scan.plot("red", scale_bar=ScaleBar())
 
-    with monkeypatch.context() as m:
-        stack = ImageStack.from_dataset(
-            TiffStack(
-                [MockTiffFile(data=[np.ones((1, 1))] * 2, times=make_frame_times(2))],
-                align_requested=False,
+    for description, ref_sizes in (
+        ({}, [100, 100, "100 px", "100 px"]),
+        ({"Pixel calibration (nm/pix)": 500}, [1, 1, r"1 $\mu$m", r"1 $\mu$m"]),
+    ):
+        with monkeypatch.context() as m:
+            stack = ImageStack.from_dataset(
+                TiffStack(
+                    [
+                        MockTiffFile(
+                            data=[np.ones((1, 1))] * 2,
+                            times=make_frame_times(2),
+                            description=json.dumps(description),
+                        )
+                    ],
+                    align_requested=False,
+                )
             )
-        )
-        refs = [100, 100, "100 px", "100 px", "upper right", "white", 2.0, None, None]
-        m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
-        stack.plot("red", scale_bar=ScaleBar())
+            refs = [*ref_sizes, "upper right", "white", 2.0, None, None]
+            m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
+            stack.plot("red", scale_bar=ScaleBar())

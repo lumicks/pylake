@@ -341,19 +341,35 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         if show_axes is False:
             axes.set_axis_off()
 
-        # TODO: Use pixel calibration once available in the metadata
-        positional_unit = "px"
+        positional_unit = "px" if not self.pixelsize_um else r"$\mu$m"
         if scale_bar and not image_handle:
-            scale_bar._attach_scale_bar(axes, 100, 100, positional_unit, positional_unit)
+            scale = 1 if self.pixelsize_um else 100
+            scale_bar._attach_scale_bar(axes, scale, scale, positional_unit, positional_unit)
 
         image = self._get_frame(frame)._get_plot_data(channel, adjustment=adjustment)
 
         default_kwargs = dict(cmap="gray")
+        if self.pixelsize_um:
+            x_um, y_um = self.size_um
+            pixel_size_x, pixel_size_y = self.pixelsize_um
+
+            # With origin set to upper (default) bounds are defined as: (min_x, max_x, max_y, min_y)
+            default_kwargs["extent"] = [
+                -pixel_size_x,
+                x_um - pixel_size_x,
+                y_um - pixel_size_y,
+                -pixel_size_y,
+            ]
+            default_kwargs["aspect"] = (image.shape[0] / image.shape[1]) * (x_um / y_um)
+
         kwargs = {**default_kwargs, **kwargs}
 
         image_handle = show_image(
             image, adjustment, channel, image_handle=image_handle, axes=axes, **kwargs
         )
+
+        axes.set_xlabel(rf"x ({positional_unit})")
+        axes.set_ylabel(rf"y ({positional_unit})")
 
         if show_title:
             axes.set_title(make_image_title(self, frame))

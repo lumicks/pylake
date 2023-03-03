@@ -1089,3 +1089,23 @@ def test_pixel_calibration(num_frames, dims, ref_pixelsize_um, ref_size_um):
     else:
         assert stack.size_um is None
         assert stack.pixelsize_um is None
+
+
+def test_pixel_calibration():
+    def create_stack(description):
+        return ImageStack.from_dataset(
+            TiffStack(
+                [to_tiff(np.zeros((3, 5)), description, 16, start_time=1, num_images=2)],
+                align_requested=False,
+            )
+        )
+
+    # Test calibrated
+    stack = create_stack({"Pixel calibration (nm/pix)": 500})
+    image = stack.plot()
+    np.testing.assert_allclose(image.get_extent(), [-0.5, 0.5 * 5 - 0.5, 0.5 * 3 - 0.5, -0.5])
+
+    # Test uncalibrated
+    stack = create_stack({})
+    image = stack.plot()
+    np.testing.assert_allclose(image.get_extent(), [-0.5, 4.5, 2.5, -0.5])
