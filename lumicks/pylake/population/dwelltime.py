@@ -14,6 +14,12 @@ class DwelltimeBootstrap:
     This class should be initialized using :meth:`lk.DwelltimeModel.calculate_bootstrap()
     <lumicks.pylake.DwelltimeModel.calculate_bootstrap>` and should not be constructed manually.
 
+    .. warning::
+
+        This is early access alpha functionality. While usable, this has not yet been tested in a large number of
+        different scenarios. The API can still be subject to change without any prior deprecation notice! If you
+        use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
+
     Attributes
     ----------
     model : :class:`~lumicks.pylake.DwelltimeModel`
@@ -223,6 +229,12 @@ class DwelltimeBootstrap:
 
 class DwelltimeModel:
     """Exponential mixture model optimization for dwelltime analysis.
+
+    .. warning::
+
+        This is early access alpha functionality. While usable, this has not yet been tested in a large number of
+        different scenarios. The API can still be subject to change without any prior deprecation notice! If you
+        use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
     Parameters
     ----------

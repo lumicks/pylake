@@ -29,6 +29,12 @@ class GaussianMixtureModel:
     handle 1D data, model parameters are also returned as 1D arrays (:func:`numpy.squeeze()` is applied to
     the results) so that users do not have to be concerned with the shape of the output results.
 
+    .. warning::
+
+        This is early access alpha functionality. While usable, this has not yet been tested in a large number of
+        different scenarios. The API can still be subject to change without any prior deprecation notice! If you
+        use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
+
     Parameters
     ----------
     data : numpy.ndarray
