@@ -543,6 +543,23 @@ def test_plot_correlated_smaller_channel():
     )
 
 
+def test_stack_name(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(
+            "lumicks.pylake.detail.widefield.TiffStack.from_file",
+            lambda *args, **kwargs: TiffStack(
+                [MockTiffFile([np.zeros((3, 3, 3))] * 2, make_frame_times(2))],
+                align_requested=False,
+            ),
+        )
+
+        stack = ImageStack("test.tiff")
+        assert stack.name == "test"
+
+        stack = ImageStack("test.tiff", "test2.tiff")
+        assert stack.name == "Multi-file stack"
+
+
 def test_cropping(rgb_tiff_file, gray_tiff_file):
     for filename in (rgb_tiff_file, gray_tiff_file):
         for align in (True, False):

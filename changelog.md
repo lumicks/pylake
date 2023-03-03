@@ -45,6 +45,7 @@
 
 * Fixed incorrect behaviour in `lk.track_lines()` by interpolating back to integer frame times. Prior to this change, `lk.track_lines()` would provide a subpixel accurate position along the time axis of the kymograph as well. However, this position was specified with respect to the coordinate system of the image, rather than actual acquisition times. As such, it would produce incorrect results when performing downstream analysis that rely on the time corresponding to an actual time. Note that `lk.track_greedy()` is not affected.
 * Fixed bug in `lk.track_lines()` where one extra line was returned rather than the number requested through the parameter `max_lines`.
+* Fixed regression that caused [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) to incorrectly store the stack name (resulting in an extra `('` in front of the name in plots). This regression was introduced in `v0.13.0` when enabling multi-file support. See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) for more information.
 
 ## v0.13.3 | 2023-01-26
 
