@@ -1,5 +1,5 @@
 import os
-from typing import Iterator, Union
+from typing import Iterator, Union, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -505,6 +505,25 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             figure_scale=figure_scale,
             post_update=post_update,
         )
+
+    @property
+    def size_um(self) -> Optional[list]:
+        """Returns a `list` of axis sizes in um. Returns `None` if calibration is unavailable."""
+        if self.pixelsize_um:
+            return list(
+                map(
+                    lambda pixel_size, num_pixels: pixel_size * num_pixels,
+                    self.pixelsize_um,
+                    reversed(self._src._shape),
+                )
+            )
+
+    @property
+    def pixelsize_um(self) -> Optional[list]:
+        """Returns a `list` of pixel sizes along each axis in um. Returns `None` if calibration is
+        unavailable."""
+        if self._src._description.pixelsize_um:
+            return [self._src._description.pixelsize_um] * 2
 
     def export_tiff(self, file_name):
         """Export a video of a particular scan plot
