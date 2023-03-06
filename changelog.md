@@ -35,6 +35,7 @@
 
 #### New features
 
+* Added API to create a `Kymo` from an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html). See [`ImageStack.to_kymo()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.to_kymo) for more information.
 * Added API for notes, i.e. `file.notes` returns a dictionary of notes.
 * Added option to add a scale bar to by providing a [`lk.ScaleBar()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ScaleBar.html) to plotting or export functions.
 * Implemented bias correction for centroid refinement that shrinks the window to reduce estimation bias. This bias correction can be toggled by passing a `bias_correction` argument to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).

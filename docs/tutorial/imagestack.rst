@@ -34,7 +34,8 @@ or by time::
 
 You can also spatially crop to select a smaller region of interest::
 
-    stack_roi = stack_slice.crop_by_pixels(10, 400, 10, 120)  # pixel coordinates as x_min, x_max, y_min, y_max
+    # pixel coordinates as x_min, x_max, y_min, y_max
+    stack_roi = stack_slice.crop_by_pixels(10, 400, 10, 120)
 
 Cropping can be useful, for instance, after applying color alignment to RGB images since many
 of the pixels near the edges don't have data. We can see this by plotting just the `"red"` channel
@@ -45,6 +46,7 @@ of the pixels near the edges don't have data. We can see this by plotting just t
     stack_slice.plot("red")
     plt.subplot(212)
     stack_roi.plot("red")
+    plt.tight_layout()
     plt.show()
 
 .. image:: figures/imagestack/imagestack_red_cropped.png
@@ -108,7 +110,11 @@ Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks
 By default the limits should be provided in absolute values, although percentiles can be used instead for convenience::
 
     plt.figure()
-    stack_roi.plot("rgb", adjustment=lk.ColorAdjustment(20, 99, mode="percentile"))
+    stack_roi.plot(
+        "rgb",
+        adjustment=lk.ColorAdjustment(20, 99, mode="percentile"),
+        scale_bar=lk.ScaleBar(),  # Adds a scale bar to the plot
+    )
     plt.show()
 
 .. image:: figures/imagestack/imagestack_adjust_percentile.png
@@ -121,13 +127,18 @@ Finally, the aligned image stack can also be exported to TIFF format::
 Defining a tether
 -----------------
 
-To define the location of the tether between beads, supply the `(x, y)` pixel coordinates of the end points
+To define the location of the tether between beads, supply the `(x, y)` coordinates of the end points
 to the :func:`~lumicks.pylake.ImageStack.define_tether()` method::
 
-    stack_tether = stack_roi.define_tether((97, 59), (286, 57))
+    stack_roi = stack[40:].crop_by_pixels(10, 400, 10, 120)
+    stack_tether = stack_roi.define_tether((6.94423, 4.22381), (20.47474,  4.08063))
 
     plt.figure()
-    stack_tether.plot("green", adjustment=lk.ColorAdjustment(0, 99, mode="percentile"), cmap=lk.colormaps.green)
+    stack_tether.plot(
+        "green",
+        adjustment=lk.ColorAdjustment(0, 99, mode="percentile"),
+        cmap=lk.colormaps.green,
+    )
     stack_tether.plot_tether(lw=0.7)
     plt.show()
 
@@ -142,6 +153,19 @@ which also accepts keyword arguments that are passed to :func:`plt.plot()
 You can also define a tether interactively using the :meth:`~lumicks.pylake.ImageStack.crop_and_rotate` method. See the
 :ref:`Notebook widgets<crop_and_rotate>` tutorial for more information.
 
+Constructing a kymograph from an image stack
+--------------------------------------------
+
+Once a tether is defined, the :class:`~lumicks.pylake.ImageStack` can be converted to a :class:`~lumicks.pylake.kymo.Kymo` using :meth:`~lumicks.pylake.ImageStack.to_kymo`::
+
+    plt.figure()
+    kymograph = stack_tether.to_kymo(half_window=5)
+    kymograph.plot(adjustment=lk.ColorAdjustment(1200, 2400))
+    plt.show()
+
+.. image:: figures/imagestack/imagestack_kymo.png
+
+Here the argument `half_window` indicates how many additional pixels to average over on either side of the tether. The total number of lines averaged over is `2 * half_window + 1`.
 
 Correlating force with the image stack
 --------------------------------------
@@ -152,7 +176,12 @@ you can use the following function::
 
     # Making a plot where force is correlated to images in the stack.
     file = lk.File("stack.h5")  # Loading a stack.
-    stack[2:, 10:120, 10:400].plot_correlated(file.force1x, channel="rgb", frame=208, adjustment=lk.ColorAdjustment(20, [98, 99.9, 100], mode="percentile"))
+    stack[2:, 10:120, 10:400].plot_correlated(
+        file.force1x,
+        channel="rgb",
+        frame=208,
+        adjustment=lk.ColorAdjustment(20, [98, 99.9, 100], mode="percentile")
+    )
 
 .. image:: figures/imagestack/imagestack_correlated.png
 

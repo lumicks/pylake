@@ -5,6 +5,7 @@ import numpy as np
 import numpy.typing as npt
 from deprecated.sphinx import deprecated
 
+from .kymo import Kymo, _kymo_from_image_stack
 from .adjustments import no_adjustment
 from .detail.image import make_image_title
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
@@ -217,6 +218,81 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         """
         data = self._src.with_tether(np.asarray((point1, point2)) / self._pixel_calibration_factors)
         return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
+
+    def to_kymo(self, half_window, reduce=np.sum) -> Kymo:
+        """Convert this :class:`ImageStack` to a :class:`~lumicks.pylake.kymo.Kymo` by sampling
+        along the tether.
+
+        Parameters
+        ----------
+        half_window : int
+            Number of pixels adjacent to the tether on either side to average over. The kymograph
+            will be calculated from the pixel values reduced to a one pixel line using the
+            downsampling function provided in :func:`reduce`.
+        reduce : callable
+            The :mod:`numpy` function which is going to reduce multiple samples into one. The
+            default is :func:`np.sum <numpy.sum>`.
+
+        Returns
+        -------
+        Kymo
+
+        Raises
+        ------
+        ValueError
+            If the frame rate or exposure time are not constant.
+        ValueError
+            If the image stack does not have a tether defined.
+        ValueError
+            If the number of adjacent lines are negative.
+        ValueError
+            If the number of adjacent lines exceed the image dimensions.
+
+        Notes
+        -----
+        In order to convert a :class:`ImageStack` to a :class:`~lumicks.pylake.kymo.Kymo`, a tether
+        needs to be defined first. See the example below for more information.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+            import matplotlib.pyplot as plt
+
+            stack = lk.ImageStack("camera_recording.tiff")
+
+            # Plot the stack
+            plt.figure()
+            stack.plot()
+
+            # Define tether by a pair of X, Y coordinates.
+            stack = stack.define_tether((7.19, 4.07), (22.74, 4.15))
+
+            # Plot the tether to verify.
+            stack.plot_tether()
+            kymo = stack.to_kymo(half_window=3)
+
+            # Plot the kymograph just created
+            plt.figure()
+            kymo.plot()
+
+            # Or alternatively, use the interactive widget to define the tether graphically
+            %matplotlib widget  # Enable interactive widgets
+            stack = lk.ImageStack("camera_recording.tiff")
+
+            # Opens an interactive widget. See help(lk.ImageStack.crop_and_rotate) for more info.
+            widget = stack.crop_and_rotate()
+            kymo = widget.image.to_kymo(half_window=3)
+            kymo.plot()
+        """
+        return _kymo_from_image_stack(
+            self,
+            half_window,
+            self.pixelsize_um[0] if self.pixelsize_um else None,
+            self.name,
+            reduce,
+        )
 
     def get_image(self, channel="rgb"):
         """Get image data for the full stack as an `np.ndarray`.
