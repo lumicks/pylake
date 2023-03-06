@@ -244,6 +244,19 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         new_image_stack._step = step
         return new_image_stack
 
+    @property
+    def _pixel_calibration_factors(self):
+        return np.asarray(self.pixelsize_um) if self.pixelsize_um else np.array((1.0, 1.0))
+
+    def _crop(self, x_min, x_max, y_min, y_max):
+        """Crop the image stack in the units the image is calibrated in."""
+        return self.crop_by_pixels(
+            int(x_min / self._pixel_calibration_factors[0]) if x_min else None,
+            int(x_max / self._pixel_calibration_factors[0]) if x_max else None,
+            int(y_min / self._pixel_calibration_factors[1]) if y_min else None,
+            int(y_max / self._pixel_calibration_factors[1]) if y_max else None,
+        )
+
     def crop_by_pixels(self, x_min, x_max, y_min, y_max):
         """Crop the image stack by pixel values.
 
@@ -265,6 +278,8 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         """Returns a copy of the stack rotated such that the tether defined by `point_1` and
         `point_2` is horizontal.
 
+        Note that the tether position is given in the image units (microns).
+
         Parameters
         ----------
         point_1 : (float, float)
@@ -272,7 +287,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         point_2 : (float, float)
             (x, y) coordinates of the tether end point
         """
-        data = self._src.with_tether((point1, point2))
+        data = self._src.with_tether(np.asarray((point1, point2)) / self._pixel_calibration_factors)
         return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
 
     def get_image(self, channel="rgb"):
@@ -394,7 +409,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         if axes is None:
             axes = plt.gca()
 
-        x, y = np.vstack(self._src._tether.ends).T
+        x, y = np.vstack(self._src._tether.ends * self._pixel_calibration_factors).T
         tether_kwargs = {"c": "w", "marker": "o", "mfc": "none", "ls": ":", **kwargs}
         axes.plot(x, y, **tether_kwargs)
 

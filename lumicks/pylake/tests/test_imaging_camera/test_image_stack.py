@@ -754,6 +754,33 @@ def test_define_tether():
     check_result(stack, ref_stack, 16)
 
 
+@pytest.mark.parametrize(
+    "scaling, ref_point1, ref_point2",
+    [
+        ([1.0, 1.0], [1.0, 2.0], [4.0, 5.0]),
+        ([2.0, 4.0], [1.0/2.0, 2.0/4.0], [4.0/2.0, 5.0/4.0]),
+        ([3.0, 1.0], [1.0/3.0, 2.0], [4.0/3.0, 5.0]),
+        (None, [1.0, 2.0], [4.0, 5.0]),
+    ],
+)
+def test_calibrated_tether(monkeypatch, scaling, ref_point1, ref_point2):
+    """The actual tether functionality is tested in test_define_tether. This one merely tests
+    whether the calibration is correctly taken into account."""
+    stack = _create_random_stack((30, 20), {})
+
+    def check_points(_, points):
+        point1, point2 = points
+        np.testing.assert_allclose(point1, ref_point1)
+        np.testing.assert_allclose(point2, ref_point2)
+        return stack
+
+    with monkeypatch.context() as m:
+        m.setattr("lumicks.pylake.detail.widefield.TiffStack.with_tether", check_points)
+        m.setattr("lumicks.pylake.ImageStack.pixelsize_um", scaling)
+
+        stack.define_tether([1.0, 2.0], [4.0, 5.0])
+
+
 def test_image_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image_data):
     """Tests whether we can set an absolute color range for RGB plots."""
     reference_image, warped_image, description, bit_depth = rgb_alignment_image_data
@@ -1103,26 +1130,60 @@ def test_pixel_calibration(num_frames, dims, ref_pixelsize_um, ref_size_um):
         np.testing.assert_allclose(
             stack[:, :3, :4].size_um, [ref_pixelsize_um * 4, ref_pixelsize_um * 3]
         )
+        np.testing.assert_allclose(stack._pixel_calibration_factors, stack.pixelsize_um)
     else:
         assert stack.size_um is None
         assert stack.pixelsize_um is None
+        np.testing.assert_allclose(stack._pixel_calibration_factors, [1.0, 1.0])
+
+
+def _create_random_stack(img_shape, description):
+    return ImageStack.from_dataset(
+        TiffStack(
+            [to_tiff(np.random.rand(*img_shape), description, 16, start_time=1, num_images=2)],
+            align_requested=False,
+        )
+    )
 
 
 def test_pixel_calibration():
-    def create_stack(description):
-        return ImageStack.from_dataset(
-            TiffStack(
-                [to_tiff(np.zeros((3, 5)), description, 16, start_time=1, num_images=2)],
-                align_requested=False,
-            )
-        )
-
     # Test calibrated
-    stack = create_stack({"Pixel calibration (nm/pix)": 500})
+    stack = _create_random_stack((3, 5), {"Pixel calibration (nm/pix)": 500})
     image = stack.plot()
     np.testing.assert_allclose(image.get_extent(), [-0.5, 0.5 * 5 - 0.5, 0.5 * 3 - 0.5, -0.5])
 
     # Test uncalibrated
-    stack = create_stack({})
+    stack = _create_random_stack((3, 5), {})
     image = stack.plot()
     np.testing.assert_allclose(image.get_extent(), [-0.5, 4.5, 2.5, -0.5])
+
+
+@pytest.mark.parametrize(
+    "x_min, x_max, y_min, y_max, scale_x, scale_y",
+    [
+        (2, 4, 1, 5, 1, 1),  # No scaling
+        (2, 4, 1, 5, 2, 4),
+        (None, 4, 1, 5, 2, 4),
+        (2, None, 1, 5, 2, 4),
+        (2, 4, None, 3, 2, 4),
+        (2, 4, 1, None, 2, 4),
+        (None, None, None, None, 2, 4),
+    ],
+)
+def test_calibrated_crop(monkeypatch, x_min, x_max, y_min, y_max, scale_x, scale_y):
+    def scale(x, scale_factor):
+        return x * scale_factor if x else None
+
+    stack = _create_random_stack((30, 20), {})
+    with monkeypatch.context() as m:
+        m.setattr("lumicks.pylake.ImageStack.pixelsize_um", [scale_x, scale_y])
+        ref_img = stack.get_image("red")[:, y_min:y_max, x_min:x_max]
+        np.testing.assert_allclose(
+            stack._crop(
+                scale(x_min, scale_x),
+                scale(x_max, scale_x),
+                scale(y_min, scale_y),
+                scale(y_max, scale_y),
+            ).get_image("red"),
+            ref_img,
+        )
