@@ -150,7 +150,7 @@ class ImageEditorAxes(ImageStackAxes):
             np.sort([event.xdata for event in (event_click, event_release)]),
             np.sort([event.ydata for event in (event_click, event_release)]),
         )
-        self.roi_limits = np.rint(np.hstack(corners)).astype(int)
+        self.roi_limits = np.hstack(corners)
 
     def add_point(self, x, y):
         """Add a point to the tether coordinates; if both ends are defined, rotate the image."""
@@ -158,7 +158,10 @@ class ImageEditorAxes(ImageStackAxes):
 
         if len(self.current_points) == 2:
             self._current_image = self._current_image.define_tether(*self.current_points)
-            temp_tether = np.vstack(self._current_image[0]._src._tether.ends)
+            temp_tether = np.vstack(
+                self._current_image[0]._src._tether.ends
+                * self._current_image[0]._pixel_calibration_factors
+            )
             self.current_points = []
         else:
             temp_tether = np.atleast_2d(np.vstack(self.current_points))
@@ -180,7 +183,7 @@ class ImageEditorAxes(ImageStackAxes):
         return (
             self._current_image
             if self.roi_limits is None
-            else self._current_image.crop_by_pixels(*self.roi_limits)
+            else self._current_image._crop(*self.roi_limits)
         )
 
 

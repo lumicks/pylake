@@ -29,6 +29,7 @@
   * PowerSpectrum: Attempting to replace the power spectral values of a `PowerSpectrum` using `with_spectrum` using a vector of incorrect length will raise a `ValueError`.
 * When removing tracks with the kymotracking widget, only tracks that are entirely in the selection rectangle will be removed. Prior to this change, any tracks intersecting with the selection rectangle would be removed.
 * Added checks which enforce `KymoTracks` in a `KymoTrackGroup` to be unique. Extending a `KymoTrackGroup` with `KymoTrack` instances that are already part of the group will now result in a `ValueError`. Similarly, constructing a new `KymoTrackGroup` with duplicate `KymoTracks` will also produce a `ValueError`.
+* The function `ImageStack.define_tether()` now takes coordinates in image units (microns) rather than pixels.
 
 #### New features
 
