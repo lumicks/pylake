@@ -9,6 +9,7 @@ from lumicks.pylake import ImageStack
 from lumicks.pylake import CorrelatedStack
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.detail.widefield import TiffStack
+from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import channel
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -1094,3 +1095,41 @@ def test_calibrated_crop(monkeypatch, x_min, x_max, y_min, y_max, scale_x, scale
             ).get_image("red"),
             ref_img,
         )
+
+
+@pytest.mark.parametrize(
+    "position, half_width, num_images, tether_start, half_window, pixel_size",
+    [
+        (9, 1, 10, 0, 0, None),
+        (6, 1, 15, 2, 0, None),  # Validate line not all the way to edge
+        (6, 1, 15, 1, 2, None),  # Validate summing wider area
+        (6, 1, 15, 1, 2, 2),  # Validate calibration
+    ],
+)
+def test_integration_test_to_kymo(
+    position, half_width, num_images, tether_start, half_window, pixel_size
+):
+    """The individual methods for converting to a Kymo and converting from a stack to a Kymo have
+    already been individually tested. This function specifically tests whether the API works end
+    to end."""
+    img = np.ones((20, 30))
+    img[7:14, position - half_width:position + half_width + 1] = 5
+    description = {"Pixel calibration (nm/pix)": 1000 * pixel_size} if pixel_size else {}
+    stack = ImageStack.from_dataset(
+        TiffStack(
+            [to_tiff(img, description, 16, start_time=1, num_images=num_images)],
+            align_requested=False,
+        ),
+    )
+
+    pixelsize = (pixel_size if pixel_size else 1)
+    tether_start, half_window = 2, 1
+    with_tether = stack.define_tether(
+        (tether_start * pixelsize, 10 * pixelsize), (26 * pixelsize, 10 * pixelsize)
+    )
+    kymo = with_tether.to_kymo(half_window=half_window, reduce=np.sum)
+    lines = track_greedy(kymo, "red", pixel_threshold=3)
+    np.testing.assert_allclose(
+        lines[0].position, [(position - tether_start) * pixelsize] * num_images
+    )
+    np.testing.assert_allclose(np.max(kymo.get_image("red")), 5 * (1 + 2 * half_window))
