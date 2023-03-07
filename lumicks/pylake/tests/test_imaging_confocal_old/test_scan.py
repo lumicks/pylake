@@ -1,6 +1,7 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.adjustments import ColorAdjustment
 from ..data.mock_confocal import generate_scan
@@ -27,15 +28,6 @@ def test_scan_attrs(test_scans):
     assert scan.get_image("red").shape == (4, 5)
     assert scan.get_image("blue").shape == (4, 5)
     assert scan.get_image("green").shape == (4, 5)
-
-    with pytest.deprecated_call():
-        assert scan.rgb_image.shape == (4, 5, 3)
-    with pytest.deprecated_call():
-        assert scan.red_image.shape == (4, 5)
-    with pytest.deprecated_call():
-        assert scan.blue_image.shape == (4, 5)
-    with pytest.deprecated_call():
-        assert scan.green_image.shape == (4, 5)
 
     assert scan.fast_axis == "Y"
     np.testing.assert_allclose(scan.pixelsize_um, [197 / 1000, 191 / 1000])
@@ -234,18 +226,9 @@ def test_plotting(test_scans):
 
 def test_deprecated_plotting(test_scans):
     scan = test_scans["fast Y slow X multiframe"]
-    with pytest.deprecated_call():
-        scan.plot_red()
-    with pytest.deprecated_call():
-        scan.plot_green()
-    with pytest.deprecated_call():
-        scan.plot_blue()
-    with pytest.deprecated_call():
-        scan.plot_rgb()
-    with pytest.warns(
-        DeprecationWarning,
-        match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
-        "keyword argument."
+    with pytest.raises(
+        TypeError,
+        match=re.escape("plot() takes from 1 to 2 positional arguments but 3 were given")
     ):
         ih = scan.plot("blue", None)
         np.testing.assert_allclose(ih.get_array(), scan.get_image("blue")[0])
@@ -253,7 +236,10 @@ def test_deprecated_plotting(test_scans):
     # Test rejection of deprecated call with positional `axes` and double keyword assignment
     with pytest.raises(
         TypeError,
-        match=r"`Scan.plot\(\)` got multiple values for argument `axes`"
+        match=re.escape(
+             "plot() takes from 1 to 2 positional arguments but 3 positional "
+             "arguments (and 1 keyword-only argument) were given"
+        )
     ):
         scan.plot("rgb", None, axes=None)
 
@@ -292,19 +278,6 @@ def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
         assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
 
 
-def test_deprecated_save_tiff(tmp_path, test_scans):
-    from os import stat
-
-    scan = test_scans["fast Y slow X"]
-    match = (
-        r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
-        r"exporting to a different format."
-    )
-    with pytest.warns(DeprecationWarning, match=match):
-        scan.save_tiff(f"{tmp_path}/single_frame_dep.tiff")
-        assert stat(f"{tmp_path}/single_frame_dep.tiff").st_size > 0
-
-
 def test_movie_export(tmpdir_factory, test_scans):
     from os import stat
 
@@ -322,19 +295,6 @@ def test_movie_export(tmpdir_factory, test_scans):
 
     with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):
         scan.export_video("gray", "dummy.gif")  # Gray is not a color!
-
-
-def test_deprecated_movie_export(tmpdir_factory, test_scans):
-    from os import stat
-
-    tmpdir = tmpdir_factory.mktemp("pylake")
-    scan = test_scans["fast Y slow X multiframe"]
-    for channel in ("red", "green", "blue", "rgb"):
-        with pytest.warns(DeprecationWarning):
-            getattr(scan, f"export_video_{channel}")(
-                f"{tmpdir}/dep_{channel}.gif", start_frame=0, end_frame=2
-            )
-            assert stat(f"{tmpdir}/dep_{channel}.gif").st_size > 0
 
 
 @pytest.mark.parametrize(

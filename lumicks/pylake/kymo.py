@@ -3,7 +3,6 @@ from copy import copy
 from dataclasses import dataclass
 
 import numpy as np
-from deprecated.sphinx import deprecated
 from skimage.measure import block_reduce
 
 from . import colormaps
@@ -12,7 +11,6 @@ from .detail.confocal import (
     ConfocalImage,
     ScanAxis,
     ScanMetaData,
-    _deprecate_basescan_plot_args,
 )
 from .detail.image import histogram_rows, round_down, seek_timestamp_next_line
 from .detail.plotting import get_axes, show_image
@@ -282,7 +280,6 @@ class Kymo(ConfocalImage):
         list corresponds to the number of scan axes."""
         return [self._calibration.value]
 
-    @_deprecate_basescan_plot_args
     def plot(
         self,
         channel="rgb",
@@ -705,7 +702,6 @@ class Kymo(ConfocalImage):
 
 
 class EmptyKymo(Kymo):
-    @_deprecate_basescan_plot_args
     def plot(self, channel="rgb", **kwargs):
         raise RuntimeError("Cannot plot empty kymograph")
 
@@ -719,42 +715,6 @@ class EmptyKymo(Kymo):
     @property
     def duration(self):
         return 0
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('red') "
-            "<get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def red_image(self):
-        return self._image()
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('green') "
-            "<get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def green_image(self):
-        return self._image()
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('blue') "
-            "<get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def blue_image(self):
-        return self._image()
 
 
 @dataclass(frozen=True)
