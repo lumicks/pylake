@@ -1,6 +1,7 @@
 .. warning::
     This is alpha functionality. While usable, this has not yet been tested in a large
-    number of different scenarios. The API may also still be subject to change.
+    number of different scenarios. The API can still be subject to change *without any prior deprecation notice*! If you use this
+    functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
 Piezo Tracking
 ==============
@@ -20,11 +21,14 @@ The first step is to calibrate the high frequency trap position from the piezo m
 For this calibration, we require a dataset (acquired in the absence of a tether) in which trap 1 is moved over the entire distance range intended for the experiment.
 The exported data file must contain the trap 1 position and camera-based distance channels.
 
-*Note that this dataset should be acquired such that the bead tracking templates do not overlap. In case of overlap, make sure to first slice the position and distance data such that this region is not included.*
+.. note::
+
+    Note that this dataset should be acquired such that the bead tracking templates do not overlap. In case of overlap,
+    make sure to first slice the position and distance data such that this region is not included.
 
 Let's load this dataset and perform the distance calibration by invoking::
 
-    no_tether_data = lk.File("Data/piezo_tracking_no_tether.h5")
+    no_tether_data = lk.File("piezo_tracking_no_tether.h5")
 
     distance_calibration = lk.DistanceCalibration(
         no_tether_data["Trap position"]["1X"], no_tether_data.distance1, degree=2
@@ -32,16 +36,20 @@ Let's load this dataset and perform the distance calibration by invoking::
 
 This class performs a polynomial regression between the trap position and bead tracking distance.
 Note that this bead-to-bead distance already has the bead radius subtracted, therefore it reflects the surface-to-surface distance.
-We can plot what this curve looks like by invoking `.plot()` on it::
+We can plot what this curve looks like by invoking :meth:`~lumicks.pylake.DistanceCalibration.plot` on it::
 
+    plt.figure()
     distance_calibration.plot()
+    plt.show()
 
 .. image:: figures/piezotracking/mirror_calibration.png
 
 We can also inspect the residual, to determine how well the calibration model describes the data.
 We can see that there is some error (the discrepancy does not scatter randomly around zero), but for this experiment, 15 nm error is within an acceptable range::
 
+    plt.figure()
     distance_calibration.plot_residual()
+    plt.show()
 
 .. image:: figures/piezotracking/mirror_calibration_residual.png
 
@@ -50,6 +58,7 @@ Baseline correction
 
 Let's have a look at the force data::
 
+    plt.figure()
     plt.subplot(2, 1, 1)
     no_tether_data.force1x.plot()
     no_tether_data.force2x.plot()
@@ -57,6 +66,7 @@ Let's have a look at the force data::
     plt.subplot(2, 1, 2)
     no_tether_data.distance1.plot()
     plt.tight_layout()
+    plt.show()
 
 .. image:: figures/piezotracking/nonzero_force.png
 
@@ -85,17 +95,21 @@ We can quickly determine a polynomial baseline for both traps by invoking::
 
 Similarly as before, we can plot the fits to verify that they describe the data well::
 
+    plt.figure()
     baseline_1x.plot(label="baseline f1x")
     baseline_2x.plot(label="baseline f2x")
     plt.legend()
+    plt.show()
 
 .. image:: figures/piezotracking/baseline.png
 
 And the residuals::
 
+    plt.figure()
     baseline_1x.plot_residual(label="baseline f1x")
     baseline_2x.plot_residual(label="baseline f2x")
     plt.legend(loc='lower right')
+    plt.show()
 
 .. image:: figures/piezotracking/baseline_residual.png
 
@@ -116,10 +130,10 @@ Thus the surface-to-surface distance between the beads can be computed by correc
 
 .. math::
 
-    d_{piezo} = d_{no\_tether} - \frac{F_{1x}}{\kappa_{1x}} + \frac{F_{2x}}{\kappa_{2x}}
+    d_\mathrm{piezo} = d_\mathrm{no\_tether} - \frac{F_{1x}}{\kappa_{1x}} + \frac{F_{2x}}{\kappa_{2x}}
 
-Here :math:`d_{piezo}` is the piezo distance and :math:`d_{no\_tether}` is the calibrated surface-to-surface distance without the tether.
-:math:`F_{1x}` and :math:`F_{2x}` are the forces measured on the beads and :math:`\kappa_{1x}` and :math:`\kappa_{2x}` are the trap stiffness for each trap.
+Here :math:`d_\mathrm{piezo}` is the piezo distance and :math:`d_\mathrm{no\_tether}` is the calibrated surface-to-surface
+distance without the tether. :math:`F_{1x}` and :math:`F_{2x}` are the forces measured on the beads and :math:`\kappa_{1x}` and :math:`\kappa_{2x}` are the trap stiffness for each trap.
 
 To do this in Pylake, we set up the piezo distance calibration as follows::
 
@@ -132,7 +146,7 @@ Calculating the Fd Curve
 
 First, we load the data acquired in the presence of a tether::
 
-    pulling_curve = lk.File("Data/piezo_tracking_tether.h5")
+    pulling_curve = lk.File("piezo_tracking_tether.h5")
 
 And determine the piezo distance and corrected force::
 
@@ -145,18 +159,22 @@ Here the downsampling factor determines how much the data is downsampled prior t
 
 Which we can then plot::
 
+    plt.figure()
     plt.scatter(tether_length.data, force_data.data, s=1)
     plt.xlabel('Distance [$\mu$m]')
     plt.ylabel('Force [pN]')
+    plt.show()
 
 .. image:: figures/piezotracking/piezotracking_result.png
 
 We can compare this to the camera-based distance and raw force curve and see a clear difference::
 
+    plt.figure()
     plt.scatter(tether_length.data, force_data.data, s=1, label="corrected")
     plt.scatter(pulling_curve.distance1.data, - (pulling_curve.downsampled_force2x.data - f2_offset), s=1, label="raw")
     plt.xlabel('Distance [$\mu$m]')
     plt.ylabel('Force [pN]')
     plt.legend()
+    plt.show()
 
 .. image:: figures/piezotracking/comparison.png
