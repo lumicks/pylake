@@ -178,7 +178,7 @@ class Kymo(ConfocalImage):
         """Pixel dwell time in seconds"""
         return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
 
-    def line_timestamp_ranges(self, exclude=None, *, include_dead_time=None):
+    def line_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each line in the kymo.
 
         Note: The stop timestamp for each line is defined as the first sample past the end of the
@@ -186,31 +186,10 @@ class Kymo(ConfocalImage):
 
         Parameters
         ----------
-        exclude : bool
-            Exclude dead time at the end of each frame (deprecated)
         include_dead_time : bool
             Include dead time at the end of each frame (default: False).
         """
-        if exclude is not None and include_dead_time is not None:
-            raise ValueError("Do not specify both exclude and include_dead_time parameters")
-
-        if exclude is not None:
-            warnings.warn(
-                DeprecationWarning(
-                    "The argument exclude is deprecated. Please use the keyword argument "
-                    "`include_dead_time` from now on",
-                ),
-                stacklevel=2,
-            )
-
-        if include_dead_time is not None:
-            include = include_dead_time
-        elif exclude is not None:
-            include = not exclude
-        else:
-            include = False  # This will become the new default after full deprecation
-
-        return self._line_timestamp_ranges_factory(self, not include)
+        return self._line_timestamp_ranges_factory(self, not include_dead_time)
 
     def _tiff_image_metadata(self) -> dict:
         """Create metadata for the ImageDescription field of TIFFs used by `export_tiff()`."""

@@ -373,18 +373,7 @@ def test_multiple_frame_times(dim_x, dim_y, frames, line_padding, start, dt, sam
             frame_times[1][0] - frame_times[0][0]
         )
 
-    with pytest.deprecated_call():
-        compare_inclusive(scan.frame_timestamp_ranges(False))
-
-    with pytest.deprecated_call():
-        compare_inclusive(scan.frame_timestamp_ranges(exclude=False))
-
     compare_inclusive(scan.frame_timestamp_ranges(include_dead_time=True))
-
-    with pytest.raises(
-        ValueError, match="Do not specify both exclude and include_dead_time parameters"
-    ):
-        scan.frame_timestamp_ranges(False, include_dead_time=True)
 
 
 def test_scan_plot_rgb_absolute_color_adjustment(test_scans):

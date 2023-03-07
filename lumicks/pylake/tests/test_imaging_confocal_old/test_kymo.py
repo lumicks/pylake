@@ -238,19 +238,8 @@ def test_line_timestamp_ranges(test_kymos):
         ranges = kymo.line_timestamp_ranges(include_dead_time=include)
         np.testing.assert_equal(ranges, ref_ranges)
 
-        with pytest.deprecated_call():
-            np.testing.assert_equal(kymo.line_timestamp_ranges(not include), ref_ranges)
-
-        with pytest.deprecated_call():
-            np.testing.assert_equal(kymo.line_timestamp_ranges(exclude=not include), ref_ranges)
-
         iw_chunks = [kymo.infowave[slice(*rng)].data for rng in ranges]
         np.testing.assert_equal(iw_chunks, ref_iw_chunks)
-
-    with pytest.raises(
-        ValueError, match="Do not specify both exclude and include_dead_time parameters"
-    ):
-        kymo.line_timestamp_ranges(False, include_dead_time=False)
 
 
 def test_plotting_with_force_downsampling(kymo_h5_file):
