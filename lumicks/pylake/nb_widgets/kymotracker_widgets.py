@@ -544,7 +544,7 @@ class KymoWidgetGreedy(KymoWidget):
         pixel_threshold=None,
         window=None,
         sigma=None,
-        vel=None,
+        velocity=None,
         diffusion=None,
         sigma_cutoff=None,
         min_length=None,
@@ -577,7 +577,7 @@ class KymoWidgetGreedy(KymoWidget):
             Uncertainty in the particle position. This parameter will determine whether a peak in the next frame will be
             linked to this one. Increasing this value will make the algorithm tend to allow more positional variation in
             the tracks. If none, the algorithm will use half the track width.
-        vel : float, optional
+        velocity : float, optional
             Expected velocity of the traces in the image. This can be used for non-static particles that are expected to
             move at an expected rate (default: 0.0).
         diffusion : float, optional
@@ -599,7 +599,7 @@ class KymoWidgetGreedy(KymoWidget):
             Dictionary with custom ranges for selected parameter sliders. Ranges should be in the
             following format: (lower bound, upper bound).
             Valid options are: "window", "pixel_threshold", "track_width", "sigma", "min_length" and
-            "vel".
+            "velocity".
         """
 
         def wrapped_track_greedy(kymo, channel, min_length, **kwargs):
@@ -792,7 +792,7 @@ def _get_default_parameters(kymo, channel):
             r"noise, but at the cost of potentially merging tracks that are close together.",
             abridged_name="Spot size",
         ),
-        "vel": KymotrackerParameter(
+        "velocity": KymotrackerParameter(
             "Expected velocity",
             "How fast does the particle move?",
             "float",
