@@ -209,28 +209,6 @@ def test_slicing(shape):
             stack0[s]
 
 
-def test_deprecated_src():
-    fake_tiff = TiffStack(
-        [MockTiffFile(data=[np.ones((5, 4, 3))] * 6, times=make_frame_times(6))],
-        align_requested=False,
-    )
-    stack = ImageStack.from_dataset(fake_tiff)
-    with pytest.warns(
-        DeprecationWarning, match="This property will be removed in a future release."
-    ):
-        assert stack.src is stack._src
-
-
-def test_deprecated_timestamps():
-    fake_tiff = TiffStack(
-        [MockTiffFile(data=[np.ones((5, 4, 3))] * 6, times=make_frame_times(6))],
-        align_requested=False,
-    )
-    stack = ImageStack.from_dataset(fake_tiff)
-    with pytest.deprecated_call():
-        stack.timestamps
-
-
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
 def test_correlation(shape):
     cc = channel.Slice(channel.Continuous(np.arange(10, 80, 2), 10, 2))
@@ -304,14 +282,6 @@ def test_correlation(shape):
     assert int(ch.timestamps[0]) == 1588267266006287100
 
 
-def test_name_change_from_data():
-    fake_tiff = TiffStack(
-        [MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1))], align_requested=False
-    )
-    with pytest.deprecated_call():
-        ImageStack.from_data(fake_tiff)
-
-
 def test_stack_roi():
     first_page = np.arange(60).reshape((6, 10))
     data = np.stack([first_page + (j * 60) for j in range(3)], axis=2)
@@ -347,16 +317,6 @@ def test_roi_defaults():
     np.testing.assert_equal(stack_0.with_roi([1, 7, 3, None]).get_frame(0).data, data[3:, 1:7])
     np.testing.assert_equal(stack_0.with_roi([None, None, 3, 6]).get_frame(0).data, data[3:6, :])
     np.testing.assert_equal(stack_0.with_roi([1, 7, None, None]).get_frame(0).data, data[:, 1:7])
-
-
-def test_deprecate_raw():
-    fake_tiff = TiffStack(
-        [MockTiffFile(data=[np.ones((5, 4, 3))], times=make_frame_times(1))], align_requested=False
-    )
-    stack = ImageStack.from_dataset(fake_tiff)
-
-    with pytest.deprecated_call():
-        stack.raw
 
 
 def test_image_stack_plotting(rgb_alignment_image_data):
@@ -406,59 +366,6 @@ def test_image_stack_plotting(rgb_alignment_image_data):
         stack.plot(channel="blue", frame=4)
     with pytest.raises(IndexError, match="Frame index out of range"):
         stack.plot(channel="blue", frame=-1)
-
-    # Test recognition of and plotting with deprecated order of arguments
-    # old arguments: frame, channel, show_title, axes, adjustment
-    # old_arg_types = [int, str, bool, matplotlib.axes.Axes, ColorAdjustment]
-    # nones_allowed = [False, True, False, True, False]
-    for args, key in zip(
-        [
-            [0],
-            [1, None],
-            [0, "blue"],
-            [0, None, True],
-            # We need to replace "SUPPLY_AXES" with an matplotlib.axes object later, as otherwise
-            # `plt.close()` would close the current, i.e. this figure and the corresponding axes
-            # during the first iteration of the for loop
-            [0, None, True, "SUPPLY_AXES"],
-            [0, None, True, None, ColorAdjustment.nothing()]
-        ],
-        [
-            "frame",
-            "channel",
-            "channel",
-            "show_title",
-            "axes",
-            "adjustment",
-        ]
-    ):
-        frame = args[0]
-        channel = "blue" if args[-1] == "blue" else "rgb"
-        # Replace "SUPPLY_AXES" with an axes object
-        args[-1] = plt.subplots()[1] if args[-1] == "SUPPLY_AXES" else args[-1]
-
-        # Test plotting with deprecated order
-        with pytest.warns(
-            DeprecationWarning,
-            match=r"The call signature of `plot\(\)` has changed: Please, provide .* "
-            "as keyword arguments?."
-        ):
-            image = stack.plot(*args)
-            assert image is plt.gca().get_images()[0]
-            ref_image = stack._get_frame(frame)._get_plot_data(channel=channel)
-            np.testing.assert_allclose(image.get_array(), ref_image)
-            plt.close()
-
-        # Test rejection of deprecated order and double keyword assignment
-        for i, name in enumerate(
-            ["frame", "channel", "show_title", "axes", "adjustment"][:len(args)]
-        ):
-            with pytest.raises(
-                TypeError,
-                match=rf"`ImageStack.plot\(\)` got multiple values for argument `{name}`"
-            ):
-                kwargs = {name: args[i]}
-                image = stack.plot(*args, **kwargs)
 
 
 def test_plot_correlated():
