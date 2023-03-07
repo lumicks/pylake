@@ -51,6 +51,7 @@
 #### Other changes
 
 * Removed all deprecated methods and properties from `Kymo`, `Scan`, `PointScan`, and `ImageStack`.
+* Removed deprecated argument `exclude` from `Kymo.line_timestamp_ranges()` and `Scan.frame_timestamp_ranges()`.
 
 ## v0.13.3 | 2023-01-26
 
