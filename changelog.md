@@ -9,7 +9,7 @@
 * Changed several `asserts` to `Exceptions`.
   * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
   * Attempting to extend `KymoTracks` by `KymoTracks` originating from a different `Kymograph` now results in a `ValueError`.
-  * Attempting to connect two tracks with the same start and ending time point now raises a `ValueError`. 
+  * Attempting to connect two tracks with the same start and ending time point now raises a `ValueError`.
   * FdFitter: `FdFit.fit()` now raises a `RuntimeError` when a fit has no data or fittable parameters.
   * FdFitter: `FdFit.plot()` now raises a `KeyError` when trying to plot data that does not exist.
   * FdFitter: `FdFit.plot()` now raises a `RuntimeError` when trying to plot a fit with multiple models without selecting a model using angular brackets `[]` first.
@@ -24,7 +24,7 @@
   * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `ValueError`.
   * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
   * Image reconstruction now raises a `ValueError` if the length of the data and infowave are not equal.
-  * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided. 
+  * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided.
   * Widefield: Attempting to open multiple `TIFF` as a single ImageStack will now raise a `ValueError` if the alignment matrices of the individual `TIFF` are different.
   * PowerSpectrum: Attempting to replace the power spectral values of a `PowerSpectrum` using `with_spectrum` using a vector of incorrect length will raise a `ValueError`.
 * When removing tracks with the kymotracking widget, only tracks that are entirely in the selection rectangle will be removed. Prior to this change, any tracks intersecting with the selection rectangle would be removed.
@@ -47,6 +47,10 @@
 * Fixed incorrect behaviour in `lk.track_lines()` by interpolating back to integer frame times. Prior to this change, `lk.track_lines()` would provide a subpixel accurate position along the time axis of the kymograph as well. However, this position was specified with respect to the coordinate system of the image, rather than actual acquisition times. As such, it would produce incorrect results when performing downstream analysis that rely on the time corresponding to an actual time. Note that `lk.track_greedy()` is not affected.
 * Fixed bug in `lk.track_lines()` where one extra line was returned rather than the number requested through the parameter `max_lines`.
 * Fixed regression that caused [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) to incorrectly store the stack name (resulting in an extra `('` in front of the name in plots). This regression was introduced in `v0.13.0` when enabling multi-file support. See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) for more information.
+
+#### Other changes
+
+* Removed all deprecated methods and properties from `Kymo`, `Scan`, `PointScan`, and `ImageStack`.
 
 ## v0.13.3 | 2023-01-26
 

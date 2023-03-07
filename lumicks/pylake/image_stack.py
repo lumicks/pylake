@@ -5,61 +5,11 @@ import numpy as np
 import numpy.typing as npt
 from deprecated.sphinx import deprecated
 
-from .adjustments import ColorAdjustment, no_adjustment
+from .adjustments import no_adjustment
 from .detail.image import make_image_title
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 from .detail.plotting import get_axes, show_image
 from .detail.widefield import TiffStack
-
-
-def _deprecate_plot_arguments(plot):
-    """Decorator to deprecate old arguments of the method `ImageStack.plot()`"""
-    import functools
-    import matplotlib
-    import warnings
-
-    def is_old_order(args):
-        # old arguments: frame, channel, show_title, axes, adjustment
-        old_arg_types = [int, str, bool, matplotlib.axes.Axes, ColorAdjustment]
-        nones_allowed = [False, True, False, True, False]
-        old_order = 1 <= len(args) <= 5
-        for arg, old_type, none_allowed in zip(args, old_arg_types, nones_allowed):
-            old_order = old_order and (isinstance(arg, old_type) or none_allowed and arg is None)
-        return old_order
-
-    @functools.wraps(plot)
-    def wrapper(self, *args, **kwargs):
-        # The plot function might be called with up to 5 positional arguments with the old order
-        # We can gracefully convert the old ordered positional arguments into keyword arguments
-        if is_old_order(args):
-            keys = ["frame", "channel", "show_title", "axes", "adjustment"]
-            defaults = [0, "rgb", True, None, no_adjustment]
-            warn_on_keys = []
-            for arg, key, default in zip(args, keys, defaults):
-                if key in kwargs:
-                    raise TypeError(
-                        f"`{self.__class__.__name__}.plot()` got multiple values for argument `{key}`"
-                    )
-                kwargs[key] = default if arg is None else arg
-                if key != "channel":
-                    warn_on_keys.append(key)
-            warn_keys = (
-                f"`{warn_on_keys[0]}`"
-                if len(warn_on_keys) == 1
-                else f"`{'`, `'.join(warn_on_keys[:-1])}` and `{warn_on_keys[-1]}`"
-            )
-            warnings.warn(
-                DeprecationWarning(
-                    f"The call signature of `plot()` has changed: Please, provide {warn_keys} as "
-                    f"keyword argument{'s' if len(warn_on_keys) > 1 else ''}."
-                ),
-                stacklevel=2,
-            )
-            return plot(self, **kwargs)
-        else:
-            return plot(self, *args, **kwargs)
-
-    return wrapper
 
 
 class ImageStack(FrameIndex, TiffExport, VideoExport):
@@ -191,28 +141,6 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             idx += 1
 
     @property
-    @deprecated(
-        reason="This property will be removed in a future release.",
-        version="0.13.2",
-        action="always",
-    )
-    def src(self):
-        """The `TiffStack` source of this :class:`ImageStack`"""
-        return self._src
-
-    @classmethod
-    @deprecated(
-        reason=(
-            "Renamed to :func:`from_dataset` for consistency with "
-            ":class:`~lumicks.pylake.kymo.Kymo` and :class:`~lumicks.pylake.scan.Scan`."
-        ),
-        action="always",
-        version="0.10.1",
-    )
-    def from_data(cls, data, name=None, start_idx=0, stop_idx=None):
-        return cls.from_dataset(data, name, start_idx, stop_idx)
-
-    @property
     def shape(self):
         base_shape = (self.num_frames, *self._src._shape)
         return (*base_shape, 3) if self._src.is_rgb else base_shape
@@ -307,7 +235,6 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
 
         return np.stack([frame.data[slc] for frame in self], axis=0).squeeze()
 
-    @_deprecate_plot_arguments
     def plot(
         self,
         channel="rgb",
@@ -602,24 +529,6 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         return max(-1, (self._stop_idx - self._start_idx - 1)) // self._step + 1
 
     @property
-    @deprecated(
-        reason=(
-            "Access to raw frame instances will be removed in a future release. All operations on "
-            "these objects should be handled through the :class:`ImageStack` public API. For "
-            "example, to retrieve the image data as an :class:`numpy.ndarray` please use "
-            ":func:`get_image`."
-        ),
-        action="always",
-        version="0.10.1",
-    )
-    def raw(self):
-        """Raw frame data."""
-        if self.num_frames > 1:
-            return [self._get_frame(idx) for idx in range(self.num_frames)]
-        else:
-            return self._get_frame(0)
-
-    @property
     def start(self):
         """Starting time stamp of the stack."""
         return self._get_frame(0).start
@@ -628,19 +537,6 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
     def stop(self):
         """Final time stamp of the stack."""
         return self._get_frame(self.num_frames - 1).stop
-
-    @property
-    @deprecated(
-        reason=(
-            "For camera based images only the integration start/stop timestamps are defined. "
-            "Use :func:`frame_timestamp_ranges` instead."
-        ),
-        action="always",
-        version="0.11.1",
-    )
-    def timestamps(self):
-        """Get start and stop timestamp of each frame in the stack."""
-        return self.frame_timestamp_ranges()
 
     def frame_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each frame in the stack.
