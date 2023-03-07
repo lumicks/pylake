@@ -9,7 +9,7 @@ Open a Bluelake HDF5 file as follows::
 
     import lumicks.pylake as lk
 
-    file = lk.File("example.h5")
+    file = lk.File("kymo.h5")
 
 Contents
 --------

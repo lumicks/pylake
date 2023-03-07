@@ -37,7 +37,7 @@ with the correlated force data::
     # define a color adjustment so we can see the data better
     adjustment = lk.ColorAdjustment(0, 99.5, mode="percentile")
 
-    file = lk.File('kymograph.h5')
+    file = lk.File('kymo.h5')
     name, kymo = file.kymos.popitem()
 
     plt.figure()

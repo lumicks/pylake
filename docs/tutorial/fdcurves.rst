@@ -125,9 +125,8 @@ Baseline Correction
 
 FD curves can also be constructed from baseline corrected force data if the channel was exported from Bluelake with a baseline correction applied::
 
-    file = lk.File("example.h5")
-    fd = file.fdcurves["baseline"]  # low frequency, uncorrected force magnitude
-    fd_bl = fd.with_baseline_corrected_x()  # low frequency, baseline corrected force x-component
+    fd_no_correction = baseline_file.fdcurves["baseline"]  # low frequency, uncorrected force magnitude
+    fd_baseline = fd_no_correction.with_baseline_corrected_x()  # low frequency, baseline corrected force x-component
 
 .. note::
     By default, FD curves are constructed using the force magnitude :math:`F = \sqrt{F_x^2 + F_y^2}`. However, baseline
