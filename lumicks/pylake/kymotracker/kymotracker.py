@@ -62,11 +62,12 @@ def _validate_track_width(track_width, bound, unit):
 def track_greedy(
     kymograph,
     channel,
+    *,
     track_width=None,
     pixel_threshold=None,
     window=8,
     sigma=None,
-    vel=0.0,
+    velocity=0.0,
     diffusion=0.0,
     sigma_cutoff=2.0,
     rect=None,
@@ -119,7 +120,7 @@ def track_greedy(
         next frame will be linked to this one. Increasing this value will make the algorithm tend
         to allow more positional variation in the tracks. If none, the algorithm will use half the
         track width.
-    vel : float
+    velocity : float
         Expected velocity of the traces in the image in physical units. This can be used for
         non-static particles that are expected to move at a constant rate (default: 0.0).
     diffusion : float
@@ -202,7 +203,7 @@ def track_greedy(
     peaks = merge_close_peaks(peaks, half_width_pixels)
 
     # Convert algorithm parameters to pixel units
-    velocity_pixels = vel * kymograph.line_time_seconds / position_scale
+    velocity_pixels = velocity * kymograph.line_time_seconds / position_scale
     diffusion_pixels = diffusion / (position_scale**2 / kymograph.line_time_seconds)
     sigma_pixels = sigma / position_scale if sigma else half_width_pixels
 
@@ -257,6 +258,7 @@ def track_lines(
     channel,
     line_width,
     max_lines,
+    *,
     start_threshold=0.005,
     continuation_threshold=0.005,
     angle_weight=10.0,

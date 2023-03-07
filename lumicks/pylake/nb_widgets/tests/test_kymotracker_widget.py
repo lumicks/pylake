@@ -363,9 +363,9 @@ def test_keyword_args(kymograph):
     "gain,line_time,pixel_size,ref_values",
     (
         # fmt:off
-        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
-        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "vel": (0, -5 * 5/2, 5 * 5/2)}),
-        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 4, 3 * 4, 15 * 4), "sigma": (2 * 4, 1 * 4, 5 * 4), "vel": (0, -5 * 4/4, 5 * 4/4)}),
+        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "velocity": (0, -5 * 5/2, 5 * 5/2)}),
+        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "velocity": (0, -5 * 5/2, 5 * 5/2)}),
+        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 4, 3 * 4, 15 * 4), "sigma": (2 * 4, 1 * 4, 5 * 4), "velocity": (0, -5 * 4/4, 5 * 4/4)}),
         # fmt:on
     ),
 )

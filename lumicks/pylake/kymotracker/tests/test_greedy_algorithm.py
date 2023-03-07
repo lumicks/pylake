@@ -36,7 +36,7 @@ def test_kymotracker_subset_test_greedy(kymo_integration_test_data):
     pixel_size = kymo_integration_test_data.pixelsize_um[0]
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
-    tracks = track_greedy(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
+    tracks = track_greedy(kymo_integration_test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
     np.testing.assert_allclose(tracks[0].sample_from_image(1), [40] * np.ones(10))
 
 
@@ -57,7 +57,7 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     line_time = test_data.line_time_seconds
     pixel_size = test_data.pixelsize_um[0]
 
-    tracks = track_greedy(test_data, "red", 3 * pixel_size, 4)
+    tracks = track_greedy(test_data, "red", track_width=3 * pixel_size, pixel_threshold=4)
     np.testing.assert_allclose(tracks[0].coordinate_idx, [11] * np.ones(10))
     np.testing.assert_allclose(tracks[1].coordinate_idx, [21] * np.ones(10))
     np.testing.assert_allclose(tracks[0].position, [11 * pixel_size] * np.ones(10))
@@ -70,7 +70,7 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     np.testing.assert_allclose(tracks[1].sample_from_image(1), [40] * np.ones(10))
 
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
-    tracks = track_greedy(test_data, "red", 3 * pixel_size, 4, rect=rect)
+    tracks = track_greedy(test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
     np.testing.assert_allclose(tracks[0].coordinate_idx, [21] * np.ones(10))
     np.testing.assert_allclose(tracks[0].time_idx, np.arange(15, 25))
 
@@ -109,7 +109,7 @@ def test_default_parameters(kymo_pixel_calibrations):
 
         # test that default values are used when `None` is supplied
         default_threshold = np.percentile(kymo.get_image("red"), 98)
-        ref_tracks = track_greedy(kymo, "red", default_width, default_threshold)
+        ref_tracks = track_greedy(kymo, "red", track_width=default_width, pixel_threshold=default_threshold)
 
         tracks = track_greedy(kymo, "red", track_width=None, pixel_threshold=default_threshold)
         for ref, track in zip(ref_tracks, tracks):
@@ -125,7 +125,7 @@ def test_default_parameters(kymo_pixel_calibrations):
 
         # We want to see that when setting the tracking parameter to something other than the
         # defaults actually has an effect
-        ref_tracks = track_greedy(kymo, "red", None, None)
+        ref_tracks = track_greedy(kymo, "red", track_width=None, pixel_threshold=None)
         tracks = track_greedy(
             kymo, "red", track_width=None, pixel_threshold=default_threshold * 0.7
         )
