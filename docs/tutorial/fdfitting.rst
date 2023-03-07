@@ -1,6 +1,7 @@
 .. warning::
     This is beta functionality. While usable, this has not yet been tested in a large
-    number of different scenarios. The API may also still be subject to change.
+    number of different scenarios. The API can still be subject to change *without any prior deprecation notice*! If you use this
+    functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
 Fd Fitting
 ==========
@@ -60,9 +61,12 @@ We can simulate the model by passing a dictionary with parameters values::
     dna = lk.ewlc_odijk_distance("DNA")
     force = np.arange(0.1, 14, 0.1)
     distance = dna(force, {"DNA/Lp": 50.0, "DNA/Lc": 16.0, "DNA/St": 1500.0, "kT": 4.11})
+
+    plt.figure()
     plt.plot(distance,force)
     plt.ylabel("Force")
     plt.xlabel("Distance")
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_ewlc.png
 
@@ -182,10 +186,12 @@ Parameter estimation is typically initiated from an initial guess. A poor initia
 parameter estimate. Therefore, you might want to see what your initial model curve looks like and set some better
 initial guesses yourself.::
 
+    plt.figure()
     fit.plot()
     plt.ylabel("Force [pN]")
     plt.xlabel("Distance [$\\mu$M]")
     plt.title("Before fitting")
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_before.png
 
@@ -201,16 +207,20 @@ Plotting the results of the fit
 --------------------------------
 Plot the result of the fit::
 
+    plt.figure()
     fit.plot()
     plt.ylabel("Force [pN]")
     plt.xlabel("Distance [$\\mu$M]");
     plt.title("After fitting")
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_after.png
 
 If you wish to customize the label that appears in the legend, you can pass a custom `label` as an additional argument::
 
+    plt.figure()
     fit.plot(label="my_fit")
+    plt.show9)
 
 .. image:: figures/fdfitting/fdfitting_reca_myfit.png
 
@@ -218,14 +228,18 @@ Sometimes, we want to plot the model over a range of
 values (in this case values from 2.0 to 5.0) for the conditions corresponding to the `Control` and `RecA` data. We can
 do this as follows::
 
+    plt.figure()
     fit.plot("Control", "k--", np.arange(2.0, 5.0, 0.01))
     fit.plot("RecA", "k--", np.arange(2.0, 5.0, 0.01))
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_range.png
 
 Plot the fitted model without data::
 
+    plt.figure()
     fit.plot("Control", "k--", np.arange(2.0, 5.0, 0.01), plot_data=False)
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_model.png
 
@@ -233,7 +247,9 @@ It is also possible to obtain simulations from the model directly, using the fit
 
     distance = np.arange(2.0, 5.0, 0.01)
     simulated_force = model(distance, fit["Control"])
+    plt.figure()
     plt.plot(distance, simulated_force)
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_simulations.png
 
@@ -273,13 +289,13 @@ Let's add a second data set where we expect a different contour length and refit
     DNA/St       1597.68     [pN]      True                  1            inf
     kT              4.11     [pN*nm]   False              3.77              8
     DNA/Lc_RecA     3.7758   [micron]  True            0.00034            inf
-    
+
 We see that indeed the second parameter now appears. We also note that the parameters from the first fit changed. If
 this was not intentional, we should have fixed these parameters after the first fit. For example, we can fix the
 parameter `DNA/Lp` by invoking::
 
     >>> fit["DNA/Lp"].fixed = True
-    
+
 
 Calculating per point contour length
 ------------------------------------
@@ -309,9 +325,11 @@ Now, we wish to allow the contour length to vary on a per data point basis. For 
 :func:`~lumicks.pylake.parameter_trace()`::
 
     lcs = lk.parameter_trace(model, fit["Control"], "model/Lc", distance3, force3)
+    plt.figure()
     plt.plot(distance3,lcs)
     plt.xlabel("Distance")
     plt.ylabel("Lc")
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_parameter_trace.png
 
@@ -348,7 +366,7 @@ Determining confidence intervals via profiles has two big advantages:
 Profiles can easily be computed by calling :func:`~lumicks.pylake.FdFit.profile_likelihood` on the fit::
 
     profile = fit.profile_likelihood("model/Lc", num_steps=5000)
-    
+
 The lower and upper bound of the 95% confidence interval of the given parameter (`Lc` in this example) can be obtained as::
 
     [profile.lower_bound, profile.upper_bound]  # [lower bound, upper bound]
@@ -358,13 +376,17 @@ For a well parametrized model with sufficient data, a profile plot results in a 
 of the parabola intersects with the confidence interval lines (dashed). The confidence intervals are then determined to
 be at those intersection points::
 
+    plt.figure()
     profile.plot()
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_ml.png
 
 Another thing that may be of interest is to plot the relations between parameters in these profile likelihoods::
 
+    plt.figure()
     profile.plot_relations()
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_plot_relations.png
 
@@ -506,8 +528,10 @@ Next, we fit the data after the unfolding event. To speed up the computation, we
 
 Now we have fitted both the data before and after unfolding. The results can be plotted as follows::
 
+    plt.figure()
     fit[model1].plot()
     fit[model2].plot()
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_adk_twomodels.png
 

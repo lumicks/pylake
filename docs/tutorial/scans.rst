@@ -18,14 +18,18 @@ inside of it, run::
 :attr:`.scans <lumicks.pylake.File.scans>` is a regular Python dictionary so we can iterate over it::
 
     # Plot all scans in a file
+    plt.figure()
     for name, scan in file.scans.items():
         scan.plot(channel="rgb")
         plt.savefig(name)
+    plt.show()
 
 Or just pick a single one by providing the name of the scan as ``scan=file.scans["name"]``::
 
     scan = file.scans["41"]
+    plt.figure()
     scan.plot("red")
+    plt.show()
 
 .. _confocal_plotting:
 
@@ -35,7 +39,9 @@ Plotting and Exporting
 As shown above, there are convenience functions for plotting either the full RGB image or a single
 color channel::
 
+    plt.figure()
     scan.plot(channel="rgb")
+    plt.show()
 
 The `channel` argument accepts the strings `“red”`, `“green”`, `“blue”`, or `“rgb”`. Multi-frame scans are also supported::
 
@@ -48,30 +54,40 @@ The `channel` argument accepts the strings `“red”`, `“green”`, `“blue�
 
     # plot frame at index 3 (first frame is index 0)
     # defaults to the first frame if no argument is given
+    plt.figure()
     multiframe_scan.plot("green", frame=3)
+    plt.show()
 
 Sometimes a few bright pixels can dominate the colormap of a scan.
 When this is the case, it may be beneficial to manually set the color limits for each of the channels.
 This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment` to plotting or export functions::
 
+    plt.figure()
     scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
+    plt.show()
 
 Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
 
 There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`; the available colormaps are:
 `.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image with the cyan colormap::
 
+    plt.figure()
     scan.plot(channel="blue", cmap=lk.colormaps.cyan)
+    plt.show()
 
 Here the first array gives the minimal values for the color scale of red, green and blue respectively (here `[0, 0, 0]`) and the second array gives the maximum values for the color scales.
 The color scale is linear by default, but `Gamma correction <https://en.wikipedia.org/wiki/Gamma_correction>`_ can be applied in addition to the bounds by supplying an extra argument named `gamma`.
 For example, a gamma adjustment of `0.1` to the green channel can be applied as follows::
 
+    plt.figure()
     scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4], gamma=[1, 0.1, 1]))
+    plt.show()
 
 The limits can also be specified in percentiles::
 
+    plt.figure()
     scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))
+    plt.show()
 
 Export an image in the TIFF format as follows::
 
@@ -94,7 +110,9 @@ The images contain pixel data where each pixel represents summed photon counts.
 The photon count per pixel can be accessed as follows::
 
     photons = scan.red_photon_count
+    plt.figure()
     plt.plot(photons.timestamps, photons.data)
+    plt.show()
 
 Scan metadeta
 --------------
@@ -127,7 +145,9 @@ You can access the raw image data directly. For a :class:`~lumicks.pylake.scan.S
     blue = scan.get_image("blue")  # single color so `shape == (h, w)`
 
     # Plot manually
+    plt.figure()
     plt.imshow(rgb)
+    plt.show()
 
 For scans with multiple frames::
 
@@ -137,7 +157,9 @@ For scans with multiple frames::
     blue = multiframe_scan.get_image("blue")
 
     # Manually plot the RGB image of the first frame.
+    plt.figure()
     plt.imshow(rgb[0, :, :, :])
+    plt.show()
 
 We can also slice out a subset of frames from an image stack::
 
@@ -171,5 +193,6 @@ You can choose to add the flag `include_dead_time = True` if you want to include
 The multi-frame confocal scans can also be correlated with a channel :class:`~lumicks.pylake.channel.Slice` using an interactive plot.  ::
 
     multiframe_scan.plot_correlated(multiframe_file.force1x, adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
+    plt.show()
 
 Note that you need an interactive backend for this plot to work; instead of running ``%matplotlib inline`` at the top of the notebook, run ``%matplotlib notebook``. If some cells were already executed, you will need to restart the kernel as well.

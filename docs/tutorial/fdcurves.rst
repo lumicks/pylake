@@ -15,16 +15,20 @@ Load an HDF5 file and list all FD curves inside the file::
 To visualizes an FD curve, you can use the built-in :meth:`.plot_scatter()
 <lumicks.pylake.fdcurve.FdCurve.plot_scatter()>` method::
 
+    plt.figure()
     fd = file.fdcurves["FD_5_control_forw"]
     fd.plot_scatter()
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_scatter.png
 
 Here, :attr:`.fdcurves <lumicks.pylake.File.fdcurves>` is a standard Python dictionary, so we can
 do all the things you can do with a regular dictionary. For example, we can iterate over all the FD curves in a file and plot them::
 
+    plt.figure()
     for name, fd in file.fdcurves.items():
         fd.plot_scatter()
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_scatter.png
 
@@ -33,14 +37,18 @@ This assumes that the force extension was done by moving trap 1, which is the mo
 In that situation the force measured by trap 2 is more precise because that trap is static.
 The channels can be switched with the following code::
 
+    plt.figure()
     alt_fd = fd.with_channels(force='1x', distance='1')
     alt_fd.plot_scatter()
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_scatter_f1x.png
 
 or as quick one-liner for plotting::
 
+    plt.figure()
     fd.with_channels(force='1x', distance='1').plot_scatter()
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_scatter_f1x.png
 
@@ -58,19 +66,23 @@ The raw data can be accessed as well::
 
 Plot FD curve manually::
 
+    plt.figure()
     plt.scatter(distance.data, force.data)
     plt.ylabel("Force (pN)")
     plt.xlabel("Distance ($\mu$m)")
     plt.title("Manually plotted fd curve")
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_scatter_manual.png
 
 Plot force versus time manually::
 
+    plt.figure()
     plt.plot(force.timestamps,force.data)
     plt.ylabel("Force (pN)")
     plt.xlabel("Timestamps (ns)")
     plt.title("Force vs Time")
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_f_vs_time.png
 
@@ -98,10 +110,13 @@ and distance from such an ensemble using::
 
     f = fd_ensemble.f
     d = fd_ensemble.d
+
+    plt.figure()
     plt.scatter(d, f, s=1)
     plt.ylabel("Force (pN)")
     plt.xlabel("Distance $\mu$m")
     plt.title("Two aligned fd curves")
+    plt.show()
 
 .. image:: figures/fdcurves/fdcurves_aligned.png
 
