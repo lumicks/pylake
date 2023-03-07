@@ -42,6 +42,7 @@ def test_kymo_properties(test_kymos):
     np.testing.assert_allclose(kymo.center_point_um["z"], 0)
     np.testing.assert_allclose(kymo.size_um, [0.050])
     np.testing.assert_allclose(kymo.pixel_time_seconds, 0.1875)
+    np.testing.assert_allclose(kymo.motion_blur_constant, 0)  # We neglect motion blur for confocal
 
 
 def test_empty_kymo_properties(test_kymos):
@@ -451,6 +452,12 @@ def test_downsampled_kymo():
         match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
     ):
         kymo_ds.timestamps
+
+    with pytest.raises(
+        NotImplementedError,
+        match=re.escape("No motion blur constant was defined for this kymograph"),
+    ):
+        kymo_ds.motion_blur_constant
 
     # Verify that we can pass a different reduce function
     np.testing.assert_allclose(kymo.downsampled_by(time_factor=2, reduce=np.mean).get_image("red"), ds / 2)
