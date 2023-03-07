@@ -4,7 +4,6 @@ import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
-import warnings
 from deprecated.sphinx import deprecated
 from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy

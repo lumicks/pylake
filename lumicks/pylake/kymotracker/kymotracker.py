@@ -11,7 +11,6 @@ from .detail.peakfinding import (
 from .detail.localization_models import GaussianLocalizationModel
 import numpy as np
 import warnings
-from deprecated.sphinx import deprecated
 
 __all__ = [
     "track_greedy",
@@ -19,9 +18,6 @@ __all__ = [
     "filter_tracks",
     "refine_tracks_centroid",
     "refine_tracks_gaussian",
-    "filter_lines",
-    "refine_lines_centroid",
-    "refine_lines_gaussian",
 ]
 
 
@@ -268,9 +264,6 @@ def track_lines(
 ):
     """Track particles on an image using an algorithm that looks for line-like structures.
 
-    Note: This is ALPHA functionality. It has not been tested in a sufficient number of cases yet,
-    and the API is still subject to change without a prior deprecation notice.
-
     This function tracks particles in an image. It takes a pixel image, and traces lines on it.
     These lines are subsequently refined and/or used to extract intensities or other parameters.
     Refinement is performed using a bias-corrected centroid optimization according to [2]_.
@@ -356,20 +349,6 @@ def track_lines(
     return refine_tracks_centroid(kymotrack_group, track_width=line_width, bias_correction=True)
 
 
-@deprecated(
-    reason=("`filter_lines()` has been renamed to :func:`~lumicks.pylake.filter_tracks()`."),
-    action="always",
-    version="0.13.0",
-)
-def filter_lines(lines, minimum_length):
-    """Remove lines below a specific minimum number of points from the list.
-
-    This can be used to enforce a minimum number of frames a spot has to be detected in to be
-    considered a valid trace.
-    """
-    return filter_tracks(lines, minimum_length)
-
-
 def filter_tracks(tracks, minimum_length):
     """Remove tracks shorter than a minimum number of time points from the list.
 
@@ -384,29 +363,6 @@ def filter_tracks(tracks, minimum_length):
         Minimum length for the track to be accepted.
     """
     return KymoTrackGroup([track for track in tracks if len(track) >= minimum_length])
-
-
-@deprecated(
-    reason=(
-        "`refine_lines_centroid()` has been renamed to :func:`~lumicks.pylake.refine_tracks_centroid()`."
-    ),
-    action="always",
-    version="0.13.0",
-)
-def refine_lines_centroid(lines, line_width):
-    """Refine the lines based on the brightness-weighted centroid.
-
-    This function interpolates the determined traces and then uses the pixels in the vicinity of the
-    traces to make small adjustments to the estimated location. The refinement correction is
-    computed by considering the brightness weighted centroid.
-    """
-    if line_width < 1:
-        # Refinement only does something when line_width in pixels is larger than 1
-        raise ValueError("line_width may not be smaller than 1")
-
-    # convert line_width (pixel units) to physical units expected by refine_tracks_centroid
-    track_width = line_width * lines._kymo.pixelsize[0]
-    return refine_tracks_centroid(lines, track_width)
 
 
 def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
@@ -489,32 +445,6 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
         for j, track in enumerate(interpolated_tracks)
     ]
     return KymoTrackGroup(new_tracks)
-
-
-@deprecated(
-    reason=(
-        "`refine_lines_gaussian()` has been renamed to :func:`~lumicks.pylake.refine_tracks_gaussian()`."
-    ),
-    action="always",
-    version="0.13.0",
-)
-def refine_lines_gaussian(
-    lines,
-    window,
-    refine_missing_frames,
-    overlap_strategy,
-    initial_sigma=None,
-    fixed_background=None,
-):
-    """Refine the lines by gaussian peak MLE."""
-    return refine_tracks_gaussian(
-        lines,
-        window,
-        refine_missing_frames,
-        overlap_strategy,
-        initial_sigma=initial_sigma,
-        fixed_background=fixed_background,
-    )
 
 
 def refine_tracks_gaussian(

@@ -106,26 +106,10 @@ def test_refinement_error(kymo_integration_test_data):
     # This should be fine though
     refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0.15)[0]
 
-    with pytest.warns(DeprecationWarning):
-        with pytest.raises(ValueError, match="line_width may not be smaller than 1"):
-            refine_lines_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0)[0]
-
 
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
 def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
     tracks, gapped_tracks, mixed_tracks = kymogroups_2tracks
-
-    # test aliasing
-    with pytest.warns(DeprecationWarning):
-        refined = refine_lines_gaussian(
-            tracks, window=3, refine_missing_frames=True, overlap_strategy=fit_mode
-        )
-        assert np.allclose(
-            refined[0].position, [3.54796254, 3.52869381, 3.51225177, 3.38714711, 3.48588436]
-        )
-        assert np.allclose(
-            refined[1].position, [4.96700319, 4.99771575, 5.04086914, 5.0066495, 4.99092852]
-        )
 
     # full data, no overlap
     refined = refine_tracks_gaussian(
@@ -246,9 +230,6 @@ def test_filter_tracks(blank_kymo):
     assert len(filter_tracks(tracks, 5)) == 0
     assert all([track1 == track2 for track1, track2 in zip(filter_tracks(tracks, 5), [k1, k3])])
     assert all([track1 == track2 for track1, track2 in zip(filter_tracks(tracks, 2), [k1, k2, k3])])
-
-    with pytest.warns(DeprecationWarning):
-        filter_lines(tracks, 5)
 
 
 def test_empty_group():
