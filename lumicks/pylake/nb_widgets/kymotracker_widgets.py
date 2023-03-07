@@ -542,7 +542,6 @@ class KymoWidgetGreedy(KymoWidget):
         *,
         axis_aspect_ratio=None,
         track_width=None,
-        line_width=None,
         pixel_threshold=None,
         window=None,
         sigma=None,
@@ -569,8 +568,6 @@ class KymoWidgetGreedy(KymoWidget):
             temporal units (rather than pixels).
         track_width : float, optional
             Expected width of the particles in physical units. Defaults to 4 * pixel size.
-        line_width : float, optional
-            **Deprecated** Forwarded to `track_width`.
         pixel_threshold : float, optional
             Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a track
             origin. Defaults to 98th percentile of the pixel intensities.
@@ -615,17 +612,7 @@ class KymoWidgetGreedy(KymoWidget):
         algorithm = wrapped_track_greedy
         algorithm_parameters = _get_default_parameters(kymo, channel)
 
-        # TODO: remove line_width argument deprecation path
         slider_ranges = slider_ranges or {}
-        if "line_width" in slider_ranges.keys():
-            warnings.warn(
-                DeprecationWarning(
-                    "The argument `slider_ranges['line_width']` is deprecated; use `'track_width'` instead."
-                ),
-                stacklevel=2,
-            )
-            slider_ranges["track_width"] = slider_ranges["line_width"]
-            slider_ranges.pop("line_width")
 
         # check slider_ranges entries are valid
         keys = tuple(algorithm_parameters.keys())
@@ -650,16 +637,6 @@ class KymoWidgetGreedy(KymoWidget):
         # update defaults to user-supplied parameters
         arg_names, _, _, values = inspect.getargvalues(inspect.currentframe())
         parameters = {name: values[name] for name in arg_names if name != "self"}
-
-        # TODO: remove line_width argument deprecation path
-        if line_width is not None:
-            warnings.warn(
-                DeprecationWarning(
-                    "The argument `line_width` is deprecated; use `track_width` instead."
-                ),
-                stacklevel=2,
-            )
-            parameters["track_width"] = line_width
 
         for key in keys:
             if parameters[key] is not None:

@@ -144,10 +144,3 @@ def test_default_parameters(kymo_pixel_calibrations):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
 
-
-def test_deprecated_args(kymo_integration_test_data):
-    with pytest.warns(
-        DeprecationWarning,
-        match="The argument `line_width` is deprecated; use `track_width` instead.",
-    ):
-        track_greedy(kymo_integration_test_data, "red", line_width=5)
