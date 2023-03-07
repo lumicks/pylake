@@ -134,6 +134,7 @@ def test_from_array_no_pixelsize(test_kymos):
 
     assert arr_kymo._metadata.center_point_um == {key: None for key in ("x", "y", "z")}
     assert arr_kymo._metadata.num_frames == 0
+    assert arr_kymo._motion_blur_constant is None
 
 
 def test_throw_on_file_access(test_kymos):

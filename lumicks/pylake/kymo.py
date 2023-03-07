@@ -72,6 +72,7 @@ class Kymo(ConfocalImage):
         self._line_timestamp_ranges_factory = _default_line_timestamp_ranges_factory
         self._position_offset = position_offset
         self._contiguous = True
+        self._motion_blur_constant = 0
 
         self._calibration = (
             calibration
@@ -91,6 +92,43 @@ class Kymo(ConfocalImage):
         can be the case when a kymograph has been downsampled over time."""
         return self._contiguous
 
+    @property
+    def motion_blur_constant(self) -> float:
+        r"""Motion blur as defined by the shutter function.
+
+        The normalized shutter function is defined as :math:`c(t)`, where :math:`c(t)` represents
+        whether the shutter is open or closed. :math:`c(t)` is normalized w.r.t. area. For no
+        motion blur, :math:`c(t) = \delta(t_{exposure})`, whereas for a constantly open shutter it is
+        defined as :math:`c(t) = 1 / \Delta t`.
+
+        The motion blur constant is defined as:
+
+        .. math::
+
+            R = \frac{1}{\Delta t} \int_{0}^{\Delta t}S(t) \left(1 - S(t)\right)dt
+
+        with
+
+        .. math::
+
+            S(t) = \int_{0}^{t} c(t') dt'
+
+        When there is no motion blur, we obtain: R = 0, whereas a continuously open shutter over the
+        exposure time results in R = 1/6. Note that when estimating both localization uncertainty
+        and the diffusion constant, the motion blur factor has no effect on the estimate of the
+        diffusion constant itself, but it does affect the calculated uncertainties. In the case of
+        a provided localization uncertainty, it does impact the estimate of the diffusion constant.
+
+        Raises
+        ------
+        NotImplementedError
+            if the motion blur is poorly defined for this type of kymograph.
+        """
+        if self._motion_blur_constant is None:
+            raise NotImplementedError("No motion blur constant was defined for this kymograph.")
+
+        return self._motion_blur_constant
+
     def _has_default_factories(self):
         return (
             super()._has_default_factories()
@@ -109,6 +147,7 @@ class Kymo(ConfocalImage):
         # Copy the default factories
         kymo_copy._line_time_factory = self._line_time_factory
         kymo_copy._line_timestamp_ranges_factory = self._line_timestamp_ranges_factory
+        kymo_copy._motion_blur_constant = self._motion_blur_constant
         return kymo_copy
 
     @property
@@ -618,6 +657,7 @@ class Kymo(ConfocalImage):
         result._pixelcount_factory = pixelcount_factory
         result._calibration = self._calibration.downsample(position_factor)
         result._contiguous = time_factor == 1 and self.contiguous
+        result._motion_blur_constant = None
         return result
 
     def flip(self):
@@ -816,6 +856,11 @@ def _kymo_from_array(
     kymo._timestamp_factory = timestamp_factory_ill_defined
     kymo._line_time_factory = lambda _: line_time_seconds
     kymo._line_timestamp_ranges_factory = line_timestamp_ranges_factory
+
+    # For a Kymograph generated from an array, it is not possible to know what kind of motion blur
+    # to apply be default. Setting the motion blur constant to zero explicitly disallows
+    # calculations where motion blur has to be considered.
+    kymo._motion_blur_constant = None
 
     return kymo
 
