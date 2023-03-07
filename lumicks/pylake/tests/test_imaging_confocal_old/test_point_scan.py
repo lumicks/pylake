@@ -1,6 +1,7 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 
 def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
@@ -35,18 +36,11 @@ def test_plotting(test_point_scans):
 
 def test_deprecated_plotting(test_point_scans):
     ps = test_point_scans["PointScan1"]
-    with pytest.deprecated_call():
-        ps.plot_red()
-    with pytest.deprecated_call():
-        ps.plot_green()
-    with pytest.deprecated_call():
-        ps.plot_blue()
-    with pytest.deprecated_call():
-        ps.plot_rgb()
-    with pytest.warns(
-        DeprecationWarning,
-        match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
-        "keyword argument."
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "plot() takes from 1 to 2 positional arguments but 3 were given"
+        )
     ):
         xline, yline = ps.plot("red", None)[0].get_xydata().T
 
@@ -57,6 +51,9 @@ def test_deprecated_plotting(test_point_scans):
     # Test rejection of deprecated call with positional `axes` and double keyword assignment
     with pytest.raises(
         TypeError,
-        match=r"`PointScan.plot\(\)` got multiple values for argument `axes`"
+        match=re.escape(
+            "plot() takes from 1 to 2 positional arguments but 3 positional "
+            "arguments (and 1 keyword-only argument) were given"
+        )
     ):
         ps.plot("rgb", None, axes=None)

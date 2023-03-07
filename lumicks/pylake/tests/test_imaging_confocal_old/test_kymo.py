@@ -43,15 +43,6 @@ def test_kymo_properties(test_kymos):
     np.testing.assert_allclose(kymo.size_um, [0.050])
     np.testing.assert_allclose(kymo.pixel_time_seconds, 0.1875)
 
-    with pytest.deprecated_call():
-        assert kymo.rgb_image.shape == (5, 4, 3)
-    with pytest.deprecated_call():
-        assert kymo.red_image.shape == (5, 4)
-    with pytest.deprecated_call():
-        assert kymo.blue_image.shape == (5, 4)
-    with pytest.deprecated_call():
-        assert kymo.green_image.shape == (5, 4)
-
 
 def test_empty_kymo_properties(test_kymos):
     kymo = test_kymos["Kymo1"]
@@ -138,9 +129,6 @@ def test_kymo_slicing(test_kymos):
     with pytest.raises(RuntimeError):
         empty_kymograph.export_tiff("test")
 
-    with pytest.raises(RuntimeError), pytest.warns(DeprecationWarning):
-        empty_kymograph.plot_rgb()
-
     with pytest.raises(RuntimeError):
         empty_kymograph.plot()
 
@@ -193,18 +181,9 @@ def test_plotting(test_kymos):
 
 def test_deprecated_plotting(test_kymos):
     kymo = test_kymos["Kymo1"]
-    with pytest.deprecated_call():
-        kymo.plot_red()
-    with pytest.deprecated_call():
-        kymo.plot_green()
-    with pytest.deprecated_call():
-        kymo.plot_blue()
-    with pytest.deprecated_call():
-        kymo.plot_rgb()
-    with pytest.warns(
-        DeprecationWarning,
-        match=r"The call signature of `plot\(\)` has changed: Please, provide `axes` as a "
-        "keyword argument."
+    with pytest.raises(
+        TypeError,
+        match=re.escape("plot() takes from 1 to 2 positional arguments but 3 were given")
     ):
         ih = kymo.plot("red", None)
         np.testing.assert_allclose(ih.get_array(), kymo.get_image("red"))
@@ -212,7 +191,10 @@ def test_deprecated_plotting(test_kymos):
     # Test rejection of deprecated call with positional `axes` and double keyword assignment
     with pytest.raises(
         TypeError,
-        match=r"`Kymo.plot\(\)` got multiple values for argument `axes`"
+        match=re.escape(
+            "plot() takes from 1 to 2 positional arguments but 3 positional"
+            " arguments (and 1 keyword-only argument) were given"
+        )
     ):
         kymo.plot("rgb", None, axes=None)
 
@@ -432,19 +414,6 @@ def test_export_tiff(tmp_path, test_kymos, grab_tiff_tags):
             rtol=1e-1
         )
         assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
-
-
-def test_deprecated_save_tiff(tmp_path, test_kymos):
-    from os import stat
-
-    kymo = test_kymos["Kymo1"]
-    match = (
-        r"This method has been renamed to `export_tiff\(\)` to more accurately reflect that it is "
-        r"exporting to a different format."
-    )
-    with pytest.warns(DeprecationWarning, match=match):
-        kymo.save_tiff(f"{tmp_path}/kymo2.tiff")
-        assert stat(f"{tmp_path}/kymo2.tiff").st_size > 0
 
 
 def test_downsampled_kymo():

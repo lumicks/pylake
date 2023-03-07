@@ -5,7 +5,6 @@ from typing import List
 
 import cachetools
 import numpy as np
-from deprecated.sphinx import deprecated
 from numpy import typing as npt
 
 from ..adjustments import no_adjustment
@@ -141,36 +140,6 @@ class ScanMetaData:
         return cls(axes, json_dict["scan volume"]["center point (um)"], json_dict["scan count"])
 
 
-def _deprecate_basescan_plot_args(plot):
-    """Decorator to deprecate second positional argument 'axes' of the method `BaseScan.plot()`"""
-    import functools
-    import warnings
-    import matplotlib
-
-    @functools.wraps(plot)
-    def wrapper(self, *args, **kwargs):
-        # The plot function might be called with up to 2 positional arguments. We can gracefully
-        # convert the second positional argument (axes) into a keyword argument.
-        # old arguments: channel, axes
-        if len(args) == 2 and (isinstance(args[1], matplotlib.axes.Axes) or args[1] is None):
-            if "axes" in kwargs:
-                raise TypeError(
-                    f"`{self.__class__.__name__}.plot()` got multiple values for argument `axes`"
-                )
-            kwargs["axes"] = args[1]
-            args = args[:1]
-            warnings.warn(
-                DeprecationWarning(
-                    "The call signature of `plot()` has changed: Please, provide `axes` as a "
-                    "keyword argument."
-                ),
-                stacklevel=2,
-            )
-        return plot(self, *args, **kwargs)
-
-    return wrapper
-
-
 class BaseScan(PhotonCounts, ExcitationLaserPower):
     """Base class for confocal scans
 
@@ -287,61 +256,8 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         """Resolve error when confocal scan starts before the timeline information."""
         raise NotImplementedError
 
-    @deprecated(
-        reason=(
-            "This method will be removed in a future release. Use :meth:`plot(channel='red') "
-            "<plot()>` instead."
-        ),
-        version="0.11.1",
-        action="always",
-    )
-    def plot_red(self, **kwargs):
-        """Plot an image of the red photon channel"""
-        return self.plot(channel="red", **kwargs)
-
-    @deprecated(
-        reason=(
-            "This method will be removed in a future release. Use :meth:`plot(channel='green') "
-            "<plot()>` instead."
-        ),
-        version="0.11.1",
-        action="always",
-    )
-    def plot_green(self, **kwargs):
-        """Plot an image of the green photon channel"""
-        return self.plot(channel="green", **kwargs)
-
-    @deprecated(
-        reason=(
-            "This method will be removed in a future release. Use :meth:`plot(channel='blue') "
-            "<plot()>` instead."
-        ),
-        version="0.11.1",
-        action="always",
-    )
-    def plot_blue(self, **kwargs):
-        """Plot an image of the blue photon channel"""
-        return self.plot(channel="blue", **kwargs)
-
-    @deprecated(
-        reason=(
-            "This method will be removed in a future release. Use :meth:`plot(channel='rgb') "
-            "<plot()>` instead."
-        ),
-        version="0.11.1",
-        action="always",
-    )
-    def plot_rgb(self, **kwargs):
-        """Plot an image of all color channels."""
-        return self.plot(channel="rgb", **kwargs)
-
     def _get_plot_data(self, channel):
         """Get data for plotting requested channel."""
-        raise NotImplementedError
-
-    def plot(self, channel="rgb", **kwargs):
-        """Internal implementation of the plotting."""
-        # TODO: Remove, when deprecated `plot_*()` functions were removed
         raise NotImplementedError
 
     @property
@@ -455,19 +371,6 @@ class ConfocalImage(BaseScan, TiffExport):
 
         return write_kwargs
 
-    @deprecated(
-        reason=(
-            "This method has been renamed to :meth:`export_tiff()` to more accurately reflect that "
-            "it is exporting to a different format."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def save_tiff(self, filename, dtype=np.float32, clip=False):
-        return self.export_tiff(filename, dtype=dtype, clip=clip)
-
-    save_tiff.__doc__ = export_tiff.__doc__
-
     @property
     def infowave(self):
         return self.file["Info wave"]["Info wave"][self.start : self.stop]
@@ -518,58 +421,6 @@ class ConfocalImage(BaseScan, TiffExport):
                 self._num_pixels,
             )
         )
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('red') "
-            " <get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def red_image(self):
-        """Returns an image representing the red channel"""
-        return self.get_image("red")
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('green') "
-            " <get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def green_image(self):
-        """Returns an image representing the green channel"""
-        return self.get_image("green")
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('blue') "
-            " <get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def blue_image(self):
-        """Returns an image representing the blue channel"""
-        return self.get_image("blue")
-
-    @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use :meth:`get_image('rgb') "
-            " <get_image()>` instead."
-        ),
-        action="always",
-        version="0.12.0",
-    )
-    def rgb_image(self):
-        """Returns an rgb image"""
-        return self.get_image("rgb")
 
     def get_image(self, channel="rgb") -> np.ndarray:
         """Get image data for the full stack as an :class:`~numpy.ndarray`.

@@ -1,4 +1,4 @@
-from .detail.confocal import BaseScan, _deprecate_basescan_plot_args
+from .detail.confocal import BaseScan
 from .detail.plotting import get_axes
 
 
@@ -23,7 +23,6 @@ class PointScan(BaseScan):
         """Get photon count :class:`~lumicks.pylake.channel.Slice` for requested channel."""
         return getattr(self, f"{channel}_photon_count")
 
-    @_deprecate_basescan_plot_args
     def plot(self, channel="rgb", *, axes=None, show_title=True, show_axes=True, **kwargs):
         """Plot photon counts for the selected channel(s).
 

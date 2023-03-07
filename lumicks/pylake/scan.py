@@ -1,13 +1,11 @@
-import warnings
 from copy import copy
 from itertools import zip_longest
 
 import numpy as np
-from deprecated import deprecated
 
 from . import colormaps
 from .adjustments import no_adjustment
-from .detail.confocal import ConfocalImage, _deprecate_basescan_plot_args
+from .detail.confocal import ConfocalImage
 from .detail.image import make_image_title, reconstruct_num_frames
 from .detail.imaging_mixins import FrameIndex, VideoExport
 from .detail.plotting import get_axes, show_image
@@ -413,7 +411,6 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         else:
             return data
 
-    @_deprecate_basescan_plot_args
     def plot(
         self,
         channel="rgb",
@@ -495,175 +492,3 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             axes.set_title(make_image_title(self, frame))
 
         return image_handle
-
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use `export_video('rgb')` instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def export_video_rgb(
-        self,
-        file_name,
-        start_frame=None,
-        end_frame=None,
-        fps=15,
-        adjustment=no_adjustment,
-        **kwargs,
-    ):
-        """Export multi-frame scan as video.
-
-        Parameters
-        ----------
-        file_name : str
-            File name to export to.
-        start_frame : int
-            Initial frame.
-        end_frame : int
-            Last frame.
-        fps : int
-            Frames per second.
-        adjustment : lk.ColorAdjustment
-            Color adjustments to apply to the output image.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
-        self.export_video(
-            "rgb",
-            file_name,
-            start_frame=start_frame,
-            stop_frame=end_frame,
-            fps=fps,
-            adjustment=adjustment,
-            **kwargs,
-        )
-
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use `export_video('red')` instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def export_video_red(
-        self,
-        file_name,
-        start_frame=None,
-        end_frame=None,
-        fps=15,
-        adjustment=no_adjustment,
-        **kwargs,
-    ):
-        """Export multi-frame scan as video.
-
-        Parameters
-        ----------
-        file_name : str
-            File name to export to.
-        start_frame : int
-            Initial frame.
-        end_frame : int
-            Last frame.
-        fps : int
-            Frames per second.
-        adjustment : lk.ColorAdjustment
-            Color adjustments to apply to the output image.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
-        self.export_video(
-            "red",
-            file_name,
-            start_frame=start_frame,
-            stop_frame=end_frame,
-            fps=fps,
-            adjustment=adjustment,
-            **kwargs,
-        )
-
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use `export_video('green')` instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def export_video_green(
-        self,
-        file_name,
-        start_frame=None,
-        end_frame=None,
-        fps=15,
-        adjustment=no_adjustment,
-        **kwargs,
-    ):
-        """Export multi-frame scan as video.
-
-        Parameters
-        ----------
-        file_name : str
-            File name to export to.
-        start_frame : int
-            Initial frame.
-        end_frame : int
-            Last frame.
-        fps : int
-            Frames per second.
-        adjustment : lk.ColorAdjustment
-            Color adjustments to apply to the output image.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
-        self.export_video(
-            "green",
-            file_name,
-            start_frame=start_frame,
-            stop_frame=end_frame,
-            fps=fps,
-            adjustment=adjustment,
-            **kwargs,
-        )
-
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use `export_video('blue')` instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def export_video_blue(
-        self,
-        file_name,
-        start_frame=None,
-        end_frame=None,
-        fps=15,
-        adjustment=no_adjustment,
-        **kwargs,
-    ):
-        """Export multi-frame scan as video.
-
-        Parameters
-        ----------
-        file_name : str
-            File name to export to.
-        start_frame : int
-            Initial frame.
-        end_frame : int
-            Last frame.
-        fps : int
-            Frames per second.
-        adjustment : lk.ColorAdjustment
-            Color adjustments to apply to the output image.
-        **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`.
-        """
-        self.export_video(
-            "blue",
-            file_name,
-            start_frame=start_frame,
-            stop_frame=end_frame,
-            fps=fps,
-            adjustment=adjustment,
-            **kwargs,
-        )
