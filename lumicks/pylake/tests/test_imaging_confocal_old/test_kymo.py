@@ -304,7 +304,7 @@ def test_downsample_channel_downsampled_kymo(kymo_h5_file):
 
     # Down-sampling by time should invalidate plot_with_force as it would correspond to
     # non-contiguous sampling
-    with pytest.raises(NotImplementedError, match="Per-pixel timestamps are no longer available"):
+    with pytest.raises(NotImplementedError, match="Line timestamp ranges are no longer available"):
         kymo.downsampled_by(time_factor=2).plot_with_force("1x", "red")
 
 
@@ -447,8 +447,8 @@ def test_downsampled_kymo():
     assert not kymo_ds.contiguous
 
     with pytest.raises(
-            NotImplementedError,
-            match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
+        NotImplementedError,
+        match=re.escape("Per-pixel timestamps are no longer available after downsampling"),
     ):
         kymo_ds.timestamps
 

@@ -105,6 +105,10 @@ class Kymo(ConfocalImage):
         kymo_copy = super().__copy__()
         kymo_copy._position_offset = self._position_offset
         kymo_copy._calibration = self._calibration
+
+        # Copy the default factories
+        kymo_copy._line_time_factory = self._line_time_factory
+        kymo_copy._line_timestamp_ranges_factory = self._line_timestamp_ranges_factory
         return kymo_copy
 
     @property
@@ -567,13 +571,19 @@ class Kymo(ConfocalImage):
                 : data.shape[0] // position_factor, : data.shape[1] // time_factor
             ]
 
-        def timestamp_factory_ill_defined(_, reduce_timestamps=np.mean):
+        def ill_defined(thing):
             raise NotImplementedError(
-                "Per-pixel timestamps are no longer available after downsampling a kymograph in "
+                f"{thing} are no longer available after downsampling a kymograph in "
                 "time since they are not well defined (the downsampling occurs over a "
                 "non-contiguous time window). Line timestamps are still available, however. See: "
                 "`Kymo.line_time_seconds`."
             )
+
+        def timestamp_factory_ill_defined(_, reduce_timestamps=np.mean):
+            ill_defined("Per-pixel timestamps")
+
+        def line_timestamp_ranges_factory_ill_defined(_, exclude: bool):
+            ill_defined("Line timestamp ranges")
 
         def timestamp_factory(_, reduce_timestamps):
             ts = self._timestamps("timestamps", reduce_timestamps)
@@ -595,9 +605,14 @@ class Kymo(ConfocalImage):
             return num_pixels
 
         result._image_factory = image_factory
-        result._timestamp_factory = (
-            timestamp_factory if time_factor == 1 else timestamp_factory_ill_defined
-        )
+        if time_factor == 1:
+            result._timestamp_factory = timestamp_factory
+            result._line_timestamp_ranges_factory = self._line_timestamp_ranges_factory
+        else:
+            result._timestamp_factory = timestamp_factory_ill_defined
+            result._line_timestamp_ranges_factory = line_timestamp_ranges_factory_ill_defined
+
+        result._image_factory = image_factory
         result._line_time_factory = line_time_factory
         result._pixelsize_factory = pixelsize_factory
         result._pixelcount_factory = pixelcount_factory

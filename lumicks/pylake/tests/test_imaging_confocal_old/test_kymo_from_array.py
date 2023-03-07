@@ -28,9 +28,13 @@ def make_kymo_from_array(kymo, image, color_format, no_pxsize=False):
     )
 
 
-def test_from_array(test_kymos):
+@pytest.mark.parametrize("crop", [False, True])
+def test_from_array(test_kymos, crop):
     kymo = test_kymos["noise"]
     arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb")
+
+    if crop:
+        arr_kymo = arr_kymo.crop_by_distance(0.0, 1.0)
 
     np.testing.assert_equal(kymo.get_image("rgb"), arr_kymo.get_image("rgb"))
     np.testing.assert_equal(kymo._reconstruction_shape, arr_kymo._reconstruction_shape)
@@ -65,6 +69,28 @@ def test_from_array(test_kymos):
         match="Slicing is not implemented for kymographs derived from image stacks.",
     ):
         arr_kymo.crop_and_calibrate("red")
+
+
+@pytest.mark.parametrize("position_factor, time_factor", [[1, 1], [1, 2], [2, 1], [2, 2]])
+def test_downsampling(test_kymos, position_factor, time_factor):
+    kymo = test_kymos["noise"]
+
+    arr_kymo_ds = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb").downsampled_by(
+        position_factor=position_factor, time_factor=time_factor
+    )
+    kymo_ds = kymo.downsampled_by(position_factor=position_factor, time_factor=time_factor)
+
+    if time_factor > 1:
+        with pytest.raises(NotImplementedError, match="no longer available after downsampling"):
+            arr_kymo_ds.line_timestamp_ranges()
+    else:
+        # Note, kymo line timestamp ranges should *not* modify under downsampling
+        np.testing.assert_allclose(
+            arr_kymo_ds.line_timestamp_ranges(), kymo.line_timestamp_ranges()
+        )
+
+    np.testing.assert_allclose(arr_kymo_ds.pixelsize_um, kymo_ds.pixelsize_um)
+    np.testing.assert_allclose(arr_kymo_ds.line_time_seconds, kymo_ds.line_time_seconds)
 
 
 def test_save_tiff(tmpdir_factory, test_kymos):
