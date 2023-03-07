@@ -12,7 +12,7 @@ inside of it, run::
 
     import lumicks.pylake as lk
 
-    file = lk.File("Scan_WTCas9_2Markers_unspecific.h5")
+    file = lk.File("scan.h5")
     list(file.scans)  # e.g. shows: "['reference', 'bleach', 'imaging']"
 
 :attr:`.scans <lumicks.pylake.File.scans>` is a regular Python dictionary so we can iterate over it::
@@ -45,7 +45,7 @@ color channel::
 
 The `channel` argument accepts the strings `“red”`, `“green”`, `“blue”`, or `“rgb”`. Multi-frame scans are also supported::
 
-    multiframe_file = lk.File("Scan_WTCas9_2Markers_binding on and off_stack.h5")
+    multiframe_file = lk.File("scan_stack.h5")
     multiframe_scan = multiframe_file.scans["46"]
 
     print(multiframe_scan.num_frames)
