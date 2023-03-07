@@ -75,7 +75,6 @@ def track_greedy(
     sigma_cutoff=2.0,
     rect=None,
     bias_correction=True,
-    line_width=None,
 ):
     """Track particles on an image using a greedy algorithm.
 
@@ -147,8 +146,6 @@ def track_greedy(
         Correct coordinate bias by ensuring that the window is symmetric (see [3]_ for more
         information). Note that while this increases the variance (reduces precision), it can
         greatly reduce the bias when there is a high background.
-    line_width : float
-        **Deprecated** Forwarded to `track_width`.
 
     References
     ----------
@@ -162,21 +159,10 @@ def track_greedy(
            Fast, bias-free algorithm for tracking single particles with variable size and
            shape. Optics express, 16(18), 14064-14075.
     """
-
-    # TODO: remove line_width argument deprecation path
     if track_width is None:
-        if line_width is None:
-            track_width = max(
-                _default_track_widths[kymograph._calibration.unit], 3 * kymograph.pixelsize[0]
-            )
-        else:
-            track_width = line_width
-            warnings.warn(
-                DeprecationWarning(
-                    "The argument `line_width` is deprecated; use `track_width` instead."
-                ),
-                stacklevel=2,
-            )
+        track_width = max(
+            _default_track_widths[kymograph._calibration.unit], 3 * kymograph.pixelsize[0]
+        )
 
     if pixel_threshold is None:
         pixel_threshold = np.percentile(kymograph.get_image(channel), 98)
