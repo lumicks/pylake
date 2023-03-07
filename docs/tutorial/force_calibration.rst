@@ -106,7 +106,9 @@ To use the more manual lower-level API, we first need the power spectrum to fit.
 
 This function returns a :class:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum` which we can plot::
 
+    plt.figure()
     power_spectrum.plot()
+    plt.show()
 
 .. image:: figures/force_calibration/power_spectrum.png
 
@@ -134,7 +136,10 @@ To reproduce the result obtained with Bluelake, these should be excluded from th
         num_points_per_block=2000,
         excluded_ranges=([19348, 19668], [24308, 24548])
     )
+
+    plt.figure()
     power_spectrum.plot(marker=".")
+    plt.show()
 
 .. image:: figures/force_calibration/power_spectrum_excluded_ranges.png
 
@@ -188,7 +193,9 @@ These parameters can be accessed as follows::
 
 We can plot the calibration by calling::
 
+    plt.figure()
     calibration.plot()
+    plt.show()
 
 .. image:: figures/force_calibration/fitted_spectrum.png
 
@@ -284,9 +291,11 @@ First we need to extract the nanostage data which is used to determine the drivi
 For data acquired with active calibration in Bluelake, this will be a sinusoidal oscillation.
 If there are unexplained issues with the calibration, it is a good idea to plot the driving signal and verify that the motion looks like a clean sinusoid::
 
+    plt.figure()
     driving_data.plot()
     plt.xlim(0, 0.1)
     plt.ylabel("Nanostage position ($\mu$m)")
+    plt.show()
 
 .. image:: figures/force_calibration/nanostage_position.png
 
@@ -314,7 +323,10 @@ To see it clearly, we reduce the blocking amount and show the spectrum all the w
     show_peak = lk.calculate_power_spectrum(
         volts.data, sample_rate=78125, num_points_per_block=5, fit_range=(10, 23000)
     )
+
+    plt.figure()
     show_peak.plot()
+    plt.show()
 
 .. image:: figures/force_calibration/calibration_peak.png
 
@@ -413,6 +425,7 @@ The following example data acquired on a fast sensor will illustrate why::
     fit.plot()
     plt.title(f"Simple model + Fast (kappa={fit['kappa'].value:.2f})")
     plt.tight_layout()
+    plt.show()
 
 .. image:: figures/force_calibration/fast_sensors.png
 

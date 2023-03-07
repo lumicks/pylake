@@ -40,7 +40,9 @@ with the correlated force data::
     file = lk.File('kymograph.h5')
     name, kymo = file.kymos.popitem()
 
+    plt.figure()
     kymo.plot_with_force("1x", "rgb", adjustment=adjustment, aspect_ratio=0.5)
+    plt.show()
 
 .. image:: figures/kymotracking/kymo_force_correlated.png
 
@@ -550,7 +552,9 @@ If it is safe to assume that all particles exhibit the same diffusive motion, on
 This returns a :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD` class which contains the requested estimates and some metadata.
 The results can then easily be plotted::
 
+    plt.figure()
     ensemble_msd.plot()
+    plt.show()
 
 For purely diffusive motion, this plot should be a straight line.
 One thing that is important to note is that the MSDs of one track for different lags are highly correlated and that estimates at larger lags are far less reliable.
