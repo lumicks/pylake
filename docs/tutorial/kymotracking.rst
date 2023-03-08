@@ -1,8 +1,3 @@
-.. warning::
-    This is early access alpha functionality. While usable, this has not yet been tested in a large number of different
-    scenarios. The API is still be subject to change *without any prior deprecation notice*! If you use this
-    functionality keep a close eye on the changelog for any changes that may affect your analysis.
-
 Kymotracking
 ============
 
@@ -68,7 +63,7 @@ Running the algorithm is easy using the function :func:`~lumicks.pylake.track_gr
 The result is a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup`::
 
     print(type(tracks))  # <class 'lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup'>
-    print(len(tracks))  # 123
+    print(len(tracks))  # 134
 
 This is a custom list of :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` objects. We can access the individual tracks by indexing just
 like an ordinary list::
@@ -94,10 +89,10 @@ of the longest track we can do::
 Sometimes, we can have very short spurious tracks. To remove these we can use :func:`~lumicks.pylake.filter_tracks`.
 For example, to omit all tracks with fewer than 4 detected points, we can invoke::
 
-    print(len(tracks))  # the number of tracks originally detected -- 123
+    print(len(tracks))  # the number of tracks originally detected -- 134
 
     tracks = lk.filter_tracks(tracks, 4)
-    print(len(tracks))  # the number of tracks after filtering -- 34
+    print(len(tracks))  # the number of tracks after filtering -- 35
 
 There are also convenience plotting functions for both :meth:`KymoTrack.plot() <lumicks.pylake.kymotracker.kymotrack.KymoTrack.plot>`
 and :meth:`KymoTrackGroup.plot() <lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.plot>`. We can see the detected tracks overlaid
@@ -132,7 +127,7 @@ We can set this with the `window` parameter; let's use a `window` size of 6 pixe
 
     custom_tracks = lk.track_greedy(kymo40, "green", track_width=0.3, pixel_threshold=10, window=6)
     custom_tracks = lk.filter_tracks(custom_tracks, minimum_length=4)
-    print(len(custom_tracks))  # 42
+    print(len(custom_tracks))  # 41
 
     plt.figure()
     kymo40.plot("green", aspect="auto", adjustment=adjustment)
@@ -171,56 +166,37 @@ can refine the tracks found by the algorithm. This function interpolates the tra
 own point on the track. Subsequently, these points are then refined using a brightness weighted centroid.
 
 Brightness weighted centroid refinement can suffer from a bias when there is background signal. This bias artificially
-pulls the localization towards the center of the pixel. By default, Pylake corrects for this by including a
-step that shrinks the window such that the spot always lands exactly in the middle of the window. For more information
-on this, please refer to :cite:`berglund2008fast`.
+pulls the localization towards the center of the pixel. By default, Pylake applies a correction for this based on :cite:`berglund2008fast`.
+You can turn this off by using `bias_correction=False` with :func:`~lumicks.pylake.track_greedy` and :func:`~lumicks.pylake.refine_tracks_centroid`.
 
-Let's perform track refinement with two different values for `track_width` and plot the longest track::
+Let's perform track refinement with two different values for `track_width` to see the effect::
 
     # re-track our kymo
     tracks = lk.track_greedy(kymo40, "green", track_width=0.3)
+    tracks = lk.filter_tracks(tracks, 4)
+
     # refine with the same track_width
     refined = lk.refine_tracks_centroid(tracks, track_width=0.3)
-    # refine with a slightly wider track_width
-    refined_wider = lk.refine_tracks_centroid(tracks, track_width=0.35)
+    # refine with double the track_width
+    refined_wider = lk.refine_tracks_centroid(tracks, track_width=0.6)
 
-    # Get the longest tracks
-    longest_track_idx = np.argmax([len(track) for track in tracks])
-    longest_original = tracks[longest_track_idx]
-    longest_refined = refined[longest_track_idx]
-    longest_wider = refined_wider[longest_track_idx]
-
-    # simple function to format the plots
-    def plot_tracks(pre_refined, post_refined):
-        pre_refined.plot(marker="o", show_outline=False, label="pre-refinement")
-        post_refined.plot(marker="o", mfc="none", show_outline=False, label="post-refinement")
-        plt.ylabel('Position [um]')
-        plt.xlabel('Time [s]')
-        plt.xlim(3.5, 5)
-        plt.ylim(4.9, 5)
-
-    # make the plot
     plt.figure()
-    plt.subplot(211)
-    plot_tracks(longest_original, longest_refined)
-    plt.title("same track_width")
+    kymo40.plot("green", aspect='auto', interpolation="none", cmap="bone")
+    tracks[12].plot(marker="o", show_outline=False, label="track, track width = 0.3", c="white")
+    refined[12].plot(marker="o", mfc="none", show_outline=False, label="refined, track width = 0.3", c="tab:orange")
+    refined_wider[12].plot(marker="o", mfc="none", show_outline=False, label="refined, track width = 0.6", c="tab:olive")
 
-    plt.subplot(212)
-    plot_tracks(longest_original, longest_wider)
-    plt.title("wider track_width")
-
+    plt.xlim(8.5, 10.5)
+    plt.ylim(8.8, 9.8)
+    plt.legend()
     plt.tight_layout()
     plt.show()
 
 .. image:: figures/kymotracking/centroid_refinement.png
 
-Let's look at the top plot first where we refined with the same `track_width` as the original tracking step. We can see that a few points were
-added post refinement (shown in orange). The others remain unchanged, since we used the same `track_width`. In the bottom plot where we used
-a slightly wider `track_width` we can see that in addition to more points being added, the values of the original coordinates are slightly different.
-
-Fortunately, the signal to noise level in this kymograph is quite good. In practice, when the signal to noise is lower,
-one will have to resort to some fine tuning of the algorithm parameters over different regions of the kymograph to get
-an acceptable result.
+We can see that a few points were added post refinement (shown in orange). Increasing the `track_width` (shown in green) takes into account
+more pixels in the vertical direction during refinement. While the result is not significantly different, problems will occur if tracks are
+close together.
 
 Maximum Likelihood Estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -298,7 +274,7 @@ Here we crop the original kymograph from 25 to 27 seconds and 10 to 12 microns::
 
     background_kymo = kymo["25s":"27s"]
     background_kymo = background_kymo.crop_by_distance(10, 12)
-    offset = np.mean(kymo_cropped.get_image("green"))
+    offset = np.mean(cropped_kymo.get_image("green"))
     print(offset)
 
 The independently determined offset (in photons per pixel) can then be provided directly to
@@ -308,8 +284,8 @@ The independently determined offset (in photons per pixel) can then be provided 
 
     plt.figure()
     cropped_kymo.plot("green", adjustment=adjustment, aspect="auto")
-    refined.plot()
-    refined_with_offset.plot()
+    refined.plot(c="w")
+    refined_with_offset.plot(c="tab:orange")
     plt.show()
 
 .. image:: figures/kymotracking/gaussian_refined_offset.png
@@ -359,6 +335,8 @@ We can easily plot some histograms of the binding events located with the kymotr
 
     # re-track so we have fresh data to work with
     tracks = lk.track_greedy(kymo40, "green", track_width=0.3)
+    tracks = lk.filter_tracks(tracks, 4)
+    tracks = lk.refine_tracks_centroid(tracks, track_width=0.3)
 
     plt.figure()
     tracks.plot_binding_histogram(kind="binding")
@@ -521,13 +499,15 @@ Pylake provides a convenience function for obtaining such estimates at the group
 If it is safe to assume that the localization variance is the same for all the tracks, then one can achieve a more precise estimate for individual tracks by estimating this quantity at an ensemble level and then using that in the per-track estimation procedure::
 
     ensemble_estimate = tracks.ensemble_diffusion("cve")
+    print(ensemble_estimate)
 
     # Pass the ensemble localization uncertainties to the method
-    tracks.estimate_diffusion(
+    per_track_estimate = tracks.estimate_diffusion(
         "cve",
         localization_variance=ensemble_estimate.localization_variance,
-        localization_variance_variance=ensemble_estimate.localization_variance_variance
+        variance_of_localization_variance=ensemble_estimate.variance_of_localization_variance
     )
+    print(per_track_estimate[0])
 
 For more information on this procedure and how it affects the estimation uncertainties, please refer to the :doc:`theory section on diffusive motion</theory/diffusion/diffusion>`.
 
@@ -549,18 +529,14 @@ If it is safe to assume that all particles exhibit the same diffusive motion, on
 
     ensemble_msd = tracks.ensemble_msd()
 
-This returns a :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD` class which contains the requested estimates and some metadata.
-The results can then easily be plotted::
+This returns a :class:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD` class which contains the requested estimates
+along with some metadata and a :meth:`~lumicks.pylake.kymotracker.detail.msd_estimation.EnsembleMSD.plot` method. Because this particular
+protein is not diffusive, plotting this data is of little value; however, see the additional discussion in the
+:doc:`theory section for diffusive processes</theory/diffusion/diffusion>`.
 
-    plt.figure()
-    ensemble_msd.plot()
-    plt.show()
-
-For purely diffusive motion, this plot should be a straight line.
 One thing that is important to note is that the MSDs of one track for different lags are highly correlated and that estimates at larger lags are far less reliable.
 Therefore one should not fit these values as though they were independent data points.
 Doing so leads to very imprecise estimates.
-For more information, see the :doc:`theory section for diffusive processes</theory/diffusion/diffusion>`.
 
 Ordinary Least Squares
 ^^^^^^^^^^^^^^^^^^^^^^
