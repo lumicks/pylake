@@ -876,12 +876,12 @@ def _cve(
     dt : float
         Time step
     blur_constant : float
-        Motion blur coefficient. Should be between 0 and 1/4.
+        Motion blur coefficient. Should be between 0 and 1/4 or `np.nan` if not clearly defined.
 
         The normalized shutter function is defined as :math:`c(t)`, where :math:`c(t)` represents
         whether the shutter is open or closed. :math:`c(t)` is normalized w.r.t. area. For no
-        motion blur, :math:`c(t) = \delta(t_{exposure})`, whereas for a constantly open shutter it is
-        defined as :math:`c(t) = 1 / \Delta t`.
+        motion blur, :math:`c(t) = \delta(t_{\mathrm{exposure}})`, whereas for a constantly open
+        shutter it is defined as :math:`c(t) = 1 / \Delta t`.
 
         With :math:`c(t)` defined as before, the motion blur constant is defined as:
 
@@ -900,6 +900,8 @@ def _cve(
         and the diffusion constant, the motion blur factor has no effect on the estimate of the
         diffusion constant itself, but it does affect the calculated uncertainties. In the case of
         a provided localization uncertainty, it does impact the estimate of the diffusion constant.
+
+        Note that if the blur constant is set to `np.nan`, not all estimates will be available.
     localization_var : Optional[float]
         Estimate of the localization error expressed as a variance, if it has been determined
         independently.
@@ -925,7 +927,7 @@ def _cve(
     .. [13] Vestergaard, C. L. (2016). Optimizing experimental parameters for tracking of diffusing
             particles. Physical Review E, 94(2), 022401.
     """
-    if not 0 <= blur_constant <= 0.25:
+    if not 0 <= blur_constant <= 0.25 and not np.isnan(blur_constant):
         raise ValueError("Motion blur constant should be between 0 and 1/4")
 
     if len(x) < 3:
@@ -998,7 +1000,8 @@ def estimate_diffusion_cve(
     dt : float
         Time step
     blur_constant : float
-        Motion blur coefficient. Should be between 0 and 1/4.
+        Motion blur coefficient. Should be between 0 and 1/4 or `np.nan` if not defined. Note that
+        if `np.nan` is specified, not all estimates will be available.
     unit : str
         Unit that the diffusion constant is specified in.
     unit_label : str
