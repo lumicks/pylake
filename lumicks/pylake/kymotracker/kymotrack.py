@@ -448,7 +448,8 @@ class KymoTrack:
         This estimator was introduced in the work of Vestergaard et al [5]_. The correction for
         missing data was introduced in [6]_. The CVE is unbiased and practically optimal when the
         signal-to-noise ratio (SNR) is bigger than 1. In this context, the SNR is defined
-        as: :math:`\sqrt{D \Delta t} / \sigma`.
+        as: :math:`\sqrt{D \Delta t} / \sigma`. Note that for 1D confocal scans, we neglect the
+        effect of motion blur (R=0).
 
         2. MSD-based estimators (OLS, GLS)
 
@@ -505,6 +506,27 @@ class KymoTrack:
             obtained from estimating an ensemble diffusion constant using `cve`. This parameter is
             only used when method="cve".
 
+        Raises
+        ------
+        ValueError
+            if `method == "cve"`, but the `KymoTrack` has fewer than 3 time intervals defined.
+        ValueError
+            if `method == "cve"`, the source kymograph does not have a clearly defined motion blur
+            constant, and a localization variance is supplied as an argument. As a result, the
+            diffusion constant cannot be reliably calculated. In this case, do not provide a
+            localization uncertainty.
+        NotImplementedError
+            if the tracked kymograph had disjoint time intervals (such as for a temporally
+            downsampled kymograph).
+
+        Warns
+        -----
+        RuntimeWarning
+            if `method == "cve"` and the source kymograph does not have a clearly defined motion
+            blur constant. As a result, the localization variance and standard error for the
+            diffusion constant will not be available. Estimates that are unavailable are returned
+            as `np.nan`.
+
         References
         ----------
         .. [3] Michalet, X., & Berglund, A. J. (2012). Optimal diffusion coefficient estimation in
@@ -535,13 +557,31 @@ class KymoTrack:
         }
 
         if method == "cve":
-            # We hardcode the blur constant for confocal for now (no motion blur)
+            try:
+                blur = self._kymo.motion_blur_constant
+            except NotImplementedError:
+                if localization_variance:
+                    raise ValueError(
+                        "Cannot compute diffusion constant reliably for a kymograph that does not"
+                        "have a clearly defined motion blur constant and the localization variance "
+                        "is provided. Omit the localization variance to calculate a diffusion "
+                        "constant."
+                    )
+
+                warnings.warn(
+                    RuntimeWarning(
+                        "Motion blur cannot be taken into account for this type of Kymo. As a "
+                        "consequence, not all estimates will be available."
+                    )
+                )
+                blur = np.nan
+
             return estimate_diffusion_cve(
                 frame_idx,
                 positions,
                 self._line_time_seconds,
                 **unit_labels,
-                blur_constant=0,
+                blur_constant=blur,
                 localization_var=localization_variance,
                 var_of_localization_var=variance_of_localization_variance,
             )
@@ -1078,6 +1118,27 @@ class KymoTrackGroup:
             will be discarded.
         **kwargs :
             forwarded to :meth:`KymoTrack.estimate_diffusion`
+
+        Raises
+        ------
+        ValueError
+            if `method == "cve"`, the source kymograph does not have a clearly defined motion blur
+            constant, and a localization variance is supplied as an argument. As a result, the
+            diffusion constant cannot be reliably calculated. In this case, do not provide a
+            localization uncertainty.
+        NotImplementedError
+            if the tracked kymograph had disjoint time intervals (such as for a temporally
+            downsampled kymograph).
+
+        Warns
+        -----
+        RuntimeWarning
+            if `method == "cve"` and the source kymograph does not have a clearly defined motion
+            blur constant. As a result, the localization variance and standard error for the
+            diffusion constant will not be available. Estimates that are unavailable are returned
+            as `np.nan`.
+        RuntimeWarning
+            if some tracks were discarded because they were shorter than the specified `min_length`.
         """
         required_length = (3 if method == "cve" else 5) if min_length is None else min_length
         filtered_tracks = [track for track in self if len(track) >= required_length]
@@ -1113,6 +1174,15 @@ class KymoTrackGroup:
               :meth:`KymoTrack.estimate_diffusion` for more detailed information and references.
         max_lag : int
             Maximum number of lags to include when using the ordinary least squares method (OLS).
+
+        Warns
+        -----
+        RuntimeWarning
+            if `method == "cve"` and the source kymograph does not have a clearly defined motion
+            blur constant. As a result, the localization variance and standard error for the
+            diffusion constant will not be available. If only one track is available, the standard
+            error on the diffusion constant will also not be available. Estimates that are
+            unavailable are returned as `np.nan`.
 
         References
         ----------

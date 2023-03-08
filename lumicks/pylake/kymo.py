@@ -98,8 +98,8 @@ class Kymo(ConfocalImage):
 
         The normalized shutter function is defined as :math:`c(t)`, where :math:`c(t)` represents
         whether the shutter is open or closed. :math:`c(t)` is normalized w.r.t. area. For no
-        motion blur, :math:`c(t) = \delta(t_{exposure})`, whereas for a constantly open shutter it is
-        defined as :math:`c(t) = 1 / \Delta t`.
+        motion blur, :math:`c(t) = \delta(t_\mathrm{exposure})`, whereas for a constantly open
+        shutter it is defined as :math:`c(t) = 1 / \Delta t`.
 
         The motion blur constant is defined as:
 
@@ -122,7 +122,7 @@ class Kymo(ConfocalImage):
         Raises
         ------
         NotImplementedError
-            if the motion blur is poorly defined for this type of kymograph.
+            if the motion blur is not defined for this kymograph.
         """
         if self._motion_blur_constant is None:
             raise NotImplementedError("No motion blur constant was defined for this kymograph.")

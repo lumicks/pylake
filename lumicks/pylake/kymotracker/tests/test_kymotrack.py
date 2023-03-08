@@ -817,7 +817,6 @@ def test_diffusion_cve(
         localization_variance=localization_var,
         variance_of_localization_variance=var_of_localization_var,
     )
-
     np.testing.assert_allclose(cve_est.value, diffusion_ref)
     np.testing.assert_allclose(cve_est.std_err, std_err_ref)
     np.testing.assert_allclose(cve_est.num_points, count_ref)
@@ -1079,3 +1078,28 @@ def test_half_kernel(window, pixelsize, result):
 def test_integral_times_kymotrack(blank_kymo):
     with pytest.raises(TypeError, match="Time indices should be of integer type, got float64"):
         KymoTrack([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], blank_kymo, "red")
+
+
+def test_no_motion_blur(blank_kymo):
+    """When the motion blur of a Kymograph is unknown, a warning should be issued and
+    return values blanked"""
+    unknown_blur_kymo = copy(blank_kymo)
+    unknown_blur_kymo._motion_blur_constant = None
+    track = KymoTrack([1, 2, 3, 4], [1, 2, 3, 2], unknown_blur_kymo, "red")
+
+    with pytest.warns(
+        RuntimeWarning,
+        match="Motion blur cannot be taken into account for this type of Kymo",
+    ):
+        estimate = track.estimate_diffusion("cve")
+        assert np.isnan(estimate.std_err)
+        assert np.isnan(estimate.localization_variance)
+
+    with pytest.raises(
+        ValueError,
+        match="Cannot compute diffusion constant reliably for a kymograph that does not"
+              "have a clearly defined motion blur constant and the localization variance "
+              "is provided. Omit the localization variance to calculate a diffusion "
+              "constant.",
+    ):
+        track.estimate_diffusion("cve", localization_variance=1)
