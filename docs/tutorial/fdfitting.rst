@@ -64,8 +64,8 @@ We can simulate the model by passing a dictionary with parameters values::
 
     plt.figure()
     plt.plot(distance,force)
-    plt.ylabel("Force")
-    plt.xlabel("Distance")
+    plt.ylabel("Force [pN]")
+    plt.xlabel("Distance [$\\mu$m]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_ewlc.png
@@ -152,7 +152,7 @@ To do a fit, we have to add data. Let's assume we have two data sets. One was ac
 another was measured without a ligand. We expect this ligand to only affect the contour length of our DNA. Let's add the
 first data set which we name `Control`. Since the extensible worm-like chain is valid up to 30 pN, we select forces < 30pN::
 
-    file1 = lk.File("20200430-192424 FD Curve FD_5_control_forw.h5")
+    file1 = lk.File("fdcurve.h5")
     fd1 = file1.fdcurves["FD_5_control_forw"]
     mask1 = fd1.f.data <= 30
     force1 = fd1.f[mask1].data
@@ -162,7 +162,7 @@ first data set which we name `Control`. Since the extensible worm-like chain is 
 For the second data set, we want the contour length to be different. We can achieve this by renaming the parameter
 when loading the data from `DNA/Lc` to `DNA/Lc_RecA`::
 
-    file2 = lk.File("20200430-192432 FD Curve FD_5_3_RecA_forw.h5")
+    file2 = lk.File("fdcurve_reca.h5")
     fd2 = file2.fdcurves["FD_5_3_RecA_forw_after_2_quick_manual_FD"]
     mask2 = fd2.f.data <= 30
     force2 = fd2.f[mask2].data
@@ -189,7 +189,7 @@ initial guesses yourself.::
     plt.figure()
     fit.plot()
     plt.ylabel("Force [pN]")
-    plt.xlabel("Distance [$\\mu$M]")
+    plt.xlabel("Distance [$\\mu$m]")
     plt.title("Before fitting")
     plt.show()
 
@@ -210,7 +210,7 @@ Plot the result of the fit::
     plt.figure()
     fit.plot()
     plt.ylabel("Force [pN]")
-    plt.xlabel("Distance [$\\mu$M]");
+    plt.xlabel("Distance [$\\mu$m]");
     plt.title("After fitting")
     plt.show()
 
@@ -220,7 +220,9 @@ If you wish to customize the label that appears in the legend, you can pass a cu
 
     plt.figure()
     fit.plot(label="my_fit")
-    plt.show9)
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Force [pN]")
+    plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_myfit.png
 
@@ -229,8 +231,10 @@ values (in this case values from 2.0 to 5.0) for the conditions corresponding to
 do this as follows::
 
     plt.figure()
-    fit.plot("Control", "k--", np.arange(2.0, 5.0, 0.01))
-    fit.plot("RecA", "k--", np.arange(2.0, 5.0, 0.01))
+    fit.plot("Control", "--", np.arange(2.0, 3.0, 0.01))
+    fit.plot("RecA", "--", np.arange(2.0, 3.4, 0.01))
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Force [pN]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_range.png
@@ -238,7 +242,9 @@ do this as follows::
 Plot the fitted model without data::
 
     plt.figure()
-    fit.plot("Control", "k--", np.arange(2.0, 5.0, 0.01), plot_data=False)
+    fit.plot("Control", "k--", np.arange(2.0, 4.0, 0.01), plot_data=False)
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Force [pN]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_model.png
@@ -249,6 +255,8 @@ It is also possible to obtain simulations from the model directly, using the fit
     simulated_force = model(distance, fit["Control"])
     plt.figure()
     plt.plot(distance, simulated_force)
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Force [pN]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_simulations.png
@@ -303,10 +311,12 @@ Calculating per point contour length
 Sometimes, one wishes to invert the model with respect to one parameter (i.e. re-estimate one parameter on a per data
 point basis). This can be used to obtain dynamic contour lengths::
 
-    file3 = lk.File("20200430-182304 FD Curve 40.h5")
+    file3 = lk.File("fd_multiple_Lc.h5")
     fd3 = file3.fdcurves["40"]
     force3 = fd3.f.data
     distance3 = fd3.d.data
+
+    plt.figure()
     fd3.plot_scatter()
 
 .. image:: figures/fdfitting/fdfitting_RecA_perpoint_Lc.png
@@ -327,8 +337,8 @@ Now, we wish to allow the contour length to vary on a per data point basis. For 
     lcs = lk.parameter_trace(model, fit["Control"], "model/Lc", distance3, force3)
     plt.figure()
     plt.plot(distance3,lcs)
-    plt.xlabel("Distance")
-    plt.ylabel("Lc")
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Lc [$\mu$m]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_parameter_trace.png
@@ -347,14 +357,16 @@ Confidence intervals and standard errors
 
 Once parameters have been fitted, standard errors can be obtained as follows::
 
-    fit["model/Lc"].stderr
+    >>> fit["model/Lc"].stderr
+    0.0015047272987879956
 
 Assuming that the parameters are not at the bounds, the sum of random variables with finite moments converges to a
 Gaussian distribution. This allows for the computation of confidence intervals using the Wald test
 :cite:`press1990numerical`. To get these asymptotic intervals, we can use the member function `.ci` with a desired
 confidence interval::
 
-    fit["model/Lc"].ci(0.95)
+    >>> fit["model/Lc"].ci(0.95)
+    [2.7683400869428114, 2.7742385095671684]
 
 Note that the bounds returned by this call are only asymptotically correct and should be used with caution. *Better
 confidence intervals can be obtained using the profile likelihood method* :cite:`raue2009structural,maiwald2016driving`.
@@ -365,7 +377,8 @@ Determining confidence intervals via profiles has two big advantages:
 
 Profiles can easily be computed by calling :func:`~lumicks.pylake.FdFit.profile_likelihood` on the fit::
 
-    profile = fit.profile_likelihood("model/Lc", num_steps=5000)
+    >>> profile = fit.profile_likelihood("model/Lc", num_steps=5000)
+    [2.768390344105447, 2.774203622954422]
 
 The lower and upper bound of the 95% confidence interval of the given parameter (`Lc` in this example) can be obtained as::
 
@@ -439,21 +452,26 @@ Global fits versus single fits
 The :class:`~lumicks.pylake.FdFit` object manages a fit. To illustrate its use, and how a global fit differs from a local fit, consider the
 following two examples::
 
-    model = lk.ewlc_odijk_force("DNA")
-    fit = lk.FdFit(model)
-    for i, (distance, force) in enumerate(zip(distances, forces)):
-        fit.add_data(f"AdK {i}", f=force, d=distance)
-    fit.fit()
-    print(fit["DNA/Lc"])
+    >>> model = lk.ewlc_odijk_force("DNA")
+    >>> fit = lk.FdFit(model)
+    >>> for i, (distance, force) in enumerate(zip(distances, forces)):
+    >>>     fit.add_data(f"AdK {i}", f=force, d=distance)
+    >>>
+    >>> fit.fit()
+    >>> print(fit["DNA/Lc"])
+    lumicks.pylake.fdfit.Parameter(value: 0.34975137317062743, lower bound: 0.00034, upper bound: inf, fixed: False)
 
 and::
 
-    for i, (distance, force) in enumerate(zip(distances, forces)):
-        model = lk.ewlc_odijk_force("DNA")
-        fit = lk.FdFit(model)
-        fit.add_data(f"AdK {i}", f=force, d=distance)
-        fit.fit()
-        print(fit["DNA/Lc"])
+    >>> for i, (distance, force) in enumerate(zip(distances, forces)):
+    >>>     model = lk.ewlc_odijk_force("DNA")
+    >>>     fit = lk.FdFit(model)
+    >>>     fit.add_data(f"AdK {i}", f=force, d=distance)
+    >>>
+    >>> fit.fit()
+    >>> print(fit["DNA/Lc"])
+    lumicks.pylake.fdfit.Parameter(value: 0.3506486449618384, lower bound: 0.00034, upper bound: inf, fixed: False)
+    lumicks.pylake.fdfit.Parameter(value: 0.34894222791619584, lower bound: 0.00034, upper bound: inf, fixed: False)
 
 The first example is what we refer to as a global fit whereas the second example is an example of a
 local fit. The difference between these two is that the former sets up one model that has to fit
@@ -468,12 +486,19 @@ parameters shared between different conditions. It's usually a good idea to thin
 be different between different experiments and only allow these parameters to be different in the fit. For example,
 if the only expected difference between the experiments is the contour length, then this can be achieved using::
 
-    model = lk.ewlc_odijk_force("DNA")
-    fit = lk.FdFit(model)
-    for i, (distance, force) in enumerate(zip(distances, forces)):
-        fit.add_data(f"AdK {i}", force, distance, {"DNA/Lc": f"DNA/Lc_{i}"})
-    fit.fit()
-    print(fit.params)
+    >>> model = lk.ewlc_odijk_force("DNA")
+    >>> fit = lk.FdFit(model)
+    >>> for i, (distance, force) in enumerate(zip(distances, forces)):
+    >>>     fit.add_data(f"AdK {i}", force, distance, {"DNA/Lc": f"DNA/Lc_{i}"})
+    >>> fit.fit()
+    >>> print(fit.params)
+    Name           Value  Unit      Fitted      Lower bound    Upper bound
+    --------  ----------  --------  --------  -------------  -------------
+    DNA/Lp     19.8138    [nm]      True            0.001              100
+    DNA/Lc_0    0.349714  [micron]  True            0.00034            inf
+    DNA/St    252.771     [pN]      True            1                  inf
+    kT          4.11      [pN*nm]   False           3.77                 8
+    DNA/Lc_1    0.349615  [micron]  True            0.00034            inf
 
 Note that this piece of code will lead to parameters `DNA/Lc_0`, `DNA/Lc_1` etc.
 
@@ -485,9 +510,12 @@ Let’s say we have two models, `model1` and `model2` and we want to fit both in
 The first step is to construct the :class:`~lumicks.pylake.FdFit`::
 
     model1 = lk.ewlc_odijk_force("DNA")
-    model2 = (lk.ewlc_odijk_distance("DNA") + lk.ewlc_odijk_distance("protein")).invert()
+    model2 = (lk.ewlc_odijk_distance("DNA") + lk.ewlc_odijk_distance("protein")).invert(interpolate=True, independent_min=0.1, independent_max=40.0)
     fit = lk.FdFit(model1, model2)
 
+Note that we used the interpolation method for inversion here.
+This is much faster than the alternative, but requires providing the range over which we expect the old independent variable (in this case force) to vary.
+For more information, please refer to :meth:`~lumicks.pylake.fitting.model.invert()`.
 We add force-distance data from before the unfolding event from two different measurements:::
 
     for i, (distance, force) in enumerate(zip(distances, forces)):
@@ -496,16 +524,26 @@ We add force-distance data from before the unfolding event from two different me
 See how we used the model handles? They are used to let the :class:`~lumicks.pylake.FdFit` know to which model each data set should be added.
 Rather than directly adding the data from after the unfolding event, and fitting everything together, we are going to fit incrementally::
 
+    fit.fit()
+
+Let's plot what we have fitted so far::
 
     fit.fit()
+    plt.figure()
+    fit[model1].plot()
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Force [pN]")
+    plt.show()
+
+.. image:: figures/fdfitting/fdfitting_adk_handles.png
 
 Next, add data after unfolding to `fit[model2]`::
 
-    d_adk1 = file_adk1.fdcurves["adk5_curve1"].d["21s":"29s"].data
-    f_adk1 = file_adk1.fdcurves["adk5_curve1"].f["21s":"29s"].data
+    d_adk1 = file_adk1.fdcurves["adk5_curve1"].d["21s":"28s"].data
+    f_adk1 = file_adk1.fdcurves["adk5_curve1"].f["21s":"28s"].data
 
-    d_adk2 = file_adk2.fdcurves["adk5_curve2"]["20s":"29s"].d.data
-    f_adk2 = file_adk2.fdcurves["adk5_curve2"]["20s":"29s"].f.data
+    d_adk2 = file_adk2.fdcurves["adk5_curve2"]["20s":"28s"].d.data
+    f_adk2 = file_adk2.fdcurves["adk5_curve2"]["20s":"28s"].f.data
 
     distances2 = [d_adk1[d_adk1 > 0], d_adk2[d_adk2 > 0]]
     forces2 = [f_adk1[d_adk1 > 0], f_adk2[d_adk2 > 0]]
@@ -513,24 +551,53 @@ Next, add data after unfolding to `fit[model2]`::
     for i, (distance, force) in enumerate(zip(distances2, forces2)):
         fit[model2].add_data(f"After unfolding {i}", force, distance)
 
+One thing to be careful about is that the we should not include points which are the result of an average between the folded and unfolded state.
 Next, we fit the data after the unfolding event. To speed up the computation, we fix the parameters that we already fitted::
 
-    fit["DNA/Lc"].fixed = True
-    fit["DNA/Lp"].fixed = True
-    fit["DNA/St"].fixed = True
+    >>> fit["DNA/Lc"].fixed = True
+    >>> fit["DNA/Lp"].fixed = True
+    >>> fit["DNA/St"].fixed = True
+    >>>
+    >>> fit["protein/Lp"].value = .7
+    >>> fit["protein/Lp"].lower_bound = .6
+    >>> fit["protein/Lp"].upper_bound = 1.0
+    >>> fit["protein/Lc"].value = .025
+    >>>
+    >>> fit.fit()
+    Fit
+      - Model: DNA
+      - Equation:
+          f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(f*DNA.Lp)) + f/DNA.St)-d))
 
-    fit["protein/Lp"].value = .7
-    fit["protein/Lp"].lower_bound = .6
-    fit["protein/Lp"].upper_bound = 1.0
-    fit["protein/Lc"].value = .025
+      - Data sets:
+        - FitData(Before unfolding 0, N=1301)
+        - FitData(Before unfolding 1, N=1301)
+      - Model: inv(DNA_with_protein)
+      - Equation:
+          f(d) = argmin[f](norm(DNA.Lc * (1 - (1/2)*sqrt(kT/(d*DNA.Lp)) + d/DNA.St) + protein.Lc * (1 - (1/2)*sqrt(kT/(d*protein.Lp)) + d/protein.St)-d))
 
-    fit.fit()
+      - Data sets:
+        - FitData(After unfolding 0, N=698)
+        - FitData(After unfolding 1, N=799)
+
+      - Fitted parameters:
+        Name              Value  Unit      Fitted      Lower bound    Upper bound
+        ----------  -----------  --------  --------  -------------  -------------
+        DNA/Lp       19.75       [nm]      False           0.001              100
+        DNA/Lc        0.349751   [micron]  False           0.00034            inf
+        DNA/St      253.45       [pN]      False           1                  inf
+        kT            4.11       [pN*nm]   False           3.77                 8
+        protein/Lp    0.6        [nm]      True            0.6                  1
+        protein/Lc    0.0216108  [micron]  True            0.00034            inf
+        protein/St  250.87       [pN]      True            1                  inf
 
 Now we have fitted both the data before and after unfolding. The results can be plotted as follows::
 
     plt.figure()
     fit[model1].plot()
     fit[model2].plot()
+    plt.xlabel("Distance [$\mu$m]")
+    plt.ylabel("Force [pN]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_adk_twomodels.png
