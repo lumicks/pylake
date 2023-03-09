@@ -442,6 +442,10 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
 
+        Returns
+        -------
+        :class:`~lumicks.pylake.nb_widgets.image_editing.ImageEditorWidget`
+
         Examples
         --------
         ::

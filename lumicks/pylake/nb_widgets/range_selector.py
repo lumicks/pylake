@@ -37,7 +37,7 @@ class BaseRangeSelectorWidget:
 
     @property
     def ranges(self):
-        """Returns selected list of timestamp ranges"""
+        """Return list of arrays containing `start` and `stop` timestamps for each selection."""
         return np.copy(self._ranges)
 
     def close(self, event):
@@ -122,6 +122,36 @@ class BaseRangeSelectorWidget:
 
 
 class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
+    """Notebook widget for selecting data ranges by time.
+
+    Open a widget used to select time ranges. The timestamps of these time ranges can then be
+    extracted from
+    :attr:`selector.ranges <lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget.ranges>`,
+    while the slices can be extracted from
+    :attr:`selector.slices <lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget.slices>`.
+
+    Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+    Actions
+    -------
+    left-click
+        Define time ranges by clicking the left and then the right boundary of the region you
+        wish to select.
+    right-click
+        Remove previously selected time range.
+
+    Parameters
+    ----------
+    channel_slice : :class:`~lumicks.pylake.channel.Slice`
+        Data slice.
+    axes : matplotlib.axes.Axes, optional
+        If supplied, the axes instance in which to plot.
+    show : bool, optional
+        Show widget. Default is True.
+    **kwargs
+        Arguments forwarded to :meth:`~lumicks.pylake.channel.Slice.plot()`.
+    """
+
     def __init__(self, channel_slice, axes=None, show=True, **kwargs):
         self.kwargs = kwargs
         self.slice = channel_slice
@@ -149,6 +179,22 @@ class SliceRangeSelectorWidget(BaseRangeSelectorWidget):
 
 
 class FdTimeRangeSelectorWidget(SliceRangeSelectorWidget):
+    """Notebook widget for selecting data ranges by time.
+
+    Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+    Parameters
+    ----------
+    fd_curve : :class:`~lumicks.pylake.fdcurve.FdCurve`
+        A force extension curve.
+    axes : matplotlib.axes.Axes, optional
+        If supplied, the axes instance in which to plot.
+    show : bool, optional
+        Show widget. Default is True.
+    **kwargs
+        Arguments forwarded to :meth:`~lumicks.pylake.channel.Slice.plot()`.
+    """
+
     def __init__(self, fd_curve, axes=None, show=True):
         self.fd_curve = fd_curve
         super().__init__(fd_curve.f, axes, show)
@@ -160,6 +206,26 @@ class FdTimeRangeSelectorWidget(SliceRangeSelectorWidget):
 
 
 class FdDistanceRangeSelectorWidget(BaseRangeSelectorWidget):
+    """Notebook widget for selecting data ranges by distance.
+
+    Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+    Parameters
+    ----------
+    fd_curve : :class:`~lumicks.pylake.fdcurve.FdCurve`
+        A force extension curve.
+    axes : matplotlib.axes.Axes, optional
+        If supplied, the axes instance in which to plot.
+    show : bool, optional
+        Show widget. Default is True.
+    max_gap : int, optional
+        Sometimes the distance bounds are exceeded by short sections of data due to noise. The
+        max_gap parameter controls how many data points have to exceed the threshold to be
+        considered not part of the slice. Default is 0.
+    **kwargs
+        Arguments forwarded to :meth:`~lumicks.pylake.channel.Slice.plot()`.
+    """
+
     def __init__(self, fd_curve, axes=None, show=True, max_gap=0):
         self.fd_curve = fd_curve
         self._max_gap = max_gap
@@ -230,21 +296,71 @@ class BaseRangeSelector:
 
     @property
     def ranges(self):
-        """Return list of range timestamps"""
+        """Return a dictionary with selection timestamps.
+
+        Each dictionary value contains a list of arrays containing `start` and `stop` timestamps
+        for the individual selections."""
         return {key: selector.ranges for key, selector in self.selectors.items()}
 
     @property
     def fdcurves(self):
-        """Return list of selected fdcurves of data as :class:`~lumicks.pylake.fdcurve.FdCurve`"""
+        """Return a dictionary with the selections.
+
+        Each dictionary value contains a list of :class:`~lumicks.pylake.fdcurve.FdCurve`
+        instances with the individual data selections."""
         return {key: selector.fdcurves for key, selector in self.selectors.items()}
 
 
 class FdRangeSelector(BaseRangeSelector):
+    """Notebook widget for selecting data ranges by time.
+
+    Open a widget used to select ranges from force extension curves.
+
+    Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+    Actions
+    -------
+    left-click
+        Define time ranges by clicking the left and then the right boundary of the region you
+        wish to select.
+    right-click
+        Remove previously selected time range.
+
+    Parameters
+    ----------
+    fd_curves : dict
+        Dictionary of :class:`~lumicks.pylake.fdcurve.FdCurve`.
+    """
+
     def _add_widget(self, curve):
         return FdTimeRangeSelectorWidget(curve, self.axes, show=False)
 
 
 class FdDistanceRangeSelector(BaseRangeSelector):
+    """Notebook widget for selecting data ranges by distance.
+
+    Open a widget used to select distance ranges.
+
+    Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+    Actions
+    -------
+    left-click
+        Define distance ranges by clicking the left and then the right boundary of the region you
+        wish to select.
+    right-click
+        Remove previously selected distance range.
+
+    Parameters
+    ----------
+    fd_curves : dict
+        Dictionary of :class:`~lumicks.pylake.fdcurve.FdCurve`.
+    max_gap : int
+        Sometimes the distance bounds are exceeded by short sections of data due to noise. The
+        max_gap parameter controls how many data points have to exceed the threshold to be
+        considered not part of the slice.
+    """
+
     def __init__(self, fd_curves, max_gap=3):
         self._max_gap = max_gap
         super().__init__(fd_curves)

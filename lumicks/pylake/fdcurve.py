@@ -227,10 +227,56 @@ class FdCurve(DownsampledFD):
         plt.ylabel(self.f.labels.get("y", "force"))
         plt.title(self.name)
 
-    def range_selector(self, show=True):
+    def range_selector(self, show=True) -> FdTimeRangeSelectorWidget:
+        """Open a widget used to select ranges from force extension curves.
+
+        Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+        Actions
+        -------
+        left-click
+            Define time ranges by clicking the left and then the right boundary of the region you
+            wish to select.
+        right-click
+            Remove previously selected time range.
+
+        Parameters
+        ----------
+        show : bool, optional
+            Show the widget. Default is True.
+
+        Returns
+        -------
+        :class:`~lumicks.pylake.nb_widgets.range_selector.FdTimeRangeSelectorWidget`
+        """
         return FdTimeRangeSelectorWidget(self, show=show)
 
-    def distance_range_selector(self, show=True, max_gap=0):
+    def distance_range_selector(self, show=True, max_gap=0) -> FdDistanceRangeSelectorWidget:
+        """Open a widget for selecting data ranges by distance.
+
+        Please refer to the :doc:`tutorial</tutorial/nbwidgets>` for more information.
+
+        Actions
+        -------
+        left-click
+            Define distance ranges by clicking the left and then the right boundary of the region you
+            wish to select.
+        right-click
+            Remove previously selected distance range.
+
+        Parameters
+        ----------
+        show : bool, optional.
+            Show the widget. Default is True.
+        max_gap : int, optional
+            Sometimes the distance bounds are exceeded by short sections of data due to noise. The
+            max_gap parameter controls how many data points have to exceed the threshold to be
+            considered not part of the slice. Default is 0.
+
+        Returns
+        -------
+        :class:`~lumicks.pylake.nb_widgets.range_selector.FdDistanceRangeSelectorWidget`
+        """
         return FdDistanceRangeSelectorWidget(self, show=show, max_gap=max_gap)
 
 

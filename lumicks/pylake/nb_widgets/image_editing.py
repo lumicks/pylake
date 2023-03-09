@@ -206,6 +206,33 @@ class ImageEditorProjection:
 
 
 class ImageEditorWidget:
+    """Open a widget to interactively edit the image stack using a tether.
+
+    Actions
+    -------
+    mouse wheel
+        Scroll through frames of the stack.
+    left-click
+        Define the location of the tether. First click defines the start of the tether
+        and second click defines the end. Subsequent clicks will cycle back to re-defining
+        the start, etc.
+    right-click and drag
+        Define the ROI to be cropped.
+
+    Parameters
+    ----------
+    image : lumicks.pylake.ImageStack
+        Image stack object
+    frame : int, optional
+        Frame index. Default is 0.
+    channel : str, optional
+        Channel. Default is "rgb".
+    show_title : bool, optional
+        Show title above the plot. Default is True.
+    **kwargs
+        Forwarded to plotting function.
+    """
+
     def __init__(self, image, frame=0, channel="rgb", show_title=True, **kwargs):
         """Wrapper class to handle interactive tether axes.
 
