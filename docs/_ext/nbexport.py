@@ -12,7 +12,7 @@ from nbconvert.preprocessors.execute import CellExecutionError
 from sphinx import addnodes, roles
 
 
-def _finilize_markdown_cells(nb):
+def _finalize_markdown_cells(nb):
     markdown_cells = (c for c in nb.cells if c.cell_type == "markdown")
     for cell in markdown_cells:
         cell.source = "".join(cell.source).strip()
@@ -31,7 +31,7 @@ class NBWriter(writers.Writer):
     def translate(self):
         visitor = NBTranslator(self.document, self.app, self.docpath)
         self.document.walkabout(visitor)
-        nb = _finilize_markdown_cells(visitor.nb)
+        nb = _finalize_markdown_cells(visitor.nb)
 
         if self.app.config.nbexport_execute:
             ep = ExecutePreprocessor(allow_errors=True)
@@ -51,7 +51,7 @@ def _split_doctest(code):
 
     groups = itertools.groupby(code.splitlines(), is_code)
     raw_code_blocks = (lines for is_code, lines in groups if is_code)
-    code_blocks = ["\n".join(line[3:].strip() for line in lines) for lines in raw_code_blocks]
+    code_blocks = ["\n".join(line[4:].rstrip() for line in lines) for lines in raw_code_blocks]
     return code_blocks
 
 
