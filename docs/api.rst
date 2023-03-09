@@ -91,6 +91,7 @@ Kymotracking
     kymotracker.kymotrack.KymoTrackGroup
     kymotracker.detail.msd_estimation.DiffusionEstimate
     kymotracker.detail.msd_estimation.EnsembleMSD
+    KymoWidgetGreedy
 
     :template: function.rst
 
@@ -107,9 +108,11 @@ Notebook widgets
     :toctree: _api
     :template: class.rst
 
+    KymoWidgetGreedy
     lumicks.pylake.nb_widgets.range_selector.SliceRangeSelectorWidget
     FdRangeSelector
     FdDistanceRangeSelector
+    lumicks.pylake.nb_widgets.image_editing.ImageEditorWidget
 
 Population Dynamics
 -------------------

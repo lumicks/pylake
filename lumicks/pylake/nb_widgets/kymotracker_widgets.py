@@ -534,6 +534,59 @@ class KymoWidget:
 
 
 class KymoWidgetGreedy(KymoWidget):
+    """Create a widget for performing kymotracking.
+
+    For more information on tracking using the widget, please refer to the
+    :doc:`tracking example </examples/cas9_kymotracking/cas9_kymotracking>`, the
+    :doc:`tutorial on tracking </tutorial/kymotracking>` or the
+    :doc:`tutorial on the use of widgets </tutorial/nbwidgets>`.
+
+    Parameters
+    ----------
+    kymo : lumicks.pylake.Kymo
+        Kymograph.
+    channel : str
+        Kymograph channel to use.
+    axis_aspect_ratio : float, optional
+        Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
+        This helps you visualize them. The aspect ratio is defined in physical spatial and
+        temporal units (rather than pixels).
+    track_width : float, optional
+        Expected width of the particles in physical units. Defaults to 4 * pixel size.
+    pixel_threshold : float, optional
+        Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a track
+        origin. Defaults to 98th percentile of the pixel intensities.
+    window : int, optional
+        Number of kymograph frames in which the particle is allowed to disappear (and still be part of the same
+        track). Defaults to 4.
+    sigma : float or None, optional
+        Uncertainty in the particle position. This parameter will determine whether a peak in the next frame will be
+        linked to this one. Increasing this value will make the algorithm tend to allow more positional variation in
+        the tracks. If none, the algorithm will use half the track width.
+    velocity : float, optional
+        Expected velocity of the traces in the image. This can be used for non-static particles that are expected to
+        move at an expected rate (default: 0.0).
+    diffusion : float, optional
+        Expected diffusion constant (default: 0.0). This parameter will influence whether a peak in the next frame
+        will be connected to this one. Increasing this value will make the algorithm allow more positional variation
+        in.
+    sigma_cutoff : float, optional
+        Sets at how many standard deviations from the expected trajectory a particle no longer belongs to this
+        trace.
+        Lower values result in traces being more stringent in terms of continuing (default: 2.0).
+    min_length : int, optional
+        Minimum length of a trace. Minimum number of frames a spot has to be detected in to be
+        considered. Defaults to 3.
+    use_widgets : bool, optional
+        Add interactive widgets for interacting with algorithm parameters.
+    output_filename : str, optional
+        Filename to save to and load from.
+    slider_ranges : dict of list, optional
+        Dictionary with custom ranges for selected parameter sliders. Ranges should be in the
+        following format: (lower bound, upper bound).
+        Valid options are: "window", "pixel_threshold", "track_width", "sigma", "min_length" and
+        "velocity".
+    """
     def __init__(
         self,
         kymo,
@@ -553,55 +606,6 @@ class KymoWidgetGreedy(KymoWidget):
         slider_ranges=None,
         **kwargs,
     ):
-        """Create a widget for performing kymotracking.
-
-        Parameters
-        ----------
-        kymo : lumicks.pylake.Kymo
-            Kymograph.
-        channel : str
-            Kymograph channel to use.
-        axis_aspect_ratio : float, optional
-            Desired aspect ratio of the viewport. Sometimes kymographs can be very long and thin.
-            This helps you visualize them. The aspect ratio is defined in physical spatial and
-            temporal units (rather than pixels).
-        track_width : float, optional
-            Expected width of the particles in physical units. Defaults to 4 * pixel size.
-        pixel_threshold : float, optional
-            Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a track
-            origin. Defaults to 98th percentile of the pixel intensities.
-        window : int, optional
-            Number of kymograph frames in which the particle is allowed to disappear (and still be part of the same
-            track). Defaults to 4.
-        sigma : float or None, optional
-            Uncertainty in the particle position. This parameter will determine whether a peak in the next frame will be
-            linked to this one. Increasing this value will make the algorithm tend to allow more positional variation in
-            the tracks. If none, the algorithm will use half the track width.
-        velocity : float, optional
-            Expected velocity of the traces in the image. This can be used for non-static particles that are expected to
-            move at an expected rate (default: 0.0).
-        diffusion : float, optional
-            Expected diffusion constant (default: 0.0). This parameter will influence whether a peak in the next frame
-            will be connected to this one. Increasing this value will make the algorithm allow more positional variation
-            in.
-        sigma_cutoff : float, optional
-            Sets at how many standard deviations from the expected trajectory a particle no longer belongs to this
-            trace.
-            Lower values result in traces being more stringent in terms of continuing (default: 2.0).
-        min_length : int, optional
-            Minimum length of a trace. Minimum number of frames a spot has to be detected in to be
-            considered. Defaults to 3.
-        use_widgets : bool, optional
-            Add interactive widgets for interacting with algorithm parameters.
-        output_filename : str, optional
-            Filename to save to and load from.
-        slider_ranges : dict of list, optional
-            Dictionary with custom ranges for selected parameter sliders. Ranges should be in the
-            following format: (lower bound, upper bound).
-            Valid options are: "window", "pixel_threshold", "track_width", "sigma", "min_length" and
-            "velocity".
-        """
-
         def wrapped_track_greedy(kymo, channel, min_length, **kwargs):
             return filter_tracks(
                 track_greedy(kymo, channel, **kwargs),
