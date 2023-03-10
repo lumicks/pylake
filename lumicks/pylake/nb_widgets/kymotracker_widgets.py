@@ -4,7 +4,6 @@ import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
-from deprecated.sphinx import deprecated
 from matplotlib.widgets import RectangleSelector
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
@@ -82,18 +81,6 @@ class KymoWidget:
         self._show(use_widgets=use_widgets, **kwargs)
 
     @property
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use the `tracks` property instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def lines(self):
-        """Detected tracks."""
-        return self.tracks
-
-    @property
     def tracks(self):
         """Detected tracks.
 
@@ -103,17 +90,6 @@ class KymoWidget:
             Collection of detected tracks.
         """
         return self._tracks_history.state
-
-    @lines.setter
-    @deprecated(
-        reason=(
-            "This property will be removed in a future release. Use the `tracks` property instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def lines(self, new_lines):
-        self.tracks = new_lines
 
     @tracks.setter
     def tracks(self, new_tracks):
@@ -280,15 +256,6 @@ class KymoWidget:
             self._set_label("status", f"Saved {self._output_filename}")
         except (RuntimeError, IOError) as exception:
             self._set_label("status", str(exception))
-
-    @deprecated(
-        reason=("This property will be removed in a future release. Use `save_tracks()` instead."),
-        action="always",
-        version="0.13.0",
-    )
-    def save_lines(self, filename, delimiter=";", sampling_width=None):
-        """Export KymoTrackGroup to a csv file."""
-        self.save_tracks(filename, delimiter, sampling_width)
 
     def save_tracks(self, filename, delimiter=";", sampling_width=None):
         """Export KymoTrackGroup to a csv file.
@@ -587,6 +554,7 @@ class KymoWidgetGreedy(KymoWidget):
         Valid options are: "window", "pixel_threshold", "track_width", "sigma", "min_length" and
         "velocity".
     """
+
     def __init__(
         self,
         kymo,
