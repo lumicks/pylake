@@ -57,6 +57,7 @@
 
 * Removed all deprecated methods and properties from `Kymo`, `Scan`, `PointScan`, and `ImageStack`.
 * Removed deprecated functions `filter_lines()`, `refine_lines_centroid()` and `refine_lines_gaussian()`.
+* Removed deprecated property `lines` and method `save_lines` from `KymoWidgetGreedy`.
 * Removed deprecated argument `exclude` from `Kymo.line_timestamp_ranges()` and `Scan.frame_timestamp_ranges()`.
 * Removed deprecated argument `line_width` from `lk.track_greedy()`.
 

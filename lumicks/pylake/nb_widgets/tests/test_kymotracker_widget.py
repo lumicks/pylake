@@ -21,12 +21,6 @@ def test_widget_open(kymograph):
     KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
 
 
-def test_deprecations(kymograph):
-    kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
-    with pytest.warns(DeprecationWarning):
-        kymo_widget.lines
-
-
 def test_parameters_kymo(kymograph):
     """Test whether the parameter setting is passed correctly to the algorithm. By setting the threshold to different
     values we can check which tracks are detected and use that to verify that the parameter is used."""
