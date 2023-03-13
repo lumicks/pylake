@@ -1,65 +1,65 @@
 # Changelog
 
-## v1.0.0 | t.b.d.
+## v1.0.0 | 2023-03-14
+
+Happy π-day!
+
+#### New features
+
+* Added links to example data for all [tutorials](https://lumicks-pylake.readthedocs.io/en/v1.0.0/tutorial/index.html). Try running them in a `jupyter` notebook!
+* Added API to create a [`Kymo`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymo.Kymo.html) from an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html). See [`ImageStack.to_kymo()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.to_kymo) for more information.
+* Added API for accessing notes in a h5 file, i.e. [`file.notes`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.File.html#lumicks.pylake.File.notes) returns a dictionary of notes.
+* Implemented bias correction for centroid refinement that shrinks the window to reduce estimation bias. This bias correction can be toggled by passing a `bias_correction` argument to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.refine_tracks_centroid.html). Note that this bias correction is enabled by default.
+* Implemented spatial calibration for [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html). Images are now plotted in units of microns for TIF files which contain pixel size in the metadata. If the metadata is unavailable, the axes units are provided in pixels.
+* Added option to show scale bars to image plots using [`lk.ScaleBar()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ScaleBar.html). See [plotting and exporting](https://lumicks-pylake.readthedocs.io/en/v1.0.0/tutorial/imagestack.html#plotting-and-exporting) for an example.
+* Added [`KymoTrackGroup.remove()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.remove) to remove a [`KymoTrack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html) from a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html).
+* Enabled boolean array indexing (e.g. `tracks[[False, False, True]]`) and indexing with arrays of indices (e.g. `tracks[[1, 3]]`) for `KymoTrackGroup`. See the [API documentation](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup) for more information.
+* Improved force calibration documentation. See the new [Tutorial](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/tutorial/force_calibration.html) and [Theory section](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/theory/force_calibration/force_calibration.html).
+* Added API to look up (pixel)size of an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html). See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html) for more information.
+* Enabled forwarding plot style arguments to [`Slice.range_selector()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.range_selector). Prior to this change, a plot with markers was always opened which resulted in very poor performance when plotting high frequency data.
 
 #### Breaking changes
 
 * Pylake now requires Python version `>= v3.9` and matplotlib version `>= v3.5`
-* Optional arguments for [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_lines.html#) are now enforced as keyword only.
-* The `vel` argument has been renamed to `velocity` for [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#).
-* When performing particle tracking on kymographs, bias correction is now enabled by default; without this correction, kymographs with high background signal will suffer from biased localization estimates. To disable bias correction, specify `bias_correction=False` to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).
-* `lk.track_lines()` now performs bias-corrected centroid refinement after tracking to improve localization accuracy. Note that the old behaviour can be recovered by passing `refine=False`.
+* When performing particle tracking on kymographs, bias correction is now enabled by default; without this correction, kymographs with high background signal will suffer from biased localization estimates. To disable bias correction, specify `bias_correction=False` to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.refine_tracks_centroid.html).
+* The function [`ImageStack.define_tether()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.define_tether) now takes coordinates in calibrated spatial units (microns) rather than pixels. If calibration to microns is not available, units are still in pixels.
+* Optional arguments for [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_greedy.html#) and [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_lines.html#) are now enforced as keyword only.
+* The `vel` argument has been renamed to `velocity` for [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_greedy.html#).
+* [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_lines.html#lumicks.pylake.track_lines) now performs bias-corrected centroid refinement after tracking to improve localization accuracy. Note that the old behaviour can be recovered by passing `refine=False`.
+* When removing tracks with the kymotracking widget, only tracks that are entirely in the selection rectangle will be removed. Prior to this change, any tracks intersecting with the selection rectangle would be removed.
+* Added checks which enforce [`KymoTracks`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html) in a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) to be unique. Extending a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) with [`KymoTrack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html) instances that are already part of the group will now result in a `ValueError`. Similarly, constructing a new [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) with duplicate [`KymoTracks`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html) will also produce a `ValueError`.
+* Removed all deprecated methods and properties from [`Kymo`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymo.Kymo.html), [`Scan`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.scan.Scan.html), [`PointScan`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.point_scan.PointScan.html), and [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html).
+* Removed deprecated functions `filter_lines()`, `refine_lines_centroid()` and `refine_lines_gaussian()`.
+* Removed deprecated property `lines` and method `save_lines` from `KymoWidgetGreedy`.
+* Removed deprecated argument `exclude` from [`Kymo.line_timestamp_ranges()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.line_timestamp_ranges) and [`Scan.frame_timestamp_ranges()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.frame_timestamp_ranges). Use the argument `include_dead_time` instead.
+* Removed deprecated argument `line_width` from [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_greedy.html).
 * Changed several `asserts` to `Exceptions`.
-  * Attempting to read `KymoTracks` from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
-  * Attempting to extend `KymoTracks` by `KymoTracks` originating from a different `Kymograph` now results in a `ValueError`.
+  * Attempting to read a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) from a `CSV` file that doesn't have the expected file format will result in an `IOError`.
+  * Attempting to extend a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) by a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) tracked on a different [`Kymo`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.kymo.Kymo.html) now results in a `ValueError`.
   * Attempting to connect two tracks with the same start and ending time point now raises a `ValueError`.
-  * FdFitter: `FdFit.fit()` now raises a `RuntimeError` when a fit has no data or fittable parameters.
-  * FdFitter: `FdFit.plot()` now raises a `KeyError` when trying to plot data that does not exist.
-  * FdFitter: `FdFit.plot()` now raises a `RuntimeError` when trying to plot a fit with multiple models without selecting a model using angular brackets `[]` first.
-  * FdFitter: `FdFit.profile()` now raises a `ValueError` when `max_step <= min_step` or `max_chi2_step <= min_chi2_step`.
+  * FdFitter: [`FdFit.fit()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.FdFit.html#lumicks.pylake.FdFit.fit) now raises a `RuntimeError` when a fit has no data or fittable parameters.
+  * FdFitter: [`FdFit.plot()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.FdFit.html#lumicks.pylake.FdFit.plot) now raises a `KeyError` when trying to plot data that does not exist.
+  * FdFitter: [`FdFit.plot()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.FdFit.html#lumicks.pylake.FdFit.plot) now raises a `RuntimeError` when trying to plot a fit with multiple models without selecting a model using angular brackets `[]` first.
+  * FdFitter: [`FdFit.profile_likelihood()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.FdFit.html#lumicks.pylake.FdFit.profile_likelihood) now raises a `ValueError` when `max_step <= min_step` or `max_chi2_step <= min_chi2_step`.
   * FdFitter: when inverting a model with `interpolate=True`, Pylake now raises a `ValueError` if the minimum or maximum is not finite.
   * FdFitter: a `ValueError` is raised when adding incompatible models.
   * FdFitter: When adding data to a fit, adding data with an unequal number of points for the dependent and independent variable will now raise a `ValueError`.
   * FdFitter: When adding data to a fit, adding data with more than one dimension will raise a `ValueError`.
-  * FdFitting: Attempting to evaluate a parameter trace with `lk.parameter_trace()` for a parameter that is not part of the model now results in a `ValueError`.
+  * FdFitting: Attempting to evaluate a parameter trace with [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.parameter_trace.html) for a parameter that is not part of the model now results in a `ValueError`.
   * FdFitting: Attempting to compute a parameter trace while providing an incomplete set of parameters will now result in a `ValueError`.
-  * Attempting to use `Slice.downsampled_over()` or `Slice.downsampled_like()` with timestamps ranges or another channel that doesn't overlap with the channel now produces a `ValueError`.
+  * Attempting to use [`Slice.downsampled_over()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.downsampled_over) or [`Slice.downsampled_like()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.downsampled_like) with timestamps ranges or another channel that doesn't overlap with the channel now produces a `ValueError`.
   * Attempting to construct a `TimeSeries` where the length of the timestamp array is not equal to the length of the data array results in a `ValueError`.
-  * `FdEnsemble` alignment now produces a `ValueError` if fewer than 2 datasets are provided.
+  * [`FdEnsemble`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.fdensemble.FdEnsemble.html#fdensemble) alignment now produces a `ValueError` if fewer than 2 datasets are provided.
   * Image reconstruction now raises a `ValueError` if the length of the data and infowave are not equal.
   * Plotting: When creating a plot providing `axes` and an `image_handle`, a `ValueError` is raised when those `axes` do not belong to the `image_handle` provided.
   * Widefield: Attempting to open multiple `TIFF` as a single ImageStack will now raise a `ValueError` if the alignment matrices of the individual `TIFF` are different.
-  * PowerSpectrum: Attempting to replace the power spectral values of a `PowerSpectrum` using `with_spectrum` using a vector of incorrect length will raise a `ValueError`.
-* When removing tracks with the kymotracking widget, only tracks that are entirely in the selection rectangle will be removed. Prior to this change, any tracks intersecting with the selection rectangle would be removed.
-* Added checks which enforce `KymoTracks` in a `KymoTrackGroup` to be unique. Extending a `KymoTrackGroup` with `KymoTrack` instances that are already part of the group will now result in a `ValueError`. Similarly, constructing a new `KymoTrackGroup` with duplicate `KymoTracks` will also produce a `ValueError`.
-* The function `ImageStack.define_tether()` now takes coordinates in image units (microns) rather than pixels.
-
-#### New features
-
-* Added API to create a `Kymo` from an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html). See [`ImageStack.to_kymo()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.to_kymo) for more information.
-* Added API for notes, i.e. `file.notes` returns a dictionary of notes.
-* Added option to add a scale bar to by providing a [`lk.ScaleBar()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ScaleBar.html) to plotting or export functions.
-* Implemented bias correction for centroid refinement that shrinks the window to reduce estimation bias. This bias correction can be toggled by passing a `bias_correction` argument to [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#) and [`lk.refine_tracks_centroid()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.refine_tracks_centroid.html).
-* Added `KymoTrackGroup.remove()` to remove a `KymoTrack` from a `KymoTrackGroup`.
-* Allow boolean array indexing (e.g. `tracks[[False, False, True]]`) and indexing with arrays of indices (e.g. `tracks[[1, 3]]`) for `KymoTrackGroup`. See the [API documentation](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html#lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup) for more information.
-* Improved force calibration documentation. See the new [Tutorial](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/tutorial/force_calibration.html) and [Theory section](https://lumicks-pylake.readthedocs.io/en/shuffle_force_calibration/theory/force_calibration/force_calibration.html).
-* Added API to look up (pixel)size of an [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html). See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) for more information.
-* Plot images with microns on the axes for TIFFs where the pixel size is available in the metadata.
-* Allow forwarding plot style arguments to `Slice.range_selector()`. Prior to this change, a plot with markers was always opened. This can result in very poor performance when plotting high frequency data however.
+  * PowerSpectrum: Attempting to replace the power spectral values of a [`PowerSpectrum`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html) using [`with_spectrum`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.with_spectrum) using a vector of incorrect length will raise a `ValueError`.
 
 #### Bug fixes
 
-* Fixed incorrect behaviour in `lk.track_lines()` by interpolating back to integer frame times. Prior to this change, `lk.track_lines()` would provide a subpixel accurate position along the time axis of the kymograph as well. However, this position was specified with respect to the coordinate system of the image, rather than actual acquisition times. As such, it would produce incorrect results when performing downstream analysis that rely on the time corresponding to an actual time. Note that `lk.track_greedy()` is not affected.
-* Fixed bug in `lk.track_lines()` where one extra line was returned rather than the number requested through the parameter `max_lines`.
-* Fixed regression that caused [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) to incorrectly store the stack name (resulting in an extra `('` in front of the name in plots). This regression was introduced in `v0.13.0` when enabling multi-file support. See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html) for more information.
-
-#### Other changes
-
-* Removed all deprecated methods and properties from `Kymo`, `Scan`, `PointScan`, and `ImageStack`.
-* Removed deprecated functions `filter_lines()`, `refine_lines_centroid()` and `refine_lines_gaussian()`.
-* Removed deprecated property `lines` and method `save_lines` from `KymoWidgetGreedy`.
-* Removed deprecated argument `exclude` from `Kymo.line_timestamp_ranges()` and `Scan.frame_timestamp_ranges()`.
-* Removed deprecated argument `line_width` from `lk.track_greedy()`.
+* Fixed incorrect behaviour in [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_lines.html) by interpolating back to integer frame times. Prior to this change, [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_lines.html) would provide a subpixel accurate position along the time axis of the kymograph as well. However, this position was specified with respect to the coordinate system of the image, rather than actual acquisition times. As such, it would produce incorrect results when performing downstream analysis that rely on the time corresponding to an actual time. Note that [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_greedy.html) is not affected.
+* Fixed bug in [`lk.track_lines()`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.track_lines.html) where one extra line was returned rather than the number requested through the parameter `max_lines`.
+* Fixed regression that caused [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html) to incorrectly store the stack name (resulting in an extra `('` in front of the name in plots). This regression was introduced in `v0.13.0` when enabling multi-file support. See [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.ImageStack.html) for more information.
 
 ## v0.13.3 | 2023-01-26
 
