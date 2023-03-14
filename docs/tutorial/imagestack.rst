@@ -5,10 +5,15 @@ Image Stacks
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729700", "test_data")
+
 Bluelake has the ability to export videos from different cameras as TIF files.
 These videos can be opened using :class:`~lumicks.pylake.ImageStack`::
 
-    stack = lk.ImageStack("stack.tiff")  # Loading a stack.
+    stack = lk.ImageStack("test_data/stack.tiff")  # Loading a stack.
 
 Long videos are exported as a set of multiple files due to the size constraint on the TIF format.
 In this case, you can supply the filenames consecutively (i.e. `lk.ImageStack("tiff1.tiff", "tiff2.tiff")`)
@@ -18,7 +23,7 @@ Full color RGB fluorescence images recorded with the widefield or TIRF functiona
 are automatically reconstructed using the alignment matrices from Bluelake, if available. This functionality can be
 turned off with the optional `align` keyword. Note that the `align` parameter has to be provided as a keyworded argument::
 
-    raw_stack = lk.ImageStack("stack.tiff", align=False)
+    raw_stack = lk.ImageStack("test_data/stack.tiff", align=False)
 
 
 Slicing and cropping
@@ -175,7 +180,7 @@ To quickly explore the correlation between images in a :class:`~lumicks.pylake.I
 you can use the following function::
 
     # Making a plot where force is correlated to images in the stack.
-    file = lk.File("stack.h5")  # Loading a stack.
+    file = lk.File("test_data/stack.h5")  # Loading a stack.
     stack[2:, 10:120, 10:400].plot_correlated(
         file.force1x,
         channel="rgb",

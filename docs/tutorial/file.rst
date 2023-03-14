@@ -5,11 +5,16 @@ Files and Channels
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-Open a Bluelake HDF5 file as follows::
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729525", "test_data")
+
+Once we have the data, we can open the Bluelake HDF5 file as follows::
 
     import lumicks.pylake as lk
 
-    file = lk.File("kymo.h5")
+    file = lk.File("test_data/kymo.h5")
 
 Contents
 --------

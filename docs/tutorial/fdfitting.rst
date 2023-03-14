@@ -12,6 +12,11 @@ Fd Fitting
 
 Pylake is capable of fitting force extension curves using various polymer models. This tutorial introduces these fitting capabilities.
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729929", "test_data")
+
 Models
 ------
 Pylake has several models implemented that can be used for fitting force extension data. For a full list of models invoke `help(lk.fitting.models)`
@@ -152,7 +157,7 @@ To do a fit, we have to add data. Let's assume we have two data sets. One was ac
 another was measured without a ligand. We expect this ligand to only affect the contour length of our DNA. Let's add the
 first data set which we name `Control`. Since the extensible worm-like chain is valid up to 30 pN, we select forces < 30pN::
 
-    file1 = lk.File("fdcurve.h5")
+    file1 = lk.File("test_data/fdcurve.h5")
     fd1 = file1.fdcurves["FD_5_control_forw"]
     mask1 = fd1.f.data <= 30
     force1 = fd1.f[mask1].data
@@ -162,7 +167,7 @@ first data set which we name `Control`. Since the extensible worm-like chain is 
 For the second data set, we want the contour length to be different. We can achieve this by renaming the parameter
 when loading the data from `DNA/Lc` to `DNA/Lc_RecA`::
 
-    file2 = lk.File("fdcurve_reca.h5")
+    file2 = lk.File("test_data/fdcurve_reca.h5")
     fd2 = file2.fdcurves["FD_5_3_RecA_forw_after_2_quick_manual_FD"]
     mask2 = fd2.f.data <= 30
     force2 = fd2.f[mask2].data
@@ -311,7 +316,7 @@ Calculating per point contour length
 Sometimes, one wishes to invert the model with respect to one parameter (i.e. re-estimate one parameter on a per data
 point basis). This can be used to obtain dynamic contour lengths::
 
-    file3 = lk.File("fd_multiple_Lc.h5")
+    file3 = lk.File("test_data/fd_multiple_Lc.h5")
     fd3 = file3.fdcurves["40"]
     force3 = fd3.f.data
     distance3 = fd3.d.data
@@ -422,11 +427,11 @@ Adding many data sets
 Sometimes, you may want to add multiple data sets for one condition to perform a global fit.
 Consider two lists of distance and force vectors stored in `distances` and `forces`::
 
-    file_adk1 = lk.File("adk5_curve1.h5")
+    file_adk1 = lk.File("test_data/adk5_curve1.h5")
     d_adk1 = file_adk1.fdcurves["adk5_curve1"].d["0s":"13s"].data
     f_adk1 = file_adk1.fdcurves["adk5_curve1"].f["0s":"13s"].data
 
-    file_adk2 = lk.File("adk5_curve2.h5")
+    file_adk2 = lk.File("test_data/adk5_curve2.h5")
     d_adk2 = file_adk2.fdcurves["adk5_curve2"]["0s":"13s"].d.data
     f_adk2 = file_adk2.fdcurves["adk5_curve2"]["0s":"13s"].f.data
 

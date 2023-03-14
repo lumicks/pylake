@@ -20,7 +20,12 @@ Determining the spatial and temporal coordinates of these particles is the first
 Pylake comes with a few features that enable you to do so.
 
 Kymotracking is usually performed in two steps: an image processing step, followed by a tracking step, where the actual coordinates
-of bound particles are found. Let's take a look at one particular implementation, the greedy algorithm:
+of bound particles are found. Let's take a look at one particular implementation, the greedy algorithm.
+
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729525", "test_data")
 
 
 Using the greedy algorithm
@@ -32,7 +37,7 @@ with the correlated force data::
     # define a color adjustment so we can see the data better
     adjustment = lk.ColorAdjustment(0, 99.5, mode="percentile")
 
-    file = lk.File('kymo.h5')
+    file = lk.File("test_data/kymo.h5")
     name, kymo = file.kymos.popitem()
 
     plt.figure()

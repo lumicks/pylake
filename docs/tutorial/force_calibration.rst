@@ -36,6 +36,11 @@ This filtering effect is characterized by a constant that reflects the fraction 
 
 The various theoretical models that can be used to fit these data are described in the :doc:`theory section on force calibration</theory/force_calibration/force_calibration>`, while their use is described below.
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729824", "test_data")
+
 Undoing the previous calibration
 --------------------------------
 
@@ -43,7 +48,7 @@ Our starting point will be data acquired with Bluelake, which is already calibra
 Therefore, the first step is to undo the calibration applied by Bluelake to get the raw voltage signals.
 Let's load the dataset::
 
-    f = lk.File("passive_calibration.h5")
+    f = lk.File("test_data/passive_calibration.h5")
 
 The force timeline in this file contains a single calibration measurement.
 We can see calibrations relevant to this file by inspecting the `calibration` attribute for the entire force :class:`~lumicks.pylake.channel.Slice`.
@@ -278,7 +283,7 @@ We will consider that the nanostage was used as driving input.
 Let's analyze some active calibration data acquired near a surface.
 To do this, load a new file::
 
-    f = lk.File("near_surface_active_calibration.h5")
+    f = lk.File("test_data/near_surface_active_calibration.h5")
     volts = decalibrate(f.force1x)
     bead_diameter = f.force1x.calibration[0]["Bead diameter (um)"]
     # Calibration performed at 1.04 * bead_diameter
@@ -399,7 +404,7 @@ We can omit this effect by passing `fast_sensor=True` to the calibration models 
 Note however, that this makes using the hydrodynamically correct model critical, as the simple model doesn't actually capture the data very well.
 The following example data acquired on a fast sensor will illustrate why::
 
-    f = lk.File("fast_measurement_25%.h5")
+    f = lk.File("test_data/fast_measurement_25.h5")
 
     shared_parameters = {
         "force_voltage_data": decalibrate(f.force2y).data,
