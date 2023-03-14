@@ -40,7 +40,6 @@ with the correlated force data::
     file = lk.File("test_data/kymo.h5")
     name, kymo = file.kymos.popitem()
 
-    plt.figure()
     kymo.plot_with_force("1x", "rgb", adjustment=adjustment, aspect_ratio=0.5)
     plt.show()
 
