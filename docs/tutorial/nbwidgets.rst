@@ -8,7 +8,16 @@ Notebook Widgets
 When analyzing notebooks, it can be helpful to make use of interactive widgets. For this, we provide some widgets
 to help you analyze your data. To enable such widgets, start the notebook with::
 
-    %matplotlib widget
+    %matplotlib widget  # enable this line if you are using jupyter lab
+    #%matplotlib notebook  # enable this line if you are using jupyter notebook
+
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    kymo_filenames = lk.download_from_doi("10.5281/zenodo.7729525", "test_data")
+    stack_filenames = lk.download_from_doi("10.5281/zenodo.7729700", "test_data")
+    fd_filenames = lk.download_from_doi("10.5281/zenodo.7729929", "test_data")
+
 
 Channel slicing
 ---------------
@@ -17,7 +26,7 @@ Let's say we want to do some analyses on slices of channel data.
 It would be nice to just quickly visually select some regions using a widget.
 Let's load the file and open an interactive plot using the :meth:`~lumicks.pylake.channel.Slice.range_selector()` method::
 
-    file = lk.File("kymo.h5")
+    file = lk.File("test_data/kymo.h5")
     channel = file["Force HF"]["Force 1x"]
 
     plt.figure()
@@ -58,7 +67,7 @@ Assume we have an F,d curve we want to analyze.
 We know that this file contains one F,d curve which should be split up into three segments that should be analyzed separately.
 Let's open the :class:`~lumicks.pylake.FdRangeSelector` and make a few selections::
 
-    file = lk.File("fd_multiple_Lc.h5")
+    file = lk.File("test_data/fd_multiple_Lc.h5")
     fdcurves = file.fdcurves
     selector = lk.FdRangeSelector(fdcurves)
 
@@ -191,7 +200,7 @@ Cropping and Rotating Image Stacks
 
 You can interactively define the location of a tether for a :class:`~lumicks.pylake.ImageStack` by using :meth:`~lumicks.pylake.ImageStack.crop_and_rotate`::
 
-    stack = lk.ImageStack("cas9_wf.tiff")
+    stack = lk.ImageStack("test_data/tether.tiff")
     editor = stack.crop_and_rotate()
     plt.show()
 
@@ -241,7 +250,7 @@ of the kymograph look the same or when the signal to noise ratio is somewhat low
 To help with this, we included a kymotracking widget that can help you track subsections of the kymograph and iteratively tweak the algorithm parameters as you do so.
 You can open this widget by creating a :class:`~lumicks.pylake.KymoWidgetGreedy` as follows::
 
-    file = lk.File("kymo.h5")
+    file = lk.File("test_data/kymo.h5")
     kymo = file.kymos["16"]
     kymowidget = lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2)
 

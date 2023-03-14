@@ -5,9 +5,14 @@ FD Curves
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-Load an HDF5 file and list all FD curves inside the file::
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
 
-    >>> file = lk.File("20200430-192424 FD Curve FD_5_control_forw.h5")
+    filenames = lk.download_from_doi("10.5281/zenodo.7729929", "test_data")
+
+Once we have the data, we can load the HDF5 file and list all FD curves inside the file::
+
+    >>> file = lk.File("test_data/fdcurve.h5")
     >>> list(file.fdcurves)
     ['FD_5_control_forw']
 
@@ -93,8 +98,8 @@ FD curves can be aligned by combining them in an :class:`~lumicks.pylake.fdensem
 If all the fd curves of interest are in the same file, the ensemble can be defined as
 `fd_ensemble = lk.FdEnsemble(ensemble_file.fdcurves)`. If the fd curves are in different files, the ensemble can be defined as follows::
 
-    ensemble_file1 = lk.File("20210728-115145 FD Curve FD hairpin forward.h5")
-    ensemble_file2 = lk.File('20210728-115145 FD Curve FD hairpin back.h5')
+    ensemble_file1 = lk.File("test_data/fd_hairpin_fwd.h5")
+    ensemble_file2 = lk.File("test_data/fd_hairpin_back.h5")
     fd_ensemble = lk.FdEnsemble({**ensemble_file1.fdcurves,**ensemble_file2.fdcurves})
 
 We can align the FD curves using the align function::

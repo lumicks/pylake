@@ -5,11 +5,16 @@ Kymographs
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729525", "test_data")
+
 We can use the :attr:`lk.File.kymos <lumicks.pylake.File.kymos>` attribute to access the kymographs from a file::
 
     import lumicks.pylake as lk
 
-    file = lk.File("kymo.h5")
+    file = lk.File("test_data/kymo.h5")
     print(file.kymos)  # dict of available kymos: {'16': Kymo(pixels=699)}
 
 This is a regular Python dictionary so we can easily iterate over it::

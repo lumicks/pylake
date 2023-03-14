@@ -13,6 +13,11 @@ Piezo Tracking
 In this tutorial, we will determine the high frequency distance (piezo distance) between the beads from the piezo mirror position of trap 1 and the corresponding force data.
 We will also show how to use the same reference curve to apply baseline correction for force signals in post processing.
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729775", "test_data")
+
 Trap Positional Calibration
 ---------------------------
 
@@ -28,7 +33,7 @@ The exported data file must contain the trap 1 position and camera-based distanc
 
 Let's load this dataset and perform the distance calibration by invoking::
 
-    no_tether_data = lk.File("piezo_tracking_no_tether.h5")
+    no_tether_data = lk.File("test_data/piezo_tracking_no_tether.h5")
 
     distance_calibration = lk.DistanceCalibration(
         no_tether_data["Trap position"]["1X"], no_tether_data.distance1, degree=2
@@ -146,7 +151,7 @@ Calculating the Fd Curve
 
 First, we load the data acquired in the presence of a tether::
 
-    pulling_curve = lk.File("piezo_tracking_tether.h5")
+    pulling_curve = lk.File("test_data/piezo_tracking_tether.h5")
 
 And determine the piezo distance and corrected force::
 

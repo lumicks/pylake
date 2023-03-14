@@ -5,6 +5,11 @@ Confocal Scans
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729636", "test_data")
+
 The following code uses scans as an example.
 Kymographs work the same way -- just substitute :attr:`file.scans <lumicks.pylake.File.scans>` with
 :attr:`file.kymos <lumicks.pylake.File.kymos>`. To load an HDF5 file and list all of the scans
@@ -12,7 +17,7 @@ inside of it, run::
 
     import lumicks.pylake as lk
 
-    file = lk.File("scan.h5")
+    file = lk.File("test_data/scan.h5")
     list(file.scans)  # e.g. shows: "['reference', 'bleach', 'imaging']"
 
 :attr:`.scans <lumicks.pylake.File.scans>` is a regular Python dictionary so we can iterate over it::
@@ -45,7 +50,7 @@ color channel::
 
 The `channel` argument accepts the strings `“red”`, `“green”`, `“blue”`, or `“rgb”`. Multi-frame scans are also supported::
 
-    multiframe_file = lk.File("scan_stack.h5")
+    multiframe_file = lk.File("test_data/scan_stack.h5")
     multiframe_scan = multiframe_file.scans["46"]
 
     print(multiframe_scan.num_frames)

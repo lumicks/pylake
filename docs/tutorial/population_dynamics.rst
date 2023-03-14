@@ -15,10 +15,15 @@ The following tools enable analysis of experiments which can be described as a s
 a DNA hairpin which can exist in a folded and unfolded state. At equilibrium, the relative populations of the two states are
 governed by the interconversion kinetics described by the rate constants :math:`k_\mathrm{fold}` and :math:`k_\mathrm{unfold}`
 
+We can download the data needed for this tutorial directly from Zenodo using Pylake.
+Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.7729812", "test_data")
+
 First let's take a look at some example force channel data. We'll downsample the data in order to speed up the calculations
 and smooth some of the noise::
 
-    file = lk.File("hairpin.h5")
+    file = lk.File("test_data/hairpin.h5")
     raw_force = file.force2x
     force = raw_force.downsampled_by(78)
 
