@@ -780,11 +780,6 @@ def test_disallowed_diffusion_est(blank_kymo):
     blank_kymo._contiguous = False
     k = KymoTrack([0, 1, 2, 3, 4, 5], [0.0, 1.0, 1.5, 2.0, 2.5, 3.0], blank_kymo, "red")
 
-    with pytest.raises(NotImplementedError, match=contiguous_diffusion_error), pytest.warns(
-        DeprecationWarning, match="Call to deprecated method estimate_diffusion_ols"
-    ):
-        k.estimate_diffusion_ols()
-
     with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
         k.estimate_diffusion(method="ols")
 
