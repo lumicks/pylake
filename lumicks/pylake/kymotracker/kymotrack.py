@@ -1,5 +1,4 @@
 from copy import copy
-from deprecated.sphinx import deprecated
 from sklearn.neighbors import KernelDensity
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel
@@ -610,19 +609,6 @@ class KymoTrack:
             **unit_labels,
         )
 
-    @deprecated(
-        reason=(
-            'This method is replaced by :meth:`KymoTrack.estimate_diffusion(method="ols") '
-            "<lumicks.pylake.kymotracker.KymoTrack.estimate_diffusion()>` to allow more "
-            "flexibility in the choice of algorithms and provide additional metadata."
-        ),
-        action="always",
-        version="0.12.1",
-    )
-    def estimate_diffusion_ols(self, max_lag=None):
-        """Perform an unweighted fit to the MSD estimates to obtain a diffusion constant"""
-        return self.estimate_diffusion("ols", max_lag).value
-
 
 class KymoTrackGroup:
     """Tracks on a kymograph.
@@ -853,16 +839,6 @@ class KymoTrackGroup:
             )
 
         self._src.extend(other._src)
-
-    @deprecated(
-        reason=(
-            "This method will be removed in a future release. Use `remove_tracks_in_rect()` instead."
-        ),
-        action="always",
-        version="0.13.0",
-    )
-    def remove_lines_in_rect(self, rect):
-        self.remove_tracks_in_rect(rect)
 
     def remove_tracks_in_rect(self, rect, all_points=False):
         """Removes tracks that fall in a particular region.
