@@ -8,8 +8,11 @@ Notebook Widgets
 When analyzing notebooks, it can be helpful to make use of interactive widgets. For this, we provide some widgets
 to help you analyze your data. To enable such widgets, start the notebook with::
 
-    %matplotlib widget  # enable this line if you are using jupyter lab
-    #%matplotlib notebook  # enable this line if you are using jupyter notebook
+    # enable this line if you are using jupyter lab
+    %matplotlib widget
+
+    # enable this line if you are using jupyter notebook
+    # %matplotlib notebook
 
 We can download the data needed for this tutorial directly from Zenodo using Pylake.
 Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
@@ -120,7 +123,7 @@ Then, for all those files, we add each individual curves to our variable `fdcurv
     import glob
 
     fdcurves = {}
-    for filename in glob.glob('*.h5'):
+    for filename in glob.glob('test_data/*.h5'):
         file = lk.File(filename)
         for key, curve in file.fdcurves.items():
             fdcurves[key] = curve
@@ -189,7 +192,9 @@ The selector widgets can also be easily accessed from single :class:`~lumicks.py
 
 And for the distance-based selector we can use :meth:`~lumicks.pylake.fdcurve.FdCurve.distance_range_selector`::
 
+    plt.figure()
     d_selector = fdcurve.distance_range_selector()
+    plt.show()
 
 .. image:: figures/nbwidgets/single_curve_widget2.png
 

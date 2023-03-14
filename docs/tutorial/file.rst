@@ -128,26 +128,34 @@ All channel data can be accessed using the above method. High frequency force da
 The only difference between the two above methods for accessing channel data, is that `file.force1x` allows you to access the force calibration data, as described below.
 Plotting the data can be done as follows::
 
+    plt.figure()
     file.force1x.plot()
     plt.savefig("force1x.png")
+    plt.show()
 
 You can also access the raw data directly::
 
     f1x_data = file.force1x.data
     f1x_timestamps = file.force1x.timestamps
+
+    plt.figure()
     plt.plot(f1x_timestamps, f1x_data)
+    plt.show()
 
 The `timestamps` attribute returns the measurement time in nanoseconds since epoch (January 1st 1970, midnight UTC/GMT). Note that since these values are typically very large, they cannot be converted to floating point without losing precision::
 
-    >>>t = f1x_timestamps[0]
-    >>>roundtrip_t = np.int64(np.float64(t))
-    >>>print(t - roundtrip_t)
+    >>> t = f1x_timestamps[0]
+    >>> roundtrip_t = np.int64(np.float64(t))
+    >>> print(t - roundtrip_t)
     80
 
 The relative time values in seconds can also be accessed directly::
 
     f1x_seconds = file.force1x.seconds
+
+    plt.figure()
     plt.plot(f1x_seconds, f1x_data)
+    plt.show()
 
 
 A full list of available channels can be found on the :class:`~lumicks.pylake.File` reference page.
@@ -158,20 +166,29 @@ Slicing
 By default, entire channels are returned from a file::
 
     everything = file.force1x
+
+    plt.figure()
     everything.plot()
+    plt.show()
 
 But channels can also be sliced::
 
     # Get the data between 1 and 1.5 seconds and use the plot function in Pylake
     part = file.force1x['1s':'1.5s']
+
+    plt.figure()
     part.plot()
+    plt.show()
 
 ::
 
     # Access the raw data and plot using matplotlib
     f1x_data = part.data
     f1x_timestamps = part.timestamps
+
+    plt.figure()
     plt.plot(f1x_timestamps, f1x_data)
+    plt.show()
 
 ::
 
@@ -199,8 +216,11 @@ Plotting is typically performed with the origin of the plot set to the timestamp
 
     first_slice = file.force1x['5s':'10s']
     second_slice = file.force1x['15s':'20s']
+
+    plt.figure()
     first_slice.plot()
     second_slice.plot(start=first_slice.start)  # we want to use the start of first_slice as time point "zero"
+    plt.show()
 
 Boolean array indexing
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -238,14 +258,14 @@ To downsample to a specific frequency use `downsampled_to` with the desired freq
     channel = file.force1x # original frequency 78125 Hz
     timestep = np.diff(channel.timestamps[:2]) * 1e-9        # timestep 12.8 us
 
-    ds_channel = channel.downsampled_to(3125)
+    ds_channel = channel.downsampled_to(31.25)
     ds_timestep = np.diff(ds_channel.timestamps[:2]) * 1e-9  # timestep 320 us
 
 By default, this method will take the mean of every N samples where N is defined as the ratio between the two sampling times.
 This can cause issues when N isn't an integer, leading to an unequal number of points contributing to each point in the
 downsampled channel. To automatically find the nearest higher frequency that will fulfill this requirement, use the `method="ceil"`::
 
-    ds_channel2 = channel.downsampled_to(3126, method="ceil")
+    ds_channel2 = channel.downsampled_to(31.26, method="ceil")
     ds_timestep2 = np.diff(ds_channel2.timestamps[:2]) * 1e-9  # timestep 307.2 us
 
 For data that is recorded with variable sampling frequencies, it is usually not possible to downsample to a
@@ -275,8 +295,10 @@ channel is sampled. For this purpose you can use `downsampled_like`::
     d_data = file["Distance"]["Distance 1"]
     hf_downsampled, d_cropped = file["Force HF"]["Force 1x"].downsampled_like(d_data)
 
+    plt.figure()
     d_cropped.plot()
     hf_downsampled.plot()
+    plt.show()
 
 Generally, it is not possible to reconstruct the first 1-2 timepoints of the reference low frequency channel from the high frequency
 channel input. Therefore, this method returns the downsampled channel and a copy of the reference channel that is cropped such that
