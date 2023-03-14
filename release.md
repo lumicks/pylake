@@ -20,14 +20,13 @@ Within the Pylake repo dir:
 ### PyPI
 
 Perform the release procedure on GitHub: [Create a new release](https://github.com/lumicks/pylake/releases/new):
-- Create a new tag `v<release_version_number>` with target `main`. 
+- Create a new tag `v<release_version_number>` with target `main`.
 - Set the release title to `v<release_version_number>`.
 - Include the relevant changelog entries into the description.
-- Check "This is a pre-release".
 - Wait until all [actions](https://github.com/lumicks/pylake/actions) of the release merge have passed.
 - "Publish release".
 
-### CONDA-FORGE
+### conda-forge
 
 - Wait until the new release of [Pylake has been published on PyPI](https://pypi.org/project/lumicks.pylake/)
 - Copy the sha256 hash of the tarball under [download files](https://pypi.org/project/lumicks.pylake/#files). You will need this for releasing on conda-forge.
