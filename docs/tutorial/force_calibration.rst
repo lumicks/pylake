@@ -428,7 +428,7 @@ The following example data acquired on a fast sensor will illustrate why::
     plt.subplot(1, 3, 3)
     fit = lk.calibrate_force(**shared_parameters, hydrodynamically_correct=True, fast_sensor=True)
     fit.plot()
-    plt.title(f"Simple model + Fast (kappa={fit['kappa'].value:.2f})")
+    plt.title(f"Hydrodynamically correct + Fast (kappa={fit['kappa'].value:.2f})")
     plt.tight_layout()
     plt.show()
 
