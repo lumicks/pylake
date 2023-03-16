@@ -273,12 +273,20 @@ class ConfocalImage(BaseScan, TiffExport):
         raise NotImplementedError
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _image(self, channel):
+    def _image(self, channel) -> np.ndarray:
+        """Returns a reconstructed image.
+
+        Warning: Do *not* modify or return this image without making a copy, as it will return a
+        reference to the cached image, which makes the `ConfocalImage` mutable."""
         assert channel in ("red", "green", "blue")
         return self._image_factory(self, channel)
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _timestamps(self, channel, reduce=timestamp_mean):
+    def _timestamps(self, channel, reduce=timestamp_mean) -> np.ndarray:
+        """Returns reconstructed timestamps.
+
+        Warning: Do *not* modify or return this image without making a copy, as it will return a
+        reference to the cached image, which makes the `ConfocalImage` scan mutable."""
         assert channel == "timestamps"
         return self._timestamp_factory(self, reduce)
 
@@ -402,7 +410,7 @@ class ConfocalImage(BaseScan, TiffExport):
         The returned array has the same shape as the `{color}_image` arrays. Timestamps are defined
         at the mean of the timestamps.
         """
-        return self._timestamps("timestamps")
+        return np.copy(self._timestamps("timestamps"))
 
     @property
     def pixelsize_um(self):
@@ -433,4 +441,5 @@ class ConfocalImage(BaseScan, TiffExport):
         if channel == "rgb":
             return np.stack([self.get_image(color) for color in ("red", "green", "blue")], axis=-1)
         else:
-            return self._image(channel)
+            # Make sure we don't return a reference to our cache
+            return np.copy(self._image(channel))
