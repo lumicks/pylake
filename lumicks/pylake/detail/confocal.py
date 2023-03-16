@@ -277,8 +277,16 @@ class ConfocalImage(BaseScan, TiffExport):
         """Returns a reconstructed image.
 
         Warning: Do *not* modify or return this image without making a copy, as it will return a
-        reference to the cached image, which makes the `ConfocalImage` mutable."""
-        assert channel in ("red", "green", "blue")
+        reference to the cached image, which makes the `ConfocalImage` mutable.
+
+        Parameters
+        ----------
+        channel : str
+            Channel to return. Must be "red", "green" or "blue".
+        """
+        if channel not in ("red", "green", "blue"):
+            raise ValueError(f'Channel must be "red", "green" or "blue", got "{channel}".')
+
         return self._image_factory(self, channel)
 
     @cachetools.cachedmethod(lambda self: self._cache)
@@ -286,8 +294,18 @@ class ConfocalImage(BaseScan, TiffExport):
         """Returns reconstructed timestamps.
 
         Warning: Do *not* modify or return this image without making a copy, as it will return a
-        reference to the cached image, which makes the `ConfocalImage` scan mutable."""
-        assert channel == "timestamps"
+        reference to the cached image, which makes the `ConfocalImage` scan mutable.
+
+        Parameters
+        ----------
+        channel : str
+            Must be "timestamps".
+        reduce : callable
+            Function to reduce sample timestamps into aggregate timestamps.
+        """
+        if channel != "timestamps":
+            raise ValueError(f'channel must be "timestamps", got "{channel}"')
+
         return self._timestamp_factory(self, reduce)
 
     def _get_plot_data(self, channel, adjustment=no_adjustment, frame=None):
