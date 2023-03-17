@@ -202,6 +202,8 @@ We can see that a few points were added post refinement (shown in orange). Incre
 more pixels in the vertical direction during refinement. While the result is not significantly different, problems will occur if tracks are
 close together.
 
+.. _kymotracker_gaussian_refinement:
+
 Maximum Likelihood Estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

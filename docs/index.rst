@@ -20,6 +20,11 @@
 
     changelog
 
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+
+    whatsnew/index
 
 .. toctree::
     :caption: User guide

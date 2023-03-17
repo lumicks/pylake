@@ -158,6 +158,8 @@ which also accepts keyword arguments that are passed to :func:`plt.plot()
 You can also define a tether interactively using the :meth:`~lumicks.pylake.ImageStack.crop_and_rotate` method. See the
 :ref:`Notebook widgets<crop_and_rotate>` tutorial for more information.
 
+.. _kymo_from_image:
+
 Constructing a kymograph from an image stack
 --------------------------------------------
 
