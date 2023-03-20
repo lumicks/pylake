@@ -652,25 +652,26 @@ class KymoTrackGroup:
 
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
-        if self:
-            if len(set(kymo_tracks)) != len(kymo_tracks):
-                raise ValueError(
-                    "Some tracks appear multiple times. The provided tracks must be unique."
-                )
+        self._validate_compatible_sources()
 
-        	self._validate_compatible_sources()
-
-    def _validate_compatible_sources(self, *kymo_tracks):
+    def _validate_compatible_sources(self, *additional_tracks):
         """Check that source kymos for all tracks (including in self) are compatible.
 
         Parameters
         ----------
-        *kymo_tracks : KymoTrackGroup
+        *additional_tracks : KymoTrackGroup
             Additional tracks to be added to the current instance.
         """
-        tracks = list(itertools.chain(self, *kymo_tracks))
+        tracks = list(itertools.chain(self, *additional_tracks))
         if not len(tracks):
             return
+
+        if len(set(tracks)) != len(tracks):
+            raise ValueError(
+                "Cannot extend this KymoTrackGroup with a KymoTrack that is already part of the group"
+                if additional_tracks
+                else "Some tracks appear multiple times. The provided tracks must be unique."
+            )
 
         channels = set([track._channel for track in tracks])
         if len(channels) > 1:
@@ -679,7 +680,9 @@ class KymoTrackGroup:
         linetimes = set([track._kymo.line_time_seconds for track in tracks])
         if len(linetimes) > 1:
             linetimes = set([f"{lt:0.4e}" for lt in linetimes])
-            raise ValueError(f"All tracks must calibrated in the same units, got {linetimes} seconds.")
+            raise ValueError(
+                f"All tracks must calibrated in the same units, got {linetimes} seconds."
+            )
 
         calibrations = set([track._kymo._calibration.unit for track in tracks])
         if len(calibrations) > 1:
@@ -687,7 +690,9 @@ class KymoTrackGroup:
 
         pixelsizes = set([track._kymo.pixelsize[0] for track in tracks])
         if len(pixelsizes) > 1:
-            raise ValueError(f"All tracks must have the same pixel size, got {pixelsizes} {list(calibrations)[0]}.")
+            raise ValueError(
+                f"All tracks must have the same pixel size, got {pixelsizes} {list(calibrations)[0]}."
+            )
 
     def __iter__(self):
         return self._src.__iter__()
@@ -842,20 +847,6 @@ class KymoTrackGroup:
             )
 
         other = self.__class__([other]) if isinstance(other, KymoTrack) else other
-        other_kymo, other_channel = self._validate_single_source(other)
-        if self:
-            if self._kymo._id != other_kymo:
-                raise ValueError("All tracks must have the same source kymograph.")
-
-            if self._channel != other_channel:
-                raise ValueError("All tracks must be from the same color channel.")
-
-        if len(set(other._src) | set(self._src)) != len(self._src) + len(other._src):
-            raise ValueError(
-                "Cannot extend this KymoTrackGroup with a KymoTrack that is already part of the "
-                "group"
-            )
-
         self._validate_compatible_sources(other)
         self._src.extend(other._src)
 
