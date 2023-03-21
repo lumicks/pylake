@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.special import logsumexp
 from scipy.optimize import minimize
-from functools import partial
 from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from deprecated.sphinx import deprecated
@@ -94,7 +93,16 @@ class DwelltimeBootstrap:
         )
 
     @staticmethod
-    def _sample(optimized, iterations):
+    def _sample(optimized, iterations) -> np.ndarray:
+        """Calculate bootstrap samples
+
+        Parameters
+        ----------
+        optimized : DwelltimeModel
+            An optimized DwellTimeModel to start from.
+        iterations : int
+            Number of samples to generate.
+        """
 
         n_data = optimized.dwelltimes.size
         samples = np.empty((optimized._parameters.size, iterations))
@@ -331,13 +339,13 @@ class DwelltimeModel:
     @property
     def aic(self):
         """Akaike Information Criterion."""
-        k = (2 * self.n_components) - 1  # number of parameters
+        k = (2 * self.n_components) - 1  # number of parameters minus number of constraints
         return 2 * k - 2 * self.log_likelihood
 
     @property
     def bic(self):
         """Bayesian Information Criterion."""
-        k = (2 * self.n_components) - 1  # number of parameters
+        k = (2 * self.n_components) - 1  # number of parameters minus number of constraints
         n = self.dwelltimes.size  # number of observations
         return k * np.log(n) - 2 * self.log_likelihood
 
@@ -544,8 +552,75 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
     return -np.sum(log_likelihood)
 
 
+def _handle_amplitude_constraint(n_components, params, fixed_param_mask):
+    """Handle amplitude constraints
+
+    This function returns the mask of parameters to be fitted and amplitude constraint function.
+    It was split out from `_exponential_mle_optimize` to reduce cognitive load.
+
+    Parameters
+    ----------
+    n_components : int
+        number of components in the mixture model
+    params : array_like
+        model parameters
+    fixed_param_mask : array_like
+        logical mask of fixed parameters
+
+    Raises
+    ------
+    ValueError
+        If the sum of the provided fixed amplitudes exceeds 1.
+    ValueError
+        If all amplitudes are fixed but the amplitudes do not sum to 1.
+    """
+    if fixed_param_mask is None:
+        fixed_param_mask = np.zeros(params.shape, dtype=bool)
+    else:
+        if len(fixed_param_mask) != len(params):
+            raise ValueError(
+                f"Length of fixed parameter mask ({len(fixed_param_mask)}) is not equal to the "
+                f"number of model parameters ({len(params)})"
+            )
+
+    is_amplitude = np.hstack(
+        (np.array(np.ones(n_components), dtype=bool), np.array(np.zeros(n_components), dtype=bool))
+    )
+
+    # Contribution from amplitudes that are fixed.
+    fixed_amplitude_mask = np.logical_and(is_amplitude, fixed_param_mask)
+    sum_fixed_amplitudes = np.sum(params[fixed_amplitude_mask])
+    if sum_fixed_amplitudes > 1:
+        raise ValueError(
+            f"Invalid model. Sum of the fixed amplitudes is bigger than 1 ({sum_fixed_amplitudes})."
+        )
+
+    # Determine what actually needs to be fitted
+    fitted_param_mask = np.logical_not(fixed_param_mask)
+    num_free_amps = np.sum(np.logical_and(is_amplitude, fitted_param_mask))
+
+    if num_free_amps == 0 and not np.allclose(np.sum(sum_fixed_amplitudes), 1.0, atol=1e-6):
+        raise ValueError(
+            f"Invalid model. Sum of the provided amplitudes has to be 1 ({sum_fixed_amplitudes})."
+        )
+
+    constraints = {
+        "type": "eq",
+        "fun": lambda x, n: 1 - sum(x[:n]) - sum_fixed_amplitudes,
+        "args": [num_free_amps],
+    }
+
+    return fitted_param_mask, constraints
+
+
 def _exponential_mle_optimize(
-    n_components, t, min_observation_time, max_observation_time, initial_guess=None, options=None
+    n_components,
+    t,
+    min_observation_time,
+    max_observation_time,
+    initial_guess=None,
+    options=None,
+    fixed_param_mask=None,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -559,11 +634,20 @@ def _exponential_mle_optimize(
         minimum observation time in seconds
     max_observation_time : float
         maximum observation time in seconds
-    initial_guess : array_like
+    initial_guess : array_like, optional
         initial guess for the model parameters ordered as
         [amplitude1, amplitude2, ..., lifetime1, lifetime2, ...]
-    options : Optional[dict]
+    options : dict, optional
         additional optimization parameters passed to `minimize(..., options)`.
+    fixed_param_mask : array_like, optional
+        logical mask of which parameters to fix during optimization
+
+    Raises
+    ------
+    ValueError
+        If the sum of the provided fixed amplitudes in the initial_guess exceeds 1.
+    ValueError
+        If all amplitudes are fixed but the amplitudes in the initial_guess do not sum to 1.
     """
     if np.any(np.logical_or(t < min_observation_time, t > max_observation_time)):
         raise ValueError(
@@ -571,34 +655,52 @@ def _exponential_mle_optimize(
             "appropriate values for `min_observation_time` and/or `max_observation_time`."
         )
 
-    cost_fun = partial(
-        exponential_mixture_log_likelihood,
-        t=t,
-        min_observation_time=min_observation_time,
-        max_observation_time=max_observation_time,
-    )
-
     if initial_guess is None:
         initial_guess_amplitudes = np.ones(n_components) / n_components
         initial_guess_lifetimes = np.mean(t) * np.arange(1, n_components + 1)
         initial_guess = np.hstack([initial_guess_amplitudes, initial_guess_lifetimes])
+    else:
+        # During optimization, we modify in-place, so we need to make sure that we make a copy
+        initial_guess = np.copy(initial_guess)
 
-    bounds = (
-        *[(np.finfo(float).eps, 1) for _ in range(n_components)],
-        *[(min_observation_time * 0.1, max_observation_time * 1.1) for _ in range(n_components)],
+    bounds = np.array(
+        (
+            *[(np.finfo(float).eps, 1) for _ in range(n_components)],
+            *[
+                (min_observation_time * 0.1, max_observation_time * 1.1)
+                for _ in range(n_components)
+            ],
+        )
     )
-    constraints = {"type": "eq", "fun": lambda x, n: 1 - sum(x[:n]), "args": [n_components]}
+
+    fitted_param_mask, constraints = _handle_amplitude_constraint(
+        n_components, initial_guess, fixed_param_mask
+    )
+
+    def cost_fun(params):
+        current_params = initial_guess
+        current_params[fitted_param_mask] = params
+
+        return exponential_mixture_log_likelihood(
+            current_params,
+            t=t,
+            min_observation_time=min_observation_time,
+            max_observation_time=max_observation_time,
+        )
+
     result = minimize(
         cost_fun,
-        initial_guess,
+        initial_guess[fitted_param_mask],
         method="SLSQP",
-        bounds=bounds,
         constraints=constraints,
+        bounds=bounds[fitted_param_mask],
         options=options,
     )
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood
-    return result.x, -result.fun
+    fitted_params = initial_guess
+    fitted_params[fitted_param_mask] = result.x
+    return fitted_params, -result.fun
 
 
 def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells):
