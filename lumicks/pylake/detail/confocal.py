@@ -418,7 +418,7 @@ class ConfocalImage(BaseScan, TiffExport):
 
     @property
     def fast_axis(self):
-        """The axis that was scanned (x or y)"""
+        """The axis that was scanned ("X" or "Y")"""
         return self._metadata.fast_axis
 
     @property
