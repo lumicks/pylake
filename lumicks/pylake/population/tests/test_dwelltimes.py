@@ -3,7 +3,12 @@ import numpy as np
 import re
 
 from lumicks.pylake import DwelltimeModel
-from lumicks.pylake.population.dwelltime import _dwellcounts_from_statepath, DwelltimeBootstrap
+from lumicks.pylake.population.dwelltime import (
+    _dwellcounts_from_statepath,
+    DwelltimeBootstrap,
+    _generate_fitting_mask,
+    _exponential_mle_optimize,
+)
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
@@ -177,3 +182,80 @@ def test_invalid_bootstrap(exponential_data):
         ),
     ):
         DwelltimeBootstrap(fit, np.zeros((3, 2)), np.zeros((3, 1)))
+
+
+def test_integration_dwelltime_fixing_parameters(exponential_data):
+    dataset = exponential_data["dataset_2exp"]
+    initial_params = np.array([0.2, 0.2, 0.5, 0.5])
+    pars, log_likelihood = _exponential_mle_optimize(
+        2, dataset["data"],
+        **dataset["parameters"].observation_limits,
+        initial_guess=initial_params,
+        fixed_param_mask=[False, True, False, True],
+    )
+    np.testing.assert_allclose(pars, [0.8, 0.2, 4.27745463, 0.5])
+
+
+@pytest.mark.parametrize(
+    "n_components,params,fixed_param_mask,ref_fitted,ref_const_fun,free_amplitudes",
+    [
+        # 2 components, fix one amplitude
+        [
+            2, [0.3, 0.4, 0.3, 0.3], [True, False, False, False],
+            [False, True, True, True], 0.7, 1,
+        ],
+        # 2 components, fix both amplitudes
+        [
+            2, [0.3, 0.7, 0.3, 0.3], [True, True, False, False],
+            [False, False, True, True], 0, 0,
+        ],
+        # 2 components, free amplitudes
+        [
+            2, [0.3, 0.7, 0.3, 0.3], [False, False, True, False],
+            [True, True, False, True], 0.75, 2,
+        ],
+    ],
+)
+def test_parameter_fixing(n_components, params, fixed_param_mask, ref_fitted, ref_const_fun, free_amplitudes):
+    fitted_param_mask, constraints = _generate_fitting_mask(
+        n_components, np.array(params), np.array(fixed_param_mask)
+    )
+
+    assert np.all(fitted_param_mask == ref_fitted)
+    np.testing.assert_allclose(constraints["args"], free_amplitudes)
+    np.testing.assert_allclose(
+        constraints["fun"](np.arange(2 * n_components) / (2 * n_components), free_amplitudes),
+        ref_const_fun
+    )
+
+
+def test_invalid_models():
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Length of fixed parameter mask (4) is not equal to the number of model parameters (6)"
+        )
+    ):
+        _generate_fitting_mask(
+            2, np.array([1, 0.0001, 0.0, 0.3, 0.3, 0.3]), np.array([True, True, False, False])
+        )
+
+    with pytest.raises(ValueError, match="Sum of the fixed amplitudes is bigger than 1"):
+        _generate_fitting_mask(
+            3,
+            np.array([1, 0.0001, 0.1, 0.3, 0.3, 0.3]),
+            np.array([True, True, False, False, False, False])
+        )
+
+    # If all amplitudes are fixed, they have to be 1.
+    with pytest.raises(ValueError, match="Sum of the provided amplitudes has to be 1"):
+        _generate_fitting_mask(
+            2, np.array([0.1, 0.1, 0.3, 0.3]), np.array([True, True, False, False])
+        )
+
+    # This should be OK though (sum to 1).
+    _generate_fitting_mask(
+        3,
+        np.array([0.25, 0.25, 0.5, 0.3, 0.3, 0.3]),
+        np.array([True, True, True, False, True, True])
+    )
