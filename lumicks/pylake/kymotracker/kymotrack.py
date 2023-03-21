@@ -681,12 +681,12 @@ class KymoTrackGroup:
         if len(linetimes) > 1:
             linetimes = set([f"{lt:0.4e}" for lt in linetimes])
             raise ValueError(
-                f"All tracks must calibrated in the same units, got {linetimes} seconds."
+                f"All tracks must have the same line times, got {linetimes} seconds."
             )
 
         calibrations = set([track._kymo._calibration.unit for track in tracks])
         if len(calibrations) > 1:
-            raise ValueError(f"All tracks must calibrated in the same units, got {calibrations}.")
+            raise ValueError(f"All tracks must be calibrated in the same units, got {calibrations}.")
 
         pixelsizes = set([track._kymo.pixelsize[0] for track in tracks])
         if len(pixelsizes) > 1:
@@ -752,11 +752,26 @@ class KymoTrackGroup:
             raise RuntimeError("No kymo associated with this empty group (no tracks available)")
 
     @property
+    def _kymos(self):
+        return set([track._kymo for track in self])
+
+    @property
     def _channel(self):
-        try:
+        # try:
+        if self:
             return self[0]._channel
-        except IndexError:
+        # except IndexError:
+        else:
             raise RuntimeError("No channel associated with this empty group (no tracks available)")
+
+    @property
+    def _calibration(self):
+        # try:
+        if self:
+            return list(self._kymos)[0]._calibration
+        # except IndexError:
+        else:
+            raise RuntimeError("No calibration associated with this empty group (no tracks available)")
 
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
         """Connect two tracks from any given nodes, removing the points in between.
@@ -892,7 +907,7 @@ class KymoTrackGroup:
             track.plot(show_outline=show_outline, show_labels=False, axes=ax, **kwargs)
 
         if show_labels:
-            ax.set_ylabel(f"position ({self._kymo._calibration.unit_label})")
+            ax.set_ylabel(f"position ({self._calibration.unit_label})")
             ax.set_xlabel("time (s)")
 
     def save(self, filename, delimiter=";", sampling_width=None):
@@ -1019,7 +1034,7 @@ class KymoTrackGroup:
         widths = np.diff(edges)
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
-        plt.xlabel(f"Position ({self._kymo._calibration.unit_label})")
+        plt.xlabel(f"Position ({self._calibration.unit_label})")
 
     def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points, roi=None):
         """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.
@@ -1234,7 +1249,7 @@ class KymoTrackGroup:
             for track in self._src
         ]
 
-        src_calibration = self._kymo._calibration
+        src_calibration = self._calibration
         return calculate_ensemble_msd(
             line_msds=track_msds,
             time_step=self._kymo.line_time_seconds,
