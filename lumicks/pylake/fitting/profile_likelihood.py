@@ -32,7 +32,10 @@ def clamp_step(x_origin, x_step, lower_bound, upper_bound):
         and `upper_bound`.
     """
     if np.any(np.logical_or(x_origin < lower_bound, x_origin > upper_bound)):
-        raise RuntimeError("Initial position was not in box constraints.")
+        raise RuntimeError(
+            f"Initial position was not in box constraints. Provided: {x_origin}, while the "
+            f"constraints are given by {lower_bound} and {upper_bound}."
+        )
 
     alpha_ub = np.inf * np.ones(x_step.shape)
     alpha_lb = np.inf * np.ones(x_step.shape)
@@ -242,10 +245,21 @@ def scan_dir_optimisation(
             p_next = fit_function(
                 p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted
             )
-        except (ValueError, RuntimeError):
+
+            if np.any(p_next > scan_config.upper_bounds) or np.any(
+                p_next < scan_config.lower_bounds
+            ):
+                raise RuntimeError(
+                    f"Optimization failed to stay in bound. Current parameter values: {p_next}. "
+                    f"Lower bound: {scan_config.lower_bounds}, upper bound: "
+                    f"{scan_config.upper_bounds}."
+                )
+
+        except (ValueError, RuntimeError) as exception:
             warn(
                 f"Optimization error encountered at iteration {step}, while attempting "
-                f"parameter values: {p_next}. Terminating profile. Parameter bound not found.",
+                f"parameter values: {p_next}:\n {repr(exception)}.\n\nTerminating profile. "
+                f"Parameter bound not found.",
                 RuntimeWarning,
             )
             break
