@@ -38,17 +38,17 @@ def test_optim_options(exponential_data):
 def test_fit_parameters(exponential_data):
     # single exponential data
     dataset = exponential_data["dataset_1exp"]
-    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
+    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, tol=1e-8)
     np.testing.assert_allclose(fit.amplitudes, [1])
     np.testing.assert_allclose(fit.lifetimes, [1.43481181], rtol=1e-5)
     np.testing.assert_allclose(fit.rate_constants, [1 / 1.43481181], rtol=1e-5)
 
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
-    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
-    np.testing.assert_allclose(fit.amplitudes, [0.46513486, 0.53486514], rtol=1e-5)
-    np.testing.assert_allclose(fit.lifetimes, [1.50630877, 5.46212603], rtol=1e-5)
-    np.testing.assert_allclose(fit.rate_constants, [1 / 1.50630877, 1 / 5.46212603], rtol=1e-5)
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits, tol=1e-8)
+    np.testing.assert_allclose(fit.amplitudes, [0.46516346, 0.53483653], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [1.50634996, 5.46227291], rtol=1e-5)
+    np.testing.assert_allclose(fit.rate_constants, [1 / 1.50634996, 1 / 5.46227291], rtol=1e-5)
 
 
 @pytest.mark.slow
