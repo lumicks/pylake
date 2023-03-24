@@ -3,11 +3,14 @@ import numpy as np
 import re
 
 from lumicks.pylake import DwelltimeModel
+from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
 from lumicks.pylake.population.dwelltime import (
     _dwellcounts_from_statepath,
     DwelltimeBootstrap,
     _handle_amplitude_constraint,
     _exponential_mle_optimize,
+    exponential_mixture_log_likelihood,
+    _exponential_mixture_log_likelihood_gradient
 )
 
 
@@ -289,6 +292,68 @@ def test_invalid_models():
         np.array([0.25, 0.25, 0.5, 0.3, 0.3, 0.3]),
         np.array([True, True, True, False, True, True])
     )
+
+
+@pytest.mark.parametrize(
+    "params, t, min_observation_time, max_observation_time",
+    [
+        [[1.0, 0.4], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0.5, np.inf],
+        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0.5, 1e6],
+        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, 5],
+        [[0.3, 0.3, 0.1, 0.4, 1.0, 10.0], np.arange(1.0, 10.0, 0.1), 2, 5],
+        # Test "zero" parameters. Because we use a central differencing scheme for validating the
+        # gradient we have to set the amplitude at least the finite differencing stepsize away
+        # from the bound (otherwise we'd only observe half the gradient in the numerical scheme).
+        [[1e-5, 1.0, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        # Zero lifetime is problematic because of all the reciprocals.
+        [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+    ]
+)
+def test_analytic_gradient_exponential(params, t, min_observation_time, max_observation_time):
+    def fn(params):
+        return np.atleast_1d(
+            exponential_mixture_log_likelihood(
+                np.array(params), t, min_observation_time, max_observation_time
+            )
+        )
+
+    np.testing.assert_allclose(
+        _exponential_mixture_log_likelihood_gradient(
+            np.array(params), t, min_observation_time, max_observation_time
+        ),
+        numerical_jacobian(fn, params, dx=1e-5).flatten(),
+        rtol=1e-5,
+    )
+
+
+def test_analytic_gradient_exponential_used(monkeypatch):
+    """Verify that the dwell time model actually uses the gradient"""
+
+    def store_args(*args, **kwargs):
+        raise StopIteration
+
+    with monkeypatch.context() as m:
+        # Jacobian should be passed
+        model = DwelltimeModel(np.arange(0.0, 10.0, 0.1), n_components=2, use_jacobian=True)
+
+        m.setattr(
+            "lumicks.pylake.population.dwelltime._exponential_mixture_log_likelihood_gradient",
+            store_args,
+        )
+
+        # Jacobian should be passed
+        with pytest.raises(StopIteration):
+            model.calculate_bootstrap(1)
+
+        # Jacobian should not be passed
+        model = DwelltimeModel(np.arange(0.0, 10.0, 0.1), n_components=2, use_jacobian=False)
+        model.calculate_bootstrap(1)
+
+        # Jacobian should be passed
+        with pytest.raises(StopIteration):
+            DwelltimeModel(np.arange(0.0, 10.0, 0.1), n_components=2, use_jacobian=True)
 
 
 def test_dwelltime_exponential_no_free_params(monkeypatch):
