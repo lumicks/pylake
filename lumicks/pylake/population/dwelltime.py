@@ -430,7 +430,7 @@ class DwelltimeModel:
         keys = [f"amplitude {idx}" for idx in range(self.n_components)] + [
             f"lifetime {idx}" for idx in range(self.n_components)
         ]
-        lower_bounds = np.zeros(2 * self.n_components)
+        lower_bounds = np.hstack((np.zeros(self.n_components), 1e-16 * np.ones(self.n_components)))
         upper_bounds = np.hstack((np.ones(self.n_components), np.inf * np.ones(self.n_components)))
         parameters = Params(
             **{
@@ -859,7 +859,7 @@ def _exponential_mle_optimize(
         (
             *[(np.finfo(float).eps, 1) for _ in range(n_components)],
             *[
-                (min_observation_time * 0.1, max_observation_time * 1.1)
+                (max(min_observation_time * 0.1, 1e-16), max_observation_time * 1.1)
                 for _ in range(n_components)
             ],
         )
