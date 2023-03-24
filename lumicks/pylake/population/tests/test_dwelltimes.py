@@ -293,3 +293,28 @@ def test_invalid_models():
         np.array([0.25, 0.25, 0.5, 0.3, 0.3, 0.3]),
         np.array([True, True, True, False, True, True])
     )
+
+
+def test_dwelltime_exponential_no_free_params(monkeypatch):
+    """When fitting a single parameter, we don't need to optimize"""
+    def stop(*args, **kwargs):
+        raise StopIteration
+
+    with monkeypatch.context() as m:
+        m.setattr("lumicks.pylake.population.dwelltime.minimize", stop)
+
+        def quick_fit(fixed_params):
+            return _exponential_mle_optimize(
+                1,
+                np.arange(5),
+                min_observation_time=0,
+                max_observation_time=5,
+                initial_guess=np.array([1.0, 2.0]),
+                fixed_param_mask=fixed_params,
+            )
+
+        x, cost = quick_fit([False, True])  # Amplitude is 1 -> Problem fully determined -> No fit
+        np.testing.assert_allclose(x, np.array([1.0, 2.0]))
+
+        with pytest.raises(StopIteration):
+            quick_fit([True, False])  # Lifetime unknown -> Need to fit
