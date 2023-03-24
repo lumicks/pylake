@@ -193,40 +193,74 @@ def test_integration_dwelltime_fixing_parameters(exponential_data):
         initial_guess=initial_params,
         fixed_param_mask=[False, True, False, True],
     )
-    np.testing.assert_allclose(pars, [0.8, 0.2, 4.27745463, 0.5])
+    np.testing.assert_allclose(pars, [0.8, 0.2, 4.27753, 0.5], rtol=1e-4)
 
 
 @pytest.mark.parametrize(
-    "n_components,params,fixed_param_mask,ref_fitted,ref_const_fun,free_amplitudes",
+    "n_components,params,fixed_param_mask,ref_fitted,ref_const_fun,free_amplitudes,ref_par",
     [
-        # 2 components, fix one amplitude
+        # fmt:off
+        # 2 components, fix one amplitude => everything fixed in the end
         [
-            2, [0.3, 0.4, 0.3, 0.3], [True, False, False, False],
-            [False, True, True, True], 0.7, 1,
+            2, np.array([0.3, 0.4, 0.3, 0.3]), [True, False, False, False],
+            [False, False, True, True], None, 0, [0.3, 0.7, 0.3, 0.3],
         ],
         # 2 components, fix both amplitudes
         [
-            2, [0.3, 0.7, 0.3, 0.3], [True, True, False, False],
-            [False, False, True, True], 0, 0,
+            2, np.array([0.3, 0.7, 0.3, 0.3]), [True, True, False, False],
+            [False, False, True, True], 0, 0, [0.3, 0.7, 0.3, 0.3]
         ],
         # 2 components, free amplitudes
         [
-            2, [0.3, 0.7, 0.3, 0.3], [False, False, True, False],
-            [True, True, False, True], 0.75, 2,
+            2, np.array([0.3, 0.7, 0.3, 0.3]), [False, False, True, False],
+            [True, True, False, True], 0.75, 2, [0.3, 0.7, 0.3, 0.3],
         ],
+        # 3 components, fix one amplitude => End up with two free ones
+        [
+            3, np.array([0.3, 0.4, 0.2, 0.3, 0.3, 0.3]), [True, False, False, False, False, False],
+            [False, True, True, True, True, True], 1.6 / 3, 2, [0.3, 0.4, 0.2, 0.3, 0.3, 0.3],
+        ],
+        # 3 components, fix two amplitudes => Amplitudes are now fully determined
+        [
+            3, np.array([0.3, 0.4, 0.2, 0.3, 0.3, 0.3]), [True, True, False, False, False, False],
+            [False, False, False, True, True, True], 0, 0, [0.3, 0.4, 0.3, 0.3, 0.3, 0.3],
+        ],
+        # 1 component, no amplitudes required
+        [
+            1, np.array([0.3, 0.5]), [False, False],
+            [False, True], None, 0, [1.0, 0.5],
+        ],
+        # fmt:off
     ],
 )
-def test_parameter_fixing(n_components, params, fixed_param_mask, ref_fitted, ref_const_fun, free_amplitudes):
-    fitted_param_mask, constraints = _handle_amplitude_constraint(
-        n_components, np.array(params), np.array(fixed_param_mask)
+def test_parameter_fixing(
+    n_components,
+    params,
+    fixed_param_mask,
+    ref_fitted,
+    ref_const_fun,
+    free_amplitudes,
+    ref_par,
+):
+    old_params = np.copy(params)
+    fitted_param_mask, constraints, out_params = _handle_amplitude_constraint(
+        n_components, params, np.array(fixed_param_mask)
     )
 
+    # Verify that we didn't modify the input
+    np.testing.assert_allclose(params, old_params)
+
     assert np.all(fitted_param_mask == ref_fitted)
-    np.testing.assert_allclose(constraints["args"], free_amplitudes)
-    np.testing.assert_allclose(
-        constraints["fun"](np.arange(2 * n_components) / (2 * n_components), free_amplitudes),
-        ref_const_fun
-    )
+    np.testing.assert_allclose(out_params, ref_par)
+
+    if free_amplitudes:
+        np.testing.assert_allclose(constraints["args"], free_amplitudes)
+        np.testing.assert_allclose(
+            constraints["fun"](np.arange(2 * n_components) / (2 * n_components), free_amplitudes),
+            ref_const_fun
+        )
+    else:
+        assert not constraints
 
 
 def test_invalid_models():

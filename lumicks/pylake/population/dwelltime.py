@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Dict, Tuple, Union
 from scipy.special import logsumexp
 from scipy.optimize import minimize
 from dataclasses import dataclass, field
@@ -552,10 +553,14 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
     return -np.sum(log_likelihood)
 
 
-def _handle_amplitude_constraint(n_components, params, fixed_param_mask):
-    """Handle amplitude constraints
+def _handle_amplitude_constraint(
+    n_components, params, fixed_param_mask
+) -> Tuple[np.ndarray, Union[Dict, Tuple], np.ndarray]:
+    """Determines how many amplitudes actually need fitting.
 
-    This function returns the mask of parameters to be fitted and amplitude constraint function.
+    For a single-component model the amplitude is 1 by definition. For an N-component model, where
+    N - 1 amplitudes are fixed, the free amplitude is determined by the constraint. For models that
+    have more than one free amplitude, the amplitudes are constrained to sum to 1.
 
     Parameters
     ----------
@@ -565,6 +570,12 @@ def _handle_amplitude_constraint(n_components, params, fixed_param_mask):
         model parameters
     fixed_param_mask : array_like
         logical mask of fixed parameters
+
+    Returns
+    -------
+    Tuple[np.ndarray, Union[Dict, Tuple], np.ndarray]
+        This function returns the mask of parameters to be fitted, amplitude constraint function
+        and updated parameter vector (forced to be consistent with the constraint).
 
     Raises
     ------
@@ -594,9 +605,21 @@ def _handle_amplitude_constraint(n_components, params, fixed_param_mask):
 
     # Determine what actually needs to be fitted
     fitted_param_mask = np.logical_not(fixed_param_mask)
-    num_free_amps = np.sum(np.logical_and(is_amplitude, fitted_param_mask))
+    free_amplitudes = np.logical_and(is_amplitude, fitted_param_mask)
+    num_free_amps = np.sum(free_amplitudes)
 
-    if num_free_amps == 0 and not np.allclose(np.sum(sum_fixed_amplitudes), 1.0, atol=1e-6):
+    # If we are only fitting a single amplitude at this point (i.e. 1-component model, 2-component
+    # model with 1 amplitude fixed, or N_component model with N-1 components fixed), we can simply
+    # set it to its correct value and fix it (since there is only 1 degree of freedom).
+    if num_free_amps == 1:
+        free_amplitude_idx = np.nonzero(free_amplitudes)[0]
+        fitted_param_mask[free_amplitude_idx] = False
+        params = params.copy()  # Make sure we don't modify the input variable
+        params[free_amplitude_idx] = 1.0 - sum_fixed_amplitudes
+        sum_fixed_amplitudes += params[free_amplitude_idx]
+        num_free_amps -= 1
+
+    if num_free_amps == 0 and not np.allclose(sum_fixed_amplitudes, 1.0, atol=1e-6):
         raise ValueError(
             f"Invalid model. Sum of the provided amplitudes has to be 1 ({sum_fixed_amplitudes})."
         )
@@ -611,7 +634,7 @@ def _handle_amplitude_constraint(n_components, params, fixed_param_mask):
         else ()
     )
 
-    return fitted_param_mask, constraints
+    return fitted_param_mask, constraints, params
 
 
 def _exponential_mle_optimize(
@@ -641,7 +664,8 @@ def _exponential_mle_optimize(
     options : dict, optional
         additional optimization parameters passed to `minimize(..., options)`.
     fixed_param_mask : array_like, optional
-        logical mask of which parameters to fix during optimization
+        logical mask of which parameters to fix during optimization. When omitted, no parameter is
+        assumed fixed.
 
     Raises
     ------
@@ -666,7 +690,7 @@ def _exponential_mle_optimize(
         *[(min_observation_time * 0.1, max_observation_time * 1.1) for _ in range(n_components)],
     )
 
-    fitted_param_mask, constraints = _handle_amplitude_constraint(
+    fitted_param_mask, constraints, initial_guess = _handle_amplitude_constraint(
         n_components, initial_guess, fixed_param_mask
     )
 
