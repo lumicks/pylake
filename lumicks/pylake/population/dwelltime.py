@@ -600,12 +600,19 @@ def exponential_mixture_log_likelihood_components(
     max_observation_time : float
         maximum observation time in seconds
     """
-    amplitudes = amplitudes[:, np.newaxis]
+    # We clip the amplitude under bound. An amplitude of 1e-14 is negligible.
+    amplitudes = np.clip(amplitudes[:, np.newaxis], 1e-14, np.inf)
     lifetimes = lifetimes[:, np.newaxis]
     t = t[np.newaxis, :]
 
+    # We clip the exponentiated minimum time to some minimal value to prevent numerical issues.
+    # This prevents issues that arise when min_observation_time >> lifetime. In practice, this
+    # means that one or both of the lifetimes are so short that the entire PDF falls left of the
+    # minimum time. These locations will generally have a very poor likelihood value, but it is
+    # a good idea to allow it to try and recover.
+    exp_minimum_time = np.clip(np.exp(-min_observation_time / lifetimes), 1e-12, np.inf)
     norm_factor = np.log(amplitudes) + np.log(
-        np.exp(-min_observation_time / lifetimes) - np.exp(-max_observation_time / lifetimes)
+        exp_minimum_time - np.exp(-max_observation_time / lifetimes)
     )
     log_norm_factor = logsumexp(norm_factor, axis=0)
 
