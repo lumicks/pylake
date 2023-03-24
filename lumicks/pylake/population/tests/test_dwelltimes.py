@@ -84,6 +84,26 @@ def test_bootstrap(exponential_data):
         fit.bootstrap
 
 
+@pytest.mark.slow
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+@pytest.mark.filterwarnings("ignore:divide by zero encountered in log")
+def test_dwelltime_profiles(exponential_data):
+    dataset = exponential_data["dataset_2exp"]
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
+
+    profiles = fit.profile_likelihood(max_chi2_step=0.25)
+    reference_bounds = [
+        (0.27856180571381217, 0.6778544935946536),
+        (0.32214149274534964, 0.7214348170795223),
+        (0.9845032769688804, 2.1800140645034936),
+        (4.46449516635929, 7.154597435928374),
+    ]
+
+    for profile, (lower_bound, upper_bound) in zip(profiles.values(), reference_bounds):
+        np.testing.assert_allclose(profile.lower_bound, lower_bound, rtol=1e-3)
+        np.testing.assert_allclose(profile.upper_bound, upper_bound, rtol=1e-3)
+
+
 # TODO: remove with deprecation
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_empty_bootstrap(exponential_data):
