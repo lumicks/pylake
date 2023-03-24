@@ -80,6 +80,7 @@ class DwelltimeProfiles:
                 initial_guess=params,
                 options=dwelltime_model._optim_options,
                 fixed_param_mask=fixed,
+                use_jacobian=dwelltime_model.use_jacobian,
             )
 
         def fit_func(params, lb, ub, fitted):
@@ -324,6 +325,7 @@ class DwelltimeBootstrap:
                 *optimized._observation_limits,
                 initial_guess=optimized._parameters,
                 options=optimized._optim_options,
+                use_jacobian=optimized.use_jacobian,
             )
             samples[:, itr] = result
 
@@ -484,9 +486,11 @@ class DwelltimeModel:
         max_observation_time=np.inf,
         tol=None,
         max_iter=None,
+        use_jacobian=True,
     ):
         self.n_components = n_components
         self.dwelltimes = dwelltimes
+        self.use_jacobian = use_jacobian
 
         self._observation_limits = (min_observation_time, max_observation_time)
         self._optim_options = {
@@ -501,6 +505,7 @@ class DwelltimeModel:
             min_observation_time,
             max_observation_time,
             options=self._optim_options,
+            use_jacobian=self.use_jacobian,
         )
         # TODO: remove with deprecation
         self._bootstrap = DwelltimeBootstrap(
@@ -663,7 +668,7 @@ class DwelltimeModel:
             array of independent variable values at which to calculate the PDF.
         """
         return np.exp(
-            exponential_mixture_log_likelihood_components(
+            _exponential_mixture_log_likelihood_components(
                 self.amplitudes, self.lifetimes, x, *self._observation_limits
             )
         )
@@ -774,9 +779,55 @@ class DwelltimeModel:
         plt.tight_layout()
 
 
-def exponential_mixture_log_likelihood_components(
-    amplitudes, lifetimes, t, min_observation_time, max_observation_time
-):
+def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
+    """Calculate the gradient of the exponential mixture model.
+
+    Parameters
+    ----------
+    params : array_like
+        array of model parameters (amplitude and lifetime per component)
+    t : array_like
+        dwelltime observations in seconds
+    t_min, t_max : float
+        minimum and maximum observation time in seconds
+    """
+    amplitudes, lifetimes = np.reshape(params, (2, -1))
+    # We clip the amplitude under bound. An amplitude of 1e-14 is negligible.
+    amplitudes = np.clip(amplitudes[:, np.newaxis], 1e-14, np.inf)
+    lifetimes = lifetimes[:, np.newaxis]
+    t = t[np.newaxis, :]
+
+    exp_bound_difference = np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
+    norm_factor = 1.0 / np.sum(amplitudes * exp_bound_difference)
+
+    # Calculate derivatives of the normalization constant
+    dnorm_damp = -(norm_factor**2) * exp_bound_difference
+    dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
+
+    max_bound = t_max * np.exp(-t_max / lifetimes) if np.all(t_max / lifetimes < 1e10) else 0
+    exp_bound_difference2 = max_bound - t_min * np.exp(-t_min / lifetimes)
+    dnorm_dtau = norm_factor**2 * (amplitudes / (lifetimes**2)) * exp_bound_difference2
+    dlognorm_dtau = (1.0 / norm_factor) * dnorm_dtau
+
+    # Calculate derivatives of the remainder of the log-likelihood
+    dlogamp_damp = 1.0 / amplitudes
+    dlogtauterm_dtau = -1.0 / lifetimes + t / (lifetimes**2)
+
+    # The derivative of logsumexp is given by: sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
+    components = np.log(norm_factor) + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
+    total_denom = np.exp(logsumexp(components, axis=0))
+
+    sum_components = np.sum(np.exp(components), axis=0)
+    dtotal_damp = (sum_components * dlognorm_damp + np.exp(components) * dlogamp_damp) / total_denom
+    dtotal_dtau = (
+        sum_components * dlognorm_dtau + np.exp(components) * dlogtauterm_dtau
+    ) / total_denom
+    unsummed_gradient = np.vstack((dtotal_damp, dtotal_dtau))
+
+    return -np.sum(unsummed_gradient, axis=1)
+
+
+def _exponential_mixture_log_likelihood_components(amplitudes, lifetimes, t, t_min, t_max):
     """Calculate each component of the log likelihood of an exponential mixture distribution.
 
     The full log likelihood for a single observation is given by:
@@ -800,30 +851,28 @@ def exponential_mixture_log_likelihood_components(
         lifetime parameters for each component in seconds
     t : array_like
         dwelltime observations in seconds
-    min_observation_time : float
-        minimum observation time in seconds
-    max_observation_time : float
-        maximum observation time in seconds
+    t_min, t_max : float
+        minimum and maximum observation time in seconds
     """
     amplitudes = amplitudes[:, np.newaxis]
     lifetimes = lifetimes[:, np.newaxis]
     t = t[np.newaxis, :]
 
     norm_factor = np.log(amplitudes) + np.log(
-        np.exp(-min_observation_time / lifetimes) - np.exp(-max_observation_time / lifetimes)
+        np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
     )
     log_norm_factor = logsumexp(norm_factor, axis=0)
 
     return -log_norm_factor + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
 
 
-def exponential_mixture_log_likelihood(params, t, min_observation_time, max_observation_time):
+def _exponential_mixture_log_likelihood(params, t, t_min, t_max):
     """Calculate the log likelihood of an exponential mixture distribution.
 
     The full log likelihood for a single observation is given by:
         log(L) = log( sum_i( exp( log(component_i) ) ) )
 
-    where log(component_i) is output from `exponential_mixture_log_likelihood_components()`
+    where log(component_i) is output from `_exponential_mixture_log_likelihood_components()`
 
     Parameters
     ----------
@@ -831,14 +880,12 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
         array of model parameters (amplitude and lifetime per component)
     t : array_like
         dwelltime observations in seconds
-    min_observation_time : float
-        minimum observation time in seconds
-    max_observation_time : float
-        maximum observation time in seconds
+    t_min, t_max : float
+        minimum and maximum observation time in seconds
     """
     amplitudes, lifetimes = np.reshape(params, (2, -1))
-    components = exponential_mixture_log_likelihood_components(
-        amplitudes, lifetimes, t, min_observation_time, max_observation_time
+    components = _exponential_mixture_log_likelihood_components(
+        amplitudes, lifetimes, t, t_min, t_max
     )
     log_likelihood = logsumexp(components, axis=0)
     return -np.sum(log_likelihood)
@@ -943,6 +990,7 @@ def _exponential_mle_optimize(
     initial_guess=None,
     options=None,
     fixed_param_mask=None,
+    use_jacobian=True,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -994,12 +1042,24 @@ def _exponential_mle_optimize(
     def cost_fun(params):
         current_params[fitted_param_mask] = params
 
-        return exponential_mixture_log_likelihood(
+        return _exponential_mixture_log_likelihood(
             current_params,
             t=t,
-            min_observation_time=min_observation_time,
-            max_observation_time=max_observation_time,
+            t_min=min_observation_time,
+            t_max=max_observation_time,
         )
+
+    def jac_fun(params):
+        current_params[fitted_param_mask] = params
+
+        gradient = _exponential_mixture_log_likelihood_jacobian(
+            current_params,
+            t=t,
+            t_min=min_observation_time,
+            t_max=max_observation_time,
+        )[fitted_param_mask]
+
+        return gradient
 
     # Nothing to fit, return!
     if np.sum(fitted_param_mask) == 0:
@@ -1012,6 +1072,7 @@ def _exponential_mle_optimize(
         constraints=constraints,
         bounds=[bound for bound, fitted in zip(bounds, fitted_param_mask) if fitted],
         options=options,
+        jac=jac_fun if use_jacobian else None,
     )
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood

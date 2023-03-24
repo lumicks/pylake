@@ -5,7 +5,7 @@
 #### New features
 
 * Added [`DwelltimeModel.profile_likelihood()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.profile_likelihood) for calculating profile likelihoods for dwell time analysis. These can be used to determine confidence intervals and assess whether the model has too many parameters (i.e., if a model with fewer components would be sufficient).
-  
+
 #### Bug fixes
 
 * Fixed bug that could lead to mutability of `Kymo` and `Scan` through `.get_image()` or `.timestamps`. This bug was introduced in `0.7.2`. Grabbing a single color image from a `Scan` or `Kymo` using `.get_image()` returns a reference to an internal image cache. This numpy array was write-able and modifying data in the returned image would result in future calls to `.get_image()` returning the modified data rather than the original `Kymo` or `Scan` image. Timestamps obtained from `.timestamps` were similarly affected. These arrays are now returned non-writeable.
@@ -13,6 +13,7 @@
 #### Improvements
 
 * Improve API description of the channel data in a default `FdCurve`.
+* Improved fitting performance dwell time analyses by implementing analytic gradient.
 
 ## v1.0.0 | 2023-03-14
 
