@@ -604,11 +604,15 @@ def _generate_fitting_mask(n_components, params, fixed_param_mask):
             f"Invalid model. Sum of the provided amplitudes has to be 1 ({sum_fixed_amplitudes})."
         )
 
-    constraints = {
-        "type": "eq",
-        "fun": lambda x, n: 1 - sum(x[:n]) - sum_fixed_amplitudes,
-        "args": [num_free_amps],
-    }
+    constraints = (
+        {
+            "type": "eq",
+            "fun": lambda x, n: 1 - sum(x[:n]) - sum_fixed_amplitudes,
+            "args": [num_free_amps],
+        }
+        if num_free_amps > 0
+        else ()
+    )
 
     return fitted_param_mask, constraints
 
