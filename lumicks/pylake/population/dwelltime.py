@@ -706,6 +706,10 @@ def _exponential_mle_optimize(
             max_observation_time=max_observation_time,
         )
 
+    # Nothing to fit, return!
+    if np.sum(fitted_param_mask) == 0:
+        return initial_guess, -cost_fun([])
+
     result = minimize(
         cost_fun,
         initial_guess[fitted_param_mask],
