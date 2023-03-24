@@ -5,6 +5,8 @@ from scipy.optimize import minimize
 from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from deprecated.sphinx import deprecated
+from lumicks.pylake.fitting.parameters import Parameter, Params
+from lumicks.pylake.fitting.profile_likelihood import ProfileLikelihood1D
 
 
 @dataclass(frozen=True)
@@ -394,6 +396,93 @@ class DwelltimeModel:
         self._bootstrap = bootstrap
         return bootstrap
 
+    def profile_likelihood(
+        self, *, num_steps=150, min_chi2_step=0.01, max_chi2_step=0.05, verbose=False
+    ):
+        """Calculate a likelihood profile.
+
+        This method traces an optimal path through parameter space in order to estimate parameter
+        confidence intervals. It iteratively performs a step for the profiled parameter, then
+        fixes that parameter and re-optimizes all the other parameters [2]_ [3]_.
+
+        Parameters
+        ----------
+        num_steps: integer
+            Number of steps to take.
+        min_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the
+            step results in a fit change smaller than this threshold, the step-size will be
+            increased.
+        max_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the
+            step results in a fit change bigger than this threshold, the step-size will be reduced.
+        verbose: bool
+            Controls the verbosity of the output.
+
+        References
+        ----------
+        .. [2] Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M., Klingmüller, U.,
+               & Timmer, J. (2009). Structural and practical identifiability analysis of partially
+               observed dynamical models by exploiting the profile likelihood. Bioinformatics,
+               25(15), 1923-1929.
+        .. [3] Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew,
+               F., Bock, H.H., Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to
+               its limit: profile likelihood based model reduction. PloS one, 11(9).
+        """
+
+        def model_func(params, fixed):
+            """Lower bound and upper bound are handled by _exponential_mle_optimize itself"""
+            return _exponential_mle_optimize(
+                self.n_components,
+                self.dwelltimes,
+                min_observation_time=self._observation_limits[0],
+                max_observation_time=self._observation_limits[1],
+                initial_guess=params,
+                options=self._optim_options,
+                fixed_param_mask=fixed,
+            )
+
+        def fit_func(params, lb, ub, fitted):
+            # Lower and upper bounds are handled by the model internally.
+            return model_func(params, np.logical_not(fitted))[0]
+
+        # Pack parameters
+        keys = [f"amplitude {idx}" for idx in range(self.n_components)] + [
+            f"lifetime {idx}" for idx in range(self.n_components)
+        ]
+        bounds = _exponential_mle_bounds(self.n_components, *self._observation_limits)
+        parameters = Params(
+            **{
+                key: Parameter(param, lower_bound=lb, upper_bound=ub)
+                for key, param, (lb, ub) in zip(keys, self._parameters, bounds)
+            }
+        )
+
+        def calculate_profile(param):
+            profile = ProfileLikelihood1D(
+                param,
+                num_dof=1,
+                min_chi2_step=min_chi2_step,
+                max_chi2_step=max_chi2_step,
+            )
+
+            def trial(params):
+                """Get log likelihood for particular parameter vector"""
+                # These dwelltime models are subject to internal constraints that are only ensured
+                # during optimization. This means that we have to call the optimization procedure
+                # with the parameter we're profiling held to a fixed value to obtain a value for the
+                # chi-squared function at the trial point.
+                fixed_params = [name == param for name in parameters.keys()]
+                return -model_func(params, fixed_params)[1]
+
+            profile._extend_profile(trial, fit_func, parameters, num_steps, True, verbose)
+            profile._extend_profile(trial, fit_func, parameters, num_steps, False, verbose)
+            return profile
+
+        return [
+            calculate_profile(param) for param in ([keys[-1]] if self.n_components == 1 else keys)
+        ]
+
     def pdf(self, x):
         """Probability Distribution Function (states as rows).
 
@@ -666,6 +755,18 @@ def _handle_amplitude_constraint(
     return fitted_param_mask, constraints, params
 
 
+def _exponential_mle_bounds(n_components, min_observation_time, max_observation_time):
+    return np.array(
+        (
+            *[(1e-9, 1.0) for _ in range(n_components)],
+            *[
+                (min_observation_time * 0.1, max_observation_time * 1.1)
+                for _ in range(n_components)
+            ],
+        )
+    )
+
+
 def _exponential_mle_optimize(
     n_components,
     t,
@@ -717,15 +818,7 @@ def _exponential_mle_optimize(
         # During optimization, we modify in-place, so we need to make sure that we make a copy
         initial_guess = np.copy(initial_guess)
 
-    bounds = np.array(
-        (
-            *[(np.finfo(float).eps, 1) for _ in range(n_components)],
-            *[
-                (min_observation_time * 0.1, max_observation_time * 1.1)
-                for _ in range(n_components)
-            ],
-        )
-    )
+    bounds = _exponential_mle_bounds(n_components, min_observation_time, max_observation_time)
 
     fitted_param_mask, constraints, initial_guess = _handle_amplitude_constraint(
         n_components, initial_guess, fixed_param_mask
