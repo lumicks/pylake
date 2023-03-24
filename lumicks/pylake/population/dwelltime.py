@@ -338,14 +338,45 @@ class DwelltimeModel:
         return self._log_likelihood
 
     @property
-    def aic(self):
-        """Akaike Information Criterion."""
+    def aic(self) -> float:
+        r"""Akaike Information Criterion
+
+        .. math::
+
+            \mathrm{AIC} = 2 k - 2 \ln{(L)}
+
+        Where :math:`k` refers to the number of parameters minus the number of equality constraints,
+        :math:`n` to the number of observations (or data points) and :math:`L` to the maximized
+        value of the likelihood function [1]_.
+
+        The emphasis of this criterion is future prediction. It does not lead to consistent model
+        selection and is more prone to over-fitting than the Bayesian Information Criterion.
+
+        References
+        ----------
+        .. [1] Cavanaugh, J.E., 1997. Unifying the derivations for the Akaike and corrected Akaike
+               information criteria. Statistics & Probability Letters, 33(2), pp.201-208.
+        """
         k = (2 * self.n_components) - 1  # number of parameters minus number of constraints
         return 2 * k - 2 * self.log_likelihood
 
     @property
-    def bic(self):
-        """Bayesian Information Criterion."""
+    def bic(self) -> float:
+        r"""Calculates the Bayesian Information Criterion:
+
+        .. math::
+
+            \mathrm{BIC} = k \ln{(n)} - 2 \ln{(L)}
+
+        Where :math:`k` refers to the number of parameters minus the number of equality constraints,
+        :math:`n` to the number of observations (or data points) and :math:`L` to the maximized
+        value of the likelihood function.
+
+        The emphasis of the BIC is put on parsimonious models. As such it is less prone to
+        over-fitting. Selection via BIC leads to a consistent model selection procedure, meaning
+        that as the number of data points tends to infinity, BIC will select the true model
+        assuming the true model is in the set of selected models.
+        """
         k = (2 * self.n_components) - 1  # number of parameters minus number of constraints
         n = self.dwelltimes.size  # number of observations
         return k * np.log(n) - 2 * self.log_likelihood
@@ -710,6 +741,10 @@ def _exponential_mle_optimize(
             min_observation_time=min_observation_time,
             max_observation_time=max_observation_time,
         )
+
+    # Nothing to fit, return!
+    if np.sum(fitted_param_mask) == 0:
+        return initial_guess, -cost_fun([])
 
     result = minimize(
         cost_fun,
