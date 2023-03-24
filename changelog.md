@@ -5,6 +5,7 @@
 #### New features
 
 * Added [DwelltimeModel.profile_likelihood()](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.profile_likelihood) for calculating profile likelihoods for dwell time analysis. These can be used to determine confidence intervals and assess whether the model has too many parameters (a smaller model with fewer components would be sufficient).
+* Improved fitting performance dwell time analyses by implementing analytic gradient and better numerical conditioning.
   
 #### Bug fixes
 

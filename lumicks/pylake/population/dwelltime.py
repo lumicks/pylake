@@ -116,6 +116,7 @@ class DwelltimeBootstrap:
                 *optimized._observation_limits,
                 initial_guess=optimized._parameters,
                 options=optimized._optim_options,
+                use_jacobian=optimized.use_jacobian,
             )
             samples[:, itr] = result
 
@@ -276,9 +277,11 @@ class DwelltimeModel:
         max_observation_time=np.inf,
         tol=None,
         max_iter=None,
+        use_jacobian=True,
     ):
         self.n_components = n_components
         self.dwelltimes = dwelltimes
+        self.use_jacobian = use_jacobian
 
         self._observation_limits = (min_observation_time, max_observation_time)
         self._optim_options = {
@@ -293,6 +296,7 @@ class DwelltimeModel:
             min_observation_time,
             max_observation_time,
             options=self._optim_options,
+            use_jacobian=self.use_jacobian,
         )
         # TODO: remove with deprecation
         self._bootstrap = DwelltimeBootstrap(
@@ -408,6 +412,7 @@ class DwelltimeModel:
                 initial_guess=params,
                 options=self._optim_options,
                 fixed_param_mask=np.logical_not(fitted),
+                use_jacobian=self.use_jacobian,
             )
 
             return optimized_params
@@ -567,6 +572,80 @@ class DwelltimeModel:
         plt.xlabel("dwelltime (sec)")
 
         plt.tight_layout()
+
+
+def _exponential_mixture_log_likelihood_gradient(
+    params, t, min_observation_time, max_observation_time
+):
+    """Calculate the gradient of the exponential mixture model.
+
+    The derivatives for the normalization constant are given by:
+
+        dN / da_i = N**2 * (exp(-t_max / tau_i) - exp(-t_min / tau_i))
+
+    For the lifetimes they are given by:
+
+        diff2 = (t_max * exp(-t_max / tau_i) - t_min * exp(-t_min / tau_i))
+        dN / dtau_i = N**2 * (a_i / tau_i ** 2) * diff2
+
+    Where N is the old normalization constant.
+
+        d log(N) / dx = (1 / N) * dN/dx
+
+    The derivative of:
+
+        (d/dx) log(sum_i(exp(fi(x)))
+
+    is given by (chain rule):
+
+        sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
+
+    Parameters
+    ----------
+    params : array_like
+        array of model parameters (amplitude and lifetime per component)
+    t : array_like
+        dwelltime observations in seconds
+    min_observation_time : float
+        minimum observation time in seconds
+    max_observation_time : float
+        maximum observation time in seconds
+    """
+    amplitudes, lifetimes = np.reshape(params, (2, -1))
+    # We clip the amplitude under bound. An amplitude of 1e-14 is negligible.
+    amplitudes = np.clip(amplitudes[:, np.newaxis], 1e-14, np.inf)
+    lifetimes = lifetimes[:, np.newaxis]
+    t = t[np.newaxis, :]
+
+    t_min, t_max = min_observation_time, max_observation_time
+
+    diff = np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
+    norm_factor = 1.0 / np.sum(amplitudes * diff)
+
+    # Calculate derivatives of the normalization constant
+    dnorm_damp = -(norm_factor**2) * diff
+    dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
+
+    max_bound = t_max * np.exp(-t_max / lifetimes) if np.all(t_max / lifetimes < 1e10) else 0
+    diff2 = max_bound - t_min * np.exp(-t_min / lifetimes)
+    dnorm_dtau = norm_factor**2 * (amplitudes / (lifetimes**2)) * diff2
+    dlognorm_dtau = (1.0 / norm_factor) * dnorm_dtau
+
+    # Calculate derivatives of the remainder of the log-likelihood
+    dlogamp_damp = 1.0 / amplitudes
+    dlogtau_dtau = -1.0 / lifetimes + t / (lifetimes**2)
+
+    # Apply the derivative of the logsumexp.
+    # This is given by: sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
+    components = np.log(norm_factor) + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
+    total_denom = np.exp(logsumexp(components, axis=0))
+
+    sum_components = np.sum(np.exp(components), axis=0)
+    dtotal_damp = (sum_components * dlognorm_damp + np.exp(components) * dlogamp_damp) / total_denom
+    dtotal_dtau = (sum_components * dlognorm_dtau + np.exp(components) * dlogtau_dtau) / total_denom
+    unsummed_gradient = np.vstack((dtotal_damp, dtotal_dtau))
+
+    return -np.sum(unsummed_gradient, axis=1)
 
 
 def exponential_mixture_log_likelihood_components(
@@ -733,6 +812,7 @@ def _exponential_mle_optimize(
     initial_guess=None,
     options=None,
     fixed_param_mask=None,
+    use_jacobian=True,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -800,6 +880,19 @@ def _exponential_mle_optimize(
             max_observation_time=max_observation_time,
         )
 
+    def jac_fun(params):
+        current_params = initial_guess
+        current_params[fitted_param_mask] = params
+
+        gradient = _exponential_mixture_log_likelihood_gradient(
+            current_params,
+            t=t,
+            min_observation_time=min_observation_time,
+            max_observation_time=max_observation_time,
+        )[fitted_param_mask]
+
+        return gradient
+
     # Nothing to fit, return!
     if np.sum(fitted_param_mask) == 0:
         return initial_guess, -cost_fun([])
@@ -811,6 +904,7 @@ def _exponential_mle_optimize(
         constraints=constraints,
         bounds=bounds[fitted_param_mask],
         options=options,
+        jac=jac_fun if use_jacobian else None,
     )
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood
