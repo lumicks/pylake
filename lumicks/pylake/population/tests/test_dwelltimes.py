@@ -34,10 +34,10 @@ def test_optim_options(exponential_data):
     dataset = exponential_data["dataset_1exp"]
 
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, tol=1e-1)
-    np.testing.assert_allclose(fit.lifetimes, [1.43253], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [1.447595], rtol=1e-5)
 
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, max_iter=2)
-    np.testing.assert_allclose(fit.lifetimes, [1.43253], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [1.447595], rtol=1e-5)
 
 
 def test_fit_parameters(exponential_data):
@@ -51,7 +51,7 @@ def test_fit_parameters(exponential_data):
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits, tol=1e-8)
-    np.testing.assert_allclose(fit.amplitudes, [0.46516346, 0.53483653], rtol=1e-5)
+    np.testing.assert_allclose(fit.amplitudes, [0.465166, 0.534834], rtol=1e-5)
     np.testing.assert_allclose(fit.lifetimes, [1.506365, 5.46227291], rtol=1e-5)
     np.testing.assert_allclose(fit.rate_constants, [1 / 1.506365, 1 / 5.46227291], rtol=1e-5)
 
@@ -247,8 +247,10 @@ def test_parameter_fixing(
 
     if free_amplitudes:
         np.testing.assert_allclose(constraints["args"], free_amplitudes)
+        with np.errstate(divide='ignore'):
+            amps = np.log(np.arange(2 * n_components) / (2 * n_components))
         np.testing.assert_allclose(
-            constraints["fun"](np.arange(2 * n_components) / (2 * n_components), free_amplitudes),
+            constraints["fun"](amps, free_amplitudes),
             ref_const_fun
         )
     else:
@@ -290,18 +292,18 @@ def test_invalid_models():
 @pytest.mark.parametrize(
     "params, t, min_observation_time, max_observation_time",
     [
-        [[1.0, 0.4], np.arange(0.0, 10.0, 0.1), 0, np.inf],
-        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
-        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0.5, np.inf],
-        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0.5, 1e6],
-        [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, 5],
-        [[0.3, 0.3, 0.1, 0.4, 1.0, 10.0], np.arange(1.0, 10.0, 0.1), 2, 5],
+        [[0.0, -0.1], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[np.log(0.25), np.log(0.75), -0.1, 0.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[np.log(0.25), np.log(0.75), -0.1, 0.0], np.arange(0.0, 10.0, 0.1), 0.5, np.inf],
+        [[np.log(0.25), np.log(0.75), -0.1, 0.0], np.arange(0.0, 10.0, 0.1), 0.5, 1e6],
+        [[np.log(0.25), np.log(0.75), -0.1, 0.0], np.arange(0.0, 10.0, 0.1), 0, 5],
+        [[np.log(0.3), np.log(0.3), np.log(0.4), -0.1, 0.0, 2.30258], np.arange(1.0, 10.0, 0.1), 2, 5],
         # Test "zero" parameters. Because we use a central differencing scheme for validating the
         # gradient we have to set the amplitude at least the finite differencing stepsize away
         # from the bound (otherwise we'd only observe half the gradient in the numerical scheme).
-        [[1e-4, 1.0, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[-4, 0, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
         # Zero lifetime is problematic because of all the reciprocals.
-        [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[0.4, 0.6, -4, 0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
     ]
 )
 def test_analytic_gradient_exponential(params, t, min_observation_time, max_observation_time):

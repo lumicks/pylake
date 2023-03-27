@@ -503,7 +503,7 @@ class DwelltimeModel:
         """
         return np.exp(
             exponential_mixture_log_likelihood_components(
-                self.amplitudes, self.rate_constants, x, *self._observation_limits
+                np.log(self.amplitudes), np.log(self.rate_constants), x, *self._observation_limits
             )
         )
 
@@ -620,12 +620,12 @@ def _exponential_mixture_log_likelihood_gradient(
 
     The derivatives for the normalization constant are given by:
 
-        dN / da_i = N**2 * (exp(-t_max * rate_i) - exp(-t_min * rate_i))
+        dN / da_i = N**2 * (exp(-t_max * exp(log_rate_i)) - exp(-t_min * exp(log_rate_i)))
 
     For the rates they are given by:
 
-        diff2 = (t_max * exp(-t_max * rate_i) - t_min * exp(-t_min * rate_i))
-        dN / drate_i = - N**2 * a_i * diff2
+        diff2 = (t_max * exp(-t_max * exp(log_rate_i)) - t_min * exp(-t_min * exp(log_rate_i)))
+        dN / drate_i = - N**2 * exp(log_rate_i) * a_i * diff2
 
     Where N is the old normalization constant.
 
@@ -642,7 +642,7 @@ def _exponential_mixture_log_likelihood_gradient(
     Parameters
     ----------
     params : array_like
-        array of model parameters (amplitude and lifetime per component)
+        array of model parameters (amplitude and log rate per component)
     t : array_like
         dwelltime observations in seconds
     min_observation_time : float
@@ -650,35 +650,39 @@ def _exponential_mixture_log_likelihood_gradient(
     max_observation_time : float
         maximum observation time in seconds
     """
-    amplitudes, rates = np.reshape(params, (2, -1))
-    # We clip the amplitude under bound. An amplitude of 1e-14 is negligible.
-    amplitudes = np.clip(amplitudes[:, np.newaxis], 1e-14, np.inf)
-    rates = rates[:, np.newaxis]
+    log_amplitudes, log_rates = np.reshape(params, (2, -1))
+
+    log_amplitudes = log_amplitudes[:, np.newaxis]
+    log_rates = log_rates[:, np.newaxis]
     t = t[np.newaxis, :]
 
     t_min, t_max = min_observation_time, max_observation_time
 
-    diff = np.exp(-t_min * rates) - np.exp(-t_max * rates)
-    norm_factor = 1.0 / np.sum(amplitudes * diff)
+    diff = np.exp(-t_min * np.exp(log_rates)) - np.exp(-t_max * np.exp(log_rates))
+    norm_factor = 1.0 / np.sum(np.exp(log_amplitudes) * diff)
 
     # Calculate derivatives of the normalization constant
-    dnorm_damp = -(norm_factor**2) * diff
+    dnorm_damp = -(norm_factor**2) * diff * np.exp(log_amplitudes)
     dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
 
-    max_bound = t_max * np.exp(-t_max * rates) if np.all(t_max * rates < 1e10) else 0
-    diff2 = max_bound - t_min * np.exp(-t_min * rates)
-    dnorm_drate = -(norm_factor**2) * amplitudes * diff2
+    max_bound = (
+        t_max * np.exp(-t_max * np.exp(log_rates))
+        if np.all(t_max * np.exp(log_rates) < 1e10)
+        else 0
+    )
+    diff2 = max_bound - t_min * np.exp(-t_min * np.exp(log_rates))
+    dnorm_drate = -(norm_factor**2) * np.exp(log_amplitudes) * np.exp(log_rates) * diff2
     dlognorm_drate = (1.0 / norm_factor) * dnorm_drate
 
     # Calculate derivatives of the remainder of the log-likelihood
-    dlogamp_damp = 1.0 / amplitudes
-    dlograte_drate = 1.0 / rates - t
+    dlogamp_damp = 1.0
+    dlograte_drate = 1.0 - t * np.exp(log_rates)
 
     # Apply the derivative of the logsumexp.
     # This is given by: sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
     # Note that the norm_factor has a different sign than in
     # exponential_mixture_log_likelihood_components because we already took the reciprocal.
-    components = np.log(norm_factor) + np.log(amplitudes) + np.log(rates) - t * rates
+    components = np.log(norm_factor) + log_amplitudes + log_rates - t * np.exp(log_rates)
     total_denom = np.exp(logsumexp(components, axis=0))
 
     sum_components = np.sum(np.exp(components), axis=0)
@@ -692,7 +696,7 @@ def _exponential_mixture_log_likelihood_gradient(
 
 
 def exponential_mixture_log_likelihood_components(
-    amplitudes, rates, t, min_observation_time, max_observation_time
+    log_amplitudes, log_rates, t, min_observation_time, max_observation_time
 ):
     """Calculate each component of the log likelihood of an exponential mixture distribution.
 
@@ -711,10 +715,10 @@ def exponential_mixture_log_likelihood_components(
 
     Parameters
     ----------
-    amplitudes : array_like
-        fractional amplitude parameters for each component
-    rates : array_like
-        rates for each component in seconds
+    log_amplitudes : array_like
+        log fractional amplitude parameters for each component
+    log_rates : array_like
+        log rates for each component in seconds
     t : array_like
         dwelltime observations in seconds
     min_observation_time : float
@@ -722,9 +726,8 @@ def exponential_mixture_log_likelihood_components(
     max_observation_time : float
         maximum observation time in seconds
     """
-    # We clip the amplitude under bound. An amplitude of 1e-14 is negligible.
-    amplitudes = np.clip(amplitudes[:, np.newaxis], 1e-14, np.inf)
-    rates = np.clip(rates[:, np.newaxis], 1e-14, np.inf)
+    log_amplitudes = log_amplitudes[:, np.newaxis]
+    log_rates = log_rates[:, np.newaxis]
     t = t[np.newaxis, :]
 
     # We clip the exponentiated minimum time to some minimal value to prevent numerical issues.
@@ -732,13 +735,13 @@ def exponential_mixture_log_likelihood_components(
     # means that one or both of the lifetimes are so short that the entire PDF falls left of the
     # minimum time. These locations will generally have a very poor likelihood value, but it is
     # a good idea to allow it to try and recover.
-    exp_minimum_time = np.clip(np.exp(-min_observation_time * rates), 1e-12, np.inf)
-    norm_factor = np.log(amplitudes) + np.log(
-        exp_minimum_time - np.exp(-max_observation_time * rates)
+    exp_minimum_time = np.clip(np.exp(-min_observation_time * np.exp(log_rates)), 1e-12, np.inf)
+    norm_factor = log_amplitudes + np.log(
+        exp_minimum_time - np.exp(-max_observation_time * np.exp(log_rates))
     )
-    log_norm_factor = logsumexp(norm_factor, axis=0)
 
-    return -log_norm_factor + np.log(amplitudes) + np.log(rates) - t * rates
+    log_norm_factor = logsumexp(norm_factor, axis=0)
+    return -log_norm_factor + log_amplitudes + log_rates - t * np.exp(log_rates)
 
 
 def exponential_mixture_log_likelihood(params, t, min_observation_time, max_observation_time):
@@ -760,9 +763,9 @@ def exponential_mixture_log_likelihood(params, t, min_observation_time, max_obse
     max_observation_time : float
         maximum observation time in seconds
     """
-    amplitudes, rates = np.reshape(params, (2, -1))
+    log_amplitudes, log_rates = np.reshape(params, (2, -1))
     components = exponential_mixture_log_likelihood_components(
-        amplitudes, rates, t, min_observation_time, max_observation_time
+        log_amplitudes, log_rates, t, min_observation_time, max_observation_time
     )
     log_likelihood = logsumexp(components, axis=0)
     return -np.sum(log_likelihood)
@@ -840,7 +843,7 @@ def _handle_amplitude_constraint(
     constraints = (
         {
             "type": "eq",
-            "fun": lambda x, n: 1 - sum(x[:n]) - sum_fixed_amplitudes,
+            "fun": lambda x, n: 1 - sum(np.exp(x[:n])) - sum_fixed_amplitudes,
             "args": [num_free_amps],
         }
         if num_free_amps > 0
@@ -903,10 +906,15 @@ def _exponential_mle_optimize(
     # Parameter transformations for better numerical conditioning
     def transform(params):
         with np.errstate(divide="ignore"):
-            params[n_components:] = 1.0 / params[n_components:]
+            params = np.log(params)
+
+        params[n_components:] = -params[n_components:]
+
         return params
 
-    inv_transform = transform
+    def inv_transform(params):
+        params[n_components:] = -params[n_components:]
+        return np.exp(params)
 
     if np.any(np.logical_or(t < min_observation_time, t > max_observation_time)):
         raise ValueError(
