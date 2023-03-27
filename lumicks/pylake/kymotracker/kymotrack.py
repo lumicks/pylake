@@ -1053,6 +1053,7 @@ class KymoTrackGroup:
         roi: list or None
             ROI coordinates as `[[min_time, min_position], [max_time, max_position]]`.
         """
+        print("profile")
         if n_time_bins == 0:
             raise ValueError("Number of time bins must be > 0.")
         if n_position_points < 2:
