@@ -34,10 +34,10 @@ def test_optim_options(exponential_data):
     dataset = exponential_data["dataset_1exp"]
 
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, tol=1e-1)
-    np.testing.assert_allclose(fit.lifetimes, [1.442235], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [1.43253], rtol=1e-5)
 
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, max_iter=2)
-    np.testing.assert_allclose(fit.lifetimes, [1.382336], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [1.43253], rtol=1e-5)
 
 
 def test_fit_parameters(exponential_data):
@@ -52,8 +52,8 @@ def test_fit_parameters(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits, tol=1e-8)
     np.testing.assert_allclose(fit.amplitudes, [0.46516346, 0.53483653], rtol=1e-5)
-    np.testing.assert_allclose(fit.lifetimes, [1.50634996, 5.46227291], rtol=1e-5)
-    np.testing.assert_allclose(fit.rate_constants, [1 / 1.50634996, 1 / 5.46227291], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [1.506365, 5.46227291], rtol=1e-5)
+    np.testing.assert_allclose(fit.rate_constants, [1 / 1.506365, 1 / 5.46227291], rtol=1e-5)
 
 
 @pytest.mark.slow
@@ -321,6 +321,7 @@ def test_analytic_gradient_exponential(params, t, min_observation_time, max_obse
     )
 
 
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_analytic_gradient_exponential_used(monkeypatch):
     """Verify that the dwell time model actually uses the gradient"""
 
