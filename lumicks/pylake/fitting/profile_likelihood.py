@@ -275,7 +275,9 @@ def scan_dir_optimisation(
         if chi2_last > scan_config.termination_level:
             break
 
-    return np.array(chi2_list), np.vstack(parameter_vectors)
+    return np.array(chi2_list), (
+        np.vstack(parameter_vectors) if parameter_vectors else np.empty((0, parameter_vector.size))
+    )
 
 
 def find_crossing(x, y, crossing):
