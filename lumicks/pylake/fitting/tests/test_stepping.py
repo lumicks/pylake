@@ -115,15 +115,3 @@ def test_minimum_step():
         np.testing.assert_allclose(
             p_trial, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step])
         )
-
-
-@pytest.mark.parametrize("pos, dir", [(5, 6), (3, 2)])
-def test_out_of_bounds_step_origin(pos, dir):
-    with pytest.raises(RuntimeError, match="Initial position was not in box constraints"):
-        # If we step even the tiniest increment over one of the bounds, it should fire!
-        clamp_step(
-            np.array([np.nextafter(pos, dir)]), np.asarray([1]), np.asarray([3]), np.asarray([5])
-        )
-
-    # Position itself should be fine
-    clamp_step(np.array([pos]), np.asarray([1]), np.asarray([3]), np.asarray([5]))

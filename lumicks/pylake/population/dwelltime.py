@@ -107,6 +107,7 @@ class DwelltimeProfiles:
                 min_chi2_step=min_chi2_step,
                 max_chi2_step=max_chi2_step,
                 confidence_level=1.0 - alpha,
+                bound_tolerance=1e-8,  # Needed because constraint is not always exactly fulfilled
             )
 
             def trial(params):
