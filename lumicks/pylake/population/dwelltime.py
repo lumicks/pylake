@@ -464,6 +464,7 @@ class DwelltimeModel:
                 num_dof=1,
                 min_chi2_step=min_chi2_step,
                 max_chi2_step=max_chi2_step,
+                bound_tolerance=1e-8,  # Needed because constraint is not always exactly fulfilled
             )
 
             def trial(params):

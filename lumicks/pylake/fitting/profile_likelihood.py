@@ -1,9 +1,53 @@
+from dataclasses import dataclass
 from scipy.stats import chi2
 import numpy as np
-from typing import NamedTuple
 import matplotlib.pyplot as plt
 from warnings import warn
 import enum
+
+
+def _validate_in_bound(description, params, lower_bounds, upper_bounds, bound_tolerance):
+    """Check whether parameters are in bound and raise if they're not.
+
+    Parameters
+    ----------
+    description : str
+        Description from where the bound check is done from. When the bounds are violated, this
+        description will be part of the error message.
+    params : np.ndarray
+        Parameter vector
+    lower_bounds, upper_bounds : np.ndarray
+        Bounds
+    bound_tolerance : float
+        Tolerance used when checking the bound. This tolerance uses whichever is the most
+        permissive of an absolute and relative tolerance threshold.
+
+    Raises
+    ------
+    RuntimeError
+        If params is not within the bounds.
+    """
+    # Only use tolerance if it is nonzero, otherwise one gets issues with 0 * np.inf being undefined
+    if bound_tolerance:
+        lower = lower_bounds - bound_tolerance * np.maximum(abs(lower_bounds), 1.0)
+        upper = upper_bounds + bound_tolerance * np.maximum(abs(upper_bounds), 1.0)
+    else:
+        lower, upper = lower_bounds, upper_bounds
+
+    if np.any(params > upper) or np.any(params < lower):
+        over_str = "".join(
+            f"Param {idx} was over limit by {params[idx] - upper_bounds[idx]}. "
+            for idx in np.where(params > upper_bounds)[0]
+        )
+        under_str = "".join(
+            f"Param {idx} was under limit by {lower_bounds[idx] - params[idx]}. "
+            for idx in np.where(params < lower_bounds)[0]
+        )
+
+        raise RuntimeError(
+            f"{description}\nCurrent parameter values: {params}. Lower bound: {lower_bounds}, "
+            f"upper bound: {upper_bounds}. {over_str}{under_str}"
+        )
 
 
 def clamp_step(x_origin, x_step, lower_bound, upper_bound):
@@ -24,19 +68,7 @@ def clamp_step(x_origin, x_step, lower_bound, upper_bound):
         New position
     scaling : bool
         Have we shrunk the step?
-
-    Raises
-    ------
-    RuntimeError
-        If the initial position `x_origin` is not within the box constraints given by `lower_bound`
-        and `upper_bound`.
     """
-    if np.any(np.logical_or(x_origin < lower_bound, x_origin > upper_bound)):
-        raise RuntimeError(
-            f"Initial position was not in box constraints. Provided: {x_origin}, while the "
-            f"constraints are given by {lower_bound} and {upper_bound}."
-        )
-
     alpha_ub = np.inf * np.ones(x_step.shape)
     alpha_lb = np.inf * np.ones(x_step.shape)
 
@@ -57,8 +89,10 @@ def clamp_step(x_origin, x_step, lower_bound, upper_bound):
     return x_origin + scaling * x_step, scaling != 1.0
 
 
-class StepConfig(NamedTuple):
-    """
+@dataclass
+class StepConfig:
+    """Profile likelihood stepsize control configuration
+
     min_abs_step: float
         minimal step size in parameter space
     max_abs_step: float
@@ -84,8 +118,10 @@ class StepConfig(NamedTuple):
     upper_bounds: np.array
 
 
-class ScanConfig(NamedTuple):
-    """
+@dataclass
+class ScanConfig:
+    """Profile likelihood optimization configuration
+
     lower_bounds: np.array
         optimization lower bounds
     upper_bounds: np.array
@@ -96,6 +132,8 @@ class ScanConfig(NamedTuple):
         function which performs 1D line scans
     termination_level: float
         chi squared value at which the optimization terminates
+    bound_tolerance : float
+        tolerance to use when verifying whether solution is inside the bounds
     """
 
     lower_bounds: np.array
@@ -103,9 +141,11 @@ class ScanConfig(NamedTuple):
     fitted: np.array
     step_function: callable
     termination_level: float
+    bound_tolerance: float
 
 
-class ProfileInfo(NamedTuple):
+@dataclass
+class ProfileInfo:
     minimum_chi2: float
     profiled_parameter_index: int
     delta_chi2: float
@@ -246,14 +286,13 @@ def scan_dir_optimisation(
                 p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted
             )
 
-            if np.any(p_next > scan_config.upper_bounds) or np.any(
-                p_next < scan_config.lower_bounds
-            ):
-                raise RuntimeError(
-                    f"Optimization failed to stay in bound. Current parameter values: {p_next}. "
-                    f"Lower bound: {scan_config.lower_bounds}, upper bound: "
-                    f"{scan_config.upper_bounds}."
-                )
+            _validate_in_bound(
+                "Optimization failed to stay in bound.",
+                p_next,
+                scan_config.lower_bounds,
+                scan_config.upper_bounds,
+                scan_config.bound_tolerance,
+            )
 
         except (ValueError, RuntimeError) as exception:
             warn(
@@ -304,7 +343,53 @@ class ProfileLikelihood1D:
         termination_significance=0.99,
         confidence_level=0.95,
         num_dof=1,
+        bound_tolerance=0.0,
     ):
+        """Profile likelihood
+
+        This method traces an optimal path through parameter space in order to estimate parameter
+        confidence intervals. It iteratively performs a step for the profiled parameter, then
+        fixes that parameter and re-optimizes all the other parameters [1]_ [2]_.
+
+        Parameters
+        ----------
+        parameter_name : str
+            Name of the parameter to profile
+        min_step : float
+            Minimum step size, default: 1e-4
+        max_step : float
+            Maximum step size, default: 1.0
+        step_factor : float
+            Step factor. This is by what ratio the stepsize is increased when stepping too slow (low
+            increase in likelihood) or decreased when stepping too fast. Default: 2.0.
+        min_chi2_step : float
+            Minimum increase in chi-squared that we aim for in each step. Going below this limit
+            results in the step size being increased. Default: 0.05.
+        max_chi2_step : float
+            Maximum increase in chi-squared that we aim for in each step. Going above this limit
+            results in the step being rejected and the step size being decreased. Default: 0.5
+        termination_significance : float
+            At what significance level should the profiling terminate. Default: 0.99.
+        confidence_level : float
+            At which confidence level should the confidence interval be determined. Default: 0.95
+        num_dof : int
+            Number of degrees of freedom. Default: 1.
+        bound_tolerance : float
+            Bound tolerance. By default, the profiling procedure checks whether the solver stayed
+            within the user specified parameter bounds. The valid range specified here is given as
+            [lower_bnd - tol * max(1.0, abs(lower_bnd)), upper_bnd + tol * max(1.0, abs(upper_bnd))]
+            Default: 0.
+
+        References
+        ----------
+        .. [1] Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M., Klingmüller, U.,
+               & Timmer, J. (2009). Structural and practical identifiability analysis of partially
+               observed dynamical models by exploiting the profile likelihood. Bioinformatics,
+               25(15), 1923-1929.
+        .. [2] Maiwald, T., Hass, H., Steiert, B., Vanlier, J., Engesser, R., Raue, A., Kipkeew,
+               F., Bock, H.H., Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to
+               its limit: profile likelihood based model reduction. PloS one, 11(9).
+        """
         self.parameter_name = parameter_name
 
         # These are the user exposed options. They can be modified by the user in the struct if
@@ -318,6 +403,7 @@ class ProfileLikelihood1D:
             "termination_significance": termination_significance,
             "confidence_level": confidence_level,
             "num_dof": num_dof,
+            "bound_tolerance": bound_tolerance,
         }
 
         self.profile_info = None
@@ -374,6 +460,14 @@ class ProfileLikelihood1D:
                 f"{options['max_chi2_step']} and min_chi2_step={options['min_chi2_step']}."
             )
 
+        _validate_in_bound(
+            "Initial position was not in box constraints.",
+            parameters.values,
+            parameters.lower_bounds,
+            parameters.upper_bounds,
+            options["bound_tolerance"],
+        )
+
         self.profile_info = ProfileInfo(
             minimum_chi2=chi2_function(parameters.values),
             profiled_parameter_index=list(parameters.keys()).index(parameter_name),
@@ -420,6 +514,7 @@ class ProfileLikelihood1D:
             step_function=step_function,
             termination_level=self.profile_info.minimum_chi2
             + chi2.ppf(options["termination_significance"], options["num_dof"]),
+            bound_tolerance=options["bound_tolerance"],
         )
 
         def scan_direction(chi2_last, parameter_vector, step_sign, num_steps, verbose):
