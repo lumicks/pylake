@@ -5,7 +5,8 @@ import numpy as np
 from textwrap import dedent
 from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
-from lumicks.pylake.fitting.parameters import Parameter, Params
+from lumicks.pylake.fitting.parameters import Parameter
+from lumicks.pylake.fitting.profile_likelihood import _validate_in_bound
 
 
 def linear(x, a=1, b=1):
@@ -276,3 +277,35 @@ def test_bad_runtime_option_change():
     ):
         profile.options["min_chi2_step"] = 35
         profile.prepare_profile(chi2, fit._fit, fit.params, "model/a")
+
+    with pytest.raises(RuntimeError, match="Initial position was not in box constraints"):
+        fit.params["model/a"].value = 1000
+        fit.params["model/a"].upper_bound = 100
+        fit.profile_likelihood("model/a")
+
+
+@pytest.mark.parametrize("tol", [0, 1e-7])
+def test_fuzzy_bounds(tol):
+    param = np.array([1.0, 2.0])
+
+    # Absolute tolerance
+    _validate_in_bound("test", param, np.array([1.0, 0.0]), np.array([2.0, 2.0]), 0)
+    _validate_in_bound("test", param, np.array([1.0 + 1e-6, 0.0]), np.array([2.0, 2.0]), 1e-6)
+    with pytest.raises(RuntimeError, match="Param 0 was under limit"):
+        _validate_in_bound("test", param, np.array([1.0 + 1e-6, 0.0]), np.array([2.0, 2.0]), tol)
+
+    _validate_in_bound("test", param, np.array([0.0, 0.0]), np.array([2.0, 2.0]), 0)
+    _validate_in_bound("test", param, np.array([0.0, 0.0]), np.array([2.0, 2.0 - 1e-6]), 1e-6)
+    with pytest.raises(RuntimeError, match="Param 1 was over limit"):
+        _validate_in_bound("test", param, np.array([0.0, 0.0]), np.array([2.0, 2.0 - 1e-6]), tol)
+
+    # Relative tolerance
+    param = np.array([1.0e6, 2.0])
+    _validate_in_bound("test", param, np.array([1.0e6 + 1, 0.0]), np.array([2.0e6, 2.0]), 1e-6)
+    with pytest.raises(RuntimeError, match="Param 0 was under limit"):
+        _validate_in_bound("test", param, np.array([1.0e6 + 1, 0.0]), np.array([2.0e6, 2.0]), tol)
+
+    param = np.array([2.0e6 + 1, 2.0])
+    _validate_in_bound("test", param, np.array([1.0e6, 0.0]), np.array([2.0e6, 2.0]), 1e-6)
+    with pytest.raises(RuntimeError, match="Param 0 was over limit"):
+        _validate_in_bound("test", param, np.array([1.0e6, 0.0]), np.array([2.0e6, 2.0]), tol)
