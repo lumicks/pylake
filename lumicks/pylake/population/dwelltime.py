@@ -838,9 +838,9 @@ def _handle_amplitude_constraint(
 def _exponential_mle_bounds(n_components, min_observation_time, max_observation_time):
     return np.array(
         (
-            *[(1e-9, 1.0) for _ in range(n_components)],
+            *[(1e-9, 1.0 - 1e-9) for _ in range(n_components)],
             *[
-                (min_observation_time * 0.1, max_observation_time * 1.1)
+                (max(min_observation_time * 0.1, 1e-8), min(max_observation_time * 1.1, 1e8))
                 for _ in range(n_components)
             ],
         )
@@ -893,7 +893,8 @@ def _exponential_mle_optimize(
 
     if initial_guess is None:
         initial_guess_amplitudes = np.ones(n_components) / n_components
-        initial_guess_lifetimes = np.mean(t) * np.arange(1, n_components + 1)
+        fractions = np.arange(1, n_components + 1)
+        initial_guess_lifetimes = np.mean(t) * n_components * fractions / np.sum(fractions)
         initial_guess = np.hstack([initial_guess_amplitudes, initial_guess_lifetimes])
     else:
         # During optimization, we modify in-place, so we need to make sure that we make a copy

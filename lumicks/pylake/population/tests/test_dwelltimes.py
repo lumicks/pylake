@@ -306,7 +306,7 @@ def test_invalid_models():
         # Test "zero" parameters. Because we use a central differencing scheme for validating the
         # gradient we have to set the amplitude at least the finite differencing stepsize away
         # from the bound (otherwise we'd only observe half the gradient in the numerical scheme).
-        [[1e-5, 1.0, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        [[1e-4, 1.0, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
         # Zero lifetime is problematic because of all the reciprocals.
         [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
     ]
