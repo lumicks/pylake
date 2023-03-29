@@ -90,7 +90,6 @@ def test_bootstrap(exponential_data):
 
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
-@pytest.mark.filterwarnings("ignore:divide by zero encountered in log")
 def test_dwelltime_profiles(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)

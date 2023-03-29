@@ -14,6 +14,8 @@
 
 * Improve API description of the channel data in a default `FdCurve`.
 * Improved fitting performance dwell time analyses by implementing analytic gradient.
+* Added lower and upper bounds when fitting dwell time models. This prevents numerical issues that occur when approaching these extremes. Prior to this change, over-parameterized models could encounter numerical issues due to divisions by (near) zero. After this change, amplitudes are constrained to stay between `1e-9` and `1.0 - 1e-9`, while lifetimes are constrained to remain between `1e-8` and `1e8`.
+* Provided better initial guess for dwell time models with three or more components. Prior to this change, the dwelltime models involving three components or more would get an initial guess with an average lifetime beyond the mean of the observations.
 
 ## v1.0.0 | 2023-03-14
 
