@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from typing import Dict, Tuple, Union
 from scipy.special import logsumexp
@@ -452,9 +453,10 @@ class DwelltimeModel:
 
     .. warning::
 
-        This is early access alpha functionality. While usable, this has not yet been tested in a large number of
-        different scenarios. The API can still be subject to change without any prior deprecation notice! If you
-        use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
+        This is early access alpha functionality. While usable, this has not yet been tested in a
+        large number of different scenarios. The API can still be subject to change without any
+        prior deprecation notice! If you use this functionality keep a close eye on the changelog
+        for any changes that may affect your analysis.
 
     Parameters
     ----------
@@ -792,7 +794,7 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
         minimum and maximum observation time in seconds
     """
     amplitudes, lifetimes = np.reshape(params, (2, -1))
-    # We clip the amplitude under bound. An amplitude of 1e-14 is negligible.
+    # We clip the amplitude lower bound. An amplitude of 1e-14 is negligible.
     amplitudes = np.clip(amplitudes[:, np.newaxis], 1e-14, np.inf)
     lifetimes = lifetimes[:, np.newaxis]
     t = t[np.newaxis, :]
@@ -1069,15 +1071,24 @@ def _exponential_mle_optimize(
     if np.sum(fitted_param_mask) == 0:
         return initial_guess, -cost_fun([])
 
-    result = minimize(
-        cost_fun,
-        current_params[fitted_param_mask],
-        method="SLSQP",
-        constraints=constraints,
-        bounds=[bound for bound, fitted in zip(bounds, fitted_param_mask) if fitted],
-        options=options,
-        jac=jac_fun if use_jacobian else None,
-    )
+    # SLSQP is overly cautious when it comes to warning about bounds. The bound violations are
+    # typically on the order of 1-2 ULP for a float32 and do not matter for our problem. Initially
+    # they actually caused premature termination, but this was replaced with clipping and issuing a
+    # warning in PR #13009 on scipy. When converting the parameter value and bounds to float32 at
+    # the location of that check and using np.nextafter to move the parameter towards the inside
+    # of the bounds, and the bounds towards the outside of the numerical limits, then these
+    # warnings disappear.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Values in x were outside bounds")
+        result = minimize(
+            cost_fun,
+            current_params[fitted_param_mask],
+            method="SLSQP",
+            constraints=constraints,
+            bounds=[bound for bound, fitted in zip(bounds, fitted_param_mask) if fitted],
+            options=options,
+            jac=jac_fun if use_jacobian else None,
+        )
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood
     current_params[fitted_param_mask] = result.x
