@@ -14,7 +14,6 @@ from lumicks.pylake.population.dwelltime import (
 )
 
 
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_likelihood(exponential_data):
     # single exponential data
     dataset = exponential_data["dataset_1exp"]
@@ -31,7 +30,6 @@ def test_likelihood(exponential_data):
     np.testing.assert_allclose(fit.bic, 4429.232045925579, rtol=1e-5)
 
 
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_optim_options(exponential_data):
     dataset = exponential_data["dataset_1exp"]
 
@@ -42,7 +40,6 @@ def test_optim_options(exponential_data):
     np.testing.assert_allclose(fit.lifetimes, [1.382336], rtol=1e-5)
 
 
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_fit_parameters(exponential_data):
     # single exponential data
     dataset = exponential_data["dataset_1exp"]
@@ -60,7 +57,6 @@ def test_fit_parameters(exponential_data):
 
 
 @pytest.mark.slow
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_bootstrap(exponential_data):
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
@@ -88,7 +84,6 @@ def test_bootstrap(exponential_data):
 
 
 # TODO: remove with deprecation
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_empty_bootstrap(exponential_data):
     dataset = exponential_data["dataset_2exp"]
 
@@ -152,7 +147,6 @@ def test_dwellcounts_from_statepath():
     assert ranges == {}
 
 
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_plots(exponential_data):
     """Check if `DwelltimeModel` fits can be plotted without an exception"""
     dataset = exponential_data["dataset_2exp"]
@@ -167,7 +161,6 @@ def test_plots(exponential_data):
         bootstrap.plot()
 
 
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_invalid_bootstrap(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
