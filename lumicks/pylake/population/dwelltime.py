@@ -10,11 +10,216 @@ from lumicks.pylake.fitting.profile_likelihood import ProfileLikelihood1D
 
 
 @dataclass(frozen=True)
+class DwelltimeProfiles:
+    """Profile likelihoods for a dwelltime model.
+
+    .. important::
+
+        This class should be initialized using :meth:`lk.DwelltimeModel.profile_likelihood()
+        <lumicks.pylake.DwelltimeModel.profile_likelihood>` and should not be constructed manually.
+
+    .. warning::
+
+        This is early access alpha functionality. While usable, this has not yet been tested in a
+        large number of different scenarios. The API can still be subject to change without any
+        prior deprecation notice! If you use this functionality keep a close eye on the changelog
+        for any changes that may affect your analysis.
+
+    Attributes
+    ----------
+    model : DwelltimeModel
+        Model used to estimate profile likelihoods.
+    profiles : dict of :class:`~lumicks.pylake.fitting.profile_likelihood.ProfileLikelihood1D`
+        Dictionary of parameters with associated profiles.
+    """
+
+    model: "DwelltimeModel"
+    profiles: Dict[str, ProfileLikelihood1D]
+
+    @classmethod
+    def _from_dwelltime_model(
+        cls,
+        dwelltime_model,
+        *,
+        alpha,
+        num_steps,
+        min_chi2_step,
+        max_chi2_step,
+        verbose,
+    ):
+        """Calculate profile likelihoods for parameters of :class:`~lumicks.pylake.DwelltimeModel`.
+
+        See :meth:`~lumicks.pylake.DwelltimeModel.profile_likelihood` for more information.
+
+        Parameters
+        ----------
+        dwelltime_model : DwelltimeModel
+            Optimized model results
+        alpha : float
+            Significance level. Confidence intervals are calculated as 100*(1-alpha)%.
+        num_steps: integer
+            Number of steps to take.
+        min_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the
+            step results in a fit change smaller than this threshold, the step-size will be
+            increased.
+        max_chi2_step: float
+            Minimal desired step in terms of chi squared change prior to re-optimization. When the
+            step results in a fit change bigger than this threshold, the step-size will be reduced.
+        verbose: bool
+            Controls the verbosity of the output.
+        """
+
+        def model_func(params, fixed):
+            """Lower bound and upper bound are handled by _exponential_mle_optimize itself"""
+            return _exponential_mle_optimize(
+                dwelltime_model.n_components,
+                dwelltime_model.dwelltimes,
+                min_observation_time=dwelltime_model._observation_limits[0],
+                max_observation_time=dwelltime_model._observation_limits[1],
+                initial_guess=params,
+                options=dwelltime_model._optim_options,
+                fixed_param_mask=fixed,
+            )
+
+        def fit_func(params, lb, ub, fitted):
+            # Lower and upper bounds are handled by the model internally.
+            return model_func(params, np.logical_not(fitted))[0]
+
+        # Pack parameters
+        keys = [f"amplitude {idx}" for idx in range(dwelltime_model.n_components)] + [
+            f"lifetime {idx}" for idx in range(dwelltime_model.n_components)
+        ]
+        bounds = _exponential_mle_bounds(
+            dwelltime_model.n_components, *dwelltime_model._observation_limits
+        )
+        parameters = Params(
+            **{
+                key: Parameter(param, lower_bound=lb, upper_bound=ub)
+                for key, param, (lb, ub) in zip(keys, dwelltime_model._parameters, bounds)
+            }
+        )
+
+        def calculate_profile(param):
+            profile = ProfileLikelihood1D(
+                param,
+                num_dof=1,
+                min_chi2_step=min_chi2_step,
+                max_chi2_step=max_chi2_step,
+                confidence_level=1.0 - alpha,
+            )
+
+            def trial(params):
+                """Get log likelihood for particular parameter vector"""
+                # These dwelltime models are subject to internal constraints that are only ensured
+                # during optimization. This means that we have to call the optimization procedure
+                # with the parameter we're profiling held to a fixed value to obtain a value for the
+                # chi-squared function at the trial point.
+                fixed_params = [name == param for name in parameters.keys()]
+                return -model_func(params, fixed_params)[1]
+
+            profile._extend_profile(trial, fit_func, parameters, num_steps, True, verbose)
+            profile._extend_profile(trial, fit_func, parameters, num_steps, False, verbose)
+            return profile
+
+        profiles = DwelltimeProfiles(
+            dwelltime_model,
+            {
+                param: calculate_profile(param)
+                for param in ([keys[-1]] if dwelltime_model.n_components == 1 else keys)
+            },
+        )
+
+        return profiles
+
+    def __repr__(self):
+        return f"DwelltimeProfiles({repr(self.profiles)})"
+
+    def __getitem__(self, item):
+        return self.profiles[item]
+
+    def __iter__(self):
+        return self.profiles.__iter__()
+
+    def items(self):
+        return self.profiles.items()
+
+    def values(self):
+        return self.profiles.values()
+
+    def keys(self):
+        return self.profiles.keys()
+
+    def get(self, key, value=None):
+        return self.profiles.get(key, value)
+
+    def get_interval(self, key, component, alpha=None):
+        """Calculate confidence interval for a particular parameter.
+
+        Parameters
+        ----------
+        key : {'amplitude', 'lifetime'}
+            Name of the parameter to be analyzed
+        component : int
+            Index of the component to be analyzed
+        alpha : float, optional
+            Significance level. Confidence intervals are calculated as 100 * (1 - alpha)%.
+
+        Returns
+        -------
+        lower_bound : float, optional
+            Lower bound of the confidence interval.
+        upper_bound : float, optional
+            Upper bound of the confidence interval. If a bound cannot be determined (either due to
+            an insufficient number of steps or lack of information in the data, the bound is given
+            as `None`).
+        """
+        if key not in ("amplitude", "lifetime"):
+            raise KeyError("key must be either 'amplitude' or 'lifetime'")
+
+        param = f"{key} {component}"
+
+        # If we don't explicitly provide an alpha here, just use the ones we profiled with.
+        if alpha is None:
+            return (self.profiles[param].lower_bound, self.profiles[param].upper_bound)
+
+        return self.profiles[param].get_interval(alpha)
+
+    @property
+    def n_components(self):
+        """Number of components in the model."""
+        return self.model.n_components
+
+    def plot(self, alpha=None):
+        """Plot the profile likelihoods for the parameters of a model.
+
+        Confidence interval is indicated by the region where the profile crosses the chi squared
+        threshold.
+
+        Parameters
+        ----------
+        alpha : float, optional
+            Significance level. Confidence intervals are calculated as 100 * (1 - alpha)%. The
+            default value of `None` results in using the significance level applied when
+            profiling (default: 0.05).
+        """
+        if self.n_components == 1:
+            next(iter(self.profiles), significance_level=alpha).plot()
+        else:
+            plot_idx = np.reshape(np.arange(1, len(self.profiles) + 1), (-1, 2)).T.flatten()
+            for idx, profile in zip(plot_idx, self.profiles.values()):
+                plt.subplot(self.n_components, 2, idx)
+                profile.plot(significance_level=alpha)
+
+
+@dataclass(frozen=True)
 class DwelltimeBootstrap:
     """Bootstrap distributions for a dwelltime model.
 
-    This class should be initialized using :meth:`lk.DwelltimeModel.calculate_bootstrap()
-    <lumicks.pylake.DwelltimeModel.calculate_bootstrap>` and should not be constructed manually.
+    .. important::
+
+        This class should be initialized using :meth:`lk.DwelltimeModel.calculate_bootstrap()
+        <lumicks.pylake.DwelltimeModel.calculate_bootstrap>` and should not be constructed manually.
 
     .. warning::
 
@@ -60,7 +265,8 @@ class DwelltimeBootstrap:
 
     @classmethod
     def _from_dwelltime_model(cls, optimized, iterations):
-        """Construct bootstrap distributions for parameters from an optimized :class:`~lumicks.pylake.DwelltimeModel`.
+        """Construct bootstrap distributions for parameters from an optimized
+        :class:`~lumicks.pylake.DwelltimeModel`.
 
         For each iteration, a dataset is randomly selected (with replacement) with the same
         size as the data used to optimize the model. Model parameters are then optimized
@@ -398,13 +604,13 @@ class DwelltimeModel:
     def profile_likelihood(
         self,
         *,
-        confidence_level=0.95,
+        alpha=0.05,
         num_steps=150,
         min_chi2_step=0.01,
-        max_chi2_step=0.05,
+        max_chi2_step=0.1,
         verbose=False,
-    ) -> Dict[str, ProfileLikelihood1D]:
-        """Calculate a likelihood profile.
+    ) -> DwelltimeProfiles:
+        """Calculate likelihood profiles for this model.
 
         This method traces an optimal path through parameter space in order to estimate parameter
         confidence intervals. It iteratively performs a step for the profiled parameter, then
@@ -412,9 +618,10 @@ class DwelltimeModel:
 
         Parameters
         ----------
-        confidence_level : int
-            Confidence level to compute confidence interval for, default: 0.95.
-        num_steps: integer
+        alpha : float
+            Significance level. Confidence intervals are calculated as 100 * (1 - alpha)%,
+            default: 0.05
+        num_steps: int
             Number of steps to take, default: 150.
         min_chi2_step: float
             Minimal desired step in terms of chi squared change prior to re-optimization. When the
@@ -423,7 +630,7 @@ class DwelltimeModel:
         max_chi2_step: float
             Minimal desired step in terms of chi squared change prior to re-optimization. When the
             step results in a fit change bigger than this threshold, the step-size will be reduced.
-            Default: 0.05.
+            Default: 0.1.
         verbose: bool
             Controls the verbosity of the output. Default: False.
 
@@ -437,61 +644,14 @@ class DwelltimeModel:
                F., Bock, H.H., Kaschek, D., Kreutz, C. and Timmer, J., 2016. Driving the model to
                its limit: profile likelihood based model reduction. PloS one, 11(9).
         """
-
-        def model_func(params, fixed):
-            """Lower bound and upper bound are handled by _exponential_mle_optimize itself"""
-            return _exponential_mle_optimize(
-                self.n_components,
-                self.dwelltimes,
-                min_observation_time=self._observation_limits[0],
-                max_observation_time=self._observation_limits[1],
-                initial_guess=params,
-                options=self._optim_options,
-                fixed_param_mask=fixed,
-            )
-
-        def fit_func(params, lb, ub, fitted):
-            # Lower and upper bounds are handled by the model internally.
-            return model_func(params, np.logical_not(fitted))[0]
-
-        # Pack parameters
-        keys = [f"amplitude {idx}" for idx in range(self.n_components)] + [
-            f"lifetime {idx}" for idx in range(self.n_components)
-        ]
-        bounds = _exponential_mle_bounds(self.n_components, *self._observation_limits)
-        parameters = Params(
-            **{
-                key: Parameter(param, lower_bound=lb, upper_bound=ub)
-                for key, param, (lb, ub) in zip(keys, self._parameters, bounds)
-            }
+        return DwelltimeProfiles._from_dwelltime_model(
+            self,
+            alpha=alpha,
+            num_steps=num_steps,
+            min_chi2_step=min_chi2_step,
+            max_chi2_step=max_chi2_step,
+            verbose=verbose,
         )
-
-        def calculate_profile(param):
-            profile = ProfileLikelihood1D(
-                param,
-                num_dof=1,
-                min_chi2_step=min_chi2_step,
-                max_chi2_step=max_chi2_step,
-                confidence_level=confidence_level,
-            )
-
-            def trial(params):
-                """Get log likelihood for particular parameter vector"""
-                # These dwelltime models are subject to internal constraints that are only ensured
-                # during optimization. This means that we have to call the optimization procedure
-                # with the parameter we're profiling held to a fixed value to obtain a value for the
-                # chi-squared function at the trial point.
-                fixed_params = [name == param for name in parameters.keys()]
-                return -model_func(params, fixed_params)[1]
-
-            profile._extend_profile(trial, fit_func, parameters, num_steps, True, verbose)
-            profile._extend_profile(trial, fit_func, parameters, num_steps, False, verbose)
-            return profile
-
-        return {
-            param: calculate_profile(param)
-            for param in ([keys[-1]] if self.n_components == 1 else keys)
-        }
 
     def pdf(self, x):
         """Probability Distribution Function (states as rows).

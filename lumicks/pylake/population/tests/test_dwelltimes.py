@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import re
+import matplotlib.pyplot as plt
 
 from lumicks.pylake import DwelltimeModel
 from lumicks.pylake.population.dwelltime import (
@@ -93,15 +94,83 @@ def test_dwelltime_profiles(exponential_data):
 
     profiles = fit.profile_likelihood(max_chi2_step=0.25)
     reference_bounds = [
-        (0.27856180571381217, 0.6778544935946536),
-        (0.32214149274534964, 0.7214348170795223),
-        (0.9845032769688804, 2.1800140645034936),
-        (4.46449516635929, 7.154597435928374),
+        (("amplitude", 0), (0.27856180571381217, 0.6778544935946536)),
+        (("amplitude", 1), (0.32214149274534964, 0.7214348170795223)),
+        (("lifetime", 0), (0.9845032769688804, 2.1800140645034936)),
+        (("lifetime", 1), (4.46449516635929, 7.154597435928374)),
     ]
 
-    for profile, (lower_bound, upper_bound) in zip(profiles.values(), reference_bounds):
-        np.testing.assert_allclose(profile.lower_bound, lower_bound, rtol=1e-3)
-        np.testing.assert_allclose(profile.upper_bound, upper_bound, rtol=1e-3)
+    for (name, component), ref_interval in reference_bounds:
+        np.testing.assert_allclose(profiles.get_interval(name, component), ref_interval, rtol=1e-3)
+
+    # Re-interpolated confidence level (different significance level than originally profiled).
+    reference_bounds = [
+        (("amplitude", 0, 0.1), (0.306689101929755, 0.6422341656495031)),
+        (("amplitude", 1, 0.1), (0.3577572065740722, 0.6931158491955579)),
+        (("lifetime", 0, 0.1), (1.0609315961590462, 2.0595268935375497)),
+        (("lifetime", 1, 0.1), (4.598956971935465, 6.800809271638815)),
+    ]
+    for (name, component, significance), ref_interval in reference_bounds:
+        np.testing.assert_allclose(
+            profiles.get_interval(name, component, significance), ref_interval, rtol=1e-3
+        )
+
+    # Significance level cannot be chosen lower than what we profiled.
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Significance level (0.001) cannot be chosen lower or equal than the minimum profiled "
+            "level (0.01)."
+        )
+    ):
+        profiles.get_interval("amplitude", 0, 0.001)
+
+
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+@pytest.mark.filterwarnings("ignore:divide by zero encountered")
+@pytest.mark.filterwarnings("ignore:invalid value encountered")
+def test_dwelltime_profile_plots():
+    """Verify that the threshold moves appropriately"""
+    fit = DwelltimeModel(
+        np.array([10.0, 5.0, 4.0, 3.0, 3.0, 2.0, 2.0, 1.0]),
+        2,
+        min_observation_time=1e-4,
+        max_observation_time=1e4,
+    )
+    profiles = fit.profile_likelihood(num_steps=2)  # Keep it short
+    plt.close('all')
+    profiles.plot()
+    np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 22.415292)
+
+    plt.close('all')
+    profiles.plot(alpha=0.5)
+    np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 19.02877)
+
+
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
+@pytest.mark.filterwarnings("ignore:divide by zero encountered in log")
+def test_dwelltime_profiles_dunders(exponential_data):
+    dataset = exponential_data["dataset_2exp"]
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
+    profiles = fit.profile_likelihood(num_steps=2)  # Keep it short
+
+    # Only check the first part of the repr, since the memory addresses change
+    assert repr(profiles).startswith(
+        r"DwelltimeProfiles({'amplitude 0': <lumicks.pylake.fitting.profile_likelihood"
+    )
+
+    ref_keys = ['amplitude 0', 'amplitude 1', 'lifetime 0', 'lifetime 1']
+    for key, ref_key in zip(profiles.keys(), ref_keys):
+        assert key == ref_key
+        assert profiles[key] is profiles.profiles[key]
+        assert profiles.get(key) is profiles.profiles.get(key)
+
+    # Uses __iter__
+    for key, ref_key in zip(list(profiles), ref_keys):
+        assert key == ref_key
+
+    for value, ref_value in zip(profiles.values(), profiles.profiles.values()):
+        assert value is ref_value
 
 
 # TODO: remove with deprecation

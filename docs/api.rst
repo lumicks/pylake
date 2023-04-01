@@ -127,6 +127,7 @@ Population Dynamics
     GaussianMixtureModel
     DwelltimeModel
     population.dwelltime.DwelltimeBootstrap
+    population.dwelltime.DwelltimeProfiles
 
 Piezo tracking
 --------------
