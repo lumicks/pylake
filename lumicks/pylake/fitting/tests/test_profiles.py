@@ -1,5 +1,6 @@
 import warnings
 import pytest
+import re
 import numpy as np
 from textwrap import dedent
 from lumicks.pylake.fitting.fit import Fit
@@ -87,6 +88,32 @@ def test_confidence_intervals():
         validate_profile(
             "linear", linear, linear_jac, x, y, "d", 5, 2.6713088215948138, 5.096607466976615
         )
+
+
+def test_get_get_interval():
+    y = [8.24869073, 7.77648717, 11.9436565, 14.85406276, 22.73081526, 20.39692261, 32.48962353]
+    fit = Fit(Model("linear", linear, jacobian=linear_jac))
+    fit._add_data("data", np.arange(len(y)), y)
+    fit.fit()
+    profile = fit.profile_likelihood(
+        "linear/a",
+        termination_significance=0.95,
+        confidence_level=0.9,
+        max_step=0.01,
+    )
+    np.testing.assert_allclose(profile.get_interval(0.1), profile.get_interval())
+    np.testing.assert_allclose(profile.get_interval(0.1), (2.865269, 4.902647), rtol=1e-4)
+    np.testing.assert_allclose(profile.get_interval(0.2), (3.0904, 4.677516), rtol=1e-4)
+    np.testing.assert_allclose(profile.get_interval(0.051), (2.675281, 5.092636), rtol=1e-4)
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            r"Significance level (0.02) cannot be chosen lower or equal than the "
+            r"minimum profiled level (0.05)"
+        )
+    ):
+        profile.get_interval(0.02)
 
 
 def test_non_identifiability():

@@ -1,6 +1,6 @@
 from scipy.stats import chi2
 import numpy as np
-from typing import NamedTuple
+from typing import NamedTuple, Tuple, Optional
 import matplotlib.pyplot as plt
 from warnings import warn
 import enum
@@ -469,6 +469,52 @@ class ProfileLikelihood1D:
         p_index = self.profile_info.profiled_parameter_index
         return find_crossing(self._parameters["fwd"][:, p_index], self._chi2["fwd"], cutoff)
 
+    def get_interval(self, significance_level=None) -> Tuple[Optional[float], Optional[float]]:
+        """Calculate confidence interval at a particular significance level
+
+        Parameter
+        ---------
+        significance level : float
+            Desired significance level (resulting in a 100 * (1 - alpha)% confidence interval).
+            If omitted, the value specified when creating the profile is used.
+
+        Returns
+        -------
+        lower_bound : float, optional
+            Lower bound of the confidence interval.
+        upper_bound : float, optional
+            Upper bound of the confidence interval. If a bound cannot be determined (either due to
+            an insufficient number of steps or lack of information in the data, the bound is given
+            as `None`).
+
+        Raises
+        ------
+        RuntimeError
+            If significance level is chosen higher than the termination level of the profile.
+        """
+        profiled_level = 1.0 - self.options["termination_significance"]
+        significance_level = (
+            significance_level
+            if significance_level is not None
+            else 1.0 - self.options["confidence_level"]
+        )
+
+        if significance_level <= profiled_level:
+            raise RuntimeError(
+                f"Significance level ({significance_level}) cannot be chosen lower or equal than "
+                f"the minimum profiled level ({profiled_level:.2f})."
+            )
+
+        cutoff = self.profile_info.minimum_chi2 + chi2.ppf(
+            1.0 - significance_level, self.options["num_dof"]
+        )
+
+        p_index = self.profile_info.profiled_parameter_index
+        return (
+            find_crossing(self._parameters["bwd"][:, p_index], self._chi2["bwd"], cutoff),
+            find_crossing(self._parameters["fwd"][:, p_index], self._chi2["fwd"], cutoff),
+        )
+
     @property
     def parameters(self):
         return np.vstack((np.flipud(self._parameters["bwd"]), self._parameters["fwd"]))
@@ -481,25 +527,40 @@ class ProfileLikelihood1D:
     def p(self):
         return self.parameters[:, self.profile_info.profiled_parameter_index]
 
-    def plot(self, **kwargs):
+    def plot(self, *, significance_level=None, **kwargs):
+        """Plot profile likelihood
+
+        Parameters
+        ----------
+        significance_level : float, optional
+            Desired significance level  (resulting in a 100 * (1 - alpha)% confidence interval) to
+            plot. Default is the significance level specified when the profile was generated.
+        """
         dash_length = 5
         plt.plot(self.p, self.chi2, **kwargs)
-        confidence_chi2 = self.profile_info.minimum_chi2 + self.profile_info.delta_chi2
+
+        confidence_coefficient = (
+            1.0 - significance_level
+            if significance_level is not None
+            else self.profile_info.confidence_level
+        )
+        delta_chi2 = chi2.ppf(confidence_coefficient, self.options["num_dof"])
+        confidence_chi2 = self.profile_info.minimum_chi2 + delta_chi2
         plt.axhline(y=confidence_chi2, linewidth=1, color="k", dashes=[dash_length, dash_length])
 
-        ci_min, ci_max = self.lower_bound, self.upper_bound
+        ci_min, ci_max = self.get_interval(significance_level)
         if ci_min:
             plt.axvline(x=ci_min, linewidth=1, color="k", dashes=[dash_length, dash_length])
         if ci_max:
             plt.axvline(x=ci_max, linewidth=1, color="k", dashes=[dash_length, dash_length])
 
-        plt.text(min(self.p), confidence_chi2, f"{self.profile_info.confidence_level * 100}%")
+        plt.text(min(self.p), confidence_chi2, f"{confidence_coefficient * 100}%")
         plt.ylabel("$\\chi^2$")
         plt.xlabel(self.parameter_name)
         plt.ylim(
             [
-                self.profile_info.minimum_chi2 - 0.1 * self.profile_info.delta_chi2,
-                self.profile_info.minimum_chi2 + 1.1 * self.profile_info.delta_chi2,
+                self.profile_info.minimum_chi2 - 0.1 * delta_chi2,
+                self.profile_info.minimum_chi2 + 1.1 * delta_chi2,
             ]
         )
 
