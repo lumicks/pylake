@@ -5,7 +5,30 @@ Force Calibration
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
-Force calibration refers to computing the conversion factors needed to convert the raw voltages recorded by the position sensitive detectors to actual forces and displacements.
+Why is force calibration necessary?
+-----------------------------------
+
+Optical tweezers typically measure forces and displacements by detecting deflections of a trapping laser by a trapped bead.
+These deflections are measured at the back focal plane of the beam using position sensitive detectors (PSDs).
+
+.. image:: figures/back_focal.png
+  :nbattach:
+
+For small displacements :math:`x` of the bead from the center of the trap, the relation between the force :math:`F` pulling the bead back towards the center and the displacement can be assumed linear:
+
+.. math::
+
+    x = R_d V
+
+and
+
+.. math::
+
+    F = R_f V
+
+Where :math:`V` is the position-dependent voltage signal from the PSD and :math:`R_d` and :math:`R_f` are the displacement and force sensitivity proportionality constants, respectively.
+Force calibration refers to computing these conversion factors.
+
 Several methods exist to calibrate optical traps based on sensor signals.
 In this section, we will provide an overview of the physical background of power spectral calibration.
 
@@ -17,9 +40,26 @@ Neglecting hydrodynamic and inertial effects (more on this later), we obtain the
 
 .. math::
 
-    \dot{x} = \sqrt{2D} \xi (t) \tag{$\mathrm{m/s}$}
+    \dot{x} = \frac{1}{\gamma} F_{thermal}(t)
 
-Here :math:`x` represents the time-dependent position of the bead, :math:`\dot{x}` is the first derivative with respect to time, :math:`D` is the diffusion constant and :math:`\xi(t)` is normalized white noise.
+where :math:`x` is the time-dependent position of the bead, :math:`\dot{x}` is the first derivative with respect to time, :math:`\gamma`  is the drag coefficient and :math:`F_{thermal}(t)` is the thermal force driving the diffusion.
+This thermal force is assumed to have the statistical properties of uncorrelated white noise:
+
+.. math::
+
+    F_{thermal}(t) = \sqrt{2 \gamma k_B T} \xi(t)
+
+where :math:`k_B` is the Boltzmann constant, :math:`T` is the absolute temperature, and :math:`\xi(t)` is normalized white noise.
+
+We can rewrite this in terms of the diffusion constant by using Einstein's relation :math:`D = k_B T / \gamma`:
+
+.. math::
+
+    \dot{x} = \frac{1}{\gamma} \sqrt{2 \gamma^2 D} \xi(t) = \sqrt{2D} \xi (t) \tag{$\mathrm{m/s}$}
+
+with the diffusion constant :math:`D`.
+Note how this constant depends on the drag coefficient.
+
 The expected power spectrum of such free diffusion is given by the following equation:
 
 .. math::
@@ -102,7 +142,7 @@ The real and imaginary part of the frequency spectrum are normally distributed.
 As a consequence, the squared magnitude of the power spectrum is exponentially distributed.
 This has two consequences:
 
-- Fitting the power spectral values directly using a simple least squares fitting routine, we would get very biased estimates.
+- Fitting the power spectral values directly using a simple least squares fitting routine, we would get very biased estimates. These estimates would overestimate the plateau and corner frequency, resulting in overestimated trap stiffness and force response and an underestimated distance response.
 - The signal to noise ratio is poor (equal to one :cite:`norrelykke2010power`).
 
 A commonly used method for dealing with this involves data averaging, which trades resolution for an improved signal to noise ratio.
@@ -117,6 +157,7 @@ We use the blocking method for spectral averaging, since this allows us to rejec
 Note however, that the error incurred by this blocking procedure depends on :math:`n_b`, the number of points per block, :math:`\Delta f`, the spectral resolution and inversely on the corner frequency :cite:`berg2004power`.
 
 Setting the number of points per block too low would result in a bias from insufficient averaging :cite:`berg2004power`.
+Insufficient averaging would result in an overestimation of the force response (:math:`R_f`) and an underestimation of the distance response (:math:`R_d`).
 In practice, one should use a high number of points per block (:math:`n_b \gg 100`), unless a very low corner frequency precludes this.
 In such cases, it is preferable to increase the measurement time.
 
@@ -165,7 +206,13 @@ Here :math:`k_B` is the Boltzmann constant and :math:`T` is the local temperatur
 
     R_d = \sqrt{\frac{D_\mathrm{physical}}{D_\mathrm{measured}}} \tag{$\mathrm{m/V}$}
 
-Both of these quantities depend on the parameter :math:`\gamma_0`, which corresponds to the drag coefficient of a sphere and is given by:
+The force response :math:`R_f` can then be computed as:
+
+.. math::
+
+    R_f = \kappa R_d \tag{$\mathrm{N/V}$}
+
+All three of these quantities depend on the parameter :math:`\gamma_0`, which corresponds to the drag coefficient of a sphere and is given by:
 
 .. math::
 
@@ -225,6 +272,7 @@ Where :math:`\delta = R \sqrt{\frac{f_{\nu}}{f}}` represents the aforementioned 
 
 While these models may look daunting, they are all available in Pylake and can be used by simply providing a few additional arguments to the :class:`~.PassiveCalibrationModel`.
 It is recommended to use these equations when less than 10% systematic error is desired :cite:`tolic2006calibration`.
+No general statement can be made regarding the accuracy that can be achieved with the simple Lorentzian model, nor the direction of the systematic error, as it depends on several physical parameters involved in calibration :cite:`tolic2006calibration,berg2006power`.
 
 The figure below shows the difference between the hydrodynamically correct model (solid lines) and the idealized Lorentzian model (dashed lines) for various bead sizes.
 It can be seen that for large bead sizes and higher trap powers the differences can be substantial.
@@ -240,16 +288,30 @@ Faxen's law
 -----------
 
 The hydrodynamically correct model presented in the previous section works well when the bead center is at least 1.5 times the radius above the surface.
+When moving closer than this limit, we fall back to a model that more accurately describes the change in drag at low frequencies, but neglects the frequency dependent effects.
 
-Moving closer than this limit, we fall back to a model that more accurately describes the change in drag at low frequencies, but neglects the frequency dependent effects.
-The model that we use in this case is Faxen’s law for the approximate drag on a sphere near a surface under creeping flow conditions.
-For lateral calibration, the following approximation is typically used :cite:`schaffer2007surface`:
+To understand why, let's introduce Faxen's approximation for drag on a sphere near a surface under creeping flow conditions.
+This model is used for lateral calibration very close to a surface :cite:`schaffer2007surface` and is given by the following equation:
 
 .. math::
 
     \gamma_\mathrm{faxen}(R/l) = \frac{\gamma_0}{
         1 - \frac{9R}{16l} + \frac{1R^3}{8l^3} - \frac{45R^4}{256l^4} - \frac{1R^5}{16l^5}
     } \tag{$\mathrm{kg/s}$}
+
+At frequency zero, the frequency dependent model used in the previous section reproduces this model up to and including its second order term in :math:`R/l`.
+It is, however, a lower order model and the accuracy decreases rapidly as the distance between the bead and surface become very small.
+The figure below shows how the model predictions at frequency zero deviate strongly from the higher order model:
+
+.. image:: figures/freq_dependent_drag_zero.png
+  :nbattach:
+
+In addition, the deviation from a Lorentzian due to the frequency dependence of the drag is reduced upon approaching a surface :cite:`schaffer2007surface`.
+
+.. image:: figures/freq_dependence_near.png
+  :nbattach:
+
+These two aspects make using Faxen's law in combination with a Lorentzian a more suitable model for situations where we have to calibrate extremely close to the surface.
 
 Axial Calibration
 -----------------
@@ -293,7 +355,7 @@ This theoretical drag coefficient depends on parameters that are only known with
 - The dynamic viscosity :math:`\eta` in Pascal seconds.
 - The distance to the surface :math:`h` in microns.
 
-This viscosity in turn depends strongly on the local temperature around the bead, which is typically poorly known.
+This viscosity in turn depends strongly on the local temperature around the bead, which depends on several physical parameters (e.g. the power of the trapping laser, the buffer medium, the bead size and material) and is typically poorly known.
 
 During active calibration, the trap or nanostage is oscillated sinusoidally.
 These oscillations result in a driving peak in the force spectrum.
