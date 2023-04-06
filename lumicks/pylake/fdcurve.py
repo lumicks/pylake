@@ -12,11 +12,31 @@ FdSlice = namedtuple("FdSlice", "f d")
 
 
 class FdCurve(DownsampledFD):
-    """An FD curve exported from Bluelake
+    r"""An FD curve exported from Bluelake
 
     By default, the primary force and distance channels are `downsampled_force2`
     and `distance1`. Alternatives can be selected using :func:`FdCurve.with_channels()`.
     Note that it does not modify the FD curve in place but returns a copy.
+
+    Note
+    ----
+    The default channel `downsampled_force2` is the total force on trap 2, e.g.
+    :math:`\sqrt{F_{2, x}^2 + F_{2, y}^2}`
+
+    Examples
+    --------
+    ::
+
+        import lumicks.pylake as lk
+        f = lk.File("fdcurves.h5")
+
+        # Show FdCurve "1"
+        fd_curve = f.fdcurves["1"]
+        fd_curve.plot()
+
+        # Make a new F,d curve based on the `start` and `stop` time of FdCurve "1", but only include
+        # the x-component of the force on trap 2
+        fd_curve = fd_curve.with_channels("2x", distance="1")
 
     Attributes
     ----------
@@ -206,7 +226,33 @@ class FdCurve(DownsampledFD):
         return FdSlice(f[valid_idx], d[valid_idx])
 
     def with_channels(self, force, distance):
-        """Return a copy of this FD curve with difference primary force and distance channels"""
+        r"""Return a copy of this FD curve with different primary force and distance channels
+
+        Parameters
+        ----------
+        force : str
+            Force channel to use (i.e. "1", "2", "1x", "1y").
+        distance : str
+            Distance channel to use (i.e. "1", "2").
+
+        Returns
+        -------
+        FdCurve
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+            f = lk.File("fdcurves.h5")
+
+            # Grab the FdCurve with the name "1"
+            fd_curve = f.fdcurves["1"]
+
+            # Make a new F,d curve based on the start and stop time of FdCurve "1" but only include
+            # the x-component of the force on trap 2
+            fd_curve = fd_curve.with_channels("2x", distance="1")
+        """
         new_fd = copy(self)
         new_fd._primary_force_channel = force
         new_fd._primary_distance_channel = distance
