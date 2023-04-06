@@ -16,7 +16,6 @@ Once we have the data, we can load the HDF5 file and list all FD curves inside t
     >>> list(file.fdcurves)
     ['FD_5_control_forw']
 
-
 To visualizes an FD curve, you can use the built-in :meth:`.plot_scatter()
 <lumicks.pylake.fdcurve.FdCurve.plot_scatter()>` method::
 
@@ -27,8 +26,14 @@ To visualizes an FD curve, you can use the built-in :meth:`.plot_scatter()
 
 .. image:: figures/fdcurves/fdcurves_scatter.png
 
-Here, :attr:`.fdcurves <lumicks.pylake.File.fdcurves>` is a standard Python dictionary, so we can
-do all the things you can do with a regular dictionary. For example, we can iterate over all the FD curves in a file and plot them::
+An :class:`~lumicks.pylake.fdcurve.FdCurve` slices some force and distance data from the timeline data.
+You can find the range it uses for slicing in its :attr:`~lumicks.pylake.fdcurve.start` and :attr:`~lumicks.pylake.fdcurve.stop` property::
+
+    >>> all(file.downsampled_force2[fd.start:fd.stop].data == fd.f.data)
+    True
+
+The attribute :attr:`.fdcurves <lumicks.pylake.File.fdcurves>` is a standard Python dictionary, so we can do all the things you can do with a regular dictionary.
+For example, we can iterate over all the FD curves in a file and plot them::
 
     plt.figure()
     for name, fd in file.fdcurves.items():
@@ -40,6 +45,12 @@ do all the things you can do with a regular dictionary. For example, we can iter
 By default, the FD channel pair is `downsampled_force2` and `distance1`.
 This assumes that the force extension was done by moving trap 1, which is the most common.
 In that situation the force measured by trap 2 is more precise because that trap is static.
+
+.. note::
+
+    The default force channel used by an :class:`~lumicks.pylake.fdcurve.FdCurve` is `downsampled_force2`.
+    Channel names without a suffix represent a total force, e.g. :math:`\sqrt{F_{2, x}^2 + F_{2, y}^2}`.
+
 The channels can be switched with the following code::
 
     plt.figure()
