@@ -687,7 +687,10 @@ def marko_siggia_ewlc_distance(name):
 
 
 @deprecated(
-    reason=("This function will be removed in a future release. Use `wlc_force('name')` instead."),
+    reason=(
+        "This function will be removed in a future release. Use `wlc_marko_siggia_force('name')` "
+        "instead."
+    ),
     action="always",
     version="0.13.2",
 )
@@ -711,7 +714,8 @@ def marko_siggia_simplified(name):
 
 @deprecated(
     reason=(
-        "This function will be removed in a future release. Use `wlc_distance('name')` instead."
+        "This function will be removed in a future release. Use "
+        "`wlc_marko_siggia_distance('name')` instead."
     ),
     action="always",
     version="0.13.2",
