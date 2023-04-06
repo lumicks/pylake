@@ -36,7 +36,7 @@ Download the kymograph data
 
 The kymograph data is stored on Zenodo, a general-purpose open-access repository developed under the European OpenAIRE program and operated by CERN.
 Zenodo allows researchers to deposit data sets, research software, reports, and any other research related digital artifacts and allows them to be referenced by a Digital Object Identifier (DOI).
-We can download the kymograph we need directly from Zenodo using Pylake.
+We can download the kymograph we need directly from Zenodo using the function :func:`~lumicks.pylake.download_from_doi`.
 Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
 
     filenames = lk.download_from_doi("10.5281/zenodo.4247279", "test_data")
@@ -100,7 +100,8 @@ This will provide us with a view of the kymograph and some dials to tune in algo
 custom `axis_aspect_ratio` which determines our field of view. This input is not necessary, but provides a better
 view of our data.
 
-We will be using the greedy algorithm. The `threshold` should typically be chosen somewhere between the expected
+We will be using the greedy algorithm. For more information on how it works, please refer to the :ref:`Pylake kymotracking tutorial<track_greedy>`.
+The `threshold` should typically be chosen somewhere between the expected
 baseline photon count and the photon count of a true track (note that you can see the local photon count between square
 brackets while hovering over the kymograph). The `track width` should roughly be set to the expected spot size (in the spatial dimension) of a
 track. The `window` should be chosen such that small gaps in a track can be overcome, but not so large that spurious
@@ -144,7 +145,7 @@ bead. This binding should be omitted from the analysis::
 
 .. image:: kymowidget.png
 
-One last thing to note is that we assigned the `KymoWidgetGreedy` to the variable `kymowidget`. That means that from
+One last thing to note is that we assigned the :class:`~lumicks.pylake.nb_widgets.kymotracker_widgets.KymoWidgetGreedy` to the variable `kymowidget`. That means that from
 this point on, we can interact with it through the handle name `kymowidget`.
 
 Exporting from the widget results in a file that contains the track coordinates in pixels and real units.
@@ -156,9 +157,9 @@ This sums the photon counts from `pixel_position - sampling_width` to (and inclu
 Analyzing the results
 ---------------------
 
-The tracks are available in `kymowidget.tracks`, which returns a `KymoTrackGroup` object. The group is a customized list of :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` objects
-which contain lists of position and time coordinates for each tracked particle. These can be accessed with the `KymoTrack.position` and
-`KymoTrack.seconds` properties, respectively. Let's grab the longest track we found, and have a look at its position over time::
+The tracks are available from the :attr:`~lumicks.pylake.nb_widgets.KymoWidgetGreedy.tracks` property, which returns a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` object.
+This is a customized list of :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` objects which in turn contain lists of position and time coordinates for each tracked particle.
+These coordinates can be accessed with the :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.position` and :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.seconds` properties, respectively. Let's grab the longest track we found, and have a look at its position over time::
 
     lengths = [len(track) for track in kymowidget.tracks]
 
@@ -219,7 +220,7 @@ compare them to the force::
 
 However, what we wanted to know was how the force affects initiation. To determine this, we will need to know the force
 at which events were started. To do this, we compare the `track_start_time` we just computed to the time in the force
-channel. What we want is the index with the smallest distance to our track start time. We can use `np.argmin()` for
+channel. What we want is the index with the smallest distance to our track start time. We can use :func:`numpy.argmin()` for
 this, which will return the index of the minimum value in a list. Once we have the index, we can quickly look up the
 force for each track start position::
 

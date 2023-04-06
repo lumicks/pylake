@@ -398,6 +398,8 @@ by passing a width in pixels to sum counts over::
 How the algorithms work
 -----------------------
 
+.. _track_greedy:
+
 `track_greedy`
 ^^^^^^^^^^^^^^
 
