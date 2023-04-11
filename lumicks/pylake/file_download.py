@@ -80,8 +80,13 @@ def verify_hash(file_name, algorithm, reference_hash, chunk_size=65536):
 
 
 def download_from_doi(doi, target_path="", force_download=False, show_progress=True):
-    """Download files from a Zenodo DOI (i.e. 10.5281/zenodo.#######) and returns a file list in the
-    form of a List[str].
+    """Download files from a Zenodo DOI (i.e. 10.5281/zenodo.#######)
+
+    Note
+    ----
+    This function will not re-download files that have already been downloaded. You can therefore
+    safely use it at the start of a notebook or script without worrying that it will download
+    files unnecessarily.
 
     Parameters
     ----------
@@ -95,6 +100,11 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
         a freshly downloaded copy.
     show_progress : bool
         Show a progress bar while downloading.
+
+    Returns
+    -------
+    list of str
+        List of downloaded file names.
     """
     url = get_url_from_doi(doi)
 
