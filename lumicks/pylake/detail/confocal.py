@@ -274,10 +274,7 @@ class ConfocalImage(BaseScan, TiffExport):
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _image(self, channel) -> np.ndarray:
-        """Returns a reconstructed image.
-
-        Warning: Do *not* modify or return this image without making a copy, as it will return a
-        reference to the cached image, which makes the `ConfocalImage` mutable.
+        """Returns a (read-only) reconstructed image.
 
         Parameters
         ----------
@@ -287,14 +284,14 @@ class ConfocalImage(BaseScan, TiffExport):
         if channel not in ("red", "green", "blue"):
             raise ValueError(f'Channel must be "red", "green" or "blue", got "{channel}".')
 
-        return self._image_factory(self, channel)
+        image = self._image_factory(self, channel)
+        image.flags.writeable = False
+
+        return image
 
     @cachetools.cachedmethod(lambda self: self._cache)
     def _timestamps(self, channel, reduce=timestamp_mean) -> np.ndarray:
-        """Returns reconstructed timestamps.
-
-        Warning: Do *not* modify or return this image without making a copy, as it will return a
-        reference to the cached image, which makes the `ConfocalImage` scan mutable.
+        """Returns (read-only) reconstructed timestamps.
 
         Parameters
         ----------
@@ -306,7 +303,10 @@ class ConfocalImage(BaseScan, TiffExport):
         if channel != "timestamps":
             raise ValueError(f'channel must be "timestamps", got "{channel}"')
 
-        return self._timestamp_factory(self, reduce)
+        timestamps = self._timestamp_factory(self, reduce)
+        timestamps.flags.writeable = False
+
+        return timestamps
 
     def _get_plot_data(self, channel, adjustment=no_adjustment, frame=None):
         """Get image data for plotting requested channel.
@@ -428,7 +428,7 @@ class ConfocalImage(BaseScan, TiffExport):
         The returned array has the same shape as the `{color}_image` arrays. Timestamps are defined
         at the mean of the timestamps.
         """
-        return np.copy(self._timestamps("timestamps"))
+        return self._timestamps("timestamps")
 
     @property
     def pixelsize_um(self):
@@ -460,4 +460,4 @@ class ConfocalImage(BaseScan, TiffExport):
             return np.stack([self.get_image(color) for color in ("red", "green", "blue")], axis=-1)
         else:
             # Make sure we don't return a reference to our cache
-            return np.copy(self._image(channel))
+            return self._image(channel)
