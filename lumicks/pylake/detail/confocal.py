@@ -273,14 +273,40 @@ class ConfocalImage(BaseScan, TiffExport):
         raise NotImplementedError
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _image(self, channel):
-        assert channel in ("red", "green", "blue")
-        return self._image_factory(self, channel)
+    def _image(self, channel) -> np.ndarray:
+        """Returns a (read-only) reconstructed image.
+
+        Parameters
+        ----------
+        channel : str
+            Channel to return. Must be "red", "green" or "blue".
+        """
+        if channel not in ("red", "green", "blue"):
+            raise ValueError(f'Channel must be "red", "green" or "blue", got "{channel}".')
+
+        image = self._image_factory(self, channel)
+        image.flags.writeable = False
+
+        return image
 
     @cachetools.cachedmethod(lambda self: self._cache)
-    def _timestamps(self, channel, reduce=timestamp_mean):
-        assert channel == "timestamps"
-        return self._timestamp_factory(self, reduce)
+    def _timestamps(self, channel, reduce=timestamp_mean) -> np.ndarray:
+        """Returns (read-only) reconstructed timestamps.
+
+        Parameters
+        ----------
+        channel : str
+            Must be "timestamps".
+        reduce : callable
+            Function to reduce sample timestamps into aggregate timestamps.
+        """
+        if channel != "timestamps":
+            raise ValueError(f'channel must be "timestamps", got "{channel}"')
+
+        timestamps = self._timestamp_factory(self, reduce)
+        timestamps.flags.writeable = False
+
+        return timestamps
 
     def _get_plot_data(self, channel, adjustment=no_adjustment, frame=None):
         """Get image data for plotting requested channel.
