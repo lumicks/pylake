@@ -111,11 +111,15 @@ def test_scanmetadata_from_json(axes, shape, pixel_sizes_nm, scan_order):
 def test_immutable_returns(item, has_timestamps):
     """Ensure that users cannot modify data in the cache."""
     red = item.get_image("red")
-    red[2, 2] = 100
+
+    with pytest.raises(ValueError, match="assignment destination is read-only"):
+        red[2, 2] = 100
     assert item.get_image("red")[2, 2] == 1
 
     if has_timestamps:
         ts = item.timestamps
         ref_ts = ts[2, 2]
-        ts[2, 2] = 100
+
+        with pytest.raises(ValueError, match="assignment destination is read-only"):
+            ts[2, 2] = 100
         assert item.timestamps[2, 2] == ref_ts

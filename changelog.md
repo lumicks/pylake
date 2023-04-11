@@ -4,7 +4,7 @@
 
 #### Bug fixes
 
-* Fixed bug that could lead to mutability of `Kymo` and `Scan` through `.get_image()` or `.timestamps`. This bug was introduced in `0.7.2`. Grabbing a single color image from a `Scan` or `Kymo` using `.get_image()` returned a reference to an internal image cache. This means that modifying data in the returned image would result in future calls to `.get_image()` returning the modified data rather than the original `Kymo` or `Scan` image. Timestamps obtained from `.timestamps` were similarly affected.
+* Fixed bug that could lead to mutability of `Kymo` and `Scan` through `.get_image()` or `.timestamps`. This bug was introduced in `0.7.2`. Grabbing a single color image from a `Scan` or `Kymo` using `.get_image()` returns a reference to an internal image cache. This numpy array was write-able and modifying data in the returned image would result in future calls to `.get_image()` returning the modified data rather than the original `Kymo` or `Scan` image. Timestamps obtained from `.timestamps` were similarly affected. These arrays are now returned non-writeable.
 
 ## v1.0.0 | 2023-03-14
 
