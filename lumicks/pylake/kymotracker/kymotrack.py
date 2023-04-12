@@ -218,7 +218,10 @@ class KymoTrack:
 
     @property
     def coordinate_idx(self):
-        """Return spatial coordinates in units of pixels."""
+        """Return spatial coordinates in units of pixels.
+
+        Coordinates are defined w.r.t. pixel centers (i.e. 0, 0 is the center of the first pixel).
+        """
         return self._localization.position / self._kymo.pixelsize[0]
 
     @property
@@ -284,9 +287,14 @@ class KymoTrack:
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
         """
-        # Time and coordinates are being cast to an integer since we use them to index into a data array.
+        # Time and coordinates are being cast to an integer since we use them to index into a data
+        # array. Note that coordinate pixel centers are defined at integer coordinates.
         return [
-            reduce(self._image[max(int(c) - num_pixels, 0) : int(c) + num_pixels + 1, int(t)])
+            reduce(
+                self._image[
+                    max(int(c + 0.5) - num_pixels, 0) : int(c + 0.5) + num_pixels + 1, int(t)
+                ]
+            )
             for t, c in zip(self.time_idx, self.coordinate_idx)
         ]
 
