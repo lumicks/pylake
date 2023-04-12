@@ -1,4 +1,7 @@
+import pytest
 import numpy as np
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
@@ -61,3 +64,23 @@ def test_kymotrack_regression_sample_from_image_clamp():
         line_padding=0
     )
     assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red").sample_from_image(0), [1, 3])
+
+
+@pytest.mark.parametrize(
+    "img",
+    [
+        np.asarray([[0, 0, 0], [100, 100, 100], [50, 50, 50]]),
+        np.asarray([[0, 0, 0], [100, 100, 100], [1, 1, 1]]),
+        np.asarray([[0, 0, 0], [100, 100, 100], [0, 0, 0]]),
+        np.asarray([[1, 1, 1], [100, 100, 100], [0, 0, 0]]),  # Failed previously
+        np.asarray([[50, 50, 50], [100, 100, 100], [0, 0, 0]]),  # Failed previously
+    ],
+)
+def test_pixel_origin_sample_from_image(img):
+    """Pixel coordinates are defined with the origin at the center of the pixel area. Previously,
+    we had a bug where sample_from_image assumed the pixel center to be at the leftmost corner
+    of the pixel. In that case, what happens in this test is that pulling the track slightly off
+    the single pixel line in the negative direction results in the center of the sampling window
+    shifting towards the previous pixel."""
+    tracks = track_greedy(_kymo_from_array(img, "r", 0.2), "red", pixel_threshold=10)
+    np.testing.assert_equal(tracks[0].sample_from_image(0), [100, 100, 100])
