@@ -644,6 +644,38 @@ def test_kymotrack_concat_gaussians(blank_kymo):
     assert isinstance(group[0]._localization, LocalizationModel)
 
 
+@pytest.mark.parametrize("num_pixels, pixelsize_um", [(10, 0.1), (15, 0.2)])
+def test_kymotrack_flip(num_pixels, pixelsize_um):
+    kymo = _kymo_from_array(
+        np.ones((num_pixels, 10)), "r", line_time_seconds=1e-2, pixel_size_um=pixelsize_um
+    )
+    coords = np.arange(1.0, 4.0)
+
+    track = KymoTrack([1, 2, 3], coords / pixelsize_um, kymo, "red")
+    flipped_kymo = kymo.flip()
+    flipped_track = track._flip(flipped_kymo)
+    assert id(track) != id(flipped_track)
+
+    center_to_center_um = pixelsize_um * (num_pixels - 1)
+    np.testing.assert_allclose(flipped_track.position, center_to_center_um - coords)
+    np.testing.assert_equal(flipped_track.time_idx, track.time_idx)
+    assert id(flipped_track._kymo) == id(flipped_kymo)
+    assert flipped_track._channel == track._channel
+
+    np.testing.assert_allclose(flipped_track._flip(kymo).position, track.position)
+
+
+def test_kymotrackgroup_flip():
+    kymo = _kymo_from_array(np.ones((5, 10)), "r", line_time_seconds=1e-2, pixel_size_um=1.0)
+    coords = np.arange(1.0, 4.0)
+
+    tracks = KymoTrackGroup([KymoTrack([1, 2, 3], coords, kymo, "red") for _ in range(3)])
+    flipped_tracks = tracks._flip()
+    assert all([id(t._kymo) == id(flipped_tracks[0]._kymo) for t in flipped_tracks])
+    for track, flipped_track in zip(tracks, flipped_tracks):
+        np.testing.assert_allclose(track._flip(kymo.flip()).position, flipped_track.position)
+
+
 def test_binding_profile_histogram():
     kymo = generate_kymo(
         "",

@@ -173,6 +173,22 @@ class KymoTrack:
             self._channel,
         )
 
+    def _flip(self, kymo):
+        """Return a copy flipped vertically.
+
+        Parameters
+        ----------
+        kymo : lumicks.pylake.Kymo
+            Flipped kymograph
+        """
+
+        return KymoTrack(
+            self.time_idx,
+            self._localization._flip(self._kymo.pixelsize[0] * (self._kymo.pixels_per_line - 1)),
+            kymo,
+            self._channel,
+        )
+
     def with_offset(self, time_offset, coordinate_offset):
         """Returns an offset version of the KymoTrack"""
         # Convert from image units to (integer rounded toward zero) pixels
@@ -734,6 +750,11 @@ class KymoTrackGroup:
             return self[0]._channel
         except IndexError:
             raise RuntimeError("No channel associated with this empty group (no tracks available)")
+
+    def _flip(self):
+        """Return a flipped copy of this KymoTrackGroup"""
+        flipped_kymo = self._kymo.flip()
+        return KymoTrackGroup([track._flip(flipped_kymo) for track in self])
 
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
         """Connect two tracks from any given nodes, removing the points in between.

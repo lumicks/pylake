@@ -1,5 +1,5 @@
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 __all__ = ["LocalizationModel", "GaussianLocalizationModel"]
 
@@ -15,6 +15,20 @@ class LocalizationModel:
     """
 
     position: np.ndarray
+
+    def with_position(self, position):
+        """Return a copy with a new set of positions"""
+        return replace(self, position=position)
+
+    def _flip(self, size):
+        """Flip the localization
+
+        Parameters
+        ----------
+        size : float
+            Size of the kymograph in physical units.
+        """
+        return self.with_position(size - self.position)
 
 
 @dataclass(frozen=True)
