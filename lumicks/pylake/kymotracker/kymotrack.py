@@ -277,6 +277,30 @@ class KymoTrack:
         interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
         return self._with_coordinates(interpolated_time, interpolated_coord)
 
+    def _split(self, node):
+        """Split track.
+
+        Splits a track at `node`. Returns two tracks if successful.
+
+        Parameters
+        ----------
+        node : int
+            Node index to split at
+
+        Raises
+        ------
+        ValueError
+            If asked to split at a point that would result in an empty track.
+        """
+        node = np.clip(node, 0, len(self))
+        before = self._with_coordinates(self.time_idx[:node], self._localization[:node])
+        after = self._with_coordinates(self.time_idx[node:], self._localization[node:])
+
+        if not before or not after:
+            raise ValueError("Invalid split point. This split would result in an empty track")
+
+        return before, after
+
     def sample_from_image(self, num_pixels, reduce=np.sum):
         """Sample from image using coordinates from this KymoTrack.
 
@@ -767,6 +791,32 @@ class KymoTrackGroup:
         """Return a flipped copy of this KymoTrackGroup"""
         flipped_kymo = self._kymo.flip()
         return KymoTrackGroup([track._flip(flipped_kymo) for track in self])
+
+    def _split_track(self, track, split_node, min_length):
+        """Split a track at a particular node
+
+        Splits a track at index `split_node`. Modifies the `KymoTrackGroup` in-place. The track to
+        be split is removed and the split tracks are appended to the list of `KymoTracks` if they
+        are long enough for inclusion (length equal or larger than `min_length`).
+
+        Parameters
+        ----------
+        track : KymoTrack
+            Track to split
+        split_node : int
+            Index of the node in the track to split at
+        min_length : int
+            Minimum length of a track. Tracks shorter than this will be discarded.
+
+        Raises
+        ------
+        ValueError
+            If asked to split at a point that would result in an empty track.
+        """
+        new_tracks = [t for t in track._split(split_node) if len(t) >= min_length]
+
+        self._src.remove(track)
+        self._src.extend(new_tracks)
 
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
         """Connect two tracks from any given nodes, removing the points in between.
