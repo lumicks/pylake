@@ -623,6 +623,55 @@ def test_kymotrackgroup_copy(blank_kymo):
     assert id(group._src) != id(copy(group)._src)
 
 
+def test_kymotrack_split(blank_kymo):
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 3, 4]), blank_kymo, "red")
+    k2, k3 = k1._split(1)
+    np.testing.assert_allclose(k2.position, [1])
+    np.testing.assert_allclose(k3.position, [3, 4])
+
+    k2, k3 = k1._split(2)
+    np.testing.assert_allclose(k2.position, [1, 3])
+    np.testing.assert_allclose(k3.position, [4])
+
+    # Test corner cases
+    for split_point in [-1, 0, 3]:
+        with pytest.raises(ValueError, match="Invalid split point"):
+            k1._split(split_point)
+
+
+def test_kymotrackgroup_split(blank_kymo):
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 3, 4]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([1, 2, 3]), np.array([8, 9, 11]), blank_kymo, "red")
+
+    group = KymoTrackGroup([k1, k2])
+    assert len(group) == 2
+    group._split_track(k1, 1, min_length=1)
+    assert len(group) == 3
+    np.testing.assert_allclose(group[-2].position, [1])
+    np.testing.assert_allclose(group[-1].position, [3, 4])
+    group._split_track(k2, 2, min_length=1)
+    assert len(group) == 4
+    np.testing.assert_allclose(group[-2].position, [8, 9])
+    np.testing.assert_allclose(group[-1].position, [11])
+
+
+@pytest.mark.parametrize(
+    "split, filter, filtered",
+    [
+        (5, 5, 0),
+        (4, 5, 1),
+        (6, 5, 1),
+        (4, 4, 0),
+    ],
+)
+def test_kymotrackgroup_split_filter(blank_kymo, split, filter, filtered):
+    k1 = KymoTrack(np.arange(10), np.arange(10), blank_kymo, "red")
+    group = KymoTrackGroup([k1])
+
+    group._split_track(k1, split, min_length=filter)
+    assert len(group) == 2 - filtered
+
+
 def test_kymotrack_concat_gaussians(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
     k1g = KymoTrack(
