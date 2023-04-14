@@ -1,5 +1,5 @@
 import numpy as np
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, fields
 
 __all__ = ["LocalizationModel", "GaussianLocalizationModel"]
 
@@ -29,6 +29,21 @@ class LocalizationModel:
             Size of the kymograph in physical units.
         """
         return self.with_position(size - self.position)
+
+    def __add__(self, other):
+        if other.__class__ is not self.__class__:
+            raise TypeError(
+                f"Incompatible localization models {self.__class__.__name__} and "
+                f"{other.__class__.__name__}."
+            )
+
+        init_kwargs = {
+            f.name: np.hstack((getattr(self, f.name), getattr(other, f.name))) for f in fields(self)
+        }
+        return self.__class__(**init_kwargs)
+
+    def __getitem__(self, item):
+        return self.__class__(**{f.name: getattr(self, f.name)[item] for f in fields(self)})
 
 
 @dataclass(frozen=True)
