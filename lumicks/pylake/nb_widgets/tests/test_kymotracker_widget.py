@@ -10,6 +10,10 @@ import re
 import pytest
 
 
+class MockLabel:
+    def __init__(self):
+        self.value = ""
+
 def calibrate_to_kymo(kymo):
     return (
         lambda coord_idx: kymo.pixelsize_um[0] * coord_idx,
@@ -134,10 +138,6 @@ def test_refine_from_widget(kymograph, region_select):
     in_um, in_s = calibrate_to_kymo(kymograph)
 
     # Test whether error is handled when refining before tracking / loading
-    class MockLabel:
-        def __init__(self):
-            self.value = ""
-
     kymo_widget._labels = {"status": MockLabel()}
     kymo_widget._refine()
     assert (
@@ -379,3 +379,47 @@ def test_default_params_img_dependent(gain, line_time, pixel_size, ref_values):
         np.testing.assert_allclose(default_params[key].value, value, err_msg=f"{key}")
         np.testing.assert_allclose(default_params[key].lower_bound, mini, err_msg=f"{key}")
         np.testing.assert_allclose(default_params[key].upper_bound, maxi, err_msg=f"{key}")
+
+
+def test_split(kymograph, mockevent):
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
+    kymo_widget._labels = {"warning": MockLabel(), "status": MockLabel()}
+
+    k1 = KymoTrack(
+        np.array([0, 1, 2, 3, 6, 7, 8, 9, 10]),
+        np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]),
+        kymograph,
+        "red",
+    )
+    kymo_widget.tracks = KymoTrackGroup([k1])
+
+    # Go into track connection mode
+    kymo_widget._select_state({"new": "Split Tracks"})
+
+    assert len(kymo_widget.tracks) == 1
+
+    in_um, in_s = calibrate_to_kymo(kymograph)
+
+    # Click too far from the line to split
+    kymo_widget._track_splitter.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(5), 3, 0))
+    assert len(kymo_widget.tracks) == 1
+
+    # Split line
+    kymo_widget._track_splitter.button_down(mockevent(kymo_widget._axes, in_s(3), in_um(1), 3, 0))
+    assert len(kymo_widget.tracks) == 2
+
+    kymo_widget._track_splitter.button_down(mockevent(kymo_widget._axes, in_s(7), in_um(1), 3, 0))
+    assert len(kymo_widget.tracks) == 2
+    assert kymo_widget._labels["warning"].value == (
+        "<font color='red'>One track was below the minimum length threshold and was filtered. "
+        "Decrease the minimum length if this was not intended."
+    )
+
+    # Split line where both lines are dropped
+    kymo_widget._labels = {"warning": MockLabel()}
+    kymo_widget._track_splitter.button_down(mockevent(kymo_widget._axes, in_s(9), in_um(1), 3, 0))
+    assert len(kymo_widget.tracks) == 1
+    assert kymo_widget._labels["warning"].value == (
+        "<font color='red'>Two tracks were below the minimum length threshold and were filtered. "
+        "Decrease the minimum length if this was not intended."
+    )

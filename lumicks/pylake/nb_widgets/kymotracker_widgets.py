@@ -74,6 +74,7 @@ class KymoWidget:
 
         self._area_selector = None
         self._track_connector = None
+        self._track_splitter = None
 
         self._algorithm = algorithm
         self._algorithm_parameters = algorithm_parameters
@@ -169,6 +170,50 @@ class KymoWidget:
             idx = np.argmin(squared_dist)
             return np.sqrt(squared_dist[idx]), idx
 
+        def split_track(event):
+            nonlocal nodes
+
+            if len(self.tracks) == 0:
+                return
+
+            nodes = get_node_info()
+            distance, idx = get_nearest(event.x, event.y)
+            if distance < cutoff_radius:
+                track_index, node_index, seconds, _ = nodes[idx]
+
+                # Explicit copy to ensure current state pushed to undo stack on assignment.
+                tracks = copy(self.tracks)
+
+                # If we click _beyond_ the node, cut there! Without adding the check on seconds
+                # we get the annoying case where the nearest is on the start of a long gap, but the
+                # line gets cut _left_ of the gap.
+                cut_point = int(node_index) + int(seconds < event.x)
+
+                try:
+                    tracks._split_track(
+                        tracks[int(track_index)],
+                        cut_point,
+                        self._algorithm_parameters["min_length"].value,
+                    )
+
+                    delta_count = len(tracks) - len(self.tracks)
+                    if delta_count < 1:
+                        count, verb = (
+                            ("One track", "was") if delta_count == 0 else ("Two tracks", "were")
+                        )
+                        self._set_label(
+                            "warning",
+                            f"{count} {verb} below the minimum length threshold and {verb} "
+                            f"filtered. Decrease the minimum length if this was not intended.",
+                        )
+
+                    self.tracks = tracks
+                    self._update_tracks()
+
+                except ValueError:
+                    # Gracefully handle the case where we clicked an endpoint
+                    pass
+
         def initiate_track(event):
             nonlocal nodes, clicked_track_info
             if len(self.tracks) == 0:
@@ -220,11 +265,14 @@ class KymoWidget:
         self._track_connector = MouseDragCallback(
             self._axes,
             3,
-            drag_track,
+            drag_callback=drag_track,
             press_callback=initiate_track,
             release_callback=finalize_track,
         )
         self._track_connector.set_active(False)
+
+        self._track_splitter = MouseDragCallback(self._axes, 3, press_callback=split_track)
+        self._track_splitter.set_active(False)
 
     def _update_tracks(self):
         for track in self._plotted_tracks:
@@ -397,7 +445,7 @@ class KymoWidget:
         fn_widget.observe(set_fn, "value")
 
         self._mode = ipywidgets.RadioButtons(
-            options=["Track", "Remove Tracks", "Connect Tracks"],
+            options=["Track", "Remove Tracks", "Connect Tracks", "Split Tracks"],
             disabled=False,
             tooltip="Choose between adding, removing, or connecting tracks",
             layout=ipywidgets.Layout(flex_flow="row"),
@@ -445,6 +493,7 @@ class KymoWidget:
         because it is hooked up to a ToggleButton directly"""
         self._area_selector.set_active(False)
         self._track_connector.set_active(False)
+        self._track_splitter.set_active(False)
 
         if value["new"] == "Track":
             self._set_label("status", "Drag right mouse button to track an ROI")
@@ -457,6 +506,9 @@ class KymoWidget:
         elif value["new"] == "Connect Tracks":
             self._set_label("status", "Drag right mouse button to connect two tracks")
             self._track_connector.set_active(True)
+        elif value["new"] == "Split Tracks":
+            self._set_label("status", "Click track with right mouse button to split a track")
+            self._track_splitter.set_active(True)
 
     def _show(self, use_widgets, **kwargs):
         if self._fig:
