@@ -62,7 +62,7 @@ def test_mouse_drag(mockevent):
 def test_set_active():
     ax = open_plot()
     button = 1
-    mouse_drag = MouseDragCallback(ax, button, [])
+    mouse_drag = MouseDragCallback(ax, button, lambda x: x)
 
     # Callbacks should be on initially
     for cib in mouse_drag._callback_ids.values():

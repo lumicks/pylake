@@ -10,7 +10,9 @@ class MouseDragEvent:
 
 
 class MouseDragCallback:
-    def __init__(self, axes, button, drag_callback, press_callback=None, release_callback=None):
+    def __init__(
+        self, axes, button, drag_callback=None, press_callback=None, release_callback=None
+    ):
         """Callback handler to handle mouse dragging for a particular button. Callback is called
         with x, y, dx, dy as arguments.
 
@@ -20,13 +22,13 @@ class MouseDragCallback:
             Axes to attach the callback to.
         button : int
             Which button to respond to (0: Left, 3: Right).
-        drag_callback : callable
+        drag_callback : callable, optional
             Which function to call when dragging takes place. Note that this function should have
             the following input signature: fun(MouseDragEvent). MouseDragEvent contains x, y,
             dx and dy which are all defined in data coordinates.
-        press_callback : callable
+        press_callback : callable, optional
             Function to call when drag is initiated. Must return True if it is a valid drag.
-        release_callback : callable
+        release_callback : callable, optional
             Function to call when drag is released.
         """
         self._axes = axes
@@ -52,12 +54,17 @@ class MouseDragCallback:
             self._callback_ids["press"] = self._axes.get_figure().canvas.mpl_connect(
                 "button_press_event", lambda event: self.button_down(event)
             )
+
             self._callback_ids["release"] = self._axes.get_figure().canvas.mpl_connect(
                 "button_release_event", lambda event: self.button_release(event)
             )
-            self._callback_ids["motion"] = self._axes.get_figure().canvas.mpl_connect(
-                "motion_notify_event", lambda event: self.handle_motion(event)
-            )
+
+            if self._drag_callback:
+                self._callback_ids["motion"] = self._axes.get_figure().canvas.mpl_connect(
+                    "motion_notify_event", lambda event: self.handle_motion(event)
+                )
+
+            self._axes.get_figure().canvas.flush_events()
         else:
             self.dragging = False
 
