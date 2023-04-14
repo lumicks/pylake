@@ -202,10 +202,14 @@ class KymoTrack:
 
     def __add__(self, other):
         """Concatenate two KymoTracks"""
-        return self._with_coordinates(
-            np.hstack((self.time_idx, other.time_idx)),
-            np.hstack((self.coordinate_idx, other.coordinate_idx)),
-        )
+        try:
+            localization = self._localization + other._localization
+        except TypeError:
+            # If one of them is a refined localization and the other is not, fall back to
+            # a non-refined localization.
+            localization = np.hstack((self.coordinate_idx, other.coordinate_idx))
+
+        return self._with_coordinates(np.hstack((self.time_idx, other.time_idx)), localization)
 
     def __getitem__(self, item):
         return np.squeeze(
@@ -767,9 +771,6 @@ class KymoTrackGroup:
     def _merge_tracks(self, starting_track, starting_node, ending_track, ending_node):
         """Connect two tracks from any given nodes, removing the points in between.
 
-        Note: Any specialized refinement (eg. gaussian refinement) will be lost when
-        tracks are merged.
-
         Parameters
         ----------
         starting_track: KymoTrack
@@ -808,12 +809,12 @@ class KymoTrackGroup:
         # up to and *including* starting_node
         first_half = starting_track._with_coordinates(
             starting_track.time_idx[: starting_node + 1],
-            starting_track.coordinate_idx[: starting_node + 1],
+            starting_track._localization[: starting_node + 1],
         )
 
         last_half = ending_track._with_coordinates(
             ending_track.time_idx[ending_node:],
-            ending_track.coordinate_idx[ending_node:],
+            ending_track._localization[ending_node:],
         )
 
         self._src[self._src.index(starting_track)] = first_half + last_half

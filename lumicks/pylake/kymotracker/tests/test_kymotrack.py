@@ -625,6 +625,14 @@ def test_kymotrackgroup_copy(blank_kymo):
 
 def test_kymotrack_concat_gaussians(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
+    k1g = KymoTrack(
+        np.array([1, 2, 3]),
+        GaussianLocalizationModel(
+            np.full(3, 2), np.full(3, 7), np.full(3, 0.5), np.ones(3), np.full(3, False)
+        ),
+        blank_kymo,
+        "red",
+    )
     k2 = KymoTrack(
         np.array([6, 7, 8]),
         GaussianLocalizationModel(
@@ -638,10 +646,16 @@ def test_kymotrack_concat_gaussians(blank_kymo):
     assert isinstance(k1._localization, LocalizationModel)
     assert isinstance(k2._localization, GaussianLocalizationModel)
 
-    # test merging clears gaussian parameters
+    # test merging gaussian and non-gaussian localized lines clears gaussian parameters
     group._merge_tracks(k1, 2, k2, 2)
     assert len(group) == 1
     assert isinstance(group[0]._localization, LocalizationModel)
+
+    # test whether merging two gaussian localized lines preserves the localization
+    group = KymoTrackGroup([k1g, k2])
+    group._merge_tracks(k1g, 2, k2, 2)
+    assert len(group) == 1
+    assert isinstance(group[0]._localization, GaussianLocalizationModel)
 
 
 @pytest.mark.parametrize("num_pixels, pixelsize_um", [(10, 0.1), (15, 0.2)])
