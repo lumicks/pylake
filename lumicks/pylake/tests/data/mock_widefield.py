@@ -185,8 +185,6 @@ def write_tiff_file(image, description, n_frames, filename):
 
     # Orientation = ORIENTATION.TOPLEFT
     tag_orientation = (274, "H", 1, 1, False)
-    # SampleFormat = SAMPLEFORMAT.UINT
-    tag_sample_format = (339, "H", channels, (1,) * channels, False)
 
     with tifffile.TiffWriter(filename) as tif:
         for n, frame in enumerate(movie):
@@ -198,5 +196,5 @@ def write_tiff_file(image, description, n_frames, filename):
                 software="Bluelake Unknown",
                 metadata=None,
                 contiguous=False,
-                extratags=(tag_orientation, tag_sample_format, tag_datetime),
+                extratags=(tag_orientation, tag_datetime),
             )
