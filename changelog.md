@@ -10,6 +10,7 @@
 
 * Fixed bug that could lead to mutability of `Kymo` and `Scan` through `.get_image()` or `.timestamps`. This bug was introduced in `0.7.2`. Grabbing a single color image from a `Scan` or `Kymo` using `.get_image()` returns a reference to an internal image cache. This numpy array was write-able and modifying data in the returned image would result in future calls to `.get_image()` returning the modified data rather than the original `Kymo` or `Scan` image. Timestamps obtained from `.timestamps` were similarly affected. These arrays are now returned non-writeable.
 * Fixed a bug that would round the center of the window to the incorrect pixel when using `KymoTrack.sample_from_image()`. Pixels are defined with their origin at the center of the pixel, whereas this function incorrectly assumed that the origin was on the edge of the pixel. The effects of this bug are larger for small windows.
+* Fixed a bug where we passed a `SampleFormat` tag while saving to `tiff` using `tifffile`. However, `tifffile` infers the `SampleFormat` automatically from the datatype of the `numpy` array it is passed. This produced warnings on the latest version of `tifffile` when running the benchmark.
 
 #### Improvements
 
