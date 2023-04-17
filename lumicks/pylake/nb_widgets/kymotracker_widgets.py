@@ -743,7 +743,7 @@ def _get_default_parameters(kymo, channel):
             "Minimum number of frames a spot has to be detected in to be considered.",
             "int",
             3,
-            *(1, 10),
+            *(2, 10),
             True,
             r"Minimum length defines the minimum number of points a tracked line must contain for "
             r"it to be considered valid. Reducing this parameter can be effective in reducing "

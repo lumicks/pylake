@@ -20,6 +20,7 @@
 * Provided better initial guess for dwell time models with three or more components. Prior to this change, the dwelltime models involving three components or more would get an initial guess with an average lifetime beyond the mean of the observations.
 * Silenced false positive warnings about the optimization violating the bound constraints. Prior to this change, dwell time analysis would produce warnings about the optimizer exceeding bounds. These excursions beyond the bound are very small and have no effect on the model.
 * Parameters corresponding to Gaussian refinement are now preserved when two refined tracks are concatenated.
+* Set the minimum value for the `Min length` slider in the Kymotracking widget to `2`.
 
 ## v1.0.0 | 2023-03-14
 
