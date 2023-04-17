@@ -46,6 +46,7 @@ class MockDataFile_v1:
 
 
 class MockDataFile_v2(MockDataFile_v1):
+    # CAVE: Please respect that `MockDataFile_v2` is used by another Lumicks project
 
     def get_file_format_version(self):
         return 2
