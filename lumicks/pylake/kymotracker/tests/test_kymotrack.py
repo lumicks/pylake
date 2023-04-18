@@ -1,10 +1,10 @@
 import re
 import pytest
 import matplotlib.pyplot as plt
+from copy import copy
 from lumicks.pylake.kymotracker.kymotrack import *
 from lumicks.pylake.kymotracker.kymotracker import _to_half_kernel_size
 from lumicks.pylake.kymotracker.detail.localization_models import *
-from lumicks.pylake import filter_tracks
 from lumicks.pylake.kymo import _kymo_from_array
 from ...tests.data.mock_confocal import generate_kymo
 
@@ -225,8 +225,9 @@ def test_kymotrack_group_extend(blank_kymo):
 
     tracks = KymoTrackGroup([k1, k2, k3])
 
-    duplicate_error = "Cannot extend this KymoTrackGroup with a KymoTrack that is already " \
-                      "part of the group"
+    duplicate_error = (
+        "Cannot extend this KymoTrackGroup with a KymoTrack that is already part of the group"
+    )
 
     for extension, exception, error in (
         (5, TypeError, "You can only extend a KymoTrackGroup with a KymoTrackGroup or KymoTrack"),
@@ -537,85 +538,6 @@ def test_empty_binding_histogram():
         KymoTrackGroup([]).plot_binding_histogram("binding")
 
 
-def test_kymotrackgroup_source_kymo():
-    # test that all tracks are from the same source Kymo and tracked
-    # on the same color channel
-
-    image = np.random.randint(0, 20, size=(10, 10, 3))
-    kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
-    kymos = [_kymo_from_array(image, "rgb", **kwargs) for _ in range(2)]
-
-    time_idx = ([1, 2, 3], [4, 6, 7], [1, 2, 3], [4, 6, 7])
-
-    pos_idx = ([4, 5, 6], [1, 7, 7], [1, 2, 3], [1, 2, 3])
-
-    green_tracks_a = [KymoTrack(t, p, kymos[0], "green") for t, p in zip(time_idx, pos_idx)]
-    green_tracks_b = [KymoTrack(t, p, kymos[1], "green") for t, p in zip(time_idx, pos_idx)]
-
-    red_tracks_a = [KymoTrack(t, p, kymos[0], "red") for t, p in zip(time_idx, pos_idx)]
-    red_tracks_b = [KymoTrack(t, p, kymos[1], "red") for t, p in zip(time_idx, pos_idx)]
-
-    # test proper group construction
-    tracks_a = KymoTrackGroup(green_tracks_a[:2])
-    assert len(tracks_a) == 2
-
-    tracks_b = KymoTrackGroup(green_tracks_b[:2])
-    assert len(tracks_b) == 2
-
-    assert id(tracks_a._kymo) == id(kymos[0])
-    assert tracks_a._channel == "green"
-
-    # test empty result
-    tracks_empty = KymoTrackGroup([])
-    assert len(tracks_empty) == 0
-
-    tracks_empty = filter_tracks(tracks_a, 5)
-    assert len(tracks_empty) == 0
-
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape("No kymo associated with this empty group (no tracks available)"),
-    ):
-        tracks_empty._kymo
-
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape("No channel associated with this empty group (no tracks available)"),
-    ):
-        tracks_empty._channel
-
-    # cannot make group from different source kymos
-    with pytest.raises(ValueError, match="All tracks must have the same source kymograph."):
-        KymoTrackGroup([*green_tracks_a, *green_tracks_b])
-
-    # test extend with single track
-    tracks_a.extend(green_tracks_a[2])
-    assert len(tracks_a) == 3
-
-    # test extend with KymoTrackGroup
-    tracks_a.extend(KymoTrackGroup(green_tracks_a[-1:]))
-    assert len(tracks_a) == 4
-
-    # cannot extend with different source kymos
-    with pytest.raises(ValueError, match="All tracks must have the same source kymograph."):
-        tracks_a.extend(tracks_b)
-
-    # test extend from empty group
-    tracks_empty = KymoTrackGroup([])
-    tracks_empty.extend(tracks_a)
-    assert len(tracks_empty) == 4
-
-    # cannot make group from different color channels
-    with pytest.raises(ValueError, match="All tracks must be from the same color channel."):
-        KymoTrackGroup([*green_tracks_a, *red_tracks_a])
-
-    # cannot extend with different color channels
-    with pytest.raises(ValueError, match="All tracks must be from the same color channel."):
-        tracks_a.extend(red_tracks_a[0])
-    with pytest.raises(ValueError, match="All tracks must be from the same color channel."):
-        tracks_a.extend(KymoTrackGroup(red_tracks_a))
-
-
 def test_kymotrackgroup_copy(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
     k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
@@ -738,6 +660,15 @@ def test_kymotrackgroup_flip():
     for track, flipped_track in zip(tracks, flipped_tracks):
         np.testing.assert_allclose(track._flip(kymo.flip()).position, flipped_track.position)
 
+    tracks2 = tracks + KymoTrackGroup([KymoTrack([], [], copy(kymo), "red")])
+    with pytest.raises(
+        NotImplementedError,
+        match=re.escape(
+            "Flipping is not supported. This group contains tracks from 2 source kymographs."
+        ),
+    ):
+        tracks2._flip()
+
 
 def test_binding_profile_histogram():
     kymo = generate_kymo(
@@ -818,8 +749,7 @@ def test_fit_binding_times(blank_kymo):
 def test_fit_binding_times_nonzero(blank_kymo):
     k1 = KymoTrack(np.array([2]), np.zeros(3), blank_kymo, "red")
     k2, k3, k4, k5 = (
-        KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red")
-        for _ in range(4)
+        KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red") for _ in range(4)
     )
     tracks = KymoTrackGroup([k1, k2, k3, k4, k5])
 
@@ -1063,10 +993,7 @@ def test_ensemble_api(blank_kymo):
     short_tracks = [
         KymoTrack(np.arange(1, 6), np.arange(1, 6), blank_kymo, "red") for _ in range(3)
     ]
-    long_tracks = [
-        KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red")
-        for _ in range(2)
-    ]
+    long_tracks = [KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red") for _ in range(2)]
     tracks = KymoTrackGroup(short_tracks + long_tracks)
 
     assert len(tracks.ensemble_msd(3).lags) == 3
@@ -1075,8 +1002,7 @@ def test_ensemble_api(blank_kymo):
 
     # Because of the gaps in this track, we will be missing lags 1 and 3
     gap_tracks = [
-        KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red")
-        for _ in range(3)
+        KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red") for _ in range(3)
     ]
     tracks = KymoTrackGroup(short_tracks[0:2] + gap_tracks)
     np.testing.assert_allclose(tracks.ensemble_msd(100, 3).lags, [2, 4])
@@ -1117,10 +1043,13 @@ def test_ensemble_cve(blank_kymo):
     np.testing.assert_allclose(single_group_msd.std_err, single_track_msd.std_err)
 
 
-@pytest.mark.parametrize("max_lag, diffusion_ref, std_err_ref, localization_var_ref", [
-    (None, 0.44567901234567886, 0.27564925652921307, -0.17827160493827154),
-    (4, 0.3030617283950619, 0.2895503367634419, 0.08913580246913569),
-])
+@pytest.mark.parametrize(
+    "max_lag, diffusion_ref, std_err_ref, localization_var_ref",
+    [
+        (None, 0.44567901234567886, 0.27564925652921307, -0.17827160493827154),
+        (4, 0.3030617283950619, 0.2895503367634419, 0.08913580246913569),
+    ],
+)
 def test_ensemble_ols(blank_kymo, max_lag, diffusion_ref, std_err_ref, localization_var_ref):
     """Tests the ensemble diffusion estimate"""
     kymotracks = KymoTrackGroup(
@@ -1152,6 +1081,59 @@ def test_invalid_ensemble_diffusion(blank_kymo):
         kymotracks.ensemble_diffusion("egg")
 
 
+def test_ensemble_diffusion_different_attributes():
+    line_times = (1, 0.5)
+    pixel_sizes = (0.1, 0.05)
+    kwargs = [{"line_time_seconds": t, "pixel_size_um": s} for t in line_times for s in pixel_sizes]
+    kymos = [_kymo_from_array(np.random.poisson(5, (25, 25, 3)), "rgb", **k) for k in kwargs]
+    tracks = [
+        KymoTrackGroup(
+            [KymoTrack(np.arange(5), np.random.uniform(3, 5, 5), k, "green") for _ in range(5)]
+        )
+        for k in kymos
+    ]
+
+    error_messages = {
+        "line times": re.escape(
+            "All source kymographs must have the same line times, got [0.5, 1] seconds."
+        ),
+        "pixel sizes": re.escape(
+            "All source kymographs must have the same pixel sizes, got [0.05, 0.1] um."
+        ),
+        "both": re.escape(
+            "All source kymographs must have the same line times, got [0.5, 1] seconds. "
+            "All source kymographs must have the same pixel sizes, got [0.05, 0.1] um."
+        ),
+    }
+
+    combo_tracks = tracks[0] + tracks[1]
+    with pytest.raises(ValueError, match=error_messages["pixel sizes"]):
+        combo_tracks.ensemble_msd(max_lag=3)
+    with pytest.raises(ValueError, match=error_messages["pixel sizes"]):
+        combo_tracks.ensemble_diffusion(method="ols")
+
+    combo_tracks = tracks[0] + tracks[2]
+    with pytest.raises(ValueError, match=error_messages["line times"]):
+        combo_tracks.ensemble_msd(max_lag=3)
+    with pytest.raises(ValueError, match=error_messages["line times"]):
+        combo_tracks.ensemble_diffusion(method="ols")
+
+    combo_tracks = tracks[0] + tracks[3]
+    with pytest.raises(ValueError, match=error_messages["both"]):
+        combo_tracks.ensemble_msd(max_lag=3)
+    with pytest.raises(ValueError, match=error_messages["both"]):
+        combo_tracks.ensemble_diffusion(method="ols")
+
+    with pytest.warns(
+        RuntimeWarning,
+        match=(
+            "Localization variances cannot be reliably calculated for an ensemble of tracks from "
+            "kymographs with different line times or pixel sizes."
+        ),
+    ):
+        combo_tracks.ensemble_diffusion(method="cve")
+
+
 @pytest.mark.parametrize(
     "window, pixelsize, result",
     [
@@ -1159,7 +1141,7 @@ def test_invalid_ensemble_diffusion(blank_kymo):
         (1.0, 1.0, 0), (2.0, 1.0, 1), (3.0, 1.0, 1), (3.01, 1.0, 2), (4.0, 1.0, 2), (4.99, 1.0, 2),
         (1.0, 2.0, 0), (2.0, 2.0, 0), (6.0, 2.0, 1), (6.01, 2.0, 2), (7.0, 2.0, 2), (7.99, 2.0, 2),
         # fmt:on
-    ]
+    ],
 )
 def test_half_kernel(window, pixelsize, result):
     assert _to_half_kernel_size(window, pixelsize) == result
@@ -1188,8 +1170,8 @@ def test_no_motion_blur(blank_kymo):
     with pytest.raises(
         ValueError,
         match="Cannot compute diffusion constant reliably for a kymograph that does not"
-              "have a clearly defined motion blur constant and the localization variance "
-              "is provided. Omit the localization variance to calculate a diffusion "
-              "constant.",
+        "have a clearly defined motion blur constant and the localization variance "
+        "is provided. Omit the localization variance to calculate a diffusion "
+        "constant.",
     ):
         track.estimate_diffusion("cve", localization_variance=1)

@@ -35,6 +35,3 @@ def test_add_simulated_tracks():
     params = {"diffusion_constant": 4, "steps": 10, "dt": 0.01, "num_tracks": 2}
     tracks = simulate_diffusive_tracks(**params) + simulate_diffusive_tracks(**params)
     assert len(tracks) == 4
-
-    with pytest.raises(ValueError, match="All tracks must have the same source kymograph"):
-        simulate_diffusive_tracks(**params) + simulate_diffusive_tracks(**{**params, "dt": 0.05})

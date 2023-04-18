@@ -4,6 +4,8 @@ import inspect
 import re
 import io
 from pathlib import Path
+from copy import copy
+from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import (
     KymoTrack,
     KymoTrackGroup,
@@ -106,6 +108,29 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
         count_field = [key for key in data.keys() if "counts" in key][0]
         for track1, cnt in zip(tracks, data[count_field]):
             np.testing.assert_allclose([sampling_outcome] * len(track1.coordinate_idx), cnt)
+
+
+def test_export_sources(tmpdir_factory):
+    kymo1 = _kymo_from_array(np.random.poisson(5, (5, 5, 3)), "rgb", 1e-4, start=20e9)
+    kymo2 = copy(kymo1)
+    tracks1 = KymoTrackGroup([KymoTrack(np.arange(3), np.arange(3), kymo1, "red")])
+    tracks2 = KymoTrackGroup([KymoTrack(np.arange(5), np.arange(5), kymo2, "red")])
+    tracks3 = tracks1 + tracks2
+
+    testfile = f"{tmpdir_factory.mktemp('pylake')}/failed_test.csv"
+
+    # can export group with single source
+    tracks1.save(testfile, ";")
+
+    # cannot export group with more than one source
+    with pytest.raises(
+        NotImplementedError,
+        match=re.escape(
+            "Exporting a group with tracks from more than a single source kymograph is not supported. "
+            "This group contains tracks from 2 source kymographs."
+        ),
+    ):
+        tracks3.save(testfile, ";")
 
 
 @pytest.mark.parametrize(

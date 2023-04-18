@@ -1028,7 +1028,7 @@ def estimate_diffusion_cve(
     )
 
 
-def ensemble_cve(kymotracks):
+def ensemble_cve(kymotracks, calculate_localization_var=True):
     """Calculate ensemble-based CVE.
 
     Determines the weighted average of the mean and standard error of the CVE estimates.
@@ -1040,6 +1040,16 @@ def ensemble_cve(kymotracks):
     ----------
     kymotracks : lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup
         Group of kymotracks
+    calculate_localization_var : bool
+        If localization variance can be calculated. Must be False if source kymographs
+        do not have the same line times or pixel sizes.
+
+    Warns
+    -----
+    RuntimeWarning
+        if `method == "cve"` and the source kymographs do not have the same line times
+        or pixel sizes. As a result, the localization variance and variance of the localization
+        variance not be available. Estimates that are unavailable are returned as `np.nan`.
 
     References
     ----------
@@ -1066,8 +1076,11 @@ def ensemble_cve(kymotracks):
     ensemble_mean, ensemble_mean_var = mean_var(
         np.array([c.value for c in cve_based]), counts, counts_sum
     )
-    ensemble_localization_var, var_of_localization_var = mean_var(
-        np.array([c.localization_variance for c in cve_based]), counts, counts_sum
+
+    ensemble_localization_var, var_of_localization_var = (
+        mean_var(np.array([c.localization_variance for c in cve_based]), counts, counts_sum)
+        if calculate_localization_var
+        else (np.nan, np.nan)
     )
 
     return DiffusionEstimate(

@@ -1,11 +1,12 @@
 # Changelog
 
-## v1.0.1 | t.b.d.
+## v1.1.0 | t.b.d.
 
 #### New features
 
 * Added [`DwelltimeModel.profile_likelihood()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.profile_likelihood) for calculating profile likelihoods for dwell time analysis. These can be used to determine confidence intervals and assess whether the model has too many parameters (i.e., if a model with fewer components would be sufficient).
 * Added functionality to split tracks in the Kymotracking widget.
+* Enabled adding `KymoTrackGroup`s with tracks from different source kymographs. *Note that certain features (e.g., `KymoTrackGroup.ensemble_msd()` and `KymoTrackGroup.ensemble_diffusion("ols")`) require that all source kymographs have the same pixel size and scan line times.*
 
 #### Bug fixes
 
