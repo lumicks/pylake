@@ -411,6 +411,7 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
            shape. Optics express, 16(18), 14064-14075.
     """
     tracks = KymoTrackGroup(tracks) if isinstance(tracks, (list, tuple)) else tracks
+    tracks._validate_single_source("Centroid refinement")
 
     if not tracks:
         return KymoTrackGroup([])
@@ -484,6 +485,8 @@ def refine_tracks_gaussian(
     """
     if overlap_strategy not in ("ignore", "skip", "multiple"):
         raise ValueError("Invalid overlap strategy selected.")
+
+    tracks._validate_single_source("Gaussian refinement")
 
     if not tracks:
         return KymoTrackGroup([])

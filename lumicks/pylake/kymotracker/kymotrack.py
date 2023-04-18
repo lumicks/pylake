@@ -1,3 +1,4 @@
+import itertools
 from copy import copy
 from sklearn.neighbors import KernelDensity
 from .detail.msd_estimation import *
@@ -20,12 +21,21 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
     sampling_width : int or None
         If, this will sample the source image around the kymograph track and export the summed intensity with
         the image. The value indicates the number of pixels in either direction to sum over.
+
+    Raises
+    ------
+    NotImplementedError
+        If group contains tracks from more than one source kymograph.
     """
     if not kymotrack_group:
         raise RuntimeError("No kymograph tracks to export")
 
+    kymotrack_group._validate_single_source(
+        "Exporting a group with tracks from more than a single source kymograph"
+    )
+
     time_units = "seconds"
-    position_units = kymotrack_group._kymo._calibration.unit
+    position_units = kymotrack_group._calibration_info["unit"]
 
     idx = np.hstack([np.full(len(track), idx) for idx, track in enumerate(kymotrack_group)])
     coords_idx = np.hstack([track.coordinate_idx for track in kymotrack_group])
@@ -703,25 +713,85 @@ class KymoTrackGroup:
 
     def __init__(self, kymo_tracks):
         self._src = kymo_tracks
-        if self:
-            if len(set(kymo_tracks)) != len(kymo_tracks):
-                raise ValueError(
-                    "Some tracks appear multiple times. The provided tracks must be unique."
-                )
+        self._kymos = self._validate_compatible_sources()
 
-            self._validate_single_source(kymo_tracks)
+    def _validate_compatible_sources(self, additional_tracks=()):
+        """Check that source kymos for all tracks (including in self) are compatible.
 
-    def _validate_single_source(self, kymo_tracks):
-        kymos = set([track._kymo._id for track in kymo_tracks])
-        channels = set([track._channel for track in kymo_tracks])
+        Parameters
+        ----------
+        additional_tracks : KymoTrackGroup, optional
+            Additional tracks to be added to the current instance.
 
-        if len(kymos) > 1:
-            raise ValueError("All tracks must have the same source kymograph.")
+        Returns
+        -------
+        set
+            Set of source kymograph instances
+        """
+        tracks = list(itertools.chain(self, additional_tracks))
+        if not len(tracks):
+            return ()
 
+        if len(set(tracks)) != len(tracks):
+            raise ValueError(
+                "Cannot extend this KymoTrackGroup with a KymoTrack that is already part of the group"
+                if additional_tracks
+                else "Some tracks appear multiple times. The provided tracks must be unique."
+            )
+
+        channels = {track._channel for track in tracks}
         if len(channels) > 1:
             raise ValueError("All tracks must be from the same color channel.")
 
-        return next(iter(kymos)), next(iter(channels))
+        kymos = tuple({track._kymo: None for track in tracks}.keys())
+        if len(calibrations := set([kymo._calibration.unit for kymo in kymos])) > 1:
+            raise ValueError(
+                f"All tracks must be calibrated in the same units, got {calibrations}."
+            )
+
+        return kymos
+
+    def _validate_single_source(self, method_description):
+        if (n_kymos := len(self._kymos)) > 1:
+            raise NotImplementedError(
+                f"{method_description} is not supported. "
+                f"This group contains tracks from {n_kymos} source kymographs."
+            )
+
+    def _validate_single_linetime_pixelsize(self):
+        """Check that image acquisition attributes (scan line times and pixel sizes)
+        are the same for all source kymos.
+
+        Returns
+        -------
+        bool
+            If validity criteria are met (all source kymographs have the same line times and pixel sizes)
+        str
+            Error message to be raised if validity criteria are not met
+        """
+
+        line_times = {kymo.line_time_seconds for kymo in self._kymos}
+        pixel_sizes = {kymo.pixelsize_um[0] for kymo in self._kymos}
+
+        line_times_err_msg = (
+            ""
+            if len(line_times) == 1
+            else (
+                f"All source kymographs must have the same line times, got {sorted(line_times)} seconds."
+            )
+        )
+
+        px_size_err_msg = (
+            ""
+            if len(pixel_sizes) == 1
+            else (
+                "All source kymographs must have the same pixel sizes, "
+                f"got {sorted(pixel_sizes)} {self._calibration_info['unit']}."
+            )
+        )
+
+        if line_times_err_msg or px_size_err_msg:
+            raise ValueError(" ".join([line_times_err_msg, px_size_err_msg]))
 
     def __iter__(self):
         return self._src.__iter__()
@@ -787,8 +857,23 @@ class KymoTrackGroup:
         except IndexError:
             raise RuntimeError("No channel associated with this empty group (no tracks available)")
 
+    @property
+    def _calibration_info(self):
+        try:
+            kymo = self._kymos[0]
+            return {"unit": kymo._calibration.unit, "unit_label": kymo._calibration.unit_label}
+        except IndexError:
+            raise RuntimeError("No kymo associated with this empty group (no tracks available)")
+
     def _flip(self):
-        """Return a flipped copy of this KymoTrackGroup"""
+        """Return a flipped copy of this KymoTrackGroup.
+
+        Raises
+        ------
+        NotImplementedError
+            If group contains tracks from more than one source kymograph.
+        """
+        self._validate_single_source("Flipping")
         flipped_kymo = self._kymo.flip()
         return KymoTrackGroup([track._flip(flipped_kymo) for track in self])
 
@@ -904,20 +989,7 @@ class KymoTrackGroup:
             )
 
         other = self.__class__([other]) if isinstance(other, KymoTrack) else other
-        other_kymo, other_channel = self._validate_single_source(other)
-        if self:
-            if self._kymo._id != other_kymo:
-                raise ValueError("All tracks must have the same source kymograph.")
-
-            if self._channel != other_channel:
-                raise ValueError("All tracks must be from the same color channel.")
-
-        if len(set(other._src) | set(self._src)) != len(self._src) + len(other._src):
-            raise ValueError(
-                "Cannot extend this KymoTrackGroup with a KymoTrack that is already part of the "
-                "group"
-            )
-
+        self._kymos = self._validate_compatible_sources(other)
         self._src.extend(other._src)
 
     def remove_tracks_in_rect(self, rect, all_points=False):
@@ -962,7 +1034,7 @@ class KymoTrackGroup:
             track.plot(show_outline=show_outline, show_labels=False, axes=ax, **kwargs)
 
         if show_labels:
-            ax.set_ylabel(f"position ({self._kymo._calibration.unit_label})")
+            ax.set_ylabel(f"position ({self._calibration_info['unit_label']})")
             ax.set_xlabel("time (s)")
 
     def save(self, filename, delimiter=";", sampling_width=None):
@@ -1000,6 +1072,7 @@ class KymoTrackGroup:
             The maximum number of iterations to perform. This parameter is forwarded as the `maxiter` argument
             to `scipy.minimize(method="L-BFGS-B")`.
         """
+        self._validate_single_source("Dwelltime analysis")
 
         if n_components not in (1, 2):
             raise ValueError(
@@ -1089,7 +1162,7 @@ class KymoTrackGroup:
         widths = np.diff(edges)
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
-        plt.xlabel(f"Position ({self._kymo._calibration.unit_label})")
+        plt.xlabel(f"Position ({self._calibration_info['unit_label']})")
 
     def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points, roi=None):
         """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.
@@ -1108,6 +1181,8 @@ class KymoTrackGroup:
         roi: list or None
             ROI coordinates as `[[min_time, min_position], [max_time, max_position]]`.
         """
+        self._validate_single_source("Binding profile")
+
         if n_time_bins == 0:
             raise ValueError("Number of time bins must be > 0.")
         if n_position_points < 2:
@@ -1231,6 +1306,12 @@ class KymoTrackGroup:
         max_lag : int
             Maximum number of lags to include when using the ordinary least squares method (OLS).
 
+        Raises
+        ------
+        ValueError
+            if `method == "ols"` and the source kymographs do not have the same line times
+            or pixel sizes.
+
         Warns
         -----
         RuntimeWarning
@@ -1239,6 +1320,10 @@ class KymoTrackGroup:
             diffusion constant will not be available. If only one track is available, the standard
             error on the diffusion constant will also not be available. Estimates that are
             unavailable are returned as `np.nan`.
+        RuntimeWarning
+            if `method == "cve"` and the source kymographs do not have the same line times
+            or pixel sizes. As a result, the localization variance and variance of the localization
+            variance are not be available. Estimates that are unavailable are returned as `np.nan`.
 
         References
         ----------
@@ -1247,8 +1332,20 @@ class KymoTrackGroup:
                022726.
         """
         if method == "cve":
-            return ensemble_cve(self)
+            try:
+                self._validate_single_linetime_pixelsize()
+                is_valid = True
+            except ValueError:
+                warnings.warn(
+                    RuntimeWarning(
+                        "Localization variances cannot be reliably calculated for an ensemble of "
+                        "tracks from kymographs with different line times or pixel sizes."
+                    ),
+                )
+                is_valid = False
+            return ensemble_cve(self, calculate_localization_var=is_valid)
         elif method == "ols":
+            self._validate_single_linetime_pixelsize()
             return ensemble_ols(self, max_lag)
         else:
             raise ValueError(f'Invalid method ({method}) selected. Method must be "cve" or "ols".')
@@ -1304,11 +1401,11 @@ class KymoTrackGroup:
             for track in self._src
         ]
 
-        src_calibration = self._kymo._calibration
+        self._validate_single_linetime_pixelsize()
+
         return calculate_ensemble_msd(
             line_msds=track_msds,
-            time_step=self._kymo.line_time_seconds,
-            unit=src_calibration.unit,
-            unit_label=src_calibration.unit_label,
+            time_step=self._kymos[0].line_time_seconds,
             min_count=min_count,
+            **self._calibration_info,
         )
