@@ -467,16 +467,24 @@ class DwelltimeModel:
         physically relevant parameter.*
     n_components : int
         number of components in the model.
-    min_observation_time : float
-        minimum experimental observation time
-    max_observation_time : float
-        maximum experimental observation time.
+    min_observation_time : float or numpy.ndarray
+        minimum experimental observation time. This can either be a scalar or a numpy array with
+        the same length as `dwelltimes`.
+    max_observation_time : float or numpy.ndarray
+        maximum experimental observation time. This can either be a scalar or a numpy array with
+        the same length as `dwelltimes`.
     tol : float
         The tolerance for optimization convergence. This parameter is forwarded as the `ftol`
         argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
     max_iter : int
         The maximum number of iterations to perform. This parameter is forwarded as the `maxiter`
         argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
+
+    Raises
+    ------
+    ValueError
+        if `min_observation_time` or `max_observation_time` is not a scalar and is not the same
+        length as `dwelltimes`.
     """
 
     def __init__(
@@ -490,6 +498,13 @@ class DwelltimeModel:
         max_iter=None,
         use_jacobian=True,
     ):
+        for time, msg in ((min_observation_time, "minimum"), (max_observation_time, "maximum")):
+            if not np.isscalar(time) and not (time.size == dwelltimes.size and time.ndim == 1):
+                raise ValueError(
+                    f"Size of {msg} observation time array ({time.size}) must be equal to that "
+                    f"of dwelltimes ({len(dwelltimes)})."
+                )
+
         self.n_components = n_components
         self.dwelltimes = dwelltimes
         self.use_jacobian = use_jacobian
@@ -800,13 +815,17 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
     t = t[np.newaxis, :]
 
     exp_bound_difference = np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
-    norm_factor = 1.0 / np.sum(amplitudes * exp_bound_difference)
+    norm_factor = 1.0 / np.sum(amplitudes * exp_bound_difference, axis=0)
 
     # Calculate derivatives of the normalization constant
     dnorm_damp = -(norm_factor**2) * exp_bound_difference
     dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
 
-    max_bound = t_max * np.exp(-t_max / lifetimes) if np.all(t_max / lifetimes < 1e10) else 0
+    max_div_lifetimes = t_max / lifetimes
+    valid = max_div_lifetimes < 1e10
+    max_bound = np.zeros(max_div_lifetimes.shape)
+    max_bound[valid] = (t_max * np.ones(lifetimes.shape))[valid] * np.exp(-max_div_lifetimes[valid])
+
     exp_bound_difference2 = max_bound - t_min * np.exp(-t_min / lifetimes)
     dnorm_dtau = norm_factor**2 * (amplitudes / (lifetimes**2)) * exp_bound_difference2
     dlognorm_dtau = (1.0 / norm_factor) * dnorm_dtau
@@ -981,7 +1000,10 @@ def _exponential_mle_bounds(n_components, min_observation_time, max_observation_
     return (
         *[(1e-9, 1.0 - 1e-9) for _ in range(n_components)],
         *[
-            (max(min_observation_time * 0.1, 1e-8), min(max_observation_time * 1.1, 1e8))
+            (
+                max(np.min(min_observation_time) * 0.1, 1e-8),
+                min(np.max(max_observation_time) * 1.1, 1e8),
+            )
             for _ in range(n_components)
         ],
     )

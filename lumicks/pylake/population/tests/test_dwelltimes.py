@@ -31,6 +31,41 @@ def test_likelihood(exponential_data):
     np.testing.assert_allclose(fit.bic, 4429.232045925579, rtol=1e-5)
 
 
+@pytest.mark.parametrize(
+    "data, min_obs, max_obs, loglik",
+    [
+        # fmt:off
+        (np.array([0.2, 0.3, 0.6, 1.2]), 0.1, 1.4, -0.604631649126058),
+        (np.array([0.2, 0.3, 0.6, 1.2]), np.array([0.1, 0.1, 0.3, 0.3]), 1.3, 0.25784386656710745),
+        (np.array([0.2, 0.3, 0.6, 1.2]), 0.1, np.array([0.5, 0.5, 1.3, 1.3]), 1.1932900895106002),
+        (np.array([0.2, 0.3, 0.6, 1.2]), np.array([0.1, 0.1, 0.3, 0.3]), np.array([0.5, 0.5, 1.3, 1.3]), 1.7155483581674074),
+        # fmt:on
+    ]
+)
+def test_multi_observation_limits(data, min_obs, max_obs, loglik):
+    fit = DwelltimeModel(data, 1, min_observation_time=min_obs, max_observation_time=max_obs)
+    np.testing.assert_allclose(fit.log_likelihood, loglik, rtol=1e-5)
+
+
+def test_invalid_multi_observation_limits():
+    data = np.arange(1.0, 4.0, 1.0)
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            r"Size of minimum observation time array (2) must be equal to that of dwelltimes (3)"
+        )
+    ):
+        DwelltimeModel(data, min_observation_time=np.array([0.1, 0.2]), max_observation_time=10.0)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            r"Size of maximum observation time array (4) must be equal to that of dwelltimes (3)"
+        )
+    ):
+        DwelltimeModel(data, min_observation_time=0, max_observation_time=np.array([1, 2, 3, 4]))
+
+
 def test_optim_options(exponential_data):
     dataset = exponential_data["dataset_1exp"]
 
@@ -391,6 +426,12 @@ def test_invalid_models():
         [[1e-4, 1.0, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
         # Zero lifetime is problematic because of all the reciprocals.
         [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), 0, np.inf],
+        # Multi-t_min case
+        [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), np.arange(0.0, 10.0, 0.1) / 10, np.inf],
+        # Multi-t_max case
+        [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), 0, 1.0 + np.arange(0.0, 10.0, 0.1) * 2],
+        # Mix of infinity and values for t_max
+        [[0.4, 0.6, 1e-2, 1.0], np.array([1.0, 2.0, 3.0]), 0, np.array([3.0, np.inf, 5.0])],
     ]
 )
 def test_analytic_gradient_exponential(params, t, min_observation_time, max_observation_time):
@@ -407,6 +448,7 @@ def test_analytic_gradient_exponential(params, t, min_observation_time, max_obse
         ),
         numerical_jacobian(fn, params, dx=1e-5).flatten(),
         rtol=1e-5,
+        atol=1e-13,
     )
 
 
