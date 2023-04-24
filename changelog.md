@@ -6,6 +6,7 @@
 
 * Added [`DwelltimeModel.profile_likelihood()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.profile_likelihood) for calculating profile likelihoods for dwell time analysis. These can be used to determine confidence intervals and assess whether the model has too many parameters (i.e., if a model with fewer components would be sufficient).
 * Added functionality to split tracks in the Kymotracking widget.
+* Added functionality to provide minimum and maximum observation times per data point to `DwelltimeModel`.
 * Enabled adding `KymoTrackGroup`s with tracks from different source kymographs. *Note that certain features (e.g., `KymoTrackGroup.ensemble_msd()` and `KymoTrackGroup.ensemble_diffusion("ols")`) require that all source kymographs have the same pixel size and scan line times.*
 
 #### Bug fixes
@@ -13,6 +14,7 @@
 * Fixed bug that could lead to mutability of `Kymo` and `Scan` through `.get_image()` or `.timestamps`. This bug was introduced in `0.7.2`. Grabbing a single color image from a `Scan` or `Kymo` using `.get_image()` returns a reference to an internal image cache. This numpy array was write-able and modifying data in the returned image would result in future calls to `.get_image()` returning the modified data rather than the original `Kymo` or `Scan` image. Timestamps obtained from `.timestamps` were similarly affected. These arrays are now returned non-writeable.
 * Fixed a bug that would round the center of the window to the incorrect pixel when using `KymoTrack.sample_from_image()`. Pixels are defined with their origin at the center of the pixel, whereas this function incorrectly assumed that the origin was on the edge of the pixel. The effects of this bug are larger for small windows.
 * Fixed a bug where we passed a `SampleFormat` tag while saving to `tiff` using `tifffile`. However, `tifffile` infers the `SampleFormat` automatically from the datatype of the `numpy` array it is passed. This produced warnings on the latest version of `tifffile` when running the benchmark.
+* Ensure that the probability density returns zero outside its support for `DwelltimeModel.pdf()`. Prior to this change, non-zero values would be returned outside the observation limits of the dwelltime model.
 
 #### Improvements
 

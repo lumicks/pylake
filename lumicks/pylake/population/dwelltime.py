@@ -684,11 +684,26 @@ class DwelltimeModel:
         x : np.array
             array of independent variable values at which to calculate the PDF.
         """
-        return np.exp(
-            _exponential_mixture_log_likelihood_components(
-                self.amplitudes, self.lifetimes, x, *self._observation_limits
-            )
+        limits = np.vstack(list(np.broadcast(*self._observation_limits)))
+        unique_limits, counts = np.unique(limits, axis=0, return_counts=True)
+
+        pdfs = np.asarray(
+            [
+                (count / sum(counts))
+                * np.logical_and(x >= limits[0], x < limits[1])
+                * np.exp(
+                    _exponential_mixture_log_likelihood_components(
+                        self.amplitudes,
+                        self.lifetimes,
+                        x,
+                        *limits,
+                    )
+                )
+                for limits, count in zip(unique_limits, counts)
+            ]
         )
+
+        return np.sum(pdfs, axis=0)
 
     @deprecated(
         reason=(
@@ -709,6 +724,26 @@ class DwelltimeModel:
         yscale=None,
     ):
         self.hist(n_bins, bin_spacing, hist_kwargs, component_kwargs, fit_kwargs, xscale, yscale)
+
+    def _discrete_pdf(self, bins, int_steps=10000):
+        """Probability density function averaged over histogram bins.
+
+        Parameters
+        ----------
+        bins : numpy.ndarray
+            Monotonically increasing array of bin edges.
+        int_steps : int
+            To obtain accurate pdf values when plotting, we sample the pdf at a finer resolution
+            than the histogram bins. The number of steps we evaluate per bin is defined as:
+            max(3, int_steps // n_bins). Default: 10000.
+        """
+        # We average over a relatively fine mesh to make sure our PDF estimates are good when not
+        # all t_min and t_max are the same.
+        centers = bins[:-1] + (bins[1:] - bins[:-1]) / 2
+        n_sample = max(3, int_steps // len(centers))
+        time_points = np.hstack([np.linspace(t1, t2, n_sample) for t1, t2 in zip(bins, bins[1:])])
+        components = np.mean(self.pdf(time_points).reshape(self.n_components, -1, n_sample), axis=2)
+        return centers, components
 
     def hist(
         self,
@@ -753,13 +788,11 @@ class DwelltimeModel:
             raise ValueError("spacing must be either 'log' or 'linear'")
 
         bins = scale(*limits, n_bins)
-        centers = bins[:-1] + (bins[1:] - bins[:-1]) / 2
-
         hist_kwargs = {"facecolor": "#cdcdcd", "edgecolor": "#aaaaaa", **(hist_kwargs or {})}
         component_kwargs = {"marker": "o", "ms": 3, **(component_kwargs or {})}
         fit_kwargs = {"color": "k", **(fit_kwargs or {})}
 
-        components = self.pdf(centers)
+        centers, components = self._discrete_pdf(bins, int_steps=10000)
 
         def label_maker(a, t, n):
             if self.n_components == 1:
