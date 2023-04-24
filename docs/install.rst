@@ -304,6 +304,18 @@ If you have already activated the correct environment, but you still do not see 
 Frequently asked questions
 --------------------------
 
+**When importing lumicks.pylake on Windows I get an error with cv2**
+
+The full error message is::
+
+    ImportError: DLL load failed while importing cv2: The specified procedure could not be found.
+    
+To resolve this error, follow these steps:
+    
+* Remove Anaconda
+* Install the latest version of `Microsoft Visual C++ <https://visualstudio.microsoft.com/downloads/>`_
+* Follow the installation instructions for Pylake again
+
 .. _OpenSSL Error:
 
 **I tried the installation instructions on Windows, but I get a CondaSSLError**
