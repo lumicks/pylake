@@ -92,6 +92,26 @@ def test_fit_parameters(exponential_data):
     np.testing.assert_allclose(fit.rate_constants, [1 / 1.50634996, 1 / 5.46227291], rtol=1e-5)
 
 
+@pytest.mark.parametrize(
+    "min_obs, max_obs, ref_ci",
+    [
+        (0.1, 1.4, (0.2663655, 1.4679362)),
+        (np.array([0.1, 0.1, 0.3, 0.3]), 1.3, (0.2068400, 1.3463159)),
+        (0.1, np.array([0.5, 0.5, 1.3, 1.3]), (0.7838319, 1.4147650)),
+        (
+            np.array([0.1, 0.1, 0.3, 0.3]), np.array([0.5, 0.5, 1.3, 1.3]), (0.3497069, 1.3528150)
+        ),
+    ]
+)
+def test_bootstrap_multi(min_obs, max_obs, ref_ci):
+    np.random.seed(123)
+    data = np.array([0.2, 0.3, 0.6, 1.2])
+    fit = DwelltimeModel(data, 1, min_observation_time=min_obs, max_observation_time=max_obs)
+    bootstrap = fit.calculate_bootstrap(iterations=4)
+    ci = bootstrap.get_interval("lifetime", 0)
+    np.testing.assert_allclose(ci, ref_ci, rtol=1e-5)
+
+
 @pytest.mark.slow
 def test_bootstrap(exponential_data):
     # double exponential data

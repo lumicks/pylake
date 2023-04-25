@@ -319,11 +319,21 @@ class DwelltimeBootstrap:
         n_data = optimized.dwelltimes.size
         samples = np.empty((optimized._parameters.size, iterations))
         for itr in range(iterations):
-            sample = np.random.choice(optimized.dwelltimes, size=n_data, replace=True)
+            # Note: we have per-dwelltime limits, so we need to resample these too. Form an array
+            # with dwelltimes, min limits, and max limits as columns
+            to_resample = np.vstack(
+                list(np.broadcast(optimized.dwelltimes, *optimized._observation_limits))
+            )
+            choices = np.random.choice(
+                np.arange(optimized.dwelltimes.size), size=n_data, replace=True
+            )
+            sample, min_obs, max_obs = to_resample[choices, :].T
+
             result, _ = _exponential_mle_optimize(
                 optimized.n_components,
                 sample,
-                *optimized._observation_limits,
+                min_obs,
+                max_obs,
                 initial_guess=optimized._parameters,
                 options=optimized._optim_options,
                 use_jacobian=optimized.use_jacobian,
