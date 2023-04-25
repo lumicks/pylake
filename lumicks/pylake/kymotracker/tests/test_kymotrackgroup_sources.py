@@ -262,3 +262,21 @@ def test_multisource_not_implemented(kymos, coordinates):
         ),
     ):
         tracks.fit_binding_times(n_components=1)
+
+def test_tracks_by_kymo(kymos, coordinates):
+    time_indices, position_indices = coordinates
+
+    def make_tracks(kymo):
+        return KymoTrackGroup(
+            [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
+        )
+
+    tracks = [make_tracks(k) for k in (kymos[0], kymos[-1])]
+    merged_group = (tracks[0] + tracks[-1])
+    tracks_from_group = merged_group._tracks_by_kymo()
+
+    for tracks_raw, tracks_group in zip(tracks, tracks_from_group):
+        assert len(tracks_group) == len(tracks_raw)
+        for track_group, track_raw in zip(tracks_group, tracks_raw):
+            id(track_group) == id(track_raw)
+

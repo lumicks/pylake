@@ -1052,6 +1052,18 @@ class KymoTrackGroup:
         """
         export_kymotrackgroup_to_csv(filename, self, delimiter, sampling_width)
 
+    def _tracks_by_kymo(self):
+        """Find tracks for each `Kymo` in the group.
+
+        Returns
+        -------
+        dict of KymoTrackGroup
+            returns a dictionary where the keys are Kymos which the associated tracks
+        """
+        return [
+            KymoTrackGroup([track for track in self if track._kymo == kymo]) for kymo in self._kymos
+        ]
+
     def fit_binding_times(
         self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
     ):
