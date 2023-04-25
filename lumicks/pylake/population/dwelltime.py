@@ -207,7 +207,7 @@ class DwelltimeProfiles:
             profiling (default: 0.05).
         """
         if self.n_components == 1:
-            next(iter(self.profiles), significance_level=alpha).plot()
+            next(iter(self.profiles.values())).plot(significance_level=alpha)
         else:
             plot_idx = np.reshape(np.arange(1, len(self.profiles) + 1), (-1, 2)).T.flatten()
             for idx, profile in zip(plot_idx, self.profiles.values()):

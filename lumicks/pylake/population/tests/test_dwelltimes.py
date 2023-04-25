@@ -123,14 +123,12 @@ def test_dwelltime_profiles(exponential_data):
         profiles.get_interval("amplitude", 0, 0.001)
 
 
-@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
-@pytest.mark.filterwarnings("ignore:divide by zero encountered")
-@pytest.mark.filterwarnings("ignore:invalid value encountered")
-def test_dwelltime_profile_plots():
+@pytest.mark.parametrize("n_components", [2, 1])
+def test_dwelltime_profile_plots(n_components):
     """Verify that the threshold moves appropriately"""
     fit = DwelltimeModel(
         np.array([10.0, 5.0, 4.0, 3.0, 3.0, 2.0, 2.0, 1.0]),
-        2,
+        n_components,
         min_observation_time=1e-4,
         max_observation_time=1e4,
     )
