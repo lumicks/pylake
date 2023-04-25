@@ -255,13 +255,6 @@ def test_multisource_not_implemented(kymos, coordinates):
             tracks, window=2, refine_missing_frames=False, overlap_strategy="ignore"
         )
 
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            r"Dwelltime analysis is not supported. This group contains tracks from 2 source kymographs."
-        ),
-    ):
-        tracks.fit_binding_times(n_components=1)
 
 def test_tracks_by_kymo(kymos, coordinates):
     time_indices, position_indices = coordinates
@@ -279,4 +272,3 @@ def test_tracks_by_kymo(kymos, coordinates):
         assert len(tracks_group) == len(tracks_raw)
         for track_group, track_raw in zip(tracks_group, tracks_raw):
             id(track_group) == id(track_raw)
-

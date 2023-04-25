@@ -772,6 +772,96 @@ def test_fit_binding_times_empty():
         KymoTrackGroup([]).fit_binding_times(1)
 
 
+def test_multi_kymo_dwell():
+    kymos = [
+        _kymo_from_array(np.zeros((10, 10, 3)), "rgb", line_time_seconds=time, pixel_size_um=size)
+        for time, size in ((10e-4, 0.05), (10e-3, 0.1))
+    ]
+
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 2, 3]), kymos[0], "red")
+    k2 = KymoTrack(np.array([2, 3, 4, 5]), np.array([2, 3, 4, 5]), kymos[0], "red")
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([3, 4, 5]), kymos[1], "red")
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([4, 5, 6]), kymos[1], "red")
+    k5 = KymoTrack(np.array([7]), np.array([7]), kymos[1], "red")
+
+    # Normal use case
+    dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k3, k4])], False
+    )
+    np.testing.assert_allclose(dwell, [0.002, 0.003, 0.02, 0.02])
+    np.testing.assert_allclose(obs_min, [0.002, 0.002, 0.02, 0.02])
+    np.testing.assert_allclose(obs_max, [0.01, 0.01, 0.1, 0.1])
+    assert removed_zeroes is False
+
+    # Drop one "empty" dwell
+    dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k3, k4, k5])], False
+    )
+    np.testing.assert_allclose(dwell, [0.002, 0.003, 0.02, 0.02])
+    np.testing.assert_allclose(obs_min, [0.002, 0.002, 0.02, 0.02])
+    np.testing.assert_allclose(obs_max, [0.01, 0.01, 0.1, 0.1])
+    assert removed_zeroes is True
+
+    # Test with empty group
+    dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([])], False
+    )
+    np.testing.assert_allclose(dwell, [0.002, 0.003])
+    np.testing.assert_allclose(obs_min, [0.002, 0.002])
+    np.testing.assert_allclose(obs_max, [0.01, 0.01])
+    assert removed_zeroes is False
+
+    # Test with group that is empty after filtering
+    dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k5])], False
+    )
+    np.testing.assert_allclose(dwell, [0.002, 0.003])
+    np.testing.assert_allclose(obs_min, [0.002, 0.002])
+    np.testing.assert_allclose(obs_max, [0.01, 0.01])
+    assert removed_zeroes is True
+
+    dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
+        [KymoTrackGroup([k5]), KymoTrackGroup([k5])], False
+    )
+    np.testing.assert_allclose(dwell, [])
+    np.testing.assert_allclose(obs_min, [])
+    np.testing.assert_allclose(obs_max, [])
+    assert removed_zeroes is True
+
+
+def test_multi_kymo_dwelltime_analysis():
+    """This test tests only the happy path since others test more specific edge cases"""
+    np.random.seed(123)
+
+    shared_args = {
+        "image": np.empty((1, 5000, 3)),
+        "color_format": "rgb",
+        "start": np.int64(20e9),
+        "pixel_size_um": 2,
+    }
+
+    kymo1 = _kymo_from_array(**shared_args, line_time_seconds=0.01)
+    kymo2 = _kymo_from_array(**shared_args, line_time_seconds=0.02)
+    args = [np.array([1.0, 1.0]), kymo1, "red"]
+    group1 = KymoTrackGroup(
+        [
+            KymoTrack(np.array([1, int(round(t / kymo1.line_time_seconds)) + 1]), *args)
+            for t in np.random.exponential(2, size=(200,))
+        ],
+    )
+    args = [np.array([1.0, 1.0]), kymo2, "red"]
+    group2 = KymoTrackGroup(
+        [
+            KymoTrack(np.array([1, int(round(t / kymo2.line_time_seconds)) + 1]), *args)
+            for t in np.random.exponential(6, size=(200,))
+        ],
+    )
+
+    model = (group1 + group2).fit_binding_times(2, tol=1e-16)
+    np.testing.assert_allclose(model.lifetimes, (2.05754716, 6.89790037))
+    np.testing.assert_allclose(model.amplitudes, (0.61360417, 0.38639583))
+
+
 @pytest.mark.parametrize("method,max_lags", [("ols", 2), ("ols", None), ("gls", 2), ("gls", None)])
 def test_kymotrack_group_diffusion(blank_kymo, method, max_lags):
     """Tests whether we can call this function at the diffusion level"""

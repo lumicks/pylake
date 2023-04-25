@@ -1064,6 +1064,76 @@ class KymoTrackGroup:
             KymoTrackGroup([track for track in self if track._kymo == kymo]) for kymo in self._kymos
         ]
 
+    @staticmethod
+    def _extract_dwelltime_data_from_groups(groups, exclude_ambiguous_dwells):
+        """Compute data needed for dwelltime analysis from a dictionary of KymoTrackGroups.
+
+        This data consists of dwelltimes and observation limits per track. Note that dwelltimes of zero
+        are automatically dropped.
+
+        Parameters
+        ----------
+        groups : iterable of KymoTrackGroup
+            An iterable which provides a sequence of KymoTrackGroup. Note that each group can only
+            have one `Kymo` associated with it.
+        exclude_ambiguous_dwells : bool
+            Determines whether to exclude dwelltimes which are not exactly determined. If `True`,
+            tracks which start in the first frame or end in the last frame of the kymograph are not
+            used in the analysis, since the exact start/stop times of the binding event are not
+            definitively known.
+
+        Returns
+        -------
+        dwelltimes : numpy.ndarray
+            Dwelltimes
+        min_obs : numpy.ndarray
+            List of minimum observation times extracted from the kymos
+        max_obs : numpy.ndarray
+            List of maximum observation time
+        removed_zeros : bool
+            Whether zeroes were dropped
+
+        Raises
+        ------
+        ValueError
+            if one of the KymoTrackGroups has more than one `Kymo` associated with it
+        """
+        removed_zeros = False
+
+        def extract_dwelltime_data(group):
+            nonlocal removed_zeros
+
+            if len(group._kymos) > 1:
+                raise ValueError("This group has more than one Kymo associated with it.")
+
+            tracks = (
+                filter(KymoTrack._check_ends_are_defined, group)
+                if exclude_ambiguous_dwells
+                else group
+            )
+            dwelltimes_sec = np.array([track.seconds[-1] - track.seconds[0] for track in tracks])
+            nonzero_dwelltimes_sec = dwelltimes_sec[dwelltimes_sec > 0]
+            removed_zeros = removed_zeros or len(nonzero_dwelltimes_sec) != len(dwelltimes_sec)
+
+            # Gracefully handle empty groups
+            if nonzero_dwelltimes_sec.size == 0:
+                return np.empty((3, 0))
+
+            min_observation_time = np.min(nonzero_dwelltimes_sec)
+            max_observation_time = group[0]._image.shape[1] * group[0]._line_time_seconds
+
+            return np.vstack(
+                list(
+                    np.broadcast(nonzero_dwelltimes_sec, min_observation_time, max_observation_time)
+                )
+            ).T
+
+        dwelltimes, min_obs, max_obs = np.hstack(
+            [extract_dwelltime_data(tracks) for tracks in groups]
+        )
+
+        return dwelltimes, min_obs, max_obs, removed_zeros
+
     def fit_binding_times(
         self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
     ):
@@ -1084,20 +1154,19 @@ class KymoTrackGroup:
             The maximum number of iterations to perform. This parameter is forwarded as the `maxiter` argument
             to `scipy.minimize(method="L-BFGS-B")`.
         """
-        self._validate_single_source("Dwelltime analysis")
+        if not len(self):
+            raise RuntimeError("No tracks available for analysis")
 
         if n_components not in (1, 2):
             raise ValueError(
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
-        tracks = (
-            filter(KymoTrack._check_ends_are_defined, self) if exclude_ambiguous_dwells else self
+        dwelltimes, min_obs, max_obs, removed_zeros = self._extract_dwelltime_data_from_groups(
+            self._tracks_by_kymo(), exclude_ambiguous_dwells
         )
-        dwelltimes_sec = np.array([track.seconds[-1] - track.seconds[0] for track in tracks])
 
-        nonzero_dwelltimes_sec = dwelltimes_sec[dwelltimes_sec > 0]
-        if len(nonzero_dwelltimes_sec) != len(dwelltimes_sec):
+        if removed_zeros:
             warnings.warn(
                 RuntimeWarning(
                     "Some dwell times are zero. A dwell time of zero indicates that some of the "
@@ -1109,17 +1178,14 @@ class KymoTrackGroup:
                 stacklevel=2,
             )
 
-        if nonzero_dwelltimes_sec.size == 0:
+        if dwelltimes.size == 0:
             raise RuntimeError("No tracks available for analysis")
 
-        min_observation_time = np.min(nonzero_dwelltimes_sec)
-        max_observation_time = self[0]._image.shape[1] * self[0]._line_time_seconds
-
         return DwelltimeModel(
-            nonzero_dwelltimes_sec,
+            dwelltimes,
             n_components,
-            min_observation_time=min_observation_time,
-            max_observation_time=max_observation_time,
+            min_observation_time=min_obs,
+            max_observation_time=max_obs,
             tol=tol,
             max_iter=max_iter,
         )
@@ -1335,7 +1401,7 @@ class KymoTrackGroup:
         RuntimeWarning
             if `method == "cve"` and the source kymographs do not have the same line times
             or pixel sizes. As a result, the localization variance and variance of the localization
-            variance are not be available. Estimates that are unavailable are returned as `np.nan`.
+            variance are not available. Estimates that are unavailable are returned as `np.nan`.
 
         References
         ----------
