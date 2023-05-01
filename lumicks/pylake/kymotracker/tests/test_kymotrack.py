@@ -1325,3 +1325,20 @@ def test_no_motion_blur(blank_kymo):
         "constant.",
     ):
         track.estimate_diffusion("cve", localization_variance=1)
+
+
+def test_photon_counts_api(blank_kymo):
+    with pytest.raises(AttributeError, match="Photon counts are unavailable for this KymoTrack."):
+        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red").photon_counts
+
+    np.testing.assert_equal(
+        KymoTrack(
+            [1, 2, 3],
+            GaussianLocalizationModel(
+                [1, 2, 3], [1, 2, 5], [1, 1, 1], [0, 0, 0], [False, True, False]
+            ),
+            blank_kymo,
+            "red",
+        ).photon_counts,
+        [1, 2, 5],
+    )

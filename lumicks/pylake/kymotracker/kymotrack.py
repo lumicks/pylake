@@ -186,6 +186,24 @@ class KymoTrack:
     def _image(self):
         return self._kymo.get_image(self._channel)
 
+    @property
+    def photon_counts(self):
+        """Photon counts
+
+        Provides an estimate of the photon counts for each point in the track. The value is
+        calculated differently depending on the refinement method:
+
+        - for a tracks originating from tracking without additional refinement or from centroid
+          refinement, the counts are estimated by summing an odd number of pixels around the peak
+          position.
+        - for tracks originating from Gaussian refinement, the photon count estimate is given
+          by the fitted integrated area of the peak.
+        """
+        try:
+            return self._localization.total_photons
+        except AttributeError:
+            raise AttributeError("Photon counts are unavailable for this KymoTrack.")
+
     def __str__(self):
         return f"KymoTrack(N={len(self._time_idx)})"
 
