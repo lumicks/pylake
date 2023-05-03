@@ -430,7 +430,7 @@ class DwelltimeModel:
         else:
             raise ValueError("spacing must be either 'log' or 'linear'")
 
-        bins = scale(*limits, n_bins)
+        bins = scale(*limits, n_bins + 1)
         centers = bins[:-1] + (bins[1:] - bins[:-1]) / 2
 
         hist_kwargs = {"facecolor": "#cdcdcd", "edgecolor": "#aaaaaa", **(hist_kwargs or {})}
