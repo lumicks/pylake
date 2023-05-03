@@ -15,6 +15,7 @@
 * Fixed a bug that would round the center of the window to the incorrect pixel when using `KymoTrack.sample_from_image()`. Pixels are defined with their origin at the center of the pixel, whereas this function incorrectly assumed that the origin was on the edge of the pixel. The effects of this bug are larger for small windows.
 * Fixed a bug where we passed a `SampleFormat` tag while saving to `tiff` using `tifffile`. However, `tifffile` infers the `SampleFormat` automatically from the datatype of the `numpy` array it is passed. This produced warnings on the latest version of `tifffile` when running the benchmark.
 * Ensure that the probability density returns zero outside its support for `DwelltimeModel.pdf()`. Prior to this change, non-zero values would be returned outside the observation limits of the dwelltime model.
+* Fixed a bug where `DwelltimeModel.hist()` produces one less bin than requested with `n_bins`.
 
 #### Improvements
 
