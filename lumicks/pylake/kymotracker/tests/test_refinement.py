@@ -15,9 +15,7 @@ def test_kymotrack_interpolation(blank_kymo):
     np.testing.assert_allclose(interpolated.coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0])
 
     # Test whether concatenation still works after interpolation
-    np.testing.assert_equal(
-        (interpolated + kymotrack).time_idx, [1, 2, 3, 4, 5, 1, 3, 5]
-    )
+    np.testing.assert_equal((interpolated + kymotrack).time_idx, [1, 2, 3, 4, 5, 1, 3, 5])
     np.testing.assert_allclose(
         (interpolated + kymotrack).coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0, 1.0, 3.0, 3.0]
     )
@@ -105,6 +103,23 @@ def test_refinement_error(kymo_integration_test_data):
 
     # This should be fine though
     refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0.15)[0]
+
+
+def test_centroid_refinement_multiple_sources(kymogroups_2tracks, kymogroups_close_tracks):
+    tracks1, *_ = kymogroups_2tracks
+    tracks2 = kymogroups_close_tracks
+    assert [id(k) for k in tracks1._kymos] != [id(k) for k in tracks2._kymos]
+
+    tracks3 = tracks1[:1] + tracks2 + tracks1[1:]
+
+    refined_tracks1 = refine_tracks_centroid(tracks1)
+    refined_tracks2 = refine_tracks_centroid(tracks2)
+    refined_tracks3 = refine_tracks_centroid(tracks3)
+
+    reference_refined_tracks = refined_tracks1[:1] + refined_tracks2 + refined_tracks1[1:]
+
+    for track, ref_track in zip(refined_tracks3, reference_refined_tracks):
+        np.testing.assert_allclose(track.position, ref_track.position)
 
 
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
@@ -220,6 +235,29 @@ def test_gaussian_refinement_overlap(kymogroups_close_tracks):
         refined[1].position,
         [3.32775782, 3.42564736, 3.33315701, 3.60090496, 3.26356061],
     )
+
+
+def test_gaussian_refinement_multiple_sources(kymogroups_2tracks, kymogroups_close_tracks):
+    tracks1, *_ = kymogroups_2tracks
+    tracks2 = kymogroups_close_tracks
+    assert [id(k) for k in tracks1._kymos] != [id(k) for k in tracks2._kymos]
+
+    tracks3 = tracks1[:1] + tracks2 + tracks1[1:]
+
+    refinement_kwargs = {
+        "window": 3,
+        "refine_missing_frames": False,
+        "overlap_strategy": "multiple",
+    }
+
+    refined_tracks1 = refine_tracks_gaussian(tracks1, **refinement_kwargs)
+    refined_tracks2 = refine_tracks_gaussian(tracks2, **refinement_kwargs)
+    refined_tracks3 = refine_tracks_gaussian(tracks3, **refinement_kwargs)
+
+    reference_refined_tracks = refined_tracks1[:1] + refined_tracks2 + refined_tracks1[1:]
+
+    for track, ref_track in zip(refined_tracks3, reference_refined_tracks):
+        np.testing.assert_allclose(track.position, ref_track.position)
 
 
 def test_filter_tracks(blank_kymo):

@@ -11,6 +11,7 @@ from .detail.peakfinding import (
 from .detail.localization_models import GaussianLocalizationModel
 import numpy as np
 import warnings
+from itertools import chain
 
 __all__ = [
     "track_greedy",
@@ -367,6 +368,24 @@ def filter_tracks(tracks, minimum_length):
     return KymoTrackGroup([track for track in tracks if len(track) >= minimum_length])
 
 
+def _apply_to_group(tracks, func, *args, **kwargs):
+    """Break a group of tracks into sets with a single source kymograph, apply `func`,
+    and rebuild group in original order.
+
+    Parameters
+    ----------
+    tracks : KymoTrackGroup
+        Tracks to apply function to
+    func : callable
+        Function to be applied to tracks
+    *args, **kwargs
+        Additional arguments supplied to `func`
+    """
+    groups, indices = tracks._tracks_by_kymo()
+    groups = [func(group, *args, **kwargs) for group in groups]
+    return KymoTrackGroup([track for _, track in sorted(zip(chain(*indices), chain(*groups)))])
+
+
 def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
     """Refine the tracks based on the brightness-weighted centroid.
 
@@ -411,7 +430,11 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
            shape. Optics express, 16(18), 14064-14075.
     """
     tracks = KymoTrackGroup(tracks) if isinstance(tracks, (list, tuple)) else tracks
-    tracks._validate_single_source("Centroid refinement")
+
+    if len(tracks._kymos) > 1:
+        return _apply_to_group(
+            tracks, refine_tracks_centroid, track_width=track_width, bias_correction=bias_correction
+        )
 
     if not tracks:
         return KymoTrackGroup([])
@@ -486,7 +509,16 @@ def refine_tracks_gaussian(
     if overlap_strategy not in ("ignore", "skip", "multiple"):
         raise ValueError("Invalid overlap strategy selected.")
 
-    tracks._validate_single_source("Gaussian refinement")
+    if len(tracks._kymos) > 1:
+        return _apply_to_group(
+            tracks,
+            refine_tracks_gaussian,
+            window,
+            refine_missing_frames,
+            overlap_strategy,
+            initial_sigma=initial_sigma,
+            fixed_background=fixed_background,
+        )
 
     if not tracks:
         return KymoTrackGroup([])

@@ -1060,9 +1060,15 @@ class KymoTrackGroup:
         dict of KymoTrackGroup
             returns a dictionary where the keys are Kymos which the associated tracks
         """
-        return [
+        groups = [
             KymoTrackGroup([track for track in self if track._kymo == kymo]) for kymo in self._kymos
         ]
+
+        indices = [
+            [j for j, track in enumerate(self) if track._kymo == kymo] for kymo in self._kymos
+        ]
+
+        return groups, indices
 
     @staticmethod
     def _extract_dwelltime_data_from_groups(groups, exclude_ambiguous_dwells):
@@ -1162,8 +1168,9 @@ class KymoTrackGroup:
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
+        groups, _ = self._tracks_by_kymo()
         dwelltimes, min_obs, max_obs, removed_zeros = self._extract_dwelltime_data_from_groups(
-            self._tracks_by_kymo(), exclude_ambiguous_dwells
+            groups, exclude_ambiguous_dwells
         )
 
         if removed_zeros:
