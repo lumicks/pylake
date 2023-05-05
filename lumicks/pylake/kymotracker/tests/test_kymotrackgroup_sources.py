@@ -237,24 +237,6 @@ def test_multisource_not_implemented(kymos, coordinates):
     ):
         tracks._histogram_binding_profile(n_time_bins=1, bandwidth=1, n_position_points=10)
 
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            r"Centroid refinement is not supported. This group contains tracks from 2 source kymographs."
-        ),
-    ):
-        refine_tracks_centroid(tracks)
-
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            r"Gaussian refinement is not supported. This group contains tracks from 2 source kymographs."
-        ),
-    ):
-        refine_tracks_gaussian(
-            tracks, window=2, refine_missing_frames=False, overlap_strategy="ignore"
-        )
-
 
 def test_tracks_by_kymo(kymos, coordinates):
     time_indices, position_indices = coordinates
@@ -264,11 +246,14 @@ def test_tracks_by_kymo(kymos, coordinates):
             [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
         )
 
-    tracks = [make_tracks(k) for k in (kymos[0], kymos[-1])]
-    merged_group = (tracks[0] + tracks[-1])
-    tracks_from_group = merged_group._tracks_by_kymo()
+    tracks = [make_tracks(k) for k in (kymos[0], kymos[-1], kymos[0])]
+    merged_group = tracks[0] + tracks[1] + tracks[2]
+    tracks_from_group, indices = merged_group._tracks_by_kymo()
+    grouped_by_kymo = [tracks[0] + tracks[2], tracks[1]]
 
-    for tracks_raw, tracks_group in zip(tracks, tracks_from_group):
+    for tracks_raw, tracks_group in zip(grouped_by_kymo, tracks_from_group):
         assert len(tracks_group) == len(tracks_raw)
         for track_group, track_raw in zip(tracks_group, tracks_raw):
             id(track_group) == id(track_raw)
+
+    assert indices == [[0, 1, 2, 3, 8, 9, 10, 11], [4, 5, 6, 7]]
