@@ -512,6 +512,7 @@ def refine_tracks_gaussian(
         :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`'s overlap.
 
         - 'multiple' : fit the peaks simultaneously.
+        - 'simultaneous' : fit the peaks simultaneously with estimation bounds between peaks.
         - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
         - 'skip' : skip optimization of the frame; remove from returned :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
     initial_sigma : float
@@ -520,7 +521,7 @@ def refine_tracks_gaussian(
         Fixed background parameter in photons per second.
         When supplied, the background is not estimated but fixed at this value.
     """
-    if overlap_strategy not in ("ignore", "skip", "multiple"):
+    if overlap_strategy not in ("ignore", "skip", "multiple", "simultaneous"):
         raise ValueError("Invalid overlap strategy selected.")
 
     if len(tracks._kymos) > 1:
@@ -595,6 +596,7 @@ def refine_tracks_gaussian(
                 initial_position=initial_positions,
                 initial_sigma=initial_sigma,
                 fixed_background=fixed_background,
+                enforce_position_bounds=overlap_strategy == "simultaneous",
             )
 
             # Store results in refined lines

@@ -162,7 +162,13 @@ def peak_expectation_1d_derivatives(x, params, fixed_background, pixel_size, num
 
 
 def gaussian_mle_1d(
-    x, photon_count, pixel_size, initial_position=None, initial_sigma=0.250, fixed_background=None
+    x,
+    photon_count,
+    pixel_size,
+    initial_position=None,
+    initial_sigma=0.250,
+    fixed_background=None,
+    enforce_position_bounds=True,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured photon count
     for 1D data.
@@ -178,13 +184,15 @@ def gaussian_mle_1d(
         Measured photon counts at each position.
     pixel_size : float
         Pixel size in um.
-    initial_position : float
+    initial_position : float or np.ndarray, optional
         Initial guess for the peak position, in um.
     initial_sigma : float
         Initial guess for the `sigma` parameter, in um.
     fixed_background : float
         Fixed background parameter in photons per second.
         When supplied, the background is not estimated but fixed at this value.
+    enforce_position_bounds : bool
+        Enforce bounds between each peak. This ensures that track positions do not swap places.
     """
     if fixed_background is not None and fixed_background <= 0:
         raise ValueError("Fixed background should be larger than zero.")
@@ -216,6 +224,15 @@ def gaussian_mle_1d(
     # Keep a set of reverse sort indices so the original order can be preserved on output
     reverse_idx = np.argsort(idx)
 
+    # Divide up the range of positions such that each track gets its own range.
+    if enforce_position_bounds:
+        position_range = np.hstack(
+            [np.min(x), (initial_position[:-1] + initial_position[1:]) / 2.0, np.max(x)]
+        )
+        position_bounds = np.vstack((position_range[:-1], position_range[1:])).T
+    else:
+        position_bounds = np.tile((np.min(x), np.max(x)), (num_peaks, 1))
+
     amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma**2)
 
     # parameters are ordered as follows: amplitudes, centers, widths, background offset
@@ -228,7 +245,7 @@ def gaussian_mle_1d(
     bounds = np.vstack(
         (
             np.tile((0.01, np.inf), (num_peaks, 1)),
-            np.tile((np.min(x), np.max(x)), (num_peaks, 1)),
+            position_bounds,
             np.tile((pixel_size, 10 * pixel_size), (num_peaks, 1)),
         )
     )
