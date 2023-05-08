@@ -250,7 +250,7 @@ def test_no_swap_gaussian_refinement():
         [KymoTrack(np.array([0, 1]), np.array([loc, loc]), kymo, "red") for loc in locations])
 
     refined_group = refine_tracks_gaussian(
-        group, window=10, refine_missing_frames=True, overlap_strategy="multiple"
+        group, window=10, refine_missing_frames=True, overlap_strategy="simultaneous"
     )
 
     # We want the ones that have signal to move by less than a pixel. Note that the position of
@@ -258,22 +258,31 @@ def test_no_swap_gaussian_refinement():
     assert all(abs(np.diff(track.coordinate_idx)) < 1 for track in refined_group[:-1])
 
 
-def test_gaussian_refinement_overlap(kymogroups_close_tracks):
+@pytest.mark.parametrize(
+    "fit_mode, ref_pos1, ref_pos2", [
+        (
+            "simultaneous",
+            [5.24723138, 5.08524557, 4.81173895, 4.91751281, 4.62150668],
+            [3.32775782, 3.42564736, 3.41499711, 3.63259235, 3.2254143]
+        ),
+        (
+            "multiple",
+            [5.24723138, 5.08524557, 4.6939314, 4.84496914, 4.78668516],
+            [3.32775782, 3.42564736, 3.33315701, 3.60090496, 3.26356061],
+        ),
+    ]
+)
+def test_gaussian_refinement_overlap(kymogroups_close_tracks, fit_mode, ref_pos1, ref_pos2):
     refined = refine_tracks_gaussian(
         kymogroups_close_tracks,
         window=15,
         refine_missing_frames=True,
-        overlap_strategy="multiple",
+        overlap_strategy=fit_mode,
         fixed_background=1.0,
     )
-    assert np.allclose(
-        refined[0].position,
-        [5.24723138, 5.08524557, 4.6939314, 4.84496914, 4.78668516],
-    )
-    assert np.allclose(
-        refined[1].position,
-        [3.32775782, 3.42564736, 3.33315701, 3.60090496, 3.26356061],
-    )
+
+    assert np.allclose(refined[0].position, ref_pos1)
+    assert np.allclose(refined[1].position, ref_pos2)
 
 
 def test_gaussian_refinement_multiple_sources(kymogroups_2tracks, kymogroups_close_tracks):
