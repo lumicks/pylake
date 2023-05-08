@@ -6,6 +6,8 @@ from lumicks.pylake.kymotracker.detail.localization_models import GaussianLocali
 from lumicks.pylake.kymotracker.kymotracker import *
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
+from lumicks.pylake.kymo import _kymo_from_array
+from scipy.stats import norm
 
 
 def test_kymotrack_interpolation(blank_kymo):
@@ -224,6 +226,36 @@ def test_gaussian_refinement_fixed_background(kymogroups_2tracks, fit_mode):
         refined[1].position,
         [4.96956982, 4.99811141, 5.02009032, 5.01614766, 4.99094119],
     )
+
+
+def test_no_swap_gaussian_refinement():
+    """This test ensures that tracks don't swap during a Gaussian refinement. What can happen
+    during refinement is that a fluorophore blinks, and that the refinement then interpolates
+    over this blinking state. When this happens, the optimization problem is poorly defined,
+    since we have one more Gaussian in the model than needed. To ensure that we don't start
+    swapping Gaussians around (making the localization jump between tracks), we enforce that
+    they stay within limits dictated by their order."""
+    def gen_gaussians(locs):
+        x = np.arange(0, 20, 1)
+        return np.random.poisson(
+            200 * np.sum(np.vstack([norm.pdf(x, loc=loc) for loc in locs]), axis=0) + 10
+        )
+
+    np.random.seed(31415)
+    locations = (5, 9, 12, 16)
+    kymo = _kymo_from_array(
+        np.vstack((gen_gaussians(locations[:-1]), gen_gaussians(locations))).T, "r", 1,
+    )
+    group = KymoTrackGroup(
+        [KymoTrack(np.array([0, 1]), np.array([loc, loc]), kymo, "red") for loc in locations])
+
+    refined_group = refine_tracks_gaussian(
+        group, window=10, refine_missing_frames=True, overlap_strategy="multiple"
+    )
+
+    # We want the ones that have signal to move by less than a pixel. Note that the position of
+    # the last track is arbitrary (no signal there) and therefore not part of the test.
+    assert all(abs(np.diff(track.coordinate_idx)) < 1 for track in refined_group[:-1])
 
 
 def test_gaussian_refinement_overlap(kymogroups_close_tracks):
