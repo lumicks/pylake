@@ -220,7 +220,10 @@ def track_greedy(
     )
 
     tracks = [
-        KymoTrack(track.time_idx, track.coordinate_idx, kymograph, channel) for track in tracks
+        KymoTrack._from_centroid_estimate(
+            track.time_idx, track.coordinate_idx, kymograph, channel, half_width_pixels
+        )
+        for track in tracks
     ]
 
     return KymoTrackGroup(tracks)
@@ -470,8 +473,15 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
     track_ids = np.hstack(
         [np.full(len(track.time_idx), j) for j, track in enumerate(interpolated_tracks)]
     )
+
     new_tracks = [
-        track._with_coordinates(time_idx[track_ids == j], coordinate_idx[track_ids == j])
+        KymoTrack._from_centroid_estimate(
+            time_idx[track_ids == j],
+            coordinate_idx[track_ids == j],
+            interpolated_tracks[j]._kymo,
+            interpolated_tracks[j]._channel,
+            half_width_pixels,
+        )
         for j, track in enumerate(interpolated_tracks)
     ]
     return KymoTrackGroup(new_tracks)

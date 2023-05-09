@@ -57,8 +57,8 @@ def test_refinement_2d():
     )
 
 
-@pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
-def test_refinement_track(loc):
+@pytest.mark.parametrize("loc, ref_counts", [(25.3, 29), (25.5, 29), (26.25, 28), (23.6, 27)])
+def test_refinement_track(loc, ref_counts):
     xx = np.arange(0, 50) - loc
     image = np.exp(-0.3 * xx * xx)
     # real kymo pixel values are integer photon counts
@@ -77,22 +77,27 @@ def test_refinement_track(loc):
 
     track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5)[0]
     np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
+    np.testing.assert_equal(track.photon_counts, ref_counts)
 
 
-@pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
-def test_refinement_with_background(loc):
+@pytest.mark.parametrize("loc, ref_count", [(25.3, 29), (25.5, 29), (26.25, 28), (23.6, 27)])
+def test_refinement_with_background(loc, ref_count):
     xx = np.arange(0, 50) - loc
-    image = np.array((np.exp(-0.3 * xx * xx) + 5) * 10).astype(int)
+    background = 50
+    image = np.array((np.exp(-0.3 * xx * xx)) * 10 + background).astype(int)
     kymo = generate_kymo("", np.expand_dims(image, 1), pixel_size_nm=1000)
 
     # Without bias correction, we should see worse quality estimates
-    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5, bias_correction=False)[0]
+    tracks = [KymoTrack([0], [25], kymo, "red")]
+    refinement_width = 5
+    track = refine_tracks_centroid(tracks, refinement_width, bias_correction=False)[0]
     with pytest.raises(AssertionError):
         np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
 
     # With correction, this should resolve
-    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5, bias_correction=True)[0]
+    track = refine_tracks_centroid(tracks, refinement_width, bias_correction=True)[0]
     np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
+    np.testing.assert_equal(track.photon_counts, ref_count + background * refinement_width)
 
 
 def test_refinement_error(kymo_integration_test_data):

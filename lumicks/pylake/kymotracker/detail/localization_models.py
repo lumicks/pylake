@@ -47,6 +47,21 @@ class LocalizationModel:
 
 
 @dataclass(frozen=True)
+class CentroidLocalizationModel(LocalizationModel):
+    """Helper class to hold refinement optimization parameters.
+
+    Parameters
+    -----------
+    position : numpy.ndarray
+        Spatial coordinates in physical units.
+    total_photons : numpy.ndarray
+        Array of integrated photon counts for each time point.
+    """
+
+    total_photons: np.ndarray
+
+
+@dataclass(frozen=True)
 class GaussianLocalizationModel(LocalizationModel):
     """Helper (base) class to hold refinement optimization parameters.
 

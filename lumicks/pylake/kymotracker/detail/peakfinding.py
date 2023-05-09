@@ -386,3 +386,40 @@ def merge_close_peaks(peaks, minimum_distance):
         current_frame.time_points = current_frame.time_points[mask]
 
     return peaks
+
+
+def _sum_track_signal(
+    image, num_pixels, time_idx, coordinate_idx, reduce=np.sum, correct_origin=None
+):
+    """Sum pixels intensities around the track
+
+    This function samples data from the image based on the provided coordinates. It samples a
+    symmetric window of size `2 * num_pixels + 1` centered on the provided coordinates.
+
+    Parameters
+    ----------
+    num_pixels : int
+        Number of pixels in either direction to include in the sample.
+    time_idx : arraylike
+        Time coordinates.
+    coordinate_idx : arraylike
+        Positional coordinates.
+    reduce : callable
+        Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
+    correct_origin : bool, optional
+        Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+        origin of each image pixel defined at the center. Earlier versions of the method that
+        samples photon counts around the track had a bug which assumed the origin at the edge
+        of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+        set to `None` which reproduces the old behavior and results in a warning, while `False`
+        reproduces the old behavior without a warning.
+    """
+    # Time and coordinates are being cast to an integer since we use them to index into a data
+    # array. Note that coordinate pixel centers are defined at integer coordinates.
+    offset = 0.0 if not correct_origin else 0.5
+    return [
+        reduce(
+            image[max(int(c + offset) - num_pixels, 0) : int(c + offset) + num_pixels + 1, int(t)]
+        )
+        for t, c in zip(time_idx, coordinate_idx)
+    ]

@@ -86,9 +86,26 @@ of the longest track we can do::
 
     plt.figure()
     plt.plot(longest_track.seconds, longest_track.position)
+    plt.xlabel("Time [s]")
+    plt.ylabel("Position [$\mu$m]")
     plt.show()
 
 .. image:: figures/kymotracking/longest_track.png
+
+We can access an estimate for the photon counts contributing to the track in :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.photon_counts`::
+
+    plt.figure()
+    plt.plot(longest_track.seconds, longest_track.photon_counts)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Photon counts [#]')
+    plt.show()
+
+.. image:: figures/kymotracking/photon_counts_greedy.png
+
+By default, this estimate is based on summing the photon counts of an odd number of pixels around the peak position.
+As such, it will include a contribution from any background signal that may be present.
+The number of pixels to sum is set by the tracking parameter `track_width`.
+More accurate estimates of the photons emitted by a particle can be obtained using :ref:`gaussian refinement<kymotracker_gaussian_refinement>` detailed further below.
 
 Sometimes, we can have very short spurious tracks. To remove these we can use :func:`~lumicks.pylake.filter_tracks`.
 For example, to omit all tracks with fewer than 4 detected points, we can invoke::
@@ -247,6 +264,23 @@ method, let's refine just a single long track::
 
 .. image:: figures/kymotracking/gaussian_refined.png
 
+While centroid refinement provides a simple sum of the surrounding pixels, Gaussian refinement determines the integrated area of the peak as one of the fitting parameters.
+It also explicitly takes into account background signal that may be present.
+This means that if the fit is good, Gaussian refinement should provide a more accurate estimate of the photon counts originating from the fluorophore.
+:class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack` instances returned from the refinement function have updated :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.photon_counts` based on the optimized integrated peak area::
+
+    plt.figure()
+    for unrefined_track, refined_track in zip(tracks, refined):
+        plt.plot(unrefined_track.photon_counts, label="unrefined")
+        plt.plot(refined_track.photon_counts, label="gaussian refined")
+
+    plt.xlabel('Time [s]')
+    plt.ylabel('Photon counts [#]')
+    plt.legend()
+    plt.show()
+
+.. image:: figures/kymotracking/gau_refined_counts.png
+
 The number of pixels to be included in the fit is determined by the `window` argument, with a total size of `2*window+1` pixels.
 The exact value of this parameter is dependent on the quality of the data and should be balanced between including enough pixels to fully
 capture the peak lineshape while avoiding overlap with other traces or spurious high-photon count pixels due to noise or background.
@@ -285,7 +319,7 @@ Here we crop the original kymograph from 25 to 27 seconds and 10 to 12 microns::
 The independently determined offset (in photons per pixel) can then be provided directly to
 :func:`lk.refine_tracks_gaussian <lumicks.pylake.refine_tracks_gaussian()>`::
 
-    refined_with_offset = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=True, overlap_strategy="skip", fixed_background=offset)
+    refined_with_offset = lk.refine_tracks_gaussian(tracks, window=3, refine_missing_frames=False, overlap_strategy="skip", fixed_background=offset)
 
     plt.figure()
     cropped_kymo.plot("green", adjustment=adjustment, aspect="auto")
@@ -296,6 +330,20 @@ The independently determined offset (in photons per pixel) can then be provided 
 .. image:: figures/kymotracking/gaussian_refined_offset.png
 
 In this case the parameter will not be fitted, but fixed to the user specified value. This can help reduce the variance of the parameter estimates.
+Estimating an offset independently prior to fitting can improve the precision of the estimates (since it requires fewer parameters to be estimated for each window)::
+
+    plt.figure()
+    for free_offset, fixed_offset in zip(refined, refined_with_offset):
+        plt.plot(free_offset.seconds, free_offset.photon_counts, label="free offset")
+        plt.plot(fixed_offset.seconds, fixed_offset.photon_counts, label="fixed offset")
+
+    plt.xlabel('Time [s]')
+    plt.ylabel('Photon counts [#]')
+    plt.legend()
+    plt.show()
+
+.. image:: figures/kymotracking/gaussian_refined_counts_offset.png
+
 Note that this method should only be used if the background can be assumed to be constant over time and position.
 
 Using the lines algorithm
@@ -314,8 +362,8 @@ number of lines we want to detect.
 Extracting summed intensities
 -----------------------------
 
-Sometimes, it can be desirable to extract pixel intensities in a region around our kymograph track. We can quite easily
-extract these using the method :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`.
+Sometimes, it can be desirable to extract pixel intensities in a region around our kymograph track.
+We can quite easily extract these using the method :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`.
 
 .. warning::
     Prior to version `1.1.0` the method :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` had a bug that assumed the
@@ -339,6 +387,8 @@ Here `num_pixels` is the number of pixels to sum on either side of the track.
 
 .. image:: figures/kymotracking/sample_from_image.png
 
+.. note::
+    For tracks obtained from tracking or :func:`~lumicks.pylake.refine_tracks_centroid`, the photon counts found in the attribute :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.photon_counts` are computed by :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` using `num_pixels=np.ceil(track_width / pixelsize) // 2` where `track_width` is the track width used for tracking or refinement.
 
 Plotting binding histograms
 ---------------------------
