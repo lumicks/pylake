@@ -2,7 +2,8 @@ import itertools
 from copy import copy
 from sklearn.neighbors import KernelDensity
 from .detail.msd_estimation import *
-from .detail.localization_models import LocalizationModel
+from .detail.localization_models import LocalizationModel, CentroidLocalizationModel
+from .detail.peakfinding import _sum_track_signal
 from .. import __version__
 from ..population.dwelltime import DwelltimeModel
 
@@ -216,6 +217,47 @@ class KymoTrack:
             self._channel,
         )
 
+    @classmethod
+    def _from_centroid_estimate(cls, time_idx, coordinate_idx, kymo, channel, half_width_pixels):
+        """Return a KymoTrack including sampled photon counts.
+
+        Parameters
+        ----------
+        time_idx : array_like
+            Frame time indices. Note that these should be of integer type.
+        coordinate_idx : numpy.ndarray
+            (Sub)pixel coordinates to be converted to spatial position via calibration with pixel
+            size.
+        kymo : Kymo
+            Kymograph instance.
+        channel : {"red", "green", "blue"}
+            Color channel to analyze.
+        half_width_pixels : int
+           Number of pixels in either direction to include in the photon count sum.
+
+        Raises
+        ------
+        TypeError
+            If frame time indices are not of integer type.
+        """
+        return cls(
+            time_idx,
+            CentroidLocalizationModel(
+                coordinate_idx * kymo.pixelsize[0],
+                np.array(
+                    _sum_track_signal(
+                        kymo.get_image(channel),
+                        half_width_pixels,
+                        time_idx,
+                        coordinate_idx,
+                        correct_origin=True,
+                    )
+                ),
+            ),
+            kymo,
+            channel,
+        )
+
     def _flip(self, kymo):
         """Return a copy flipped vertically.
 
@@ -381,15 +423,14 @@ class KymoTrack:
 
         # Time and coordinates are being cast to an integer since we use them to index into a data
         # array. Note that coordinate pixel centers are defined at integer coordinates.
-        offset = 0.0 if not correct_origin else 0.5
-        return [
-            reduce(
-                self._image[
-                    max(int(c + offset) - num_pixels, 0) : int(c + offset) + num_pixels + 1, int(t)
-                ]
-            )
-            for t, c in zip(self.time_idx, self.coordinate_idx)
-        ]
+        return _sum_track_signal(
+            self._image,
+            num_pixels,
+            self.time_idx,
+            self.coordinate_idx,
+            reduce=reduce,
+            correct_origin=correct_origin,
+        )
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.

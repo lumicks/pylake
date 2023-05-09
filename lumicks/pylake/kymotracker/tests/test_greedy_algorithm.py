@@ -1,6 +1,7 @@
 import pytest
 import re
 import numpy as np
+from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup
@@ -74,11 +75,24 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     np.testing.assert_allclose(
         tracks[1].sample_from_image(1, correct_origin=True), [40] * np.ones(10)
     )
+    np.testing.assert_allclose(tracks[0].photon_counts, np.full((10,), 52))
+    np.testing.assert_allclose(tracks[1].photon_counts, np.full((10,), 42))
 
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
     tracks = track_greedy(test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
     np.testing.assert_allclose(tracks[0].coordinate_idx, [21] * np.ones(10))
     np.testing.assert_allclose(tracks[0].time_idx, np.arange(15, 25))
+
+
+@pytest.mark.parametrize(
+    "track_width, ref_counts", [(3, 7), (4, 9), (5, 9), (5.01, 11), (6.99, 11), (7, 11), (7.1, 13)]
+)
+def test_greedy_sampling_track_width(track_width, ref_counts):
+    kymo = _kymo_from_array(np.vstack([np.array([1, 1, 1, 2, 3, 2, 1, 1, 1])] * 2).T, "r", 1)
+    group = track_greedy(
+        kymo, "red", pixel_threshold=1, track_width=track_width * kymo.pixelsize[0]
+    )
+    np.testing.assert_equal(group[0].photon_counts, np.full((2,), ref_counts))
 
 
 def test_greedy_algorithm_empty_result(kymo_integration_test_data):

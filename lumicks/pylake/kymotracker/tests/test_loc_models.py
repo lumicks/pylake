@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from lumicks.pylake.kymotracker.detail.localization_models import *
+from lumicks.pylake.kymotracker.detail.localization_models import CentroidLocalizationModel
 
 
 def test_default_model():
@@ -107,14 +108,20 @@ def test_incompatible_add():
     ],
 )
 def test_gaussian_model_getitem(slc):
-    m1 = GaussianLocalizationModel(
-        np.arange(3) * 0.2,
-        np.array([5, 6, 8]),
-        np.array([0.5, 0.5, 0.6]),
-        np.array([1, 2, 1]),
-        np.array([False, True, False]),
-    )
+    all_fields = {
+        "position": np.arange(3) * 0.2,
+        "total_photons": np.array([5, 6, 8]),
+        "sigma": np.array([0.5, 0.5, 0.6]),
+        "background": np.array([1, 2, 1]),
+        "_overlap_fit": np.array([False, True, False]),
+    }
 
-    fields = ["position", "total_photons", "sigma", "background", "_overlap_fit"]
-    for f in fields:
-        np.testing.assert_allclose(getattr(m1[slc], f), getattr(m1, f)[slc])
+    for model, fields in (
+        (LocalizationModel, {"position": all_fields["position"]}),
+        (CentroidLocalizationModel, dict(list(all_fields.items())[:2])),
+        (GaussianLocalizationModel, all_fields),
+    ):
+        m1 = model(**fields)
+
+        for f in fields.keys():
+            np.testing.assert_allclose(getattr(m1[slc], f), getattr(m1, f)[slc])
