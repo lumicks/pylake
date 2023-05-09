@@ -279,7 +279,7 @@ Here we crop the original kymograph from 25 to 27 seconds and 10 to 12 microns::
 
     background_kymo = kymo["25s":"27s"]
     background_kymo = background_kymo.crop_by_distance(10, 12)
-    offset = np.mean(cropped_kymo.get_image("green"))
+    offset = np.mean(background_kymo.get_image("green"))
     print(offset)
 
 The independently determined offset (in photons per pixel) can then be provided directly to
