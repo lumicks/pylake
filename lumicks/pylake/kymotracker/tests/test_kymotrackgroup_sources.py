@@ -218,26 +218,6 @@ def test_different_sources_different_attributes(kymos, coordinates):
         tracks1 + tracks2_bp
 
 
-def test_multisource_not_implemented(kymos, coordinates):
-    time_indices, position_indices = coordinates
-    tracks1 = KymoTrackGroup(
-        [KymoTrack(t, p, kymos[0], "green") for t, p in zip(time_indices, position_indices)]
-    )
-    tracks2 = KymoTrackGroup(
-        [KymoTrack(t, p, kymos[1], "green") for t, p in zip(time_indices, position_indices)]
-    )
-    tracks = tracks1 + tracks2
-
-    # TODO: the following features will be implemented in the future.
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            r"Binding profile is not supported. This group contains tracks from 2 source kymographs."
-        ),
-    ):
-        tracks._histogram_binding_profile(n_time_bins=1, bandwidth=1, n_position_points=10)
-
-
 def test_tracks_by_kymo(kymos, coordinates):
     time_indices, position_indices = coordinates
 
