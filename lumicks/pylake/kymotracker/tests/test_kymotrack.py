@@ -730,6 +730,18 @@ def test_binding_profile_histogram():
     with pytest.raises(ValueError, match="Number of time bins must be > 0."):
         tracks._histogram_binding_profile(0, 0.2, 4)
 
+    # disallowed for multiple source kymos
+    combined_tracks = tracks + KymoTrackGroup(
+        [KymoTrack(np.array([7, 8, 9]), np.array([1, 1, 1]), copy(kymo), "red")]
+    )
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            r"Binding profile is not supported. This group contains tracks from 2 source kymographs."
+        ),
+    ):
+        combined_tracks._histogram_binding_profile(n_time_bins=1, bandwidth=1, n_position_points=10)
+
 
 def test_fit_binding_times(blank_kymo):
     k1 = KymoTrack(np.array([0, 1, 2]), np.zeros(3), blank_kymo, "red")
