@@ -8,6 +8,7 @@
 * Fixed a bug that would round the center of the window to the incorrect pixel when using `KymoTrack.sample_from_image()`. Pixels are defined with their origin at the center of the pixel, whereas this function incorrectly assumed that the origin was on the edge of the pixel. The effects of this bug are larger for small windows.
 * Fixed a bug where we passed a `SampleFormat` tag while saving to `tiff` using `tifffile`. However, `tifffile` infers the `SampleFormat` automatically from the datatype of the `numpy` array it is passed. This produced warnings on the latest version of `tifffile` when running the benchmark.
 * Fixed a bug where `DwelltimeModel.hist()` produces one less bin than requested with `n_bins`.
+* Fixed a bug where `lk.dsdna_ewlc_odijk_distance()` erroneously returned a model where force is the dependent variable rather than distance. This bug was introduced in `0.13.2`. Note that `lk.ewlc_odijk_distance()` was unaffected. It was specifically the convenience function with DNA parameters that was affected.
 
 ## v1.0.0 | 2023-03-14
 

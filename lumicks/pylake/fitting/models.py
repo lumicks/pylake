@@ -371,7 +371,7 @@ def dsdna_ewlc_odijk_distance(name, dna_length_kbp, um_per_kbp=0.34, temperature
     """
     from scipy import constants
 
-    model = ewlc_odijk_force(name)
+    model = ewlc_odijk_distance(name)
     model.defaults[f"{name}/Lc"].value = dna_length_kbp * um_per_kbp
     model.defaults[f"{name}/Lp"].value = 50.0  # [3]
     model.defaults[f"{name}/St"].value = 1200.0  # [4, 5]
