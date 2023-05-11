@@ -762,8 +762,8 @@ class KymoTrackGroup:
 
         Returns
         -------
-        set
-            Set of source kymograph instances
+        tuple
+            Tuple of source kymograph instances
         """
         tracks = list(itertools.chain(self, additional_tracks))
         if not len(tracks):
