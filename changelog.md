@@ -16,6 +16,7 @@
 * Fixed a bug where we passed a `SampleFormat` tag while saving to `tiff` using `tifffile`. However, `tifffile` infers the `SampleFormat` automatically from the datatype of the `numpy` array it is passed. This produced warnings on the latest version of `tifffile` when running the benchmark.
 * Ensure that the probability density returns zero outside its support for `DwelltimeModel.pdf()`. Prior to this change, non-zero values would be returned outside the observation limits of the dwelltime model.
 * Fixed a bug where `DwelltimeModel.hist()` produces one less bin than requested with `n_bins`.
+* Fixed a bug where `lk.dsdna_ewlc_odijk_distance()` erroneously returned a model where force is the dependent variable rather than distance. This bug was introduced in `0.13.2`. Note that `lk.ewlc_odijk_distance()` was unaffected. It was specifically the convenience function with DNA parameters that was affected.
 
 #### Improvements
 
