@@ -295,8 +295,9 @@ def test_skipped_sample_protection():
         match=re.escape(
             "Your tracks have missing frames. Note that this results in a poor estimate of "
             "the standard error of the estimate. To avoid this warning, you can refine "
-            "your tracks using `lk.refine_tracks_centroid()`. Please refer to "
-            "`help(lk.refine_tracks_centroid)` for more information."
+            "your tracks using `lk.refine_tracks_centroid()` or `lk.refine_tracks_gaussian()`. "
+            "Please refer to `help(lk.refine_tracks_centroid)` or `help(lk.refine_tracks_gaussian)` "
+            "for more information."
         ),
     ):
         estimate_diffusion_constant_simple(lag_idx, lag_idx**2, 1, 5, method="ols")
