@@ -1,6 +1,7 @@
 import itertools
 from copy import copy
 from sklearn.neighbors import KernelDensity
+from ..detail.utilities import replace_key_aliases
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel, CentroidLocalizationModel
 from .detail.peakfinding import _sum_track_signal
@@ -332,6 +333,58 @@ class KymoTrack:
     def _pixelsize(self):
         """Kymograph (spatial) pixel size in physical units."""
         return self._kymo.pixelsize[0]
+
+    def _model_fit(self, node_idx):
+        """Extract fitted model from localization model at particular node if available"""
+        num_coords = len(self)
+        node_idx = num_coords + node_idx if node_idx < 0 else node_idx
+        if not 0 <= node_idx < num_coords:
+            raise IndexError(
+                f"Node index is out of range of the KymoTrack. Kymotrack has length {num_coords}."
+            )
+
+        pixelsize, num_pixels = self._kymo.pixelsize[0], self._kymo.pixels_per_line
+        coords = np.arange(0.0, num_pixels * pixelsize, 0.1 * pixelsize)
+        model = self._localization.evaluate(coords, node_idx, pixelsize)
+
+        return coords, model
+
+    def plot_fit(self, node_idx, *, fit_kwargs=None, data_kwargs=None, show_data=True):
+        """Plot the localization model
+
+        Plots the model fit for a particular localization. Note that currently, this fit is only
+        available for Gaussian refinement.
+
+        Parameters
+        ----------
+        node_idx : int
+            Index of the track node to plot (corresponding to a specific scan line).
+        fit_kwargs : dict
+            Dictionary containing arguments to be passed to the fit plot.
+        data_kwargs : dict
+            Dictionary containing arguments to be passed to the data plot.
+        show_data : bool
+            Plot the data.
+
+        Raises
+        ------
+        NotImplementedError
+            if localization was not performed using Gaussian localization
+        IndexError
+            if requesting a fit for an index out of bounds of the KymoTrack.
+        """
+        model_fit = self._model_fit(node_idx)  # Verifies whether model exists for this index
+        aliases = ["color", "c"]
+        if show_data:
+            plt.plot(
+                np.arange(0.0, self._kymo.pixels_per_line) * self._kymo.pixelsize[0],
+                self._image[:, self.time_idx[node_idx]],
+                **{"color": "#c8c8c8"} | replace_key_aliases(data_kwargs or {}, aliases),
+            )
+
+        plt.plot(*model_fit, **{"color": "C0"} | replace_key_aliases(fit_kwargs or {}, aliases))
+        plt.xlabel(f"Position [{self._kymo._calibration.unit_label}]")
+        plt.ylabel("Photon counts [#]")
 
     def _check_ends_are_defined(self):
         """Checks if beginning and end of the track are not in the first/last frame."""

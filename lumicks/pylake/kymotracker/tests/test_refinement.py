@@ -1,6 +1,8 @@
 import pytest
 import re
 import numpy as np
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.detail.localization_models import GaussianLocalizationModel
 from lumicks.pylake.kymotracker.kymotracker import *
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -263,6 +265,49 @@ def test_gaussian_refinement_multiple_sources(kymogroups_2tracks, kymogroups_clo
 
     for track, ref_track in zip(refined_tracks3, reference_refined_tracks):
         np.testing.assert_allclose(track.position, ref_track.position)
+
+
+def test_no_model_fit(blank_kymo):
+    with pytest.raises(
+        NotImplementedError, match="No model fit available for this localization method."
+    ):
+        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")._model_fit(1)
+
+
+@pytest.mark.parametrize("method", ["_model_fit", "plot_fit"])
+def test_gaussian_model_fit(method):
+    pixel_size_um = 2.0
+    kymo_data = [0, 1, 2, 1, 2, 1, 0]
+    kymo = _kymo_from_array(np.tile(kymo_data, (4, 1)).T, "r", 1, pixel_size_um=pixel_size_um)
+    gauss_loc = GaussianLocalizationModel(
+        position=np.array([2.0, 2.0]),
+        total_photons=np.array([20, 30]),
+        sigma=np.array([1.0, 1.0]),
+        background=np.array([10, 15]),
+        _overlap_fit=np.array([True, True]),
+    )
+    track = KymoTrack(np.array([1, 3]), gauss_loc, kymo, "red")
+    tested_method = getattr(track, method)
+    ref_coords = np.arange(0, len(kymo_data) * pixel_size_um, 0.1 * pixel_size_um)
+
+    for node_idx in (0, 1):
+        coords, data = track._model_fit(node_idx)
+        tested_method(node_idx)
+        np.testing.assert_allclose(coords, ref_coords)
+        np.testing.assert_allclose(data, gauss_loc.evaluate(coords, node_idx, pixel_size_um))
+
+    for node_idx in (-1, -2):
+        coords, data = track._model_fit(node_idx)
+        tested_method(node_idx)
+        np.testing.assert_allclose(coords, ref_coords)
+        np.testing.assert_allclose(data, gauss_loc.evaluate(coords, 2 + node_idx, pixel_size_um))
+
+    for node_idx in (-3, 2):
+        with pytest.raises(
+            IndexError, match="Node index is out of range of the KymoTrack. Kymotrack has length 2"
+        ):
+            track._model_fit(node_idx)
+            tested_method(node_idx)
 
 
 def test_filter_tracks(blank_kymo):
