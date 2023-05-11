@@ -4,7 +4,7 @@
 
 #### New features
 
-* Added `KymoTrack.plot_fit()` to show the fitted model obtained from gaussian refinement.
+* Added `KymoTrack.plot_fit()` and `KymoTrackGroup.plot_fit()` to show the fitted model obtained from gaussian refinement.
 
 ## v1.1.0 | 2023-05-17
 
