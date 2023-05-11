@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0 | t.b.d.
+
+#### New features
+
+* Added `KymoTrack.plot_fit()` to show the fitted model obtained from gaussian refinement.
+
 ## v1.1.0 | 2023-05-17
 
 #### New features
