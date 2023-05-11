@@ -1182,6 +1182,115 @@ class KymoTrackGroup:
             ax.set_ylabel(f"position ({self._calibration_info['unit_label']})")
             ax.set_xlabel("time (s)")
 
+    def _tracks_in_frame(self, frame_idx):
+        """Grab tracks which are in a particular kymograph frame.
+
+        Parameters
+        ----------
+        frame_idx : int
+            Kymograph frame
+
+        Returns
+        -------
+        list of tuple of int
+            Returns a list of tuples. This list has one entry for each track that intersects with
+            this kymograph frame. The tuple consists of the track index and the index of which
+            coordinate inside that track corresponds to this kymograph frame.
+
+        Raises
+        ------
+        NotImplementedError
+            If this group has multiple kymographs associated with it.
+        """
+        if not self:
+            return []  # _validate_single_source throws for empty groups
+
+        self._validate_single_source("_tracks_in_frame")
+
+        tracks_in_frame = []
+        for track_idx, track in enumerate(self):
+            track_frame_idx = np.where(track.time_idx == frame_idx)[0]
+            if track_frame_idx.size > 0:
+                tracks_in_frame.append((track_idx, track_frame_idx))
+
+        return tracks_in_frame
+
+    def plot_fit(self, frame_idx, *, fit_kwargs=None, data_kwargs=None, show_track_index=True):
+        """Plot the localization model fits for a particular kymograph frame.
+
+        Note that currently, this fit is only available for Gaussian refinement.
+
+        Parameters
+        ----------
+        frame_idx : int
+            Index of the kymograph frame to plot.
+        fit_kwargs : dict
+            Dictionary containing arguments to be passed to the fit plot.
+        data_kwargs : dict
+            Dictionary containing arguments to be passed to the data plot.
+        show_track_index : bool
+            Display track index in the plot.
+
+        Raises
+        ------
+        ValueError
+            If the group is empty.
+        NotImplementedError
+            If this group has multiple kymographs associated with it.
+        NotImplementedError
+            If localization was not performed using Gaussian localization.
+        IndexError
+            If requesting a fit for a frame index out of bounds of the KymoTrack.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            tracks = lk.track_greedy(kymo, channel="red", pixel_threshold=5)
+            refined = lk.refine_tracks_gaussian(tracks, window=10, refine_missing_frames=True, overlap_strategy="multiple")
+
+            # Plot the localization fits for kymograph frame 5
+            refined.plot_fit(5)
+
+            # Using ipywidgets and jupyter, it is easy to make an interactive version of this plot.
+            import ipywidgets as widgets
+
+            plt.figure()
+            def plot_fit(frame):
+                plt.cla()  # Clear the current axis
+                refined.plot_fit(frame, show_track_index=True)
+
+            widgets.interact(plot_fit, frame=widgets.IntSlider(0, max=kymo.shape[1] - 1));
+        """
+        self._validate_single_source("plot_fit")
+
+        kymo = self._kymos[0]  # We can rely on there being one (_validate_single_source)
+        num_frames = kymo.shape[1]
+        frame_idx = num_frames + frame_idx if frame_idx < 0 else frame_idx
+        if not 0 <= frame_idx < num_frames:
+            raise IndexError(
+                f"Frame index is out of range of the kymograph. Kymograph length is {num_frames}."
+            )
+
+        kymo_data = kymo.get_image(self._channel)[:, frame_idx]
+        data_kwargs = {"color": "#c8c8c8"} | replace_key_aliases(data_kwargs or {}, ["color", "c"])
+        plt.plot(np.arange(kymo.pixels_per_line) * kymo.pixelsize[0], kymo_data, **data_kwargs)
+
+        # Put the numeric values above the baseline
+        y_coord = np.min(kymo_data) + 0.05 * (np.max(kymo_data) - np.min(kymo_data))
+        for track_idx, track_frame_idx in self._tracks_in_frame(frame_idx):
+            self[track_idx].plot_fit(track_frame_idx, show_data=False, fit_kwargs=fit_kwargs)
+            if show_track_index:
+                plt.text(
+                    self[track_idx].position[track_frame_idx],
+                    y_coord,
+                    str(track_idx),
+                    horizontalalignment="center",
+                    verticalalignment="bottom",
+                )
+
     def save(self, filename, delimiter=";", sampling_width=None, *, correct_origin=None):
         """Export kymograph tracks to a csv file.
 

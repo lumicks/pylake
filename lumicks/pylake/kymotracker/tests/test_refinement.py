@@ -310,6 +310,42 @@ def test_gaussian_model_fit(method):
             tested_method(node_idx)
 
 
+def test_gaussian_refinement_plotting():
+    kymo = _kymo_from_array(np.tile([0, 1, 2, 1, 2, 1, 0], (4, 1)).T, "r", 1, pixel_size_um=1)
+    group = KymoTrackGroup(
+        [
+            KymoTrack(np.array([0, 2]), np.array([2, 2]), kymo, "red"),
+            KymoTrack(np.array([0, 1, 2]), np.array([4, 4, 4]), kymo, "red")
+        ]
+    )
+
+    # Only Gaussian refinement has a model visualization available
+    for to_be_plotted in (group, group[0]):
+        with pytest.raises(
+            NotImplementedError, match="No model fit available for this localization method."
+        ):
+            to_be_plotted.plot_fit(0)
+
+    refined = refine_tracks_gaussian(
+        group, window=2, refine_missing_frames=False, overlap_strategy="multiple"
+    )
+
+    for kymo_frame_idx in range(-4, 4):
+        refined.plot_fit(frame_idx=kymo_frame_idx)
+
+    for kymo_frame_idx in (-5, 5):
+        with pytest.raises(
+            IndexError, match="Frame index is out of range of the kymograph. Kymograph length is 4"
+        ):
+            refined.plot_fit(frame_idx=kymo_frame_idx)
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        KymoTrackGroup([]).plot_fit(0)
+
+
 def test_filter_tracks(blank_kymo):
     k1 = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
     k2 = KymoTrack([2, 3], [1, 2], blank_kymo, "red")

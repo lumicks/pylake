@@ -538,6 +538,34 @@ def test_empty_binding_histogram():
         KymoTrackGroup([]).plot_binding_histogram("binding")
 
 
+def test_kymotrackgroup_tracks_in_frame(blank_kymo):
+    tracks = KymoTrackGroup([])
+    assert len(tracks._tracks_in_frame(0)) == 0
+
+    tracks = KymoTrackGroup(
+        [
+            KymoTrack(np.array([0, 3, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red"),
+            KymoTrack(np.array([3, 4, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red"),
+        ]
+    )
+
+    # For each of the KymoTrack frames we get a list of track indices and indices that correspond to
+    # the index within the track of where we intersect with this frame of the kymograph.
+    reference_values = (
+        (0, [(0, 0)]),
+        (1, []),
+        (2, []),
+        (3, [(0, 1), (1, 0)]),
+        (4, [(1, 1)]),
+        (5, [(0, 2), (1, 2)]),
+    )
+    for kymo_frame_idx, reference_data in reference_values:
+        tracks_in_frame = tracks._tracks_in_frame(kymo_frame_idx)
+        assert len(tracks_in_frame) == len(reference_data)
+        for track_data, reference_track_data in zip(tracks_in_frame, reference_data):
+            np.testing.assert_equal(track_data, reference_track_data)
+
+
 def test_kymotrackgroup_copy(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
     k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
