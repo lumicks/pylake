@@ -1,5 +1,6 @@
 import numpy as np
 from dataclasses import dataclass, replace, fields
+from .gaussian_mle import normal_pdf_1d
 
 __all__ = ["LocalizationModel", "GaussianLocalizationModel"]
 
@@ -29,6 +30,9 @@ class LocalizationModel:
             Size of the kymograph in physical units.
         """
         return self.with_position(size - self.position)
+
+    def evaluate(self, x, node_idx, pixel_size):
+        raise NotImplementedError("No model fit available for this localization method.")
 
     def __add__(self, other):
         if other.__class__ is not self.__class__:
@@ -83,3 +87,22 @@ class GaussianLocalizationModel(LocalizationModel):
     sigma: np.ndarray
     background: np.ndarray
     _overlap_fit: np.ndarray
+
+    def evaluate(self, x, node_idx, pixel_size):
+        """Evaluate the fitted model
+
+        Parameters
+        ----------
+        x : numpy.array
+            Positions at which to evaluate the model.
+        node_idx : int
+            Which localization to evaluate the model for.
+        pixel_size : float
+            Pixel size.
+        """
+        return (
+            self.total_photons[node_idx]
+            * pixel_size
+            * normal_pdf_1d(x, self.position[node_idx], self.sigma[node_idx])
+            + self.background[node_idx]
+        )

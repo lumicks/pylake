@@ -9,7 +9,7 @@ def test_default_model():
     np.testing.assert_allclose(m.position, [0.0, 0.03, 0.06, 0.09, 0.12])
 
 
-def test_gaussian_model():
+def test_gaussian_model_evaluate():
     m = GaussianLocalizationModel(
         np.arange(3) * 0.2,
         np.array([5, 6, 8]),
@@ -18,6 +18,16 @@ def test_gaussian_model():
         np.full(3, False),
     )
     np.testing.assert_allclose(m.position, [0.0, 0.2, 0.4])
+
+    position_axis = np.arange(0.0, 5 * 0.2, 0.2)
+    ref_data = [
+        [1.79788456, 1.73654028, 1.57938311, 1.38837211, 1.22184167],
+        [2.88384834, 2.95746147, 2.88384834, 2.69525973, 2.46604653],
+        [1.85186135, 2.00635527, 2.06384608, 2.00635527, 1.85186135],
+    ]
+
+    for idx, ref in enumerate(ref_data):
+        np.testing.assert_allclose(m.evaluate(position_axis, idx, 0.2), ref)
 
 
 def test_gaussian_model_overlap():
@@ -88,7 +98,7 @@ def test_incompatible_add():
 
     with pytest.raises(
         TypeError,
-        match="Incompatible localization models GaussianLocalizationModel and LocalizationModel."
+        match="Incompatible localization models GaussianLocalizationModel and LocalizationModel.",
     ):
         m1 + m2
 
