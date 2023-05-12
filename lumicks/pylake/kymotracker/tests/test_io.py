@@ -90,7 +90,7 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
 
     # Test round trip through the API
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
-    tracks.save(testfile, delimiter, sampling_width)
+    tracks.save(testfile, delimiter, sampling_width, correct_origin=True)
     imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
     data, pylake_version, csv_version = read_txt(testfile, delimiter)
 
@@ -134,10 +134,12 @@ def test_export_sources(tmpdir_factory):
 
 
 @pytest.mark.parametrize(
-    "delimiter, sampling_width",
-    [[";", 0], [",", 0], [";", 1], [";", None]],
+    "delimiter, sampling_width, correct_origin",
+    [[";", 0, True], [",", 0, True], [";", 1, True], [";", None, True]],
 )
-def test_roundtrip_without_file(delimiter, sampling_width, kymo_integration_test_data):
+def test_roundtrip_without_file(
+    delimiter, sampling_width, correct_origin, kymo_integration_test_data
+):
     # Validate that this also works when providing a string handle (this is the API LV uses).
 
     def get_args(func):
@@ -162,7 +164,9 @@ def test_roundtrip_without_file(delimiter, sampling_width, kymo_integration_test
     )
 
     with io.StringIO() as s:
-        tracks.save(s, delimiter=delimiter, sampling_width=sampling_width)
+        tracks.save(
+            s, delimiter=delimiter, sampling_width=sampling_width, correct_origin=correct_origin
+        )
         string_representation = s.getvalue()
 
     with io.StringIO(string_representation) as s:

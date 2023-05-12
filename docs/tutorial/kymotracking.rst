@@ -316,14 +316,22 @@ Extracting summed intensities
 -----------------------------
 
 Sometimes, it can be desirable to extract pixel intensities in a region around our kymograph track. We can quite easily
-extract these using the method :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`. For instance,
-if we want to sum the pixels in a 11 pixel area around the longest kymograph track, we can invoke::
+extract these using the method :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`.
+
+.. warning::
+    Prior to version `1.1.0` the method :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` had a bug that assumed the
+    origin of a pixel to be at the edge rather than the center of the pixel.
+    Consequently, the sampled window could frequently be off by one pixel.
+    The old (incorrect) behavior is maintained until the next major release (version `2.0`) to ensure backward
+    compatibility. It is recommended to include the argument `correct_origin=True` which results in using the correct origin.
+
+If we want to sum the pixels in a 11 pixel area around the longest kymograph track, we can invoke::
 
     longest_track_idx = np.argmax([len(track) for track in tracks])
     longest_track = tracks[longest_track_idx]
 
     plt.figure()
-    plt.plot(longest_track.seconds, longest_track.sample_from_image(num_pixels=5))
+    plt.plot(longest_track.seconds, longest_track.sample_from_image(num_pixels=5, correct_origin=True))
     plt.xlabel('time (s)')
     plt.ylabel('summed counts')
     plt.show()
@@ -392,7 +400,7 @@ method with the desired file name::
 We can include photon counts (calculated with :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image`)
 by passing a width in pixels to sum counts over::
 
-    tracks.save("tracks_signal.csv", sampling_width=3)
+    tracks.save("tracks_signal.csv", sampling_width=3, correct_origin=True)
 
 
 How the algorithms work
