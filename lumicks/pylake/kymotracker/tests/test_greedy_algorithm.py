@@ -37,7 +37,9 @@ def test_kymotracker_subset_test_greedy(kymo_integration_test_data):
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
     tracks = track_greedy(kymo_integration_test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
-    np.testing.assert_allclose(tracks[0].sample_from_image(1), [40] * np.ones(10))
+    np.testing.assert_allclose(
+        tracks[0].sample_from_image(1, correct_origin=True), [40] * np.ones(10)
+    )
 
 
 def test_kymotracker_regression_test_subset_comes_up_empty(kymo_integration_test_data):
@@ -66,8 +68,12 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     np.testing.assert_allclose(tracks[1].time_idx, np.arange(15, 25))
     np.testing.assert_allclose(tracks[0].seconds, np.arange(10, 20) * line_time)
     np.testing.assert_allclose(tracks[1].seconds, np.arange(15, 25) * line_time)
-    np.testing.assert_allclose(tracks[0].sample_from_image(1), [50] * np.ones(10))
-    np.testing.assert_allclose(tracks[1].sample_from_image(1), [40] * np.ones(10))
+    np.testing.assert_allclose(
+        tracks[0].sample_from_image(1, correct_origin=True), [50] * np.ones(10)
+    )
+    np.testing.assert_allclose(
+        tracks[1].sample_from_image(1, correct_origin=True), [40] * np.ones(10)
+    )
 
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
     tracks = track_greedy(test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
