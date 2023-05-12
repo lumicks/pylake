@@ -271,7 +271,7 @@ class KymoWidget:
             the summed intensity with the image. The value indicates the number of pixels in either direction
             to sum over.
         """
-        self.tracks.save(filename, delimiter, sampling_width)
+        self.tracks.save(filename, delimiter, sampling_width, correct_origin=True)
 
     def _load_from_ui(self):
         try:

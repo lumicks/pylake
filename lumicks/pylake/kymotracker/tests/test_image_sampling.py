@@ -29,21 +29,28 @@ def test_sampling():
 
     # Tests the bound handling
     kymotrack = KymoTrack([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img, "red")
-    np.testing.assert_allclose(kymotrack.sample_from_image(50), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymotrack.sample_from_image(2), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymotrack.sample_from_image(1), [0, 2, 2, 2, 0])
-    np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 1, 1, 1, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(
+        50, correct_origin=True), [0, 2, 3, 2, 0]
+    )
+    np.testing.assert_allclose(kymotrack.sample_from_image(2, correct_origin=True), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(1, correct_origin=True), [0, 2, 2, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(0, correct_origin=True), [0, 1, 1, 1, 0])
     np.testing.assert_allclose(
-        KymoTrack([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red").sample_from_image(0), [0, 0, 1, 1, 0]
+        KymoTrack([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red").sample_from_image(
+            0, correct_origin=True
+        ),
+        [0, 0, 1, 1, 0],
     )
 
     kymotrack = KymoTrack([0, 1, 2, 3, 4], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red")
-    np.testing.assert_allclose(kymotrack.sample_from_image(50), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymotrack.sample_from_image(2), [0, 2, 3, 2, 0])
-    np.testing.assert_allclose(kymotrack.sample_from_image(1), [0, 2, 2, 2, 0])
-    np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 1, 1, 1, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(
+        50, correct_origin=True), [0, 2, 3, 2, 0]
+    )
+    np.testing.assert_allclose(kymotrack.sample_from_image(2, correct_origin=True), [0, 2, 3, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(1, correct_origin=True), [0, 2, 2, 2, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(0, correct_origin=True), [0, 1, 1, 1, 0])
     kymotrack = KymoTrack([0, 1, 2, 3, 4], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red")
-    np.testing.assert_allclose(kymotrack.sample_from_image(0), [0, 0, 1, 1, 0])
+    np.testing.assert_allclose(kymotrack.sample_from_image(0, correct_origin=True), [0, 0, 1, 1, 0])
 
 
 def test_kymotrack_regression_sample_from_image_clamp():
@@ -63,7 +70,9 @@ def test_kymotrack_regression_sample_from_image_clamp():
         samples_per_pixel=1,
         line_padding=0
     )
-    assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red").sample_from_image(0), [1, 3])
+    assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red").sample_from_image(
+        0, correct_origin=True), [1, 3]
+    )
 
 
 @pytest.mark.parametrize(
@@ -83,4 +92,4 @@ def test_pixel_origin_sample_from_image(img):
     the single pixel line in the negative direction results in the center of the sampling window
     shifting towards the previous pixel."""
     tracks = track_greedy(_kymo_from_array(img, "r", 0.2), "red", pixel_threshold=10)
-    np.testing.assert_equal(tracks[0].sample_from_image(0), [100, 100, 100])
+    np.testing.assert_equal(tracks[0].sample_from_image(0, correct_origin=True), [100, 100, 100])

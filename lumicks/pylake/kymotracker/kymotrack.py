@@ -6,7 +6,9 @@ from .. import __version__
 from ..population.dwelltime import DwelltimeModel
 
 
-def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_width):
+def export_kymotrackgroup_to_csv(
+    filename, kymotrack_group, delimiter, sampling_width, *, correct_origin=None
+):
     """Export KymoTrackGroup to a csv file.
 
     Parameters
@@ -20,6 +22,12 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
     sampling_width : int or None
         If, this will sample the source image around the kymograph track and export the summed intensity with
         the image. The value indicates the number of pixels in either direction to sum over.
+    correct_origin : bool, optional
+        Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+        origin of each image pixel defined at the center. Earlier versions of the routine that
+        samples photon counts around the track had a bug which assumed the origin at the edge
+        of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+        set to `None` which results in a warning, while `False` reproduces the old behaviour.
     """
     if not kymotrack_group:
         raise RuntimeError("No kymograph tracks to export")
@@ -52,7 +60,12 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
         store_column(
             f"counts (summed over {2 * sampling_width + 1} pixels)",
             "%d",
-            np.hstack([track.sample_from_image(sampling_width) for track in kymotrack_group]),
+            np.hstack(
+                [
+                    track.sample_from_image(sampling_width, correct_origin=correct_origin)
+                    for track in kymotrack_group
+                ]
+            ),
         )
 
     version_header = f"Exported with pylake v{__version__} | track coordinates v2\n"
@@ -257,7 +270,7 @@ class KymoTrack:
         interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
         return self._with_coordinates(interpolated_time, interpolated_coord)
 
-    def sample_from_image(self, num_pixels, reduce=np.sum):
+    def sample_from_image(self, num_pixels, reduce=np.sum, *, correct_origin=None):
         """Sample from image using coordinates from this KymoTrack.
 
         This function samples data from the image given in data based on the points in this
@@ -270,13 +283,33 @@ class KymoTrack:
             Number of pixels in either direction to include in the sample
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
+        correct_origin : bool, optional
+            Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+            origin of each image pixel defined at the center. Earlier versions of the routine that
+            samples photon counts around the track had a bug which assumed the origin at the edge
+            of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+            set to `None` which results in a warning, while `False` reproduces the old behaviour.
         """
+        if correct_origin is None:
+            warnings.warn(
+                RuntimeWarning(
+                    "The function `sample_from_image` had a bug that assumed the origin of a "
+                    "pixel to be at the edge rather than the center of the pixel. Consequently, "
+                    "the sampled window could frequently be off by one pixel. To get the correct "
+                    "behavior and silence this warning, specify `correct_origin=True`. The old "
+                    "(incorrect) behavior is maintained until the next major release to ensure "
+                    "backward compatibility."
+                ),
+                stacklevel=2,
+            )
+
         # Time and coordinates are being cast to an integer since we use them to index into a data
         # array. Note that coordinate pixel centers are defined at integer coordinates.
+        offset = 0.0 if not correct_origin else 0.5
         return [
             reduce(
                 self._image[
-                    max(int(c + 0.5) - num_pixels, 0) : int(c + 0.5) + num_pixels + 1, int(t)
+                    max(int(c + offset) - num_pixels, 0) : int(c + offset) + num_pixels + 1, int(t)
                 ]
             )
             for t, c in zip(self.time_idx, self.coordinate_idx)
@@ -893,7 +926,7 @@ class KymoTrackGroup:
             ax.set_ylabel(f"position ({self._kymo._calibration.unit_label})")
             ax.set_xlabel("time (s)")
 
-    def save(self, filename, delimiter=";", sampling_width=None):
+    def save(self, filename, delimiter=";", sampling_width=None, *, correct_origin=None):
         """Export kymograph tracks to a csv file.
 
         Parameters
@@ -905,8 +938,16 @@ class KymoTrackGroup:
         sampling_width : int or None
             When supplied, this will sample the source image around the kymograph track and export the summed intensity
             with the image. The value indicates the number of pixels in either direction to sum over.
+        correct_origin : bool, optional
+            Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+            origin of each image pixel defined at the center. Earlier versions of the routine that
+            samples photon counts around the track had a bug which assumed the origin at the edge
+            of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+            set to `None` which results in a warning, while `False` reproduces the old behaviour.
         """
-        export_kymotrackgroup_to_csv(filename, self, delimiter, sampling_width)
+        export_kymotrackgroup_to_csv(
+            filename, self, delimiter, sampling_width, correct_origin=correct_origin
+        )
 
     def fit_binding_times(
         self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None

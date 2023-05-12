@@ -115,7 +115,9 @@ def test_kymotracker_subset_test_lines(kymo_integration_test_data):
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
     lines = track_lines(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
-    np.testing.assert_allclose(np.sum(lines[0].sample_from_image(1)), 40 * 10 + 6)
+    np.testing.assert_allclose(
+        np.sum(lines[0].sample_from_image(1, correct_origin=True)), 40 * 10 + 6
+    )
 
 
 def test_kymotracker_lines_algorithm_integration_tests(kymo_integration_test_data):
@@ -127,8 +129,12 @@ def test_kymotracker_lines_algorithm_integration_tests(kymo_integration_test_dat
     np.testing.assert_allclose(lines[1].coordinate_idx, [21] * len(lines[1].coordinate_idx))
     np.testing.assert_allclose(lines[0].time_idx, np.arange(9, 21))
     np.testing.assert_allclose(lines[1].time_idx, np.arange(14, 26))
-    np.testing.assert_allclose(np.sum(lines[0].sample_from_image(1)), 50 * 10 + 6)
-    np.testing.assert_allclose(np.sum(lines[1].sample_from_image(1)), 40 * 10 + 6)
+    np.testing.assert_allclose(
+        np.sum(lines[0].sample_from_image(1, correct_origin=True)), 50 * 10 + 6
+    )
+    np.testing.assert_allclose(
+        np.sum(lines[1].sample_from_image(1, correct_origin=True)), 40 * 10 + 6
+    )
 
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
     lines = track_lines(kymo_integration_test_data, "red", 3 * pixel_size, 4, rect=rect)
