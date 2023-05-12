@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.1 | t.b.d.
+## v1.0.1 | 2023-05-12
 
 #### Bug fixes
 
