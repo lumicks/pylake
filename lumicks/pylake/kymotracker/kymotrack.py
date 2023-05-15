@@ -845,10 +845,12 @@ class KymoTrackGroup:
 
     @property
     def _kymo(self):
-        try:
-            return self[0]._kymo
-        except IndexError:
+        if len(self._kymos) == 1:
+            return self._kymos[0]
+        elif len(self._kymos) == 0:
             raise RuntimeError("No kymo associated with this empty group (no tracks available)")
+        else:
+            raise RuntimeError("Group contains tracks from multiple source kymographs.")
 
     @property
     def _channel(self):

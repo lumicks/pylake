@@ -237,3 +237,25 @@ def test_tracks_by_kymo(kymos, coordinates):
             id(track_group) == id(track_raw)
 
     assert indices == [[0, 1, 2, 3, 8, 9, 10, 11], [4, 5, 6, 7]]
+
+
+def test_kymo_property(kymos, coordinates):
+    raw_tracks1 = [KymoTrack(t, p, kymos[0], "green") for t, p in zip(*coordinates)]
+    raw_tracks2 = [KymoTrack(t, p, kymos[1], "green") for t, p in zip(*coordinates)]
+
+    group = KymoTrackGroup(raw_tracks1)
+    assert id(group._kymo) == id(kymos[0])
+
+    group = KymoTrackGroup([])
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        group._kymo
+
+    group = KymoTrackGroup([*raw_tracks1, *raw_tracks2])
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("Group contains tracks from multiple source kymographs."),
+    ):
+        group._kymo
