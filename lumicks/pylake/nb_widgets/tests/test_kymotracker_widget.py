@@ -114,11 +114,39 @@ def test_save_load_from_ui(kymograph, tmpdir_factory):
     """Check if a round trip through the UI saving function works."""
     testfile = f"{tmpdir_factory.mktemp('pylake')}/kymo.csv"
 
+    kymo_widget = KymoWidgetGreedy(
+        kymograph, "red", axis_aspect_ratio=1, use_widgets=False, correct_origin=False
+    )
+    kymo_widget._labels = {"status": MockLabel(), "warning": MockLabel()}
+    kymo_widget._output_filename = testfile
+    kymo_widget._save_from_ui()
+    assert len(kymo_widget._labels["warning"].value) == 0
+
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
+    kymo_widget._labels = {"status": MockLabel(), "warning": MockLabel()}
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 4
     kymo_widget._track_all()
     kymo_widget._output_filename = testfile
-    kymo_widget._save_from_ui()
+
+    with pytest.warns(
+        RuntimeWarning,
+        match=re.escape(
+            "Prior to version 1.1.0 the method `sample_from_image` had a bug that assumed "
+            "the origin of a pixel to be at the edge rather than the center of the pixel. "
+            "Consequently, the sampled window could frequently be off by one pixel. To get "
+            "the correct behavior and silence this warning, specify `correct_origin=True` "
+            "when opening the kymotracking widget. The old (incorrect) behavior is "
+            "maintained until the next major release to ensure backward compatibility. "
+            "To silence this warning use `correct_origin=False`."
+        ),
+    ):
+        kymo_widget._save_from_ui()
+
+    assert kymo_widget._labels["warning"].value == (
+        "<font color='red'>Sampled intensities are using the wrong pixel origin. To correct "
+        "this, add extra argument correct_origin=True when opening the widget. Run "
+        "help(lk.KymoWidgetGreedy) for more info."
+    )
 
     tracks = kymo_widget.tracks
 
