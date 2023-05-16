@@ -1144,9 +1144,10 @@ def ensemble_ols(kymotracks, max_lag):
         ensemble_msd.lags[:optimal_lags], ensemble_msd.msd[:optimal_lags], track_length
     )
 
-    time_step = kymotracks._kymo.line_time_seconds
+    time_step = kymotracks._kymos[0].line_time_seconds
     to_time = 1.0 / (2.0 * time_step)
-    src_calibration = kymotracks._kymo._calibration
+
+    src_calibration = kymotracks._kymos[0]._calibration
     return DiffusionEstimate(
         value=slope * to_time,
         std_err=np.sqrt(var_slope / np.mean(ensemble_msd.effective_sample_size)) * to_time,

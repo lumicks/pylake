@@ -789,6 +789,9 @@ class KymoTrackGroup:
         return kymos
 
     def _validate_single_source(self, method_description):
+        if not self:
+            raise RuntimeError("No kymo associated with this empty group (no tracks available)")
+
         if (n_kymos := len(self._kymos)) > 1:
             raise NotImplementedError(
                 f"{method_description} is not supported. "
@@ -881,13 +884,6 @@ class KymoTrackGroup:
         self._src.remove(track)
 
     @property
-    def _kymo(self):
-        try:
-            return self[0]._kymo
-        except IndexError:
-            raise RuntimeError("No kymo associated with this empty group (no tracks available)")
-
-    @property
     def _channel(self):
         try:
             return self[0]._channel
@@ -911,7 +907,7 @@ class KymoTrackGroup:
             If group contains tracks from more than one source kymograph.
         """
         self._validate_single_source("Flipping")
-        flipped_kymo = self._kymo.flip()
+        flipped_kymo = self._kymos[0].flip()
         return KymoTrackGroup([track._flip(flipped_kymo) for track in self])
 
     def _split_track(self, track, split_node, min_length):
@@ -1313,6 +1309,7 @@ class KymoTrackGroup:
             ROI coordinates as `[[min_time, min_position], [max_time, max_position]]`.
         """
         self._validate_single_source("Binding profile")
+        _kymo = self._kymos[0]
 
         if n_time_bins == 0:
             raise ValueError("Number of time bins must be > 0.")
@@ -1320,15 +1317,15 @@ class KymoTrackGroup:
             raise ValueError("Number of spatial bins must be >= 2.")
 
         if roi is None:
-            n_rows, n_frames = self._kymo.get_image(self._channel).shape
+            n_rows, n_frames = _kymo.get_image(self._channel).shape
             start_frame = 0
             min_position = 0
-            max_position = n_rows * self._kymo.pixelsize[0]
+            max_position = n_rows * _kymo.pixelsize[0]
         else:
             (min_time, min_position), (max_time, max_position) = roi
-            n_rows = np.ceil((max_position - min_position) / self._kymo.pixelsize[0])
-            n_frames = np.ceil((max_time - min_time) / self._kymo.line_time_seconds)
-            start_frame = min_time // self._kymo.line_time_seconds
+            n_rows = np.ceil((max_position - min_position) / _kymo.pixelsize[0])
+            n_frames = np.ceil((max_time - min_time) / _kymo.line_time_seconds)
+            start_frame = min_time // _kymo.line_time_seconds
 
         try:
             bin_size = n_frames // n_time_bins

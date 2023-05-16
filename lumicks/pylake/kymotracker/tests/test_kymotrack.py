@@ -246,7 +246,7 @@ def test_kymotrack_group(blank_kymo):
         assert [k for k in kymoline_group] == ref_list
         assert id(kymoline_group) not in (id(s) for s in source_items)
         if ref_kymo:
-            assert id(kymoline_group._kymo) == id(ref_kymo)
+            assert id(kymoline_group._kymos[0]) == id(ref_kymo)
 
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
@@ -669,6 +669,12 @@ def test_kymotrackgroup_flip():
     ):
         tracks2._flip()
 
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        KymoTrackGroup([])._flip()
+
 
 def test_binding_profile_histogram():
     kymo = generate_kymo(
@@ -741,6 +747,12 @@ def test_binding_profile_histogram():
         ),
     ):
         combined_tracks._histogram_binding_profile(n_time_bins=1, bandwidth=1, n_position_points=10)
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        KymoTrackGroup([])._histogram_binding_profile(3, 0.2, 4)
 
 
 def test_fit_binding_times(blank_kymo):
