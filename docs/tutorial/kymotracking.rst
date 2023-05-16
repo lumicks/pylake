@@ -154,7 +154,6 @@ Sometimes we want to track only part of a kymograph without manually slicing and
 
 .. image:: figures/kymotracking/track_with_roi.png
 
-
 .. _localization_refinement:
 
 Localization refinement
@@ -402,7 +401,6 @@ by passing a width in pixels to sum counts over::
 
     tracks.save("tracks_signal.csv", sampling_width=3, correct_origin=True)
 
-
 How the algorithms work
 -----------------------
 
@@ -640,3 +638,32 @@ in :doc:`Population Dynamics </tutorial/population_dynamics>`.
     The `min_observation_time` and `max_observation_time` arguments to the underlying :class:`~lumicks.pylake.DwelltimeModel` are set automatically by this method.
     The minimum length of the tracks depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
     Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.
+
+.. _global_analysis:
+
+Global analysis
+---------------
+
+Sometimes, we want to combine tracking results from multiple Kymographs to determine biophysical parameters with increased precision.
+We can do this, by simply adding :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` instances together.
+We'll demonstrate this functionality using multiple sections on a single :class:`~lumicks.pylake.kymo.Kymo`, but it generalizes to tracks from different kymographs::
+
+    tracks1 = lk.filter_tracks(lk.track_greedy(kymo, "green", rect=[[127, 9], [162, 26]]), 4)
+    tracks2 = lk.filter_tracks(lk.track_greedy(kymo, "green", rect=[[175, 9], [200, 26]]), 4)
+
+    multiple_groups = tracks1 + tracks2
+    multiple_groups.plot()
+
+.. image:: figures/kymotracking/multi_group.png
+
+The API for the different methods is identical, requiring no changes to your downstream analysis compared to the case of tracks from a single kymograph.
+For instance, one can compute the binding lifetime with::
+
+    multi_dwell = multiple_groups.fit_binding_times(n_components=2)
+    print(multi_dwell.lifetimes)  # list of bound lifetimes
+    print(multi_dwell.amplitudes)  # list of fractional amplitudes for each component
+
+.. warning::
+
+    When working with :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` instances tracked from different kymographs, certain features require that all source kymographs have the same pixel size and scan line times (e.g., :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_msd` and :meth:`ensemble_diffusion("ols") <lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_diffusion>`).
+    Such methods will raise an exception if these conditions are not met.
