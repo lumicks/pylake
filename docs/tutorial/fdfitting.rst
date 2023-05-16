@@ -357,6 +357,8 @@ data to use in this analysis. First the independent parameter is passed, followe
 Advanced usage
 ---------------
 
+.. _ple_confidence_intervals:
+
 Confidence intervals and standard errors
 ****************************************
 
