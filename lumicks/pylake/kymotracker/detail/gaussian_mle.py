@@ -225,20 +225,27 @@ def gaussian_mle_1d(
     reverse_idx = np.argsort(idx)
 
     # Divide up the range of positions such that each track gets its own range.
+    max_to_counts = 1.0 / pixel_size * np.sqrt(2 * np.pi * initial_sigma**2)
     if enforce_position_bounds:
+        initial_position = np.clip(initial_position, np.min(x), np.max(x))
         position_range = np.hstack(
             [np.min(x), (initial_position[:-1] + initial_position[1:]) / 2.0, np.max(x)]
         )
         position_bounds = np.vstack((position_range[:-1], position_range[1:])).T
+        position_indices = [np.where(x >= pos)[0][0] for pos in position_range]
+
+        amp_estimate = [
+            np.max(photon_count[p1 : p2 + 1]) * max_to_counts
+            for p1, p2 in zip(position_indices[:-1], position_indices[1:])
+        ]
     else:
         position_bounds = np.tile((np.min(x), np.max(x)), (num_peaks, 1))
-
-    amp_estimate = np.max(photon_count) / pixel_size * np.sqrt(2 * np.pi * initial_sigma**2)
+        amp_estimate = np.max(photon_count) * max_to_counts / initial_position.size
 
     # parameters are ordered as follows: amplitudes, centers, widths, background offset
     num_pars = num_peaks * 3 + (0 if fixed_background else 1)
     initial_guess = np.empty(num_pars)
-    initial_guess[:num_peaks] = amp_estimate / initial_position.size
+    initial_guess[:num_peaks] = amp_estimate
     initial_guess[num_peaks : 2 * num_peaks] = initial_position
     initial_guess[2 * num_peaks :] = initial_sigma
 
