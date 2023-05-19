@@ -161,6 +161,36 @@ def peak_expectation_1d_derivatives(x, params, fixed_background, pixel_size, num
     return derivatives.T
 
 
+def _estimation_parameters_simultaneous(x, photon_count, sorted_initial_position):
+    """Compute initial guess, max counts and positional bounds per peak for a simultaneous fit
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Position data at which the function is to be evaluated.
+    photon_count : np.ndarray
+        Measured photon counts at each position.
+    sorted_initial_position : np.ndarray
+        Sorted initial guess for the peak position, in um.
+    """
+
+    sorted_initial_position = np.clip(sorted_initial_position, np.min(x), np.max(x))
+    position_range = np.hstack(
+        [np.min(x), (sorted_initial_position[:-1] + sorted_initial_position[1:]) / 2.0, np.max(x)]
+    )
+    position_bounds = np.vstack((position_range[:-1], position_range[1:])).T
+    position_indices = [np.where(x >= pos)[0][0] for pos in position_range]
+
+    max_photons = np.array(
+        [
+            float(np.max(photon_count[p1 : p2 + 1]))
+            for p1, p2 in zip(position_indices[:-1], position_indices[1:])
+        ]
+    )
+
+    return sorted_initial_position, position_bounds, max_photons
+
+
 def gaussian_mle_1d(
     x,
     photon_count,
@@ -227,17 +257,10 @@ def gaussian_mle_1d(
     # Divide up the range of positions such that each track gets its own range.
     max_to_counts = 1.0 / pixel_size * np.sqrt(2 * np.pi * initial_sigma**2)
     if enforce_position_bounds:
-        initial_position = np.clip(initial_position, np.min(x), np.max(x))
-        position_range = np.hstack(
-            [np.min(x), (initial_position[:-1] + initial_position[1:]) / 2.0, np.max(x)]
+        initial_position, position_bounds, max_photons = _estimation_parameters_simultaneous(
+            x, photon_count, initial_position
         )
-        position_bounds = np.vstack((position_range[:-1], position_range[1:])).T
-        position_indices = [np.where(x >= pos)[0][0] for pos in position_range]
-
-        amp_estimate = [
-            np.max(photon_count[p1 : p2 + 1]) * max_to_counts
-            for p1, p2 in zip(position_indices[:-1], position_indices[1:])
-        ]
+        amp_estimate = max_photons * max_to_counts
     else:
         position_bounds = np.tile((np.min(x), np.max(x)), (num_peaks, 1))
         amp_estimate = np.max(photon_count) * max_to_counts / initial_position.size

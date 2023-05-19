@@ -4,7 +4,9 @@ from functools import partial
 
 from lumicks.pylake.kymotracker.detail import gaussian_mle
 from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
-from lumicks.pylake.kymotracker.detail.gaussian_mle import overlapping_pixels
+from lumicks.pylake.kymotracker.detail.gaussian_mle import (
+    overlapping_pixels, _estimation_parameters_simultaneous
+)
 
 
 @pytest.mark.parametrize(
@@ -181,3 +183,38 @@ def test_two_gaussians_1d(two_gaussians_1d):
         )
         assert np.allclose(result[0], peaks[0])
         assert np.allclose(result[1], peaks[1])
+
+
+@pytest.mark.parametrize(
+    "x, photon_count, sorted_initial_position, ref_pos, ref_bounds, ref_max",
+    [
+        # fmt:off
+        # Happy path 1 element
+        (np.arange(5), [0, 1, 0, 2, 0], [2], [2], [[0, 4]], [2]),
+        # Happy path 2 elements
+        (np.arange(5), [0, 1, 0, 2, 0], [1, 3], [1, 3], [[0, 2], [2, 4]], [1, 2]),
+        # Happy path 3 elements
+        (np.arange(5), [0, 1, 0, 2, 0], [1, 2, 3], [1, 2, 3], [[0, 1.5], [1.5, 2.5], [2.5, 4]], [1, 2, 2]),
+        # Make sure left-side oob initials get clamped and bounds make sense
+        (np.arange(5), [0, 1, 0, 2, 0], [-1, 3], [0, 3], [[0, 1.5], [1.5, 4]], [1, 2]),
+        # Make sure right-side oob initials get clamped and bounds make sense
+        (np.arange(5), [0, 1, 0, 2, 0], [1, 5], [1, 4], [[0, 2.5], [2.5, 4]], [2, 2]),
+        # Going further out of bounds doesn't change anything
+        (np.arange(5), [0, 1, 0, 2, 0], [1, 6], [1, 4], [[0, 2.5], [2.5, 4]], [2, 2]),
+        # Multiple on the left side end up clamped to zero
+        (np.arange(5), [0, 1, 0, 2, 0], [-1, -1, -1], [0, 0, 0], [[0, 0], [0, 0], [0, 4]], [0, 0, 2]),
+        # Multiple on the right side end up clamped to max
+        (np.arange(5), [0, 1, 0, 2, 0], [6, 6, 6], [4, 4, 4], [[0, 4], [4, 4], [4, 4]], [2, 0, 0]),
+        # fmt:on
+    ],
+)
+def test_simultaneous_fit_guess(
+    x, photon_count, sorted_initial_position, ref_pos, ref_bounds, ref_max
+):
+    pos, bounds, max_photons = _estimation_parameters_simultaneous(
+        x, np.array(photon_count), np.array(sorted_initial_position)
+    )
+
+    np.testing.assert_allclose(pos, ref_pos)
+    np.testing.assert_allclose(max_photons, ref_max)
+    np.testing.assert_allclose(bounds, ref_bounds)
