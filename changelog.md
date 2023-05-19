@@ -5,7 +5,7 @@
 #### New features
 
 * Added `KymoTrack.plot_fit()` and `KymoTrackGroup.plot_fit()` to show the fitted model obtained from gaussian refinement.
-* Added fitting mode `"simultaneous"` to `lk.refine_tracks_gaussian()` which enforces optimization bounds between the peak positions. This helps prevent `lk.refine_tracks_gaussian()` from reassigning points to the wrong track when a track momentarily disappears and `overlap_strategy` is set to `"multiple"` and `refine_missing_frames` is set to `True`. When fitting mode is set to `"simultaneous"`, bounds ensure that the individual Gaussians cannot switch position.
+* Added fitting mode `"simultaneous"` to `lk.refine_tracks_gaussian()` which enforces optimization bounds between the peak positions. This helps prevent `lk.refine_tracks_gaussian()` from reassigning points to the wrong track when a track momentarily disappears and `overlap_strategy` is set to `"multiple"` and `refine_missing_frames` is set to `True`. When fitting mode is set to `"simultaneous"`, bounds ensure that the individual Gaussians cannot switch position. In addition, this mode uses a better initial guess for the peak amplitudes based on the maximum photon count observed in each range.
 
 #### Other changes
 
