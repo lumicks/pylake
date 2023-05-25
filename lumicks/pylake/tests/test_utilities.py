@@ -1,6 +1,10 @@
 from lumicks.pylake.detail.utilities import *
 from lumicks.pylake.detail.confocal import timestamp_mean
-from lumicks.pylake.detail.utilities import will_mul_overflow, could_sum_overflow
+from lumicks.pylake.detail.utilities import (
+    will_mul_overflow,
+    could_sum_overflow,
+    replace_key_aliases,
+)
 from numpy.testing import assert_array_equal
 import pytest
 import matplotlib as mpl
@@ -163,3 +167,36 @@ def test_docstring_wrapper():
         """This one should use the other one's docstring"""
 
     assert func1.__doc__ == func2.__doc__
+
+
+@pytest.mark.parametrize(
+    "src_dict, aliases, result_dict, valid",
+    [
+        ({}, [], {}, True),
+        ({"test": 5}, [[]], {"test": 5}, True),
+        ({"test": 5}, [["test"]], {"test": 5}, True),
+        ({}, [["test", "test2"]], {}, True),
+        ({"test": 5}, [["test", "yes"]], {"test": 5}, True),
+        ({"test": 5}, [["yes", "test"]], {"yes": 5}, True),
+        ({"test": 5}, [["yes", "yup", "test"]], {"yes": 5}, True),
+        ({"test": 5, "yes": 5}, [["yes", "yup", "test"]], {}, False),  # Duplicate is invalid
+        (
+            {"test": 5, "second": 6},
+            [["yes", "test"], ["good", "second"]],
+            {"yes": 5, "good": 6},
+            True,
+        ),
+        (
+            {"test": 5, "second": 6},
+            [["yes", "no"], ["good", "second"]],
+            {"test": 5, "good": 6},
+            True,
+        ),
+    ],
+)
+def test_key_aliases(src_dict, aliases, result_dict, valid):
+    if valid:
+        assert replace_key_aliases(src_dict, *aliases) == result_dict
+    else:
+        with pytest.raises(ValueError):
+            replace_key_aliases(src_dict, *aliases)
