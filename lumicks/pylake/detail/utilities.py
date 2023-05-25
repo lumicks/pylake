@@ -30,6 +30,51 @@ def first(iterable, condition=lambda x: True):
     return next(x for x in iterable if condition(x))
 
 
+def replace_key_aliases(dictionary, *key_alias_lists):
+    """Replace key aliases by a specific one.
+
+    This function is especially useful for validating user-supplied plotting kwargs against
+    pylake-supplied default plotting parameters. For instance, a user could supply either
+    `color="red"` or `c="red"` to specify the line color.
+
+    Parameters
+    ----------
+    dictionary : dict
+        Python dictionary.
+    *key_alias_lists : list
+        Each argument is a list of key aliases. When a key in this list is found, it is converted
+        to the first alias for that key in the list.
+
+    Returns
+    -------
+    dict
+        Dictionary with keys replaced by their first alias.
+
+    Raises
+    ------
+    ValueError
+        If multiple keys are provided for the same alias.
+
+    Examples
+    --------
+    ::
+
+        def plot_line(x, y, **kwargs):
+            default_kwargs = {"color": "red"}
+            plt.plot(x, y, **default_kwargs | replace_key_aliases(kwargs, ["color", "c"])
+    """
+    for aliases in key_alias_lists:
+        used_keys = [key for key in aliases if key in dictionary.keys()]
+        if len(used_keys) > 1:
+            raise ValueError(
+                f"Multiple keys provided which are aliases for same property: {used_keys}"
+            )
+        elif len(used_keys) == 1:
+            dictionary[aliases[0]] = dictionary.pop(used_keys[0])
+
+    return dictionary
+
+
 def unique(input_list):
     unique_list = []
     [unique_list.append(x) for x in input_list if x not in unique_list]
