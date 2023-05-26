@@ -1,4 +1,6 @@
+from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks, peak_estimate, refine_peak_based_on_moment
 import numpy as np
+
 
 def find_peaks(kymograph_data, half_width_pixels, pixel_threshold, bias_correction=True, rect=None):
     coordinates, time_points = peak_estimate(kymograph_data, half_width_pixels, pixel_threshold)
@@ -25,17 +27,19 @@ def find_peaks(kymograph_data, half_width_pixels, pixel_threshold, bias_correcti
 
     return KymoPeaks(position, time, m0)
 
+
 def calculate_costs(current_frame, next_frame, max_distance):
     """Calculates the cost function between pairs of frames"""
-    positional_cost = (current_frame.coordinates - next_frame.coordinates.T[:, np.newaxis]) ** 2
+    positional_cost = (current_frame.coordinates[:, np.newaxis] - next_frame.coordinates) ** 2
     positional_cost[positional_cost > max_distance * max_distance] = np.inf
-    intensity_cost = (current_frame.coordinates - next_frame.coordinates.T[:, np.newaxis]) ** 2
+    intensity_cost = (current_frame.coordinates[:, np.newaxis] - next_frame.coordinates) ** 2
 
     # Add the dummy row and column
     cost = np.full(np.array(positional_cost.shape) + 1, max_distance * max_distance, dtype=float)
     cost[1:, 1:] = positional_cost
 
     return cost
+
 
 def initialize_positions(costs):
     """Provides the initial linking matrix in coordinate form
@@ -132,14 +136,13 @@ def optimize_linking(initial_condition, cost, null_cost, max_iter=100):
 
     # Unfortunately, inherently sequential sweeps, since they need to be updated immediately.
     # TODO: Likely candidate for jit treatment.
-    dcost = 0
     for _ in range(max_iter):
-        change = False
-
         # Tries to add a particle linkage between two particle positions.
         # Note that this requires swapping their other associations to ensure that the
         # topology of the graph stays the same (1 to 1 except for the dummy particle which can
         # have 1 to many links).
+        lowest_cost = 0
+        lowest_change = None
         for i in range(1, cost.shape[0]):
             for j in range(1, cost.shape[1]):
                 # Only consider adding ones that have a finite cost and don't already exist
@@ -149,33 +152,80 @@ def optimize_linking(initial_condition, cost, null_cost, max_iter=100):
                     k = next_to_current[j]
                     l = current_to_next[i]
                     cost_change = cost[i, j] + cost[k, l] - cost[i, l] - cost[k, j]
-                    if cost_change < 0:
-                        change = True
-                        dcost += 1
-                        next_to_current[j], current_to_next[i] = i, j
-                        current_to_next[k], next_to_current[l] = l, k
+                    if cost_change < lowest_cost and np.isfinite(cost_change):
+                        lowest_cost = cost_change
+                        lowest_change = (i, j, k, l)
 
         # Particles disappearing (j becomes 0)
         for i in range(1, cost.shape[0]):
             #   i->j => i->0
+            k = 0
             l = current_to_next[i]
             cost_change = cost[i, 0] + cost[0, l] - cost[i, l]
-            if cost_change < 0:
-                dcost += 1
-                current_to_next[i] = 0
-                next_to_current[l] = 0
+            if cost_change < lowest_cost and np.isfinite(cost_change):
+                lowest_cost = cost_change
+                lowest_change = (i, j, k, l)
 
         # Particles appearing (i becomes 0)
         for j in range(1, cost.shape[1]):
             #   i->j => 0->j
             k = next_to_current[j]
+            l = 0
             cost_change = cost[0, j] + cost[k, 0] - cost[k, j]
-            if cost_change < 0:
-                dcost += 1
-                current_to_next[k] = 0
-                next_to_current[j] = 0
+            if cost_change < lowest_cost and np.isfinite(cost_change):
+                lowest_cost = cost_change
+                lowest_change = (i, j, k, l)
 
-        if not change:
+        if lowest_cost < 0:
+            # Relink particles
+            #   i->l, k->j  =>  i->j k->l
+            i, j, k, l = lowest_change
+            next_to_current[j], current_to_next[i], next_to_current[l], current_to_next[
+                k] = lowest_change
+        else:
+            # Done!
             break
 
-    return current_to_next, next_to_current, dcost
+    extracted_costs = [cost[idx, target] for idx, target in enumerate(current_to_next)]
+
+    return current_to_next, next_to_current, extracted_costs
+
+
+max_distance = 10
+
+
+def calculate_associations(from_frame, to_frame, max_distance):
+    cost_matrix = calculate_costs(from_frame, to_frame, max_distance)
+    initial_guess = initialize_positions(cost_matrix)
+    to_next, to_current, connection_cost = optimize_linking(initial_guess, cost_matrix,
+                                                            max_distance)
+    return to_next, connection_cost
+
+
+kymo2 = f.kymos["1"]
+data = kymo["10s":"160s"].crop_by_distance(8.5, 20).get_image("green")
+
+half_width = 3
+thresh = 4
+
+peaks = find_peaks(data, half_width, thresh, bias_correction=True)
+
+# Track assignment
+# We make a structure parallel to `KymoPeaks` that stores which track is assigned to which peak.
+# This allows us to look these up quickly.
+track_assignments = [np.full(frame.coordinates.shape, -1) for frame in
+                     peaks.frames]  # -1 means unassigned
+
+# Initiate lines on the first frame.
+current_frame = 0
+starting_frame = peaks.frames[current_frame]
+tracks = [[(t, c)] for t, c in zip(starting_frame.coordinates, starting_frame.time_points)]
+track_assignments[current_frame] = np.arange(starting_frame.coordinates.size)
+
+window = 8
+for idx in range(1):
+    cost_matrix = []
+    nexts = []
+    for future_frame in np.arange(1, window):
+        to_next, costs = calculate_associations(peaks.frames[idx], peaks.frames[idx + future_frame],
+                                                max_distance)
