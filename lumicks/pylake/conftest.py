@@ -25,7 +25,7 @@ def pytest_collection_modifyitems(config, items):
             continue
         skip_slow = pytest.mark.skip(reason=f"need --run{option} option to run")
         for item in items:
-            if option in item.keywords:
+            if any(item.iter_markers(name=option)):
                 item.add_marker(skip_slow)
 
 
