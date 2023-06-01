@@ -262,6 +262,37 @@ These likely are the result of poorly fit or numerical unstable models.
     and :attr:`~lumicks.pylake.population.dwelltime.DwelltimeBootstrap.lifetime_distributions` which return the data as a `numpy` array with
     shape `[# components, # bootstrap samples]`.
 
+.. _pop_confidence_intervals:
+
+Profile Likelihood based Confidence intervals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We also offer a deterministic method for estimating confidence intervals.
+This method is known as the profile likelihood method :cite:`raue2009structural,maiwald2016driving` and is described in more detail :ref:`here <ple_confidence_intervals>`.
+Profile likelihood can be applied for model selection as it tests whether the data can be fit with fewer parameters without a reduction in fit quality.
+It can be invoked by calling :meth:`lumicks.pylake.DwelltimeModel.profile_likelihood`::
+
+    profiles = dwell_2.profile_likelihood()
+
+    plt.figure()
+    profiles.plot()
+    plt.tight_layout()
+    plt.show()
+
+.. image:: figures/population_dynamics/pop_ple.png
+
+The intersection points between the blue curve and the dashed lines indicate the confidence interval.
+These can be extracted by using the :meth:`~lumicks.pylake.population.dwelltime.DwelltimeProfiles.get_interval` method from the :class:`~lumicks.pylake.population.dwelltime.DwelltimeProfiles`::
+
+    # Get confidence intervals
+    for component in range(2):
+        interval = profiles.get_interval("amplitude", component)
+        print(f"Amplitude {component}: {interval}")
+        interval = profiles.get_interval("lifetime", component)
+        print(f"Lifetime {component}: {interval}")
+
+If the confidence interval for any of the amplitudes contains zero, then that component contributes very little to the model fit and a model with fewer components should be used.
+
 .. _rate_constants:
 
 Assumptions and limitations on determining rate constants

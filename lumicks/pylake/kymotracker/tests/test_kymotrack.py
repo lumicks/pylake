@@ -246,7 +246,7 @@ def test_kymotrack_group(blank_kymo):
         assert [k for k in kymoline_group] == ref_list
         assert id(kymoline_group) not in (id(s) for s in source_items)
         if ref_kymo:
-            assert id(kymoline_group._kymo) == id(ref_kymo)
+            assert id(kymoline_group._kymos[0]) == id(ref_kymo)
 
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
     k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
@@ -538,6 +538,34 @@ def test_empty_binding_histogram():
         KymoTrackGroup([]).plot_binding_histogram("binding")
 
 
+def test_kymotrackgroup_tracks_in_frame(blank_kymo):
+    tracks = KymoTrackGroup([])
+    assert len(tracks._tracks_in_frame(0)) == 0
+
+    tracks = KymoTrackGroup(
+        [
+            KymoTrack(np.array([0, 3, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red"),
+            KymoTrack(np.array([3, 4, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red"),
+        ]
+    )
+
+    # For each of the KymoTrack frames we get a list of track indices and indices that correspond to
+    # the index within the track of where we intersect with this frame of the kymograph.
+    reference_values = (
+        (0, [(0, 0)]),
+        (1, []),
+        (2, []),
+        (3, [(0, 1), (1, 0)]),
+        (4, [(1, 1)]),
+        (5, [(0, 2), (1, 2)]),
+    )
+    for kymo_frame_idx, reference_data in reference_values:
+        tracks_in_frame = tracks._tracks_in_frame(kymo_frame_idx)
+        assert len(tracks_in_frame) == len(reference_data)
+        for track_data, reference_track_data in zip(tracks_in_frame, reference_data):
+            np.testing.assert_equal(track_data, reference_track_data)
+
+
 def test_kymotrackgroup_copy(blank_kymo):
     k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
     k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
@@ -669,6 +697,12 @@ def test_kymotrackgroup_flip():
     ):
         tracks2._flip()
 
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        KymoTrackGroup([])._flip()
+
 
 def test_binding_profile_histogram():
     kymo = generate_kymo(
@@ -729,6 +763,24 @@ def test_binding_profile_histogram():
     # no bins requested
     with pytest.raises(ValueError, match="Number of time bins must be > 0."):
         tracks._histogram_binding_profile(0, 0.2, 4)
+
+    # disallowed for multiple source kymos
+    combined_tracks = tracks + KymoTrackGroup(
+        [KymoTrack(np.array([7, 8, 9]), np.array([1, 1, 1]), copy(kymo), "red")]
+    )
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            r"Binding profile is not supported. This group contains tracks from 2 source kymographs."
+        ),
+    ):
+        combined_tracks._histogram_binding_profile(n_time_bins=1, bandwidth=1, n_position_points=10)
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        KymoTrackGroup([])._histogram_binding_profile(3, 0.2, 4)
 
 
 def test_fit_binding_times(blank_kymo):
@@ -1164,6 +1216,42 @@ def test_ensemble_ols(blank_kymo, max_lag, diffusion_ref, std_err_ref, localizat
     assert ensemble_diffusion._unit_label == "$\\mu$m$^2$/s"
 
 
+@pytest.mark.parametrize("max_lag", [None, 4])
+def test_ensemble_ols_multiple_sources(blank_kymo, max_lag):
+    """Tests the happy path for OLS ensemble diffusion estimate with multiple source kymos."""
+    groups = [
+        KymoTrackGroup(
+            [
+                KymoTrack(time_idx, coordinate, kymo, "red")
+                for (time_idx, coordinate) in (
+                    (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
+                    (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
+                    (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 5),
+                )
+            ]
+        )
+        for kymo in (blank_kymo, copy(blank_kymo))
+    ]
+    assert id(groups[0]._kymos[0]) != id(groups[1]._kymos[0])
+
+    tracks = groups[0][:2] + groups[1][2]
+    assert len(tracks._kymos) == 2
+
+    ref_ensemble_diffusion = groups[0].ensemble_diffusion("ols", max_lag=max_lag)
+    ensemble_diffusion = tracks.ensemble_diffusion("ols", max_lag=max_lag)
+
+    np.testing.assert_allclose(ensemble_diffusion.value, ref_ensemble_diffusion.value)
+    np.testing.assert_allclose(ensemble_diffusion.std_err, ref_ensemble_diffusion.std_err)
+    np.testing.assert_allclose(
+        ensemble_diffusion.localization_variance, ref_ensemble_diffusion.localization_variance
+    )
+    assert ensemble_diffusion.variance_of_localization_variance is None
+    np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
+    assert ensemble_diffusion.method == "ensemble ols"
+    assert ensemble_diffusion.unit == "um^2 / s"
+    assert ensemble_diffusion._unit_label == "$\\mu$m$^2$/s"
+
+
 def test_invalid_ensemble_diffusion(blank_kymo):
     """Tests whether we can call this function at the diffusion level"""
     kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red")])
@@ -1265,3 +1353,20 @@ def test_no_motion_blur(blank_kymo):
         "constant.",
     ):
         track.estimate_diffusion("cve", localization_variance=1)
+
+
+def test_photon_counts_api(blank_kymo):
+    with pytest.raises(AttributeError, match="Photon counts are unavailable for this KymoTrack."):
+        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red").photon_counts
+
+    np.testing.assert_equal(
+        KymoTrack(
+            [1, 2, 3],
+            GaussianLocalizationModel(
+                [1, 2, 3], [1, 2, 5], [1, 1, 1], [0, 0, 0], [False, True, False]
+            ),
+            blank_kymo,
+            "red",
+        ).photon_counts,
+        [1, 2, 5],
+    )

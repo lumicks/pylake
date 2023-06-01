@@ -1,0 +1,59 @@
+Pylake 1.1.0
+============
+
+.. only:: html
+
+Pylake `v1.1.0` has been released, with new features and an important bugfix. Here's some of the highlights.
+
+Bugfix `KymoTrackGroup.sample_from_image`
+-----------------------------------------
+
+Prior to version `1.1.0`, the method :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` had a bug that assumed the origin of a pixel to be at the edge rather than the center of the pixel.
+Consequently, the sampled window would be off by one pixel half the time.
+For reasonably sized sampling windows (more than 4 pixels wide), the effect of this bug should be small.
+Note that the bug does not impact the position estimates.
+
+.. important::
+
+    The old (incorrect) behavior is maintained until the next major release (2.0) to ensure backward compatibility and allow assessment of the impact of the bug.
+    When using :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` or :func:`~lumicks.pylake.KymoWidgetGreedy`, it is recommended to include the argument `correct_origin=True` which results in using the correct origin.
+
+Global analysis
+---------------
+
+Previously, downstream analyses from kymotracking were limited to tracks from a single kymograph.
+With global analysis, you can combine tracking results from multiple kymographs to get better statistics when estimating binding lifetimes or calculating diffusion constants.
+For more information on this feature, please refer to the relevant section of the :ref:`kymotracking tutorial<global_analysis>`.
+
+.. figure:: global_analysis.png
+
+    Global analysis allows you to analyze multiple kymographs in a single analysis.
+    This results in improved estimates of the biophysical parameters of your experiment.
+
+Splitting tracks
+----------------
+
+You can now split tracks in the Kymotracker widget.
+
+.. figure:: split.gif
+
+    Clicking with the right mouse button splits an existing line into two segments.
+
+Profile likelihood for dwell time analysis
+------------------------------------------
+
+We added a :ref:`second method<pop_confidence_intervals>` for calculating uncertainty intervals for dwell time analysis.
+This method can be used to determine confidence intervals and assess whether a dwell time model has too many parameters (i.e., if a model with fewer components would be sufficient to fit the data).
+
+.. figure:: pop_ple.png
+
+    Profile likelihood curves for a dwell time model.
+    The intersection points between the blue curve and the dashed lines indicate the 95\% confidence interval for that particular parameter.
+
+Other changes
+-------------
+
+As always, we implemented various other bug-fixes and improvements.
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!

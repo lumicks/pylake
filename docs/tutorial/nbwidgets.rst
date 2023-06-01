@@ -266,9 +266,12 @@ You can easily pan horizontally by clicking and dragging left or right.
 
 You can optionally also pass algorithm parameters when opening the widget::
 
-    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=9, window=6, sigma=0.2)
+    lk.KymoWidgetGreedy(kymo, "green", axis_aspect_ratio=2, min_length=4, pixel_threshold=9, window=6, sigma=0.2, correct_origin=True)
 
 .. image:: figures/nbwidgets/kymotracker2.png
+
+.. warning::
+    When saving tracks to a file, the widget samples a region around the tracked lines to obtained a summed intensity. Prior to version `1.1.0` the method :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` had a bug that assumed the origin of a pixel to be at the edge rather than the center of the pixel. Consequently, the sampled window could frequently be off by one pixel. To get the correct behavior and silence this warning, specify `correct_origin=True` when opening the kymotracking widget. The old (incorrect) behavior is maintained until the next major release to ensure backward compatibility. To silence this warning use `correct_origin=False`.
 
 You can also change the range of each of the algorithm parameter sliders. To do this, simply pass a dictionary where the key indicates the algorithm
 parameter and the value contains its desired range in the form `(minimum bound, maximum bound)`. For example::

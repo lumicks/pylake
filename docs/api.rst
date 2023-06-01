@@ -77,10 +77,12 @@ FD Fitting
     ewlc_marko_siggia_distance
     ewlc_odijk_force
     ewlc_odijk_distance
+    dsdna_ewlc_odijk_distance
     twlc_force
     twlc_distance
     efjc_force
     efjc_distance
+    ssdna_efjc_distance
 
 
 Kymotracking

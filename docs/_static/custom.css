@@ -142,3 +142,19 @@ code.xref.any.py {
 .rst-content .warning a {
   color: var(--darkpink);
 }
+
+/* important box */
+.rst-content .important .admonition-title {
+  border-top-right-radius: 3px;
+  border-top-left-radius: 3px;
+  background-color: var(--darkorange);
+}
+
+.rst-content .important {
+  border-radius: 3px;
+  background-color: var(--lightorange);
+}
+
+.rst-content .important a {
+  color: var(--darkorange);
+}

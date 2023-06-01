@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 import inspect
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
@@ -24,6 +25,7 @@ class KymoWidget:
         output_filename,
         algorithm,
         algorithm_parameters,
+        correct_origin=None,
         **kwargs,
     ):
         """Create a widget for performing kymotracking.
@@ -47,6 +49,15 @@ class KymoWidget:
         algorithm_parameters : dict
             Dictionary of `KymotrackerParameter` instances holding the slider attributes
             and values for the tracking algorithm parameters
+        correct_origin : bool, optional
+            Use the correct pixel origin when summing track intensities when saving the file. When
+            saving the tracks, the widget stores the sum of the intensities around the tracks.
+            Tracks are defined with the origin of each image pixel defined at the center. However,
+            prior to Pylake version 1.1.0, the method that samples photon counts around the track
+            had a bug which assumed the origin at the edge of the pixel. Setting this flag to
+            `True` produces the correct behavior. The default is set to `None` which reproduces
+            the old behavior and results in a warning when saving tracks, while `False` reproduces
+            the old behavior without a warning.
         **kwargs
             Extra arguments forwarded to imshow.
         """
@@ -71,6 +82,7 @@ class KymoWidget:
         self._adding = True
         self._show_tracks = True
         self._output_filename = output_filename
+        self._correct_origin = correct_origin
 
         self._area_selector = None
         self._track_connector = None
@@ -319,7 +331,29 @@ class KymoWidget:
             the summed intensity with the image. The value indicates the number of pixels in either direction
             to sum over.
         """
-        self.tracks.save(filename, delimiter, sampling_width)
+        correct_origin = self._correct_origin
+        if correct_origin is None:
+            # Emit more specific warning for the widget
+            correct_origin = False
+            warnings.warn(
+                RuntimeWarning(
+                    "Prior to version 1.1.0 the method `sample_from_image` had a bug that assumed "
+                    "the origin of a pixel to be at the edge rather than the center of the pixel. "
+                    "Consequently, the sampled window could frequently be off by one pixel. To get "
+                    "the correct behavior and silence this warning, specify `correct_origin=True` "
+                    "when opening the kymotracking widget. The old (incorrect) behavior is "
+                    "maintained until the next major release to ensure backward compatibility. "
+                    "To silence this warning use `correct_origin=False`."
+                )
+            )
+            self._set_label(
+                "warning",
+                "Sampled intensities are using the wrong pixel origin. To correct this, add extra "
+                "argument correct_origin=True when opening the widget. Run "
+                "help(lk.KymoWidgetGreedy) for more info.",
+            )
+
+        self.tracks.save(filename, delimiter, sampling_width, correct_origin=correct_origin)
 
     def _load_from_ui(self):
         try:
@@ -605,6 +639,15 @@ class KymoWidgetGreedy(KymoWidget):
         following format: (lower bound, upper bound).
         Valid options are: "window", "pixel_threshold", "track_width", "sigma", "min_length" and
         "velocity".
+    correct_origin : bool, optional
+        Use the correct pixel origin when summing track intensities when saving the file. When
+        saving the tracks, the widget stores the sum of the intensities around the tracks. Tracks
+        are defined with the origin of each image pixel defined at the center. However, prior to
+        Pylake version 1.1.0, the method that samples photon counts around the track had a bug
+        which assumed the origin at the edge of the pixel. Setting this flag to `True` produces
+        the correct behavior. The default is set to `None` which reproduces the old behavior and
+        results in a warning when saving tracks, while `False` reproduces the old behavior without
+        a warning.
     """
 
     def __init__(
@@ -624,6 +667,7 @@ class KymoWidgetGreedy(KymoWidget):
         use_widgets=True,
         output_filename="kymotracks.txt",
         slider_ranges=None,
+        correct_origin=None,
         **kwargs,
     ):
         def wrapped_track_greedy(kymo, channel, min_length, **kwargs):
@@ -676,6 +720,7 @@ class KymoWidgetGreedy(KymoWidget):
             output_filename=output_filename,
             algorithm=algorithm,
             algorithm_parameters=algorithm_parameters,
+            correct_origin=correct_origin,
             **kwargs,
         )
 

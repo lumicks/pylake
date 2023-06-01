@@ -1,13 +1,17 @@
 import itertools
 from copy import copy
 from sklearn.neighbors import KernelDensity
+from ..detail.utilities import replace_key_aliases
 from .detail.msd_estimation import *
-from .detail.localization_models import LocalizationModel
+from .detail.localization_models import LocalizationModel, CentroidLocalizationModel
+from .detail.peakfinding import _sum_track_signal
 from .. import __version__
 from ..population.dwelltime import DwelltimeModel
 
 
-def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_width):
+def export_kymotrackgroup_to_csv(
+    filename, kymotrack_group, delimiter, sampling_width, *, correct_origin=None
+):
     """Export KymoTrackGroup to a csv file.
 
     Parameters
@@ -19,8 +23,16 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
     delimiter : str
         Which delimiter to use in the csv file.
     sampling_width : int or None
-        If, this will sample the source image around the kymograph track and export the summed intensity with
-        the image. The value indicates the number of pixels in either direction to sum over.
+        If specified, this will sample the source image around the kymograph track and export the
+        summed intensity with the image. The value indicates the number of pixels in either
+        direction to sum over.
+    correct_origin : bool, optional
+        Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+        origin of each image pixel defined at the center. Earlier versions of the method that
+        samples photon counts around the track had a bug which assumed the origin at the edge
+        of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+        set to `None` which reproduces the old behavior and results in a warning, while `False`
+        reproduces the old behavior without a warning.
 
     Raises
     ------
@@ -62,7 +74,12 @@ def export_kymotrackgroup_to_csv(filename, kymotrack_group, delimiter, sampling_
         store_column(
             f"counts (summed over {2 * sampling_width + 1} pixels)",
             "%d",
-            np.hstack([track.sample_from_image(sampling_width) for track in kymotrack_group]),
+            np.hstack(
+                [
+                    track.sample_from_image(sampling_width, correct_origin=correct_origin)
+                    for track in kymotrack_group
+                ]
+            ),
         )
 
     version_header = f"Exported with pylake v{__version__} | track coordinates v2\n"
@@ -171,6 +188,24 @@ class KymoTrack:
     def _image(self):
         return self._kymo.get_image(self._channel)
 
+    @property
+    def photon_counts(self):
+        """Photon counts
+
+        Provides an estimate of the photon counts for each point in the track. The value is
+        calculated differently depending on the refinement method:
+
+        - for a tracks originating from tracking without additional refinement or from centroid
+          refinement, the counts are estimated by summing an odd number of pixels around the peak
+          position.
+        - for tracks originating from Gaussian refinement, the photon count estimate is given
+          by the fitted integrated area of the peak.
+        """
+        try:
+            return self._localization.total_photons
+        except AttributeError:
+            raise AttributeError("Photon counts are unavailable for this KymoTrack.")
+
     def __str__(self):
         return f"KymoTrack(N={len(self._time_idx)})"
 
@@ -181,6 +216,47 @@ class KymoTrack:
             localization,
             self._kymo,
             self._channel,
+        )
+
+    @classmethod
+    def _from_centroid_estimate(cls, time_idx, coordinate_idx, kymo, channel, half_width_pixels):
+        """Return a KymoTrack including sampled photon counts.
+
+        Parameters
+        ----------
+        time_idx : array_like
+            Frame time indices. Note that these should be of integer type.
+        coordinate_idx : numpy.ndarray
+            (Sub)pixel coordinates to be converted to spatial position via calibration with pixel
+            size.
+        kymo : Kymo
+            Kymograph instance.
+        channel : {"red", "green", "blue"}
+            Color channel to analyze.
+        half_width_pixels : int
+           Number of pixels in either direction to include in the photon count sum.
+
+        Raises
+        ------
+        TypeError
+            If frame time indices are not of integer type.
+        """
+        return cls(
+            time_idx,
+            CentroidLocalizationModel(
+                coordinate_idx * kymo.pixelsize[0],
+                np.array(
+                    _sum_track_signal(
+                        kymo.get_image(channel),
+                        half_width_pixels,
+                        time_idx,
+                        coordinate_idx,
+                        correct_origin=True,
+                    )
+                ),
+            ),
+            kymo,
+            channel,
         )
 
     def _flip(self, kymo):
@@ -258,6 +334,58 @@ class KymoTrack:
         """Kymograph (spatial) pixel size in physical units."""
         return self._kymo.pixelsize[0]
 
+    def _model_fit(self, node_idx):
+        """Extract fitted model from localization model at particular node if available"""
+        num_coords = len(self)
+        node_idx = num_coords + node_idx if node_idx < 0 else node_idx
+        if not 0 <= node_idx < num_coords:
+            raise IndexError(
+                f"Node index is out of range of the KymoTrack. Kymotrack has length {num_coords}."
+            )
+
+        pixelsize, num_pixels = self._kymo.pixelsize[0], self._kymo.pixels_per_line
+        coords = np.arange(0.0, num_pixels * pixelsize, 0.1 * pixelsize)
+        model = self._localization.evaluate(coords, node_idx, pixelsize)
+
+        return coords, model
+
+    def plot_fit(self, node_idx, *, fit_kwargs=None, data_kwargs=None, show_data=True):
+        """Plot the localization model
+
+        Plots the model fit for a particular localization. Note that currently, this fit is only
+        available for Gaussian refinement.
+
+        Parameters
+        ----------
+        node_idx : int
+            Index of the track node to plot (corresponding to a specific scan line).
+        fit_kwargs : dict
+            Dictionary containing arguments to be passed to the fit plot.
+        data_kwargs : dict
+            Dictionary containing arguments to be passed to the data plot.
+        show_data : bool
+            Plot the data.
+
+        Raises
+        ------
+        NotImplementedError
+            if localization was not performed using Gaussian localization
+        IndexError
+            if requesting a fit for an index out of bounds of the KymoTrack.
+        """
+        model_fit = self._model_fit(node_idx)  # Verifies whether model exists for this index
+        aliases = ["color", "c"]
+        if show_data:
+            plt.plot(
+                np.arange(0.0, self._kymo.pixels_per_line) * self._kymo.pixelsize[0],
+                self._image[:, self.time_idx[node_idx]],
+                **{"color": "#c8c8c8"} | replace_key_aliases(data_kwargs or {}, aliases),
+            )
+
+        plt.plot(*model_fit, **{"color": "C0"} | replace_key_aliases(fit_kwargs or {}, aliases))
+        plt.xlabel(f"Position [{self._kymo._calibration.unit_label}]")
+        plt.ylabel("Photon counts [#]")
+
     def _check_ends_are_defined(self):
         """Checks if beginning and end of the track are not in the first/last frame."""
         return self.time_idx[0] > 0 and self.time_idx[-1] < self._image.shape[1] - 1
@@ -311,7 +439,7 @@ class KymoTrack:
 
         return before, after
 
-    def sample_from_image(self, num_pixels, reduce=np.sum):
+    def sample_from_image(self, num_pixels, reduce=np.sum, *, correct_origin=None):
         """Sample from image using coordinates from this KymoTrack.
 
         This function samples data from the image given in data based on the points in this
@@ -324,17 +452,38 @@ class KymoTrack:
             Number of pixels in either direction to include in the sample
         reduce : callable
             Function evaluated on the sample. (Default: np.sum which produces sum of photon counts).
+        correct_origin : bool, optional
+            Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+            origin of each image pixel defined at the center. Earlier versions of the method that
+            samples photon counts around the track had a bug which assumed the origin at the edge
+            of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+            set to `None` which reproduces the old behavior and results in a warning, while `False`
+            reproduces the old behavior without a warning.
         """
+        if correct_origin is None:
+            warnings.warn(
+                RuntimeWarning(
+                    "Prior to version 1.1.0 the method `sample_from_image` had a bug that assumed "
+                    "the origin of a pixel to be at the edge rather than the center of the pixel. "
+                    "Consequently, the sampled window could frequently be off by one pixel. To get "
+                    "the correct behavior and silence this warning, specify `correct_origin=True`. "
+                    "The old (incorrect) behavior is maintained until the next major release to "
+                    "ensure backward compatibility. To silence this warning use "
+                    "`correct_origin=False`."
+                ),
+                stacklevel=2,
+            )
+
         # Time and coordinates are being cast to an integer since we use them to index into a data
         # array. Note that coordinate pixel centers are defined at integer coordinates.
-        return [
-            reduce(
-                self._image[
-                    max(int(c + 0.5) - num_pixels, 0) : int(c + 0.5) + num_pixels + 1, int(t)
-                ]
-            )
-            for t, c in zip(self.time_idx, self.coordinate_idx)
-        ]
+        return _sum_track_signal(
+            self._image,
+            num_pixels,
+            self.time_idx,
+            self.coordinate_idx,
+            reduce=reduce,
+            correct_origin=correct_origin,
+        )
 
     def extrapolate(self, forward, n_estimate, extrapolation_length):
         """This function linearly extrapolates a track segment towards positive time.
@@ -725,8 +874,8 @@ class KymoTrackGroup:
 
         Returns
         -------
-        set
-            Set of source kymograph instances
+        tuple
+            Tuple of source kymograph instances
         """
         tracks = list(itertools.chain(self, additional_tracks))
         if not len(tracks):
@@ -752,6 +901,9 @@ class KymoTrackGroup:
         return kymos
 
     def _validate_single_source(self, method_description):
+        if not self:
+            raise RuntimeError("No kymo associated with this empty group (no tracks available)")
+
         if (n_kymos := len(self._kymos)) > 1:
             raise NotImplementedError(
                 f"{method_description} is not supported. "
@@ -844,13 +996,6 @@ class KymoTrackGroup:
         self._src.remove(track)
 
     @property
-    def _kymo(self):
-        try:
-            return self[0]._kymo
-        except IndexError:
-            raise RuntimeError("No kymo associated with this empty group (no tracks available)")
-
-    @property
     def _channel(self):
         try:
             return self[0]._channel
@@ -874,7 +1019,7 @@ class KymoTrackGroup:
             If group contains tracks from more than one source kymograph.
         """
         self._validate_single_source("Flipping")
-        flipped_kymo = self._kymo.flip()
+        flipped_kymo = self._kymos[0].flip()
         return KymoTrackGroup([track._flip(flipped_kymo) for track in self])
 
     def _split_track(self, track, split_node, min_length):
@@ -1037,7 +1182,116 @@ class KymoTrackGroup:
             ax.set_ylabel(f"position ({self._calibration_info['unit_label']})")
             ax.set_xlabel("time (s)")
 
-    def save(self, filename, delimiter=";", sampling_width=None):
+    def _tracks_in_frame(self, frame_idx):
+        """Grab tracks which are in a particular kymograph frame.
+
+        Parameters
+        ----------
+        frame_idx : int
+            Kymograph frame
+
+        Returns
+        -------
+        list of tuple of int
+            Returns a list of tuples. This list has one entry for each track that intersects with
+            this kymograph frame. The tuple consists of the track index and the index of which
+            coordinate inside that track corresponds to this kymograph frame.
+
+        Raises
+        ------
+        NotImplementedError
+            If this group has multiple kymographs associated with it.
+        """
+        if not self:
+            return []  # _validate_single_source throws for empty groups
+
+        self._validate_single_source("_tracks_in_frame")
+
+        tracks_in_frame = []
+        for track_idx, track in enumerate(self):
+            track_frame_idx = np.where(track.time_idx == frame_idx)[0]
+            if track_frame_idx.size > 0:
+                tracks_in_frame.append((track_idx, track_frame_idx))
+
+        return tracks_in_frame
+
+    def plot_fit(self, frame_idx, *, fit_kwargs=None, data_kwargs=None, show_track_index=True):
+        """Plot the localization model fits for a particular kymograph frame.
+
+        Note that currently, this fit is only available for Gaussian refinement.
+
+        Parameters
+        ----------
+        frame_idx : int
+            Index of the kymograph frame to plot.
+        fit_kwargs : dict
+            Dictionary containing arguments to be passed to the fit plot.
+        data_kwargs : dict
+            Dictionary containing arguments to be passed to the data plot.
+        show_track_index : bool
+            Display track index in the plot.
+
+        Raises
+        ------
+        ValueError
+            If the group is empty.
+        NotImplementedError
+            If this group has multiple kymographs associated with it.
+        NotImplementedError
+            If localization was not performed using Gaussian localization.
+        IndexError
+            If requesting a fit for a frame index out of bounds of the KymoTrack.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            tracks = lk.track_greedy(kymo, channel="red", pixel_threshold=5)
+            refined = lk.refine_tracks_gaussian(tracks, window=10, refine_missing_frames=True, overlap_strategy="multiple")
+
+            # Plot the localization fits for kymograph frame 5
+            refined.plot_fit(5)
+
+            # Using ipywidgets and jupyter, it is easy to make an interactive version of this plot.
+            import ipywidgets as widgets
+
+            plt.figure()
+            def plot_fit(frame):
+                plt.cla()  # Clear the current axis
+                refined.plot_fit(frame, show_track_index=True)
+
+            widgets.interact(plot_fit, frame=widgets.IntSlider(0, max=kymo.shape[1] - 1));
+        """
+        self._validate_single_source("plot_fit")
+
+        kymo = self._kymos[0]  # We can rely on there being one (_validate_single_source)
+        num_frames = kymo.shape[1]
+        frame_idx = num_frames + frame_idx if frame_idx < 0 else frame_idx
+        if not 0 <= frame_idx < num_frames:
+            raise IndexError(
+                f"Frame index is out of range of the kymograph. Kymograph length is {num_frames}."
+            )
+
+        kymo_data = kymo.get_image(self._channel)[:, frame_idx]
+        data_kwargs = {"color": "#c8c8c8"} | replace_key_aliases(data_kwargs or {}, ["color", "c"])
+        plt.plot(np.arange(kymo.pixels_per_line) * kymo.pixelsize[0], kymo_data, **data_kwargs)
+
+        # Put the numeric values above the baseline
+        y_coord = np.min(kymo_data) + 0.05 * (np.max(kymo_data) - np.min(kymo_data))
+        for track_idx, track_frame_idx in self._tracks_in_frame(frame_idx):
+            self[track_idx].plot_fit(track_frame_idx, show_data=False, fit_kwargs=fit_kwargs)
+            if show_track_index:
+                plt.text(
+                    self[track_idx].position[track_frame_idx],
+                    y_coord,
+                    str(track_idx),
+                    horizontalalignment="center",
+                    verticalalignment="bottom",
+                )
+
+    def save(self, filename, delimiter=";", sampling_width=None, *, correct_origin=None):
         """Export kymograph tracks to a csv file.
 
         Parameters
@@ -1049,8 +1303,17 @@ class KymoTrackGroup:
         sampling_width : int or None
             When supplied, this will sample the source image around the kymograph track and export the summed intensity
             with the image. The value indicates the number of pixels in either direction to sum over.
+        correct_origin : bool, optional
+            Use the correct pixel origin when sampling from image. Kymotracks are defined with the
+            origin of each image pixel defined at the center. Earlier versions of the method that
+            samples photon counts around the track had a bug which assumed the origin at the edge
+            of the pixel. Setting this flag to `True` produces the correct behavior. The default is
+            set to `None` which reproduces the old behavior and results in a warning, while `False`
+            reproduces the old behavior without a warning.
         """
-        export_kymotrackgroup_to_csv(filename, self, delimiter, sampling_width)
+        export_kymotrackgroup_to_csv(
+            filename, self, delimiter, sampling_width, correct_origin=correct_origin
+        )
 
     def _tracks_by_kymo(self):
         """Find tracks for each `Kymo` in the group.
@@ -1060,9 +1323,15 @@ class KymoTrackGroup:
         dict of KymoTrackGroup
             returns a dictionary where the keys are Kymos which the associated tracks
         """
-        return [
+        groups = [
             KymoTrackGroup([track for track in self if track._kymo == kymo]) for kymo in self._kymos
         ]
+
+        indices = [
+            [j for j, track in enumerate(self) if track._kymo == kymo] for kymo in self._kymos
+        ]
+
+        return groups, indices
 
     @staticmethod
     def _extract_dwelltime_data_from_groups(groups, exclude_ambiguous_dwells):
@@ -1162,8 +1431,9 @@ class KymoTrackGroup:
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
+        groups, _ = self._tracks_by_kymo()
         dwelltimes, min_obs, max_obs, removed_zeros = self._extract_dwelltime_data_from_groups(
-            self._tracks_by_kymo(), exclude_ambiguous_dwells
+            groups, exclude_ambiguous_dwells
         )
 
         if removed_zeros:
@@ -1260,6 +1530,7 @@ class KymoTrackGroup:
             ROI coordinates as `[[min_time, min_position], [max_time, max_position]]`.
         """
         self._validate_single_source("Binding profile")
+        _kymo = self._kymos[0]
 
         if n_time_bins == 0:
             raise ValueError("Number of time bins must be > 0.")
@@ -1267,15 +1538,15 @@ class KymoTrackGroup:
             raise ValueError("Number of spatial bins must be >= 2.")
 
         if roi is None:
-            n_rows, n_frames = self._kymo.get_image(self._channel).shape
+            n_rows, n_frames = _kymo.get_image(self._channel).shape
             start_frame = 0
             min_position = 0
-            max_position = n_rows * self._kymo.pixelsize[0]
+            max_position = n_rows * _kymo.pixelsize[0]
         else:
             (min_time, min_position), (max_time, max_position) = roi
-            n_rows = np.ceil((max_position - min_position) / self._kymo.pixelsize[0])
-            n_frames = np.ceil((max_time - min_time) / self._kymo.line_time_seconds)
-            start_frame = min_time // self._kymo.line_time_seconds
+            n_rows = np.ceil((max_position - min_position) / _kymo.pixelsize[0])
+            n_frames = np.ceil((max_time - min_time) / _kymo.line_time_seconds)
+            start_frame = min_time // _kymo.line_time_seconds
 
         try:
             bin_size = n_frames // n_time_bins

@@ -1,5 +1,6 @@
 import numpy as np
 from dataclasses import dataclass, replace, fields
+from .gaussian_mle import normal_pdf_1d
 
 __all__ = ["LocalizationModel", "GaussianLocalizationModel"]
 
@@ -30,6 +31,9 @@ class LocalizationModel:
         """
         return self.with_position(size - self.position)
 
+    def evaluate(self, x, node_idx, pixel_size):
+        raise NotImplementedError("No model fit available for this localization method.")
+
     def __add__(self, other):
         if other.__class__ is not self.__class__:
             raise TypeError(
@@ -44,6 +48,21 @@ class LocalizationModel:
 
     def __getitem__(self, item):
         return self.__class__(**{f.name: getattr(self, f.name)[item] for f in fields(self)})
+
+
+@dataclass(frozen=True)
+class CentroidLocalizationModel(LocalizationModel):
+    """Helper class to hold refinement optimization parameters.
+
+    Parameters
+    -----------
+    position : numpy.ndarray
+        Spatial coordinates in physical units.
+    total_photons : numpy.ndarray
+        Array of integrated photon counts for each time point.
+    """
+
+    total_photons: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -68,3 +87,22 @@ class GaussianLocalizationModel(LocalizationModel):
     sigma: np.ndarray
     background: np.ndarray
     _overlap_fit: np.ndarray
+
+    def evaluate(self, x, node_idx, pixel_size):
+        """Evaluate the fitted model
+
+        Parameters
+        ----------
+        x : numpy.array
+            Positions at which to evaluate the model.
+        node_idx : int
+            Which localization to evaluate the model for.
+        pixel_size : float
+            Pixel size.
+        """
+        return (
+            self.total_photons[node_idx]
+            * pixel_size
+            * normal_pdf_1d(x, self.position[node_idx], self.sigma[node_idx])
+            + self.background[node_idx]
+        )

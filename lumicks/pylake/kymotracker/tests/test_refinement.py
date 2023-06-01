@@ -1,6 +1,8 @@
 import pytest
 import re
 import numpy as np
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.detail.localization_models import GaussianLocalizationModel
 from lumicks.pylake.kymotracker.kymotracker import *
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -15,9 +17,7 @@ def test_kymotrack_interpolation(blank_kymo):
     np.testing.assert_allclose(interpolated.coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0])
 
     # Test whether concatenation still works after interpolation
-    np.testing.assert_equal(
-        (interpolated + kymotrack).time_idx, [1, 2, 3, 4, 5, 1, 3, 5]
-    )
+    np.testing.assert_equal((interpolated + kymotrack).time_idx, [1, 2, 3, 4, 5, 1, 3, 5])
     np.testing.assert_allclose(
         (interpolated + kymotrack).coordinate_idx, [1.0, 2.0, 3.0, 3.0, 3.0, 1.0, 3.0, 3.0]
     )
@@ -59,8 +59,8 @@ def test_refinement_2d():
     )
 
 
-@pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
-def test_refinement_track(loc):
+@pytest.mark.parametrize("loc, ref_counts", [(25.3, 29), (25.5, 29), (26.25, 28), (23.6, 27)])
+def test_refinement_track(loc, ref_counts):
     xx = np.arange(0, 50) - loc
     image = np.exp(-0.3 * xx * xx)
     # real kymo pixel values are integer photon counts
@@ -79,22 +79,27 @@ def test_refinement_track(loc):
 
     track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5)[0]
     np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
+    np.testing.assert_equal(track.photon_counts, ref_counts)
 
 
-@pytest.mark.parametrize("loc", [25.3, 25.5, 26.25, 23.6])
-def test_refinement_with_background(loc):
+@pytest.mark.parametrize("loc, ref_count", [(25.3, 29), (25.5, 29), (26.25, 28), (23.6, 27)])
+def test_refinement_with_background(loc, ref_count):
     xx = np.arange(0, 50) - loc
-    image = np.array((np.exp(-0.3 * xx * xx) + 5) * 10).astype(int)
+    background = 50
+    image = np.array((np.exp(-0.3 * xx * xx)) * 10 + background).astype(int)
     kymo = generate_kymo("", np.expand_dims(image, 1), pixel_size_nm=1000)
 
     # Without bias correction, we should see worse quality estimates
-    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5, bias_correction=False)[0]
+    tracks = [KymoTrack([0], [25], kymo, "red")]
+    refinement_width = 5
+    track = refine_tracks_centroid(tracks, refinement_width, bias_correction=False)[0]
     with pytest.raises(AssertionError):
         np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
 
     # With correction, this should resolve
-    track = refine_tracks_centroid([KymoTrack([0], [25], kymo, "red")], 5, bias_correction=True)[0]
+    track = refine_tracks_centroid(tracks, refinement_width, bias_correction=True)[0]
     np.testing.assert_allclose(track.coordinate_idx, loc, rtol=1e-2)
+    np.testing.assert_equal(track.photon_counts, ref_count + background * refinement_width)
 
 
 def test_refinement_error(kymo_integration_test_data):
@@ -105,6 +110,23 @@ def test_refinement_error(kymo_integration_test_data):
 
     # This should be fine though
     refine_tracks_centroid([KymoTrack([0], [25], kymo_integration_test_data, "red")], 0.15)[0]
+
+
+def test_centroid_refinement_multiple_sources(kymogroups_2tracks, kymogroups_close_tracks):
+    tracks1, *_ = kymogroups_2tracks
+    tracks2 = kymogroups_close_tracks
+    assert [id(k) for k in tracks1._kymos] != [id(k) for k in tracks2._kymos]
+
+    tracks3 = tracks1[:1] + tracks2 + tracks1[1:]
+
+    refined_tracks1 = refine_tracks_centroid(tracks1)
+    refined_tracks2 = refine_tracks_centroid(tracks2)
+    refined_tracks3 = refine_tracks_centroid(tracks3)
+
+    reference_refined_tracks = refined_tracks1[:1] + refined_tracks2 + refined_tracks1[1:]
+
+    for track, ref_track in zip(refined_tracks3, reference_refined_tracks):
+        np.testing.assert_allclose(track.position, ref_track.position)
 
 
 @pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
@@ -220,6 +242,108 @@ def test_gaussian_refinement_overlap(kymogroups_close_tracks):
         refined[1].position,
         [3.32775782, 3.42564736, 3.33315701, 3.60090496, 3.26356061],
     )
+
+
+def test_gaussian_refinement_multiple_sources(kymogroups_2tracks, kymogroups_close_tracks):
+    tracks1, *_ = kymogroups_2tracks
+    tracks2 = kymogroups_close_tracks
+    assert [id(k) for k in tracks1._kymos] != [id(k) for k in tracks2._kymos]
+
+    tracks3 = tracks1[:1] + tracks2 + tracks1[1:]
+
+    refinement_kwargs = {
+        "window": 3,
+        "refine_missing_frames": False,
+        "overlap_strategy": "multiple",
+    }
+
+    refined_tracks1 = refine_tracks_gaussian(tracks1, **refinement_kwargs)
+    refined_tracks2 = refine_tracks_gaussian(tracks2, **refinement_kwargs)
+    refined_tracks3 = refine_tracks_gaussian(tracks3, **refinement_kwargs)
+
+    reference_refined_tracks = refined_tracks1[:1] + refined_tracks2 + refined_tracks1[1:]
+
+    for track, ref_track in zip(refined_tracks3, reference_refined_tracks):
+        np.testing.assert_allclose(track.position, ref_track.position)
+
+
+def test_no_model_fit(blank_kymo):
+    with pytest.raises(
+        NotImplementedError, match="No model fit available for this localization method."
+    ):
+        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")._model_fit(1)
+
+
+@pytest.mark.parametrize("method", ["_model_fit", "plot_fit"])
+def test_gaussian_model_fit(method):
+    pixel_size_um = 2.0
+    kymo_data = [0, 1, 2, 1, 2, 1, 0]
+    kymo = _kymo_from_array(np.tile(kymo_data, (4, 1)).T, "r", 1, pixel_size_um=pixel_size_um)
+    gauss_loc = GaussianLocalizationModel(
+        position=np.array([2.0, 2.0]),
+        total_photons=np.array([20, 30]),
+        sigma=np.array([1.0, 1.0]),
+        background=np.array([10, 15]),
+        _overlap_fit=np.array([True, True]),
+    )
+    track = KymoTrack(np.array([1, 3]), gauss_loc, kymo, "red")
+    tested_method = getattr(track, method)
+    ref_coords = np.arange(0, len(kymo_data) * pixel_size_um, 0.1 * pixel_size_um)
+
+    for node_idx in (0, 1):
+        coords, data = track._model_fit(node_idx)
+        tested_method(node_idx)
+        np.testing.assert_allclose(coords, ref_coords)
+        np.testing.assert_allclose(data, gauss_loc.evaluate(coords, node_idx, pixel_size_um))
+
+    for node_idx in (-1, -2):
+        coords, data = track._model_fit(node_idx)
+        tested_method(node_idx)
+        np.testing.assert_allclose(coords, ref_coords)
+        np.testing.assert_allclose(data, gauss_loc.evaluate(coords, 2 + node_idx, pixel_size_um))
+
+    for node_idx in (-3, 2):
+        with pytest.raises(
+            IndexError, match="Node index is out of range of the KymoTrack. Kymotrack has length 2"
+        ):
+            track._model_fit(node_idx)
+            tested_method(node_idx)
+
+
+def test_gaussian_refinement_plotting():
+    kymo = _kymo_from_array(np.tile([0, 1, 2, 1, 2, 1, 0], (4, 1)).T, "r", 1, pixel_size_um=1)
+    group = KymoTrackGroup(
+        [
+            KymoTrack(np.array([0, 2]), np.array([2, 2]), kymo, "red"),
+            KymoTrack(np.array([0, 1, 2]), np.array([4, 4, 4]), kymo, "red")
+        ]
+    )
+
+    # Only Gaussian refinement has a model visualization available
+    for to_be_plotted in (group, group[0]):
+        with pytest.raises(
+            NotImplementedError, match="No model fit available for this localization method."
+        ):
+            to_be_plotted.plot_fit(0)
+
+    refined = refine_tracks_gaussian(
+        group, window=2, refine_missing_frames=False, overlap_strategy="multiple"
+    )
+
+    for kymo_frame_idx in range(-4, 4):
+        refined.plot_fit(frame_idx=kymo_frame_idx)
+
+    for kymo_frame_idx in (-5, 5):
+        with pytest.raises(
+            IndexError, match="Frame index is out of range of the kymograph. Kymograph length is 4"
+        ):
+            refined.plot_fit(frame_idx=kymo_frame_idx)
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("No kymo associated with this empty group (no tracks available)"),
+    ):
+        KymoTrackGroup([]).plot_fit(0)
 
 
 def test_filter_tracks(blank_kymo):

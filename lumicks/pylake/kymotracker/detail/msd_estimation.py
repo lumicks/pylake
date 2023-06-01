@@ -584,17 +584,21 @@ def estimate_diffusion_constant_simple(
         if method == "gls":
             raise RuntimeError(
                 "Your tracks cannot have missing frames when using the GLS estimator. Refine your "
-                "tracks using `lk.refine_tracks_centroid()`. Please refer to "
-                "`help(lk.refine_tracks_centroid)` for more information."
+                "tracks using `lk.refine_tracks_centroid()` or `lk.refine_tracks_gaussian()`. "
+                "Please refer to `help(lk.refine_tracks_centroid)` or "
+                "`help(lk.refine_tracks_gaussian())` for more information."
             )
         elif method == "ols":
             warnings.warn(
                 RuntimeWarning(
                     "Your tracks have missing frames. Note that this results in a poor estimate of "
                     "the standard error of the estimate. To avoid this warning, you can refine "
-                    "your tracks using `lk.refine_tracks_centroid()`. Please refer to "
-                    "`help(lk.refine_tracks_centroid)` for more information."
-                )
+                    "your tracks using `lk.refine_tracks_centroid()` or "
+                    "`lk.refine_tracks_gaussian()`. Please refer to "
+                    "`help(lk.refine_tracks_centroid)` or `help(lk.refine_tracks_gaussian)` for "
+                    "more information."
+                ),
+                stacklevel=2,
             )
 
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
@@ -1144,9 +1148,10 @@ def ensemble_ols(kymotracks, max_lag):
         ensemble_msd.lags[:optimal_lags], ensemble_msd.msd[:optimal_lags], track_length
     )
 
-    time_step = kymotracks._kymo.line_time_seconds
+    time_step = kymotracks._kymos[0].line_time_seconds
     to_time = 1.0 / (2.0 * time_step)
-    src_calibration = kymotracks._kymo._calibration
+
+    src_calibration = kymotracks._kymos[0]._calibration
     return DiffusionEstimate(
         value=slope * to_time,
         std_err=np.sqrt(var_slope / np.mean(ensemble_msd.effective_sample_size)) * to_time,

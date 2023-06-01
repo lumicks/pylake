@@ -11,6 +11,7 @@ from .detail.peakfinding import (
 from .detail.localization_models import GaussianLocalizationModel
 import numpy as np
 import warnings
+from itertools import chain
 
 __all__ = [
     "track_greedy",
@@ -219,7 +220,10 @@ def track_greedy(
     )
 
     tracks = [
-        KymoTrack(track.time_idx, track.coordinate_idx, kymograph, channel) for track in tracks
+        KymoTrack._from_centroid_estimate(
+            track.time_idx, track.coordinate_idx, kymograph, channel, half_width_pixels
+        )
+        for track in tracks
     ]
 
     return KymoTrackGroup(tracks)
@@ -367,6 +371,24 @@ def filter_tracks(tracks, minimum_length):
     return KymoTrackGroup([track for track in tracks if len(track) >= minimum_length])
 
 
+def _apply_to_group(tracks, func, *args, **kwargs):
+    """Break a group of tracks into sets with a single source kymograph, apply `func`,
+    and rebuild group in original order.
+
+    Parameters
+    ----------
+    tracks : KymoTrackGroup
+        Tracks to apply function to
+    func : callable
+        Function to be applied to tracks
+    *args, **kwargs
+        Additional arguments supplied to `func`
+    """
+    groups, indices = tracks._tracks_by_kymo()
+    groups = [func(group, *args, **kwargs) for group in groups]
+    return KymoTrackGroup([track for _, track in sorted(zip(chain(*indices), chain(*groups)))])
+
+
 def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
     """Refine the tracks based on the brightness-weighted centroid.
 
@@ -411,18 +433,26 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
            shape. Optics express, 16(18), 14064-14075.
     """
     tracks = KymoTrackGroup(tracks) if isinstance(tracks, (list, tuple)) else tracks
-    tracks._validate_single_source("Centroid refinement")
+
+    if len(tracks._kymos) > 1:
+        return _apply_to_group(
+            tracks, refine_tracks_centroid, track_width=track_width, bias_correction=bias_correction
+        )
 
     if not tracks:
         return KymoTrackGroup([])
 
-    minimum_width = 3 * tracks._kymo.pixelsize[0]
+    # the existence of tracks implies there is at least one source kymo
+    # _apply_to_group ensures there is only a single source kymo at this point
+    kymo = tracks._kymos[0]
+
+    minimum_width = 3 * kymo.pixelsize[0]
     if track_width is None:
-        track_width = max(_default_track_widths[tracks._kymo._calibration.unit], minimum_width)
+        track_width = max(_default_track_widths[kymo._calibration.unit], minimum_width)
 
-    _validate_track_width(track_width, minimum_width, tracks._kymo._calibration.unit)
+    _validate_track_width(track_width, minimum_width, kymo._calibration.unit)
 
-    half_width_pixels = _to_half_kernel_size(track_width, tracks._kymo.pixelsize[0])
+    half_width_pixels = _to_half_kernel_size(track_width, kymo.pixelsize[0])
 
     interpolated_tracks = [track.interpolate() for track in tracks]
     time_idx = np.round(
@@ -443,8 +473,15 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
     track_ids = np.hstack(
         [np.full(len(track.time_idx), j) for j, track in enumerate(interpolated_tracks)]
     )
+
     new_tracks = [
-        track._with_coordinates(time_idx[track_ids == j], coordinate_idx[track_ids == j])
+        KymoTrack._from_centroid_estimate(
+            time_idx[track_ids == j],
+            coordinate_idx[track_ids == j],
+            interpolated_tracks[j]._kymo,
+            interpolated_tracks[j]._channel,
+            half_width_pixels,
+        )
         for j, track in enumerate(interpolated_tracks)
     ]
     return KymoTrackGroup(new_tracks)
@@ -486,7 +523,16 @@ def refine_tracks_gaussian(
     if overlap_strategy not in ("ignore", "skip", "multiple"):
         raise ValueError("Invalid overlap strategy selected.")
 
-    tracks._validate_single_source("Gaussian refinement")
+    if len(tracks._kymos) > 1:
+        return _apply_to_group(
+            tracks,
+            refine_tracks_gaussian,
+            window,
+            refine_missing_frames,
+            overlap_strategy,
+            initial_sigma=initial_sigma,
+            fixed_background=fixed_background,
+        )
 
     if not tracks:
         return KymoTrackGroup([])
@@ -494,7 +540,9 @@ def refine_tracks_gaussian(
     if refine_missing_frames:
         tracks = KymoTrackGroup([track.interpolate() for track in tracks])
 
-    kymo = tracks._kymo
+    # the existence of tracks implies there is at least one source kymo
+    # _apply_to_group ensures there is only a single source kymo at this point
+    kymo = tracks._kymos[0]
     channel = tracks._channel
     image_data = kymo.get_image(channel)
 

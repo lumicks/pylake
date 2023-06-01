@@ -181,3 +181,31 @@ def test_invalid_params_models(model, test_params):
             with pytest.raises(ValueError, match="must be bigger than 0"):
                 params[test_param] = value
                 model(**params)
+
+
+@pytest.mark.parametrize(
+    "convenience_model, ref_model, ref_params",
+    [
+        [
+            dsdna_ewlc_odijk_distance,
+            ewlc_odijk_distance,
+            {"m/Lc": 100 * 0.34, "m/Lp": 50.0, "m/St": 1200.0, "kT": 4.11},
+        ],
+        [
+            ssdna_efjc_distance,
+            efjc_distance,
+            {"m/Lc": 100 * 0.56, "m/Lp": 0.7, "m/St": 750.0, "kT": 4.11},
+        ],
+    ],
+)
+def test_convenience_models(convenience_model, ref_model, ref_params):
+    x = np.arange(1.0, 5.0)
+    model = convenience_model("m", 100)
+    params = dict(model.defaults)
+
+    for param in ref_params.keys():
+        np.testing.assert_allclose(params[param].value, ref_params[param])
+
+    # The convenience part is in the parameters, with the old parameters they should produce the
+    # exact same as what they are supposed to be based on
+    np.testing.assert_allclose(model(x, params), ref_model("m")(x, params))
