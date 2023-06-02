@@ -1334,11 +1334,13 @@ class KymoTrackGroup:
         return groups, indices
 
     @staticmethod
-    def _extract_dwelltime_data_from_groups(groups, exclude_ambiguous_dwells):
+    def _extract_dwelltime_data_from_groups(
+        groups, exclude_ambiguous_dwells, extract_max_observation_time
+    ):
         """Compute data needed for dwelltime analysis from a dictionary of KymoTrackGroups.
 
-        This data consists of dwelltimes and observation limits per track. Note that dwelltimes of zero
-        are automatically dropped.
+        This data consists of dwelltimes and observation limits per track. Note that dwelltimes of
+        zero are automatically dropped.
 
         Parameters
         ----------
@@ -1350,6 +1352,12 @@ class KymoTrackGroup:
             tracks which start in the first frame or end in the last frame of the kymograph are not
             used in the analysis, since the exact start/stop times of the binding event are not
             definitively known.
+        extract_max_observation_time : bool
+            If set to `True`, this function will use maximum observation times that take into
+            account that a binding event did not start at the start of the kymograph. As such, the
+            maximum binding time possible is given by the time from the start of the event to the
+            end of the kymograph. When this flag is set to `False`, we simply use the kymograph
+            duration.
 
         Returns
         -------
@@ -1376,12 +1384,13 @@ class KymoTrackGroup:
                 raise ValueError("This group has more than one Kymo associated with it.")
 
             tracks = (
-                filter(KymoTrack._check_ends_are_defined, group)
+                [t for t in filter(KymoTrack._check_ends_are_defined, group)]
                 if exclude_ambiguous_dwells
                 else group
             )
             dwelltimes_sec = np.array([track.seconds[-1] - track.seconds[0] for track in tracks])
-            nonzero_dwelltimes_sec = dwelltimes_sec[dwelltimes_sec > 0]
+            nonzero_mask = dwelltimes_sec > 0
+            nonzero_dwelltimes_sec = dwelltimes_sec[nonzero_mask]
             removed_zeros = removed_zeros or len(nonzero_dwelltimes_sec) != len(dwelltimes_sec)
 
             # Gracefully handle empty groups
@@ -1389,7 +1398,13 @@ class KymoTrackGroup:
                 return np.empty((3, 0))
 
             min_observation_time = np.min(nonzero_dwelltimes_sec)
-            max_observation_time = group[0]._image.shape[1] * group[0]._line_time_seconds
+            kymo_duration = group[0]._image.shape[1] * group[0]._line_time_seconds
+            if extract_max_observation_time:
+                max_observation_time = np.array(
+                    [kymo_duration - track.seconds[0] for track in tracks]
+                )[nonzero_mask]
+            else:
+                max_observation_time = kymo_duration
 
             return np.vstack(
                 list(
@@ -1404,7 +1419,13 @@ class KymoTrackGroup:
         return dwelltimes, min_obs, max_obs, removed_zeros
 
     def fit_binding_times(
-        self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
+        self,
+        n_components,
+        *,
+        correct_for_max_observation_time=None,
+        exclude_ambiguous_dwells=True,
+        tol=None,
+        max_iter=None,
     ):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
@@ -1416,6 +1437,12 @@ class KymoTrackGroup:
             Determines whether to exclude dwelltimes which are not exactly determined. If `True`, tracks which
             start in the first frame or end in the last frame of the kymograph are not used in the analysis,
             since the exact start/stop times of the binding event are not definitively known.
+        correct_for_max_observation_time : bool, optional
+            If set to `True`, this function will use maximum observation times that take into
+            account that a binding event did not start at the start of the kymograph. As such, the
+            maximum binding time possible is given by the time from the start of the event to the
+            end of the kymograph. When this flag is set to `False`, we simply use the kymograph
+            duration.
         tol : float
             The tolerance for optimization convergence. This parameter is forwarded as the `ftol` argument
             to `scipy.minimize(method="L-BFGS-B")`.
@@ -1431,9 +1458,30 @@ class KymoTrackGroup:
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
+        if correct_for_max_observation_time is None:
+            warnings.warn(
+                RuntimeWarning(
+                    "Prior to version 1.2.0 the method `fit_binding_times` assumed that "
+                    "the longest possible observation time for a binding event is the kymograph "
+                    "duration. This does not take into account the fact that the binding event "
+                    "does not start at the beginning of the kymograph. Consequently, for binding "
+                    "sites with long dwell times, the estimated parameters would be biased "
+                    "downwards. To take into account the correct maximum observation times and "
+                    "silence this warning, specify `correct_for_max_observation_time=True`. The "
+                    "old behavior is maintained as the default until the next major release "
+                    "to ensure backward compatibility. To silence this warning, but use the "
+                    "incorrect maximum observation time use "
+                    "`correct_for_max_observation_time=False`."
+                ),
+                stacklevel=2,
+            )
+            correct_for_max_observation_time = False
+
         groups, _ = self._tracks_by_kymo()
         dwelltimes, min_obs, max_obs, removed_zeros = self._extract_dwelltime_data_from_groups(
-            groups, exclude_ambiguous_dwells
+            groups,
+            exclude_ambiguous_dwells,
+            extract_max_observation_time=correct_for_max_observation_time,
         )
 
         if removed_zeros:

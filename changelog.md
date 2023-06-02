@@ -5,6 +5,7 @@
 #### New features
 
 * Added `KymoTrack.plot_fit()` and `KymoTrackGroup.plot_fit()` to show the fitted model obtained from gaussian refinement.
+* Add option to take maximum possible binding time for a particular binding event into account by specifying `correct_for_max_observation_time=True` when using `KymoTrackGroup.fit_binding_times()`. When set to `True`, it is taken into account that a binding time that initiates at a particular point in the kymograph, could at most have a length corresponding to the remaining time until the kymograph ends. Note that failing to take this into account can lead to a downward bias when estimating binding times. The magnitude of this bias depends on the ratio of the rate being determined and the kymograph duration. 
 
 ## v1.1.0 | 2023-05-17
 
