@@ -38,19 +38,19 @@ def test_transform_inversion():
     np.testing.assert_allclose(transform.invert().matrix, np.linalg.inv(m))
 
 
-def test_transform_rotation():
-    theta_deg = 45
+@pytest.mark.parametrize("theta_deg, center, ref_matrix", [
+    # fmt:off
+    (45, (5, 5), [[0.70710678, 0.70710678, -2.07106781], [-0.70710678, 0.70710678, 5.0], [0, 0, 1]]),
+    (45, (5, 6), [[0.70710678, 0.70710678, -2.77817459], [-0.70710678, 0.70710678, 5.29289322], [0, 0, 1]]),
+    (30, (5, 6), [[0.8660254, 0.5, -2.33012702], [-0.5, 0.8660254, 3.30384758], [0, 0, 1]]),
+    # fmt:on
+])
+def test_transform_rotation(theta_deg, center, ref_matrix):
     theta = np.radians(theta_deg)
-    center = (5, 5)
     rotation = widefield.TransformMatrix.rotation(theta_deg, center)
 
     # test matrix is calculated appropriately from angle, center parameters
-    np.testing.assert_allclose(
-        rotation.matrix,
-        np.array(
-            [[0.70710678, 0.70710678, -2.07106781], [-0.70710678, 0.70710678, 5.0], [0, 0, 1]]
-        ),
-    )
+    np.testing.assert_allclose(rotation.matrix, np.array(ref_matrix), rtol=1e-7)
 
     def rotate_point(x, y):
         new_x = (x - center[0]) * np.cos(theta) - (y - center[1]) * np.sin(theta) + center[0]
@@ -59,15 +59,15 @@ def test_transform_rotation():
 
     # test coordinate rotation
     # rotate points with trig functions, undo the rotation with TransformMatrix
-    original_points = [np.array((0, 5)), np.array((5, 5)), np.array((10, 5))]
+    original_points = [np.array((0, 5)), center, np.array((10, 5))]
     rot_points = [rotate_point(*p) for p in original_points]
 
     coordinates = rotation.warp_coordinates(rot_points)
-    np.testing.assert_allclose(coordinates[1], (5, 5))  # rotation center
+    np.testing.assert_allclose(coordinates[1], center)  # rotation center
     np.testing.assert_allclose(coordinates, original_points, atol=1e-8)
 
     coordinates = rotation.invert().warp_coordinates(original_points)
-    np.testing.assert_allclose(coordinates[1], (5, 5))  # rotation center
+    np.testing.assert_allclose(coordinates[1], center)  # rotation center
     np.testing.assert_allclose(coordinates, rot_points, atol=1e-8)
 
 
