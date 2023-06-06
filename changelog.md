@@ -6,6 +6,10 @@
 
 * Added `KymoTrack.plot_fit()` and `KymoTrackGroup.plot_fit()` to show the fitted model obtained from gaussian refinement.
 
+#### Other changes
+
+* Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose. 
+
 ## v1.1.0 | 2023-05-17
 
 #### New features

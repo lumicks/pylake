@@ -57,7 +57,6 @@ setup(
         "matplotlib>=3.5",
         "tifffile>=2020.9.30",
         "tabulate>=0.8.8, <0.9",
-        "opencv-python-headless>=3.0",
         "cachetools>=3.1",
         "deprecated>=1.2.8",
         "scikit-learn>=0.18.0",
