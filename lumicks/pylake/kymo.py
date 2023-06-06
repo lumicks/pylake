@@ -3,7 +3,6 @@ from copy import copy
 from dataclasses import dataclass
 
 import numpy as np
-from skimage.measure import block_reduce
 
 from . import colormaps
 from .adjustments import no_adjustment
@@ -604,6 +603,8 @@ class Kymo(ConfocalImage):
         result = copy(self)
 
         def image_factory(_, channel):
+            from skimage.measure import block_reduce
+
             data = self._image(channel)
 
             return block_reduce(data, (position_factor, time_factor), func=reduce)[

@@ -8,7 +8,8 @@
 
 #### Other changes
 
-* Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose. 
+* Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
+* Don't import packages we rarely use immediately. Rather specifically import functionality from `scikit-image` and `scikit-learn` when we actually use it.
 
 ## v1.1.0 | 2023-05-17
 

@@ -1,6 +1,5 @@
 import itertools
 from copy import copy
-from sklearn.neighbors import KernelDensity
 from ..detail.utilities import replace_key_aliases
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel, CentroidLocalizationModel
@@ -1529,6 +1528,8 @@ class KymoTrackGroup:
         roi: list or None
             ROI coordinates as `[[min_time, min_position], [max_time, max_position]]`.
         """
+        from sklearn.neighbors import KernelDensity
+
         self._validate_single_source("Binding profile")
         _kymo = self._kymos[0]
 
