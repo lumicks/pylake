@@ -1,7 +1,6 @@
 import numpy as np
 import re
 import json
-import cv2
 import tifffile
 import warnings
 import enum
@@ -537,7 +536,9 @@ class TransformMatrix:
         center: np.ndarray
             (x, y) point, center of rotation
         """
-        return cls(cv2.getRotationMatrix2D(tuple(center), theta, scale=1.0))
+        from cv2 import getRotationMatrix2D
+
+        return cls(getRotationMatrix2D(tuple(center), theta, scale=1.0))
 
     @classmethod
     def translation(cls, x, y):
@@ -562,6 +563,7 @@ class TransformMatrix:
         data: np.ndarray
             image data
         """
+        import cv2
 
         if np.all(np.equal(self.matrix, np.eye(3))):
             return data

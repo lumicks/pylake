@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.mixture import GaussianMixture
 from scipy import stats
 from .dwelltime import _dwellcounts_from_statepath
 
@@ -53,6 +52,8 @@ class GaussianMixtureModel:
     """
 
     def __init__(self, data, n_states, init_method, n_init, tol, max_iter):
+        from sklearn.mixture import GaussianMixture
+
         self.n_states = n_states
         self._model = GaussianMixture(
             n_components=n_states,
