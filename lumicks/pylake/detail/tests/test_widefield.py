@@ -71,10 +71,13 @@ def test_transform_rotation(theta_deg, center, ref_matrix):
     np.testing.assert_allclose(coordinates, rot_points, atol=1e-8)
 
 
-def test_rotate_image():
-    rotation = widefield.TransformMatrix.rotation(25, (25, 50))
-    rotation_wrong_angle = widefield.TransformMatrix.rotation(25.01, (25, 50))
-    rotation_wrong_origin = widefield.TransformMatrix.rotation(25, (25.55, 50))
+@pytest.mark.parametrize("theta, center", [(25, (25, 50)), (45, (25, 30))])
+def test_rotate_image(theta, center):
+    rotation = widefield.TransformMatrix.rotation(theta, np.array(center))
+    rotation_wrong_angle = widefield.TransformMatrix.rotation(theta + 0.01, np.array(center))
+    rotation_wrong_origin = widefield.TransformMatrix.rotation(
+        theta, np.array((center[0] + 0.05, 50))
+    )
 
     original_spots = [(25, 50), (75, 50)]
     original_image = make_image_gaussians(original_spots)

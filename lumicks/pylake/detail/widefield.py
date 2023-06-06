@@ -1,7 +1,6 @@
 import numpy as np
 import re
 import json
-import cv2
 import tifffile
 import warnings
 import enum
@@ -533,11 +532,17 @@ class TransformMatrix:
         Parameters
         ----------
         theta: float
-            angle of rotation
+            angle of rotation in degrees (counter-clockwise)
         center: np.ndarray
             (x, y) point, center of rotation
         """
-        return cls(cv2.getRotationMatrix2D(tuple(center), theta, scale=1.0))
+        from skimage.transform import EuclideanTransform
+
+        tf_shift = EuclideanTransform(translation=tuple(-c for c in center))
+        tf_rotate = EuclideanTransform(rotation=-np.deg2rad(theta))
+        tf_shift_back = EuclideanTransform(translation=center)
+        rotation = tf_shift + tf_rotate + tf_shift_back
+        return cls(rotation.params[:-1, :])
 
     @classmethod
     def translation(cls, x, y):
@@ -562,24 +567,20 @@ class TransformMatrix:
         data: np.ndarray
             image data
         """
+        from skimage import transform
 
         if np.all(np.equal(self.matrix, np.eye(3))):
             return data
 
-        data = np.atleast_3d(data)
-        rows, cols, channels = data.shape
-        image = [
-            cv2.warpAffine(
-                data[:, :, channel],
-                self.matrix[:2],
-                (cols, rows),
-                flags=cv2.INTER_LINEAR,
-                borderMode=cv2.BORDER_CONSTANT,
-                borderValue=0,
-            )
-            for channel in range(channels)
-        ]
-        return np.stack(image, axis=2).squeeze()
+        return transform.warp(
+            data,
+            self.invert().matrix,
+            order=1,  # Linear interpolation
+            mode="constant",
+            cval=0.0,  # borderValue
+            clip=True,
+            preserve_range=True,
+        )
 
     def warp_coordinates(self, coordinates):
         """Apply affine transformation to coordinate points.
