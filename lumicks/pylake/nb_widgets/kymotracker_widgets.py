@@ -843,7 +843,7 @@ def _get_default_parameters(kymo, channel):
             *(2, 10),
             True,
             r"Minimum length defines the minimum number of points a tracked line must contain for "
-            r"it to be considered valid. Reducing this parameter can be effective in reducing "
+            r"it to be considered valid. Increasing this parameter can be effective in reducing "
             r"tracking noise. Note that this length refers to the number of detected points, not "
             r"length in time!",
             abridged_name="Min length",
