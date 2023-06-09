@@ -276,3 +276,97 @@ def generate_links(cost_function, frames, window):
         cost_matrices.append(cost_matrix)
 
     return link_matrices, cost_matrices
+
+
+def grow_track(frames, link_matrices, seen_particles, current_frame, current_particle):
+    """Grow a track from an initial frame
+
+    Parameters
+    ----------
+    frames : list of lumicks.pylake.kymotracker.detail.peakfinding.KymoPeaks.Frame
+        Frames to build tracks out of
+    link_matrices : list
+        List of link matrices. A link matrix contains optimal associations between particles
+        in a frame and the frames following that frame. It contains a row per frame while
+        the colummns are given by the number of particles. Note that the zeroth index is
+        reserved for the "dummy" particle here. A particle which reflects a missing particle.
+    seen_particles : list
+        A list containing a boolean for each particle in every frame. When a particle has
+        been processed, this boolean is set to True.
+    current_frame : int
+        Frame index to start growing from
+    current_particle : int
+        Particle index to start growing from.
+    """
+    track = []
+
+    # If what we'd connect to has already been seen, terminate.
+    if seen_particles[current_frame][current_particle]:
+        return track
+
+    while current_particle >= 0 and not seen_particles[current_frame][current_particle]:
+        # Mark particle as seen to not include it twice
+        seen_particles[current_frame][current_particle] = True
+        track.append((current_frame, frames[current_frame].coordinates[current_particle]))
+
+        # Grab the potential links per frame
+        try:
+            # Note the zeroth particle is the dummy particle here
+            links = link_matrices[current_frame][:, current_particle + 1]
+        except IndexError:
+            # If we go beyond the end of the link matrices, end the track
+            return track
+
+        # Proceed to the next detection
+        which_link = np.argmax(links > 0)
+
+        # We advance to the next linked frame. Note that we have to add one, since
+        # all the indices in the link matrix reflect future frames (e.g. the zeroth frame
+        # in the link matrix is actually the frame after this one).
+        current_frame += which_link + 1
+
+        # The zeroth particle refers to the dummy particle, hence - 1 to get a real particle index
+        current_particle = links[which_link] - 1
+
+    return track
+
+
+def track_greedy_optimized_association_matrix(cost_function, peaks, window):
+    """Track points in a kymograph
+
+    Parameters
+    ----------
+    cost_function : callable
+        Cost function that takes two frames and their distance and calculates a cost between them
+        for each particle.
+    peaks : lumicks.pylake.kymotracker.detail.peakfinding.KymoPeaks
+        Particles to track into tracks.
+    window : int
+        Maximum gap in a track in frames.
+    """
+    link_matrices_per_frame, cost_matrices_per_frame = generate_links(
+        cost_function, peaks.frames, window
+    )
+
+    # Keep track of which points we've already seen
+    seen_particles = [np.full(frame.coordinates.shape, False) for frame in peaks.frames]
+
+    # Link up the detections
+    current_frame = 0
+    tracks = []
+    for frame_idx, (link_matrix, seen) in enumerate(zip(link_matrices_per_frame, seen_particles)):
+        # Link matrices provide the particle linkages. Note that particle 0 is a dummy
+        # particle and should not be tracked into tracks. Let's see which particles have
+        # the potential to be linked to anything, we start building tracks only from those.
+        non_dummy_links = link_matrix[:, 1:]
+        linkable_points = np.sum(non_dummy_links > 0, axis=0) > 0
+        new_tracks = np.where(np.logical_and(np.logical_not(seen), linkable_points))[0]
+
+        for track_idx in new_tracks:
+            tracks.append(
+                grow_track(
+                    peaks.frames, link_matrices_per_frame, seen_particles, frame_idx, track_idx
+                )
+            )
+
+    return tracks, peaks
