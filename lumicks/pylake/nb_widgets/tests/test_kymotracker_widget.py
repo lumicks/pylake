@@ -385,9 +385,9 @@ def test_keyword_args(kymograph):
     "gain,line_time,pixel_size,ref_values",
     (
         # fmt:off
-        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "velocity": (0, -5 * 5/2, 5 * 5/2)}),
-        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2), "track_width": (4 * 5, 3 * 5, 15 * 5), "sigma": (2 * 5, 1 * 5, 5 * 5), "velocity": (0, -5 * 5/2, 5 * 5/2)}),
-        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99), "track_width": (4 * 4, 3 * 4, 15 * 4), "sigma": (2 * 4, 1 * 4, 5 * 4), "velocity": (0, -5 * 4/4, 5 * 4/4)}),
+        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "$\\mu$m"), "sigma": (2 * 5, 1 * 5, 5 * 5, "$\\mu$m"), "velocity": (0, -5 * 5/2, 5 * 5/2, "$\\mu$m/s")}),
+        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "$\\mu$m"), "sigma": (2 * 5, 1 * 5, 5 * 5, "$\\mu$m"), "velocity": (0, -5 * 5/2, 5 * 5/2, "$\\mu$m/s")}),
+        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 4, 3 * 4, 15 * 4, "$\\mu$m"), "sigma": (2 * 4, 1 * 4, 5 * 4, "$\\mu$m"), "velocity": (0, -5 * 4/4, 5 * 4/4, "$\\mu$m/s")}),
         # fmt:on
     ),
 )
@@ -403,10 +403,11 @@ def test_default_params_img_dependent(gain, line_time, pixel_size, ref_values):
 
     default_params = _get_default_parameters(kymo, "red")
     for key, param in ref_values.items():
-        value, mini, maxi = param
+        value, mini, maxi, display_unit = param
         np.testing.assert_allclose(default_params[key].value, value, err_msg=f"{key}")
         np.testing.assert_allclose(default_params[key].lower_bound, mini, err_msg=f"{key}")
         np.testing.assert_allclose(default_params[key].upper_bound, maxi, err_msg=f"{key}")
+        assert default_params[key].display_unit == display_unit, f"{key}"
 
 
 def test_split(kymograph, mockevent):
