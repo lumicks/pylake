@@ -1,3 +1,5 @@
+import enum
+
 import numpy as np
 
 
@@ -471,5 +473,149 @@ def link_association_matrices_advancing_front(cost_function, peaks, window, debu
             except IndexError:
                 print(link_matrix)
                 raise IndexError(":(")
+
+    return tracks, peaks
+
+
+class ParticleState(enum.IntEnum):
+    unassigned = 0  # Particle has not yet been assigned
+    track_start = 1  # Start of a track. It could be connected into but not from.
+    track_body = 2  # This particle is at the center of a track
+    track_end = 3  # End of a track. It could be connected from but not into.
+
+
+def vanlierini(cost_function, peaks, window, debug=False):
+    link_matrices_per_frame, cost_matrices_per_frame = generate_links(
+        cost_function, peaks.frames, window
+    )
+
+    # Keep an association matrix between which point is assigned to which track
+    track_assignments = [np.full(frame.coordinates.shape, -1, dtype=int) for frame in peaks.frames]
+
+    # Keep track of which points we've already seen
+    tracks = []
+    to_stitch = []
+    point_status = [np.zeros(frame.coordinates.shape, dtype=int) for frame in peaks.frames]
+
+    for current_window in np.arange(2, window + 1):
+        # Initiate lines on the first frame.
+        for frame_idx, (link_matrix, cost_matrix) in enumerate(
+            zip(link_matrices_per_frame, cost_matrices_per_frame)
+        ):
+            # Link matrices provide the particle correspondences. Note that particle 0 is a dummy particle and
+            # should not be tracked into tracks.
+            non_dummies = link_matrix[: current_window - 1, 1:]
+            cost = cost_matrix[: current_window - 1, 1:]
+
+            # Collect particle status for the points under consideration.
+            particle_state = np.array(
+                [
+                    [status[p - 1] if p > 0 else ParticleState.track_body for p in particle_indices]
+                    for particle_indices, status in zip(
+                        non_dummies, point_status[frame_idx + 1 : frame_idx + current_window]
+                    )
+                ],
+                dtype=int,
+            )
+
+            # Find which ones we should be connecting
+            first_frame = np.argmax(
+                non_dummies > 0, axis=0
+            )  # Find the frame in which a linkage for this particle first appears
+            valid_target_for_connecting_to = np.logical_or(
+                particle_state == ParticleState.unassigned,
+                particle_state == ParticleState.track_start,
+            )
+
+            # Find the actual particle in that frame we are linking to.
+            # By multiplying with the valid target mask, we convert all connections that must not be allowed
+            # into dummy particles.
+            particle_idx = (non_dummies * valid_target_for_connecting_to)[
+                first_frame, np.arange(non_dummies.shape[1])
+            ]
+            cost_values = cost[
+                first_frame, np.arange(non_dummies.shape[1])
+            ]  # Find the actual particle in that frame we are linking to
+
+            # Only connect from specific points.
+            valid_target_for_connecting_from = np.logical_or(
+                point_status[frame_idx] == ParticleState.unassigned,
+                point_status[frame_idx] == ParticleState.track_end,
+            )
+
+            # Drop dummy particles and invalid targets for starting from
+            valid_connections = np.logical_and(particle_idx > 0, valid_target_for_connecting_from)
+
+            from_particle_idx = np.arange(particle_idx.size)[valid_connections]
+            first_frame = first_frame[valid_connections]
+            cost_values = cost_values[valid_connections]
+            particle_idx = particle_idx[valid_connections]
+
+            # We give particles which have a valid correspondence early priority when it comes to linking.
+            sorted_idx = np.argsort(cost_values)
+            candidates = np.vstack(
+                (
+                    from_particle_idx[sorted_idx],  # source particle in current frame
+                    frame_idx + first_frame[sorted_idx] + 1,  # first frame it is detected again
+                    particle_idx[sorted_idx] - 1
+                    # particle index when it is detected in a future frame
+                )
+            )
+
+            for from_particle, to_frame_idx, to_particle in candidates.T:
+                # Check if the from particle is already part of a track.
+                # If so, we add to that track, otherwise, start a new one.
+                track_idx = track_assignments[frame_idx][from_particle]
+                if track_idx >= 0:
+                    track = tracks[track_idx]
+
+                    # It was a track end, so it now becomes a track body.
+                    point_status[frame_idx][from_particle] = ParticleState.track_body
+                else:
+                    track = [(frame_idx, peaks.frames[frame_idx].coordinates[from_particle])]
+                    track_idx = len(tracks)
+                    track_assignments[frame_idx][from_particle] = track_idx
+                    point_status[frame_idx][from_particle] = ParticleState.track_start
+                    tracks.append(track)
+
+                # Link up!
+                if debug:
+                    print(
+                        f"At frame {frame_idx} adding link to track {track_idx}: "
+                        f"({frame_idx}, {from_particle}, {peaks.frames[frame_idx].coordinates[from_particle]}) "
+                        f"-> ({to_frame_idx}, {to_particle}, {peaks.frames[to_frame_idx].coordinates[to_particle]})"
+                    )
+
+                try:
+                    if point_status[to_frame_idx][to_particle] == ParticleState.track_start:
+                        # Apparently we stitched together an existing track. Don't let it be retagged.
+                        point_status[to_frame_idx][to_particle] = ParticleState.track_body
+                        to_stitch.append((track_idx, track_assignments[to_frame_idx][to_particle]))
+                    else:
+                        # Just a normal track extension
+                        point_status[to_frame_idx][to_particle] = ParticleState.track_end
+                        track_assignments[to_frame_idx][to_particle] = track_idx
+                        track.append(
+                            (to_frame_idx, peaks.frames[to_frame_idx].coordinates[to_particle])
+                        )
+
+                except IndexError:
+                    print(link_matrix)
+                    raise IndexError(":(")
+
+    # Stitch from back to front
+    to_stitch = np.array(to_stitch)
+
+    change = True
+    while change:
+        change = False
+        for to_append, from_append in to_stitch:
+            if tracks[from_append]:
+                change = True
+
+            tracks[to_append] += tracks[from_append]
+            tracks[from_append] = []
+
+    tracks = [t for t in tracks if t]
 
     return tracks, peaks
