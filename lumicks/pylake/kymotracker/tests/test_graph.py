@@ -1,12 +1,13 @@
-from lumicks.pylake.kymotracker.detail.graph import Vertex
+import numpy as np
+from lumicks.pylake.kymotracker.detail.graph import Vertex, Digraph
 
 
 def test_vertex():
-    a = Vertex("a", 0, 1.0)
-    b = Vertex("b", 1, 1.0)
-    c = Vertex("c", 2, 1.0)
-    d = Vertex("d", 3, 1.0)
-    e = Vertex("e", 3, 2.0)
+    a = Vertex(0, 1.0)
+    b = Vertex(1, 1.0)
+    c = Vertex(2, 1.0)
+    d = Vertex(3, 1.0)
+    e = Vertex(3, 2.0)
 
     def validate_connections(vertices, links):
         for vertex, (parent, child) in zip(vertices, links):
@@ -72,3 +73,66 @@ def test_vertex():
         (a, b, c, d, e), [(None, None), (None, None), (None, None), (None, None), (None, None)]
     )
     validate_tracks((a, b, c, d, e), ([a], [b], [c], [d], [e]))
+
+
+def test_digraph():
+    d = Digraph()
+    d.add_frame(0, [1.0])  # a
+    d.add_frame(1, [1.0])  # b
+    d.add_frame(2, [1.0])  # c
+    d.add_frame(3, [1.0, 2.0])  # d, e
+
+    assert len(d) == 4
+
+    frame = d[-1]
+    assert len(frame) == 2
+    assert frame[0].frame == 3
+    assert frame[0].position == 1.0
+    assert frame[1].position == 2.0
+
+    def get_track_coordinates(tracks):
+        return [np.vstack([v.coordinate for v in track]) for track in tracks]
+
+    track_coords = get_track_coordinates(d.get_tracks())
+    assert len(track_coords) == 5
+    np.testing.assert_allclose(track_coords[0], [[0, 1.0]])
+    np.testing.assert_allclose(track_coords[1], [[1, 1.0]])
+    np.testing.assert_allclose(track_coords[2], [[2, 1.0]])
+    np.testing.assert_allclose(track_coords[3], [[3, 1.0]])
+    np.testing.assert_allclose(track_coords[4], [[3, 2.0]])
+
+    # a - b
+    # c d e
+    d[0][0].child = d[1][0]
+    track_coords = get_track_coordinates(d.get_tracks())
+    assert len(track_coords) == 4
+    np.testing.assert_allclose(track_coords[0], [[0, 1.0], [1, 1.0]])
+    np.testing.assert_allclose(track_coords[1], [[2, 1.0]])
+    np.testing.assert_allclose(track_coords[2], [[3, 1.0]])
+    np.testing.assert_allclose(track_coords[3], [[3, 2.0]])
+
+    # a - b - c
+    # d e
+    d[1][0].child = d[2][0]
+    track_coords = get_track_coordinates(d.get_tracks())
+    assert len(track_coords) == 3
+    np.testing.assert_allclose(track_coords[0], [[0, 1.0], [1, 1.0], [2, 1.0]])
+    np.testing.assert_allclose(track_coords[1], [[3, 1.0]])
+    np.testing.assert_allclose(track_coords[2], [[3, 2.0]])
+
+    # a - b - c - d
+    # e
+    d[2][0].child = d[3][0]
+    track_coords = get_track_coordinates(d.get_tracks())
+    assert len(track_coords) == 2
+    np.testing.assert_allclose(track_coords[0], [[0, 1.0], [1, 1.0], [2, 1.0], [3, 1.0]])
+    np.testing.assert_allclose(track_coords[1], [[3, 2.0]])
+
+    # a - b - e
+    # c d
+    d[1][0].child = d[3][1]
+    track_coords = get_track_coordinates(d.get_tracks())
+    assert len(track_coords) == 3
+    np.testing.assert_allclose(track_coords[0], [[0, 1.0], [1, 1.0], [3, 2.0]])
+    np.testing.assert_allclose(track_coords[1], [[2, 1.0]])
+    np.testing.assert_allclose(track_coords[2], [[3, 1.0]])

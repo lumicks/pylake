@@ -1,15 +1,19 @@
 import numpy as np
+from itertools import chain
 from dataclasses import dataclass, field
 from typing import List
 
 
 @dataclass
 class Vertex:
-    name: str
     frame: int
     position: float
     _parent: "Vertex" = field(default=None, repr=False)
     _child: "Vertex" = field(default=None, repr=False)
+
+    @property
+    def coordinate(self):
+        return (self.frame, self.position)
 
     @property
     def parent(self):
@@ -49,3 +53,21 @@ class Vertex:
         if self.child:
             self.child.walk(track)
         return track
+
+
+@dataclass
+class Digraph:
+    frames: List[Vertex] = field(default_factory=list)
+
+    def __getitem__(self, index):
+        return self.frames[index]
+
+    def __len__(self):
+        return len(self.frames)
+
+    def add_frame(self, frame, positions):
+        self.frames.append([Vertex(frame, p) for p in positions])
+
+    def get_tracks(self):
+        tracks = [[vertex.walk() for vertex in frame if vertex.is_head] for frame in self]
+        return tuple(chain(*tracks))
