@@ -370,3 +370,106 @@ def track_greedy_optimized_association_matrix(cost_function, peaks, window):
             )
 
     return tracks, peaks
+
+
+def link_association_matrices_advancing_front(cost_function, peaks, window, debug=False):
+    """Track points in a kymograph
+
+    Parameters
+    ----------
+    cost_function : callable
+        Cost function that takes two frames and their distance and calculates a cost between them
+        for each particle.
+    peaks : lumicks.pylake.kymotracker.detail.peakfinding.KymoPeaks
+        Particles to track into tracks.
+    window : int
+        Maximum gap in a track in frames.
+    """
+    link_matrices_per_frame, cost_matrices_per_frame = generate_links(
+        cost_function, peaks.frames, window
+    )
+
+    # Keep track of which points we've already seen
+    track_assignments = [np.full(frame.coordinates.shape, -1, dtype=int) for frame in peaks.frames]
+
+    # Initiate lines on the first frame.
+    tracks = []
+    for frame_idx, (link_matrix, cost_matrix) in enumerate(
+        zip(link_matrices_per_frame, cost_matrices_per_frame)
+    ):
+        # Link matrices provide the particle correspondences. Note that particle 0 is a dummy
+        # particle and should not be tracked into tracks.
+        non_dummies = link_matrix[:, 1:]
+        cost = cost_matrix[:, 1:]
+        unassigned = np.array(
+            [
+                [assignments[p - 1] == -1 if p > 0 else False for p in particle_indices]
+                for particle_indices, assignments in zip(
+                    non_dummies, track_assignments[frame_idx + 1 : frame_idx + window]
+                )
+            ],
+            dtype=int,
+        )
+        # Uncommenting this leads the algorithm to seek the next applicable point. However, what
+        # this results in is tracks snaking around each-other excessively.
+        # non_dummies *= unassigned
+
+        # Find which ones we should be connecting
+        first_frame = np.argmax(
+            non_dummies > 0, axis=0
+        )  # Find the frame in which a linkage for this particle first appears
+        particle_idx = (non_dummies * unassigned)[
+            first_frame, np.arange(non_dummies.shape[1])
+        ]  # Find the actual particle in that frame we are linking to
+        cost_values = cost[
+            first_frame, np.arange(non_dummies.shape[1])
+        ]  # Find the actual particle in that frame we are linking to
+
+        # Drop dummy particles
+        from_particle_idx = np.arange(particle_idx.size)[particle_idx > 0]
+        first_frame = first_frame[particle_idx > 0]
+        cost_values = cost_values[particle_idx > 0]
+        particle_idx = particle_idx[particle_idx > 0]
+
+        # We give particles which have a valid correspondence early priority.
+        sorted_idx = np.argsort(cost_values)
+
+        # Each linking candidates is characterized by
+        # [source particle in current frame, first frame it is detected again,
+        # particle index when it is detected in a future frame]
+        candidates = np.vstack(
+            (
+                from_particle_idx[sorted_idx],
+                frame_idx + first_frame[sorted_idx] + 1,
+                particle_idx[sorted_idx] - 1,
+            )
+        )
+
+        for from_particle, to_frame_idx, to_particle in candidates.T:
+            # Check if the from particle is already part of a track. If so, we add to that track,
+            # otherwise, start a new one.
+            track_idx = track_assignments[frame_idx][from_particle]
+            if track_idx >= 0:
+                track = tracks[track_idx]
+            else:
+                track = [(frame_idx, peaks.frames[frame_idx].coordinates[from_particle])]
+                track_idx = len(tracks)
+                track_assignments[frame_idx][from_particle] = track_idx
+                tracks.append(track)
+
+            # Link up!
+            if debug:
+                print(
+                    f"At frame {frame_idx} adding link to track {track_idx}: "
+                    f"({frame_idx}, {from_particle}, {peaks.frames[frame_idx].coordinates[from_particle]}) "
+                    f"-> ({to_frame_idx}, {to_particle}, {peaks.frames[to_frame_idx].coordinates[to_particle]})"
+                )
+
+            try:
+                track_assignments[to_frame_idx][to_particle] = track_idx
+                track.append((to_frame_idx, peaks.frames[to_frame_idx].coordinates[to_particle]))
+            except IndexError:
+                print(link_matrix)
+                raise IndexError(":(")
+
+    return tracks, peaks
