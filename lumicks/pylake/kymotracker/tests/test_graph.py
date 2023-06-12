@@ -1,5 +1,5 @@
 import numpy as np
-from lumicks.pylake.kymotracker.detail.graph import Vertex, Digraph
+from lumicks.pylake.kymotracker.detail.graph import Vertex, DiGraph
 
 
 def test_vertex():
@@ -75,8 +75,8 @@ def test_vertex():
     validate_tracks((a, b, c, d, e), ([a], [b], [c], [d], [e]))
 
 
-def test_digraph():
-    d = Digraph()
+def test_DiGraph():
+    d = DiGraph()
     d.add_frame(0, [1.0])  # a
     d.add_frame(1, [1.0])  # b
     d.add_frame(2, [1.0])  # c

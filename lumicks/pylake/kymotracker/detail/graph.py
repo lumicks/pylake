@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 from itertools import chain
 from dataclasses import dataclass, field
 from typing import List
@@ -56,7 +57,7 @@ class Vertex:
 
 
 @dataclass
-class Digraph:
+class DiGraph:
     frames: List[Vertex] = field(default_factory=list)
 
     def __getitem__(self, index):
@@ -71,3 +72,70 @@ class Digraph:
     def get_tracks(self):
         tracks = [[vertex.walk() for vertex in frame if vertex.is_head] for frame in self]
         return tuple(chain(*tracks))
+
+
+def calculate_edge_cost(v_prev, v_current):
+    gap_length = v_current.frame - v_prev.frame
+    cost_diffusion = np.abs(v_current.position - v_prev.position) + ((gap_length - 1) * 0.3)
+    return cost_diffusion
+
+
+def track_multiframe(frame_positions):
+    d = DiGraph()
+    for frame, positions in frame_positions:
+        d.add_frame(frame, positions)
+
+    # establish initial correspondence with bipartite graph matching
+    # cost matrix with previous frames as rows -> current frame as columns
+    previous_frame, current_frame = d[0], d[1]
+    cost = np.reshape(
+        [calculate_edge_cost(v_prev, v_current) for v_prev in previous_frame for v_current in current_frame],
+        (len(previous_frame), len(current_frame)),
+    )
+    # print(cost)
+
+    start_indices, connect_indices = linear_sum_assignment(cost)
+    for start_index, connect_index in zip(start_indices, connect_indices):
+        # d.add_edge(previous_frame[start_index], current_frame[connect_index])
+        previous_frame[start_index].child = current_frame[connect_index]
+
+    # next frame, extension digraph
+    for current_frame_index in range(2, len(d)):
+        previous_frames = tuple(
+            chain(
+                *[d[j] for j in (current_frame_index - 2, current_frame_index - 1)]
+            )
+        )
+        current_frame = d[current_frame_index]
+        # print(list(previous_frames))
+        cost = np.reshape(
+            [
+                calculate_edge_cost(v_prev, v_current)
+                for v_prev in previous_frames
+                for v_current in current_frame
+            ],
+            (len(previous_frames), len(current_frame)),
+        )
+        # print(cost)
+
+        start_indices, connect_indices = linear_sum_assignment(cost)
+        # print(start_indices)
+        # print(connect_indices)
+        for start_index, connect_index in zip(start_indices, connect_indices):
+            # d.add_edge(previous_frames[start_index], current_frame[connect_index])
+            previous_frames[start_index].child = current_frame[connect_index]
+
+        # false hypothesis replacement
+        for fhr_prev_idx in range(current_frame_index):
+            previous_frame = [v for v in d[fhr_prev_idx] if v.child is None]
+            current_frame = [v for v in d[fhr_prev_idx + 1] if v.parent is None]
+            cost = np.reshape(
+                [calculate_edge_cost(v_prev, v_curernt) for v_prev in previous_frame for v_current in current_frame],
+                (len(previous_frame), len(current_frame)),
+            )
+            start_indices, connect_indices = linear_sum_assignment(cost)
+            for start_index, connect_index in zip(start_indices, connect_indices):
+                # d.add_edge(previous_frame[start_index], current_frame[connect_index])
+                previous_frame[start_index].child = current_frame[connect_index]
+
+    return d
