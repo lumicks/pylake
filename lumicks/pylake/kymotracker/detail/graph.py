@@ -77,6 +77,16 @@ class DiGraph:
 
 
 def calculate_edge_cost(v_prev, v_current):
+    """
+    Adapted cost functions from Chenouard, N. "Objective comparison of particle tracking methods"
+    SI. Unclear if position vectors also include temporal coordinate or just spatial (here I've
+    included the temporal coordinate as results seemed better, still needs investigating).
+
+    Original from Mubarak, S. "A non-iterative greedy algorithm for multi-frame point
+    correspondence" utilizes a similar *gain* function. Need to assess if inequality in Eq. 1 is
+    satisfied (ie, "...penalizes the choice of a shorter track when a longer valid track is present").
+    """
+
     gap_length = v_current.frame - v_prev.frame
     cost_diffusion = np.abs(v_current.position - v_prev.position) + (
         (gap_length - 1) * 0.3
@@ -96,7 +106,6 @@ def calculate_edge_cost(v_prev, v_current):
     # mu_2 = np.exp(-np.abs(v_prev.position - v_prev.parent.position - 4) ** 2 / 2)
     mu_1 = np.exp(-np.abs(slope))
     mu_2 = np.exp(-np.abs(slope - 4) ** 2 / 2)
-    print(slope, mu_1, mu_2)
     return (mu_1 * cost_diffusion + mu_2 * cost_directed) / (mu_1 + mu_2)
 
 
@@ -147,3 +156,74 @@ def track_multiframe(frame_positions, window=3):
         # TODO: add backtracking when current frame == window size
 
     return d
+
+
+if __name__ == "__main__":
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from lumicks.pylake.simulation import simulate_diffusive_tracks
+    from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
+
+    np.random.seed(198507102)
+
+    # add some directional motion to diffusion
+    vel = lambda n: np.polyval([5e-2, 0], np.arange(n))
+
+    def make_tracks(
+        num_tracks,
+        num_frames,
+        tether_length,
+        start_position=None,
+        start_times=None,
+    ):
+        if start_position is None:
+            start_position = np.random.uniform(0, tether_length, size=num_tracks)
+        if start_times is None:
+            start_times = np.random.exponential(1/1.8, size=num_tracks)
+            start_frames = np.array(start_times // 0.075).astype(int)
+        start_frames = start_frames - np.min(start_frames)
+
+        tracks = simulate_diffusive_tracks(
+            diffusion_constant=0.001,
+            steps=np.max(num_frames),
+            dt=0.075,
+            observation_noise=0.1,
+            num_tracks=num_tracks,
+        )
+
+        tracks = KymoTrackGroup(
+            [
+                KymoTrack(t.time_idx[:n] + start_frame, t.position[:n] + p + vel(n), t._kymo, t._channel)
+                for t, p, start_frame, n in zip(tracks, start_position, start_frames, num_frames)
+            ]
+        )
+        return tracks
+
+    def extract_coordinates_from_tracks(tracks):
+        table = np.hstack(
+            [np.vstack((np.full(len(t), j), t._time_idx, t.position)) for j, t in enumerate(tracks)]
+        )
+        idx = np.argsort(table[1])
+        table = table[:, idx]
+        track_labels, frame_indices, positions = table
+        frames = [(j, positions[frame_indices == j]) for j in np.unique(frame_indices)]
+        return frames
+
+
+    num_frames = [20, 10, 50, 5, 20]
+    tracks = make_tracks(len(num_frames), num_frames, 15)
+    frames = extract_coordinates_from_tracks(tracks)
+    d = track_multiframe(frames, window=3)
+
+    new_tracks = []
+    ref = tracks[0]
+    for t in d.get_tracks():
+        new_tracks.append(
+            KymoTrack([int(v.frame) for v in t], [v.position for v in t], ref._kymo, ref._channel)
+        )
+    new_tracks = KymoTrackGroup(new_tracks)
+
+
+    tracks.plot(lw=7, marker=".", color="r", show_outline=False)
+    new_tracks.plot(marker=".", color="lightskyblue")
+    plt.show()
