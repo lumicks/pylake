@@ -81,7 +81,23 @@ def calculate_edge_cost(v_prev, v_current):
     cost_diffusion = np.abs(v_current.position - v_prev.position) + (
         (gap_length - 1) * 0.3
     )
-    return cost_diffusion
+    # starting vertex, no previous motion information
+    # fall back to pure diffusion
+    if v_prev.parent is None:
+        return cost_diffusion
+
+    slope = (v_prev.position - v_prev.parent.position) / (
+        v_prev.frame - v_prev.parent.frame
+    )
+    p_next_expected = v_prev.position + gap_length * slope
+    cost_directed = v_current.position - p_next_expected
+
+    # mu_1 = np.exp(-np.abs(v_prev.position - v_prev.parent.position))
+    # mu_2 = np.exp(-np.abs(v_prev.position - v_prev.parent.position - 4) ** 2 / 2)
+    mu_1 = np.exp(-np.abs(slope))
+    mu_2 = np.exp(-np.abs(slope - 4) ** 2 / 2)
+    print(slope, mu_1, mu_2)
+    return (mu_1 * cost_diffusion + mu_2 * cost_directed) / (mu_1 + mu_2)
 
 
 def calculate_cost_matrix(previous_frames, current_frame):
