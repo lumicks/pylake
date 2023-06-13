@@ -109,7 +109,7 @@ def calculate_cost_matrix(previous_frames, current_frame):
     return np.reshape(cost, (len(previous_frames), len(current_frame)))
 
 
-def track_multiframe(frame_positions):
+def track_multiframe(frame_positions, window=3):
     d = DiGraph()
     for frame, positions in frame_positions:
         d.add_frame(frame, positions)
@@ -124,10 +124,9 @@ def track_multiframe(frame_positions):
         previous_frame[start_index].child = current_frame[connect_index]
 
     # loop through frames, forming extension digraphs
-    # TODO: add variable window size, currently hardcoded to 3
     for current_frame_index in range(2, len(d)):
         previous_frames = tuple(
-            chain(*[d[j] for j in (current_frame_index - 2, current_frame_index - 1)])
+            chain(*[d[j] for j in current_frame_index - np.arange(1, window)])
         )
         current_frame = d[current_frame_index]
         cost = calculate_cost_matrix(previous_frames, current_frame)
@@ -144,5 +143,7 @@ def track_multiframe(frame_positions):
             start_indices, connect_indices = linear_sum_assignment(cost)
             for start_index, connect_index in zip(start_indices, connect_indices):
                 previous_frame[start_index].child = current_frame[connect_index]
+
+        # TODO: add backtracking when current frame == window size
 
     return d
