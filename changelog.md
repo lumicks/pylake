@@ -9,7 +9,11 @@
 #### Other changes
 
 * Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
-* Don't import packages we rarely use immediately. Rather specifically import functionality from `scikit-image` and `scikit-learn` when we actually use it.
+
+## v1.1.1 | 2023-06-13
+
+* Fixed parameter description for minimum length. It now correctly reads that increasing this parameter reduces tracking noise.
+* Rarely used but heavy packages like `opencv`, `scikit-image`, and `scikit-learn` are no longer loaded eagerly with `import lumicks.pylake`. Rather, they are loaded on-demand the first time that a feature needs them. This makes importing `pylake` itself faster and mitigates potential third-party issues (e.g. this makes the first issue from the [F.A.Q.](https://lumicks-pylake.readthedocs.io/en/v1.1.0/install.html#frequently-asked-questions) less severe as it no longer affects all users).
 
 ## v1.1.0 | 2023-05-17
 
