@@ -371,7 +371,7 @@ class Slice:
                     )
                 )
             # ratio of current/new frequencies must be integer to ensure equal timesteps
-            remainder = target_timestep % source_timestep
+            remainder = target_timestep % source_timestep[0]
             if remainder != 0:
                 if method == "ceil":
                     target_timestep -= remainder

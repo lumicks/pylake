@@ -590,6 +590,9 @@ class TransformMatrix:
         coordinates: list
             list of (x, y) coordinates
         """
+        if not np.any(coordinates):
+            return coordinates
+
         coordinates = np.vstack(coordinates).T
         coordinates = np.vstack((coordinates, np.ones(coordinates.shape[1])))
 
