@@ -414,7 +414,7 @@ def test_diffusion_units(blank_kymo, calibration_coeff):
     diffusion_estimate = kymotrack.estimate_diffusion("ols", max_lag=2)
     np.testing.assert_allclose(diffusion_estimate.value, ref_constant)
     assert diffusion_estimate.unit == "um^2 / s"
-    assert diffusion_estimate._unit_label == "$\\mu$m$^2$/s"
+    assert diffusion_estimate._unit_label == "μm²/s"
 
 
 @pytest.mark.parametrize(
@@ -987,7 +987,7 @@ def test_diffusion_cve(
     assert cve_est.num_lags is None
     assert cve_est.method == "cve"
     assert cve_est.unit == "um^2 / s"
-    assert cve_est._unit_label == "$\\mu$m$^2$/s"
+    assert cve_est._unit_label == "μm²/s"
 
 
 def test_diffusion_invalid_loc_variance(blank_kymo):
@@ -1127,7 +1127,7 @@ def test_ensemble_msd_calibration_from_kymo(blank_kymo, kbp_calibration, line_wi
     np.testing.assert_allclose(result.effective_sample_size, np.ones(len(frame) - 1) * 3)
 
     assert result.unit == "kbp^2" if kbp_calibration else "um^2"
-    assert result._unit_label == "kbp$^2$" if kbp_calibration else "um$^2$"
+    assert result._unit_label == "kbp²" if kbp_calibration else "um²"
 
 
 def test_ensemble_api(blank_kymo):
@@ -1213,7 +1213,7 @@ def test_ensemble_ols(blank_kymo, max_lag, diffusion_ref, std_err_ref, localizat
     np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
     assert ensemble_diffusion.method == "ensemble ols"
     assert ensemble_diffusion.unit == "um^2 / s"
-    assert ensemble_diffusion._unit_label == "$\\mu$m$^2$/s"
+    assert ensemble_diffusion._unit_label == "μm²/s"
 
 
 @pytest.mark.parametrize("max_lag", [None, 4])
@@ -1249,7 +1249,7 @@ def test_ensemble_ols_multiple_sources(blank_kymo, max_lag):
     np.testing.assert_allclose(ensemble_diffusion.num_points, 15)
     assert ensemble_diffusion.method == "ensemble ols"
     assert ensemble_diffusion.unit == "um^2 / s"
-    assert ensemble_diffusion._unit_label == "$\\mu$m$^2$/s"
+    assert ensemble_diffusion._unit_label == "μm²/s"
 
 
 def test_invalid_ensemble_diffusion(blank_kymo):

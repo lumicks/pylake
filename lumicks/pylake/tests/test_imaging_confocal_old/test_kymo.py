@@ -171,7 +171,7 @@ def test_plotting(test_kymos):
 
     # test original kymo is labeled with microns and
     # that kymo calibrated with base pairs has appropriate label
-    assert plt.gca().get_ylabel() == r"position ($\mu$m)"
+    assert plt.gca().get_ylabel() == r"position (μm)"
     plt.close()
 
     kymo_bp = kymo.calibrate_to_kbp(10.000)

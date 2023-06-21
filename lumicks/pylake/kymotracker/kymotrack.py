@@ -634,7 +634,7 @@ class KymoTrack:
         lag_time, msd = self.msd(max_lag)
         plt.plot(lag_time, msd, **kwargs)
         plt.xlabel("Lag time [s]")
-        plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}$^2$]")
+        plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}²]")
 
     def estimate_diffusion(
         self,
@@ -762,7 +762,7 @@ class KymoTrack:
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
         unit_labels = {
             "unit": f"{self._kymo._calibration.unit}^2 / s",
-            "unit_label": f"{self._kymo._calibration.unit_label}$^2$/s",
+            "unit_label": f"{self._kymo._calibration.unit_label}²/s",
         }
 
         if method == "cve":

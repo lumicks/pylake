@@ -244,7 +244,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
     def _get_distance(self, n):
-        return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"], r"Distance ($\mu$m)")
+        return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"], r"Distance (μm)")
 
     def _get_photon_count(self, name):
         return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count")

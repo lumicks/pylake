@@ -646,7 +646,7 @@ def test_ensemble_msd():
     np.testing.assert_allclose(result.effective_sample_size, num_means)
     np.testing.assert_allclose(result.sem, np.sqrt(0.02 / ((num_means - 1) * num_means)))
     assert result.unit == "what_a_unit^2"
-    assert result._unit_label == "label_ahoy$^2$"
+    assert result._unit_label == "label_ahoy²"
 
 
 def test_ensemble_msd_unequal_points():
@@ -695,4 +695,4 @@ def test_ensemble_msd_plot():
     np.testing.assert_allclose(lines.get_xdata(), frame_diffs)
     np.testing.assert_allclose(lines.get_ydata(), frame_diffs**2)
     assert axis.xaxis.get_label().get_text() == "Time [s]"
-    assert axis.yaxis.get_label().get_text() == "Squared Displacement [label_unit$^2$]"
+    assert axis.yaxis.get_label().get_text() == "Squared Displacement [label_unit²]"

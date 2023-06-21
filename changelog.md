@@ -9,6 +9,7 @@
 #### Other changes
 
 * Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
+* Use Unicode characters for µ and ² when plotting rather than TeX strings.
 
 ## v1.1.1 | 2023-06-13
 

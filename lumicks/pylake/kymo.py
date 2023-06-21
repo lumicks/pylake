@@ -79,7 +79,7 @@ class Kymo(ConfocalImage):
             else (
                 PositionCalibration()
                 if self.pixelsize_um[0] is None
-                else PositionCalibration("um", self.pixelsize_um[0], r"$\mu$m")
+                else PositionCalibration("um", self.pixelsize_um[0], r"μm")
             )
         )
 

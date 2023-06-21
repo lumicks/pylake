@@ -441,7 +441,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         if show_axes is False:
             axes.set_axis_off()
 
-        positional_unit = r"$\mu$m"
+        positional_unit = r"μm"
         if scale_bar and not image_handle:
             scale_bar._attach_scale_bar(axes, 1.0, 1.0, positional_unit, positional_unit)
 

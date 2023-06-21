@@ -359,7 +359,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         if show_axes is False:
             axes.set_axis_off()
 
-        positional_unit = "px" if not self.pixelsize_um else r"$\mu$m"
+        positional_unit = "px" if not self.pixelsize_um else r"μm"
         if scale_bar and not image_handle:
             scale = 1 if self.pixelsize_um else 100
             scale_bar._attach_scale_bar(axes, scale, scale, positional_unit, positional_unit)

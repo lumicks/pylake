@@ -91,16 +91,16 @@ def validate_args(refs):
     "scale_args, refs, calibrate",
     [
         # fmt:off
-        ({}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None], False),
-        ({"label_x": "hi"}, [60.0, 1.0, "hi", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None], False),
+        ({}, [60.0, 1.0, "60.0 s", "1.0 μm", "upper right", "white", 2.0, None, None], False),
+        ({"label_x": "hi"}, [60.0, 1.0, "hi", "1.0 μm", "upper right", "white", 2.0, None, None], False),
         ({"label_y": "hi"}, [60.0, 1.0, "60.0 s", "hi", "upper right", "white", 2.0, None, None], False),
-        ({"size_x": 10}, [10.0, 1.0, "10 s", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None], False),
-        ({"size_y": 10}, [60.0, 10.0, "60.0 s", "10 $\\mu$m", "upper right", "white", 2.0, None, None], False),
-        ({"loc": "lower right"}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "lower right", "white", 2.0, None, None], False),
-        ({"color": "blue"}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "blue", 2.0, None, None], False),
-        ({"separation": 5}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 5.0, None, None], False),
-        ({"barwidth": 12}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 2.0, 12, None], False),
-        ({"fontsize": 16}, [60.0, 1.0, "60.0 s", "1.0 $\\mu$m", "upper right", "white", 2.0, None, 16], False),
+        ({"size_x": 10}, [10.0, 1.0, "10 s", "1.0 μm", "upper right", "white", 2.0, None, None], False),
+        ({"size_y": 10}, [60.0, 10.0, "60.0 s", "10 μm", "upper right", "white", 2.0, None, None], False),
+        ({"loc": "lower right"}, [60.0, 1.0, "60.0 s", "1.0 μm", "lower right", "white", 2.0, None, None], False),
+        ({"color": "blue"}, [60.0, 1.0, "60.0 s", "1.0 μm", "upper right", "blue", 2.0, None, None], False),
+        ({"separation": 5}, [60.0, 1.0, "60.0 s", "1.0 μm", "upper right", "white", 5.0, None, None], False),
+        ({"barwidth": 12}, [60.0, 1.0, "60.0 s", "1.0 μm", "upper right", "white", 2.0, 12, None], False),
+        ({"fontsize": 16}, [60.0, 1.0, "60.0 s", "1.0 μm", "upper right", "white", 2.0, None, 16], False),
         ({}, [60.0, 1.0, "60.0 s", "1.0 kbp", "upper right", "white", 2.0, None, None], True),
         ({"size_y": 2}, [60.0, 2.0, "60.0 s", "2 kbp", "upper right", "white", 2.0, None, None], True),
         # fmt:on
@@ -124,13 +124,13 @@ def test_scalebar_integration(monkeypatch):
     """ "For Scan and ImageStack we only test the defaults since we extensively tested Kymo"""
     with monkeypatch.context() as m:
         scan = generate_scan("test", np.random.randint(0, 10, size=(1, 2, 2)), [3, 2])
-        refs = [1.0, 1.0, "1.0 $\\mu$m", "1.0 $\\mu$m", "upper right", "white", 2.0, None, None]
+        refs = [1.0, 1.0, "1.0 μm", "1.0 μm", "upper right", "white", 2.0, None, None]
         m.setattr("lumicks.pylake.scalebar._create_scale_legend", validate_args(refs))
         scan.plot("red", scale_bar=ScaleBar())
 
     for description, ref_sizes in (
         ({}, [100, 100, "100 px", "100 px"]),
-        ({"Pixel calibration (nm/pix)": 500}, [1, 1, r"1 $\mu$m", r"1 $\mu$m"]),
+        ({"Pixel calibration (nm/pix)": 500}, [1, 1, r"1 μm", r"1 μm"]),
     ):
         with monkeypatch.context() as m:
             stack = ImageStack.from_dataset(

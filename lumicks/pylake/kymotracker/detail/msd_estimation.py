@@ -305,7 +305,7 @@ def calculate_ensemble_msd(
         effective_sample_size=effective_sample_size,
         unit=f"{unit}^2",
         _time_step=time_step,
-        _unit_label=f"{unit_label}$^2$",
+        _unit_label=f"{unit_label}²",
     )
 
 
@@ -1160,5 +1160,5 @@ def ensemble_ols(kymotracks, max_lag):
         localization_variance=intercept / 2.0,
         method="ensemble ols",
         unit=f"{src_calibration.unit}^2 / s",
-        _unit_label=f"{src_calibration.unit_label}$^2$/s",
+        _unit_label=f"{src_calibration.unit_label}²/s",
     )

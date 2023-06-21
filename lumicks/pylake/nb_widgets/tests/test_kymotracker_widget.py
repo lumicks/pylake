@@ -305,7 +305,7 @@ def test_widget_with_calibration(kymograph):
         widget._algorithm_parameters["track_width"].value, kymograph.pixelsize[0] * 4
     )
     np.testing.assert_allclose(widget._algorithm_parameters["track_width"].value, 1.6)
-    assert widget._axes.get_ylabel() == r"position ($\mu$m)"
+    assert widget._axes.get_ylabel() == r"position (μm)"
 
     kymo_bp = kymograph.calibrate_to_kbp(10.000)
     widget = KymoWidgetGreedy(kymo_bp, "red", axis_aspect_ratio=1, use_widgets=False)
@@ -385,9 +385,9 @@ def test_keyword_args(kymograph):
     "gain,line_time,pixel_size,ref_values",
     (
         # fmt:off
-        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "$\\mu$m"), "sigma": (2 * 5, 1 * 5, 5 * 5, "$\\mu$m"), "velocity": (0, -5 * 5/2, 5 * 5/2, "$\\mu$m/s")}),
-        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "$\\mu$m"), "sigma": (2 * 5, 1 * 5, 5 * 5, "$\\mu$m"), "velocity": (0, -5 * 5/2, 5 * 5/2, "$\\mu$m/s")}),
-        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 4, 3 * 4, 15 * 4, "$\\mu$m"), "sigma": (2 * 4, 1 * 4, 5 * 4, "$\\mu$m"), "velocity": (0, -5 * 4/4, 5 * 4/4, "$\\mu$m/s")}),
+        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "μm"), "sigma": (2 * 5, 1 * 5, 5 * 5, "μm"), "velocity": (0, -5 * 5/2, 5 * 5/2, "μm/s")}),
+        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "μm"), "sigma": (2 * 5, 1 * 5, 5 * 5, "μm"), "velocity": (0, -5 * 5/2, 5 * 5/2, "μm/s")}),
+        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 4, 3 * 4, 15 * 4, "μm"), "sigma": (2 * 4, 1 * 4, 5 * 4, "μm"), "velocity": (0, -5 * 4/4, 5 * 4/4, "μm/s")}),
         # fmt:on
     ),
 )
