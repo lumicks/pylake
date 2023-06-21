@@ -153,8 +153,7 @@ def test_tether():
     tether = widefield.Tether((0, 0), None)
     assert tether._ends is None
     np.testing.assert_allclose(tether.rot_matrix.matrix, widefield.TransformMatrix().matrix)
-    with pytest.raises(TypeError, match="did not return an iterable$"):
-        tether.ends
+    assert tether.ends is None
 
     # test coordinates of tether after rotation
     tether = widefield.Tether(origin, (point_1, point_2))
