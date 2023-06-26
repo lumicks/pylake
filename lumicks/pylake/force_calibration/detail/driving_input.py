@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.signal
+import scipy.signal.windows
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
@@ -78,7 +78,7 @@ def estimate_driving_input_parameters(
 
     # Multiply the signal with a Gaussian window after removing any constant offset (which would
     # lead to the spectral bin belonging to the offset bleeding into higher frequencies).
-    gauss_window = scipy.signal.gaussian(M=num_points, std=std, sym=False)
+    gauss_window = scipy.signal.windows.gaussian(M=num_points, std=std, sym=False)
     windowed_data = gauss_window * (driving_data - np.mean(driving_data))
     windowed_fft = np.fft.rfft(windowed_data)
 
