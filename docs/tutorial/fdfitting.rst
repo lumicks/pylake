@@ -174,6 +174,14 @@ when loading the data from `DNA/Lc` to `DNA/Lc_RecA`::
     distance2 = fd2.d[mask2].data
     fit.add_data("RecA", force2, distance2, params={"DNA/Lc": "DNA/Lc_RecA"})
 
+Multiple criteria can be combined into a single mask by using `numpy`'s logical operators.
+For example, to select all forces up to `30` pN and ensure a distance larger than `1.5` micron::
+
+    example_mask = np.logical_and(fd1.f.data <= 30, fd1.d.data > 1.5)
+
+Adding a third condition that the distance has to be `< 4` micron can be done as follows (note the double brackets)::
+
+    example_mask = np.logical_and.reduce((fd1.f.data <= 30, fd1.d.data > 1.5, fd1.d.data < 4.0))
 
 Setting parameter bounds
 ************************
