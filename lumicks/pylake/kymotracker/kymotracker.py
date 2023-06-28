@@ -511,7 +511,7 @@ def refine_tracks_gaussian(
         How to deal with frames in which the fitting window of two
         :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`'s overlap.
 
-        - 'multiple' : fit the peaks simultaneously.
+        - 'multiple' : fit the peaks simultaneously (deprecated, use `simultaneous` instead).
         - 'simultaneous' : fit the peaks simultaneously with estimation bounds between peaks.
         - 'ignore' : do nothing, fit the frame as-is (ignoring overlaps).
         - 'skip' : skip optimization of the frame; remove from returned :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack`.
@@ -523,6 +523,18 @@ def refine_tracks_gaussian(
     """
     if overlap_strategy not in ("ignore", "skip", "multiple", "simultaneous"):
         raise ValueError("Invalid overlap strategy selected.")
+
+    if overlap_strategy == "multiple":
+        warnings.warn(
+            DeprecationWarning(
+                'overlap_strategy="multiple" is deprecated. Use "simultaneous" instead. The '
+                'strategy "simultaneous" enforces optimization bounds between the peak positions. '
+                "This helps prevent the refinement procedure from reassigning points to the wrong "
+                "track when a track momentarily disappears. When using the overlap strategy "
+                '"multiple" individual overlapping Gaussians could switch positions leading to'
+                "spurious track crossings."
+            )
+        )
 
     if len(tracks._kymos) > 1:
         return _apply_to_group(

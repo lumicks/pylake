@@ -131,7 +131,7 @@ def test_centroid_refinement_multiple_sources(kymogroups_2tracks, kymogroups_clo
         np.testing.assert_allclose(track.position, ref_track.position)
 
 
-@pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
+@pytest.mark.parametrize("fit_mode", ["ignore", "simultaneous"])
 def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
     tracks, gapped_tracks, mixed_tracks = kymogroups_2tracks
 
@@ -207,7 +207,7 @@ def test_gaussian_refinement(kymogroups_2tracks, fit_mode):
     assert np.allclose(refined[0].position, [4.94659924, 5.00920806, 4.97724526])
 
 
-@pytest.mark.parametrize("fit_mode", ["ignore", "multiple"])
+@pytest.mark.parametrize("fit_mode", ["ignore", "simultaneous"])
 def test_gaussian_refinement_fixed_background(kymogroups_2tracks, fit_mode):
     tracks, _, _ = kymogroups_2tracks
 
@@ -235,6 +235,7 @@ def test_no_swap_gaussian_refinement():
     since we have one more Gaussian in the model than needed. To ensure that we don't start
     swapping Gaussians around (making the localization jump between tracks), we enforce that
     they stay within limits dictated by their order."""
+
     def gen_gaussians(locs):
         x = np.arange(0, 20, 1)
         return np.random.poisson(
@@ -244,10 +245,13 @@ def test_no_swap_gaussian_refinement():
     np.random.seed(31415)
     locations = (5, 9, 12, 16)
     kymo = _kymo_from_array(
-        np.vstack((gen_gaussians(locations[:-1]), gen_gaussians(locations))).T, "r", 1,
+        np.vstack((gen_gaussians(locations[:-1]), gen_gaussians(locations))).T,
+        "r",
+        1,
     )
     group = KymoTrackGroup(
-        [KymoTrack(np.array([0, 1]), np.array([loc, loc]), kymo, "red") for loc in locations])
+        [KymoTrack(np.array([0, 1]), np.array([loc, loc]), kymo, "red") for loc in locations]
+    )
 
     refined_group = refine_tracks_gaussian(
         group, window=10, refine_missing_frames=True, overlap_strategy="simultaneous"
@@ -258,8 +262,10 @@ def test_no_swap_gaussian_refinement():
     assert all(abs(np.diff(track.coordinate_idx)) < 1 for track in refined_group[:-1])
 
 
+@pytest.mark.filterwarnings("ignore:overlap_strategy=")
 @pytest.mark.parametrize(
-    "fit_mode, ref_pos1, ref_pos2", [
+    "fit_mode, ref_pos1, ref_pos2",
+    [
         (
             "simultaneous",
             [5.24719911, 5.08517919, 4.75665519, 4.87242494, 4.62156363],
@@ -270,7 +276,7 @@ def test_no_swap_gaussian_refinement():
             [5.24723138, 5.08524557, 4.6939314, 4.84496914, 4.78668516],
             [3.32775782, 3.42564736, 3.33315701, 3.60090496, 3.26356061],
         ),
-    ]
+    ],
 )
 def test_gaussian_refinement_overlap(kymogroups_close_tracks, fit_mode, ref_pos1, ref_pos2):
     refined = refine_tracks_gaussian(
@@ -295,7 +301,7 @@ def test_gaussian_refinement_multiple_sources(kymogroups_2tracks, kymogroups_clo
     refinement_kwargs = {
         "window": 3,
         "refine_missing_frames": False,
-        "overlap_strategy": "multiple",
+        "overlap_strategy": "simultaneous",
     }
 
     refined_tracks1 = refine_tracks_gaussian(tracks1, **refinement_kwargs)
@@ -356,7 +362,7 @@ def test_gaussian_refinement_plotting():
     group = KymoTrackGroup(
         [
             KymoTrack(np.array([0, 2]), np.array([2, 2]), kymo, "red"),
-            KymoTrack(np.array([0, 1, 2]), np.array([4, 4, 4]), kymo, "red")
+            KymoTrack(np.array([0, 1, 2]), np.array([4, 4, 4]), kymo, "red"),
         ]
     )
 
@@ -368,7 +374,7 @@ def test_gaussian_refinement_plotting():
             to_be_plotted.plot_fit(0)
 
     refined = refine_tracks_gaussian(
-        group, window=2, refine_missing_frames=False, overlap_strategy="multiple"
+        group, window=2, refine_missing_frames=False, overlap_strategy="simultaneous"
     )
 
     for kymo_frame_idx in range(-4, 4):
@@ -401,7 +407,7 @@ def test_empty_group():
     """Validate that the refinement methods don't fail when applied to an empty group"""
     tracks = KymoTrackGroup([])
 
-    result = refine_tracks_gaussian(tracks, 5, False, "multiple")
+    result = refine_tracks_gaussian(tracks, 5, False, "simultaneous")
     assert id(tracks) != result  # Validate that we get a new object
     assert isinstance(result, KymoTrackGroup)
     assert len(result) == 0
