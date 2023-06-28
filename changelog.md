@@ -11,6 +11,7 @@
 
 * Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
 * Use Unicode characters for µ and ² when plotting rather than TeX strings.
+* Deprecated fitting mode `"multiple"` in `lk.refine_tracks_gaussian()` as it could lead to spurious track crossings. See the entry for the fitting mode `"simultaneous"` under `New Features` for more information.
 
 ## v1.1.1 | 2023-06-13
 
