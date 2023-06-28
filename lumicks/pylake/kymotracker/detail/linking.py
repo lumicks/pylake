@@ -3,6 +3,23 @@ import enum
 import numpy as np
 
 
+def calculate_costs(current_frame, next_frame, frame_difference, max_distance, intensity_weight=0):
+    """Calculates the cost function between pairs of frames"""
+    dummy_cost = max_distance**2 * frame_difference**2
+
+    positional_cost = (current_frame.coordinates[:, np.newaxis] - next_frame.coordinates) ** 2
+    positional_cost[positional_cost > dummy_cost] = np.inf
+    intensity_cost = (
+        current_frame.peak_amplitudes[:, np.newaxis] - next_frame.peak_amplitudes
+    ) ** 2
+
+    # Add the dummy row and column
+    cost = np.full(np.array(positional_cost.shape) + 1, dummy_cost, dtype=float)
+    cost[1:, 1:] = positional_cost + intensity_weight * intensity_cost
+
+    return cost
+
+
 def initialize_positions(costs):
     """Provides the initial linking matrix in coordinate form
 
@@ -45,7 +62,7 @@ def initialize_positions(costs):
     return current_to_next, next_to_current
 
 
-def optimize_linking(initial_condition, cost, max_iter=100, debug=False):
+def optimize_linking(initial_condition, cost, max_iter=100):
     """Optimize linking of particles between frames.
 
     This swaps which particles are linked to minimize the cost. As long as the cost is a simple
@@ -97,7 +114,7 @@ def optimize_linking(initial_condition, cost, max_iter=100, debug=False):
 
     # Particle linkages
     # Storing them this way allows for quicker lookups at the price of setting a few more elements,
-    # when we actually make a switch (rare). Otherwise we'd have to find nonzero's all the time.
+    # when we actually make a switch (rare). Otherwise, we'd have to find nonzeros all the time.
     current_to_next, next_to_current = initial_condition
 
     # Unfortunately, inherently sequential sweeps, since they need to be updated immediately.
@@ -121,10 +138,6 @@ def optimize_linking(initial_condition, cost, max_iter=100, debug=False):
                     if cost[k, l] < np.inf:
                         cost_change = cost[i, j] + cost[k, l] - cost[i, l] - cost[k, j]
                         if cost_change < lowest_cost_change:  # and np.isfinite(cost_change):
-                            if debug:
-                                print(
-                                    f"swap (i, j): +{cost[i, j]}, (k, l): +{cost[k, l]}, (i, l): -{cost[i, l]}, (k, j): -{cost[k, j]}"
-                                )
                             lowest_cost_change = cost_change
                             lowest_change = (i, j, k, l)
 
@@ -136,10 +149,6 @@ def optimize_linking(initial_condition, cost, max_iter=100, debug=False):
             l = current_to_next[i]
             cost_change = cost[i, 0] + cost[0, l] - cost[i, l]
             if cost_change < lowest_cost_change:
-                if debug:
-                    print(
-                        f"appear (i, 0): +{cost[i, 0]}, (0, l): +{cost[0, l]}, (i, l): -{cost[i, l]}"
-                    )
                 lowest_cost_change = cost_change
                 lowest_change = (i, j, k, l)
 
@@ -152,24 +161,12 @@ def optimize_linking(initial_condition, cost, max_iter=100, debug=False):
 
             cost_change = cost[0, j] + cost[k, 0] - cost[k, j]
             if cost_change < lowest_cost_change:
-                if debug:
-                    print(
-                        f"appear (0, j): +{cost[0, j]}, (k, 0): +{cost[k, 0]}, (k, j): -{cost[k, j]}"
-                    )
                 lowest_cost_change = cost_change
                 lowest_change = (i, j, k, l)
 
         if lowest_cost_change < 0:
             # Relink particles
             #   i->l, k->j  =>  i->j k->l
-            before = np.sum([cost[x + 1, y] for x, y in enumerate(current_to_next[1:])]) + cost[
-                0, 0
-            ] * sum(next_to_current[1:] == 0)
-
-            if debug:
-                print(current_to_next)
-                print(next_to_current)
-
             i, j, k, l = lowest_change
             (
                 next_to_current[j],
@@ -177,21 +174,6 @@ def optimize_linking(initial_condition, cost, max_iter=100, debug=False):
                 next_to_current[l],
                 current_to_next[k],
             ) = lowest_change
-
-            if debug:
-                print(current_to_next)
-                print(next_to_current)
-
-            after = np.sum([cost[x + 1, y] for x, y in enumerate(current_to_next[1:])]) + cost[
-                0, 0
-            ] * sum(next_to_current[1:] == 0)
-
-            if debug:
-                print(
-                    f"Expected: {lowest_cost_change}, Realized: {after - before}, Difference (realized - expected): {after - before - lowest_cost_change}."
-                )
-                print(lowest_change)
-            # np.testing.assert_allclose(lowest_cost_change, after - before)
         else:
             # Done!
             break
@@ -374,7 +356,7 @@ def track_greedy_optimized_association_matrix(cost_function, peaks, window):
     return tracks, peaks
 
 
-def link_association_matrices_advancing_front(cost_function, peaks, window, debug=False):
+def link_association_matrices_advancing_front(cost_function, peaks, window):
     """Track points in a kymograph
 
     Parameters
@@ -459,14 +441,6 @@ def link_association_matrices_advancing_front(cost_function, peaks, window, debu
                 track_assignments[frame_idx][from_particle] = track_idx
                 tracks.append(track)
 
-            # Link up!
-            if debug:
-                print(
-                    f"At frame {frame_idx} adding link to track {track_idx}: "
-                    f"({frame_idx}, {from_particle}, {peaks.frames[frame_idx].coordinates[from_particle]}) "
-                    f"-> ({to_frame_idx}, {to_particle}, {peaks.frames[to_frame_idx].coordinates[to_particle]})"
-                )
-
             try:
                 track_assignments[to_frame_idx][to_particle] = track_idx
                 track.append((to_frame_idx, peaks.frames[to_frame_idx].coordinates[to_particle]))
@@ -484,7 +458,7 @@ class ParticleState(enum.IntEnum):
     track_end = 3  # End of a track. It could be connected from but not into.
 
 
-def vanlierini(cost_function, peaks, window, debug=False):
+def vanlierini(cost_function, peaks, window):
     link_matrices_per_frame, cost_matrices_per_frame = generate_links(
         cost_function, peaks.frames, window
     )
@@ -577,14 +551,6 @@ def vanlierini(cost_function, peaks, window, debug=False):
                     track_assignments[frame_idx][from_particle] = track_idx
                     point_status[frame_idx][from_particle] = ParticleState.track_start
                     tracks.append(track)
-
-                # Link up!
-                if debug:
-                    print(
-                        f"At frame {frame_idx} adding link to track {track_idx}: "
-                        f"({frame_idx}, {from_particle}, {peaks.frames[frame_idx].coordinates[from_particle]}) "
-                        f"-> ({to_frame_idx}, {to_particle}, {peaks.frames[to_frame_idx].coordinates[to_particle]})"
-                    )
 
                 try:
                     if point_status[to_frame_idx][to_particle] == ParticleState.track_start:
