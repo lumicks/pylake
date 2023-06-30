@@ -1,7 +1,7 @@
 import pytest
 import re
 import numpy as np
-from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.adjustments import ColorAdjustment, wavelength_to_xyz, colormaps
 from lumicks.pylake.detail.image import (
     reconstruct_image,
     reconstruct_image_sum,
@@ -194,3 +194,35 @@ def test_no_adjust():
 
     ca = ColorAdjustment.nothing()
     np.testing.assert_allclose(ca._get_data_rgb(ref_img), ref_img / ref_img.max())
+
+
+@pytest.mark.parametrize(
+    "wavelength, ref_xyz",
+    [
+        (300, [2.63637746e-14, 6.25334786e-08, 4.96638266e-09]),
+        (488, [0.04306751, 0.19571404, 0.52012862]),
+        (590, [1.02103920e00, 7.62586723e-01, 1.43479704e-04]),
+        (650, [2.83631873e-01, 1.10045343e-01, 2.96115850e-08]),
+        (850, [6.94669991e-15, 2.74627747e-11, 2.88661210e-29]),
+    ],
+)
+def test_wavelength_to_xyz(wavelength, ref_xyz):
+    xyz = wavelength_to_xyz(wavelength)
+    np.testing.assert_allclose(xyz, ref_xyz)
+
+
+@pytest.mark.parametrize(
+    "wavelength, ref",
+    [
+        # fmt: off
+        (300, [[0, 0, 0, 1], [0, 7.62146890e-07, 0, 1], [0, 1.51833951e-06, 0, 1]]),
+        (488, [[0, 0, 0, 1], [0, 0.31312012, 0.3731908,  1], [0, 0.623794, 0.74346605, 1]]),
+        (590, [[0, 0, 0, 1], [0.50196078, 0.34888505, 0, 1], [1, 0.69504443, 0, 1]]),
+        (650, [[0, 0, 0, 1], [0.44212589, 0, 0, 1], [0.88079768,  0, 0, 1]]),
+        (850, [[0, 0, 0, 1], [0, 3.34079999e-10, 0, 1], [0, 6.65549997e-10, 0, 1]]),
+        # fmt: on
+    ],
+)
+def test_wavelength_to_cmap(wavelength, ref):
+    cmap = colormaps.from_wavelength(wavelength)
+    np.testing.assert_allclose(cmap([0, 0.5, 1]), ref)

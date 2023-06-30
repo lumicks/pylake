@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 from matplotlib.colors import LinearSegmentedColormap
+from skimage.color import xyz2rgb
 from dataclasses import make_dataclass
 
 
@@ -125,6 +126,41 @@ class ColorAdjustment:
 no_adjustment = ColorAdjustment.nothing()
 
 
+def wavelength_to_xyz(wavelength):
+    """Calculate XYZ components in CIE color space."""
+    conversion_coefficients = {
+        "x": {
+            "alpha": np.array([0.362, 1.056, -0.065]),
+            "beta": np.array([442.0, 599.8, 501.1]),
+            "gamma": np.array([0.0624, 0.0264, 0.0490]),
+            "delta": np.array([0.0374, 0.0323, 0.0382]),
+        },
+        "y": {
+            "alpha": np.array([0.821, 0.286]),
+            "beta": np.array([568.8, 530.9]),
+            "gamma": np.array([0.0213, 0.0613]),
+            "delta": np.array([0.0247, 0.0322]),
+        },
+        "z": {
+            "alpha": np.array([1.217, 0.681]),
+            "beta": np.array([437.0, 459.0]),
+            "gamma": np.array([0.0845, 0.0385]),
+            "delta": np.array([0.0278, 0.0725]),
+        },
+    }
+
+    def calculate_component(alpha, beta, gamma, delta):
+        lam_min_beta = wavelength - beta
+        s_func = np.where(lam_min_beta < 0, gamma, delta)
+        return np.sum(alpha * np.exp(-0.5 * (lam_min_beta * s_func) ** 2))
+
+    xyz = [
+        calculate_component(**conversion_coefficients[key])
+        for key in conversion_coefficients.keys()
+    ]
+    return np.hstack(xyz)
+
+
 def _make_cmap(name, color):
     return LinearSegmentedColormap.from_list(name, colors=[(0, 0, 0), color])
 
@@ -157,6 +193,24 @@ class _ColorMaps(
     yellow
     cyan
 
+    Methods
+    -------
+    from_wavelength(wavelength)
+        Generate a colormap with a minimum of black and maximum color approximately
+        corresponding to a wavelength in nanometers.
+
+        RGB value approximating the given wavelength is calculated using Eq. 4 from [1]_.
+
+        Parameters
+        ----------
+        wavelength: int
+            wavelength to approximate maximum color from
+
+        References
+        ----------
+        .. [1] Chris Wyman, Peter-Pike Sloan, Peter Shirley. "Simple Analytic Approximations to the
+               CIE XYZ Color Matching Functions" Journal of Computer Graphics Techniques (2013) 2, 1-11.
+
     Examples
     --------
     ::
@@ -164,6 +218,8 @@ class _ColorMaps(
         # plot the blue image from a kymograph with cyan colormap
         kymo.plot(channel="blue", cmap=lk.colormaps.cyan)
 
+        # plot the blue image with the emission maximum of the fluorophore excited at 488 nm
+        kymo.plot(channel="blue", cmap=lk.colormaps.from_wavelength(521))
     """
 
     def __str__(self):
@@ -172,6 +228,11 @@ class _ColorMaps(
     @property
     def rgb(self):
         return None
+
+    def from_wavelength(self, wavelength):
+        xyz = wavelength_to_xyz(wavelength)
+        rgb = xyz2rgb(xyz.reshape([1, 1, 3])).squeeze()
+        return _make_cmap(f"{wavelength}nm", rgb)
 
 
 colormaps = _ColorMaps(**_available_colormaps)
