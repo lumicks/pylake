@@ -1,0 +1,20 @@
+Pylake 1.2.0
+============
+
+.. only:: html
+
+Here's a sneak peak at some of the highlights from the upcoming Pylake `v1.2.0` release...
+
+Generate colormaps according to emission wavelength
+---------------------------------------------------
+
+By default, single-channel images arising from fluorophores excited with the red, green, and blue lasers
+are plotted with the corresponding `lk.colormaps.red`, `lk.colormaps.green`, and `lk.colormaps.blue`
+colormaps, respectively. However, the actual light emitted is always red-shifted from the excitation color.
+Now you can plot single-channel images with the approximate color of the signal emitted based on the
+emission wavelength using the `from_wavelength()` method of :data:`~lumicks.pylake.colormaps`.
+
+.. figure:: wavelength_cmaps.png
+
+    Kymographs showing tracks in three color channels using the default colormaps (left) and colormaps
+    corresponding to the actual emission colors (right).

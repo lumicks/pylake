@@ -68,6 +68,26 @@ with the cyan colormap::
 
 .. image:: figures/kymographs/kymo_blue.png
 
+We can also use the `lk.colormaps.from_wavelength()` method to generate a color map approximating the color of a particular wavelength::
+
+    adjustment = lk.ColorAdjustment(0, 99, mode="percentile")
+
+    plt.figure()
+    plt.subplot(2, 1, 1)
+    kymo.plot(channel="green", adjustment=adjustment)
+    plt.title("default 'green' colormap")
+    plt.subplot(2, 1, 2)
+    kymo.plot(
+        channel="green",
+        adjustment=adjustment,
+        cmap=lk.colormaps.from_wavelength(590)
+    )
+    plt.title("emission @ 590 nm")
+    plt.tight_layout()
+    plt.show()
+
+.. image:: figures/kymographs/kymo_wavelength_cmap.png
+
 The kymograph can also be exported to TIFF format::
 
     kymo.export_tiff("image.tiff")
