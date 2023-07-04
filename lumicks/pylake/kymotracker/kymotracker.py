@@ -4,12 +4,7 @@ from itertools import chain
 import numpy as np
 
 from .kymotrack import KymoTrack, KymoTrackGroup
-from .detail.peakfinding import (
-    KymoPeaks,
-    peak_estimate,
-    merge_close_peaks,
-    refine_peak_based_on_moment,
-)
+from .detail.peakfinding import find_kymograph_peaks, refine_peak_based_on_moment
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
@@ -180,30 +175,18 @@ def track_greedy(
     position_scale = kymograph.pixelsize[0]
     half_width_pixels = _to_half_kernel_size(track_width, position_scale)
 
-    coordinates, time_points = peak_estimate(kymograph_data, half_width_pixels, pixel_threshold)
-    if len(coordinates) == 0:
-        return KymoTrackGroup([])
-
-    position, time, m0 = refine_peak_based_on_moment(
+    peaks = find_kymograph_peaks(
         kymograph_data,
-        coordinates,
-        time_points,
         half_width_pixels,
+        pixel_threshold,
         bias_correction=bias_correction,
+        rect=_to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds)
+        if rect
+        else None,
     )
 
-    if rect:
-        (t0, p0), (t1, p1) = _to_pixel_rect(
-            rect, kymograph.pixelsize[0], kymograph.line_time_seconds
-        )
-        mask = (position >= p0) & (position < p1) & (time >= t0) & (time < t1)
-        position, time, m0 = position[mask], time[mask], m0[mask]
-
-        if len(position) == 0:
-            return KymoTrackGroup([])
-
-    peaks = KymoPeaks(position, time, m0)
-    peaks = merge_close_peaks(peaks, half_width_pixels)
+    if not peaks:
+        return KymoTrackGroup([])
 
     # Convert algorithm parameters to pixel units
     velocity_pixels = velocity * kymograph.line_time_seconds / position_scale
