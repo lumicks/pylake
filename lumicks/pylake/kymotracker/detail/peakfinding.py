@@ -1,7 +1,51 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter, grey_dilation
 from scipy.signal import convolve2d
+from dataclasses import dataclass
+from typing import Optional
 import math
+
+
+def find_kymograph_peaks(
+    kymograph_data, half_width_pixels, threshold, bias_correction=True, rect=None
+):
+    """Find local peaks in a kymograph.
+
+    Parameters
+    ----------
+    kymograph_data : np.ndarray
+        Raw single channel kymograph image data.
+    half_width_pixels : int
+        Half width in pixels. The kernel size used in refinement will be 2 * half_width + 1
+    threshold : float
+        Threshold to use.
+    bias_correction : bool, optional
+        Enable bias correction when performing the refinement. Default: True.
+    rect : tuple, optional
+        Rectangle to crop results to. Tuple of integer pixel values referring to a pair of
+        (time, position) coordinates. Default: no cropping.
+    """
+    coordinates, time_points = peak_estimate(kymograph_data, half_width_pixels, threshold)
+    if len(coordinates) == 0:
+        return KymoPeaks([], [], [])
+
+    position, time, m0 = refine_peak_based_on_moment(
+        kymograph_data,
+        coordinates,
+        time_points,
+        half_width_pixels,
+        bias_correction=bias_correction,
+    )
+
+    if rect:
+        (t0, p0), (t1, p1) = rect
+        mask = (position >= p0) & (position < p1) & (time >= t0) & (time < t1)
+        position, time, m0 = position[mask], time[mask], m0[mask]
+
+        if len(position) == 0:
+            return KymoPeaks([], [], [])
+
+    return merge_close_peaks(KymoPeaks(position, time, m0), half_width_pixels)
 
 
 def peak_estimate(data, half_width, thresh):
@@ -32,14 +76,18 @@ def peak_estimate(data, half_width, thresh):
 class KymoPeaks:
     """Stores local maxima found in a kymograph on a per-frame basis."""
 
+    @dataclass
     class Frame:
         """Stores local maxima found in a kymograph for a single frame."""
 
-        def __init__(self, coordinates, time_points, peak_amplitudes):
-            self.coordinates = coordinates
-            self.time_points = time_points
-            self.peak_amplitudes = peak_amplitudes
-            self.unassigned = []
+        coordinates: np.ndarray
+        time_points: np.ndarray
+        peak_amplitudes: np.ndarray
+        unassigned: Optional[np.ndarray] = None
+
+        def __post_init__(self):
+            if not self.unassigned:
+                self.reset_assignment()
 
         def reset_assignment(self):
             self.unassigned = np.ones(self.time_points.shape, dtype=bool)
@@ -49,11 +97,11 @@ class KymoPeaks:
 
         Parameters
         ----------
-        coordinates : np.ndarray
+        coordinates : array_like
             Positional coordinates of detected peaks
-        time_points : np.ndarray
+        time_points : array_like
             Time points (in frame indices) of detected peaks
-        peak_amplitudes : np.ndarray
+        peak_amplitudes : array_like
             Peak amplitudes of detected peaks
 
         Raises
@@ -62,9 +110,6 @@ class KymoPeaks:
             When no points are given or when `coordinates`, `time_points` and `peak_amplitudes`
             don't have the same number of elements.
         """
-        if len(time_points) == 0:
-            raise ValueError("You need to provide at least one time point")
-
         if any(len(time_points) != len(x) for x in (coordinates, peak_amplitudes)):
             raise ValueError(
                 f"Number of time points ({len(time_points)}), coordinates ({len(coordinates)}) and "
@@ -72,18 +117,23 @@ class KymoPeaks:
             )
 
         self.frames = []
-        max_frame = math.ceil(np.max(time_points))
-        for current_frame in np.arange(max_frame + 1):
-            (in_frame_idx,) = np.where(
-                np.logical_and(time_points >= current_frame, time_points < current_frame + 1)
-            )
-            self.frames.append(
-                self.Frame(
-                    coordinates[in_frame_idx],
-                    time_points[in_frame_idx],
-                    peak_amplitudes[in_frame_idx],
+        coordinates, time_points, peak_amplitudes = (
+            np.asarray(c) for c in (coordinates, time_points, peak_amplitudes)
+        )
+
+        if len(time_points) > 0:
+            max_frame = math.ceil(np.max(time_points))
+            for current_frame in np.arange(max_frame + 1):
+                (in_frame_idx,) = np.where(
+                    np.logical_and(time_points >= current_frame, time_points < current_frame + 1)
                 )
-            )
+                self.frames.append(
+                    self.Frame(
+                        coordinates[in_frame_idx],
+                        time_points[in_frame_idx],
+                        peak_amplitudes[in_frame_idx],
+                    )
+                )
 
     def reset_assignment(self):
         for frame in self.frames:
@@ -95,6 +145,18 @@ class KymoPeaks:
         peak_amplitudes = np.hstack([frame.peak_amplitudes for frame in self.frames])
 
         return coordinates, time_points, peak_amplitudes
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self.frames[item]
+        else:
+            raise IndexError("Only integer indexing is allowed.")
+
+    def __repr__(self):
+        return f"KymoPeaks(N={len(self.frames)})"
+
+    def __bool__(self):
+        return bool(self.frames)
 
 
 def bounds_to_centroid_data(index_array, left_edges, right_edges):

@@ -27,9 +27,6 @@ def test_peak_estimation(location):
 
 
 def test_invalid_peak_construction():
-    with pytest.raises(ValueError, match="You need to provide at least one time point"):
-        KymoPeaks(np.array([]), np.array([]), np.array([]))
-
     for coordinates, amplitudes in (([3, 4], [3, 4, 5]), ([3, 4, 5], [3, 4])):
         with pytest.raises(
             ValueError,
@@ -75,6 +72,20 @@ def test_kymopeaks():
     np.testing.assert_allclose(peaks.frames[1].time_points, [1.0, 1.0])
     np.testing.assert_allclose(peaks.frames[0].peak_amplitudes, [2.0, 3.0])
     np.testing.assert_allclose(peaks.frames[1].peak_amplitudes, [3.0, 2.0])
+    assert str(peaks) == "KymoPeaks(N=2)"
+
+    # Indexing
+    np.testing.assert_allclose(peaks[0].coordinates, [3.2, 6.4])
+    np.testing.assert_allclose(peaks[1].coordinates, [4.1, 8.2])
+
+    assert not KymoPeaks([], [], [])
+
+
+def test_invalid_indexing():
+    peaks = KymoPeaks([1, 2], [1, 2], [1, 2])
+
+    with pytest.raises(IndexError, match="Only integer indexing is allowed"):
+        peaks[0:2]
 
 
 def test_peak_proximity_removal():
