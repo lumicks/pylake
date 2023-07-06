@@ -62,6 +62,7 @@ def track_greedy(
     channel,
     *,
     track_width=None,
+    filter_width=None,
     pixel_threshold=None,
     window=8,
     sigma=None,
@@ -106,6 +107,9 @@ def track_greedy(
 
         Note: For tracking purposes, the track width is rounded up to the nearest odd number of
         pixels; the resulting value must be at least 3 pixels.
+    filter_width : float or None
+        Filter width in microns. Should ideally be chosen to the width of the PSF (default: None which
+        results in half a pixel size for legacy reasons).
     pixel_threshold : float or None
         Intensity threshold for the pixels. Local maxima above this intensity level will be
         designated as a track origin. Must be larger than zero. If `None`, the default is set to the
@@ -180,6 +184,7 @@ def track_greedy(
         half_width_pixels,
         pixel_threshold,
         bias_correction=bias_correction,
+        filter_width=filter_width / kymograph.pixelsize_um[0] if filter_width is not None else 0.5,
         rect=_to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds)
         if rect
         else None,
