@@ -7,7 +7,12 @@ import scipy
 
 
 def find_kymograph_peaks(
-    kymograph_data, half_width_pixels, threshold, bias_correction=True, rect=None
+    kymograph_data,
+    half_width_pixels,
+    threshold,
+    bias_correction=True,
+    rect=None,
+    filter_width=0.5,
 ):
     """Find local peaks in a kymograph.
 
@@ -24,8 +29,11 @@ def find_kymograph_peaks(
     rect : tuple, optional
         Rectangle to crop results to. Tuple of integer pixel values referring to a pair of
         (time, position) coordinates. Default: no cropping.
+    filter_width : float
+        Width of the point spread function in pixels. Default: 0.5.
     """
-    coordinates, time_points = peak_estimate(kymograph_data, half_width_pixels, threshold)
+    filtered_data = scipy.ndimage.gaussian_filter(kymograph_data, [filter_width, 0], output=float)
+    coordinates, time_points = peak_estimate(filtered_data, half_width_pixels, threshold)
     if len(coordinates) == 0:
         return KymoPeaks([], [], [])
 
@@ -51,22 +59,23 @@ def find_kymograph_peaks(
 def peak_estimate(data, half_width, thresh):
     """Estimate initial peak locations from data.
 
-    Peaks are detected by dilating the image, and then determining which pixels did not change. These pixels correspond
-    to local maxima. A threshold is then applied to select which ones are relevant.
+    Peaks are detected by dilating the image, and then determining which pixels did not change.
+    These pixels correspond to local maxima. A threshold is then applied to select which ones are
+    relevant.
 
     Parameters
     ----------
     data : array_like
         A 2D image of pixel data.
     half_width : int
-        How much to dilate the image in pixels. This is value should be half of the width we are looking for
-        (rounded upwards). Prior to peak finding, the image is dilated symmetrically. With a half_width of 1 this
-        means turning [0 0 1 0 0] into [0 1 1 1 0] prior to peak-finding.
+        How much to dilate the image in pixels. This is value should be half of the width we are
+        looking for (rounded upwards). Prior to peak finding, the image is dilated symmetrically.
+        With a half_width of 1 this means turning [0 0 1 0 0] into [0 1 1 1 0] prior to
+        peak-finding.
     thresh : float
         Threshold for accepting something as a peak.
     """
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
-    data = scipy.ndimage.gaussian_filter(data, [0.5, 0])
     dilated = scipy.ndimage.grey_dilation(data, (dilation_factor, 0))
     dilated[dilated < thresh] = -1
     coordinates, time_points = np.where(data == dilated)
@@ -356,6 +365,7 @@ def refine_peak_based_on_moment(
     if half_kernel_size < 1:
         raise ValueError("half_kernel_size may not be smaller than 1")
 
+    data = np.asarray(data)
     half_kernel_size = int(math.ceil(half_kernel_size))
     dir_kernel = np.expand_dims(np.arange(half_kernel_size, -(half_kernel_size + 1), -1), 1)
     mean_kernel = np.ones((2 * half_kernel_size + 1, 1))
