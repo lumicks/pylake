@@ -70,10 +70,16 @@ class DiGraph:
         self.frames.append([Vertex(frame, p) for p in positions])
 
     def get_tracks(self):
-        tracks = [
-            [vertex.walk() for vertex in frame if vertex.is_head] for frame in self
-        ]
-        return tuple(chain(*tracks))
+        tracks_vertices = [[vertex.walk() for vertex in frame if vertex.is_head] for frame in self]
+        return tuple(chain(*tracks_vertices))
+
+    def get_kymotrackgroup(self, kymo, channel):
+        return KymoTrackGroup(
+            [
+                KymoTrack([int(v.frame) for v in t], [v.position for v in t], kymo, channel)
+                for t in self.get_tracks()
+            ]
+        )
 
 
 def calculate_edge_cost(v_prev, v_current):
@@ -88,17 +94,13 @@ def calculate_edge_cost(v_prev, v_current):
     """
 
     gap_length = v_current.frame - v_prev.frame
-    cost_diffusion = np.abs(v_current.position - v_prev.position) + (
-        (gap_length - 1) * 0.3
-    )
+    cost_diffusion = np.abs(v_current.position - v_prev.position) + ((gap_length - 1) * 0.3)
     # starting vertex, no previous motion information
     # fall back to pure diffusion
     if v_prev.parent is None:
         return cost_diffusion
 
-    slope = (v_prev.position - v_prev.parent.position) / (
-        v_prev.frame - v_prev.parent.frame
-    )
+    slope = (v_prev.position - v_prev.parent.position) / (v_prev.frame - v_prev.parent.frame)
     p_next_expected = v_prev.position + gap_length * slope
     cost_directed = v_current.position - p_next_expected
 
@@ -115,10 +117,20 @@ def calculate_cost_matrix(previous_frames, current_frame):
         for v_prev in previous_frames
         for v_current in current_frame
     ]
+
+    vs = [
+        (v_prev.coordinate, v_current.coordinate)
+        for v_prev in previous_frames
+        for v_current in current_frame
+    ]
+    print(cost)
+    for c, item in zip(cost, vs):
+        print(c, item)
+    print("***")
     return np.reshape(cost, (len(previous_frames), len(current_frame)))
 
 
-def track_multiframe(frame_positions, window=3):
+def track_multiframe(frame_positions, window=3, inspect_callback=None):
     d = DiGraph()
     for frame, positions in frame_positions:
         d.add_frame(frame, positions)
@@ -131,18 +143,24 @@ def track_multiframe(frame_positions, window=3):
     start_indices, connect_indices = linear_sum_assignment(cost)
     for start_index, connect_index in zip(start_indices, connect_indices):
         previous_frame[start_index].child = current_frame[connect_index]
+    if inspect_callback:
+        inspect_callback(d.get_kymotrackgroup, "initialize")
 
     # loop through frames, forming extension digraphs
     for current_frame_index in range(2, len(d)):
-        previous_frames = tuple(
-            chain(*[d[j] for j in current_frame_index - np.arange(1, window)])
-        )
+        previous_frames = tuple(chain(*[d[j] for j in current_frame_index - np.arange(1, window)]))
         current_frame = d[current_frame_index]
         cost = calculate_cost_matrix(previous_frames, current_frame)
 
         start_indices, connect_indices = linear_sum_assignment(cost)
+        print("first pass")
+        print(cost)
+        print(start_indices)
+        print(connect_indices)
         for start_index, connect_index in zip(start_indices, connect_indices):
             previous_frames[start_index].child = current_frame[connect_index]
+        if inspect_callback:
+            inspect_callback(d.get_kymotrackgroup, f"before false hyp rep {current_frame_index}")
 
         # false hypothesis replacement
         for fhr_prev_idx in range(current_frame_index):
@@ -150,10 +168,21 @@ def track_multiframe(frame_positions, window=3):
             current_frame = [v for v in d[fhr_prev_idx + 1] if v.parent is None]
             cost = calculate_cost_matrix(previous_frame, current_frame)
             start_indices, connect_indices = linear_sum_assignment(cost)
+            print("false hyp repr")
+            print(cost)
+            print(start_indices)
+            print(connect_indices)
+            print("=" * 50)
             for start_index, connect_index in zip(start_indices, connect_indices):
                 previous_frame[start_index].child = current_frame[connect_index]
 
+        if inspect_callback:
+            inspect_callback(d.get_kymotrackgroup, current_frame_index)
+
         # TODO: add backtracking when current frame == window size
+
+        if current_frame_index > 3:
+            break
 
     return d
 
@@ -179,7 +208,7 @@ if __name__ == "__main__":
         if start_position is None:
             start_position = np.random.uniform(0, tether_length, size=num_tracks)
         if start_times is None:
-            start_times = np.random.exponential(1/1.8, size=num_tracks)
+            start_times = np.random.exponential(1 / 1.8, size=num_tracks)
             start_frames = np.array(start_times // 0.075).astype(int)
         start_frames = start_frames - np.min(start_frames)
 
@@ -193,7 +222,9 @@ if __name__ == "__main__":
 
         tracks = KymoTrackGroup(
             [
-                KymoTrack(t.time_idx[:n] + start_frame, t.position[:n] + p + vel(n), t._kymo, t._channel)
+                KymoTrack(
+                    t.time_idx[:n] + start_frame, t.position[:n] + p + vel(n), t._kymo, t._channel
+                )
                 for t, p, start_frame, n in zip(tracks, start_position, start_frames, num_frames)
             ]
         )
@@ -209,21 +240,20 @@ if __name__ == "__main__":
         frames = [(j, positions[frame_indices == j]) for j in np.unique(frame_indices)]
         return frames
 
-
     num_frames = [20, 10, 50, 5, 20]
     tracks = make_tracks(len(num_frames), num_frames, 15)
     frames = extract_coordinates_from_tracks(tracks)
-    d = track_multiframe(frames, window=3)
 
-    new_tracks = []
-    ref = tracks[0]
-    for t in d.get_tracks():
-        new_tracks.append(
-            KymoTrack([int(v.frame) for v in t], [v.position for v in t], ref._kymo, ref._channel)
-        )
-    new_tracks = KymoTrackGroup(new_tracks)
+    def inspect_callback(gfunc, title):
+        new_tracks = gfunc(tracks[0]._kymo, tracks[0]._channel)
+        tracks.plot(lw=7, marker=".", color="r", show_outline=False)
+        new_tracks.plot(marker=".", color="lightskyblue")
+        plt.title(title)
+        plt.show()
 
+    d = track_multiframe(frames, window=3, inspect_callback=inspect_callback)
 
+    new_tracks = d.get_kymotrackgroup(tracks[0]._kymo, tracks[0]._channel)
     tracks.plot(lw=7, marker=".", color="r", show_outline=False)
     new_tracks.plot(marker=".", color="lightskyblue")
-    plt.show()
+    # plt.show()
