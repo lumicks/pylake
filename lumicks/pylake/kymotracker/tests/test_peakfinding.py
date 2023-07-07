@@ -62,6 +62,19 @@ def test_regression_peak_estimation():
     assert len(position) == 3
 
 
+def test_minimum_threshold_peakfinding():
+    data = np.full((5, 5), fill_value=30)
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Threshold (30) cannot be lower than or equal to the lowest filtered pixel (30)"
+        ),
+    ):
+        _ = peak_estimate(data, 1, thresh=30)
+
+    _, _ = peak_estimate(data, 1, thresh=30.1)
+
+
 def test_kymopeaks():
     # First time frame we choose the right one first, then the second one. Second time frame vice
     # versa.
