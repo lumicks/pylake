@@ -96,7 +96,7 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
 def test_greedy_sampling_track_width(track_width, ref_counts):
     kymo = _kymo_from_array(np.vstack([np.array([1, 1, 1, 2, 3, 2, 1, 1, 1])] * 2).T, "r", 1)
     group = track_greedy(
-        kymo, "red", pixel_threshold=1, track_width=track_width * kymo.pixelsize[0]
+        kymo, "red", pixel_threshold=2, track_width=track_width * kymo.pixelsize[0]
     )
     np.testing.assert_equal(group[0].photon_counts, np.full((2,), ref_counts))
 

@@ -94,13 +94,13 @@ def test_pixel_origin_sample_from_image(img):
     of the pixel. In that case, what happens in this test is that pulling the track slightly off
     the single pixel line in the negative direction results in the center of the sampling window
     shifting towards the previous pixel."""
-    tracks = track_greedy(_kymo_from_array(img, "r", 0.2), "red", pixel_threshold=10)
+    tracks = track_greedy(_kymo_from_array(img, "r", 0.2), "red", pixel_threshold=51)
     np.testing.assert_equal(tracks[0].sample_from_image(0, correct_origin=True), [100, 100, 100])
 
 
 def test_origin_warning_sample_from_image():
     img = np.asarray([[0, 0, 0], [100, 100, 100], [50, 50, 50]])
-    tracks = track_greedy(_kymo_from_array(img, "r", 0.2), "red", pixel_threshold=10)
+    tracks = track_greedy(_kymo_from_array(img, "r", 0.2), "red", pixel_threshold=11)
 
     with pytest.warns(
         RuntimeWarning,

@@ -75,6 +75,12 @@ def peak_estimate(data, half_width, thresh):
     thresh : float
         Threshold for accepting something as a peak.
     """
+    if thresh <= (minimum_value := np.min(data)):
+        raise RuntimeError(
+            f"Threshold ({thresh}) cannot be lower than or equal to the lowest filtered "
+            f"pixel ({minimum_value})"
+        )
+
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
     dilated = scipy.ndimage.grey_dilation(data, (dilation_factor, 0))
     dilated[dilated < thresh] = -1
