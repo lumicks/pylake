@@ -7,7 +7,13 @@ import math
 
 
 def find_kymograph_peaks(
-    kymograph_data, half_width_pixels, threshold, bias_correction=True, rect=None, filter_width=0.5,
+    kymograph_data,
+    half_width_pixels,
+    threshold,
+    bias_correction=True,
+    rect=None,
+    filter_width=0.5,
+    adjacency_half_width=None,
 ):
     """Find local peaks in a kymograph.
 
@@ -26,9 +32,14 @@ def find_kymograph_peaks(
         (time, position) coordinates. Default: no cropping.
     filter_width : float
         Width of the point spread function. Default: 0.5.
+    adjacency_half_width : int, optional
+        When provided, a detection always needs a detection within a certain cutoff radius in an
+        adjacent frame. This can be used to suppress singular noise peaks.
     """
     filtered_data = gaussian_filter(kymograph_data, [filter_width, 0])
-    coordinates, time_points = peak_estimate(filtered_data, half_width_pixels, threshold)
+    coordinates, time_points = peak_estimate(
+        filtered_data, half_width_pixels, threshold, adjacency_half_width
+    )
     if len(coordinates) == 0:
         return KymoPeaks([], [], [])
 
@@ -51,7 +62,7 @@ def find_kymograph_peaks(
     return merge_close_peaks(KymoPeaks(position, time, m0), half_width_pixels)
 
 
-def peak_estimate(data, half_width, thresh):
+def peak_estimate(data, half_width, thresh, adjacency_half_width=None):
     """Estimate initial peak locations from data.
 
     Peaks are detected by dilating the image, and then determining which pixels did not change.
@@ -69,11 +80,21 @@ def peak_estimate(data, half_width, thresh):
         peak-finding.
     thresh : float
         Threshold for accepting something as a peak.
+    adjacency_half_width : int, optional
+        When provided, a detection always needs a detection within a certain cutoff radius in an
+        adjacent frame. This can be used to suppress singular noise peaks.
     """
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
     dilated = grey_dilation(data, (dilation_factor, 0))
-    dilated[dilated < thresh] = -1
-    coordinates, time_points = np.where(data == dilated)
+    thresholded_local_maxima = np.logical_and(data == dilated, data >= thresh)
+
+    # Reject maxima that have no maximum in an adjacent frame.
+    if adjacency_half_width:
+        mask_size = 2 * adjacency_half_width + 1
+        mask = np.vstack((np.ones(mask_size), np.zeros(mask_size), np.ones(mask_size))).T
+        thresholded_local_maxima *= convolve2d(thresholded_local_maxima, mask, mode="same") > 0
+
+    coordinates, time_points = np.where(thresholded_local_maxima)
     return coordinates, time_points
 
 
