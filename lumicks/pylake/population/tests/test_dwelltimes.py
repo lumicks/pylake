@@ -292,10 +292,12 @@ def test_plots(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
     fit.hist()
+    plt.close('all')
 
     np.random.seed(123)
     bootstrap = fit.calculate_bootstrap(iterations=2)
     bootstrap.hist()
+    plt.close('all')
 
     with pytest.warns(DeprecationWarning):
         bootstrap.plot()

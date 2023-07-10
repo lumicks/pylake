@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import matplotlib.pyplot as plt
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
 from lumicks.pylake.piezo_tracking.piezo_tracking import (
     DistanceCalibration,
@@ -83,6 +84,9 @@ def test_from_file():
 def test_plots():
     distance_calibration = DistanceCalibration(*trap_pos_camera_distance(), 1)
     distance_calibration.plot()
+    # Needed since otherwise second plot will issue warning about changing layout (since they both
+    # call tight_layout()
+    plt.close('all')
     distance_calibration.plot_residual()
 
 
