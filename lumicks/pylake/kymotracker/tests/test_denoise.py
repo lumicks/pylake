@@ -99,3 +99,24 @@ def test_variance_stabilizing_transform():
     result = variance_stabilizing_transform(img, coeffs)
     np.testing.assert_allclose(result, ref)
     np.testing.assert_allclose(inverse_variance_stabilizing_transform(result, coeffs), img)
+
+
+def test_wavelets():
+    image = [
+        [0, 2, 0, 1, 0, 2, 0],
+        [0, 0, 2, 0, 2, 0, 0],
+        [0, 2, 0, 1, 0, 2, 0],
+    ]
+
+    ms_vst = MultiScaleVarianceStabilizingTransform(generate_bspline_kernels(3))
+    coeffs = []
+    for stabilized in (False, True):
+        detail_coeffs, remainder = ms_vst._calculate_wavelets(np.asarray(image), stabilized)
+        np.testing.assert_allclose(
+            ms_vst._reconstruct_image(detail_coeffs, remainder, stabilized), image, atol=1e-6
+        )
+        coeffs.append(detail_coeffs)
+
+    # Verify that stabilization results in different detail coefficients
+    for c_not_stabilized, c_stabilized in zip(*coeffs):
+        assert np.max(np.abs(c_not_stabilized - c_stabilized)) > 1e-2

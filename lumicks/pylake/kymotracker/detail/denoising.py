@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.signal
+from scipy.ndimage import convolve
 
 
 def equal_length(kernels):
@@ -177,3 +178,79 @@ class MultiScaleVarianceStabilizingTransform:
             calculate_vst_stdev(k1, k2)
             for k1, k2 in zip(self._full_kernels[1:], self._full_kernels[:-1])
         ]
+
+    def _calculate_wavelets(self, image, stabilize):
+        """Calculate the wavelet coefficient images and remainder of a IUWT wavelet transform
+
+        Parameters
+        ----------
+        image : np.ndarray
+            Image to decompose into wavelet coefficients.
+        stabilize : bool
+            Applies a transformation that stabilizes the variance for the coefficient images.
+
+        Returns
+        -------
+        detail_coefficients : List[np.ndarray]
+            List of images representing the detail coefficients for each wavelet.
+        remainder : np.ndarray
+            Image containing the remainder (what's left after adding the detail layers).
+        """
+        filtered_imgs = [convolve(image, kernel) for kernel in self._full_kernels]
+
+        # Stabilize variance
+        if stabilize:
+            filtered_imgs = [
+                variance_stabilizing_transform(img, coeffs)
+                for img, coeffs in zip(filtered_imgs, self._coefficients)
+            ]
+
+        detail_coefficients = [f1 - f2 for f1, f2 in zip(filtered_imgs, filtered_imgs[1:])]
+        remainder = filtered_imgs[-1]
+
+        return detail_coefficients, remainder
+
+    def _reconstruct_image(self, detail_coefficients, remainder, stabilize):
+        """Reconstructs image from wavelet decomposition.
+
+        Parameters
+        ----------
+        detail_coefficients : List[np.ndarray]
+            List of images representing the detail coefficients for each wavelet.
+        remainder : np.ndarray
+            Image containing the remainder (what's left after adding the detail layers).
+        stabilize : bool
+            Indicate that the detail coefficients were stabilized and this transform
+            must be inverted.
+        """
+        output_image = sum(detail_coefficients + [remainder])
+        if not stabilize:
+            return output_image
+
+        return inverse_variance_stabilizing_transform(output_image, self._coefficients[0])
+
+    def process_image(self, image, verbose=False):
+        """Process an image with MS-VST.
+
+        Parameters
+        ----------
+        image : np.ndarray
+            Image array
+        verbose : bool
+            Show extra output
+        """
+        detail_coefficients, remainder = self._calculate_wavelets(image, stabilize=True)
+
+        if verbose:
+            for d, stdev in zip(detail_coefficients, self._stdev):
+                print(f"practical: {np.std(d.flatten())}, theoretical: {stdev}")
+
+        # Inverse transform
+        output_image = self._reconstruct_image(detail_coefficients, remainder, stabilize=True)
+
+        # Enforce positivity. Error model states that negative values don't make sense. Yet they
+        # can still occur because of the overcompleteness of the IUWT and the fact that we
+        # modified values in the detail coefficients directly.
+        output_image[output_image < 0] = 0
+
+        return output_image
