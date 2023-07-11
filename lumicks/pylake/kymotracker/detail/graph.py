@@ -3,6 +3,7 @@ from scipy.optimize import linear_sum_assignment
 from itertools import chain
 from dataclasses import dataclass, field
 from typing import List
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 
 
 @dataclass
@@ -80,6 +81,72 @@ class DiGraph:
                 for t in self.get_tracks()
             ]
         )
+
+
+class CostMatrix:
+    class SinkVertex(Vertex):
+        pass
+
+    def __init__(self, previous_vertices, current_vertices):
+        current_frame_index = current_vertices[0].frame
+        first_frame_index = current_frame_index - 2
+
+        self.vertices = {
+            "previous": previous_vertices,
+            "current": current_vertices,
+            "sink": [CostMatrix.SinkVertex(current_frame_index, v.position + 0.3) for v in previous_vertices],
+            "existing": [v for v in previous_vertices if v.frame != first_frame_index]
+        }
+
+        self.start_map = {id(v): j for j, v in enumerate(previous_vertices)}
+        self.end_vertices = current_vertices + self.vertices["existing"] + self.vertices["sink"]
+        self.end_map = {id(v): j for j, v in enumerate(self.end_vertices)}
+        n_end_vertices = len(self.end_vertices)
+
+        self.matrix = np.full((len(previous_vertices), n_end_vertices), np.inf)
+
+    def set(self, row_vertex, col_vertex, cost):
+        row_idx = self.start_map[id(row_vertex)]
+        col_idx = self.end_map[id(col_vertex)]
+        self.matrix[row_idx, col_idx] = cost
+
+    def get(self, row, col):
+        start_id = [vid for vid, idx in self.start_map.items() if idx == row][0]
+        start_vertex = [v for v in self.vertices["previous"] if id(v) == start_id][0]
+
+        end_id = [vid for vid, idx in self.end_map.items() if idx == col][0]
+        end_vertex = [v for v in self.end_vertices if id(v) == end_id][0]
+
+        return start_vertex, None if isinstance(end_vertex, CostMatrix.SinkVertex) else end_vertex
+
+    def calculate(self):
+        # * extension edges + replacement edges
+        for start_vertex in self.vertices["previous"]:
+            for end_vertex in self.vertices["current"]:
+                start = self.start_map[id(start_vertex)]
+                end = self.end_map[id(end_vertex)]
+                cost = calculate_edge_cost(start_vertex, end_vertex)
+                # self.matrix[start, end] = cost
+                self.set(start_vertex, end_vertex, cost)
+
+        # * existing edges
+        for end_vertex in self.vertices["existing"]:
+            if (start_vertex := end_vertex.parent):
+                start = self.start_map[id(start_vertex)]
+                end = self.end_map[id(end_vertex)]
+                cost = calculate_edge_cost(start_vertex, end_vertex)
+                self.matrix[start, end] = cost
+                self.set(start_vertex, end_vertex, cost)
+
+        # * sink edges
+        for j in range(len(self.vertices["previous"])):
+            start_vertex = self.vertices["previous"][j]
+            end_vertex = self.vertices["sink"][j]
+            start = self.start_map[id(start_vertex)]
+            end = self.end_map[id(end_vertex)]
+            cost = calculate_edge_cost(start_vertex, end_vertex)
+            self.matrix[start, end] = cost
+            self.set(start_vertex, end_vertex, cost)
 
 
 def calculate_edge_cost(v_prev, v_current):
@@ -162,22 +229,22 @@ def track_multiframe(frame_positions, window=3, inspect_callback=None):
         if inspect_callback:
             inspect_callback(d.get_kymotrackgroup, f"before false hyp rep {current_frame_index}")
 
-        # false hypothesis replacement
-        for fhr_prev_idx in range(current_frame_index):
-            previous_frame = [v for v in d[fhr_prev_idx] if v.child is None]
-            current_frame = [v for v in d[fhr_prev_idx + 1] if v.parent is None]
-            cost = calculate_cost_matrix(previous_frame, current_frame)
-            start_indices, connect_indices = linear_sum_assignment(cost)
-            print("false hyp repr")
-            print(cost)
-            print(start_indices)
-            print(connect_indices)
-            print("=" * 50)
-            for start_index, connect_index in zip(start_indices, connect_indices):
-                previous_frame[start_index].child = current_frame[connect_index]
+        # # false hypothesis replacement
+        # for fhr_prev_idx in range(current_frame_index):
+        #     previous_frame = [v for v in d[fhr_prev_idx] if v.child is None]
+        #     current_frame = [v for v in d[fhr_prev_idx + 1] if v.parent is None]
+        #     cost = calculate_cost_matrix(previous_frame, current_frame)
+        #     start_indices, connect_indices = linear_sum_assignment(cost)
+        #     print("false hyp repr")
+        #     print(cost)
+        #     print(start_indices)
+        #     print(connect_indices)
+        #     print("=" * 50)
+        #     for start_index, connect_index in zip(start_indices, connect_indices):
+        #         previous_frame[start_index].child = current_frame[connect_index]
 
-        if inspect_callback:
-            inspect_callback(d.get_kymotrackgroup, current_frame_index)
+        # if inspect_callback:
+        #     inspect_callback(d.get_kymotrackgroup, current_frame_index)
 
         # TODO: add backtracking when current frame == window size
 
@@ -191,7 +258,6 @@ if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt
     from lumicks.pylake.simulation import simulate_diffusive_tracks
-    from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 
     np.random.seed(198507102)
 
