@@ -161,3 +161,23 @@ def test_denoising_basic(two_dimensional, reference_data):
             output_image, file_name="output_image_2d" if two_dimensional else "output_image_1d"
         ),
     )
+
+
+@pytest.mark.parametrize(
+    "two_dimensional, remove_background",
+    [(False, False), (False, True), (True, False), (True, True)],
+)
+def test_denoising_regularized(two_dimensional, remove_background, reference_data):
+    data, truth = denoising_source_image()
+    kernels = generate_bspline_kernels(3)
+    msvst = MultiScaleVarianceStabilizingTransform(kernels, two_dimensional=two_dimensional)
+    image = msvst.filter_regularized(
+        data, false_detection_rate=0.1, remove_background=remove_background
+    )
+    np.testing.assert_allclose(
+        image,
+        reference_data(
+            image,
+            file_name=f"{1 + two_dimensional}d_{'no_' if remove_background else ''}background",
+        ),
+    )

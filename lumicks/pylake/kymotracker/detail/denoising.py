@@ -289,6 +289,7 @@ class MultiScaleVarianceStabilizingTransform:
         verbose : bool
             Show extra output
         """
+        image = np.array(image, dtype=float)  # integer arrays lose quality when convolved
         detail_coefficients, remainder = self._calculate_wavelets(image, stabilize=True)
 
         if verbose:
@@ -314,3 +315,105 @@ class MultiScaleVarianceStabilizingTransform:
         output_image[output_image < 0] = 0
 
         return output_image, significant
+
+    def filter_regularized(
+        self,
+        image,
+        false_detection_rate=0.1,
+        num_iter=10,
+        remove_background=True,
+        verbose=False,
+    ):
+        """Filter the image using a regularized wavelet reconstruction.
+
+        This reconstructs the image, but with the additional constraint that the
+        resulting image has to be positive and sparse (L1 regularization). This regularization
+        procedure helps, since the IUWT is overcomplete.
+
+        The regularization (shrinkage) is performed by shrinking coefficients towards zero. This
+        is done via a soft-thresholding procedure where coefficients below a threshold are set to
+        zero, while values above the threshold are shrunk towards zero. The threshold is then
+        decreased each step (this is a requirement for the algorithm). Note that at each step, the
+        significant structures are forced to be maintained.
+
+        As a result, we will get a sparse representation that fulfills positivity, while
+        keeping all the coefficients that were significant.
+
+        Parameters
+        ----------
+        image : np.ndarray
+            Image array
+        false_detection_rate : float
+            Represents the False Detection Rate when it comes to pixels with significant
+            signal. The probability of erroneously detecting spots in a spot-free homogeneous
+            noise is upper bounded by this value.
+        num_iter : int
+            Number of iterations to run.
+        remove_background : bool
+            Remove the background after approximating the image? This amounts to not adding
+            the final approximation layer.
+        verbose : bool
+            Show some output while it is running.
+        """
+        image = np.array(image, dtype=float)  # integer arrays lose quality when convolved
+
+        # Grab the significant wavelet coefficients first.
+        _, significant = self.filter_image(image, false_detection_rate=false_detection_rate)
+
+        detailed_coeffs, remainder = self._calculate_wavelets(image, stabilize=False)
+
+        def positivity_projector(coefficients):
+            """Calculate the coefficients that will lead to a fully positive reconstruction
+
+            This corresponds to the operator Qs2 in the paper [1].
+
+            Parameters
+            ----------
+            coefficients : list of np.ndarray
+                Wavelet detail coefficients
+            """
+            img = sum(coefficients) + remainder
+            positive_img = np.clip(img, 0, np.inf)
+            coefficients, rem = self._calculate_wavelets(positive_img, stabilize=False)
+            return coefficients
+
+        def significance_enforcer(coefficients):
+            """Force significant structures to remain.
+
+            This corresponds to the operator Ps in the paper [1].
+
+            Parameters
+            ----------
+            coefficients : list of np.ndarray
+                Wavelet detail coefficients
+            """
+            for c, d, sig in zip(coefficients, detailed_coeffs, significant):
+                c[sig] = d[sig]
+            return coefficients
+
+        current_coeffs = [np.copy(d) for d in detailed_coeffs]
+        beta = 1.0
+
+        for k in range(num_iter):
+            positive = positivity_projector(current_coeffs)
+            next_solution = significance_enforcer(positive)
+
+            if verbose:
+                print(f"Iter: {k}: Beta={beta}")
+
+            def soft_threshold(detail_coeffs, treshold):
+                """Soft-thresholding in the context of L1 optimization involves stepping towards
+                zero, and truncating any values below the stepsize to zero"""
+                detail_coeffs[abs(detail_coeffs) < treshold] = 0.0
+                detail_coeffs[detail_coeffs > treshold] -= treshold
+                detail_coeffs[detail_coeffs < -treshold] += treshold
+                return detail_coeffs
+
+            current_coeffs = [soft_threshold(d.copy(), beta) for d in next_solution]
+            beta -= 1.0 / num_iter
+
+        reconstructed_img = sum(current_coeffs)
+        if not remove_background:
+            reconstructed_img += remainder
+
+        return np.clip(reconstructed_img, 0.0, np.inf)
