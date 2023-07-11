@@ -120,3 +120,44 @@ def test_wavelets():
     # Verify that stabilization results in different detail coefficients
     for c_not_stabilized, c_stabilized in zip(*coeffs):
         assert np.max(np.abs(c_not_stabilized - c_stabilized)) > 1e-2
+
+
+@pytest.mark.parametrize(
+    "stdev, false_detection_rate, expected_sig",
+    [
+        [1, 0.1, 64],
+        [1, 1.0, 100],  # fdr = 1 means everything is significant
+        [1.5, 0.1, 40],
+        [1.0, 0.2, 72],
+        [1.0, 0.3, 76],
+    ],
+)
+def test_significance_function(stdev, false_detection_rate, expected_sig):
+    image = np.array([np.linspace(-5.0, 5.0, 100)])
+    significant = determine_significant(image, stdev, false_detection_rate=false_detection_rate)
+    np.testing.assert_equal(np.sum(significant), expected_sig)
+
+
+def denoising_source_image():
+    x, y = np.meshgrid(np.linspace(-5.0, 5.0, 41), np.linspace(-5.0, 5.0, 41))
+    np.random.seed(5)
+    truth = 0.2 * (x + 6) * (y + 6) * (np.sin(x) * np.sin(y)) ** 12 + 3
+    data = np.random.poisson(truth)
+    return data, truth
+
+
+@pytest.mark.parametrize(
+    "two_dimensional",
+    [False, True],
+)
+def test_denoising_basic(two_dimensional, reference_data):
+    data, truth = denoising_source_image()
+    kernels = generate_bspline_kernels(3)
+    msvst = MultiScaleVarianceStabilizingTransform(kernels, two_dimensional=two_dimensional)
+    output_image, significant = msvst.filter_image(data, false_detection_rate=0.1)
+    np.testing.assert_allclose(
+        output_image,
+        reference_data(
+            output_image, file_name="output_image_2d" if two_dimensional else "output_image_1d"
+        ),
+    )
