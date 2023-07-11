@@ -138,6 +138,52 @@ def inverse_variance_stabilizing_transform(image, coefficients):
     return np.sign(image) * (image / b) ** 2 - c
 
 
+def determine_significant(image, stdev, false_detection_rate=0.1):
+    """Determines significant pixels in an image
+
+    This method assumes that pixels are distributed according to N(0, stdev) and tests which pixels
+    have significant signal in them. Considering that we are doing a large number of tests, we
+    apply a correction to control the number of false positives we get. This correction is given
+    by the Benjamini-Hochberg procedure [1].
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Image
+    stdev : float
+        Expected standard deviation of the distribution based on theoretical considerations.
+    false_detection_rate : float
+        Represents the False Detection Rate when it comes to pixels with significant
+        signal. The probability of erroneously detecting spots in a spot-free homogeneous
+        noise is upper bounded by this value. The FDR is technically given by:
+        false_positive / (false_positive + true_positive).
+
+    Raises
+    ------
+    ValueError
+        if standard deviation is negative
+
+    References
+    ----------
+    .. [1] Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate: a practical
+           and powerful approach to multiple testing. Journal of the Royal statistical society:
+           series B (Methodological), 57(1), 289-300.
+    """
+    if stdev < 0:
+        raise ValueError("Standard deviation must be positive")
+
+    raw_pvalues = 2.0 * (1.0 - scipy.stats.norm.cdf(np.abs(image) / stdev))
+    pvalues = np.sort(raw_pvalues.flatten())
+
+    # TODO: Offer a correction for dependent samples
+    num_tests = len(pvalues)
+    pvalue_threshold = false_detection_rate * np.arange(1, num_tests + 1) / num_tests
+    comp = pvalues < pvalue_threshold
+    p_cutoff = pvalues[comp][-1] if np.any(comp) else 0.0
+
+    return raw_pvalues <= p_cutoff
+
+
 class MultiScaleVarianceStabilizingTransform:
     """Calculates the required coefficients for determining the variance stabilizing transform (VST)
 
@@ -229,13 +275,17 @@ class MultiScaleVarianceStabilizingTransform:
 
         return inverse_variance_stabilizing_transform(output_image, self._coefficients[0])
 
-    def process_image(self, image, verbose=False):
-        """Process an image with MS-VST.
+    def filter_image(self, image, false_detection_rate=0.1, verbose=False):
+        """Filter an image with MS-VST.
 
         Parameters
         ----------
         image : np.ndarray
             Image array
+        false_detection_rate : float
+            Represents the False Detection Rate when it comes to pixels with significant
+            signal. The probability of erroneously detecting spots in a spot-free homogeneous
+            noise is upper bounded by this value.
         verbose : bool
             Show extra output
         """
@@ -245,6 +295,16 @@ class MultiScaleVarianceStabilizingTransform:
             for d, stdev in zip(detail_coefficients, self._stdev):
                 print(f"practical: {np.std(d.flatten())}, theoretical: {stdev}")
 
+        # Determine significant coefficients. At this point, the distribution is approximately
+        # normal and the standard deviation is known by construction.
+        significant = [
+            determine_significant(d, stdev, false_detection_rate=false_detection_rate)
+            for d, stdev in zip(detail_coefficients, self._stdev)
+        ]
+
+        # Filter the insignificant coefficients
+        detail_coefficients = [d * sig for d, sig in zip(detail_coefficients, significant)]
+
         # Inverse transform
         output_image = self._reconstruct_image(detail_coefficients, remainder, stabilize=True)
 
@@ -253,4 +313,4 @@ class MultiScaleVarianceStabilizingTransform:
         # modified values in the detail coefficients directly.
         output_image[output_image < 0] = 0
 
-        return output_image
+        return output_image, significant
