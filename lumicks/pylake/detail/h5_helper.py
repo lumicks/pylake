@@ -13,9 +13,10 @@ def write_h5(h5_file, output_filename, compression_level=5, omit_data=None):
         Output file name.
     compression_level : int
         Compression level for gzip compression.
-    omit_data : Optional[Set[str]]
+    omit_data : str or iterable of str, optional
         Which data sets to omit. Should be a set of h5 paths.
     """
+    omit_data = {omit_data} if isinstance(omit_data, str) else omit_data
 
     with h5py.File(output_filename, "w") as out_file:
 
