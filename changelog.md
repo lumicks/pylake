@@ -14,6 +14,7 @@
 * Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
 * Use Unicode characters for µ and ² when plotting rather than TeX strings.
 * Deprecated fitting mode `"multiple"` in `lk.refine_tracks_gaussian()` as it could lead to spurious track crossings. See the entry for the fitting mode `"simultaneous"` under `New Features` for more information.
+* [`File.save_as()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.File.html#lumicks.pylake.File.save_as) data now allows passing in a single string for the `omit_data` parameter.
 
 ## v1.1.1 | 2023-06-13
 

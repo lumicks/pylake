@@ -312,7 +312,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             Output file name.
         compression_level : int
             Compression level for gzip compression (default: 5).
-        omit_data : Optional[Set[str]]
+        omit_data : str or iterable of str, optional
             Which data sets to omit. Should be a set of h5 paths (e.g. {"Force HF/Force 1y"}).
             `fnmatch` patterns are used to specify which fields to omit, which means you can use
             wildcards as well (see examples below).
@@ -324,12 +324,23 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             import lumicks.pylake as lk
 
             file = lk.File("example.h5")
-            file.save_as("smaller.h5", compression_level=9)  # Saves a file with a high compression level
 
-            file.save_as("no_hf.h5", omit_data={"Force HF/*"})  # Omit high frequency force data.
+            # Saves a file with a high compression level
+            file.save_as("smaller.h5", compression_level=9)
 
-            file.save_as("no_hf.h5", omit_data={"*/Force 1y"})  # Omit Force 1y data
+            # Omit high frequency force data.
+            file.save_as("no_hf.h5", omit_data="Force HF/*")
 
-            file.save_as("no_1y.h5", omit_data={"Force HF/Force 1y"})  # Omit high frequency force data for channel 1y
+            # Omit Force 1y data
+            file.save_as("no_hf.h5", omit_data="*/Force 1y")
+
+            # Omit Force 1y and 2y data
+            file.save_as("no_hf.h5", omit_data=("*/Force 1y", "*/Force 2y"))
+
+            # Omit high frequency force data for channel 1y
+            file.save_as("no_1y.h5", omit_data="Force HF/Force 1y")
+
+            # Omit Scan "1"
+            file.save_as("no_scan_1.h5", omit_data="Scan/1")
         """
         write_h5(self.h5, filename, compression_level, omit_data)

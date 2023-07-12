@@ -264,16 +264,19 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     with pytest.raises(KeyError):
         assert np.any(omit_lf1y["Force LF"]["Force 1y"].data)
 
-    new_file = f"{tmpdir}/omit_1y.h5"
-    save_h5(f, new_file, 5, omit_data={"*/Force 1y"})
-    omit_1y = pylake.File(new_file)
+    for ix, drop_style in enumerate(
+        ({"*/Force 1y"}, ["*/Force 1y"], ("*/Force 1y", ), "*/Force 1y")
+    ):
+        new_file = f"{tmpdir}/omit_1y_{ix}.h5"
+        save_h5(f, new_file, 5, omit_data=drop_style)
+        omit_1y = pylake.File(new_file)
 
-    np.testing.assert_allclose(omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
-    np.testing.assert_allclose(omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
-    with pytest.raises(KeyError):
-        np.testing.assert_allclose(omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
-    with pytest.raises(KeyError):
-        assert np.any(omit_1y["Force LF"]["Force 1y"].data)
+        np.testing.assert_allclose(omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+        np.testing.assert_allclose(omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+        with pytest.raises(KeyError):
+            np.testing.assert_allclose(omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+        with pytest.raises(KeyError):
+            assert np.any(omit_1y["Force LF"]["Force 1y"].data)
 
     new_file = f"{tmpdir}/omit_hf.h5"
     save_h5(f, new_file, 5, omit_data={"Force HF/*"})
