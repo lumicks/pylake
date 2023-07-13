@@ -57,6 +57,10 @@ class Vertex:
         return track
 
 
+class SinkVertex(Vertex):
+        pass
+
+
 @dataclass
 class DiGraph:
     frames: List[Vertex] = field(default_factory=list)
@@ -95,7 +99,10 @@ class CostMatrix:
             "previous": previous_vertices,
             "current": current_vertices,
             "sink": [
-                CostMatrix.SinkVertex(current_frame_index, v.position + ((current_frame_index - v.frame) * search_penalty))
+                CostMatrix.SinkVertex(
+                    current_frame_index,
+                    v.position + ((current_frame_index - v.frame) * search_penalty),
+                )
                 for v in previous_vertices
             ],
             "existing": [v for v in previous_vertices if v.frame != first_frame_index],
@@ -169,6 +176,37 @@ def calculate_edge_cost(v_prev, v_current):
     return (mu_1 * cost_diffusion + mu_2 * cost_directed) / (mu_1 + mu_2)
 
 
+def calculate_cost_matrix(previous_vertices, current_vertices, search_penalty=0.3):
+    current_frame_index = current_vertices[0].frame
+    first_frame_index = current_frame_index - 2
+    sink_vertices = [
+        SinkVertex(
+            current_frame_index,
+            v.position + ((current_frame_index - v.frame) * search_penalty),
+        )
+        for v in previous_vertices
+    ]
+    existing_vertices = [v for v in previous_vertices if v.frame != first_frame_index]
+
+    extensions = [[(start, end) for end in current_vertices] for start in previous_vertices]
+    # what if child is out of serach window (due to gap)?
+    existing = [
+        [(start, end) if (start == end.parent) else (None, None) for end in existing_vertices]
+        for start in previous_vertices
+    ]
+    sinks = [
+        [(start, end) if j == k else (None, None) for k, end in enumerate(sink_vertices)]
+        for j, start in enumerate(previous_vertices)
+    ]
+    v_matrix = [x + e + s for x, e, s in zip(extensions, existing, sinks)]
+
+    matrix = [
+        [calculate_edge_cost(start, end) if start is not None else np.inf for start, end in row]
+        for row in v_matrix
+    ]
+    return np.array(matrix), v_matrix
+
+
 def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_callback=None):
     d = DiGraph()
     for frame, positions in frame_positions:
@@ -191,12 +229,20 @@ def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_call
         previous_frames = tuple(chain(*[d[j] for j in current_frame_index - np.arange(1, window)]))
         current_frame = d[current_frame_index]
 
-        cmat = CostMatrix(previous_frames, current_frame, search_penalty)
-        cmat.calculate()
-        rows, cols = linear_sum_assignment(cmat.matrix)
+        # cmat = CostMatrix(previous_frames, current_frame, search_penalty)
+        # cmat.calculate()
+        # rows, cols = linear_sum_assignment(cmat.matrix)
+        # for r, c in zip(rows, cols):
+        #     start, end = cmat.get(r, c)
+        #     if end is None:
+        #         continue
+        #     start.child = end
+
+        matrix, v_matrix = calculate_cost_matrix(previous_frames, current_frame, search_penalty)
+        rows, cols = linear_sum_assignment(matrix)
         for r, c in zip(rows, cols):
-            start, end = cmat.get(r, c)
-            if end is None:
+            start, end = v_matrix[r][c]
+            if isinstance(end, SinkVertex):
                 continue
             start.child = end
 
