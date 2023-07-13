@@ -87,7 +87,7 @@ class CostMatrix:
     class SinkVertex(Vertex):
         pass
 
-    def __init__(self, previous_vertices, current_vertices):
+    def __init__(self, previous_vertices, current_vertices, search_penalty=0.3):
         current_frame_index = current_vertices[0].frame
         first_frame_index = current_frame_index - 2
 
@@ -95,7 +95,7 @@ class CostMatrix:
             "previous": previous_vertices,
             "current": current_vertices,
             "sink": [
-                CostMatrix.SinkVertex(current_frame_index, v.position + 0.3)
+                CostMatrix.SinkVertex(current_frame_index, v.position + ((current_frame_index - v.frame) * search_penalty))
                 for v in previous_vertices
             ],
             "existing": [v for v in previous_vertices if v.frame != first_frame_index],
@@ -169,7 +169,7 @@ def calculate_edge_cost(v_prev, v_current):
     return (mu_1 * cost_diffusion + mu_2 * cost_directed) / (mu_1 + mu_2)
 
 
-def track_multiframe(frame_positions, window=3, inspect_callback=None):
+def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_callback=None):
     d = DiGraph()
     for frame, positions in frame_positions:
         d.add_frame(frame, positions)
@@ -177,7 +177,7 @@ def track_multiframe(frame_positions, window=3, inspect_callback=None):
     # establish initial correspondence with bipartite graph matching
     # cost matrix with previous frames as rows -> current frame as columns
     previous_frame, current_frame = d[0], d[1]
-    cmat = CostMatrix(previous_frame, current_frame)
+    cmat = CostMatrix(previous_frame, current_frame, search_penalty)
     cmat.calculate()
     rows, cols = linear_sum_assignment(cmat.matrix)
     for r, c in zip(rows, cols):
@@ -191,7 +191,7 @@ def track_multiframe(frame_positions, window=3, inspect_callback=None):
         previous_frames = tuple(chain(*[d[j] for j in current_frame_index - np.arange(1, window)]))
         current_frame = d[current_frame_index]
 
-        cmat = CostMatrix(previous_frames, current_frame)
+        cmat = CostMatrix(previous_frames, current_frame, search_penalty)
         cmat.calculate()
         rows, cols = linear_sum_assignment(cmat.matrix)
         for r, c in zip(rows, cols):
@@ -288,7 +288,7 @@ if __name__ == "__main__":
         plt.title(title)
         plt.show()
 
-    d = track_multiframe(frames, window=3, inspect_callback=inspect_callback)
+    d = track_multiframe(frames, window=3, search_penalty=0.1, inspect_callback=inspect_callback)
 
     new_tracks = d.get_kymotrackgroup(tracks[0]._kymo, tracks[0]._channel)
     tracks.plot(lw=7, marker=".", color="r", show_outline=False)
