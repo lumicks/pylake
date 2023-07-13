@@ -12,6 +12,7 @@ class Vertex:
     position: float
     _parent: "Vertex" = field(default=None, repr=False)
     _child: "Vertex" = field(default=None, repr=False)
+    is_sink: bool = None
 
     @property
     def coordinate(self):
@@ -55,10 +56,6 @@ class Vertex:
         if self.child:
             self.child.walk(track)
         return track
-
-
-class SinkVertex(Vertex):
-        pass
 
 
 @dataclass
@@ -180,9 +177,10 @@ def calculate_cost_matrix(previous_vertices, current_vertices, search_penalty=0.
     current_frame_index = current_vertices[0].frame
     first_frame_index = current_frame_index - 2
     sink_vertices = [
-        SinkVertex(
+        Vertex(
             current_frame_index,
             v.position + ((current_frame_index - v.frame) * search_penalty),
+            is_sink=True,
         )
         for v in previous_vertices
     ]
@@ -215,12 +213,20 @@ def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_call
     # establish initial correspondence with bipartite graph matching
     # cost matrix with previous frames as rows -> current frame as columns
     previous_frame, current_frame = d[0], d[1]
-    cmat = CostMatrix(previous_frame, current_frame, search_penalty)
-    cmat.calculate()
-    rows, cols = linear_sum_assignment(cmat.matrix)
+    # cmat = CostMatrix(previous_frame, current_frame, search_penalty)
+    # cmat.calculate()
+    # rows, cols = linear_sum_assignment(cmat.matrix)
+    # for r, c in zip(rows, cols):
+    #     start, end = cmat.get(r, c)
+    #     if end is None:
+    #         continue
+    #     start.child = end
+
+    matrix, v_matrix = calculate_cost_matrix(previous_frame, current_frame, search_penalty)
+    rows, cols = linear_sum_assignment(matrix)
     for r, c in zip(rows, cols):
-        start, end = cmat.get(r, c)
-        if end is None:
+        start, end = v_matrix[r][c]
+        if end.is_sink:
             continue
         start.child = end
 
@@ -242,7 +248,7 @@ def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_call
         rows, cols = linear_sum_assignment(matrix)
         for r, c in zip(rows, cols):
             start, end = v_matrix[r][c]
-            if isinstance(end, SinkVertex):
+            if end.is_sink:
                 continue
             start.child = end
 
