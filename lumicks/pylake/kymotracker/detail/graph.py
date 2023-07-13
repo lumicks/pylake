@@ -169,25 +169,6 @@ def calculate_edge_cost(v_prev, v_current):
     return (mu_1 * cost_diffusion + mu_2 * cost_directed) / (mu_1 + mu_2)
 
 
-def calculate_cost_matrix(previous_frames, current_frame):
-    cost = [
-        calculate_edge_cost(v_prev, v_current)
-        for v_prev in previous_frames
-        for v_current in current_frame
-    ]
-
-    vs = [
-        (v_prev.coordinate, v_current.coordinate)
-        for v_prev in previous_frames
-        for v_current in current_frame
-    ]
-    print(cost)
-    for c, item in zip(cost, vs):
-        print(c, item)
-    print("***")
-    return np.reshape(cost, (len(previous_frames), len(current_frame)))
-
-
 def track_multiframe(frame_positions, window=3, inspect_callback=None):
     d = DiGraph()
     for frame, positions in frame_positions:
