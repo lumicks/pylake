@@ -102,7 +102,6 @@ class CostMatrix:
         self.end_vertices = current_vertices + self.vertices["existing"] + self.vertices["sink"]
         self.end_map = {id(v): j for j, v in enumerate(self.end_vertices)}
         n_end_vertices = len(self.end_vertices)
-
         self.matrix = np.full((len(previous_vertices), n_end_vertices), np.inf)
 
     def set(self, row_vertex, col_vertex, cost):
@@ -123,29 +122,22 @@ class CostMatrix:
         # * extension edges + replacement edges
         for start_vertex in self.vertices["previous"]:
             for end_vertex in self.vertices["current"]:
-                start = self.start_map[id(start_vertex)]
-                end = self.end_map[id(end_vertex)]
                 cost = calculate_edge_cost(start_vertex, end_vertex)
-                # self.matrix[start, end] = cost
                 self.set(start_vertex, end_vertex, cost)
 
         # * existing edges
         for end_vertex in self.vertices["existing"]:
             if (start_vertex := end_vertex.parent):
-                start = self.start_map[id(start_vertex)]
-                end = self.end_map[id(end_vertex)]
+                # what if child is out of window? due to gap
+                if id(start_vertex) not in self.start_map.keys():
+                    continue
                 cost = calculate_edge_cost(start_vertex, end_vertex)
-                self.matrix[start, end] = cost
                 self.set(start_vertex, end_vertex, cost)
 
         # * sink edges
-        for j in range(len(self.vertices["previous"])):
-            start_vertex = self.vertices["previous"][j]
+        for j, start_vertex in enumerate(self.vertices["previous"]):
             end_vertex = self.vertices["sink"][j]
-            start = self.start_map[id(start_vertex)]
-            end = self.end_map[id(end_vertex)]
             cost = calculate_edge_cost(start_vertex, end_vertex)
-            self.matrix[start, end] = cost
             self.set(start_vertex, end_vertex, cost)
 
 
@@ -205,29 +197,28 @@ def track_multiframe(frame_positions, window=3, inspect_callback=None):
     # establish initial correspondence with bipartite graph matching
     # cost matrix with previous frames as rows -> current frame as columns
     previous_frame, current_frame = d[0], d[1]
-    cost = calculate_cost_matrix(previous_frame, current_frame)
-
-    start_indices, connect_indices = linear_sum_assignment(cost)
-    for start_index, connect_index in zip(start_indices, connect_indices):
-        previous_frame[start_index].child = current_frame[connect_index]
-    if inspect_callback:
-        inspect_callback(d.get_kymotrackgroup, "initialize")
+    cmat = CostMatrix(previous_frame, current_frame)
+    cmat.calculate()
+    rows, cols = linear_sum_assignment(cmat.matrix)
+    for r, c in zip(rows, cols):
+        start, end = cmat.get(r, c)
+        if end is None:
+            continue
+        start.child = end
 
     # loop through frames, forming extension digraphs
     for current_frame_index in range(2, len(d)):
         previous_frames = tuple(chain(*[d[j] for j in current_frame_index - np.arange(1, window)]))
         current_frame = d[current_frame_index]
-        cost = calculate_cost_matrix(previous_frames, current_frame)
 
-        start_indices, connect_indices = linear_sum_assignment(cost)
-        print("first pass")
-        print(cost)
-        print(start_indices)
-        print(connect_indices)
-        for start_index, connect_index in zip(start_indices, connect_indices):
-            previous_frames[start_index].child = current_frame[connect_index]
-        if inspect_callback:
-            inspect_callback(d.get_kymotrackgroup, f"before false hyp rep {current_frame_index}")
+        cmat = CostMatrix(previous_frames, current_frame)
+        cmat.calculate()
+        rows, cols = linear_sum_assignment(cmat.matrix)
+        for r, c in zip(rows, cols):
+            start, end = cmat.get(r, c)
+            if end is None:
+                continue
+            start.child = end
 
         # # false hypothesis replacement
         # for fhr_prev_idx in range(current_frame_index):
@@ -248,8 +239,8 @@ def track_multiframe(frame_positions, window=3, inspect_callback=None):
 
         # TODO: add backtracking when current frame == window size
 
-        if current_frame_index > 3:
-            break
+        # if current_frame_index > 3:
+        #     break
 
     return d
 
@@ -322,4 +313,4 @@ if __name__ == "__main__":
     new_tracks = d.get_kymotrackgroup(tracks[0]._kymo, tracks[0]._channel)
     tracks.plot(lw=7, marker=".", color="r", show_outline=False)
     new_tracks.plot(marker=".", color="lightskyblue")
-    # plt.show()
+    plt.show()
