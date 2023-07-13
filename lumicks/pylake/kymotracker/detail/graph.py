@@ -94,51 +94,50 @@ class CostMatrix:
         self.vertices = {
             "previous": previous_vertices,
             "current": current_vertices,
-            "sink": [CostMatrix.SinkVertex(current_frame_index, v.position + 0.3) for v in previous_vertices],
-            "existing": [v for v in previous_vertices if v.frame != first_frame_index]
+            "sink": [
+                CostMatrix.SinkVertex(current_frame_index, v.position + 0.3)
+                for v in previous_vertices
+            ],
+            "existing": [v for v in previous_vertices if v.frame != first_frame_index],
         }
 
-        self.start_map = {id(v): j for j, v in enumerate(previous_vertices)}
-        self.end_vertices = current_vertices + self.vertices["existing"] + self.vertices["sink"]
-        self.end_map = {id(v): j for j, v in enumerate(self.end_vertices)}
-        n_end_vertices = len(self.end_vertices)
-        self.matrix = np.full((len(previous_vertices), n_end_vertices), np.inf)
+        self.start_map = {id(v): (j, v) for j, v in enumerate(previous_vertices)}
+        self.end_map = {
+            id(v): (j, v)
+            for j, v in enumerate(
+                current_vertices + self.vertices["existing"] + self.vertices["sink"]
+            )
+        }
+        self.matrix = np.full((len(self.start_map), len(self.end_map)), np.inf)
 
     def set(self, row_vertex, col_vertex, cost):
-        row_idx = self.start_map[id(row_vertex)]
-        col_idx = self.end_map[id(col_vertex)]
+        row_idx, _ = self.start_map[id(row_vertex)]
+        col_idx, _ = self.end_map[id(col_vertex)]
         self.matrix[row_idx, col_idx] = cost
 
     def get(self, row, col):
-        start_id = [vid for vid, idx in self.start_map.items() if idx == row][0]
-        start_vertex = [v for v in self.vertices["previous"] if id(v) == start_id][0]
-
-        end_id = [vid for vid, idx in self.end_map.items() if idx == col][0]
-        end_vertex = [v for v in self.end_vertices if id(v) == end_id][0]
-
+        start_vertex = next(v for idx, v in self.start_map.values() if idx == row)
+        end_vertex = next(v for idx, v in self.end_map.values() if idx == col)
         return start_vertex, None if isinstance(end_vertex, CostMatrix.SinkVertex) else end_vertex
 
     def calculate(self):
-        # * extension edges + replacement edges
-        for start_vertex in self.vertices["previous"]:
+        for j, start_vertex in enumerate(self.vertices["previous"]):
+            # * extension edges + replacement edges
             for end_vertex in self.vertices["current"]:
                 cost = calculate_edge_cost(start_vertex, end_vertex)
                 self.set(start_vertex, end_vertex, cost)
 
-        # * existing edges
-        for end_vertex in self.vertices["existing"]:
-            if (start_vertex := end_vertex.parent):
-                # what if child is out of window? due to gap
-                if id(start_vertex) not in self.start_map.keys():
-                    continue
-                cost = calculate_edge_cost(start_vertex, end_vertex)
-                self.set(start_vertex, end_vertex, cost)
-
-        # * sink edges
-        for j, start_vertex in enumerate(self.vertices["previous"]):
+            # * sink edges
             end_vertex = self.vertices["sink"][j]
             cost = calculate_edge_cost(start_vertex, end_vertex)
             self.set(start_vertex, end_vertex, cost)
+
+        # * existing edges
+        for end_vertex in self.vertices["existing"]:
+            # what if child is out of serach window (due to gap)?
+            if (start_vertex := end_vertex.parent) and (id(start_vertex) in self.start_map.keys()):
+                cost = calculate_edge_cost(start_vertex, end_vertex)
+                self.set(start_vertex, end_vertex, cost)
 
 
 def calculate_edge_cost(v_prev, v_current):
