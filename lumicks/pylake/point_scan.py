@@ -1,5 +1,7 @@
 from .detail.confocal import BaseScan
 from .detail.plotting import get_axes
+from .detail.timeindex import to_timestamp
+from copy import copy
 
 
 class PointScan(BaseScan):
@@ -18,6 +20,21 @@ class PointScan(BaseScan):
     json : dict
         Dictionary containing scan-specific metadata.
     """
+
+    def __getitem__(self, item):
+        """All indexing is in timestamp units (ns)"""
+        if not isinstance(item, slice):
+            raise IndexError("Scalar indexing is not supported, only slicing")
+        if item.step is not None:
+            raise IndexError("Slice steps are not supported")
+
+        start = self.start if item.start is None else item.start
+        stop = self.stop if item.stop is None else item.stop
+        new_scan = copy(self)
+        new_scan.start, new_scan.stop = (
+            to_timestamp(v, self.start, self.stop) for v in (start, stop)
+        )
+        return new_scan
 
     def _get_plot_data(self, channel):
         """Get photon count :class:`~lumicks.pylake.channel.Slice` for requested channel."""
