@@ -50,11 +50,8 @@ def test_marker(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
     if f.format_version == 2:
-        with pytest.warns(FutureWarning):
-            m = f["Marker"]
-
-        with pytest.raises(IndexError):
-            m["test_marker"]
+        assert np.isclose(f["Marker/test_marker"].start, 100)
+        assert np.isclose(f["Marker"]["test_marker"].start, 100)
 
         assert np.isclose(f.markers["test_marker"].start, 100)
         assert np.isclose(f.markers["test_marker"].stop, 200)

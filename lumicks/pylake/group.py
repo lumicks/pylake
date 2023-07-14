@@ -6,31 +6,46 @@ from .channel import channel_class
 class Group:
     """A thin wrapper around an HDF5 group with a Bluelake-specific `__getitem__`
 
+    Parameters
+    ----------
+    h5py_group : h5py.Group
+        The underlying h5py group object
+    lk_file : lumicks.pylake.File
+        Pylake file handle. This is used to construct Pylake objects when they are accessed through
+        direct access (e.g. file["Kymograph/kymo"]).
+
     Attributes
     ----------
     h5 : h5py.Group
         The underlying h5py group object
     """
 
-    def __init__(self, h5py_group):
+    def __init__(self, h5py_group, *, lk_file):
         self.h5 = h5py_group
+        self._lk_file = lk_file
         self.redirect_list = {}
 
     def __getitem__(self, item):
         """Return a subgroup or a bluelake timeline channel"""
-        if item in self.redirect_list:
+        thing = self.h5[item]
+        item_type = thing.name.split("/")[1]
+        redirect_location, redirect_class = self._lk_file.redirect_list.get(item_type, (None, None))
+        if redirect_location and not redirect_class:
             warnings.warn(
-                f"Direct access to this field is deprecated. Use file.{self.redirect_list[item]} instead. "
-                f"In case raw access is needed, go through the fn.h5 directly.",
+                f"Direct access to this field is deprecated. Use file.{redirect_location} "
+                "instead. In case raw access is needed, go through the fn.h5 directly.",
                 FutureWarning,
             )
 
-        thing = self.h5[item]
         if type(thing) is h5py.Group:
-            return Group(thing)
+            group = Group(thing, lk_file=self._lk_file)
+            return group
         else:
-            cls = channel_class(thing)
-            return cls.from_dataset(thing)
+            if redirect_location and redirect_class:
+                return redirect_class.from_dataset(thing, self._lk_file)
+            else:
+                cls = channel_class(thing)
+                return cls.from_dataset(thing)
 
     def __iter__(self):
         return self.h5.__iter__()

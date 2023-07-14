@@ -56,17 +56,11 @@ def test_redirect_list(h5_file):
         with pytest.warns(FutureWarning):
             f["Calibration"]
 
-        with pytest.warns(FutureWarning):
-            f["Marker"]
-
-        with pytest.warns(FutureWarning):
-            f["FD Curve"]
-
-        with pytest.warns(FutureWarning):
-            f["Kymograph"]
-
-        with pytest.warns(FutureWarning):
-            f["Scan"]
+        assert f["Marker"]["test_marker"].start == 100
+        assert str(type(f["FD Curve"])) == r"<class 'lumicks.pylake.group.Group'>"
+        assert f["Kymograph"]["Kymo1"].start == np.int64(20e9)
+        assert f["Scan"]["fast Y slow Z multiframe"].start == np.int64(20e9)
+        assert f["Point Scan"]["PointScan1"].start == np.int64(20e9)
 
 
 def test_repr_and_str(h5_file):
@@ -163,10 +157,6 @@ def test_repr_and_str(h5_file):
               Red:
               - Data type: uint32
               - Size: 64
-            Point Scan:
-              PointScan1:
-              - Data type: object
-              - Size: 1
 
             .markers
               - force feedback
@@ -184,7 +174,10 @@ def test_repr_and_str(h5_file):
             
             .notes
               - test_note
-
+            
+            .point_scans
+              - PointScan1
+ 
             .force1x
               .calibration
             .force1y
@@ -206,17 +199,6 @@ def test_repr_and_str(h5_file):
 def test_invalid_file_format(h5_file_invalid_version):
     with pytest.raises(Exception):
         f = pylake.File.from_h5py(h5_file_invalid_version)
-
-
-def test_invalid_access(h5_file):
-    f = pylake.File.from_h5py(h5_file)
-
-    if f.format_version == 2:
-        with pytest.warns(FutureWarning):
-            m = f["Kymograph"]
-
-        with pytest.raises(IndexError):
-            m["Kymo1"]
 
 
 def test_missing_metadata(h5_file_missing_meta):
