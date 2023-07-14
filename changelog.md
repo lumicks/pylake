@@ -10,6 +10,7 @@
 * Added `PowerSpectrum.identify_peaks()` method to the [`PowerSpectrum`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html) class. This method uses probability to identify peaks in the spectrum that are not due to the movement of beads in an optical trap. This is beta functionality. While usable, this has not yet been tested in a large number of different scenarios. The API can still be subject to change without any prior deprecation notice!
 * Added support for accessing `Kymo`, `Scan` and `PointScan` by path (e.g. `file["Kymograph"]["my_kymo"]` or `file["Kymograph/my_kymo"]`).
 * Added support for slicing `PointScan`.
+* Added the ability to specify a cropping region when exporting to an h5-file using `file.save_as(filename, crop_time_range=(starting_timestamp, ending_timestamp))`.
 
 #### Other changes
 

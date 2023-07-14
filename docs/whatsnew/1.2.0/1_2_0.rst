@@ -18,3 +18,10 @@ emission wavelength using the `from_wavelength()` method of :data:`~lumicks.pyla
 
     Kymographs showing tracks in three color channels using the default colormaps (left) and colormaps
     corresponding to the actual emission colors (right).
+
+Cropping h5 files
+-----------------
+
+You can now use `File.save_as(crop_time_range=(start_timestamp, stop_timestamp))` to export a specific time range to a new `h5` file.
+This can be useful for when you want to export a specific part of the timeline or a partial kymograph for instance.
+Exporting a partial file helps keep file size down and makes it easier to share only the relevant parts of your data with others.
