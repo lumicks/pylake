@@ -29,7 +29,7 @@ def calculate_dissipation_frequency(gamma0, bead_radius, rho_bead):
     Parameters
     ----------
     gamma0 : float
-        drag coefficient [mPas]
+        drag coefficient [m Pa s]
     bead_radius : float
         radius of the bead [m]
     rho_bead : float
@@ -57,7 +57,7 @@ def calculate_complex_drag(f, gamma0, rho_sample, bead_radius, distance_to_surfa
     f : array_like
         Frequency [Hz]
     gamma0 : float
-        Drag coefficient [mPas]
+        Drag coefficient [m Pa s]
     bead_radius : float
         Bead radius [m]
     rho_sample : float
@@ -132,7 +132,7 @@ def passive_power_spectrum_model_hydro(
     diffusion_constant : float
         Diffusion constant, in (a.u.)^2/s
     gamma0 : float
-        Drag coefficient, in mPas.
+        Drag coefficient, in m Pa s.
     bead_radius : float
         Bead radius, in m.
     rho_sample : float
@@ -173,7 +173,7 @@ def theoretical_driving_power_hydrodynamics(
     driving_amplitude : float
         Driving amplitude [m]
     gamma0 : float
-        Drag coefficient [mPas]
+        Drag coefficient [m Pa s]
     bead_radius : float
         Bead radius [m]
     rho_sample : float
