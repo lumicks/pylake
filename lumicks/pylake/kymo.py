@@ -751,6 +751,9 @@ class EmptyKymo(Kymo):
     def duration(self):
         return 0
 
+    def __bool__(self):
+        return False
+
 
 @dataclass(frozen=True)
 class PositionCalibration:

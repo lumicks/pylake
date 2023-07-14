@@ -158,17 +158,13 @@ def test_slicing(test_scans):
     compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8], scan0[-100:9])  # test clamping past the beginning
     compare_frames([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], scan0[-100:100])  # test clamping both dirs
 
-    # reverse slice
-    with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[5:3]
-    with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[-2:-4]
+    # reverse slice (leads to empty scan)
+    assert not scan0[5:3]
+    assert not scan0[-2:-4]
 
     # empty slice
-    with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[5:5]
-    with pytest.raises(NotImplementedError, match="Slice is empty."):
-        scan0[15:16]
+    assert not scan0[5:5]
+    assert not scan0[15:16]
 
     # Verify no side effects
     scan0[0]
