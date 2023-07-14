@@ -174,6 +174,17 @@ def calculate_power_spectrum(
     return power_spectrum
 
 
+def lorentzian_loss(p, model: ScaledModel, power_spectrum: PowerSpectrum):
+    expectation = model(power_spectrum.frequency, p[0], p[1], *p[2:])
+    gamma = expectation / power_spectrum.num_points_per_block**0.5
+    # fmt: off
+    return np.sum(np.log(
+        1 + 0.5 * ((power_spectrum.power - model(power_spectrum.frequency, p[0], p[1], *p[2:]))
+                   / gamma) ** 2
+    ))
+    # fmt: on
+
+
 def fit_power_spectrum(
     power_spectrum,
     model,
@@ -181,6 +192,7 @@ def fit_power_spectrum(
     ftol=1e-7,
     max_function_evals=10000,
     bias_correction=True,
+    loss_function="gaussian",
 ) -> CalibrationResults:
     """Fit a power spectrum.
 
@@ -204,7 +216,17 @@ def fit_power_spectrum(
     bias_correction : bool
         Apply bias correction to the estimate of the diffusion coefficient according to [5]. This
         bias correction is calculated as N/(N+1) where N represents the number of points used in the
-        computation of each data point in the power spectral density.
+        computation of each data point in the power spectral density. Valid only for
+        loss_function == "gaussian" (see below).
+    loss_function : string
+        Loss function to use during fitting. Options: "gaussian" (default),
+        "lorentzian". For least squares fitting, use "gaussian". For robust fitting, that is, an
+        attempt to ignore spurious peaks in the power spectrum, use "lorentzian". In that case, no
+        error estimates are available, and the corresponding entries are set to NaN.
+        This is beta functionality. While usable, this has not yet been tested in a large
+        number of different scenarios. The API can still be subject to change without any prior
+        deprecation notice! If you use this functionality keep a close eye on the changelog for any
+        changes that may affect your analysis.
 
     Returns
     -------
@@ -219,6 +241,10 @@ def fit_power_spectrum(
         If the supplied power spectrum is not of the type `PowerSpectrum`.
     RuntimeError
         If there is insufficient data to perform the analytical fit used as initial condition.
+    ValueError
+        If the loss function is not one of the possible values (case sensitive)
+    Runtime Error
+        If bias correction is on and the loss function is not "gaussian"
 
     References
     ----------
@@ -247,6 +273,12 @@ def fit_power_spectrum(
     if not isinstance(power_spectrum, PowerSpectrum):
         raise TypeError('Argument "power_spectrum" must be of type PowerSpectrum')
 
+    if loss_function not in ["gaussian", "lorentzian"]:
+        raise ValueError('Argument "loss_function" must be "gaussian" or "lorentzian"')
+
+    if bias_correction and loss_function == "lorentzian":
+        raise RuntimeError('Bias correction and loss function="lorentzian" are mutually exclusive')
+
     # Fit analytical Lorentzian to get initial guesses for the full power spectrum model.
     analytical_power_spectrum = power_spectrum.in_range(*analytical_fit_range)
     if len(analytical_power_spectrum.frequency) < 1:
@@ -272,6 +304,10 @@ def fit_power_spectrum(
     # effectively transforms the curve fitter's objective function
     # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
     sigma = (1 / power_spectrum.power) / math.sqrt(power_spectrum.num_points_per_block)
+    lower_bounds = scaled_model.normalize_params([0.0, 0.0, *model._filter.lower_bounds()])
+    upper_bounds = scaled_model.normalize_params(
+        [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
+    )
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
         scaled_model,
         power_spectrum.frequency,
@@ -282,12 +318,7 @@ def fit_power_spectrum(
         method="trf",
         ftol=ftol,
         maxfev=max_function_evals,
-        bounds=(
-            scaled_model.normalize_params([0.0, 0.0, *model._filter.lower_bounds()]),
-            scaled_model.normalize_params(
-                [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
-            ),
-        ),
+        bounds=(lower_bounds, upper_bounds),
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
     perr = np.sqrt(np.diag(pcov))
@@ -295,6 +326,25 @@ def fit_power_spectrum(
     # Undo the scaling
     solution_params = scaled_model.scale_params(solution_params_rescaled)
     perr = scaled_model.scale_params(perr)
+
+    # Use the least squares method as a starting point for a robust fit
+    if loss_function == "lorentzian":
+        scaled_model = ScaledModel(
+            lambda f, fc, D, *filter_pars: model(f, fc, D, *filter_pars), solution_params
+        )
+        bounds = [(lower, upper) for lower, upper in zip(lower_bounds, upper_bounds)]
+        minimize_result = scipy.optimize.minimize(
+            lambda p: lorentzian_loss(p, scaled_model, power_spectrum),
+            np.ones(len(solution_params)),
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={"maxiter": max_function_evals, "ftol": ftol},
+        )
+        solution_params_scaled = np.abs(minimize_result.x)
+        solution_params = scaled_model.scale_params(solution_params_scaled)
+
+        # Return NaN for perr, as scipy.optimize.minimize does not return the covariance matrix
+        perr = np.NaN * np.ones_like(solution_params)
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
     chi_squared = np.sum(
@@ -347,6 +397,9 @@ def fit_power_spectrum(
             "Sample rate": CalibrationParameter("Sample rate", power_spectrum.sample_rate, "Hz"),
             "Bias correction": CalibrationParameter(
                 "Perform bias correction thermal fit", bias_correction, ""
+            ),
+            "Loss function": CalibrationParameter(
+                "Loss function used during minimization", loss_function, ""
             ),
         },
     )

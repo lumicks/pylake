@@ -52,23 +52,32 @@ def test_calibration_result():
 
 
 @pytest.mark.parametrize(
-    "corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,"
+    "loss_function, corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,"
     "temperature,err_fc,err_d,err_f_diode,err_alpha,",
     # fmt: off
     [
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
-        [1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.049903, 0.05856517],
-        [1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        [1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        [1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        [1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        [1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
-        [1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
+        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
+        ["gaussian", 1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.049903, 0.05856517],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
+        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
+        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
+        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
     ],
     # fmt: on
 )
 def test_good_fit_integration_test(
     reference_models,
+    loss_function,
     corner_frequency,
     diffusion_constant,
     alpha,
@@ -90,7 +99,10 @@ def test_good_fit_integration_test(
         data, f_sample, fit_range=(0, 15000), num_points_per_block=20
     )
     ps_calibration = psc.fit_power_spectrum(
-        power_spectrum=power_spectrum, model=model, bias_correction=False
+        power_spectrum=power_spectrum,
+        model=model,
+        bias_correction=False,
+        loss_function=loss_function,
     )
 
     np.testing.assert_allclose(ps_calibration["fc"].value, corner_frequency, rtol=1e-4)
@@ -274,6 +286,7 @@ def test_repr(reference_calibration_result):
         Points per block     Number of points per block                                100
         Sample rate          Sample rate (Hz)                                          78125
         Bias correction      Perform bias correction thermal fit                       0
+        Loss function        Loss function used during minimization                    gaussian
         Rd                   Distance response (um/V)                                  7.25366
         kappa                Trap stiffness (pN/nm)                                    0.171495
         Rf                   Force response (pN/V)                                     1243.97
