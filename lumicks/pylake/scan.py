@@ -72,7 +72,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             num_frames = len(frame_indices)
 
             if not frame_indices:
-                raise NotImplementedError("Slice is empty.")
+                return EmptyScan(self.name, self.file, self.start, self.start, self._metadata)
             elif num_frames == 1:
                 # Convert single frame to direct index (amounts to squeezing that dimension)
                 frame_axis = frame_indices[0]
@@ -154,10 +154,10 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             scan[1, 3, 5]   # Error, integer indices are not allowed for the spatial dimensions.
             scan[1, 3:5:2]  # Produces an error, steps are not allowed when slicing.
 
-            stack["1s":"5s"]  # Gets the scan frames from first to the fifth second
-            stack[:"-5s"]  # Gets the scan frames up to the last 5 seconds
+            scan["1s":"5s"]  # Gets the scan frames from first to the fifth second
+            scan[:"-5s"]  # Gets the scan frames up to the last 5 seconds
 
-            stack[file.force1x.start:file.force1x.stop]  # Gets frames overlapping with force1x
+            scan[file.force1x.start:file.force1x.stop]  # Gets frames overlapping with force1x
         """
 
         def check_item(item, slicing_frames):
@@ -192,6 +192,9 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             check_item(frame_slice, True),
             tuple([check_item(item, False) for item in spatial_slices]),
         )
+
+        if not new_scan:
+            return new_scan
 
         # Excluding the dead time between frames only makes sense if we have more than one frame
         ts_ranges = new_scan.frame_timestamp_ranges(include_dead_time=new_scan.num_frames > 1)
@@ -381,7 +384,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         Checks whether the axes should be flipped w.r.t. the reconstruction. Reconstruction always produces images
         with the slow axis first, and the fast axis second. Depending on the order of axes scanned, this may not
         coincide with physical axes. The axes should always be ordered from the lowest physical axis number to higher.
-        Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis."""
+        Here X, Y, Z correspond to axis number 0, 1 and 2. So for an YZ scan, we'd want Y on the X axis.
+        """
         data = data.squeeze()
 
         if self._metadata.scan_order[0] > self._metadata.scan_order[1]:
@@ -472,3 +476,18 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             axes.set_title(make_image_title(self, frame))
 
         return image_handle
+
+
+class EmptyScan(Scan):
+    def plot(self, channel="rgb", **kwargs):
+        raise RuntimeError("Cannot plot empty Scan")
+
+    def _image(self, channel):
+        shape = (self.pixels_per_line, 0, 3) if channel == "rgb" else (self.pixels_per_line, 0)
+        return np.empty(shape)
+
+    def get_image(self, channel="rgb"):
+        return self._image(channel)
+
+    def __bool__(self):
+        return False
