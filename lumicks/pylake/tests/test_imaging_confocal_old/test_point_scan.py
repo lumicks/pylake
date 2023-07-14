@@ -4,7 +4,7 @@ import numpy as np
 import re
 
 
-def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
+def test_point_scans_basic(test_point_scans, reference_timestamps, reference_counts):
     ps = test_point_scans["PointScan1"]
     ps_red = ps.red_photon_count
 
@@ -12,6 +12,33 @@ def test_point_scans(test_point_scans, reference_timestamps, reference_counts):
 
     np.testing.assert_allclose(ps_red.timestamps, reference_timestamps)
     np.testing.assert_allclose(ps_red.data, reference_counts)
+
+
+def test_point_scan_slicing(test_point_scans, reference_timestamps, reference_counts):
+    ps = test_point_scans["PointScan1"]
+    dt = int(1e9 / ps.red_photon_count.sample_rate)
+
+    for crop in (
+        (ps.start, ps.stop),  # No crop
+        (ps.start + 10 * dt, ps.stop),
+        (ps.start, ps.stop - 10 * dt),
+        (None, ps.stop - 10 * dt),
+        (ps.start + 10 * dt, None),
+        ("0s", "10s"),
+        ("0s", "3.5s"),
+        ("3.5s", "10s"),
+        ("3.5s", "6s"),
+    ):
+        p_sliced_red = ps[crop[0] : crop[1]].red_photon_count
+        ps_red = ps.red_photon_count[crop[0] : crop[1]]
+        np.testing.assert_allclose(p_sliced_red.timestamps, ps_red.timestamps)
+        np.testing.assert_allclose(p_sliced_red.data, ps_red.data)
+
+    with pytest.raises(IndexError, match="Scalar indexing is not supported, only slicing"):
+        ps[5]
+
+    with pytest.raises(IndexError, match="Slice steps are not supported"):
+        ps["0s":"10s":"1s"]
 
 
 def test_plotting(test_point_scans):
