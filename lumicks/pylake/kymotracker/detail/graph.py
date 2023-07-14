@@ -14,6 +14,14 @@ class Vertex:
     _child: "Vertex" = field(default=None, repr=False)
     is_sink: bool = None
 
+    @classmethod
+    def make_sink(cls, current_frame_index, child, search_penalty):
+        return cls(
+            current_frame_index,
+            child.position + ((current_frame_index - child.frame) * search_penalty),
+            is_sink=True,
+        )
+
     @property
     def coordinate(self):
         return (self.frame, self.position)
@@ -84,66 +92,6 @@ class DiGraph:
         )
 
 
-class CostMatrix:
-    class SinkVertex(Vertex):
-        pass
-
-    def __init__(self, previous_vertices, current_vertices, search_penalty=0.3):
-        current_frame_index = current_vertices[0].frame
-        first_frame_index = current_frame_index - 2
-
-        self.vertices = {
-            "previous": previous_vertices,
-            "current": current_vertices,
-            "sink": [
-                CostMatrix.SinkVertex(
-                    current_frame_index,
-                    v.position + ((current_frame_index - v.frame) * search_penalty),
-                )
-                for v in previous_vertices
-            ],
-            "existing": [v for v in previous_vertices if v.frame != first_frame_index],
-        }
-
-        self.start_map = {id(v): (j, v) for j, v in enumerate(previous_vertices)}
-        self.end_map = {
-            id(v): (j, v)
-            for j, v in enumerate(
-                current_vertices + self.vertices["existing"] + self.vertices["sink"]
-            )
-        }
-        self.matrix = np.full((len(self.start_map), len(self.end_map)), np.inf)
-
-    def set(self, row_vertex, col_vertex, cost):
-        row_idx, _ = self.start_map[id(row_vertex)]
-        col_idx, _ = self.end_map[id(col_vertex)]
-        self.matrix[row_idx, col_idx] = cost
-
-    def get(self, row, col):
-        start_vertex = next(v for idx, v in self.start_map.values() if idx == row)
-        end_vertex = next(v for idx, v in self.end_map.values() if idx == col)
-        return start_vertex, None if isinstance(end_vertex, CostMatrix.SinkVertex) else end_vertex
-
-    def calculate(self):
-        for j, start_vertex in enumerate(self.vertices["previous"]):
-            # * extension edges + replacement edges
-            for end_vertex in self.vertices["current"]:
-                cost = calculate_edge_cost(start_vertex, end_vertex)
-                self.set(start_vertex, end_vertex, cost)
-
-            # * sink edges
-            end_vertex = self.vertices["sink"][j]
-            cost = calculate_edge_cost(start_vertex, end_vertex)
-            self.set(start_vertex, end_vertex, cost)
-
-        # * existing edges
-        for end_vertex in self.vertices["existing"]:
-            # what if child is out of serach window (due to gap)?
-            if (start_vertex := end_vertex.parent) and (id(start_vertex) in self.start_map.keys()):
-                cost = calculate_edge_cost(start_vertex, end_vertex)
-                self.set(start_vertex, end_vertex, cost)
-
-
 def calculate_edge_cost(v_prev, v_current):
     """
     Adapted cost functions from Chenouard, N. "Objective comparison of particle tracking methods"
@@ -174,30 +122,30 @@ def calculate_edge_cost(v_prev, v_current):
 
 
 def calculate_cost_matrix(previous_vertices, current_vertices, search_penalty=0.3):
+    print(len(previous_vertices), len(current_vertices))
     current_frame_index = current_vertices[0].frame
     first_frame_index = current_frame_index - 2
-    sink_vertices = [
-        Vertex(
-            current_frame_index,
-            v.position + ((current_frame_index - v.frame) * search_penalty),
-            is_sink=True,
-        )
-        for v in previous_vertices
-    ]
-    existing_vertices = [v for v in previous_vertices if v.frame != first_frame_index]
 
     extensions = [[(start, end) for end in current_vertices] for start in previous_vertices]
     # what if child is out of serach window (due to gap)?
+
+    existing_vertices = [v for v in previous_vertices if v.frame != first_frame_index]
     existing = [
         [(start, end) if (start == end.parent) else (None, None) for end in existing_vertices]
         for start in previous_vertices
     ]
+
     sinks = [
-        [(start, end) if j == k else (None, None) for k, end in enumerate(sink_vertices)]
+        [
+            (start, Vertex.make_sink(current_frame_index, v, search_penalty))
+            if j == k
+            else (None, None)
+            for k, v in enumerate((previous_vertices))
+        ]
         for j, start in enumerate(previous_vertices)
     ]
-    v_matrix = [x + e + s for x, e, s in zip(extensions, existing, sinks)]
 
+    v_matrix = [list(chain(*v)) for v in zip(extensions, existing, sinks)]
     matrix = [
         [calculate_edge_cost(start, end) if start is not None else np.inf for start, end in row]
         for row in v_matrix
@@ -213,15 +161,6 @@ def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_call
     # establish initial correspondence with bipartite graph matching
     # cost matrix with previous frames as rows -> current frame as columns
     previous_frame, current_frame = d[0], d[1]
-    # cmat = CostMatrix(previous_frame, current_frame, search_penalty)
-    # cmat.calculate()
-    # rows, cols = linear_sum_assignment(cmat.matrix)
-    # for r, c in zip(rows, cols):
-    #     start, end = cmat.get(r, c)
-    #     if end is None:
-    #         continue
-    #     start.child = end
-
     matrix, v_matrix = calculate_cost_matrix(previous_frame, current_frame, search_penalty)
     rows, cols = linear_sum_assignment(matrix)
     for r, c in zip(rows, cols):
@@ -234,17 +173,8 @@ def track_multiframe(frame_positions, window=3, search_penalty=0.3, inspect_call
     for current_frame_index in range(2, len(d)):
         previous_frames = tuple(chain(*[d[j] for j in current_frame_index - np.arange(1, window)]))
         current_frame = d[current_frame_index]
-
-        # cmat = CostMatrix(previous_frames, current_frame, search_penalty)
-        # cmat.calculate()
-        # rows, cols = linear_sum_assignment(cmat.matrix)
-        # for r, c in zip(rows, cols):
-        #     start, end = cmat.get(r, c)
-        #     if end is None:
-        #         continue
-        #     start.child = end
-
         matrix, v_matrix = calculate_cost_matrix(previous_frames, current_frame, search_penalty)
+        print(matrix.shape)
         rows, cols = linear_sum_assignment(matrix)
         for r, c in zip(rows, cols):
             start, end = v_matrix[r][c]
