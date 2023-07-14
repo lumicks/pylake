@@ -162,6 +162,8 @@ def test_in_range(frequency, num_data, sample_rate, num_blocks, f_min, f_max):
 def test_plot():
     ps = PowerSpectrum(np.sin(2.0 * np.pi * 100 / 78125 * np.arange(100)), 78125)
     ps.plot()
+    ps = ps.downsampled_by(2)
+    ps.plot()
 
 
 def test_replace_spectrum():
@@ -197,3 +199,46 @@ def test_exclusions(exclusion_ranges, result_frequency, result_power):
     excluded_range = ps._exclude_range(exclusion_ranges)
     np.testing.assert_allclose(excluded_range.frequency, result_frequency)
     np.testing.assert_allclose(excluded_range.power, result_power)
+
+
+def test_identify_peaks_args():
+    power_spectrum = PowerSpectrum([1], 5)
+    power_spectrum.frequency = np.arange(10)
+    power_spectrum.power = np.ones_like(power_spectrum.frequency)
+    with pytest.raises(ValueError, match="baseline cannot be negative"):
+        power_spectrum.identify_peaks(lambda f: np.ones_like(f), baseline=-1.0)
+
+    with pytest.raises(ValueError, match="peak_cutoff must be greater than baseline value"):
+        power_spectrum.identify_peaks(lambda f: np.ones_like(f), baseline=10.0, peak_cutoff=9.0)
+
+    with pytest.raises(
+        ValueError,
+        match="identify_peaks only works if the power spectrum is not blocked / averaged",
+    ):
+        power_spectrum.downsampled_by(2).identify_peaks(lambda f: np.ones_like(f))
+
+
+@pytest.mark.parametrize(
+    "power, result_frequency",
+    [
+        [np.ones(10), []],  # Nothing above peak_cutoff
+        [[0, 1, 100, 1, 0, 0, 0, 0, 0, 0], [(1, 4)]],  # Single peak
+        [[0, 0, 100, 0, 0, 0, 0, 0, 0, 0], [(2, 3)]],  # Single peak
+        [[1, 100, 1, 0, 0, 0, 0, 0, 0, 0], [(0, 3)]],  # Single peak, near left edge
+        [[100, 0, 1, 0, 0, 0, 0, 0, 0, 0], [(0, 1)]],  # Single peak, touching left edge
+        [[1, 0, 1, 0, 0, 0, 0, 0, 100, 1], [(8, 10)]],  # Single peak, near right edge
+        [[1, 0, 1, 0, 0, 0, 0, 0, 1, 100], [(8, 10)]],  # Single peak, touching right edge
+        [[1, 0, 1, 0, 0, 0, 0, 0, 0, 100], [(9, 10)]],  # Single peak, touching right edge
+        [[100, 100, 1, 0, 0, 0, 0, 0, 1, 0], [(0, 3)]],  # Large peak, at edge
+        [[0, 1, 100, 1, 100, 1, 0, 0, 1, 0], [(1, 6)]],  # Double peak, concatenated
+        [[0, 1, 100, 1, 0, 0, 0, 0, 1, 100], [(1, 4), (8, 10)]],  # Double peak
+        [[0, 1, 100, 0, 0, 0, 0, 100, 1, 0], [(1, 3), (7, 9)]],  # Double peak
+        [[2, 2, 100, 2, 2, 2, 2, 2, 2, 100], [(0, 10)]],  # Nothing below baseline
+    ],
+)
+def test_identify_peaks(power, result_frequency):
+    power_spectrum = PowerSpectrum([1], 5)
+    power_spectrum.frequency = np.arange(10)
+    power_spectrum.power = power
+
+    assert power_spectrum.identify_peaks(lambda f: np.ones_like(f)) == result_frequency

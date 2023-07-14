@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
+from typing import List, Tuple
 from lumicks.pylake.detail.utilities import downsample
 
 
@@ -99,6 +100,105 @@ class PowerSpectrum:
         ps.power = ps.power[indices]
         return ps
 
+    def identify_peaks(
+        self,
+        model_fun: callable,
+        *,
+        peak_cutoff: float = 20.0,
+        baseline: float = 1.0,
+    ) -> List[Tuple[float, float]]:
+        """Identify peaks in the power spectrum, based on an exponential probability model with
+        rate parameter (lambda) = 1. This means that the power spectrum cannot be blocked or
+        windowed. This is beta functionality. While usable, this has not yet been tested in a large
+        number of different scenarios. The API can still be subject to change without any prior
+        deprecation notice! If you use this functionality keep a close eye on the changelog for any
+        changes that may affect your analysis.
+
+        Parameters
+        ----------
+        power_spectrum : PowerSpectrum
+            The power spectrum of the Brownian motion of the bead in a trap
+        model_fun : callable
+            A function of one argument, frequency, that gives the theoretical power spectrum. The
+            function is used to normalize the experimental power spectrum
+        peak_cutoff: float
+            Indicates what value of the normalized spectrum is deemed abnormally high. Default is
+            20.0, which corresponds to a chance of about 2 in 1E9 that a peak of that magnitude
+            occurs naturally in an exponential distribution with rate parameter = 1.0. The minimum
+            is baseline (see below).
+        baseline: float
+            The baseline level a peak needs to drop down to. Lower means that exponentially more
+            data is considered to be part of the peak. The default is 1.0, and the range of baseline
+            is [0.0, peak_cutoff]. No fit or data smoothing is performed, the peak starts or ends at
+            the first data point that satisfies the criterion.
+
+        Returns
+        -------
+        frequency_ranges: list of tuples (f_start, f_stop)
+            f_start is the frequency where a peak starts, and f_stop is the frequency where a peak
+            ends (exclusive).
+
+        Raises
+        ------
+        ValueError
+            Raises a ValueError if the function is called on a PowerSpectrum object with blocking
+            applied. This function only works for PowerSpectrum objects without blocking or
+            windowing.
+        ValueError
+            Raises a ValueError when the peak_cutoff is smaller than baseline and when baseline is
+            less than zero
+        """
+
+        def grab_contiguous_ranges(mask):
+            # We cap the entire spectrum to make sure that we can handle spectra that begin
+            # or end above the baseline in a uniform manner with ones that don't.
+            capped_mask = np.diff(mask, prepend=0, append=0)
+            ranges = np.nonzero(capped_mask)[0].reshape((-1, 2))
+            ranges[:, 1] -= 1
+            return ranges
+
+        if self.num_points_per_block != 1:
+            raise ValueError(
+                "identify_peaks only works if the power spectrum is not blocked / averaged"
+            )
+
+        if peak_cutoff <= baseline:
+            raise ValueError("peak_cutoff must be greater than baseline value")
+
+        if baseline < 0:
+            raise ValueError("baseline cannot be negative")
+
+        # Normalize the spectrum
+        flattened_spectrum = self.power / model_fun(self.frequency)
+
+        baseline_mask = (flattened_spectrum >= baseline).astype("int")
+        peak_mask = (flattened_spectrum > peak_cutoff).astype("int")
+
+        peak_ranges = grab_contiguous_ranges(peak_mask)
+
+        if not peak_ranges.size:
+            return []
+
+        baseline_ranges = grab_contiguous_ranges(baseline_mask)
+
+        # Find start points of baseline sections (int because derivative can be negative, and bool doesn't allow that).
+        start_points = np.diff(baseline_mask, prepend=0) > 0
+
+        # This allows us to look up which baseline range to grab
+        baseline_indices = np.cumsum(start_points) - 1
+
+        # Any point inside the peak range will do to identify the baseline range
+        exclusion_baseline_indices = [
+            baseline_indices[peak_position] for peak_position in peak_ranges[:, 0]
+        ]
+
+        # Only report unique ones
+        exclusion_ranges = baseline_ranges[np.unique(exclusion_baseline_indices)]
+        # Convert the indices to frequencies
+        df = self.frequency[1] - self.frequency[0]
+        return_val = [(self.frequency[x[0]], self.frequency[x[1]] + df) for x in exclusion_ranges]
+        return return_val
+
     def in_range(self, frequency_min, frequency_max) -> "PowerSpectrum":
         """Returns part of the power spectrum within a given frequency range."""
         ir = copy(self)
@@ -152,7 +252,7 @@ class PowerSpectrum:
         plt.ylabel(f"Power [${self.unit}^2/Hz$]")
         plt.xscale("log")
         plt.yscale("log")
-        if self.num_points_per_block:
+        if self.num_points_per_block > 1:
             plt.title(f"Blocked Power spectrum (N={self.num_points_per_block})")
         else:
             plt.title("Power spectrum")
