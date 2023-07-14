@@ -299,7 +299,9 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         """Notes stored in the file"""
         return self._get_object_dictionary("Note", Note)
 
-    def save_as(self, filename, compression_level=5, omit_data=None):
+    def save_as(
+        self, filename, compression_level=5, omit_data=None, *, crop_time_range=None, verbose=True
+    ):
         """Write a modified h5 file to disk.
 
         When transferring data, it can be beneficial to omit some channels from the h5 file, or use
@@ -318,6 +320,11 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             Which data sets to omit. Should be a set of h5 paths (e.g. {"Force HF/Force 1y"}).
             `fnmatch` patterns are used to specify which fields to omit, which means you can use
             wildcards as well (see examples below).
+        crop_time_range : tuple of np.int64, optional
+            Specify a time interval to crop to (tuple of a start and stop time). Interval must be
+            specified in nanoseconds since epoch (the same format as timestamps).
+        verbose : bool, optional
+            Print verbose output. Default: True.
 
         Examples
         --------
@@ -344,5 +351,16 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
             # Omit Scan "1"
             file.save_as("no_scan_1.h5", omit_data="Scan/1")
+
+            # Save only the region that contains the kymograph `kymo1`.
+            kymo = file.kymos["kymo1"]
+            file.save_as("only_kymo.h5", crop_time_range=(kymo.start, kymo.stop))
         """
-        write_h5(self.h5, filename, compression_level, omit_data)
+        write_h5(
+            self,
+            filename,
+            compression_level,
+            omit_data,
+            crop_time_range=crop_time_range,
+            verbose=verbose,
+        )

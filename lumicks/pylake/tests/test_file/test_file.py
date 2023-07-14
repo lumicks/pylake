@@ -6,7 +6,7 @@ from textwrap import dedent
 from lumicks.pylake.detail.h5_helper import write_h5
 from . import test_file_items
 from lumicks.pylake.tests.data.mock_file import MockDataFile_v2
-
+from lumicks.pylake.tests.data.mock_confocal import generate_scan_json, generate_image_data
 
 def test_attributes(h5_file):
     f = pylake.File.from_h5py(h5_file)
@@ -210,11 +210,11 @@ def test_missing_metadata(h5_file_missing_meta):
 
 
 def _internal_h5_export_api(file, *args, **kwargs):
-    return write_h5(file.h5, *args, **kwargs)
+    return write_h5(file, *args, **kwargs)
 
 
 def _public_h5_export_api(file, *args, **kwargs):
-    return file.save_as(*args, **kwargs)
+    return file.save_as(*args, **kwargs, verbose=False)
 
 
 @pytest.mark.parametrize("save_h5", [_internal_h5_export_api, _public_h5_export_api])
@@ -298,3 +298,131 @@ def test_timeseries_performance(tmpdir_factory):
     tic = time.time()
     np.testing.assert_allclose(f["test"]["test"].timestamps, ts)
     assert time.time() - tic < 0.1, "Grabbing timestamps from TimeSeries is too slow"
+
+
+@pytest.mark.parametrize("save_h5", [_internal_h5_export_api, _public_h5_export_api])
+def test_h5_cropped_export_channels(tmpdir_factory, save_h5):
+    start = int(1e9)
+    dt = int(1e9 / 78125)
+    calibration_points = [start - dt, start, start + dt, start + 15 * dt]
+
+    mock_class = MockDataFile_v2
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join(f"channels_to_crop.h5"))
+    mock_file.write_metadata()
+    mock_file.make_continuous_channel("Force HF", "Force 1x", start, dt, np.arange(10.0))
+    for ix, t in enumerate(calibration_points):
+        mock_file.make_calibration_data(str(ix), "Force 1x", {"Stop time (ns)": t, "s": str(ix)})
+    timestamps = np.arange(start, start + dt * 10, dt, dtype=np.int64)
+    data = [(t, d) for t, d in zip(timestamps, np.arange(0.0, 10.0, dtype=float))]
+    mock_file.make_timeseries_channel("Low Freq", "Yes", data)
+    mock_file.make_timetags_channel("TimeTags", "They Exist?", timestamps)
+    lk_file = pylake.File.from_h5py(mock_file.file)
+
+    def crop_h5(name, crop):
+        target_file = tmpdir.join(f"{name}_cropped.h5")
+        lk_file.save_as(target_file, crop_time_range=crop, verbose=False)
+        return pylake.File(target_file)
+
+    ref_tags = np.arange(start, start + 10 * dt, dt, dtype=np.int64)
+    for ix, (crop, result, ref_tags, ref_calib) in enumerate(
+        (
+            ((start + 5 * dt, start + 100 * dt), np.arange(5.0, 10.0), ref_tags[5:10], [2]),
+            ((start + 5 * dt, start + 8 * dt), np.arange(5.0, 8.0), ref_tags[5:8], [2]),
+            ((0, start + 8 * dt), np.arange(0.0, 8.0), ref_tags[:8], [1, 2]),
+            ((start + dt, start + 8 * dt), np.arange(1.0, 8.0), ref_tags[1:8], [2]),
+            ((start + 11 * dt, start + 100 * dt), None, None, None),
+            ((start - 11 * dt, start), None, None, None),
+        )
+    ):
+        f = crop_h5(f"channels_{ix}", crop=crop)
+        if result is not None:
+            np.testing.assert_allclose(f.force1x.data, result)
+            for c, c_ref in zip(f.force1x.calibration, ref_calib):
+                assert c["s"] == str(c_ref)
+
+            np.testing.assert_allclose(f.force1x.timestamps, ref_tags)
+            np.testing.assert_allclose(f["Low Freq"]["Yes"].data, result)
+            np.testing.assert_allclose(f["Low Freq"]["Yes"].timestamps, ref_tags)
+            np.testing.assert_allclose(f["TimeTags"]["They Exist?"].timestamps, ref_tags)
+        else:
+            # Channels will not be there if they are sliced off
+            assert not f.force1x
+            assert "Yes" not in f["Low Freq"]
+            assert "They Exist?" not in f["TimeTags"]
+
+
+def test_h5_cropped_export_confocal(tmpdir_factory):
+    start = 1689369419 * int(1e9)
+    dt = int(1e9 / 78125)
+
+    image = np.eye(5)
+    infowave, photon_counts = generate_image_data(image, 5, 2)
+    infowave, photon_counts = (np.tile(arr, (8,)) for arr in (infowave, photon_counts[0]))
+
+    json_scan = generate_scan_json(
+        [
+            {"axis": axis, "num of pixels": num_pixels, "pixel size (nm)": pixel_size}
+            for pixel_size, axis, num_pixels in zip([1, 1], [0, 1], image.shape)
+        ]
+    )
+    json_kymo = generate_scan_json(
+        [{"axis": 0, "num of pixels": image.shape[0], "pixel size (nm)": 1.0}]
+    )
+    json_point = generate_scan_json([])
+
+    stop = start + len(infowave) * dt
+    mock_class = MockDataFile_v2
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join(f"channels_to_crop.h5"))
+    mock_file.write_metadata()
+    mock_file.make_continuous_channel("Photon count", "Red", start, dt, photon_counts)
+    mock_file.make_continuous_channel("Photon count", "Green", start, dt, photon_counts)
+    mock_file.make_continuous_channel("Photon count", "Blue", start, dt, photon_counts)
+    mock_file.make_continuous_channel("Info wave", "Info wave", start, dt, infowave)
+    ds1 = mock_file.make_json_data("Scan", "Scan1", json_scan)
+    ds2 = mock_file.make_json_data("Kymograph", "Kymo1", json_kymo)
+    ds3 = mock_file.make_json_data("Point Scan", "PointScan1", json_point)
+    for ds in (ds1, ds2, ds3):
+        ds.attrs["Start time (ns)"] = np.int64(start)
+        ds.attrs["Stop time (ns)"] = np.int64(start + len(infowave) * dt)
+
+    lk_file = pylake.File.from_h5py(mock_file.file)
+
+    def cropped_h5(name, crop=None):
+        target_file = tmpdir.join(f"{name}_cropped.h5")
+        lk_file.save_as(target_file, crop_time_range=crop, verbose=False)
+        return pylake.File(target_file)
+
+    for ix, crop in enumerate(
+        (
+            (start, stop + 1),  # No change
+            (start + (stop - start) // 2, stop + 1),  # Middle to end
+            (start, start + (stop - start) // 2),  # Start to middle
+            (start - 1000, start - 1),  # Before it even begins (no data)
+            (stop + 1000, stop + (stop - start)),  # After it ends (no data)
+            (start, start + 1),
+            (start, start),
+        )
+    ):
+        f = cropped_h5(f"channels_{ix}", crop=crop)
+        ref_image = lk_file["Scan"]["Scan1"][crop[0] : crop[1]].get_image("red")
+        if ref_image.size:
+            np.testing.assert_allclose(f["Scan"]["Scan1"].get_image("red"), ref_image)
+        else:
+            assert "Scan1" not in f["Scan"]
+
+        ref_image = lk_file["Kymograph"]["Kymo1"][crop[0] : crop[1]].get_image("red")
+        if ref_image.size:
+            np.testing.assert_allclose(f["Kymograph"]["Kymo1"].get_image("red"), ref_image)
+        else:
+            assert "Kymo1" not in f["Kymograph"]
+
+        ref_data = lk_file["Point Scan"]["PointScan1"][crop[0] : crop[1]].red_photon_count
+        if ref_data:
+            np.testing.assert_allclose(f["Point Scan"]["PointScan1"].red_photon_count, ref_data)
+        else:
+            assert (
+                "PointScan1" not in f["Point Scan"]
+                or not f["Point Scan"]["PointScan1"].red_photon_count
+            )

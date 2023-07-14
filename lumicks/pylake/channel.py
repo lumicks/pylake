@@ -575,6 +575,25 @@ class Continuous:
             calibration=calibration,
         )
 
+    def to_dataset(self, parent, name, **kwargs):
+        """Save this to an h5 dataset
+
+        Parameters
+        ----------
+        parent : h5py.Group or h5py.File
+            location to save to.
+        name : str
+            name of the new dataset
+        **kwargs
+            forwarded to h5py.Group.create_dataset()
+        """
+        dset = parent.create_dataset(name, data=self._src_data, **kwargs)
+        dset.attrs["Kind"] = "Continuous"
+        dset.attrs["Sample rate (Hz)"] = self.sample_rate
+        dset.attrs["Start time (ns)"] = self.start
+        dset.attrs["Stop time (ns)"] = self.stop
+        return dset
+
     @property
     def data(self) -> npt.ArrayLike:
         if self._cached_data is None:
@@ -686,6 +705,26 @@ class TimeSeries:
             calibration=calibration,
         )
 
+    def to_dataset(self, parent, name, **kwargs):
+        """Save this to an h5 dataset
+
+        Parameters
+        ----------
+        parent : h5py.Group or h5py.File
+            location to save to.
+        name : str
+            name of the new dataset
+        **kwargs
+            forwarded to h5py.Group.create_dataset()
+        """
+        compound_type = np.dtype([("Timestamp", np.int64), ("Value", float)])
+        data = np.array([(t, d) for t, d in zip(self.timestamps, self.data)], compound_type)
+        dset = parent.create_dataset(name, data=data, **kwargs)
+        dset.attrs["Kind"] = b"TimeSeries"
+        dset.attrs["Start time (ns)"] = self.start
+        dset.attrs["Stop time (ns)"] = self.stop
+        return dset
+
     @property
     def data(self) -> npt.ArrayLike:
         if self._cached_data is None:
@@ -761,6 +800,22 @@ class TimeTags:
     @staticmethod
     def from_dataset(dset, y_label="y"):
         return Slice(TimeTags(dset))
+
+    def to_dataset(self, parent, name, **kwargs):
+        """Save this to an h5 dataset
+
+        Parameters
+        ----------
+        parent : h5py.Group or h5py.File
+            location to save to.
+        name : str
+            name of the new dataset
+        **kwargs
+            forwarded to h5py.Group.create_dataset()
+        """
+        dset = parent.create_dataset(name, data=self.data, **kwargs)
+        dset.attrs["Kind"] = "TimeTags"
+        return dset
 
     @property
     def timestamps(self) -> npt.ArrayLike:
