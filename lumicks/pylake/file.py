@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 from typing import Dict
 
-from collections import OrderedDict
 from .calibration import ForceCalibration
 from .channel import Slice, Continuous, TimeSeries, TimeTags
 from .detail.mixin import Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, PhotonTimeTags
@@ -41,7 +40,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     SUPPORTED_FILE_FORMAT_VERSIONS = [1, 2]
 
     def __init__(self, filename):
-        super().__init__(h5py.File(filename, "r"))
+        super().__init__(h5py.File(filename, "r"), lk_file=self)
         self._check_file_format()
 
     def _check_file_format(self):
@@ -53,24 +52,27 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         if ff_version not in File.SUPPORTED_FILE_FORMAT_VERSIONS:
             raise Exception(f"Unsupported Bluelake file format version {ff_version}")
 
-        # List of fields which should not be accessed directly from the h5 and their actual API accessors. Note that
-        # top level fields are automatically printed when print is invoked.
-        self.redirect_list = OrderedDict(
-            [
-                ("Calibration", "force1x.calibration"),
-                ("Marker", "markers"),
-                ("FD Curve", "fdcurves"),
-                ("Kymograph", "kymos"),
-                ("Scan", "scans"),
-                ("Note", "notes"),
-            ]
-        )
+        # List of h5 fields for which custom API exists. Note that top level fields (provided as
+        # the first argument in the tuple) are automatically printed when print is invoked. For
+        # fields where an actual class exists, the second element in the tuple is used to
+        # instantiate an element in that Group (using its `from_dataset` method). Otherwise,
+        # a FutureWarning is raised.
+        self.redirect_list = {
+            "Calibration": ("force1x.calibration", None),
+            "Marker": ("markers", Marker),
+            "FD Curve": ("fdcurves", FdCurve),
+            "Kymograph": ("kymos", Kymo),
+            "Scan": ("scans", Scan),
+            "Note": ("notes", Note),
+            "Point Scan": ("point_scans", PointScan),
+        }
 
     @classmethod
     def from_h5py(cls, h5py_file):
         """Directly load an existing `h5py.File <https://docs.h5py.org/en/latest/high/file.html>`_"""
         new_file = cls.__new__(cls)
         new_file.h5 = h5py_file
+        new_file._lk_file = new_file
         new_file._check_file_format()
         return new_file
 
@@ -154,7 +156,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             print_attributes(self.h5)
             + "\n"
             + print_group(self.h5)
-            + "".join((print_dicts(field) for field in self.redirect_list.values()))
+            + "".join((print_dicts(field[0]) for field in self.redirect_list.values()))
             + "\n"
             + "".join(
                 (
