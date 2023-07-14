@@ -25,7 +25,6 @@ def fit_analytical_lorentzian(ps):
         - `sigma_fc`, `sigma_D`: 1-sigma confidence intervals for `fc` and `D`
         - `ps_fit`: :class:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum` object with model fit
 
-        Note: returns None if the fit fails.
     """
     FitResults = namedtuple(
         "AnalyticalLorentzianFitResults", ["fc", "D", "sigma_fc", "sigma_D", "ps_fit"]
