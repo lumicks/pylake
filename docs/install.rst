@@ -457,7 +457,7 @@ Since there is no mirror for `conda-forge`, Pylake then has to be installed usin
 
 If you normally manage your environments with `pip`, you can just invoke::
 
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake "jupyter_client<8"
 
 If you use Anaconda, then it is best to create a new environment for this installation. You can do this as follows::
 
