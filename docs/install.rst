@@ -473,6 +473,6 @@ Install pip in the activated environment by invoking::
 
 Then install Pylake as follows::
 
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake "jupyter_client<8"
 
 Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip, and do not install additional dependencies via `conda install`, since this can break your environment.
