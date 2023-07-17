@@ -200,3 +200,15 @@ def test_key_aliases(src_dict, aliases, result_dict, valid):
     else:
         with pytest.raises(ValueError):
             replace_key_aliases(src_dict, *aliases)
+
+
+@pytest.mark.parametrize("tst", [1, 2])
+def test_freezing(reference_data, tst):
+    test_data = np.array([[1, 2, 3], [1, 2, 5]])
+    np.testing.assert_allclose(test_data, reference_data(test_data))
+    test_data = np.array([[1, 2, 3], [1, 2, 6]])
+    np.testing.assert_allclose(test_data, reference_data(test_data, test_name="mytest"))
+    test_data = np.array([[1, 2, 3], [1, 2, 7]])
+    np.testing.assert_allclose(
+        test_data, reference_data(test_data, file_name=f"forced_filename_{tst}")
+    )
