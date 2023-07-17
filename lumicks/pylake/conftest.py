@@ -1,6 +1,8 @@
 import importlib
 import warnings
 import pytest
+import os.path
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -9,6 +11,15 @@ def pytest_addoption(parser):
         parser.addoption(
             f"--run{option}", action="store_true", default=False, help=f"run {option} tests"
         )
+    parser.addoption(
+        "--update_reference_data", action="store_true", default=False, help="Update test data"
+    )
+    parser.addoption(
+        "--strict_reference_data",
+        action="store_true",
+        default=False,
+        help="Treat missing test data as error",
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -93,3 +104,101 @@ def configure_mpl():
             yield
     finally:
         plt.close("all")
+
+
+@pytest.fixture
+def reference_data(request):
+    """Read or update test reference data.
+
+    Some tests require relatively big reference matrices. If the purpose of the test is just to
+    ensure that changes to the results are noticed, then this fixture can be used to store
+    reference data. Simply import the fixture in the test, and call `reference_data` with a unique
+    name per result and the dataset that needs to be stored. Check the resulting files into git to
+    pin the results.
+
+    If the functionality is ever updated, either delete the reference file and run the test, or run
+    pytest with the option `--update_reference_data`. In order to explicitly disallow creation (and
+    raise if the file is not found, run with the option `--strict_reference_data`).
+
+    Examples
+    --------
+    ::
+
+        @pytest.mark.parametrize("par", [1])
+        def test_freezing(reference_data, par):
+            test_data = np.array([[1, 2, 3], [1, 2, 3]])
+
+            # Writes to a file function/freezing[parametrization descriptions].npz
+            np.testing.assert_allclose(test_data, reference_data(test_data))
+
+            # Writes to a file function/test_data[parametrization descriptions].npz
+            np.testing.assert_allclose(test_data, reference_data(test_data, test_name="test_data"))
+
+            # Writes to a file function/filename.npz. Note that when using this form, you are
+            # responsible for assembling the parameterization into the `file_name`!
+            np.testing.assert_allclose(test_data, reference_data(test_data, file_name="file_name"))
+    """
+
+    def get_reference_data(reference_data, test_name=None, file_name=None):
+        """Read or write reference data
+
+        Reads or writes reference data at the location `reference_data/test_name/dataset_name`.
+        This function reads and returns reference data if it is available at the provided location.
+        If it is not available, it writes a file containing the data (unless strict is enforced
+        through `pytest` in which case it throws).
+
+        `dataset_name` depends on the input arguments. By default, `dataset_name` will evaluate to
+        the name of the test from which this function is called. The arguments `test_name` and
+        `file_name` can override this behavior (see below).
+
+        Parameters
+        ----------
+        reference_data : anything
+            Data to store.
+        test_name : str, optional
+            If this is provided, the dataset name will be a combination of this string with the
+            parametrization.
+        file_name : str, optional
+            If this is provided the dataset name will be exactly the file_name without the
+            parametrization suffixed.
+
+        Raises
+        ------
+        ValueError
+            If both test_name and file_name are provided.
+        """
+        if test_name and file_name:
+            raise ValueError("You cannot specify both a test_name and file_name")
+
+        calling_function = request.function.__name__.replace("test_", "")
+
+        # Force output file name.
+        ref_data_filename = (
+            request.node.name.replace("test_", "") if file_name is None else file_name
+        )
+
+        # Overwrite only the identifier part Test[par1-par2-par3] -> mytest[par1-par2,par3].
+        if test_name is not None:
+            ref_data_filename = ref_data_filename.replace(calling_function, test_name)
+
+        calling_path_name = os.path.dirname(request.fspath)
+
+        reference_data_path = os.path.join(calling_path_name, "reference_data", calling_function)
+        reference_data_fn = os.path.join(reference_data_path, f"{ref_data_filename}.npz")
+
+        exists = os.path.exists(reference_data_fn)
+        if exists and not request.config.getoption("--update_reference_data"):
+            return np.load(reference_data_fn, allow_pickle=True)["arr_0"]
+        else:
+            if request.config.getoption("--strict_reference_data"):
+                raise RuntimeError(
+                    f"Test data for {calling_function}/{ref_data_filename} missing! Did you forget "
+                    f"to check it in?"
+                )
+
+            os.makedirs(reference_data_path, exist_ok=True)
+            np.savez(reference_data_fn, reference_data)
+            print(f"\nWritten reference data {ref_data_filename} to {reference_data_fn}.")
+            return reference_data
+
+    return get_reference_data
