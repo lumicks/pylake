@@ -83,7 +83,9 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
 
     tracks = KymoTrackGroup(
         [
-            KymoTrack(np.array(time_idx), np.array(position_idx), kymo, "red")
+            KymoTrack(
+                np.array(time_idx), np.array(position_idx), kymo, "red", kymo.line_time_seconds
+            )
             for time_idx, position_idx in track_coordinates
         ]
     )
@@ -113,8 +115,8 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
 def test_export_sources(tmpdir_factory):
     kymo1 = _kymo_from_array(np.random.poisson(5, (5, 5, 3)), "rgb", 1e-4, start=20e9)
     kymo2 = copy(kymo1)
-    tracks1 = KymoTrackGroup([KymoTrack(np.arange(3), np.arange(3), kymo1, "red")])
-    tracks2 = KymoTrackGroup([KymoTrack(np.arange(5), np.arange(5), kymo2, "red")])
+    tracks1 = KymoTrackGroup([KymoTrack(np.arange(3), np.arange(3), kymo1, "red", 0)])
+    tracks2 = KymoTrackGroup([KymoTrack(np.arange(5), np.arange(5), kymo2, "red", 0)])
     tracks3 = tracks1 + tracks2
 
     testfile = f"{tmpdir_factory.mktemp('pylake')}/failed_test.csv"
@@ -158,7 +160,9 @@ def test_roundtrip_without_file(
 
     tracks = KymoTrackGroup(
         [
-            KymoTrack(np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red")
+            KymoTrack(
+                np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red", 0
+            )
             for time_idx, position_idx in track_coordinates
         ]
     )

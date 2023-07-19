@@ -1,8 +1,6 @@
 import re
 import pytest
-from copy import copy
 from lumicks.pylake.kymotracker.kymotrack import *
-from lumicks.pylake.kymotracker.kymotracker import refine_tracks_centroid, refine_tracks_gaussian
 from lumicks.pylake.kymo import _kymo_from_array
 
 
@@ -68,8 +66,14 @@ def test_empty_constructor():
 def test_constructor(kymos, coordinates):
     kymo = kymos[0]
     time_indices, position_indices = coordinates
-    raw_tracks = [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
-    raw_tracks_red = [KymoTrack(t, p, kymo, "red") for t, p in zip(time_indices, position_indices)]
+    raw_tracks = [
+        KymoTrack(t, p, kymo, "green", kymo.line_time_seconds)
+        for t, p in zip(time_indices, position_indices)
+    ]
+    raw_tracks_red = [
+        KymoTrack(t, p, kymo, "red", kymo.line_time_seconds)
+        for t, p in zip(time_indices, position_indices)
+    ]
 
     # construct from single source
     tracks = KymoTrackGroup(raw_tracks)
@@ -95,8 +99,14 @@ def test_constructor(kymos, coordinates):
 def test_extend_single_source(kymos, coordinates):
     kymo = kymos[0]
     time_indices, position_indices = coordinates
-    raw_tracks = [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
-    raw_tracks_red = [KymoTrack(t, p, kymo, "red") for t, p in zip(time_indices, position_indices)]
+    raw_tracks = [
+        KymoTrack(t, p, kymo, "green", kymo.line_time_seconds)
+        for t, p in zip(time_indices, position_indices)
+    ]
+    raw_tracks_red = [
+        KymoTrack(t, p, kymo, "red", kymo.line_time_seconds)
+        for t, p in zip(time_indices, position_indices)
+    ]
 
     tracks1 = KymoTrackGroup(raw_tracks[:2])
     tracks2 = KymoTrackGroup(raw_tracks[2:])
@@ -124,7 +134,10 @@ def test_extend_single_source(kymos, coordinates):
 def test_extend_empty(kymos, coordinates):
     kymo = kymos[0]
     time_indices, position_indices = coordinates
-    raw_tracks = [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
+    raw_tracks = [
+        KymoTrack(t, p, kymo, "green", kymo.line_time_seconds)
+        for t, p in zip(time_indices, position_indices)
+    ]
 
     empty = KymoTrackGroup([])
     tracks2 = KymoTrackGroup(raw_tracks)
@@ -160,10 +173,16 @@ def test_different_sources_same_attributes(kymos, coordinates):
 
     time_indices, position_indices = coordinates
     tracks1 = KymoTrackGroup(
-        [KymoTrack(t, p, kymo1, "green") for t, p in zip(time_indices, position_indices)]
+        [
+            KymoTrack(t, p, kymo1, "green", kymo1.line_time_seconds)
+            for t, p in zip(time_indices, position_indices)
+        ]
     )
     tracks2 = KymoTrackGroup(
-        [KymoTrack(t, p, kymo2, "green") for t, p in zip(time_indices, position_indices)]
+        [
+            KymoTrack(t, p, kymo2, "green", kymo2.line_time_seconds)
+            for t, p in zip(time_indices, position_indices)
+        ]
     )
 
     tracks = tracks1[:2] + tracks2[2:]
@@ -177,7 +196,10 @@ def test_different_sources_different_attributes(kymos, coordinates):
 
     def make_tracks(kymo):
         return KymoTrackGroup(
-            [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
+            [
+                KymoTrack(t, p, kymo, "green", kymo.line_time_seconds)
+                for t, p in zip(time_indices, position_indices)
+            ]
         )
 
     # different line times
@@ -223,7 +245,10 @@ def test_tracks_by_kymo(kymos, coordinates):
 
     def make_tracks(kymo):
         return KymoTrackGroup(
-            [KymoTrack(t, p, kymo, "green") for t, p in zip(time_indices, position_indices)]
+            [
+                KymoTrack(t, p, kymo, "green", kymo.line_time_seconds)
+                for t, p in zip(time_indices, position_indices)
+            ]
         )
 
     tracks = [make_tracks(k) for k in (kymos[0], kymos[-1], kymos[0])]

@@ -10,8 +10,8 @@ from lumicks.pylake.kymotracker.kymotrack import KymoTrack
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
 
 
-def test_score_matrix(blank_kymo):
-    tracks = [KymoTrack([0], [3], blank_kymo, "red")]
+def test_score_matrix(blank_kymo, blank_kymo_track_args):
+    tracks = [KymoTrack([0], [3], *blank_kymo_track_args)]
     unique_coordinates = np.arange(0, 7)
     unique_times = np.arange(1, 7)
 

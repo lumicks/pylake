@@ -76,6 +76,11 @@ def blank_kymo():
 
 
 @pytest.fixture
+def blank_kymo_track_args(blank_kymo):
+    return [blank_kymo, "red", blank_kymo.line_time_seconds]
+
+
+@pytest.fixture
 def kymogroups_2tracks():
     _, _, photon_count, parameters = read_dataset_gaussian("kymo_data_2lines.npz")
     pixel_size = parameters[0].pixel_size
@@ -93,14 +98,25 @@ def kymogroups_2tracks():
     _, n_frames = kymo.get_image("red").shape
 
     tracks = KymoTrackGroup(
-        [KymoTrack(np.arange(0, n_frames), np.full(n_frames, c), kymo, "red") for c in centers]
+        [
+            KymoTrack(
+                np.arange(0, n_frames), np.full(n_frames, c), kymo, "red", kymo.line_time_seconds
+            )
+            for c in centers
+        ]
     )
 
     # introduce gaps into tracks
     use_frames = np.array([0, 1, -2, -1])
     gapped_tracks = KymoTrackGroup(
         [
-            KymoTrack(track.time_idx[use_frames], track.coordinate_idx[use_frames], kymo, "red")
+            KymoTrack(
+                track.time_idx[use_frames],
+                track.coordinate_idx[use_frames],
+                kymo,
+                "red",
+                kymo.line_time_seconds
+            )
             for track in tracks
         ]
     )
@@ -108,7 +124,13 @@ def kymogroups_2tracks():
     # crop the ends of initial tracks and make new set of tracks with one cropped and the second full
     truncated_tracks = KymoTrackGroup(
         [
-            KymoTrack(np.arange(1, n_frames - 2), np.full(n_frames - 3, c), kymo, "red")
+            KymoTrack(
+                np.arange(1, n_frames - 2),
+                np.full(n_frames - 3, c),
+                kymo,
+                "red",
+                kymo.line_time_seconds
+            )
             for c in centers
         ]
     )
@@ -135,5 +157,10 @@ def kymogroups_close_tracks():
     _, n_frames = kymo.get_image("red").shape
 
     return KymoTrackGroup(
-        [KymoTrack(np.arange(0, n_frames), np.full(n_frames, c), kymo, "red") for c in centers]
+        [
+            KymoTrack(
+                np.arange(0, n_frames), np.full(n_frames, c), kymo, "red", kymo.line_time_seconds
+            )
+            for c in centers
+        ]
     )
