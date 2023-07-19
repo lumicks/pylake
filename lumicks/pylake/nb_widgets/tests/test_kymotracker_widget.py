@@ -195,12 +195,14 @@ def test_stitch(kymograph, mockevent):
         np.array([1, 1, 1]),
         kymograph,
         "red",
+        kymograph.line_time_seconds,
     )
     k2 = KymoTrack(
         np.array([6, 7, 8]),
         np.array([3, 3, 3]),
         kymograph,
         "red",
+        kymograph.line_time_seconds,
     )
     kymo_widget.tracks = KymoTrackGroup([k1, k2])
 
@@ -241,12 +243,14 @@ def test_stitch_anywhere(start, stop, same_track, kymograph, mockevent):
         np.array([1, 1, 1, 3, 3]),
         kymograph,
         "red",
+        kymograph.line_time_seconds,
     )
     k2 = KymoTrack(
         np.array([6, 7, 8]),
         np.array([3, 3, 3]),
         kymograph,
         "red",
+        kymograph.line_time_seconds,
     )
     kymo_widget.tracks = KymoTrackGroup([k1, k2])
 
@@ -419,6 +423,7 @@ def test_split(kymograph, mockevent):
         np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]),
         kymograph,
         "red",
+        kymograph.line_time_seconds,
     )
     kymo_widget.tracks = KymoTrackGroup([k1])
 

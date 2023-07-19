@@ -402,6 +402,13 @@ def test_filter_tracks(blank_kymo):
     assert all([track1 == track2 for track1, track2 in zip(filter_tracks(tracks, 5), [k1, k3])])
     assert all([track1 == track2 for track1, track2 in zip(filter_tracks(tracks, 2), [k1, k2, k3])])
 
+    # Ensure that a non-identified minimum time still gets handled gracefully.
+    ktg = KymoTrackGroup([KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red", None)])
+    filtered = filter_tracks(ktg, 2)
+    np.testing.assert_allclose(
+        filtered[0]._minimum_observable_duration, blank_kymo.line_time_seconds
+    )
+
 
 def test_empty_group():
     """Validate that the refinement methods don't fail when applied to an empty group"""
