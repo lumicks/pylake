@@ -9,30 +9,32 @@ from lumicks.pylake.kymo import _kymo_from_array
 from ...tests.data.mock_confocal import generate_kymo
 
 
-def test_kymo_track(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
+def test_kymo_track(blank_kymo, blank_kymo_track_args):
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), *blank_kymo_track_args)
+    assert k1._minimum_observable_duration == blank_kymo.line_time_seconds
     np.testing.assert_allclose(k1[1], [2, 3])
     np.testing.assert_allclose(k1[-1], [3, 4])
     np.testing.assert_allclose(k1[0:2], [[1, 2], [2, 3]])
     np.testing.assert_allclose(k1[0:2][:, 1], [2, 3])
 
-    k2 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
+    k2 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), *blank_kymo_track_args)
     np.testing.assert_allclose((k1 + k2)[:], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]])
     np.testing.assert_allclose(k1.extrapolate(True, 3, 2.0), [5, 6])
 
     with pytest.raises(
         RuntimeError, match="Cannot extrapolate linearly with fewer than two timepoints"
     ):
-        KymoTrack([1], [1], blank_kymo, "red").extrapolate(True, 5, 2.0)
+        KymoTrack([1], [1], *blank_kymo_track_args).extrapolate(True, 5, 2.0)
 
     with pytest.raises(
         ValueError, match="Cannot extrapolate linearly with fewer than two timepoints"
     ):
-        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red").extrapolate(True, 1, 2.0)
+        KymoTrack([1, 2, 3], [1, 2, 3], *blank_kymo_track_args).extrapolate(True, 1, 2.0)
 
-    k1 = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
+    k1 = KymoTrack([1, 2, 3], [1, 2, 3], *blank_kymo_track_args)
     k2 = k1.with_offset(2, 2)
     assert id(k2) != id(k1)
+    assert k2._minimum_observable_duration == blank_kymo.line_time_seconds
 
     np.testing.assert_allclose(k2.coordinate_idx, [3, 4, 5])
     assert k1._kymo == blank_kymo
@@ -42,20 +44,20 @@ def test_kymo_track(blank_kymo):
     assert str(k1) == "KymoTrack(N=3)"
 
 
-def test_kymotrack_selection(blank_kymo):
+def test_kymotrack_selection(blank_kymo, blank_kymo_track_args):
     t = np.array([4, 5, 6])
     y = np.array([7, 7, 7])
-    assert not KymoTrack(t, y, blank_kymo, "red").in_rect(((4, 6), (6, 7)))
-    assert KymoTrack(t, y, blank_kymo, "red").in_rect(((4, 6), (6, 8)))
-    assert not KymoTrack(t, y, blank_kymo, "red").in_rect(((3, 6), (4, 8)))
-    assert KymoTrack(t, y, blank_kymo, "red").in_rect(((3, 6), (5, 8)))
+    assert not KymoTrack(t, y, *blank_kymo_track_args).in_rect(((4, 6), (6, 7)))
+    assert KymoTrack(t, y, *blank_kymo_track_args).in_rect(((4, 6), (6, 8)))
+    assert not KymoTrack(t, y, *blank_kymo_track_args).in_rect(((3, 6), (4, 8)))
+    assert KymoTrack(t, y, *blank_kymo_track_args).in_rect(((3, 6), (5, 8)))
 
-    assert KymoTrack([2], [6], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
-    assert KymoTrack([2], [5], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
-    assert not KymoTrack([4], [6], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
-    assert not KymoTrack([1], [6], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
-    assert not KymoTrack([2], [4], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
-    assert not KymoTrack([2], [8], blank_kymo, "red").in_rect(((2, 5), (3, 8)))
+    assert KymoTrack([2], [6], *blank_kymo_track_args).in_rect(((2, 5), (3, 8)))
+    assert KymoTrack([2], [5], *blank_kymo_track_args).in_rect(((2, 5), (3, 8)))
+    assert not KymoTrack([4], [6], *blank_kymo_track_args).in_rect(((2, 5), (3, 8)))
+    assert not KymoTrack([1], [6], *blank_kymo_track_args).in_rect(((2, 5), (3, 8)))
+    assert not KymoTrack([2], [4], *blank_kymo_track_args).in_rect(((2, 5), (3, 8)))
+    assert not KymoTrack([2], [8], *blank_kymo_track_args).in_rect(((2, 5), (3, 8)))
 
 
 def test_kymotrack_selection_non_unit_calibration():
@@ -70,8 +72,9 @@ def test_kymotrack_selection_non_unit_calibration():
     )
 
     time, pos = np.array([4, 5, 6]), np.array([7, 7, 7])
-    assert not KymoTrack(time, pos, kymo, "red").in_rect(((4, 6 * 5), (6, 7 * 5)))
-    assert KymoTrack(time, pos, kymo, "red").in_rect(((4, 6 * 5), (6, 8 * 5)))
+    track = KymoTrack(time, pos, kymo, "red", 0)
+    assert not track.in_rect(((4, 6 * 5), (6, 7 * 5)))
+    assert track.in_rect(((4, 6 * 5), (6, 8 * 5)))
 
 
 @pytest.mark.parametrize(
@@ -92,9 +95,10 @@ def test_kymotracks_removal(blank_kymo, rect, remaining_lines, fully_in_rect):
     """Tests removal of KymoTracks within a particular rectangle.
 
     Note that the rectangle is given as (min time, min coord) to (max time, max coord)"""
-    k0 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
-    k1 = KymoTrack(np.array([2, 3, 4]), np.array([2, 2, 2]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([3, 4, 5]), np.array([3, 3, 3]), blank_kymo, "red")
+    shared_args = [blank_kymo, "red", blank_kymo.line_time_seconds]
+    k0 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), *shared_args)
+    k1 = KymoTrack(np.array([2, 3, 4]), np.array([2, 2, 2]), *shared_args)
+    k2 = KymoTrack(np.array([3, 4, 5]), np.array([3, 3, 3]), *shared_args)
     tracks = [k0, k1, k2]
 
     def verify(rect, resulting_tracks):
@@ -107,10 +111,11 @@ def test_kymotracks_removal(blank_kymo, rect, remaining_lines, fully_in_rect):
 
 
 def test_kymotrack_group_getitem(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
-    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
+    shared_args = [blank_kymo, "red", blank_kymo.line_time_seconds]
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), *shared_args)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), *shared_args)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), *shared_args)
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), *shared_args)
 
     tracks = KymoTrackGroup([k1, k2, k3, k4])
     assert [k for k in tracks] == [k1, k2, k3, k4]
@@ -144,10 +149,11 @@ def test_kymotrack_group_getitem(blank_kymo):
     ],
 )
 def test_kymotrackgroup_remove(blank_kymo, remove, remaining):
+    shared_args = [blank_kymo, "red", blank_kymo.line_time_seconds]
     src_tracks = [
-        KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red"),
-        KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red"),
-        KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red"),
+        KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), *shared_args),
+        KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), *shared_args),
+        KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), *shared_args),
     ]
 
     tracks = KymoTrackGroup(src_tracks)
@@ -161,8 +167,9 @@ def test_kymotrackgroup_remove(blank_kymo, remove, remaining):
 
 
 def test_kymotrack_group_unique_construction(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
+    shared_args = [blank_kymo, "red", blank_kymo.line_time_seconds]
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), *shared_args)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), *shared_args)
     with pytest.raises(
         ValueError, match="Some tracks appear multiple times. The provided tracks must be unique."
     ):
@@ -172,9 +179,10 @@ def test_kymotrack_group_unique_construction(blank_kymo):
 
 
 def test_kymotrackgroup_lookup(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+    shared_args = [blank_kymo, "red", blank_kymo.line_time_seconds]
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), *shared_args)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), *shared_args)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), *shared_args)
 
     tracks = KymoTrackGroup([k1, k2, k3])
     assert tracks._get_track_by_id(id(k1)) is k1
@@ -189,9 +197,10 @@ def test_kymotrackgroup_lookup(blank_kymo):
 
 
 def test_kymotrack_group_indexing(blank_kymo):
-    k0 = KymoTrack(np.array([1, 2, 3, 4]), np.array([2, 3, 4, 5]), blank_kymo, "red")
-    k1 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.array([3, 4, 5, 6, 7]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
+    shared_args = [blank_kymo, "red", blank_kymo.line_time_seconds]
+    k0 = KymoTrack(np.array([1, 2, 3, 4]), np.array([2, 3, 4, 5]), *shared_args)
+    k1 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.array([3, 4, 5, 6, 7]), *shared_args)
+    k2 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), *shared_args)
     group = KymoTrackGroup([k0, k1, k2])
 
     def verify_group(group, ref_list):
@@ -210,10 +219,10 @@ def test_kymotrack_group_indexing(blank_kymo):
 
 
 def test_kymotrack_group_extend(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
-    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red", 0)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red", 0)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red", 0)
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red", 0)
 
     tracks = KymoTrackGroup([k1, k2])
     tracks.extend(KymoTrackGroup([k3, k4]))
@@ -248,10 +257,10 @@ def test_kymotrack_group(blank_kymo):
         if ref_kymo:
             assert id(kymoline_group._kymos[0]) == id(ref_kymo)
 
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red")
-    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), blank_kymo, "red", 0)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), blank_kymo, "red", 0)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), blank_kymo, "red", 0)
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), blank_kymo, "red", 0)
 
     tracks1 = KymoTrackGroup([k1, k2])
     tracks2 = KymoTrackGroup([k3, k4])
@@ -278,7 +287,7 @@ def test_kymotrack_merge():
     pos_idx = ([1, 1, 1, 3, 3], [4, 4, 4], [9, 9, 9], [10, 10, 10])
 
     make_tracks = lambda: KymoTrackGroup(
-        [KymoTrack(t, p, kymo, "green") for t, p in zip(time_idx, pos_idx)]
+        [KymoTrack(t, p, kymo, "green", 0) for t, p in zip(time_idx, pos_idx)]
     )
 
     # connect first two
@@ -309,7 +318,7 @@ def test_kymotrack_merge():
     np.testing.assert_almost_equal(tracks[1].coordinate_idx, [4, 4, 4])
 
     # can't connect tracks from two groups
-    tracks2 = KymoTrackGroup([KymoTrack([1, 2, 3], [4, 5, 6], kymo, "green")])
+    tracks2 = KymoTrackGroup([KymoTrack([1, 2, 3], [4, 5, 6], kymo, "green", 0)])
     with pytest.raises(
         RuntimeError, match="Both tracks need to be part of this group to be merged"
     ):
@@ -355,7 +364,7 @@ def test_msd_api(time_scale, position_scale):
         samples_per_pixel=1,
         line_padding=0,
     )
-    k = KymoTrack(time_scale * time_idx, position_scale * position_idx, kymo, "red")
+    k = KymoTrack(time_scale * time_idx, position_scale * position_idx, kymo, "red", 0)
 
     lags, msd = k.msd()
     np.testing.assert_allclose(lags, time_idx[1:])
@@ -389,7 +398,7 @@ def test_diffusion_msd(time_idx, coordinate, pixel_size, time_step, max_lag, dif
         samples_per_pixel=1,
         line_padding=0,
     )
-    k = KymoTrack(time_idx, coordinate / pixel_size, kymo, "red")
+    k = KymoTrack(time_idx, coordinate / pixel_size, kymo, "red", 0)
 
     np.testing.assert_allclose(k.estimate_diffusion("ols", max_lag=max_lag).value, diffusion_const)
 
@@ -402,6 +411,7 @@ def test_diffusion_units(blank_kymo, calibration_coeff):
             np.array([-1.0, 1.0, -1.0, -3.0, -5.0]),
             kymo,
             "red",
+            kymo.line_time_seconds,
         )
         for kymo in (blank_kymo, blank_kymo.calibrate_to_kbp(calibration_coeff))
     ]
@@ -447,20 +457,20 @@ def test_diffusion_gls(time_idx, coordinate, pixel_size, time_step, max_lag, dif
         samples_per_pixel=1,
         line_padding=0,
     )
-    k = KymoTrack(time_idx, coordinate / pixel_size, kymo, "red")
+    k = KymoTrack(time_idx, coordinate / pixel_size, kymo, "red", kymo.line_time_seconds)
 
     np.testing.assert_allclose(k.estimate_diffusion("gls", max_lag=max_lag).value, diffusion_const)
 
 
-def test_invalid_method(blank_kymo):
-    k = KymoTrack(np.arange(5), np.arange(5), blank_kymo, "red")
+def test_invalid_method(blank_kymo, blank_kymo_track_args):
+    k = KymoTrack(np.arange(5), np.arange(5), *blank_kymo_track_args)
     with pytest.raises(ValueError, match="Invalid method selected"):
         k.estimate_diffusion(max_lag=5, method="BAD")
 
 
-def test_lag_default(blank_kymo):
+def test_lag_default(blank_kymo, blank_kymo_track_args):
     """Checks whether the max_lag argument is correctly set by default"""
-    k = KymoTrack(np.arange(5), np.arange(5), blank_kymo, "red")
+    k = KymoTrack(np.arange(5), np.arange(5), *blank_kymo_track_args)
     assert k.estimate_diffusion(method="gls").num_lags == 5  # Uses all lags by default
     assert k.estimate_diffusion(method="ols").num_lags == 2  # Should estimate lags itself (2)
     assert k.estimate_diffusion(method="ols", max_lag=4).num_lags == 4
@@ -488,7 +498,7 @@ def test_kymotrack_msd_plot(max_lag, x_data, y_data):
     )
 
     plt.figure()
-    k = KymoTrack(np.arange(1, 6), np.arange(1, 6), kymo, "red")
+    k = KymoTrack(np.arange(1, 6), np.arange(1, 6), kymo, "red", kymo.line_time_seconds)
     k.plot_msd(max_lag=max_lag)
     np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), x_data)
     np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), y_data)
@@ -505,10 +515,10 @@ def test_binding_histograms():
         line_padding=0,
     )
 
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2.5, 3.5, 4.5]), kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3.5, 4.5, 5.5]), kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4.5, 5.5, 6.5]), kymo, "red")
-    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5.5, 6.5, 7.5]), kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2.5, 3.5, 4.5]), kymo, "red", 0)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3.5, 4.5, 5.5]), kymo, "red", 0)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4.5, 5.5, 6.5]), kymo, "red", 0)
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5.5, 6.5, 7.5]), kymo, "red", 0)
 
     tracks = KymoTrackGroup([k1, k2, k3, k4])
 
@@ -544,8 +554,8 @@ def test_kymotrackgroup_tracks_in_frame(blank_kymo):
 
     tracks = KymoTrackGroup(
         [
-            KymoTrack(np.array([0, 3, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red"),
-            KymoTrack(np.array([3, 4, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red"),
+            KymoTrack(np.array([0, 3, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red", 0),
+            KymoTrack(np.array([3, 4, 5]), np.array([1.0, 3.0, 3.0]), blank_kymo, "red", 0),
         ]
     )
 
@@ -567,21 +577,31 @@ def test_kymotrackgroup_tracks_in_frame(blank_kymo):
 
 
 def test_kymotrackgroup_copy(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red", 0)
+    k2 = KymoTrack(np.array([6, 7, 8]), np.array([2, 2, 2]), blank_kymo, "red", 0)
     group = KymoTrackGroup([k1, k2])
     assert id(group._src) != id(copy(group)._src)
 
 
 def test_kymotrack_split(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 3, 4]), blank_kymo, "red")
+    k1 = KymoTrack(
+        np.array([1, 2, 3]),
+        np.array([1, 3, 4]),
+        blank_kymo,
+        "red",
+        2 * blank_kymo.line_time_seconds
+    )
     k2, k3 = k1._split(1)
     np.testing.assert_allclose(k2.position, [1])
     np.testing.assert_allclose(k3.position, [3, 4])
+    np.testing.assert_allclose(k2._minimum_observable_duration, 2 * blank_kymo.line_time_seconds)
+    np.testing.assert_allclose(k3._minimum_observable_duration, 2 * blank_kymo.line_time_seconds)
 
     k2, k3 = k1._split(2)
     np.testing.assert_allclose(k2.position, [1, 3])
     np.testing.assert_allclose(k3.position, [4])
+    np.testing.assert_allclose(k2._minimum_observable_duration, 2 * blank_kymo.line_time_seconds)
+    np.testing.assert_allclose(k3._minimum_observable_duration, 2 * blank_kymo.line_time_seconds)
 
     # Test corner cases
     for split_point in [-1, 0, 3]:
@@ -590,8 +610,8 @@ def test_kymotrack_split(blank_kymo):
 
 
 def test_kymotrackgroup_split(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 3, 4]), blank_kymo, "red")
-    k2 = KymoTrack(np.array([1, 2, 3]), np.array([8, 9, 11]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 3, 4]), blank_kymo, "red", 0)
+    k2 = KymoTrack(np.array([1, 2, 3]), np.array([8, 9, 11]), blank_kymo, "red", 0)
 
     group = KymoTrackGroup([k1, k2])
     assert len(group) == 2
@@ -615,7 +635,7 @@ def test_kymotrackgroup_split(blank_kymo):
     ],
 )
 def test_kymotrackgroup_split_filter(blank_kymo, split, filter, filtered):
-    k1 = KymoTrack(np.arange(10), np.arange(10), blank_kymo, "red")
+    k1 = KymoTrack(np.arange(10), np.arange(10), blank_kymo, "red", 0)
     group = KymoTrackGroup([k1])
 
     group._split_track(k1, split, min_length=filter)
@@ -623,7 +643,7 @@ def test_kymotrackgroup_split_filter(blank_kymo, split, filter, filtered):
 
 
 def test_kymotrack_concat_gaussians(blank_kymo):
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 1, 1]), blank_kymo, "red", 0)
     k1g = KymoTrack(
         np.array([1, 2, 3]),
         GaussianLocalizationModel(
@@ -631,6 +651,7 @@ def test_kymotrack_concat_gaussians(blank_kymo):
         ),
         blank_kymo,
         "red",
+        0,
     )
     k2 = KymoTrack(
         np.array([6, 7, 8]),
@@ -639,6 +660,7 @@ def test_kymotrack_concat_gaussians(blank_kymo):
         ),
         blank_kymo,
         "red",
+        0,
     )
     group = KymoTrackGroup([k1, k2])
 
@@ -664,10 +686,11 @@ def test_kymotrack_flip(num_pixels, pixelsize_um):
     )
     coords = np.arange(1.0, 4.0)
 
-    track = KymoTrack([1, 2, 3], coords / pixelsize_um, kymo, "red")
+    track = KymoTrack([1, 2, 3], coords / pixelsize_um, kymo, "red", kymo.line_time_seconds)
     flipped_kymo = kymo.flip()
     flipped_track = track._flip(flipped_kymo)
     assert id(track) != id(flipped_track)
+    assert flipped_track._minimum_observable_duration == track._minimum_observable_duration
 
     center_to_center_um = pixelsize_um * (num_pixels - 1)
     np.testing.assert_allclose(flipped_track.position, center_to_center_um - coords)
@@ -682,13 +705,17 @@ def test_kymotrackgroup_flip():
     kymo = _kymo_from_array(np.ones((5, 10)), "r", line_time_seconds=1e-2, pixel_size_um=1.0)
     coords = np.arange(1.0, 4.0)
 
-    tracks = KymoTrackGroup([KymoTrack([1, 2, 3], coords, kymo, "red") for _ in range(3)])
+    tracks = KymoTrackGroup(
+        [KymoTrack([1, 2, 3], coords, kymo, "red", kymo.line_time_seconds) for _ in range(3)]
+    )
     flipped_tracks = tracks._flip()
     assert all([id(t._kymo) == id(flipped_tracks[0]._kymo) for t in flipped_tracks])
     for track, flipped_track in zip(tracks, flipped_tracks):
         np.testing.assert_allclose(track._flip(kymo.flip()).position, flipped_track.position)
 
-    tracks2 = tracks + KymoTrackGroup([KymoTrack([], [], copy(kymo), "red")])
+    tracks2 = tracks + KymoTrackGroup([
+        KymoTrack([], [], copy(kymo), "red", kymo.line_time_seconds)
+    ])
     with pytest.raises(
         NotImplementedError,
         match=re.escape(
@@ -715,10 +742,10 @@ def test_binding_profile_histogram():
         line_padding=0,
     )
 
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), kymo, "red")
-    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), kymo, "red")
+    k1 = KymoTrack(np.array([1, 2, 3]), np.array([2, 3, 4]), kymo, "red", 0)
+    k2 = KymoTrack(np.array([2, 3, 4]), np.array([3, 4, 5]), kymo, "red", 0)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.array([4, 5, 6]), kymo, "red", 0)
+    k4 = KymoTrack(np.array([4, 5, 6]), np.array([5, 6, 7]), kymo, "red", 0)
 
     tracks = KymoTrackGroup([k1, k2, k3, k4])
 
@@ -766,7 +793,7 @@ def test_binding_profile_histogram():
 
     # disallowed for multiple source kymos
     combined_tracks = tracks + KymoTrackGroup(
-        [KymoTrack(np.array([7, 8, 9]), np.array([1, 1, 1]), copy(kymo), "red")]
+        [KymoTrack(np.array([7, 8, 9]), np.array([1, 1, 1]), copy(kymo), "red", 0)]
     )
     with pytest.raises(
         NotImplementedError,
@@ -783,11 +810,11 @@ def test_binding_profile_histogram():
         KymoTrackGroup([])._histogram_binding_profile(3, 0.2, 4)
 
 
-def test_fit_binding_times(blank_kymo):
-    k1 = KymoTrack(np.array([0, 1, 2]), np.zeros(3), blank_kymo, "red")
-    k2 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.zeros(3), blank_kymo, "red")
-    k4 = KymoTrack(np.array([8, 9]), np.zeros(2), blank_kymo, "red")
+def test_fit_binding_times(blank_kymo, blank_kymo_track_args):
+    k1 = KymoTrack(np.array([0, 1, 2]), np.zeros(3), *blank_kymo_track_args)
+    k2 = KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), *blank_kymo_track_args)
+    k3 = KymoTrack(np.array([3, 4, 5]), np.zeros(3), *blank_kymo_track_args)
+    k4 = KymoTrack(np.array([8, 9]), np.zeros(2), *blank_kymo_track_args)
 
     tracks = KymoTrackGroup([k1, k2, k3, k4])
 
@@ -798,10 +825,10 @@ def test_fit_binding_times(blank_kymo):
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
 
 
-def test_fit_binding_times_nonzero(blank_kymo):
-    k1 = KymoTrack(np.array([2]), np.zeros(3), blank_kymo, "red")
+def test_fit_binding_times_nonzero(blank_kymo, blank_kymo_track_args):
+    k1 = KymoTrack(np.array([2]), np.zeros(3), *blank_kymo_track_args)
     k2, k3, k4, k5 = (
-        KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), blank_kymo, "red") for _ in range(4)
+        KymoTrack(np.array([2, 3, 4, 5, 6]), np.zeros(5), *blank_kymo_track_args) for _ in range(4)
     )
     tracks = KymoTrackGroup([k1, k2, k3, k4, k5])
 
@@ -830,11 +857,21 @@ def test_multi_kymo_dwell():
         for time, size in ((10e-4, 0.05), (10e-3, 0.1))
     ]
 
-    k1 = KymoTrack(np.array([1, 2, 3]), np.array([1, 2, 3]), kymos[0], "red")
-    k2 = KymoTrack(np.array([2, 3, 4, 5]), np.array([2, 3, 4, 5]), kymos[0], "red")
-    k3 = KymoTrack(np.array([3, 4, 5]), np.array([3, 4, 5]), kymos[1], "red")
-    k4 = KymoTrack(np.array([4, 5, 6]), np.array([4, 5, 6]), kymos[1], "red")
-    k5 = KymoTrack(np.array([7]), np.array([7]), kymos[1], "red")
+    k1 = KymoTrack(
+        np.array([1, 2, 3]), np.array([1, 2, 3]), kymos[0], "red", kymos[0].line_time_seconds
+    )
+    k2 = KymoTrack(
+        np.array([2, 3, 4, 5]), np.array([2, 3, 4, 5]), kymos[0], "red", kymos[0].line_time_seconds
+    )
+    k3 = KymoTrack(
+        np.array([3, 4, 5]), np.array([3, 4, 5]), kymos[1], "red", kymos[1].line_time_seconds
+    )
+    k4 = KymoTrack(
+        np.array([4, 5, 6]), np.array([4, 5, 6]), kymos[1], "red", kymos[1].line_time_seconds
+    )
+    k5 = KymoTrack(
+        np.array([7]), np.array([7]), kymos[1], "red", kymos[1].line_time_seconds
+    )
 
     # Normal use case
     dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
@@ -894,14 +931,14 @@ def test_multi_kymo_dwelltime_analysis():
 
     kymo1 = _kymo_from_array(**shared_args, line_time_seconds=0.01)
     kymo2 = _kymo_from_array(**shared_args, line_time_seconds=0.02)
-    args = [np.array([1.0, 1.0]), kymo1, "red"]
+    args = [np.array([1.0, 1.0]), kymo1, "red", kymo1.line_time_seconds]
     group1 = KymoTrackGroup(
         [
             KymoTrack(np.array([1, int(round(t / kymo1.line_time_seconds)) + 1]), *args)
             for t in np.random.exponential(2, size=(200,))
         ],
     )
-    args = [np.array([1.0, 1.0]), kymo2, "red"]
+    args = [np.array([1.0, 1.0]), kymo2, "red", kymo2.line_time_seconds]
     group2 = KymoTrackGroup(
         [
             KymoTrack(np.array([1, int(round(t / kymo2.line_time_seconds)) + 1]), *args)
@@ -919,7 +956,7 @@ def test_kymotrack_group_diffusion(blank_kymo, method, max_lags):
     """Tests whether we can call this function at the diffusion level"""
     kymotracks = KymoTrackGroup(
         [
-            KymoTrack(time_idx, coordinate, blank_kymo, "red")
+            KymoTrack(time_idx, coordinate, blank_kymo, "red", 0)
             for (time_idx, coordinate) in (
                 (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
                 (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
@@ -945,7 +982,7 @@ def test_disallowed_diffusion_est(blank_kymo):
     )
 
     blank_kymo._contiguous = False
-    k = KymoTrack([0, 1, 2, 3, 4, 5], [0.0, 1.0, 1.5, 2.0, 2.5, 3.0], blank_kymo, "red")
+    k = KymoTrack([0, 1, 2, 3, 4, 5], [0.0, 1.0, 1.5, 2.0, 2.5, 3.0], blank_kymo, "red", 0)
 
     with pytest.raises(NotImplementedError, match=contiguous_diffusion_error):
         k.estimate_diffusion(method="ols")
@@ -965,6 +1002,7 @@ def test_disallowed_diffusion_est(blank_kymo):
 )
 def test_diffusion_cve(
     blank_kymo,
+    blank_kymo_track_args,
     localization_var,
     var_of_localization_var,
     diffusion_ref,
@@ -973,7 +1011,7 @@ def test_diffusion_cve(
     localization_variance_ref,
 ):
     """Test the API for the covariance based estimator"""
-    k = KymoTrack(np.arange(5), np.arange(5), blank_kymo, "red")
+    k = KymoTrack(np.arange(5), np.arange(5), *blank_kymo_track_args)
     cve_est = k.estimate_diffusion(
         "cve",
         localization_variance=localization_var,
@@ -990,9 +1028,9 @@ def test_diffusion_cve(
     assert cve_est._unit_label == "μm²/s"
 
 
-def test_diffusion_invalid_loc_variance(blank_kymo):
+def test_diffusion_invalid_loc_variance(blank_kymo, blank_kymo_track_args):
     """In some cases, specifying a localization variance is invalid"""
-    track = KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red")
+    track = KymoTrack([1, 2, 3], [1, 2, 3], *blank_kymo_track_args)
     with pytest.raises(
         NotImplementedError,
         match="Passing in a localization error is only supported for method=`cve`",
@@ -1026,7 +1064,7 @@ def test_kymotrack_group_diffusion_filter():
 
     tracks = KymoTrackGroup(
         [
-            KymoTrack(time_idx, coordinate, kymo, "red")
+            KymoTrack(time_idx, coordinate, kymo, "red", kymo.line_time_seconds)
             for (time_idx, coordinate) in (
                 make_coordinates(5, 2),
                 make_coordinates(3, 3),
@@ -1111,7 +1149,7 @@ def test_ensemble_msd_calibration_from_kymo(blank_kymo, kbp_calibration, line_wi
     frame = np.arange(1, 6)
     tracks = KymoTrackGroup(
         [
-            KymoTrack(t, coordinate, kymo, "red")
+            KymoTrack(t, coordinate, kymo, "red", 0)
             for (t, coordinate) in ((frame, frame + 0.1), (frame, frame - 0.1), (frame, frame))
         ]
     )
@@ -1133,9 +1171,11 @@ def test_ensemble_msd_calibration_from_kymo(blank_kymo, kbp_calibration, line_wi
 def test_ensemble_api(blank_kymo):
     """Test whether API arguments are forwarded"""
     short_tracks = [
-        KymoTrack(np.arange(1, 6), np.arange(1, 6), blank_kymo, "red") for _ in range(3)
+        KymoTrack(np.arange(1, 6), np.arange(1, 6), blank_kymo, "red", 0) for _ in range(3)
     ]
-    long_tracks = [KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red") for _ in range(2)]
+    long_tracks = [
+        KymoTrack(np.arange(1, 7), np.arange(1, 7), blank_kymo, "red", 0) for _ in range(2)
+    ]
     tracks = KymoTrackGroup(short_tracks + long_tracks)
 
     assert len(tracks.ensemble_msd(3).lags) == 3
@@ -1144,7 +1184,7 @@ def test_ensemble_api(blank_kymo):
 
     # Because of the gaps in this track, we will be missing lags 1 and 3
     gap_tracks = [
-        KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red") for _ in range(3)
+        KymoTrack(np.array([1, 3, 5]), np.array([1, 3, 5]), blank_kymo, "red", 0) for _ in range(3)
     ]
     tracks = KymoTrackGroup(short_tracks[0:2] + gap_tracks)
     np.testing.assert_allclose(tracks.ensemble_msd(100, 3).lags, [2, 4])
@@ -1157,7 +1197,7 @@ def test_ensemble_cve(blank_kymo):
     """Tests whether we can call this function at the diffusion level"""
     kymotracks = KymoTrackGroup(
         [
-            KymoTrack(time_idx, coordinate, blank_kymo, "red")
+            KymoTrack(time_idx, coordinate, blank_kymo, "red", 0)
             for (time_idx, coordinate) in (
                 (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
                 (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
@@ -1196,7 +1236,7 @@ def test_ensemble_ols(blank_kymo, max_lag, diffusion_ref, std_err_ref, localizat
     """Tests the ensemble diffusion estimate"""
     kymotracks = KymoTrackGroup(
         [
-            KymoTrack(time_idx, coordinate, blank_kymo, "red")
+            KymoTrack(time_idx, coordinate, blank_kymo, "red", 0)
             for (time_idx, coordinate) in (
                 (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
                 (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
@@ -1222,7 +1262,7 @@ def test_ensemble_ols_multiple_sources(blank_kymo, max_lag):
     groups = [
         KymoTrackGroup(
             [
-                KymoTrack(time_idx, coordinate, kymo, "red")
+                KymoTrack(time_idx, coordinate, kymo, "red", 0)
                 for (time_idx, coordinate) in (
                     (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 2),
                     (np.arange(1, 6), np.array([-1.0, 1.0, -1.0, -3.0, -5.0]) / 3),
@@ -1254,7 +1294,7 @@ def test_ensemble_ols_multiple_sources(blank_kymo, max_lag):
 
 def test_invalid_ensemble_diffusion(blank_kymo):
     """Tests whether we can call this function at the diffusion level"""
-    kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red")])
+    kymotracks = KymoTrackGroup([KymoTrack([], [], blank_kymo, "red", 0)])
     with pytest.raises(ValueError, match=re.escape("Invalid method (egg) selected")):
         kymotracks.ensemble_diffusion("egg")
 
@@ -1266,7 +1306,7 @@ def test_ensemble_diffusion_different_attributes():
     kymos = [_kymo_from_array(np.random.poisson(5, (25, 25, 3)), "rgb", **k) for k in kwargs]
     tracks = [
         KymoTrackGroup(
-            [KymoTrack(np.arange(5), np.random.uniform(3, 5, 5), k, "green") for _ in range(5)]
+            [KymoTrack(np.arange(5), np.random.uniform(3, 5, 5), k, "green", 0) for _ in range(5)]
         )
         for k in kymos
     ]
@@ -1327,7 +1367,7 @@ def test_half_kernel(window, pixelsize, result):
 
 def test_integral_times_kymotrack(blank_kymo):
     with pytest.raises(TypeError, match="Time indices should be of integer type, got float64"):
-        KymoTrack([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], blank_kymo, "red")
+        KymoTrack([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], blank_kymo, "red", 0)
 
 
 def test_no_motion_blur(blank_kymo):
@@ -1335,7 +1375,7 @@ def test_no_motion_blur(blank_kymo):
     return values blanked"""
     unknown_blur_kymo = copy(blank_kymo)
     unknown_blur_kymo._motion_blur_constant = None
-    track = KymoTrack([1, 2, 3, 4], [1, 2, 3, 2], unknown_blur_kymo, "red")
+    track = KymoTrack([1, 2, 3, 4], [1, 2, 3, 2], unknown_blur_kymo, "red", 0)
 
     with pytest.warns(
         RuntimeWarning,
@@ -1357,7 +1397,7 @@ def test_no_motion_blur(blank_kymo):
 
 def test_photon_counts_api(blank_kymo):
     with pytest.raises(AttributeError, match="Photon counts are unavailable for this KymoTrack."):
-        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red").photon_counts
+        KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red", 0).photon_counts
 
     np.testing.assert_equal(
         KymoTrack(
@@ -1367,6 +1407,7 @@ def test_photon_counts_api(blank_kymo):
             ),
             blank_kymo,
             "red",
+            0,
         ).photon_counts,
         [1, 2, 5],
     )

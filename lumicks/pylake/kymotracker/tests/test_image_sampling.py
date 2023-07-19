@@ -29,7 +29,7 @@ def test_sampling():
     )
 
     # Tests the bound handling
-    kymotrack = KymoTrack([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img, "red")
+    kymotrack = KymoTrack([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img, "red", 0)
     np.testing.assert_allclose(kymotrack.sample_from_image(
         50, correct_origin=True), [0, 2, 3, 2, 0]
     )
@@ -37,20 +37,20 @@ def test_sampling():
     np.testing.assert_allclose(kymotrack.sample_from_image(1, correct_origin=True), [0, 2, 2, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(0, correct_origin=True), [0, 1, 1, 1, 0])
     np.testing.assert_allclose(
-        KymoTrack([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red").sample_from_image(
+        KymoTrack([0, 1, 2, 3, 4], [4, 4, 4, 4, 4], test_img, "red", 0).sample_from_image(
             0, correct_origin=True
         ),
         [0, 0, 1, 1, 0],
     )
 
-    kymotrack = KymoTrack([0, 1, 2, 3, 4], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red")
+    kymotrack = KymoTrack([0, 1, 2, 3, 4], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red", 0)
     np.testing.assert_allclose(kymotrack.sample_from_image(
         50, correct_origin=True), [0, 2, 3, 2, 0]
     )
     np.testing.assert_allclose(kymotrack.sample_from_image(2, correct_origin=True), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(1, correct_origin=True), [0, 2, 2, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(0, correct_origin=True), [0, 1, 1, 1, 0])
-    kymotrack = KymoTrack([0, 1, 2, 3, 4], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red")
+    kymotrack = KymoTrack([0, 1, 2, 3, 4], [4.1, 4.1, 4.1, 4.1, 4.1], test_img, "red", 0)
     np.testing.assert_allclose(kymotrack.sample_from_image(0, correct_origin=True), [0, 0, 1, 1, 0])
 
 
@@ -71,7 +71,7 @@ def test_kymotrack_regression_sample_from_image_clamp():
         samples_per_pixel=1,
         line_padding=0
     )
-    assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red").sample_from_image(
+    assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red", 0).sample_from_image(
         0, correct_origin=True), [1, 3]
     )
 
