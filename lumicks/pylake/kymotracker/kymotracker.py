@@ -221,7 +221,12 @@ def track_greedy(
 
     tracks = [
         KymoTrack._from_centroid_estimate(
-            track.time_idx, track.coordinate_idx, kymograph, channel, half_width_pixels
+            track.time_idx,
+            track.coordinate_idx,
+            kymograph,
+            channel,
+            half_width_pixels,
+            kymograph.line_time_seconds,  # Shortest observable dwell-time is given by line time
         )
         for track in tracks
     ]
@@ -347,7 +352,12 @@ def track_lines(
 
     kymotrack_group = KymoTrackGroup(
         [
-            KymoTrack(*_interp_to_frame(line.time_idx, line.coordinate_idx), kymograph, channel)
+            KymoTrack(
+                *_interp_to_frame(line.time_idx, line.coordinate_idx),
+                kymograph,
+                channel,
+                kymograph.line_time_seconds,  # Shortest observable dwell-time is given by line time
+            )
             for line in lines
         ]
     )
@@ -368,7 +378,22 @@ def filter_tracks(tracks, minimum_length):
     minimum_length : int
         Minimum length for the track to be accepted.
     """
-    return KymoTrackGroup([track for track in tracks if len(track) >= minimum_length])
+
+    return KymoTrackGroup(
+        [
+            track._with_minimum_time(
+                max(
+                    # We can't unfilter tracks.
+                    track._minimum_observable_duration
+                    if track._minimum_observable_duration is not None
+                    else 0,
+                    (minimum_length - 1) * track._kymo.line_time_seconds,
+                )
+            )
+            for track in tracks
+            if len(track) >= minimum_length
+        ]
+    )
 
 
 def _apply_to_group(tracks, func, *args, **kwargs):
@@ -478,9 +503,10 @@ def refine_tracks_centroid(tracks, track_width=None, bias_correction=True):
         KymoTrack._from_centroid_estimate(
             time_idx[track_ids == j],
             coordinate_idx[track_ids == j],
-            interpolated_tracks[j]._kymo,
-            interpolated_tracks[j]._channel,
+            track._kymo,
+            track._channel,
             half_width_pixels,
+            track._minimum_observable_duration,
         )
         for j, track in enumerate(interpolated_tracks)
     ]
@@ -624,8 +650,14 @@ def refine_tracks_gaussian(
 
     return KymoTrackGroup(
         [
-            KymoTrack(t, GaussianLocalizationModel(*np.vstack(p).T), kymo, channel)
-            for t, p in zip(refined_tracks_time_idx, refined_tracks_parameters)
+            KymoTrack(
+                t,
+                GaussianLocalizationModel(*np.vstack(p).T),
+                kymo,
+                channel,
+                ref_track._minimum_observable_duration,
+            )
+            for t, p, ref_track in zip(refined_tracks_time_idx, refined_tracks_parameters, tracks)
             if len(t) > 0
         ]
     )

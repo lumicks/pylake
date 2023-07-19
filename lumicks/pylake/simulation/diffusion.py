@@ -75,6 +75,7 @@ def simulate_diffusive_tracks(
                 ),
                 kymo=blank_kymo,
                 channel="red",
+                minimum_observable_duration=blank_kymo.line_time_seconds,
             )
             for _ in range(num_tracks)
         ]

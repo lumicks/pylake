@@ -139,7 +139,9 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
 
     return KymoTrackGroup(
         [
-            KymoTrack(time_idx[indices == k].astype(int), data[indices == k, 2], kymo, channel)
+            KymoTrack(
+                time_idx[indices == k].astype(int), data[indices == k, 2], kymo, channel, None
+            )
             for k in tracks
         ]
     )
@@ -160,6 +162,9 @@ class KymoTrack:
         Kymograph instance.
     channel : {"red", "green", "blue"}
         Color channel to analyze.
+    minimum_observable_duration : float or None
+        Minimum observable dwelltime when this track was tracked. Note that filtering may change
+        this minimum time.
 
     Raises
     ------
@@ -167,12 +172,13 @@ class KymoTrack:
         If time indices are not of integer type.
     """
 
-    __slots__ = ["_time_idx", "_localization", "_kymo", "_channel"]
+    __slots__ = ["_time_idx", "_localization", "_kymo", "_channel", "_minimum_observable_duration"]
 
-    def __init__(self, time_idx, localization, kymo, channel):
+    def __init__(self, time_idx, localization, kymo, channel, minimum_observable_duration):
         self._kymo = kymo
         self._channel = channel
         self._time_idx = np.asarray(time_idx)
+        self._minimum_observable_duration = minimum_observable_duration
 
         if np.any(self._time_idx) and not np.issubdtype(self._time_idx.dtype, np.integer):
             raise TypeError(f"Time indices should be of integer type, got {self._time_idx.dtype}.")
@@ -215,10 +221,18 @@ class KymoTrack:
             localization,
             self._kymo,
             self._channel,
+            self._minimum_observable_duration,
+        )
+
+    def _with_minimum_time(self, minimum_observable_duration):
+        return KymoTrack(
+            self._time_idx, self._localization, self._kymo, self._channel, minimum_observable_duration
         )
 
     @classmethod
-    def _from_centroid_estimate(cls, time_idx, coordinate_idx, kymo, channel, half_width_pixels):
+    def _from_centroid_estimate(
+        cls, time_idx, coordinate_idx, kymo, channel, half_width_pixels, minimum_observable_duration
+    ):
         """Return a KymoTrack including sampled photon counts.
 
         Parameters
@@ -234,6 +248,8 @@ class KymoTrack:
             Color channel to analyze.
         half_width_pixels : int
            Number of pixels in either direction to include in the photon count sum.
+        minimum_observable_duration : float
+            Minimum observable time.
 
         Raises
         ------
@@ -256,6 +272,7 @@ class KymoTrack:
             ),
             kymo,
             channel,
+            minimum_observable_duration,
         )
 
     def _flip(self, kymo):
@@ -272,6 +289,7 @@ class KymoTrack:
             self._localization._flip(self._kymo.pixelsize[0] * (self._kymo.pixels_per_line - 1)),
             kymo,
             self._channel,
+            self._minimum_observable_duration,
         )
 
     def with_offset(self, time_offset, coordinate_offset):
