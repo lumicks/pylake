@@ -17,9 +17,15 @@ from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 def compare_kymotrack_group(group1, group2):
     assert len(group1) == len(group2)
+    attributes = (
+        "coordinate_idx", "time_idx", "position", "seconds", "_minimum_observable_duration"
+    )
     for track1, track2 in zip(group1, group2):
-        for property in ("coordinate_idx", "time_idx", "position", "seconds"):
-            np.testing.assert_allclose(getattr(track1, property), getattr(track2, property))
+        for attr in attributes:
+            attr1, attr2 = getattr(track1, attr), getattr(track2, attr)
+            np.testing.assert_allclose(attr1, attr2)
+            if not (np.isscalar(attr1) and np.isscalar(attr2)):
+                assert len(attr1) == len(attr2)
 
 
 @pytest.mark.parametrize(

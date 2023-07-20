@@ -1,6 +1,6 @@
 import itertools
 import re
-import os
+import pathlib
 from copy import copy
 from ..detail.utilities import replace_key_aliases
 from .detail.msd_estimation import *
@@ -25,13 +25,10 @@ def _read_txt(file, delimiter):
     IOError
         If the file is in the wrong format.
     """
-    if isinstance(file, os.PathLike):
-        file = os.fspath(file)
-
-    if isinstance(file, str):
-        with open(file, "r") as f:
+    try:
+        with open(pathlib.Path(file), "r") as f:
             header_lines = [f.readline(), f.readline()]
-    else:
+    except TypeError:
         # Direct StringIO
         header_lines = [file.readline(), file.readline()]
 
@@ -58,8 +55,9 @@ def _read_txt(file, delimiter):
 
     header = header_lines[0].rstrip().split(delimiter)
     track_idx = raw_data[0, :]
+    unique_tracks = np.unique(track_idx)
     for key, col in zip(header, raw_data):
-        data[key] = [col[np.argwhere(track_idx == idx).flatten()] for idx in np.unique(track_idx)]
+        data[key] = [col[np.argwhere(track_idx == idx).flatten()] for idx in unique_tracks]
 
     return data, pylake_version, csv_version
 
@@ -110,6 +108,9 @@ def export_kymotrackgroup_to_csv(
 
     position = np.hstack([track.position for track in kymotrack_group])
     seconds = np.hstack([track.seconds for track in kymotrack_group])
+    minimum_length = np.hstack(
+        [np.full(len(track), track._minimum_observable_duration) for track in kymotrack_group]
+    )
 
     data, column_titles, fmt = [], [], []
 
@@ -137,7 +138,9 @@ def export_kymotrackgroup_to_csv(
             ),
         )
 
-    version_header = f"Exported with pylake v{__version__} | track coordinates v2\n"
+    store_column("minimum_length (-)", "%d", minimum_length)
+
+    version_header = f"Exported with pylake v{__version__} | track coordinates v3\n"
     header = version_header + delimiter.join(column_titles)
     data = np.vstack(data).T
     np.savetxt(filename, data, fmt=fmt, header=header, delimiter=delimiter)
@@ -147,7 +150,8 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
     """Import a KymoTrackGroup from a csv file.
 
     The file format contains a series of columns as follows:
-    track index, time (pixels), coordinate (pixels), time (optional), coordinate (optional), sampled_counts (optional)
+    track index, time (pixels), coordinate (pixels), time (optional), coordinate (optional),
+    sampled_counts (optional), minimum length
 
     Parameters
     ----------
@@ -183,18 +187,22 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
         if np.any(np.floor(track_time) != track_time):
             warnings.warn(
                 RuntimeWarning(
-                    "File contains non-integer time indices; round-off errors may have occurred when "
-                    "loading the data"
+                    "File contains non-integer time indices; round-off errors may have occurred "
+                    "when loading the data"
                 ),
                 stacklevel=2,
             )
 
-    return KymoTrackGroup(
-        [
-            KymoTrack(time.astype(int), coord, kymo, channel, None)
-            for time, coord in zip(data["time (pixels)"], data["coordinate (pixels)"])
-        ]
-    )
+    def create_track(time, coord, min_length=None):
+        if min_length is not None:
+            min_length = float(np.unique(min_length).squeeze())
+        return KymoTrack(time.astype(int), coord, kymo, channel, min_length)
+
+    if (min_length_field := "minimum_length (-)") in data:
+        mandatory_fields.append(min_length_field)
+
+    data = [data[f] for f in mandatory_fields]
+    return KymoTrackGroup([create_track(*track_data) for track_data in zip(*data)])
 
 
 class KymoTrack:
