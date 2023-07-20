@@ -839,7 +839,7 @@ class DwelltimeModel:
         plt.tight_layout()
 
 
-def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
+def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max, t_step=None):
     """Calculate the gradient of the exponential mixture model.
 
     Parameters
@@ -848,8 +848,12 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
         array of model parameters (amplitude and lifetime per component)
     t : array_like
         dwelltime observations in seconds
-    t_min, t_max : float
+    t_min, t_max : float or np.ndarray
         minimum and maximum observation time in seconds
+    t_step : float or np.ndarray, optional
+        Time step used to discretize the distribution. When provided this function will return the
+        Jacobian corresponding to the probability mass function describing the discretized
+        exponential mixture.
     """
     amplitudes, lifetimes = np.reshape(params, (2, -1))
     # We clip the amplitude lower bound. An amplitude of 1e-14 is negligible.
@@ -857,30 +861,84 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
     lifetimes = lifetimes[:, np.newaxis]
     t = t[np.newaxis, :]
 
-    exp_bound_difference = np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
-    norm_factor = 1.0 / np.sum(amplitudes * exp_bound_difference, axis=0)
-
-    # Calculate derivatives of the normalization constant
-    dnorm_damp = -(norm_factor**2) * exp_bound_difference
-    dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
-
+    # The term t_max * exp(-t_max / lifetimes) should only be evaluated for small enough values
     max_div_lifetimes = t_max / lifetimes
     valid = max_div_lifetimes < 1e10
     max_bound = np.zeros(max_div_lifetimes.shape)
     max_bound[valid] = (t_max * np.ones(lifetimes.shape))[valid] * np.exp(-max_div_lifetimes[valid])
 
-    exp_bound_difference2 = max_bound - t_min * np.exp(-t_min / lifetimes)
-    dnorm_dtau = norm_factor**2 * (amplitudes / (lifetimes**2)) * exp_bound_difference2
-    dlognorm_dtau = (1.0 / norm_factor) * dnorm_dtau
+    if t_step is not None:
+        exp_neg_tstep_over_tau = np.exp(-t_step / lifetimes)
+        discretization_factor = 1.0 - exp_neg_tstep_over_tau
+        max_exp_term = np.zeros(valid.shape)
+        max_exp_term[valid] = np.exp(-max_div_lifetimes[valid])
+        time_term = np.exp(-(t_min - t_step) / lifetimes) - max_exp_term
 
-    # Calculate derivatives of the remainder of the log-likelihood
-    dlogamp_damp = 1.0 / amplitudes
-    dlogtauterm_dtau = -1.0 / lifetimes + t / (lifetimes**2)
+        log_amplitudes = np.log(amplitudes)
+        log_lifetimes = np.log(lifetimes)
+
+        partial_inv_norm_factor = np.log(discretization_factor) + np.log(time_term)
+        log_norm_factor = -logsumexp(
+            log_amplitudes + log_lifetimes + partial_inv_norm_factor, axis=0
+        )
+        norm_factor = np.exp(log_norm_factor)
+
+        # Collapsed following chain rule products from
+        #   dnorm_damp = -(norm_factor ** 2) * np.exp(partial_inv_norm_factor + log_lifetimes)
+        #   dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
+        # into:
+        dlognorm_damp = -norm_factor * np.exp(partial_inv_norm_factor + log_lifetimes)
+
+        # Chain rule
+        tau_factor = (
+            np.exp(partial_inv_norm_factor + log_amplitudes)
+            - amplitudes * t_step * exp_neg_tstep_over_tau * time_term / lifetimes
+            - amplitudes
+            * discretization_factor
+            * (max_bound + (t_step - t_min) * np.exp((t_step - t_min) / lifetimes))
+            / lifetimes
+        )
+
+        # Chain rule collapsed from:
+        #    dnorm_dtau = -(norm_factor**2) * tau_factor
+        #    dlognorm_dtau = (1.0 / norm_factor) * dnorm_dtau
+        # to:
+        dlognorm_dtau = -norm_factor * tau_factor
+
+        # Calculate derivatives of the remainder of the log-likelihood
+        dlogamp_damp = 1.0 / amplitudes
+        dlogtauterm_dtau = (
+            -2.0 * t_step * exp_neg_tstep_over_tau / (lifetimes**2 * discretization_factor)
+            + 1.0 / lifetimes
+            + (t - t_step) / (lifetimes**2)
+        )
+
+        components = (
+            -log_norm_factor
+            + np.log(amplitudes)
+            + log_lifetimes
+            + 2.0 * np.log(discretization_factor)
+            - (t - t_step) / lifetimes
+        )
+    else:
+        exp_bound_difference = np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
+        norm_factor = 1.0 / np.sum(amplitudes * exp_bound_difference, axis=0)
+
+        # Calculate derivatives of the normalization constant
+        dnorm_damp = -(norm_factor**2) * exp_bound_difference
+        dlognorm_damp = (1.0 / norm_factor) * dnorm_damp
+
+        exp_bound_difference2 = max_bound - t_min * np.exp(-t_min / lifetimes)
+        dnorm_dtau = norm_factor**2 * (amplitudes / (lifetimes**2)) * exp_bound_difference2
+        dlognorm_dtau = (1.0 / norm_factor) * dnorm_dtau
+
+        # Calculate derivatives of the remainder of the log-likelihood
+        dlogamp_damp = 1.0 / amplitudes
+        dlogtauterm_dtau = -1.0 / lifetimes + t / (lifetimes**2)
+        components = np.log(norm_factor) + np.log(amplitudes) + -np.log(lifetimes) - t / lifetimes
 
     # The derivative of logsumexp is given by: sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
-    components = np.log(norm_factor) + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
     total_denom = np.exp(logsumexp(components, axis=0))
-
     sum_components = np.sum(np.exp(components), axis=0)
     dtotal_damp = (sum_components * dlognorm_damp + np.exp(components) * dlogamp_damp) / total_denom
     dtotal_dtau = (
@@ -891,21 +949,38 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max):
     return -np.sum(unsummed_gradient, axis=1)
 
 
-def _exponential_mixture_log_likelihood_components(amplitudes, lifetimes, t, t_min, t_max):
-    """Calculate each component of the log likelihood of an exponential mixture distribution.
+def _exponential_mixture_log_likelihood_components(
+    amplitudes, lifetimes, t, t_min, t_max, t_step=None
+):
+    r"""Calculate each component of the log likelihood of an exponential mixture distribution.
 
     The full log likelihood for a single observation is given by:
-        log(L) = log( sum_i( component_i ) )
 
-    with the output of this function being log(component_i) defined as:
-        log(component_i) = log(a_i) - log(N) + log(tau_i) - t/tau_i
+    .. math::
 
-    where a_i and tau_i are the amplitude and lifetime of component i and N is a normalization
-    factor that takes into account the minimum and maximum observation times of the experiment:
-        N = sum_i { a_i * [ exp(-t_min / tau_i) - exp(-t_max / tau_i) ] }
+        \log(L) = \log(\sum_{i=1}^{N_{components}}{component_i})
+
+    with the output of this function being :math:`\log(component_i)` defined as:
+
+    .. math::
+
+        \log(component_i) = \log(a_i) - \log(N) + \log(\tau_i) - t/\tau_i
+
+    where :math:`a_i` and :math:`\tau_i` are the amplitude and lifetime of component :math:`i`
+    and :math:`N` is a normalization factor that takes into account the minimum and maximum
+    observation times of the experiment:
+
+    .. math::
+
+        N = \sum_{i=1}^{N_{components}}{ a_i \left( e^{-t_{min} / \tau_i} - e^{-t_{max} / \tau_i} \right) }
 
     Therefore, the full log likelihood is calculated from the output of this function by applying
     logsumexp(output, axis=0) where the summation is taken over the components.
+
+    For the discrete variant, we consider that the state (bound or unbound) is sampled at discrete
+    intervals. In this case, the probability density that an event is captured at dwell time is
+    given by a triangular probability density. For more information, please refer to the
+    documentation.
 
     Parameters
     ----------
@@ -915,22 +990,37 @@ def _exponential_mixture_log_likelihood_components(amplitudes, lifetimes, t, t_m
         lifetime parameters for each component in seconds
     t : array_like
         dwelltime observations in seconds
-    t_min, t_max : float
+    t_min, t_max : float or np.ndarray
         minimum and maximum observation time in seconds
+    t_step : float or np.ndarray, optional
+        discretization step. When specified the distribution is discretized with the specified
+        timestep.
     """
     amplitudes = amplitudes[:, np.newaxis]
     lifetimes = lifetimes[:, np.newaxis]
     t = t[np.newaxis, :]
 
-    norm_factor = np.log(amplitudes) + np.log(
-        np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
-    )
-    log_norm_factor = logsumexp(norm_factor, axis=0)
+    if t_step is not None:
+        discretization_factor = 1.0 - np.exp(-t_step / lifetimes)
+        norm_factor = (
+            np.log(amplitudes)
+            + np.log(lifetimes)
+            + np.log(np.exp(-(t_min - t_step) / lifetimes) - np.exp(-t_max / lifetimes))
+            + np.log(discretization_factor)
+        )
+        log_norm_factor = logsumexp(norm_factor, axis=0)
 
-    return -log_norm_factor + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
+        tau_term = 2.0 * np.log(discretization_factor) + np.log(lifetimes)
+        return -log_norm_factor + np.log(amplitudes) + tau_term - (t - t_step) / lifetimes
+    else:
+        norm_factor = np.log(amplitudes) + np.log(
+            np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
+        )
+        log_norm_factor = logsumexp(norm_factor, axis=0)
+        return -log_norm_factor + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
 
 
-def _exponential_mixture_log_likelihood(params, t, t_min, t_max):
+def _exponential_mixture_log_likelihood(params, t, t_min, t_max, t_step=None):
     """Calculate the log likelihood of an exponential mixture distribution.
 
     The full log likelihood for a single observation is given by:
@@ -944,12 +1034,14 @@ def _exponential_mixture_log_likelihood(params, t, t_min, t_max):
         array of model parameters (amplitude and lifetime per component)
     t : array_like
         dwelltime observations in seconds
-    t_min, t_max : float
+    t_min, t_max : float or np.ndarray
         minimum and maximum observation time in seconds
+    t_step : float or np.ndarray, optional
+        Discretization step
     """
     amplitudes, lifetimes = np.reshape(params, (2, -1))
     components = _exponential_mixture_log_likelihood_components(
-        amplitudes, lifetimes, t, t_min, t_max
+        amplitudes, lifetimes, t, t_min, t_max, t_step
     )
     log_likelihood = logsumexp(components, axis=0)
     return -np.sum(log_likelihood)
@@ -1061,6 +1153,7 @@ def _exponential_mle_optimize(
     options=None,
     fixed_param_mask=None,
     use_jacobian=True,
+    discretization_timestep=None,
     range_rel_tolerance=1e-6,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
@@ -1071,9 +1164,9 @@ def _exponential_mle_optimize(
         number of components in the mixture model
     t : array_like
         dwelltime observations in seconds
-    min_observation_time : float
+    min_observation_time : float or np.ndarray
         minimum observation time in seconds
-    max_observation_time : float
+    max_observation_time : float or np.ndarray
         maximum observation time in seconds
     initial_guess : array_like, optional
         initial guess for the model parameters ordered as
@@ -1083,6 +1176,10 @@ def _exponential_mle_optimize(
     fixed_param_mask : array_like, optional
         logical mask of which parameters to fix during optimization. When omitted, no parameter is
         assumed fixed.
+    use_jacobian : bool
+        Whether to use the analytical Jacobian
+    discretization_timestep : float or np.ndarray, optional
+        When specified, assumes the distribution is discrete with the specified timestep.
     range_rel_tolerance : float, optional
         Relative tolerance when evaluating whether the dwell times are in the valid range.
         Default: 1e-6.
@@ -1127,6 +1224,7 @@ def _exponential_mle_optimize(
             t=t,
             t_min=min_observation_time,
             t_max=max_observation_time,
+            t_step=discretization_timestep,
         )
 
     def jac_fun(params):
@@ -1137,6 +1235,7 @@ def _exponential_mle_optimize(
             t=t,
             t_min=min_observation_time,
             t_max=max_observation_time,
+            t_step=discretization_timestep,
         )[fitted_param_mask]
 
         return gradient

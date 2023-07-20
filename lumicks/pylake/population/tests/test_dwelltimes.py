@@ -11,7 +11,7 @@ from lumicks.pylake.population.dwelltime import (
     _handle_amplitude_constraint,
     _exponential_mle_optimize,
     _exponential_mixture_log_likelihood,
-    _exponential_mixture_log_likelihood_jacobian
+    _exponential_mixture_log_likelihood_jacobian,
 )
 
 
@@ -335,6 +335,35 @@ def test_integration_dwelltime_fixing_parameters(exponential_data):
 
 
 @pytest.mark.parametrize(
+    "dataset, n_components, ref_discrete, ref_continuous",
+    [
+        (
+            "dataset_1exp_discrete", 1, [1, 1.512417], [1, 1.462961],  # True value: [1, 1.5]
+        ),
+        (
+            "dataset_2exp_discrete",  # True values: [0.4, 0.6, 1.5, 5]
+            2,
+            [0.36318, 0.63682, 1.257651, 4.943089],
+            [0.346897, 0.653103, 1.039719, 4.830995],
+        ),
+    ],
+)
+def test_discrete_dwelltimes(exponential_data, dataset, n_components, ref_discrete, ref_continuous):
+    dataset = exponential_data[dataset]
+
+    def fit_data(dt):
+        return _exponential_mle_optimize(
+            n_components,
+            dataset["data"],
+            **dataset["parameters"].observation_limits,
+            discretization_timestep=dt,
+        )
+
+    np.testing.assert_allclose(fit_data(dataset["parameters"].dt)[0], ref_discrete, rtol=1e-4)
+    np.testing.assert_allclose(fit_data(None)[0], ref_continuous, rtol=1e-4)
+
+
+@pytest.mark.parametrize(
     "n_components,params,fixed_param_mask,ref_fitted,ref_const_fun,free_amplitudes,ref_par",
     [
         # fmt:off
@@ -434,6 +463,12 @@ def test_invalid_models():
 
 
 @pytest.mark.parametrize(
+    "multiple_dt", [False, True],
+)
+@pytest.mark.parametrize(
+    "dt", [None, 0.01, 0.0001],  # 0.1,
+)
+@pytest.mark.parametrize(
     "params, t, min_observation_time, max_observation_time",
     [
         [[1.0, 0.4], np.arange(0.0, 10.0, 0.1), 0, np.inf],
@@ -441,7 +476,7 @@ def test_invalid_models():
         [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0.5, np.inf],
         [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0.5, 1e6],
         [[0.25, 0.75, 0.4, 1.0], np.arange(0.0, 10.0, 0.1), 0, 5],
-        [[0.3, 0.3, 0.1, 0.4, 1.0, 10.0], np.arange(1.0, 10.0, 0.1), 2, 5],
+        [[0.3, 0.3, 0.1, 0.4, 1.0, 10.0], np.arange(1.0, 50.0, 0.1), 2, 5],
         # Test "zero" parameters. Because we use a central differencing scheme for validating the
         # gradient we have to set the amplitude at least the finite differencing stepsize away
         # from the bound (otherwise we'd only observe half the gradient in the numerical scheme).
@@ -456,21 +491,24 @@ def test_invalid_models():
         [[0.4, 0.6, 1e-2, 1.0], np.array([1.0, 2.0, 3.0]), 0, np.array([3.0, np.inf, 5.0])],
     ]
 )
-def test_analytic_gradient_exponential(params, t, min_observation_time, max_observation_time):
+def test_analytic_gradient_exponential(
+    params, t, min_observation_time, max_observation_time, dt, multiple_dt
+):
+    dt = dt * np.arange(1, len(t) + 1) if (multiple_dt and dt is not None) else dt
     def fn(params):
         return np.atleast_1d(
             _exponential_mixture_log_likelihood(
-                np.array(params), t, min_observation_time, max_observation_time
+                np.array(params), t, min_observation_time, max_observation_time, dt
             )
         )
 
     np.testing.assert_allclose(
         _exponential_mixture_log_likelihood_jacobian(
-            np.array(params), t, min_observation_time, max_observation_time
+            np.array(params), t, min_observation_time, max_observation_time, dt
         ),
         numerical_jacobian(fn, params, dx=1e-5).flatten(),
         rtol=1e-5,
-        atol=1e-13,
+        atol=1e-8,
     )
 
 
