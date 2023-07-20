@@ -818,10 +818,10 @@ def test_fit_binding_times(blank_kymo, blank_kymo_track_args):
 
     tracks = KymoTrackGroup([k1, k2, k3, k4])
 
-    dwells = tracks.fit_binding_times(1)
+    dwells = tracks.fit_binding_times(1, observed_minimum=True)
     np.testing.assert_allclose(dwells.lifetimes, [1.002547])
 
-    dwells = tracks.fit_binding_times(1, exclude_ambiguous_dwells=False)
+    dwells = tracks.fit_binding_times(1, exclude_ambiguous_dwells=False, observed_minimum=True)
     np.testing.assert_allclose(dwells.lifetimes, [1.25710457])
 
 
@@ -851,7 +851,19 @@ def test_fit_binding_times_empty():
         KymoTrackGroup([]).fit_binding_times(1)
 
 
-def test_multi_kymo_dwell():
+def test_fit_binding_times_warning(blank_kymo_track_args):
+    ktg = KymoTrackGroup(
+        [KymoTrack(np.array([1, 2, 3]), np.array([1, 2, 3]), *blank_kymo_track_args)]
+    )
+    with pytest.warns(UserWarning, match="use `observed_minimum=False`"):
+        ktg.fit_binding_times(1)
+
+
+@pytest.mark.parametrize("observed_minimum, ref_minima", [
+    (False, [10e-4, 10e-4, 10e-3, 10e-3]),
+    (True, [0.002, 0.002, 0.02, 0.02]),
+])
+def test_multi_kymo_dwell(observed_minimum, ref_minima):
     kymos = [
         _kymo_from_array(np.zeros((10, 10, 3)), "rgb", line_time_seconds=time, pixel_size_um=size)
         for time, size in ((10e-4, 0.05), (10e-3, 0.1))
@@ -875,42 +887,42 @@ def test_multi_kymo_dwell():
 
     # Normal use case
     dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
-        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k3, k4])], False
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k3, k4])], False, observed_minimum=observed_minimum
     )
-    np.testing.assert_allclose(dwell, [0.002, 0.003, 0.02, 0.02])
-    np.testing.assert_allclose(obs_min, [0.002, 0.002, 0.02, 0.02])
-    np.testing.assert_allclose(obs_max, [0.01, 0.01, 0.1, 0.1])
     assert removed_zeroes is False
+    np.testing.assert_allclose(dwell, [0.002, 0.003, 0.02, 0.02])
+    np.testing.assert_allclose(obs_min, ref_minima)
+    np.testing.assert_allclose(obs_max, [0.01, 0.01, 0.1, 0.1])
 
     # Drop one "empty" dwell
     dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
-        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k3, k4, k5])], False
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k3, k4, k5])], False, observed_minimum=observed_minimum
     )
     np.testing.assert_allclose(dwell, [0.002, 0.003, 0.02, 0.02])
-    np.testing.assert_allclose(obs_min, [0.002, 0.002, 0.02, 0.02])
+    np.testing.assert_allclose(obs_min, ref_minima)
     np.testing.assert_allclose(obs_max, [0.01, 0.01, 0.1, 0.1])
     assert removed_zeroes is True
 
     # Test with empty group
     dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
-        [KymoTrackGroup([k1, k2]), KymoTrackGroup([])], False
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([])], False, observed_minimum=observed_minimum
     )
     np.testing.assert_allclose(dwell, [0.002, 0.003])
-    np.testing.assert_allclose(obs_min, [0.002, 0.002])
+    np.testing.assert_allclose(obs_min, ref_minima[:2])
     np.testing.assert_allclose(obs_max, [0.01, 0.01])
     assert removed_zeroes is False
 
     # Test with group that is empty after filtering
     dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
-        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k5])], False
+        [KymoTrackGroup([k1, k2]), KymoTrackGroup([k5])], False, observed_minimum=observed_minimum
     )
     np.testing.assert_allclose(dwell, [0.002, 0.003])
-    np.testing.assert_allclose(obs_min, [0.002, 0.002])
+    np.testing.assert_allclose(obs_min, ref_minima[:2])
     np.testing.assert_allclose(obs_max, [0.01, 0.01])
     assert removed_zeroes is True
 
     dwell, obs_min, obs_max, removed_zeroes = KymoTrackGroup._extract_dwelltime_data_from_groups(
-        [KymoTrackGroup([k5]), KymoTrackGroup([k5])], False
+        [KymoTrackGroup([k5]), KymoTrackGroup([k5])], False, observed_minimum=observed_minimum
     )
     np.testing.assert_allclose(dwell, [])
     np.testing.assert_allclose(obs_min, [])
@@ -918,9 +930,44 @@ def test_multi_kymo_dwell():
     assert removed_zeroes is True
 
 
-def test_multi_kymo_dwelltime_analysis():
+def test_missing_minimum_time(blank_kymo):
+    k_missing = KymoTrack(np.array([1, 2, 3]), np.array([1, 2, 3]), blank_kymo, "red", None)
+    k_ok = KymoTrack(
+        np.array([1, 2, 3]), np.array([1, 2, 3]), blank_kymo, "red", blank_kymo.line_time_seconds
+    )
+    with pytest.raises(
+        RuntimeError, match="Minimum observation time unavailable in KymoTrackGroup"
+    ):
+        KymoTrackGroup([k_missing, k_ok]).fit_binding_times(1, observed_minimum=False)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Prior to version 1.2.0 the method `fit_binding_times` had an issue that "
+    "assumed that the shortest track duration is indicative of the minimum observable dwell time"
+)
+@pytest.mark.parametrize(
+    "num_samples,ref_amp,ref_lifetime,ref_amp_legacy,ref_lifetime_legacy",
+    [
+        (
+            5000,
+            (0.45196325, 0.54803675),
+            (1.90610454, 5.84528685),
+            (0.45196325, 0.54803675),
+            (1.90610454, 5.84528685),
+        ), (
+            20,
+            (0.65421428, 0.34578572),
+            (2.08205178, 10.81570587),
+            (0.59851704, 0.40148296),
+            (1.55933902, 9.55647415),
+        ),
+    ],
+)
+def test_multi_kymo_dwelltime_analysis(
+    simulate_dwelltimes, num_samples, ref_amp, ref_lifetime, ref_amp_legacy, ref_lifetime_legacy
+):
     """This test tests only the happy path since others test more specific edge cases"""
-    np.random.seed(123)
+    np.random.seed(1337)
 
     shared_args = {
         "image": np.empty((1, 5000, 3)),
@@ -932,23 +979,29 @@ def test_multi_kymo_dwelltime_analysis():
     kymo1 = _kymo_from_array(**shared_args, line_time_seconds=0.01)
     kymo2 = _kymo_from_array(**shared_args, line_time_seconds=0.02)
     args = [np.array([1.0, 1.0]), kymo1, "red", kymo1.line_time_seconds]
+
     group1 = KymoTrackGroup(
         [
             KymoTrack(np.array([1, int(round(t / kymo1.line_time_seconds)) + 1]), *args)
-            for t in np.random.exponential(2, size=(200,))
+            for t in simulate_dwelltimes(2, num_samples, min_time=kymo1.line_time_seconds)
         ],
     )
     args = [np.array([1.0, 1.0]), kymo2, "red", kymo2.line_time_seconds]
     group2 = KymoTrackGroup(
         [
             KymoTrack(np.array([1, int(round(t / kymo2.line_time_seconds)) + 1]), *args)
-            for t in np.random.exponential(6, size=(200,))
+            for t in simulate_dwelltimes(6, num_samples, min_time=kymo2.line_time_seconds)
         ],
     )
 
-    model = (group1 + group2).fit_binding_times(2, tol=1e-16)
-    np.testing.assert_allclose(model.lifetimes, (2.05754716, 6.89790037))
-    np.testing.assert_allclose(model.amplitudes, (0.61360417, 0.38639583))
+    for observed_minimum in (None, True):
+        model = (group1 + group2).fit_binding_times(2, tol=1e-16, observed_minimum=observed_minimum)
+        np.testing.assert_allclose(model.lifetimes, ref_lifetime_legacy)
+        np.testing.assert_allclose(model.amplitudes, ref_amp_legacy)
+
+    model = (group1 + group2).fit_binding_times(2, tol=1e-16, observed_minimum=False)
+    np.testing.assert_allclose(model.lifetimes, ref_lifetime)
+    np.testing.assert_allclose(model.amplitudes, ref_amp)
 
 
 @pytest.mark.parametrize("method,max_lags", [("ols", 2), ("ols", None), ("gls", 2), ("gls", None)])

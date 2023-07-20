@@ -5,6 +5,23 @@ Pylake 1.2.0
 
 Here's a sneak peak at some of the highlights from the upcoming Pylake `v1.2.0` release...
 
+Correctly use the minimum observable time in dwell time analysis
+----------------------------------------------------------------
+
+In earlier versions of Pylake, binding time analysis would return biased estimates when analyzing kymographs with very few events.
+This was because `KymoTrackGroup.fit_binding_times()` relied on the assumption that the shortest track in the `KymoTrackGroup` represented the minimum observable dwell time.
+This assumption is likely valid for kymographs with many tracks but problematic when few events occur per kymograph. In this case, binding times will be underestimated.
+For more information see the :doc:`changelog</changelog>`.
+
+.. important::
+
+    The old (incorrect) behavior is maintained as default until the next major release (`v2.0.0`) to ensure
+    backward compatibility. To enable the fixed behavior, specify `observed_minimum=False` when calling
+    `KymoTrackGroup.fit_binding_times()`.
+
+    Note that CSVs exported from the kymotracker widget  before `v1.2.0` will contain insufficient metadata
+    to make use of the improved analysis. To create this metadata, use `lk.filter_tracks()` on the group with a specified `min_length` before further analysis.
+
 Generate colormaps according to emission wavelength
 ---------------------------------------------------
 

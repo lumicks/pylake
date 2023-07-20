@@ -115,7 +115,7 @@ def kymogroups_2tracks():
                 track.coordinate_idx[use_frames],
                 kymo,
                 "red",
-                kymo.line_time_seconds
+                kymo.line_time_seconds,
             )
             for track in tracks
         ]
@@ -129,7 +129,7 @@ def kymogroups_2tracks():
                 np.full(n_frames - 3, c),
                 kymo,
                 "red",
-                kymo.line_time_seconds
+                kymo.line_time_seconds,
             )
             for c in centers
         ]
@@ -164,3 +164,23 @@ def kymogroups_close_tracks():
             for c in centers
         ]
     )
+
+
+@pytest.fixture
+def simulate_dwelltimes():
+    def simulate_poisson(scale, num_samples, min_time=0, max_time=np.inf):
+        samples = np.array([])
+        for _ in range(100):
+            new_samples = np.random.exponential(scale, num_samples)
+            samples = np.hstack(
+                (
+                    samples,
+                    new_samples[np.logical_and(new_samples >= min_time, new_samples < max_time)],
+                )
+            )
+            if samples.size > num_samples:
+                return samples[:num_samples]
+        else:
+            raise RuntimeError("Generated fewer samples than intended.")
+
+    return simulate_poisson
