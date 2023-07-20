@@ -12,6 +12,14 @@
 * Added support for slicing `PointScan`.
 * Added the ability to specify a cropping region when exporting to an h5-file using `file.save_as(filename, crop_time_range=(starting_timestamp, ending_timestamp))`.
 
+#### Bug fixes
+
+* Fixed issue in dwell time analysis that could lead to biased estimates for kymographs with very few events. Before this fix `KymoTrackGroup.fit_binding_times()` relied on the assumption that the shortest observed track is actually the minimum observable dwell time. This assumption is valid for kymographs with many events; however, this becomes problematic when multiple kymographs with few events each are analyzed globally. In this case, binding times will be underestimated. With this fix, the minimum observable dwell time is calculated from the kymograph scan line time and the set minimum track length.
+  * The old (incorrect) behavior is maintained as default until the next major release (`v2.0.0`) to ensure backward compatibility.
+  * **To enable the fixed behavior immediately (recommended), specify `observed_minimum=False` when calling `KymoTrackGroup.fit_binding_times()`.**
+  * To maintain the old legacy behavior use `observed_minimum=True`.
+  * Note that CSVs exported from the kymotracking widget before `v1.2.0` will contain insufficient metadata to make use of the improved analysis. To recover this metadata, use `lk.filter_tracks()` on the `KymoTrackGroup` with a specified `min_length`. This filters short events and stores the new minimum observable duration in the group.
+
 #### Other changes
 
 * Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.

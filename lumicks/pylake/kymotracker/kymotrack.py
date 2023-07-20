@@ -226,7 +226,11 @@ class KymoTrack:
 
     def _with_minimum_time(self, minimum_observable_duration):
         return KymoTrack(
-            self._time_idx, self._localization, self._kymo, self._channel, minimum_observable_duration
+            self._time_idx,
+            self._localization,
+            self._kymo,
+            self._channel,
+            minimum_observable_duration,
         )
 
     @classmethod
@@ -1351,7 +1355,7 @@ class KymoTrackGroup:
         return groups, indices
 
     @staticmethod
-    def _extract_dwelltime_data_from_groups(groups, exclude_ambiguous_dwells):
+    def _extract_dwelltime_data_from_groups(groups, exclude_ambiguous_dwells, *, observed_minimum):
         """Compute data needed for dwelltime analysis from a dictionary of KymoTrackGroups.
 
         This data consists of dwelltimes and observation limits per track. Note that dwelltimes of zero
@@ -1367,6 +1371,9 @@ class KymoTrackGroup:
             tracks which start in the first frame or end in the last frame of the kymograph are not
             used in the analysis, since the exact start/stop times of the binding event are not
             definitively known.
+        observed_minimum : bool
+            Whether to enable the legacy mode that incorrectly uses the minimum dwelltime observed
+            for each Kymo, rather than the true minimum observable time.
 
         Returns
         -------
@@ -1393,7 +1400,7 @@ class KymoTrackGroup:
                 raise ValueError("This group has more than one Kymo associated with it.")
 
             tracks = (
-                filter(KymoTrack._check_ends_are_defined, group)
+                tuple(filter(KymoTrack._check_ends_are_defined, group))
                 if exclude_ambiguous_dwells
                 else group
             )
@@ -1405,7 +1412,29 @@ class KymoTrackGroup:
             if nonzero_dwelltimes_sec.size == 0:
                 return np.empty((3, 0))
 
-            min_observation_time = np.min(nonzero_dwelltimes_sec)
+            min_observation_time = (
+                np.min(nonzero_dwelltimes_sec)
+                if observed_minimum
+                else np.array(
+                    [
+                        track._minimum_observable_duration
+                        for track, dwelltime in zip(tracks, dwelltimes_sec)
+                        if dwelltime > 0
+                    ]
+                )
+            )
+            if np.all(min_observation_time) is None:
+                raise RuntimeError(
+                    "Minimum observation time unavailable in KymoTrackGroup (tracking was "
+                    "performed prior to version `1.2.0`). The minimum observable time will be "
+                    "estimated as the duration of the shortest track. This approximation can cause "
+                    "bias for data containing few events per kymograph. To properly calculate this "
+                    "lower bound, use lk.filter_tracks() before analyzing further. If you are "
+                    "confident that each group contains sufficient events and wish to suppress "
+                    "this warning, pass `observed_minimum=True` to "
+                    "`KymoTrackGroup.fit_binding_times()`. See the online documentation for more "
+                    "information."
+                )
             max_observation_time = group[0]._image.shape[1] * group[0]._line_time_seconds
 
             return np.vstack(
@@ -1421,7 +1450,13 @@ class KymoTrackGroup:
         return dwelltimes, min_obs, max_obs, removed_zeros
 
     def fit_binding_times(
-        self, n_components, *, exclude_ambiguous_dwells=True, tol=None, max_iter=None
+        self,
+        n_components,
+        *,
+        exclude_ambiguous_dwells=True,
+        tol=None,
+        max_iter=None,
+        observed_minimum=None,
     ):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
@@ -1430,18 +1465,43 @@ class KymoTrackGroup:
         n_components : int
             Number of components in the model. Currently only values of {1, 2} are supported.
         exclude_ambiguous_dwells : bool
-            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, tracks which
-            start in the first frame or end in the last frame of the kymograph are not used in the analysis,
-            since the exact start/stop times of the binding event are not definitively known.
+            Determines whether to exclude dwelltimes which are not exactly determined. If `True`,
+            tracks which start in the first frame or end in the last frame of the kymograph are not
+            used in the analysis, since the exact start/stop times of the binding event are not
+            definitively known.
         tol : float
-            The tolerance for optimization convergence. This parameter is forwarded as the `ftol` argument
-            to `scipy.minimize(method="L-BFGS-B")`.
+            The tolerance for optimization convergence. This parameter is forwarded as the `ftol`
+            argument to `scipy.minimize(method="L-BFGS-B")`.
         max_iter : int
-            The maximum number of iterations to perform. This parameter is forwarded as the `maxiter` argument
-            to `scipy.minimize(method="L-BFGS-B")`.
+            The maximum number of iterations to perform. This parameter is forwarded as the
+            `maxiter` argument to `scipy.minimize(method="L-BFGS-B")`.
+        observed_minimum : bool
+            Use duration of shortest track as minimum observable time. This is a legacy mode that
+            can lead to biases when performing global analysis on data with very few events per
+            kymograph. This behavior is currently the default to preserve backward compatibility,
+            but will be removed in the next major release. Set to `False` to specifically enable
+            the proper behavior.
         """
         if not len(self):
             raise RuntimeError("No tracks available for analysis")
+
+        if observed_minimum is None:
+            warnings.warn(
+                UserWarning(
+                    "Prior to version 1.2.0 the method `fit_binding_times` had an issue that "
+                    "assumed that the shortest track duration is indicative of the minimum "
+                    "observable dwell time. This assumption is valid for kymographs with many "
+                    "events but problematic when few events occur per kymograph. In this case, "
+                    "binding times will be underestimated. The correct calculation of the minimum "
+                    "observable time is based on the image acquisition parameters and minimum "
+                    "track length. The old (incorrect) behavior is maintained as default until the "
+                    "next major release (2.0.0) to ensure backward compatibility. To silence this "
+                    "warning, but use the deprecated behavior use `observed_minimum=True`. To "
+                    "enable the recommended method of estimating the minimum observable dwell "
+                    "time use `observed_minimum=False`."
+                )
+            )
+            observed_minimum = True
 
         if n_components not in (1, 2):
             raise ValueError(
@@ -1450,7 +1510,7 @@ class KymoTrackGroup:
 
         groups, _ = self._tracks_by_kymo()
         dwelltimes, min_obs, max_obs, removed_zeros = self._extract_dwelltime_data_from_groups(
-            groups, exclude_ambiguous_dwells
+            groups, exclude_ambiguous_dwells, observed_minimum=observed_minimum
         )
 
         if removed_zeros:
