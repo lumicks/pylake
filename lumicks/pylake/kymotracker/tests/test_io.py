@@ -7,38 +7,12 @@ from pathlib import Path
 from copy import copy
 from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import (
+    _read_txt,
     KymoTrack,
     KymoTrackGroup,
     import_kymotrackgroup_from_csv,
 )
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
-
-
-def read_txt(testfile, delimiter, with_version=True):
-    raw_data = np.loadtxt(testfile, delimiter=delimiter, unpack=True)
-    with open(testfile, "r") as f:
-        data = {}
-
-        # from v0.13.0, exported CSV files have an additional header line
-        # with the pylake version and CSV version (starting at 2)
-        if with_version:
-            version_header = re.search(
-                r"Exported with pylake v([\d\.]*) \| track coordinates v(\d)", f.readline()
-            )
-            pylake_version = version_header.group(1)
-            csv_version = int(version_header.group(2))
-        else:
-            pylake_version = None
-            csv_version = 1
-
-        header = f.readline().rstrip().split(delimiter)
-        track_idx = raw_data[0, :]
-        for key, col in zip(header, raw_data):
-            data[key] = [
-                col[np.argwhere(track_idx == idx).flatten()] for idx in np.unique(track_idx)
-            ]
-
-        return data, pylake_version, csv_version
 
 
 def compare_kymotrack_group(group1, group2):
@@ -94,7 +68,7 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
     tracks.save(testfile, delimiter, sampling_width, correct_origin=True)
     imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
-    data, pylake_version, csv_version = read_txt(testfile, delimiter)
+    data, pylake_version, csv_version = _read_txt(testfile, delimiter)
 
     compare_kymotrack_group(tracks, imported_tracks)
 
@@ -212,7 +186,7 @@ def test_csv_version(version, read_with_version):
     testfile = Path(__file__).parent / f"./data/tracks_v{version}.csv"
     imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
 
-    data, pylake_version, csv_version = read_txt(testfile, ";", read_with_version)
+    data, pylake_version, csv_version = _read_txt(testfile, ";")
 
     if read_with_version:
         assert pylake_version is not None
@@ -225,7 +199,7 @@ def test_csv_version(version, read_with_version):
 
 
 @pytest.mark.parametrize("filename", ["csv_bad_format.csv", "csv_unparseable.csv"])
-def test_bad_csv(filename, tmpdir_factory, blank_kymo):
+def test_bad_csv(filename, blank_kymo):
     with pytest.raises(IOError, match="Invalid file format!"):
         file = Path(__file__).parent / "data" / filename
         import_kymotrackgroup_from_csv(file, blank_kymo, "red", delimiter=";")

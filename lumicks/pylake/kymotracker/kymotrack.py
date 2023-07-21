@@ -1,4 +1,6 @@
 import itertools
+import re
+import os
 from copy import copy
 from ..detail.utilities import replace_key_aliases
 from .detail.msd_estimation import *
@@ -6,6 +8,60 @@ from .detail.localization_models import LocalizationModel, CentroidLocalizationM
 from .detail.peakfinding import _sum_track_signal
 from .. import __version__
 from ..population.dwelltime import DwelltimeModel
+
+
+def _read_txt(file, delimiter):
+    """Read text-based csv file with KymoTrack data
+
+    Parameters
+    ----------
+    file : str or StringIO
+        path to a file to read, or handle to read from directly
+    delimiter : str
+        Delimiter to use.
+
+    Raises
+    ------
+    IOError
+        If the file is in the wrong format.
+    """
+    if isinstance(file, os.PathLike):
+        file = os.fspath(file)
+
+    if isinstance(file, str):
+        with open(file, "r") as f:
+            header_lines = [f.readline(), f.readline()]
+    else:
+        # Direct StringIO
+        header_lines = [file.readline(), file.readline()]
+
+    # from v0.13.0, exported CSV files have an additional header line
+    # with the pylake version and CSV version (starting at 2)
+    version_header = re.search(
+        r"Exported with pylake v([\d\.]*) \| track coordinates v(\d)", header_lines[0]
+    )
+
+    # We had a version header
+    if version_header:
+        header_lines = header_lines[1:]  # Consumed the header line
+        pylake_version = version_header.group(1)
+        csv_version = int(version_header.group(2))
+    else:
+        pylake_version = None
+        csv_version = 1
+
+    data = {}
+    try:
+        raw_data = np.loadtxt(file, delimiter=delimiter, unpack=True)
+    except ValueError:
+        raise IOError("Invalid file format!")
+
+    header = header_lines[0].rstrip().split(delimiter)
+    track_idx = raw_data[0, :]
+    for key, col in zip(header, raw_data):
+        data[key] = [col[np.argwhere(track_idx == idx).flatten()] for idx in np.unique(track_idx)]
+
+    return data, pylake_version, csv_version
 
 
 def export_kymotrackgroup_to_csv(
@@ -116,33 +172,27 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
     """
 
     # TODO: File format validation could use some improvement
-    try:
-        data = np.loadtxt(filename, delimiter=delimiter)
-    except ValueError:  # Could not convert to float
+    data, pylake_version, csv_version = _read_txt(filename, delimiter)
+
+    mandatory_fields = ["time (pixels)", "coordinate (pixels)"]
+    if not all(field_name in data for field_name in mandatory_fields):
         raise IOError("Invalid file format!")
 
-    if data.ndim != 2 or data.shape[0] <= 2:
-        raise IOError("Invalid file format!")
-
-    indices = data[:, 0]
-    time_idx = data[:, 1]
-    tracks = np.unique(indices)
-
-    if np.any(np.floor(time_idx) != time_idx):
-        warnings.warn(
-            RuntimeWarning(
-                "File contains non-integer time indices; round-off errors may have occurred when "
-                "loading the data"
-            ),
-            stacklevel=2,
-        )
+    # We get a list of time coordinates per track
+    for track_time in data["time (pixels)"]:
+        if np.any(np.floor(track_time) != track_time):
+            warnings.warn(
+                RuntimeWarning(
+                    "File contains non-integer time indices; round-off errors may have occurred when "
+                    "loading the data"
+                ),
+                stacklevel=2,
+            )
 
     return KymoTrackGroup(
         [
-            KymoTrack(
-                time_idx[indices == k].astype(int), data[indices == k, 2], kymo, channel, None
-            )
-            for k in tracks
+            KymoTrack(time.astype(int), coord, kymo, channel, None)
+            for time, coord in zip(data["time (pixels)"], data["coordinate (pixels)"])
         ]
     )
 
