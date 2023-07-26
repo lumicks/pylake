@@ -722,25 +722,34 @@ class DwelltimeModel:
         x : np.array
             array of independent variable values at which to calculate the PDF.
         """
-        limits = np.vstack(list(np.broadcast(*self._observation_limits)))
-        unique_limits, counts = np.unique(limits, axis=0, return_counts=True)
+        if self._timesteps is not None:
+            limits = np.vstack(list(np.broadcast(*self._observation_limits, self._timesteps)))
+        else:
+            limits = np.vstack(list(np.broadcast(*self._observation_limits)))
 
-        pdfs = np.asarray(
-            [
+        def to_pdf(count, min_time, max_time, time_step=None):
+            # We want to reinterpret both a mixture of discrete PMFs and PDFs as a PDF
+            # for plotting. We approximate the PDF of the PMF by assuming it piecewise constant
+            # over the discretized ranges.
+            normalization = 1.0 / (time_step if time_step is not None else 1)
+            return (
                 (count / sum(counts))
-                * np.logical_and(x >= limits[0], x < limits[1])
+                * np.logical_and(x >= min_time, x < max_time)
                 * np.exp(
                     _exponential_mixture_log_likelihood_components(
                         self.amplitudes,
                         self.lifetimes,
-                        x,
-                        *limits,
+                        np.floor(x / time_step) * time_step if self._timesteps is not None else x,
+                        min_time,
+                        max_time,
+                        time_step,
                     )
                 )
-                for limits, count in zip(unique_limits, counts)
-            ]
-        )
+                * normalization
+            )
 
+        unique_limits, counts = np.unique(limits, axis=0, return_counts=True)
+        pdfs = np.asarray([to_pdf(count, *limits) for count, limits in zip(counts, unique_limits)])
         return np.sum(pdfs, axis=0)
 
     @deprecated(
@@ -780,7 +789,9 @@ class DwelltimeModel:
         centers = bins[:-1] + (bins[1:] - bins[:-1]) / 2
         n_sample = max(3, int_steps // len(centers))
         time_points = np.hstack([np.linspace(t1, t2, n_sample) for t1, t2 in zip(bins, bins[1:])])
-        components = np.mean(self.pdf(time_points).reshape(self.n_components, -1, n_sample), axis=2)
+        components = np.mean(
+            self.pdf(time_points).reshape((self.n_components, -1, n_sample)), axis=2
+        )
         return centers, components
 
     def hist(
