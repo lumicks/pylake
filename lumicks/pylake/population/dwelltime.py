@@ -82,6 +82,7 @@ class DwelltimeProfiles:
                 options=dwelltime_model._optim_options,
                 fixed_param_mask=fixed,
                 use_jacobian=dwelltime_model.use_jacobian,
+                discretization_timestep=dwelltime_model._timesteps,
             )
 
         def fit_func(params, lb, ub, fitted):
@@ -337,6 +338,7 @@ class DwelltimeBootstrap:
                 initial_guess=optimized._parameters,
                 options=optimized._optim_options,
                 use_jacobian=optimized.use_jacobian,
+                discretization_timestep=optimized._timesteps,
             )
             samples[:, itr] = result
 
@@ -483,12 +485,18 @@ class DwelltimeModel:
     max_observation_time : float or numpy.ndarray
         maximum experimental observation time. This can either be a scalar or a numpy array with
         the same length as `dwelltimes`.
+    discretization_timestep : float or np.ndarray, optional
+        providing this argument results in taking into account temporal discretization with the
+        given timestep. Omitting this parameter or passing `None` results in using a continuous
+        probability density function to fit the data.
     tol : float
         The tolerance for optimization convergence. This parameter is forwarded as the `ftol`
         argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
     max_iter : int
         The maximum number of iterations to perform. This parameter is forwarded as the `maxiter`
         argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
+    use_jacobian : bool
+        use Jacobian matrix when optimizing (greatly enhances performance)
 
     Raises
     ------
@@ -504,6 +512,7 @@ class DwelltimeModel:
         *,
         min_observation_time=0,
         max_observation_time=np.inf,
+        discretization_timestep=None,
         tol=None,
         max_iter=None,
         use_jacobian=True,
@@ -515,9 +524,27 @@ class DwelltimeModel:
                     f"of dwelltimes ({len(dwelltimes)})."
                 )
 
+        if discretization_timestep is not None:
+            if not np.all(discretization_timestep > 0):
+                raise ValueError(
+                    "To use a continuous model, specify a discretization timestep of None. Do not "
+                    "pass zero as this leads to an invalid probability mass function."
+                )
+            else:
+                if not np.isscalar(discretization_timestep) and not (
+                    discretization_timestep.size == dwelltimes.size
+                    and discretization_timestep.ndim == 1
+                ):
+                    raise ValueError(
+                        "When providing an array of discretization timesteps, the number of "
+                        f"discretization timesteps ({discretization_timestep.size}) should equal "
+                        f"the number of dwell times provided ({dwelltimes.size})."
+                    )
+
         self.n_components = n_components
         self.dwelltimes = dwelltimes
         self.use_jacobian = use_jacobian
+        self._timesteps = discretization_timestep
 
         self._observation_limits = (min_observation_time, max_observation_time)
         self._optim_options = {
@@ -533,6 +560,7 @@ class DwelltimeModel:
             max_observation_time,
             options=self._optim_options,
             use_jacobian=self.use_jacobian,
+            discretization_timestep=discretization_timestep,
         )
         # TODO: remove with deprecation
         self._bootstrap = DwelltimeBootstrap(

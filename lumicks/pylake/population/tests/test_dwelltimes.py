@@ -47,7 +47,7 @@ def test_multi_observation_limits(data, min_obs, max_obs, loglik):
     np.testing.assert_allclose(fit.log_likelihood, loglik, rtol=1e-5)
 
 
-def test_invalid_multi_observation_limits():
+def test_invalid_multi_dwelltime_parameters():
     data = np.arange(1.0, 4.0, 1.0)
     with pytest.raises(
         ValueError,
@@ -64,6 +64,24 @@ def test_invalid_multi_observation_limits():
         )
     ):
         DwelltimeModel(data, min_observation_time=0, max_observation_time=np.array([1, 2, 3, 4]))
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            r"When providing an array of discretization timesteps, the number of "
+            r"discretization timesteps (2) should equal the number of dwell times provided (3)."
+        )
+    ):
+        DwelltimeModel(data, discretization_timestep=np.array([10, 1]))
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            r"To use a continuous model, specify a discretization timestep of None. Do not pass "
+            r"zero as this leads to an invalid probability mass function."
+        )
+    ):
+        DwelltimeModel(data, discretization_timestep=np.array([10, 0, 10]))
 
 
 def test_optim_options(exponential_data):
