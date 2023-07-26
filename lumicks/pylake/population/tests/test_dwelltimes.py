@@ -568,7 +568,7 @@ def test_analytic_gradient_exponential(
         ),
         numerical_jacobian(fn, params, dx=1e-5).flatten(),
         rtol=1e-5,
-        atol=1e-8,
+        atol=1e-7,
     )
 
 

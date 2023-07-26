@@ -12,6 +12,7 @@
 * Added support for slicing `PointScan`.
 * Added the ability to specify a cropping region when exporting to an h5-file using `file.save_as(filename, crop_time_range=(starting_timestamp, ending_timestamp))`.
 * Added the option to take into account discretization effects in [`DwelltimeModel`](https://lumicks-pylake.readthedocs.io/en/v1.1.0/_api/lumicks.pylake.DwelltimeModel.html) by passing a `discretization_timestep` to the model when constructing it.
+* Added the option to take into account discretization effects when performing dwell time analysis on a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.1.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html). Simply pass `discrete_model=True` to `KymoTrackGroup.fit_binding_times()` to make use of this new functionality.
 
 #### Bug fixes
 

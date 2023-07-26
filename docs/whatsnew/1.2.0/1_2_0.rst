@@ -22,6 +22,12 @@ For more information see the :doc:`changelog</changelog>`.
     Note that CSVs exported from the kymotracker widget  before `v1.2.0` will contain insufficient metadata
     to make use of the improved analysis. To create this metadata, use `lk.filter_tracks()` on the group with a specified `min_length` before further analysis.
 
+Correct for discretization in binding lifetime analysis
+-------------------------------------------------------
+
+You can now take into account the discretized nature of observed binding times of tracked particles. In some cases, this can significantly improve results by removing bias from the fitted lifetimes.
+Simply use `discrete_model=True` with :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.fit_binding_times()`.
+
 Generate colormaps according to emission wavelength
 ---------------------------------------------------
 
