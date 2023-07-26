@@ -1443,6 +1443,8 @@ class KymoTrackGroup:
             List of maximum observation time
         removed_zeros : bool
             Whether zeroes were dropped
+        time_step : numpy.ndarray
+            Discretization timesteps
 
         Raises
         ------
@@ -1468,7 +1470,7 @@ class KymoTrackGroup:
 
             # Gracefully handle empty groups
             if nonzero_dwelltimes_sec.size == 0:
-                return np.empty((3, 0))
+                return np.empty((4, 0))
 
             min_observation_time = (
                 np.min(nonzero_dwelltimes_sec)
@@ -1497,15 +1499,20 @@ class KymoTrackGroup:
 
             return np.vstack(
                 list(
-                    np.broadcast(nonzero_dwelltimes_sec, min_observation_time, max_observation_time)
+                    np.broadcast(
+                        nonzero_dwelltimes_sec,
+                        min_observation_time,
+                        max_observation_time,
+                        group[0]._line_time_seconds,
+                    )
                 )
             ).T
 
-        dwelltimes, min_obs, max_obs = np.hstack(
+        dwelltimes, min_obs, max_obs, time_step = np.hstack(
             [extract_dwelltime_data(tracks) for tracks in groups]
         )
 
-        return dwelltimes, min_obs, max_obs, removed_zeros
+        return dwelltimes, min_obs, max_obs, removed_zeros, time_step
 
     def fit_binding_times(
         self,
@@ -1515,6 +1522,7 @@ class KymoTrackGroup:
         tol=None,
         max_iter=None,
         observed_minimum=None,
+        discrete_model=None,
     ):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
@@ -1539,6 +1547,13 @@ class KymoTrackGroup:
             kymograph. This behavior is currently the default to preserve backward compatibility,
             but will be removed in the next major release. Set to `False` to specifically enable
             the proper behavior.
+        discrete_model : bool, optional
+            Take into account discretization when fitting dwell times. Prior to Pylake `v1.2.0`,
+            dwell times were fitted using a continuous model. In reality, the observed dwell times
+            are discretized by the time difference between successive frames. To take into account
+            the temporal discretization of the data, specify `discrete_model=True`. Currently, this
+            argument is set to `False` by default for backward compatibility, but in the next
+            major version of Pylake (`v2.0.0`), it will default to `True`.
         """
         if not len(self):
             raise RuntimeError("No tracks available for analysis")
@@ -1561,13 +1576,34 @@ class KymoTrackGroup:
             )
             observed_minimum = True
 
+        if discrete_model is None:
+            warnings.warn(
+                UserWarning(
+                    "Prior to version 1.2.0 the method `fit_binding_times` fitted a continuous "
+                    "dwell-time distribution to the experimental data. In reality, dwell times are "
+                    "a discrete multiple of the kymograph line time. This effect is most "
+                    "noticeable for short dwell times. To take the discretization into account "
+                    "pass the parameter `discrete_model=True` to this function. In the next major "
+                    "version of Pylake (`2.0.0`), using the discrete model will become the "
+                    "default. Until then, the continuous model is still used for backward "
+                    "compatibility."
+                )
+            )
+            discrete_model = False
+
         if n_components not in (1, 2):
             raise ValueError(
                 "Only 1- and 2-component exponential distributions are currently supported."
             )
 
         groups, _ = self._tracks_by_kymo()
-        dwelltimes, min_obs, max_obs, removed_zeros = self._extract_dwelltime_data_from_groups(
+        (
+            dwelltimes,
+            min_obs,
+            max_obs,
+            removed_zeros,
+            time_step,
+        ) = self._extract_dwelltime_data_from_groups(
             groups, exclude_ambiguous_dwells, observed_minimum=observed_minimum
         )
 
@@ -1593,6 +1629,7 @@ class KymoTrackGroup:
             max_observation_time=max_obs,
             tol=tol,
             max_iter=max_iter,
+            discretization_timestep=time_step if discrete_model else None,
         )
 
     def _histogram_binding_events(self, kind, bins=10):

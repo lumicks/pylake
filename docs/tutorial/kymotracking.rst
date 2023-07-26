@@ -669,25 +669,35 @@ the bound dwelltime as the length of each track in seconds.
 
 To fit the bound dwelltime distribution to a single exponential (the simplest case) simply call::
 
-    dwell = tracks.fit_binding_times(n_components=1)
+    dwell = tracks.fit_binding_times(n_components=1, observed_minimum=False, discrete_model=True)
 
 This returns a :class:`~lumicks.pylake.DwelltimeModel` object which contains information about the optimized model, such as the lifetime of the state in seconds::
 
     print(dwell.lifetimes)
 
+.. note::
+
+    The flag `discrete_model=True` takes into account that the binding times are discretized to multiples of the kymograph line time.
+    This is a more accurate model for the data and leads to smaller biases when estimating.
+    Starting from Pylake `2.0.0` this will become the new default.
+
+.. note::
+
+    The `min_observation_time` and `max_observation_time` arguments to the underlying :class:`~lumicks.pylake.DwelltimeModel` are set automatically by this method.
+    The minimum length of the tracks depends not only on the kymograph line scan time but also the specific input parameters used for the tracking algorithm.
+    In earlier versions, Pylake used the shortest track time and the length of the experiment, respectively.
+    Starting in Pylake `1.2.0`, it is possible to use the minimum possible dwell time calculated from the tracking and acquisition parameters by specifying `observed_minimum=False`.
+    This is the preferable method, since the former can lead to biases for kymographs with few events.
+    In the next major version of Pylake (`2.0.0`) this flag will become the default.
+
 We can also try a double exponential fit::
 
-    dwell2 = tracks.fit_binding_times(n_components=2)
+    dwell2 = tracks.fit_binding_times(n_components=2, observed_minimum=False, discrete_model=True)
     print(dwell2.lifetimes)  # list of bound lifetimes
     print(dwell2.amplitudes)  # list of fractional amplitudes for each component
 
 For a detailed description of the optimization method and available attributes/methods see the Dwelltime Analysis section
 in :doc:`Population Dynamics </tutorial/population_dynamics>`.
-
-.. note::
-    The `min_observation_time` and `max_observation_time` arguments to the underlying :class:`~lumicks.pylake.DwelltimeModel` are set automatically by this method.
-    The minimum length of the tracks depends not only on the pixel dwell time but also the specific input parameters used for the tracking algorithm.
-    Therefore, in order to estimate these bounds, the method uses the shortest track time and the length of the experiment, respectively.
 
 .. _global_analysis:
 
