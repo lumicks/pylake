@@ -295,6 +295,20 @@ If the confidence interval for any of the amplitudes contains zero, then that co
 
 .. _rate_constants:
 
+Discretization
+^^^^^^^^^^^^^^
+
+While the kinetic processes being analyzed are continuous, the observed dwell times are measured at discrete intervals (multiples of the sampling rate).
+When lifetimes are short compared to the sampling rate this can have an effect on the parameter estimates.
+To take the discretization into account, we can provide a time step to the :class:`~lumicks.pylake.DwelltimeModel`::
+
+    dwell_d = lk.DwelltimeModel(dwell_times[1], n_components=1, discretization_timestep=1.0/force.sample_rate)
+    dwell_d.hist()
+
+.. image:: figures/population_dynamics/discrete_pop.png
+
+As we can see, the difference in this case is small, but the effect of discretization can be more prominent when lifetimes approach the sampling time.
+
 Assumptions and limitations on determining rate constants
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -376,3 +390,93 @@ can be set manually with the `min_observation_time` and `max_observation_time` k
 values are :math:`t_{min}=0` and :math:`t_{max}=\infty`, such that :math:`N=1`. However, for real experimental data,
 there are physical limitations on the measurement times (such as pixel integration time for kymographs or sampling frequency for
 force channels) that should be taken into account.
+
+Discrete model
+^^^^^^^^^^^^^^
+
+While it is tempting to discretize the exponential distribution directly, this would not give correct results.
+The start and end point of a dwell are discrete multiples of the acquisition rate; these are the values which are discretized.
+Consider the probability density of a dwell starting uniformly over the sampling interval.
+The probability density that an event is captured at dwell time :math:`f \Delta t` is given by a triangular probability from :math:`t = (f - 1)\Delta t` to :math:`t = (f + 1)\Delta t` :cite:`lewis2017deconvolution`, where :math:`f` is the frame index and :math:`\Delta t` the sampling interval.
+We can simulate this::
+
+    n_samples = 5000
+    probability = []
+    positions = np.arange(0, 4, 0.01)
+    for true_dwell in positions:
+        start_pos = np.random.rand(n_samples)
+        end_pos = start_pos + true_dwell
+        correct = (np.floor(end_pos) - np.floor(start_pos)) == 2
+        probability.append(np.sum(correct) / n_samples)
+
+    plt.plot(positions, probability)
+    plt.ylabel(f'Probability of being sampled at t=2')
+    plt.xlabel('True dwell time [s]')
+
+.. image:: figures/population_dynamics/instrumentation_function.png
+
+This means that if we want to know the probability of observing a particular dwell duration (in whole frames), we need to multiply the probability density of the dwell time model by this observation model and then integrate it.
+Discretization of the continuous model with discretization time step :math:`\Delta t` then amounts to evaluating the following integrals:
+
+.. math::
+
+    \mathcal{L} = \prod_j^T \frac{1}{N_j}\sum_{i}^{M}\frac{a_i}{\tau_i}\left(\int_{t - \Delta t}^{t}\left(t - (f-1) \Delta t\right)e^{-t_j/\tau_i}dt + \int_{t}^{t + \Delta t}\left((f + 1)\Delta t - t\right)e^{-t_j/\tau_i}dt\right)
+
+Given that
+
+.. math::
+
+    \int_{t - \Delta t}^{t}\left(t - (f-1) \Delta t\right)e^{-t_j/\tau_i}dt = \left(-\Delta t - \tau_i\right)\tau_i e^{-\frac{f\Delta t}{\tau_i}} + \tau_i^2 e^{-\frac{(f - 1)\Delta t}{\tau_i}}
+
+and
+
+.. math::
+
+    \int_{t}^{t + \Delta t}\left((f + 1)\Delta t - t\right)e^{-t_j/ \tau_i}dt = \left(\Delta t - \tau_i\right) \tau_i e^{-\frac{f\Delta t}{\tau_i}} + \tau_i^2 e^{-\frac{(f + 1)\Delta t}{\tau_i}}
+
+we obtain
+
+.. math::
+
+    \mathcal{L} = \prod_j^T \frac{1}{N_j}\sum_{i}^{M}a_i \tau_i \left(\exp\left(\frac{\Delta t}{\tau_i}\right) + \exp\left(\frac{- \Delta t}{\tau_i}\right) - 2\right)\exp\left(\frac{-t}{\tau_i}\right)
+
+or
+
+.. math::
+
+    \mathcal{L} = \prod_j^T \frac{1}{N_j}\sum_{i}^{M}a_i \tau_i \left(1 - \exp\left(\frac{- \Delta t}{\tau_i}\right)\right)^2\exp\left(-\frac{(t - \Delta t)}{\tau_i}\right)
+
+To take into account the finite support (minimum and maximum dwelltime), we have to renormalize the distribution to the minimum and maximum frame.
+
+The normalization constant :math:`N_j` is given by:
+
+.. math::
+
+    N_j = \sum_{i}^{M} a_i \tau_i \left(e^{\frac{\Delta t}{\tau_i}} + e^{\frac{- \Delta t}{\tau_i}} - 2\right) \sum_{f=f_{min}}^{f_{max}} e^{-f \Delta t / \tau_i}
+
+The sum is a geometric series and evaluates to:
+
+.. math::
+
+    \sum_{f=f_{min}}^{f_{max}} e^{-f \Delta t / \tau_i} = \frac{e^{-\frac{\Delta t(f_{max} + 1)}{\tau_i}} - e^{-\frac{\Delta t f_{min}}{\tau_i}}}{e^{-\frac{\Delta t}{\tau_i}} - 1}
+
+Considering that:
+
+.. math::
+
+    \left(e^{\frac{\Delta t}{\tau_i}} + e^{-\frac{\Delta t}{\tau_i}} - 2\right) = \left(1 - e^{\frac{\Delta t}{\tau_i}}\right)\left(e^{\frac{-\Delta t}{\tau_i}} - 1\right)
+
+we can see that part of the denominator will cancel out.
+This evaluates to the following expression:
+
+.. math::
+
+    N_j = \sum_{i}^{M} a_i \tau_i \left(1 - \exp\left(\frac{\Delta t}{\tau_i}\right)\right) \left(\exp\left(-\frac{\left(t_{max} + \Delta t\right)}{\tau_i}\right) - \exp\left(-\frac{t_{min}}{\tau_i}\right)\right)
+
+or (in a more similar form as the continuous case)
+
+.. math::
+
+    N_j = \sum_{i}^{M} a_i \tau_i \left(1 - \exp\left(\frac{-\Delta t}{\tau_i}\right)\right) \left(\exp\left(-\frac{\left(t_{min} - \Delta t\right)}{\tau_i}\right) - \exp\left(-\frac{t_{max}}{\tau_i}\right)\right)
+
+for the normalization constant of a particular data point.
