@@ -9,13 +9,19 @@ import pytest
 def test_disabling_capturing(report_line):
     repeats = 3
 
-    code = dedent("""\
+    code = dedent(
+        """\
         import time
         tic = time.time()
         import lumicks.pylake
         print(time.time() - tic)
-        """)
+        """
+    )
 
-    times = [float(subprocess.check_output([f'{sys.executable}', '-c', code])) for i in range(repeats)]
+    times = [
+        float(subprocess.check_output([f"{sys.executable}", "-c", code])) for i in range(repeats)
+    ]
 
-    report_line(f"Module import time: {np.mean(times):.2f} +- {np.std(times):.2f} seconds (N={repeats})")
+    report_line(
+        f"Module import time: {np.mean(times):.2f} +- {np.std(times):.2f} seconds (N={repeats})"
+    )

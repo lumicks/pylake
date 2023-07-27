@@ -38,13 +38,14 @@ def test_transform_inversion():
     np.testing.assert_allclose(transform.invert().matrix, np.linalg.inv(m))
 
 
+# fmt: off
 @pytest.mark.parametrize("theta_deg, center, ref_matrix", [
-    # fmt:off
     (45, (5, 5), [[0.70710678, 0.70710678, -2.07106781], [-0.70710678, 0.70710678, 5.0], [0, 0, 1]]),
     (45, (5, 6), [[0.70710678, 0.70710678, -2.77817459], [-0.70710678, 0.70710678, 5.29289322], [0, 0, 1]]),
     (30, (5, 6), [[0.8660254, 0.5, -2.33012702], [-0.5, 0.8660254, 3.30384758], [0, 0, 1]]),
-    # fmt:on
+
 ])
+# fmt: on
 def test_transform_rotation(theta_deg, center, ref_matrix):
     theta = np.radians(theta_deg)
     rotation = widefield.TransformMatrix.rotation(theta_deg, center)

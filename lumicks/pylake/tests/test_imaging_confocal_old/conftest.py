@@ -81,7 +81,6 @@ def test_kymos(reference_counts):
     )
     kymos["truncated_kymo"] = Kymo("truncated", mock_file, start - 62500000, stop, metadata)
 
-
     # RGB Kymo with infowave as expected from BL
     image = np.random.poisson(5, size=(5, 10, 3))
     infowave, red_photon_count = generate_image_data(image[:, :, 0], 4, 50)
@@ -102,13 +101,7 @@ def test_kymos(reference_counts):
     kymos["noise"] = Kymo("noise", mock_file, start, stop, metadata)
 
     mock_file, metadata, stop = MockConfocalFile.from_image(
-        np.ones(shape=(5, 4, 3)),
-        [10.0],
-        [0],
-        start,
-        dt,
-        samples_per_pixel=5,
-        line_padding=3
+        np.ones(shape=(5, 4, 3)), [10.0], [0], start, dt, samples_per_pixel=5, line_padding=3
     )
     kymos["slicing_regression"] = Kymo("slicing_regression", mock_file, start, stop, metadata)
 

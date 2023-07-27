@@ -8,6 +8,7 @@ from . import test_file_items
 from lumicks.pylake.tests.data.mock_file import MockDataFile_v2
 from lumicks.pylake.tests.data.mock_confocal import generate_scan_json, generate_image_data
 
+
 def test_attributes(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
@@ -68,7 +69,8 @@ def test_repr_and_str(h5_file):
 
     assert repr(f) == f"lumicks.pylake.File('{h5_file.filename}')"
     if f.format_version == 1:
-        assert str(f) == dedent("""\
+        assert str(f) == dedent(
+            """\
             File root metadata:
             - Bluelake version: unknown
             - Description: test
@@ -105,9 +107,11 @@ def test_repr_and_str(h5_file):
             .downsampled_force1x
             .downsampled_force1y
             .downsampled_force1z
-        """)
+        """
+        )
     if f.format_version == 2:
-        assert str(f) == dedent("""\
+        assert str(f) == dedent(
+            """\
             File root metadata:
             - Bluelake version: unknown
             - Description: test
@@ -171,13 +175,13 @@ def test_repr_and_str(h5_file):
               - fast Y slow X
               - fast Y slow X multiframe
               - fast Y slow Z multiframe
-            
+
             .notes
               - test_note
-            
+
             .point_scans
               - PointScan1
- 
+
             .force1x
               .calibration
             .force1y
@@ -193,7 +197,8 @@ def test_repr_and_str(h5_file):
               .calibration
             .downsampled_force1z
               .calibration
-        """)
+        """
+        )
 
 
 def test_invalid_file_format(h5_file_invalid_version):
@@ -204,7 +209,10 @@ def test_invalid_file_format(h5_file_invalid_version):
 def test_missing_metadata(h5_file_missing_meta):
     f = pylake.File.from_h5py(h5_file_missing_meta)
     if f.format_version == 2:
-        with pytest.warns(UserWarning, match="Scan 'fast Y slow X no meta' is missing metadata and cannot be loaded"):
+        with pytest.warns(
+            UserWarning,
+            match="Scan 'fast Y slow X no meta' is missing metadata and cannot be loaded",
+        ):
             scans = f.scans
             assert len(scans) == 1
 
@@ -240,23 +248,35 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     save_h5(f, new_file, 5, omit_data={"Force LF/Force 1y"})
     omit_lf1y = pylake.File(new_file)
 
-    np.testing.assert_allclose(omit_lf1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
-    np.testing.assert_allclose(omit_lf1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
-    np.testing.assert_allclose(omit_lf1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+    np.testing.assert_allclose(
+        omit_lf1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data
+    )
+    np.testing.assert_allclose(
+        omit_lf1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data
+    )
+    np.testing.assert_allclose(
+        omit_lf1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data
+    )
     with pytest.raises(KeyError):
         assert np.any(omit_lf1y["Force LF"]["Force 1y"].data)
 
     for ix, drop_style in enumerate(
-        ({"*/Force 1y"}, ["*/Force 1y"], ("*/Force 1y", ), "*/Force 1y")
+        ({"*/Force 1y"}, ["*/Force 1y"], ("*/Force 1y",), "*/Force 1y")
     ):
         new_file = f"{tmpdir}/omit_1y_{ix}.h5"
         save_h5(f, new_file, 5, omit_data=drop_style)
         omit_1y = pylake.File(new_file)
 
-        np.testing.assert_allclose(omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
-        np.testing.assert_allclose(omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+        np.testing.assert_allclose(
+            omit_1y["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data
+        )
+        np.testing.assert_allclose(
+            omit_1y["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data
+        )
         with pytest.raises(KeyError):
-            np.testing.assert_allclose(omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+            np.testing.assert_allclose(
+                omit_1y["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data
+            )
         with pytest.raises(KeyError):
             assert np.any(omit_1y["Force LF"]["Force 1y"].data)
 
@@ -267,21 +287,33 @@ def test_h5_export(tmpdir_factory, h5_file, save_h5):
     np.testing.assert_allclose(omit_hf["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
     np.testing.assert_allclose(omit_hf["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
     with pytest.raises(KeyError):
-        np.testing.assert_allclose(omit_hf["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+        np.testing.assert_allclose(
+            omit_hf["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data
+        )
     with pytest.raises(KeyError):
-        np.testing.assert_allclose(omit_hf["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+        np.testing.assert_allclose(
+            omit_hf["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data
+        )
 
     new_file = f"{tmpdir}/omit_two.h5"
     save_h5(f, new_file, 5, omit_data={"Force HF/*", "*/Force 1y"})
     omit_two = pylake.File(new_file)
 
-    np.testing.assert_allclose(omit_two["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data)
+    np.testing.assert_allclose(
+        omit_two["Force LF"]["Force 1x"].data, f["Force LF"]["Force 1x"].data
+    )
     with pytest.raises(KeyError):
-        np.testing.assert_allclose(omit_two["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data)
+        np.testing.assert_allclose(
+            omit_two["Force LF"]["Force 1y"].data, f["Force LF"]["Force 1y"].data
+        )
     with pytest.raises(KeyError):
-        np.testing.assert_allclose(omit_two["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data)
+        np.testing.assert_allclose(
+            omit_two["Force HF"]["Force 1x"].data, f["Force HF"]["Force 1x"].data
+        )
     with pytest.raises(KeyError):
-        np.testing.assert_allclose(omit_two["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data)
+        np.testing.assert_allclose(
+            omit_two["Force HF"]["Force 1y"].data, f["Force HF"]["Force 1y"].data
+        )
 
 
 def test_timeseries_performance(tmpdir_factory):

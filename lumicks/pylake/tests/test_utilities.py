@@ -92,30 +92,30 @@ def test_downsample(data, factor, avg, std):
 
 
 def test_will_mul_overflow():
-    assert not will_mul_overflow(2, np.int64(2 ** 62 - 1))
-    assert will_mul_overflow(2, np.int64(2 ** 62))
-    assert will_mul_overflow(2, np.int64(2 ** 63 - 1))
+    assert not will_mul_overflow(2, np.int64(2**62 - 1))
+    assert will_mul_overflow(2, np.int64(2**62))
+    assert will_mul_overflow(2, np.int64(2**63 - 1))
 
-    assert not will_mul_overflow(np.array(2), np.array(2 ** 62 - 1, dtype=np.int64))
-    assert will_mul_overflow(np.array(2), np.array(2 ** 62, dtype=np.int64))
-    assert will_mul_overflow(np.array(2), np.array(2 ** 63 - 1, dtype=np.int64))
+    assert not will_mul_overflow(np.array(2), np.array(2**62 - 1, dtype=np.int64))
+    assert will_mul_overflow(np.array(2), np.array(2**62, dtype=np.int64))
+    assert will_mul_overflow(np.array(2), np.array(2**63 - 1, dtype=np.int64))
 
 
 def test_could_sum_overflow():
-    assert not could_sum_overflow(np.array([1, 2 ** 62 - 1]))
-    assert could_sum_overflow(np.array([1, 2 ** 62]))
-    assert could_sum_overflow(np.array([1, 2 ** 63 - 1]))
+    assert not could_sum_overflow(np.array([1, 2**62 - 1]))
+    assert could_sum_overflow(np.array([1, 2**62]))
+    assert could_sum_overflow(np.array([1, 2**63 - 1]))
 
-    assert not could_sum_overflow(np.array([1, 1, 2 ** 61]))
-    assert could_sum_overflow(np.array([1, 1, 2 ** 62]))
-    assert could_sum_overflow(np.array([1, 1, 2 ** 63 - 1]))
+    assert not could_sum_overflow(np.array([1, 1, 2**61]))
+    assert could_sum_overflow(np.array([1, 1, 2**62]))
+    assert could_sum_overflow(np.array([1, 1, 2**63 - 1]))
 
     assert not could_sum_overflow(np.array([[1, 1], [1, 1]]), axis=0)
     assert not could_sum_overflow(np.array([[1, 1], [1, 1]]), axis=1)
-    assert not could_sum_overflow(np.array([[1, 2 ** 62 - 1], [1, 2 ** 62 - 1]]), axis=0)
-    assert not could_sum_overflow(np.array([[1, 2 ** 62 - 1], [1, 2 ** 62 - 1]]), axis=1)
-    assert could_sum_overflow(np.array([[1, 2 ** 62], [1, 2 ** 62]]), axis=0)
-    assert could_sum_overflow(np.array([[1, 2 ** 62], [1, 2 ** 62]]), axis=1)
+    assert not could_sum_overflow(np.array([[1, 2**62 - 1], [1, 2**62 - 1]]), axis=0)
+    assert not could_sum_overflow(np.array([[1, 2**62 - 1], [1, 2**62 - 1]]), axis=1)
+    assert could_sum_overflow(np.array([[1, 2**62], [1, 2**62]]), axis=0)
+    assert could_sum_overflow(np.array([[1, 2**62], [1, 2**62]]), axis=1)
 
 
 def assert_1d(a):
@@ -123,7 +123,7 @@ def assert_1d(a):
 
 
 def test_timestamp_mean():
-    n = 2 ** 62
+    n = 2**62
     assert_1d([2, 4])
     assert_1d([n - 1, n - 3])
     assert_1d([0, 0, n - 1, n - 1])
@@ -145,7 +145,7 @@ def test_timestamp_mean():
 
 def test_timestamp_mean_2d():
     """Test 2D behaviour of timestamp_mean."""
-    n = 2 ** 62 // 4
+    n = 2**62 // 4
     t_range = np.arange(0, n * 8, n, dtype=np.int64)
     ts = np.tile(t_range, (6, 1))
 

@@ -1,7 +1,9 @@
 from lumicks.pylake import FdRangeSelector
-from lumicks.pylake.nb_widgets.range_selector import (FdTimeRangeSelectorWidget, 
-                                                      FdDistanceRangeSelectorWidget, 
-                                                      BaseRangeSelectorWidget)
+from lumicks.pylake.nb_widgets.range_selector import (
+    FdTimeRangeSelectorWidget,
+    FdDistanceRangeSelectorWidget,
+    BaseRangeSelectorWidget,
+)
 from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import TimeSeries, Slice
 import pytest
@@ -67,9 +69,11 @@ def test_selector_widget(mockevent):
     event = mockevent(selector._axes, 950, 1, lmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    np.testing.assert_allclose(selector.ranges, [[start_point + dt, start_point + 2*dt]])
+    np.testing.assert_allclose(selector.ranges, [[start_point + dt, start_point + 2 * dt]])
 
-    np.testing.assert_allclose(selector.fdcurves[0].f.data, fd_curve[start_point + dt:start_point + 2*dt].f.data)
+    np.testing.assert_allclose(
+        selector.fdcurves[0].f.data, fd_curve[start_point + dt : start_point + 2 * dt].f.data
+    )
 
     # Add another segment
     selector.handle_button_event(mockevent(selector._axes, 150, 1, lmb, False))
@@ -79,13 +83,16 @@ def test_selector_widget(mockevent):
     event = mockevent(selector._axes, 1300, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    np.testing.assert_allclose(selector.ranges, [[start_point + dt, start_point + 2*dt], [start_point, start_point + 2*dt]])
+    np.testing.assert_allclose(
+        selector.ranges,
+        [[start_point + dt, start_point + 2 * dt], [start_point, start_point + 2 * dt]],
+    )
 
     # Remove a segment (inner segment, smallest segment gets removed first)
     event = mockevent(selector._axes, 900, 1, rmb, False)
     selector.handle_button_event(event)
     assert selector.current_range == []
-    np.testing.assert_allclose(selector.ranges, [[start_point, start_point + 2*dt]])
+    np.testing.assert_allclose(selector.ranges, [[start_point, start_point + 2 * dt]])
 
     # Remove a segment (inner segment, smallest segment gets removed first)
     event = mockevent(selector._axes, 900, 1, rmb, False)
@@ -146,7 +153,9 @@ def test_distance_selector_widget(mockevent):
     assert selector.current_range == []
     np.testing.assert_allclose(selector.ranges, [[2, 4]])
 
-    np.testing.assert_allclose(selector.fdcurves[0].f.data, fd_curve[start_point + 2*dt:start_point + 5*dt].f.data)
+    np.testing.assert_allclose(
+        selector.fdcurves[0].f.data, fd_curve[start_point + 2 * dt : start_point + 5 * dt].f.data
+    )
 
     # Add another segment
     selector.handle_button_event(mockevent(selector._axes, 6, 1, lmb, False))
@@ -194,7 +203,7 @@ def test_multi_distance_selector_widget():
         FdRangeSelector({})
 
     with pytest.raises(RuntimeError):
-        FdRangeSelector({"fd1": fd_curve1, "fd2": fd_curve2})        
+        FdRangeSelector({"fd1": fd_curve1, "fd2": fd_curve2})
 
 
 def test_selector_widgets_open():

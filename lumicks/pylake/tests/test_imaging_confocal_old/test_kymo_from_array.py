@@ -45,11 +45,11 @@ def test_from_array(test_kymos, crop):
     np.testing.assert_equal(kymo.line_time_seconds, arr_kymo.line_time_seconds)
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=False),
-        arr_kymo.line_timestamp_ranges(include_dead_time=False)
+        arr_kymo.line_timestamp_ranges(include_dead_time=False),
     )
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=True),
-        arr_kymo.line_timestamp_ranges(include_dead_time=True)
+        arr_kymo.line_timestamp_ranges(include_dead_time=True),
     )
 
     np.testing.assert_equal(kymo.pixelsize_um, arr_kymo.pixelsize_um)
@@ -121,11 +121,11 @@ def test_from_array_no_pixelsize(test_kymos):
     np.testing.assert_equal(kymo.line_time_seconds, arr_kymo.line_time_seconds)
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=False),
-        arr_kymo.line_timestamp_ranges(include_dead_time=False)
+        arr_kymo.line_timestamp_ranges(include_dead_time=False),
     )
     np.testing.assert_equal(
         kymo.line_timestamp_ranges(include_dead_time=True),
-        arr_kymo.line_timestamp_ranges(include_dead_time=True)
+        arr_kymo.line_timestamp_ranges(include_dead_time=True),
     )
 
     assert arr_kymo.pixelsize_um == [None]

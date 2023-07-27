@@ -425,7 +425,7 @@ def test_data_loading():
         with pytest.raises(
             ValueError,
             match="Every value for the independent variable x should have a corresponding data "
-                  "point for the dependent variable y",
+            "point for the dependent variable y",
         ):
             fit._add_data("test2", x, y)
 
@@ -642,7 +642,7 @@ def test_plotting():
     with pytest.raises(KeyError):
         fit[m].plot(overrides={"DNA/c": 12})
 
-    plt.close('all')
+    plt.close("all")
     independent = np.arange(0.15, 2, 0.25)
     params = [38.18281266, 0.37704827, 278.50103452, 4.11]
     ewlc_odijk_distance("WLC").verify_jacobian(independent, params, plot=1)

@@ -223,8 +223,7 @@ def test_plotting(test_scans):
 def test_deprecated_plotting(test_scans):
     scan = test_scans["fast Y slow X multiframe"]
     with pytest.raises(
-        TypeError,
-        match=re.escape("plot() takes from 1 to 2 positional arguments but 3 were given")
+        TypeError, match=re.escape("plot() takes from 1 to 2 positional arguments but 3 were given")
     ):
         ih = scan.plot("blue", None)
         np.testing.assert_allclose(ih.get_array(), scan.get_image("blue")[0])
@@ -233,11 +232,12 @@ def test_deprecated_plotting(test_scans):
     with pytest.raises(
         TypeError,
         match=re.escape(
-             "plot() takes from 1 to 2 positional arguments but 3 positional "
-             "arguments (and 1 keyword-only argument) were given"
-        )
+            "plot() takes from 1 to 2 positional arguments but 3 positional "
+            "arguments (and 1 keyword-only argument) were given"
+        ),
     ):
         scan.plot("rgb", None, axes=None)
+
 
 @pytest.mark.parametrize(
     "scanname, tiffname",
@@ -269,7 +269,7 @@ def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
         np.testing.assert_allclose(
             tags["YResolution"][0] / tags["YResolution"][1],
             scan._tiff_writer_kwargs()["resolution"][1],
-            rtol=1e-1
+            rtol=1e-1,
         )
         assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
 
@@ -658,14 +658,13 @@ def test_slice_by_list_disallowed(test_scans):
         test_scans["fast Y slow X multiframe"][Dummy(), :, :]
 
     with pytest.raises(IndexError, match="Slicing by Dummy is not supported"):
-        test_scans["fast Y slow X multiframe"][Dummy():Dummy(), :, :]
+        test_scans["fast Y slow X multiframe"][Dummy() : Dummy(), :, :]
 
 
 def test_crop_missing_channel(test_scans):
     """Make sure that missing channels are handled appropriately when cropping"""
     np.testing.assert_equal(
-        test_scans["rb channels missing"][:, 0:2, 1:3].get_image("red"),
-        np.zeros((2, 2))
+        test_scans["rb channels missing"][:, 0:2, 1:3].get_image("red"), np.zeros((2, 2))
     )
 
 
@@ -721,14 +720,15 @@ def test_scan_slicing_by_time():
     compare_frames([2, 3], multi_frame["2s":"5.81s"][:"-1.2s"])  # iterative with from end
 
     # Slice by timestamps
-    compare_frames([2, 3], multi_frame[start + int(2e9):start + int(4e9)])
-    compare_frames([2, 3], multi_frame[start + int(2e9):start + int(4.8e9)])
-    compare_frames([2, 3, 4], multi_frame[start + int(2e9):start + int(4.81e9)])
-    compare_frames([0, 1, 2, 3, 4], multi_frame[:start + int(4.81e9)])
-    compare_frames([5, 6, 7, 8, 9], multi_frame[start + int(5e9):])
+    compare_frames([2, 3], multi_frame[start + int(2e9) : start + int(4e9)])
+    compare_frames([2, 3], multi_frame[start + int(2e9) : start + int(4.8e9)])
+    compare_frames([2, 3, 4], multi_frame[start + int(2e9) : start + int(4.81e9)])
+    compare_frames([0, 1, 2, 3, 4], multi_frame[: (start + int(4.81e9))])
+    compare_frames([5, 6, 7, 8, 9], multi_frame[(start + int(5e9)) :])
     compare_frames(
-        [2, 3, 4], multi_frame[start + int(2e9):start + int(4.81e9)][start:start+int(100e9)]
+        [2, 3, 4], multi_frame[start + int(2e9) : start + int(4.81e9)][start : start + int(100e9)]
     )
     compare_frames(
-        [3], multi_frame[start + int(2e9):start + int(4.81e9)][start + int(3e9):start + int(3.81e9)]
+        [3],
+        multi_frame[start + int(2e9) : start + int(4.81e9)][start + int(3e9) : start + int(3.81e9)],
     )

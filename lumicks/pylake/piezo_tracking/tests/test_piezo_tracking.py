@@ -86,7 +86,7 @@ def test_plots():
     distance_calibration.plot()
     # Needed since otherwise second plot will issue warning about changing layout (since they both
     # call tight_layout()
-    plt.close('all')
+    plt.close("all")
     distance_calibration.plot_residual()
 
 

@@ -6,12 +6,12 @@ class ReferenceModels:
     @staticmethod
     def lorentzian(f, fc, diffusion_constant):
         # Lorentzian in V^2/Hz
-        return diffusion_constant / (np.pi ** 2) / (fc ** 2 + f ** 2)
+        return diffusion_constant / (np.pi**2) / (fc**2 + f**2)
 
     @staticmethod
     def lorentzian_filtered(f, fc, diffusion_constant, alpha, f_diode):
         return ReferenceModels.lorentzian(f, fc, diffusion_constant) * (
-            alpha ** 2 + (1.0 - alpha ** 2) / (1.0 + (f / f_diode) ** 2)
+            alpha**2 + (1.0 - alpha**2) / (1.0 + (f / f_diode) ** 2)
         )
 
     @staticmethod
