@@ -62,7 +62,9 @@ def h5_file(tmpdir_factory, request):
             {"Start time (ns)": 200, "Stop time (ns)": 300},
             payload=mock_force_feedback_json(),
         )
-        mock_file.make_note("test_note", {"Start time (ns)": 100, "Stop time (ns)": 100}, "Note content")
+        mock_file.make_note(
+            "test_note", {"Start time (ns)": 100, "Stop time (ns)": 100}, "Note content"
+        )
         mock_file.make_fd()
 
         json_kymo = generate_scan_json([{"axis": 0, "num of pixels": 5, "pixel size (nm)": 10.0}])

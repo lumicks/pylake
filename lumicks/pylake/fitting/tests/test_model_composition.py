@@ -115,7 +115,11 @@ def test_model_composition():
             "m_with_m/f_offset",
             "pN",
         ),
-        (ewlc_odijk_distance("m").invert().subtract_independent_offset(), "inv(m)/d_offset", "micron"),
+        (
+            ewlc_odijk_distance("m").invert().subtract_independent_offset(),
+            "inv(m)/d_offset",
+            "micron",
+        ),
         (Model("m", lambda c, a: c + a).subtract_independent_offset(), "m/c_offset", "au"),
         (
             Model("m", lambda c, a: c + a).invert().subtract_independent_offset(),
@@ -136,9 +140,7 @@ def test_interpolation_inversion():
     np.testing.assert_allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
 
 
-@pytest.mark.parametrize(
-    "param", [{"independent_max": np.inf}, {"independent_min": -np.inf}]
-)
+@pytest.mark.parametrize("param", [{"independent_max": np.inf}, {"independent_min": -np.inf}])
 def test_interpolation_invalid_range(param):
     with pytest.raises(
         ValueError, match="Inversion limits have to be finite when using interpolation method"

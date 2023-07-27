@@ -68,6 +68,7 @@ def test_sliced_by_distance():
     max_dist = 2
     max_gap = 2
 
+    # fmt: off
     # "ideal" data
     d0 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
                    3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
@@ -75,7 +76,7 @@ def test_sliced_by_distance():
     fd0 = make_mock_fd(force=f0, distance=d0)
 
     # find timestamps of proper slice
-    is_in_range = np.logical_and(min_dist <= d0, d0 <= max_dist)#.astype(np.int)
+    is_in_range = np.logical_and(min_dist <= d0, d0 <= max_dist)
     ts_in_range = fd0.d.timestamps[is_in_range]
 
     # "blip" before changepoint - within gap limit
@@ -96,6 +97,7 @@ def test_sliced_by_distance():
     # "blip" before and after changepoint - outside gap limit
     d6 = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.1, 2.0, 2.0, 2.0, 2.0,
                    3.0, 3.0, 3.0, 1.9, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0])
+    # fmt: on
 
     # these types of noise can be handled
     # result should be identical to logical mask of ideal data
@@ -111,14 +113,15 @@ def test_sliced_by_distance():
         sub = fd._sliced_by_distance(min_dist=min_dist, max_dist=max_dist, max_gap=max_gap)
         with pytest.raises(ValueError) as exc:
             assert np.all(np.equal(ts_in_range, sub.d.timestamps))
-        assert str(exc.value).strip() == ("operands could not be broadcast together with shapes "
-                                          f"({ts_in_range.size},) ({sub.d.timestamps.size},)")
+        assert str(exc.value).strip() == (
+            "operands could not be broadcast together with shapes "
+            f"({ts_in_range.size},) ({sub.d.timestamps.size},)"
+        )
 
 
-@pytest.mark.parametrize("field,changed_var,other_var", [
-    ("force_offset", "f", "d"),
-    ("distance_offset", "d", "f")
-])
+@pytest.mark.parametrize(
+    "field,changed_var,other_var", [("force_offset", "f", "d"), ("distance_offset", "d", "f")]
+)
 def test_offsets(field, changed_var, other_var):
     fd1 = make_mock_fd(force=[1, 2, 3], distance=[2, 3, 4], start=0)
 
@@ -132,14 +135,17 @@ def test_offsets(field, changed_var, other_var):
     assert fd1_sub.d is not fd1.d
     assert fd1_sub.f.data is not fd1.f.data
     assert fd1_sub.d.data is not fd1.d.data
-    np.testing.assert_allclose(getattr(fd1_sub, changed_var).data, getattr(fd1, changed_var).data - 1)
+    np.testing.assert_allclose(
+        getattr(fd1_sub, changed_var).data, getattr(fd1, changed_var).data - 1
+    )
     np.testing.assert_allclose(getattr(fd1_sub, other_var).data, getattr(fd1, other_var).data)
 
 
 def test_distance_offset_tracking_lost():
     """A value of 0 means the tracking was lost. This value should not change when subtracting baselines. An
     unfortunate side effect of using a regular number for this is that when subtraction leads to a distance of zero,
-    this will lead to that data becoming a missing value point. This should not happen for real data though."""
+    this will lead to that data becoming a missing value point. This should not happen for real data though.
+    """
     fd1 = make_mock_fd(force=[1, 2, 3], distance=[2, 0, 4], start=0)
     sub = fd1.with_offset(distance_offset=-1)
     np.testing.assert_allclose(sub.d.data, [1, 0, 3])
@@ -158,15 +164,18 @@ def test_subtract_too_much_distance():
         fd1.with_offset(distance_offset=-4.0)
 
 
-@pytest.mark.parametrize("slice_parameters,f,d", [
-    ({}, np.arange(-0.5, 3, 0.5), np.arange(0.5, 4, .5)),
-    ({"force_max": 1}, np.arange(-0.5, 1, 0.5), np.arange(0.5, 2.0, .5)),
-    ({"force_min": 0}, np.arange(0, 3, 0.5), np.arange(1.0, 4, .5)),
-    ({"distance_min": 1}, np.arange(0.0, 3, 0.5), np.arange(1.0, 4, .5)),
-    ({"distance_max": 3}, np.arange(-0.5, 2, 0.5), np.arange(0.5, 3, .5)),
-])
+@pytest.mark.parametrize(
+    "slice_parameters,f,d",
+    [
+        ({}, np.arange(-0.5, 3, 0.5), np.arange(0.5, 4, 0.5)),
+        ({"force_max": 1}, np.arange(-0.5, 1, 0.5), np.arange(0.5, 2.0, 0.5)),
+        ({"force_min": 0}, np.arange(0, 3, 0.5), np.arange(1.0, 4, 0.5)),
+        ({"distance_min": 1}, np.arange(0.0, 3, 0.5), np.arange(1.0, 4, 0.5)),
+        ({"distance_max": 3}, np.arange(-0.5, 2, 0.5), np.arange(0.5, 3, 0.5)),
+    ],
+)
 def test_fd_slice(slice_parameters, f, d):
-    fd1 = make_mock_fd(force=np.arange(-2, 3, .5), distance=np.arange(-1, 4, .5), start=0)
+    fd1 = make_mock_fd(force=np.arange(-2, 3, 0.5), distance=np.arange(-1, 4, 0.5), start=0)
 
     fdr = fd1._sliced(**slice_parameters)
     np.testing.assert_allclose(fdr.f, f)

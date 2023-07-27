@@ -13,21 +13,24 @@ def with_offset(t, start_time=1592916040906356300):
 
 
 def test_calibration_timeseries_channels():
-    time_field = 'Stop time (ns)'
-    mock_calibration = ForceCalibration(time_field=time_field,
-                                        items=[
-                                            {'Calibration Data': 50, time_field: 50},
-                                            {'Calibration Data': 20, time_field: 20},
-                                            {'Calibration Data': 30, time_field: 30},
-                                            {'Calibration Data': 40, time_field: 40},
-                                            {'Calibration Data': 80, time_field: 80},
-                                            {'Calibration Data': 90, time_field: 90},
-                                            {'Calibration Data': 120, time_field: 120},
-                                        ])
+    time_field = "Stop time (ns)"
+    mock_calibration = ForceCalibration(
+        time_field=time_field,
+        items=[
+            {"Calibration Data": 50, time_field: 50},
+            {"Calibration Data": 20, time_field: 20},
+            {"Calibration Data": 30, time_field: 30},
+            {"Calibration Data": 40, time_field: 40},
+            {"Calibration Data": 80, time_field: 80},
+            {"Calibration Data": 90, time_field: 90},
+            {"Calibration Data": 120, time_field: 120},
+        ],
+    )
 
     # Channel should have calibration points 40, 50 since this is the only area that has force data.
-    cc = channel.Slice(channel.TimeSeries([14, 15, 16, 17], [40, 50, 60, 70]),
-                       calibration=mock_calibration)
+    cc = channel.Slice(
+        channel.TimeSeries([14, 15, 16, 17], [40, 50, 60, 70]), calibration=mock_calibration
+    )
     assert len(cc.calibration) == 2
     assert cc.calibration[0]["Calibration Data"] == 40
     assert cc.calibration[1]["Calibration Data"] == 50
@@ -64,17 +67,19 @@ def test_calibration_timeseries_channels():
 
 
 def test_calibration_continuous_channels():
-    time_field = 'Stop time (ns)'
-    mock_calibration = ForceCalibration(time_field=time_field,
-                                        items=[
-                                            {'Calibration Data': 50, time_field: 50},
-                                            {'Calibration Data': 20, time_field: 20},
-                                            {'Calibration Data': 30, time_field: 30},
-                                            {'Calibration Data': 40, time_field: 40},
-                                            {'Calibration Data': 80, time_field: 80},
-                                            {'Calibration Data': 90, time_field: 90},
-                                            {'Calibration Data': 120, time_field: 120},
-                                        ])
+    time_field = "Stop time (ns)"
+    mock_calibration = ForceCalibration(
+        time_field=time_field,
+        items=[
+            {"Calibration Data": 50, time_field: 50},
+            {"Calibration Data": 20, time_field: 20},
+            {"Calibration Data": 30, time_field: 30},
+            {"Calibration Data": 40, time_field: 40},
+            {"Calibration Data": 80, time_field: 80},
+            {"Calibration Data": 90, time_field: 90},
+            {"Calibration Data": 120, time_field: 120},
+        ],
+    )
 
     # Channel should have calibration points 40, 50 since this is the only area that has force data.
     cc = channel.Slice(channel.Continuous([14, 15, 16, 17], 40, 10), calibration=mock_calibration)
@@ -84,7 +89,9 @@ def test_calibration_continuous_channels():
 
     # Channel should have calibration points 40, 50, 80, 90, 120
     # and time points 40, 50, ... 120
-    cc = channel.Slice(channel.Continuous(np.arange(14, 23, 1), 40, 10), calibration=mock_calibration)
+    cc = channel.Slice(
+        channel.Continuous(np.arange(14, 23, 1), 40, 10), calibration=mock_calibration
+    )
     assert len(cc.calibration) == 5
 
     calibration = cc[50:80].calibration
@@ -252,9 +259,7 @@ def test_timeseries_indexing():
 
 def test_timeseries_mask():
     """Test masking operation"""
-    calibration = ForceCalibration(
-        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
-    )
+    calibration = ForceCalibration("Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}])
     s = channel.Slice(
         channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]),
         calibration=calibration,
@@ -274,7 +279,7 @@ def test_timeseries_mask():
     np.testing.assert_equal(masked.timestamps, [])
 
     with pytest.raises(
-            IndexError, match="Length of the logical mask did not match length of the data"
+        IndexError, match="Length of the logical mask did not match length of the data"
     ):
         s._apply_mask([False, False, False])
 
@@ -330,9 +335,7 @@ def test_continuous_indexing():
 
 def test_continuous_mask():
     """Test masking operation"""
-    calibration = ForceCalibration(
-        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
-    )
+    calibration = ForceCalibration("Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}])
     s = channel.Slice(
         channel.Continuous([14, 15, 16, 17], 4, 1),
         calibration=calibration,
@@ -352,7 +355,7 @@ def test_continuous_mask():
     np.testing.assert_equal(masked.timestamps, [])
 
     with pytest.raises(
-            IndexError, match="Length of the logical mask did not match length of the data"
+        IndexError, match="Length of the logical mask did not match length of the data"
     ):
         s._apply_mask([False, False, False])
 
@@ -394,35 +397,35 @@ def test_time_indexing():
     def assert_equal(actual, expected):
         np.testing.assert_equal(actual.data, expected)
 
-    assert_equal(s['0ns':'1100ns'], [1])
-    assert_equal(s['0ns':'1101ns'], [1, 2])
-    assert_equal(s['1us':'1.1us'], [])
-    assert_equal(s['1us':'1.2us'], [2])
-    assert_equal(s['5ns':'17ms'], [2, 3])
-    assert_equal(s['1ms':'40s'], [3, 4])
-    assert_equal(s['0h':'2m 30s'], [1, 2, 3, 4, 5])
-    assert_equal(s['0d':'2h'], [1, 2, 3, 4, 5])
-    assert_equal(s['2m':'2.5m'], [5])
-    assert_equal(s['2m':'2m 1s'], [])
-    assert_equal(s['2m':'2m 3s'], [5])
+    assert_equal(s["0ns":"1100ns"], [1])
+    assert_equal(s["0ns":"1101ns"], [1, 2])
+    assert_equal(s["1us":"1.1us"], [])
+    assert_equal(s["1us":"1.2us"], [2])
+    assert_equal(s["5ns":"17ms"], [2, 3])
+    assert_equal(s["1ms":"40s"], [3, 4])
+    assert_equal(s["0h":"2m 30s"], [1, 2, 3, 4, 5])
+    assert_equal(s["0d":"2h"], [1, 2, 3, 4, 5])
+    assert_equal(s["2m":"2.5m"], [5])
+    assert_equal(s["2m":"2m 1s"], [])
+    assert_equal(s["2m":"2m 3s"], [5])
 
-    assert_equal(s[:'2.1s'], [1, 2, 3])
-    assert_equal(s['2.1s':], [4, 5])
-    assert_equal(s[:'-1s'], [1, 2, 3, 4])
-    assert_equal(s[:'-2m'], [1, 2, 3])
-    assert_equal(s[:'-5m'], [])
-    assert_equal(s['-5m':], [1, 2, 3, 4, 5])
-    assert_equal(s['-5m':], [1, 2, 3, 4, 5])
+    assert_equal(s[:"2.1s"], [1, 2, 3])
+    assert_equal(s["2.1s":], [4, 5])
+    assert_equal(s[:"-1s"], [1, 2, 3, 4])
+    assert_equal(s[:"-2m"], [1, 2, 3])
+    assert_equal(s[:"-5m"], [])
+    assert_equal(s["-5m":], [1, 2, 3, 4, 5])
+    assert_equal(s["-5m":], [1, 2, 3, 4, 5])
 
     with pytest.raises(IndexError) as exc:
-        assert s['1ns']
+        assert s["1ns"]
     assert str(exc.value) == "Scalar indexing is not supported, only slicing"
     with pytest.raises(IndexError) as exc:
-        assert s['1ns':'2s':'3ms']
+        assert s["1ns":"2s":"3ms"]
     assert str(exc.value) == "Slice steps are not supported"
 
     s = channel.empty_slice
-    assert len(s['1s':'2h'].data) == 0
+    assert len(s["1s":"2h"].data) == 0
 
 
 def test_inspections(channel_h5_file):
@@ -511,7 +514,7 @@ def test_continuous_downsampling_to():
     s = channel.Slice(channel.Continuous(d, with_offset(0), 500))  # 2 MHz
 
     # to 1000 ns step
-    s2a = s.downsampled_to(1e6, where='left')
+    s2a = s.downsampled_to(1e6, where="left")
     np.testing.assert_equal(s2a.timestamps, with_offset(np.arange(0, 11000, 1000)))
     np.testing.assert_allclose(
         s2a.data, [1.5, 3.5, 5.5, 7.5, 9.5, 11.5, 13.5, 15.5, 17.5, 19.5, 21.5]
@@ -534,11 +537,11 @@ def test_continuous_downsampling_to():
         s.downsampled_to(3e5, where="left")
 
     # non-integer ratio
-    s3a = s.downsampled_to(3e5, where='left', method="ceil")
+    s3a = s.downsampled_to(3e5, where="left", method="ceil")
     np.testing.assert_equal(s3a.timestamps, with_offset([0, 3000, 6000]))
     np.testing.assert_allclose(s3a.data, [3.5, 9.5, 15.5])
 
-    s3b = s.downsampled_to(3e5, where='center', method="ceil")
+    s3b = s.downsampled_to(3e5, where="center", method="ceil")
     np.testing.assert_equal(
         s3b.timestamps, with_offset([(0 + 2500) // 2, (3000 + 5500) // 2, (6000 + 8500) // 2])
     )
@@ -645,7 +648,7 @@ def test_downsampling_consistency():
 
     # Multiple of 5 should downsample to the same irrespective of the method
     # Source frequency was 1e9 / 10 Hz. So we go to .2e8 Hz.
-    s1 = s.downsampled_to(.2e8)
+    s1 = s.downsampled_to(0.2e8)
     s2 = s.downsampled_by(5)
     np.testing.assert_allclose(s1.data, s2.data)
     np.testing.assert_equal(s1.timestamps, s2.timestamps)
@@ -655,7 +658,7 @@ def test_downsampling_consistency():
 
     # Multiple of 5 should downsample to the same irrespective of the method
     # Source frequency was 1e9 / 10 Hz. So we go to .2e8 Hz.
-    s1 = s.downsampled_to(.2e8)
+    s1 = s.downsampled_to(0.2e8)
     s2 = s.downsampled_by(5)
     np.testing.assert_allclose(s1.data, s2.data)
     np.testing.assert_equal(s1.timestamps, s2.timestamps)
@@ -674,8 +677,8 @@ def test_consistency_downsampled_to():
     d = np.arange(1, 41)
     s = channel.Slice(channel.Continuous(d, with_offset(50), 10))
 
-    one_step = s.downsampled_to(.1e8)
-    two_step = s.downsampled_to(.2e8).downsampled_to(.1e8)
+    one_step = s.downsampled_to(0.1e8)
+    two_step = s.downsampled_to(0.2e8).downsampled_to(0.1e8)
 
     np.testing.assert_allclose(one_step.data, two_step.data)
     np.testing.assert_allclose(one_step.timestamps, two_step.timestamps)
@@ -687,9 +690,7 @@ def test_downsampled_over_no_data_gap():
     s = channel.Slice(channel.TimeSeries(d, t))
     ranges = [
         (t1, t2)
-        for t1, t2 in zip(
-            with_offset(np.arange(0, 16, 2)), with_offset(np.arange(2, 18, 2))
-        )
+        for t1, t2 in zip(with_offset(np.arange(0, 16, 2)), with_offset(np.arange(2, 18, 2)))
     ]
     ts = s.downsampled_over(ranges)
     np.testing.assert_equal(ts.timestamps, with_offset([0, 2, 10, 12, 14]))

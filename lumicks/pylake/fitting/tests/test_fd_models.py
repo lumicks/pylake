@@ -51,12 +51,8 @@ def test_models():
 
     # The finite differencing version of the FJC performs very poorly numerically, hence the less
     # stringent tolerances and larger dx values.
-    assert efjc_force("iFJC").verify_derivative(
-        independent, params, dx=1e-3, rtol=1e-2, atol=1e-6
-    )
-    assert efjc_force("iFJC").verify_jacobian(
-        independent, params, dx=1e-3, atol=1e-2, rtol=1e-2
-    )
+    assert efjc_force("iFJC").verify_derivative(independent, params, dx=1e-3, rtol=1e-2, atol=1e-6)
+    assert efjc_force("iFJC").verify_jacobian(independent, params, dx=1e-3, atol=1e-2, rtol=1e-2)
 
     # Check the tWLC and inverted tWLC model
     params = [5, 5, 5, 3, 2, 1, 6, 4.11]
@@ -88,7 +84,8 @@ def test_models():
     )
     params = [40.0, 16.0, 750.0, 440.0, -637.0, 17.0, 30.6, 4.11]
     np.testing.assert_allclose(
-        model_impl.twlc_distance(model_impl.twlc_solve_force(independent, *params), *params), independent
+        model_impl.twlc_distance(model_impl.twlc_solve_force(independent, *params), *params),
+        independent,
     )
 
     d = np.arange(0.15, 2, 0.5)

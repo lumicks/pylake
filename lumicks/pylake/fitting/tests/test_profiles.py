@@ -112,7 +112,7 @@ def test_get_get_interval():
         match=re.escape(
             r"Significance level (0.02) cannot be chosen lower or equal than the "
             r"minimum profiled level (0.05)"
-        )
+        ),
     ):
         profile.get_interval(0.02)
 

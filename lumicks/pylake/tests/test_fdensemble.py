@@ -1,6 +1,10 @@
 import pytest
 import numpy as np
-from lumicks.pylake.detail.alignment import align_force_simple, align_distance_simple, align_fd_simple
+from lumicks.pylake.detail.alignment import (
+    align_force_simple,
+    align_distance_simple,
+    align_fd_simple,
+)
 from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import Slice, TimeSeries
 from lumicks.pylake.fdensemble import FdEnsemble
@@ -72,7 +76,9 @@ def test_non_constant_rate_fd_alignment_simple():
     force[force < 2] = 2
 
     def generate_data(num_shortened):
-        return make_mock_fd(force=force[:-num_shortened], distance=distance[:-num_shortened], start=0)
+        return make_mock_fd(
+            force=force[:-num_shortened], distance=distance[:-num_shortened], start=0
+        )
 
     shortening = [10, 20, 33, 48, 14, 60]
     fds = {f"f_{idx}": generate_data(num_shortened) for idx, num_shortened in enumerate(shortening)}
@@ -87,16 +93,20 @@ def test_back_and_forth_rate_fd_alignment_simple():
     """Test what happens when we align an F,d curve that keeps going back and forth (non monotonic distance). The reason
     we want to test this specific case is because there may be F,d curves that go back and forth. If the code merely
     takes the last and first N samples, then this test would fail."""
-    
+
     distance = 2.0 + np.sin(np.arange(1000))
     force = np.copy(distance)
     force[force < 2.0] = 2
 
     def generate_data(num_shortened):
-        return make_mock_fd(force=force[:-num_shortened], distance=distance[:-num_shortened], start=0)
+        return make_mock_fd(
+            force=force[:-num_shortened], distance=distance[:-num_shortened], start=0
+        )
 
     shortening = [100, 200, 330]
-    fds = {f"fd_{idx}": generate_data(num_shortened) for idx, num_shortened in enumerate(shortening)}
+    fds = {
+        f"fd_{idx}": generate_data(num_shortened) for idx, num_shortened in enumerate(shortening)
+    }
     aligned = align_fd_simple(fds, 1, 1)
 
     for fd, num_shortened in zip(aligned.values(), shortening):
@@ -127,7 +137,9 @@ def test_iteration_fd_ensemble():
 
     # Test that alignment leads to new objects and that the originals weren't modified
     fd_ensemble.align_linear(1, 1)
-    for fd_a, fd_new, fd_unchanged in zip(fds.values(), fd_ensemble.values(), fd_ensemble.raw.values()):
+    for fd_a, fd_new, fd_unchanged in zip(
+        fds.values(), fd_ensemble.values(), fd_ensemble.raw.values()
+    ):
         assert id(fd_a) != id(fd_new)
         assert id(fd_a) == id(fd_unchanged)
 

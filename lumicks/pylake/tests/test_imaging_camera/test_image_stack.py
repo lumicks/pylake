@@ -26,7 +26,7 @@ def to_tiff(image, description, bit_depth, start_time=1, num_images=2):
 
 
 def test_correlated_stack_deprecation(rgb_tiff_file):
-    with pytest.warns(DeprecationWarning,):
+    with pytest.warns(DeprecationWarning):
         cs = CorrelatedStack(str(rgb_tiff_file), align=True)
         cs._src.close()
 
@@ -47,10 +47,10 @@ def test_image_stack(shape):
     assert stack[-1].stop == 68
 
     # Test if tuple of size one is correctly interpreted
-    assert stack[0, ].start == 10
-    assert stack[1, ].start == 20
-    assert stack[-1, ].start == 60
-    assert stack[0, ].num_frames == 1
+    assert stack[0,].start == 10
+    assert stack[1,].start == 20
+    assert stack[-1,].start == 60
+    assert stack[0,].num_frames == 1
 
     assert stack[1:2].stop == 28
     assert stack[1:3].stop == 38
@@ -181,14 +181,16 @@ def test_slicing(shape):
     compare_frames([2, 3], stack0["2s":"5.81s"][:"-1s"])  # iterative with from end
 
     # Slice by timestamps
-    compare_frames([2, 3], stack0[start + int(2e9):start + int(4e9)])
-    compare_frames([2, 3], stack0[start + int(2e9):start + int(4.8e9)])
-    compare_frames([2, 3, 4], stack0[start + int(2e9):start + int(4.81e9)])
-    compare_frames([0, 1, 2, 3, 4], stack0[:start + int(4.81e9)])
-    compare_frames([5, 6, 7, 8, 9], stack0[start + int(5e9):])
-    compare_frames([2, 3, 4], stack0[start + int(2e9):start + int(4.81e9)][start:start+int(100e9)])
+    compare_frames([2, 3], stack0[start + int(2e9) : start + int(4e9)])
+    compare_frames([2, 3], stack0[start + int(2e9) : start + int(4.8e9)])
+    compare_frames([2, 3, 4], stack0[start + int(2e9) : start + int(4.81e9)])
+    compare_frames([0, 1, 2, 3, 4], stack0[: start + int(4.81e9)])
+    compare_frames([5, 6, 7, 8, 9], stack0[start + int(5e9) :])
     compare_frames(
-        [3], stack0[start + int(2e9):start + int(4.81e9)][start + int(3e9):start + int(3.81e9)]
+        [2, 3, 4], stack0[start + int(2e9) : start + int(4.81e9)][start : start + int(100e9)]
+    )
+    compare_frames(
+        [3], stack0[start + int(2e9) : start + int(4.81e9)][start + int(3e9) : start + int(3.81e9)]
     )
 
     # empty slices
@@ -666,8 +668,8 @@ def test_define_tether():
     "scaling, ref_point1, ref_point2",
     [
         ([1.0, 1.0], [1.0, 2.0], [4.0, 5.0]),
-        ([2.0, 4.0], [1.0/2.0, 2.0/4.0], [4.0/2.0, 5.0/4.0]),
-        ([3.0, 1.0], [1.0/3.0, 2.0], [4.0/3.0, 5.0]),
+        ([2.0, 4.0], [1.0 / 2.0, 2.0 / 4.0], [4.0 / 2.0, 5.0 / 4.0]),
+        ([3.0, 1.0], [1.0 / 3.0, 2.0], [4.0 / 3.0, 5.0]),
         (None, [1.0, 2.0], [4.0, 5.0]),
     ],
 )
@@ -996,8 +998,8 @@ def test_frame_timestamp_ranges_include_true():
     )
 
     for include, ranges in zip(
-            [True, False],
-            [[(10, 20), (20, 30), (30, 40), (40, 50)], [(10, 16), (20, 26), (30, 36), (40, 46)]],
+        [True, False],
+        [[(10, 20), (20, 30), (30, 40), (40, 50)], [(10, 16), (20, 26), (30, 36), (40, 46)]],
     ):
         np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)
 
@@ -1113,7 +1115,7 @@ def test_integration_test_to_kymo(
     already been individually tested. This function specifically tests whether the API works end
     to end."""
     img = np.ones((20, 30))
-    img[7:14, position - half_width:position + half_width + 1] = 5
+    img[7:14, position - half_width : position + half_width + 1] = 5
     description = {"Pixel calibration (nm/pix)": 1000 * pixel_size} if pixel_size else {}
     stack = ImageStack.from_dataset(
         TiffStack(
@@ -1122,7 +1124,7 @@ def test_integration_test_to_kymo(
         ),
     )
 
-    pixelsize = (pixel_size if pixel_size else 1)
+    pixelsize = pixel_size if pixel_size else 1
     tether_start, half_window = 2, 1
     with_tether = stack.define_tether(
         (tether_start * pixelsize, 10 * pixelsize), (26 * pixelsize, 10 * pixelsize)

@@ -64,10 +64,7 @@ def test_plotting(test_point_scans):
 def test_deprecated_plotting(test_point_scans):
     ps = test_point_scans["PointScan1"]
     with pytest.raises(
-        TypeError,
-        match=re.escape(
-            "plot() takes from 1 to 2 positional arguments but 3 were given"
-        )
+        TypeError, match=re.escape("plot() takes from 1 to 2 positional arguments but 3 were given")
     ):
         xline, yline = ps.plot("red", None)[0].get_xydata().T
 
@@ -81,6 +78,6 @@ def test_deprecated_plotting(test_point_scans):
         match=re.escape(
             "plot() takes from 1 to 2 positional arguments but 3 positional "
             "arguments (and 1 keyword-only argument) were given"
-        )
+        ),
     ):
         ps.plot("rgb", None, axes=None)

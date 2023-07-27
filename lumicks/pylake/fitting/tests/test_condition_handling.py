@@ -28,7 +28,7 @@ def test_build_conditions():
     with pytest.raises(
         RuntimeError,
         match="Parameter transformations of data_sets contain transformed parameter names that are "
-              "not in the combined parameter list parameter_lookup"
+        "not in the combined parameter list parameter_lookup",
     ):
         generate_conditions({"name1": d1, "name2": d2, "name4": d4}, parameter_lookup, param_names)
 
@@ -40,7 +40,7 @@ def test_build_conditions():
     with pytest.raises(
         RuntimeError,
         match="Source parameters in the data parameter transformations of data_sets are "
-              "incompatible with the specified model parameters in model_params"
+        "incompatible with the specified model parameters in model_params",
     ):
         assert generate_conditions(
             {"name1": d1, "name2": d2, "name5": d5}, parameter_lookup, param_names
