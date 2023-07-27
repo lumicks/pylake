@@ -182,7 +182,7 @@ def test_no_data_in_range():
 
 @pytest.fixture(scope="module")
 def reference_calibration_result():
-    data = np.load(os.path.join(os.path.dirname(__file__), "reference_spectrum.npz"))
+    data = np.load(os.path.join(os.path.dirname(__file__), "data/reference_spectrum.npz"))
     reference_spectrum = data["arr_0"]
     model = PassiveCalibrationModel(4.4, temperature=20, viscosity=0.001002)
     reference_spectrum = psc.calculate_power_spectrum(
