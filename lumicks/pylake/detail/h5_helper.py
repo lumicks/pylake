@@ -1,4 +1,5 @@
 import h5py
+import warnings
 from fnmatch import fnmatch
 
 
@@ -93,7 +94,16 @@ def write_h5(
 
             if isinstance(node, h5py.Dataset):
                 if node.dtype.kind == "O":
-                    _write_cropped_metadata(lk_file, out_file, name, node, crop_time_range, verbose)
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            action="ignore",
+                            category=FutureWarning,
+                            message="Direct access to this field is deprecated",
+                        )
+
+                        _write_cropped_metadata(
+                            lk_file, out_file, name, node, crop_time_range, verbose
+                        )
                 else:
                     _write_numerical_data(
                         lk_file, out_file, name, node, compression_level, crop_time_range, verbose
