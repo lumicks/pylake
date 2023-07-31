@@ -1061,6 +1061,7 @@ def _exponential_mle_optimize(
     options=None,
     fixed_param_mask=None,
     use_jacobian=True,
+    range_rel_tolerance=1e-6,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -1082,6 +1083,9 @@ def _exponential_mle_optimize(
     fixed_param_mask : array_like, optional
         logical mask of which parameters to fix during optimization. When omitted, no parameter is
         assumed fixed.
+    range_rel_tolerance : float, optional
+        Relative tolerance when evaluating whether the dwell times are in the valid range.
+        Default: 1e-6.
 
     Raises
     ------
@@ -1090,7 +1094,12 @@ def _exponential_mle_optimize(
     ValueError
         If all amplitudes are fixed but the amplitudes in the initial_guess do not sum to 1.
     """
-    if np.any(np.logical_or(t < min_observation_time, t > max_observation_time)):
+    if np.any(
+        np.logical_or(
+            t < (min_observation_time - range_rel_tolerance * min_observation_time),
+            t > (max_observation_time + range_rel_tolerance * max_observation_time),
+        )
+    ):
         raise ValueError(
             "some data is outside of the bounded region. Please choose"
             "appropriate values for `min_observation_time` and/or `max_observation_time`."
