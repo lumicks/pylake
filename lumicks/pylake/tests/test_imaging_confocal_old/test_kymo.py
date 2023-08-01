@@ -2,8 +2,8 @@ import re
 import numpy as np
 from lumicks import pylake
 import pytest
-from lumicks.pylake.channel import Slice, TimeSeries, empty_slice
-from lumicks.pylake.kymo import EmptyKymo
+from lumicks.pylake.channel import Slice, Continuous, TimeSeries, empty_slice
+from lumicks.pylake.kymo import EmptyKymo, _default_line_time_factory
 from lumicks.pylake.adjustments import ColorAdjustment
 import matplotlib.pyplot as plt
 from ..data.mock_confocal import generate_kymo
@@ -1147,3 +1147,45 @@ def test_flip_kymo(test_kymos, crop):
             kymo_flipped.flip().get_image(channel=channel),
             kymo.get_image(channel=channel),
         )
+
+
+@pytest.mark.parametrize(
+    "data, ref_line_time, pixels_per_line, bad",
+    [
+        ([1, 1, 2, 1, 1, 2, 0, 0, 1, 1, 2, 1, 1, 2], 8 * 2, 2, False),
+        ([1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2, False),
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2, False),
+        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 0, 1], 10 * 2, 3, False),
+        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 2], 9 * 2, 3, False),  # No dead time
+        ([2, 2, 2, 0, 1], 4 * 2, 3, False),  # Three pixels and a one sample dead time
+        ([2, 2], 2 * 2, 3, True),  # Expected 3 pixels per line, but got partial line
+        ([2, 2, 2], 3 * 2, 3, True),  # A single line without dead time (can't be sure)
+        ([2, 2, 2, 0], 4 * 2, 3, True),  # 3 pixels, 1 sample dead time, but deadtime undefined
+        ([2, 2, 2, 2], 3 * 2, 3, False),  # Three pixels, a line and a little, without dead-time
+        ([0, 2, 2], 2 * 2, 3, True),  # Expected 3 pixels per line, but partial line
+        ([0, 2, 2, 2], 3 * 2, 3, True),  # A single line, but can't be sure
+        ([0, 2, 2, 2, 0], 4 * 2, 3, True),  # 3 pixels, 1 sample dead time, but deadtime undefined
+        ([0, 2, 2, 2, 2], 3 * 2, 3, False),  # Three pixels, a line and a little, without dead-time
+        ([0, 0, 2, 2, 2, 0, 1], 4 * 2, 3, False),  # Three pixels and a pixel dead time
+        ([1, 1], 2 * 2, 2, True),  # No full pixel available at all
+        ([1, 1, 2, 1, 1], 5 * 2, 2, True),  # No full line available
+        ([0, 0, 1, 1, 2, 1, 1], 5 * 2, 2, True),  # No full line available but padded
+        ([0, 0, 1, 1, 2, 1, 1, 2], 6 * 2, 2, True),  # Exactly a full line, w/o dead time
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0], 7 * 2, 2, True),  # Full line, dead time not yet defined
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0], 8 * 2, 2, True),  # Full line, dead time not yet defined
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1], 8 * 2, 2, False),  # Well defined
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1, 1], 8 * 2, 2, False),  # Well defined
+    ],
+)
+def test_direct_infowave_linetime(data, ref_line_time, pixels_per_line, bad):
+    class KymoWave:
+        def __init__(self):
+            self.infowave = Slice(Continuous(data, int(100e9), int(2e9)))
+            self._has_default_factories = lambda: True
+            self.pixels_per_line = pixels_per_line
+
+    if not bad:
+        assert _default_line_time_factory(KymoWave()) == ref_line_time
+    else:
+        with pytest.raises(RuntimeError, match=r"This kymograph consists of only a single line"):
+            _default_line_time_factory(KymoWave())

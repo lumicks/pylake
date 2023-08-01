@@ -6,7 +6,7 @@ import numpy as np
 from . import colormaps
 from .adjustments import no_adjustment
 from .detail.confocal import ConfocalImage
-from .detail.image import make_image_title, reconstruct_num_frames
+from .detail.image import make_image_title, reconstruct_num_frames, first_pixel_sample_indices
 from .detail.imaging_mixins import FrameIndex, VideoExport
 from .detail.plotting import get_axes, show_image
 
@@ -207,12 +207,17 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
     @property
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
-        indices = np.zeros(self.timestamps.ndim, dtype=int)
+        if self._has_default_factories():
+            infowave = self.infowave  # Make sure we pull this out only once
+            start, stop = first_pixel_sample_indices(infowave.data)
+            return (stop - start + 1) * infowave._src.dt * 1e-9
+        else:
+            indices = np.zeros(self.timestamps.ndim, dtype=int)
 
-        # We want the difference along the fast axis. The first (optional) index corresponds to the
-        # frame. The last two indices correspond to the imaging axes.
-        indices[-2 if self._metadata.scan_order[0] > self._metadata.scan_order[1] else -1] = 1
-        return (self.timestamps.item(tuple(indices)) - self.timestamps.item(0)) / 1e9
+            # We want the difference along the fast axis. The first (optional) index corresponds to
+            # the frame. The last two indices correspond to the imaging axes.
+            indices[-2 if self._metadata.scan_order[0] > self._metadata.scan_order[1] else -1] = 1
+            return (self.timestamps.item(tuple(indices)) - self.timestamps.item(0)) / 1e9
 
     @property
     def num_frames(self):
@@ -485,6 +490,9 @@ class EmptyScan(Scan):
     def _image(self, channel):
         shape = (self.pixels_per_line, 0, 3) if channel == "rgb" else (self.pixels_per_line, 0)
         return np.empty(shape)
+
+    def _has_default_factories(self):
+        return False
 
     def get_image(self, channel="rgb"):
         return self._image(channel)

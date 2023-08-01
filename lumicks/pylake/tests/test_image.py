@@ -7,6 +7,7 @@ from lumicks.pylake.detail.image import (
     reconstruct_image_sum,
     reconstruct_num_frames,
     histogram_rows,
+    first_pixel_sample_indices,
 )
 
 
@@ -226,3 +227,20 @@ def test_wavelength_to_xyz(wavelength, ref_xyz):
 def test_wavelength_to_cmap(wavelength, ref):
     cmap = colormaps.from_wavelength(wavelength)
     np.testing.assert_allclose(cmap([0, 0.5, 1]), ref)
+
+
+@pytest.mark.parametrize(
+    "data, ref_start, ref_stop",
+    [
+        ([1, 1, 2], 0, 2),
+        ([0, 0, 1, 1, 2], 2, 4),
+        ([2, 2, 2, 2], 0, 0),
+        ([0, 2, 2, 2, 2], 1, 1),
+        ([0, 1, 2, 1, 2], 1, 2),
+        ([], 0, 0),
+    ],
+)
+def test_first_pixel_sample_indices(data, ref_start, ref_stop):
+    start, stop = first_pixel_sample_indices(np.asarray(data))
+    assert start == ref_start
+    assert stop == ref_stop
