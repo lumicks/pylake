@@ -174,6 +174,16 @@ def reconstruct_image(data, infowave, shape, reduce=np.sum):
     return reshape_reconstructed_image(pixels, shape)
 
 
+def first_pixel_sample_indices(infowave):
+    """Returns start and stop index of the first pixel in the infowave"""
+    if infowave.size == 0:
+        return 0, 0
+
+    return np.argmax(infowave != InfowaveCode.discard), np.argmax(
+        infowave == InfowaveCode.pixel_boundary
+    )
+
+
 def histogram_rows(image, pixels_per_bin, pixel_width):
     bin_width = pixels_per_bin * pixel_width  # in physical units
     n_rows = image.shape[0]

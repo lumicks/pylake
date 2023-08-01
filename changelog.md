@@ -27,6 +27,7 @@
 * Deprecated fitting mode `"multiple"` in `lk.refine_tracks_gaussian()` as it could lead to spurious track crossings. See the entry for the fitting mode `"simultaneous"` under `New Features` for more information.
 * [`File.save_as()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.File.html#lumicks.pylake.File.save_as) data now allows passing in a single string for the `omit_data` parameter.
 * Gracefully handle empty `Scan` after slicing. Previously, a slice operation on a `Scan` that resulted in no frames remaining raised a `NotImplementedError`. Now it returns an `EmptyScan`.
+* Improved performance of `Scan.pixel_time_seconds`, `Kymo.pixel_time_seconds` and `Kymo.line_time_seconds`.
 
 ## v1.1.1 | 2023-06-13
 

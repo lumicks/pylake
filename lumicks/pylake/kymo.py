@@ -11,21 +11,57 @@ from .detail.confocal import (
     ScanAxis,
     ScanMetaData,
 )
-from .detail.image import histogram_rows, round_down, seek_timestamp_next_line
+from .detail.image import (
+    histogram_rows,
+    round_down,
+    seek_timestamp_next_line,
+    InfowaveCode,
+    first_pixel_sample_indices,
+)
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
 
 
 def _default_line_time_factory(self: "Kymo"):
-    """Line time in seconds"""
-    if self.timestamps.shape[1] > 1:
-        ns_to_sec = 1e-9
+    """Line time in seconds
+
+    The line time is defined as the time between frames (including the dead-time between frames).
+
+    Raises
+    ------
+    RuntimeError
+        If there is only a single scan line in the info wave (this makes it impossible to
+        determine the actual line time).
+    """
+    ns_to_sec = 1e-9
+    single_line_error = (
+        "This kymograph consists of only a single line. It is not possible to determine the "
+        "kymograph line time for a kymograph consisting only of a single line."
+    )
+
+    if self._has_default_factories():
+        infowave = self.infowave  # Make sure we pull this out only once, the slice is not free
+        start, stop = first_pixel_sample_indices(infowave.data)
+        pixel_samples = stop - start + 1
+        scan_time = self.pixels_per_line * pixel_samples
+
+        try:
+            beyond_first_line = infowave.data[start + scan_time :] != InfowaveCode.discard
+            dead_time = np.argmax(beyond_first_line)
+
+            # Special case for no dead time. Is it really no deadtime, or a single line?
+            if dead_time == 0 and not np.any(beyond_first_line):
+                raise RuntimeError(single_line_error)
+
+        except ValueError:  # ValueError occurs when beyond_first_line is empty
+            raise RuntimeError(single_line_error)
+
+        return (scan_time + dead_time) * infowave._src.dt * ns_to_sec
+
+    elif self.timestamps.shape[1] > 1:
         return (self.timestamps[0, 1] - self.timestamps[0, 0]) * ns_to_sec
     else:
-        raise RuntimeError(
-            "This kymograph consists of only a single line. It is not possible to determine the "
-            "kymograph line time for a kymograph consisting only of a single line."
-        )
+        raise RuntimeError(single_line_error)
 
 
 def _default_line_timestamp_ranges_factory(self: "Kymo", exclude: bool):
@@ -218,7 +254,12 @@ class Kymo(ConfocalImage):
     @property
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
-        return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
+        if self._has_default_factories():
+            infowave = self.infowave  # Make sure we pull this out only once
+            start, stop = first_pixel_sample_indices(infowave.data)
+            return (stop - start + 1) * infowave._src.dt * 1e-9
+        else:
+            return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
 
     def line_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each line in the kymo.
@@ -284,7 +325,13 @@ class Kymo(ConfocalImage):
 
     @property
     def line_time_seconds(self):
-        """Line time in seconds"""
+        """Line time in seconds
+
+        Raises
+        ------
+        RuntimeError
+            If line time is not defined because the kymograph only has a single line.
+        """
         return self._line_time_factory(self)
 
     @property
@@ -746,6 +793,9 @@ class EmptyKymo(Kymo):
 
     def get_image(self, channel="rgb"):
         return self._image(channel)
+
+    def _has_default_factories(self):
+        return False
 
     @property
     def duration(self):
