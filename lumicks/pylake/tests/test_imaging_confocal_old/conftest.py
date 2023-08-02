@@ -13,15 +13,18 @@ dt = np.int64(62.5e6)
 # fmt: off
 @pytest.fixture(scope="module")
 def reference_counts():
-    return np.uint32([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
-                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0,
-                      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 8, 0,
-                      0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 8, 0])
+    unpadded = np.uint32([
+        [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
+    ])
+    padding = 10 * np.ones((4, 10), dtype=np.uint32)
 
-reference_infowave = np.uint8([1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
-                               0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
-                               1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
-                               0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2])
+    return np.hstack((unpadded, padding), dtype=np.uint32).flatten()[:-10]
+
+
+reference_infowave = np.uint8(([1, 1, 2] * 5 + [0] * 10) * 4)[:-10]
 # fmt: on
 
 
@@ -276,9 +279,10 @@ def kymo_h5_file(tmpdir_factory, reference_counts):
 
     # Force channel that overlaps kymo; step from high to low force
     # We want two lines of the kymo to have a force of 30, the other 10. Force starts 5 samples
-    # before the kymograph. First kymotrack is 15 samples long, second is 16 samples long, which
-    # means the third line starts after 31 + 5 = 36 samples
-    force_data = np.hstack((np.ones(37) * 30, np.ones(33) * 10))
+    # before the kymograph. A kymotrack line is 15 samples long, with a 10 sample dead time.
+    # means the pause before the third line starts after 45 samples. The next two frames with dead
+    # times are 50 samples long.
+    force_data = np.hstack((np.ones(45) * 30, np.ones(50) * 10))
     force_start = np.int64(ds.attrs["Start time (ns)"] - (dt * 5))  # before infowave
     mock_file.make_continuous_channel("Force HF", "Force 2x", force_start, dt, force_data)
     mock_file.make_continuous_channel("Force HF", "Force 1x", 1, 10, np.arange(5.0))

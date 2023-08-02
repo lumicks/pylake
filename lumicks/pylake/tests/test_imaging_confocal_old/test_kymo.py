@@ -16,17 +16,20 @@ def with_offset(t, start_time=1592916040906356300):
 def test_kymo_properties(test_kymos):
     kymo = test_kymos["Kymo1"]
 
-    # fmt: off
-    reference_timestamps = np.array([[2.006250e+10, 2.109375e+10, 2.206250e+10, 2.309375e+10],
-                                    [2.025000e+10, 2.128125e+10, 2.225000e+10, 2.328125e+10],
-                                    [2.043750e+10, 2.146875e+10, 2.243750e+10, 2.346875e+10],
-                                    [2.062500e+10, 2.165625e+10, 2.262500e+10, 2.365625e+10],
-                                    [2.084375e+10, 2.187500e+10, 2.284375e+10, 2.387500e+10]], np.int64)
-    # fmt: on
+    reference_timestamps = np.array(
+        [
+            [20062500000, 21625000000, 23187500000, 24750000000],
+            [20250000000, 21812500000, 23375000000, 24937500000],
+            [20437500000, 22000000000, 23562500000, 25125000000],
+            [20625000000, 22187500000, 23750000000, 25312500000],
+            [20812500000, 22375000000, 23937500000, 25500000000],
+        ],
+        np.int64,
+    )
 
     assert repr(kymo) == "Kymo(pixels=5)"
     assert kymo.pixels_per_line == 5
-    assert len(kymo.infowave) == 64
+    assert len(kymo.infowave) == 90
     assert kymo.shape == (5, 4, 3)
     assert kymo.get_image("rgb").shape == (5, 4, 3)
     assert kymo.get_image("red").shape == (5, 4)
@@ -35,8 +38,8 @@ def test_kymo_properties(test_kymos):
     np.testing.assert_allclose(kymo.timestamps, reference_timestamps)
     assert kymo.fast_axis == "X"
     np.testing.assert_allclose(kymo.pixelsize_um, 10 / 1000)
-    np.testing.assert_allclose(kymo.line_time_seconds, 1.03125)
-    np.testing.assert_allclose(kymo.duration, 1.03125 * 4)
+    np.testing.assert_allclose(kymo.line_time_seconds, 1.5625)
+    np.testing.assert_allclose(kymo.duration, 1.5625 * 4)
     np.testing.assert_allclose(kymo.center_point_um["x"], 58.075877109272604)
     np.testing.assert_allclose(kymo.center_point_um["y"], 31.978375270573267)
     np.testing.assert_allclose(kymo.center_point_um["z"], 0)
@@ -78,7 +81,9 @@ def test_kymo_slicing(test_kymos):
     assert sliced.get_image("red").shape == (5, 4)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference)
 
-    sliced = kymo["1s":]
+    scan_time, dead_time = 0.9375, 0.625
+
+    sliced = kymo["0.1s":]  # Anything will crop of the first frame
     assert sliced.get_image("red").shape == (5, 3)
     assert sliced.shape == (5, 3, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, 1:])
@@ -87,20 +92,28 @@ def test_kymo_slicing(test_kymos):
     assert sliced.get_image("red").shape == (5, 4)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference)
 
-    sliced = kymo["0s":"2s"]
+    sliced = kymo["0s":f"{2 * scan_time + dead_time}s"]
     assert sliced.get_image("red").shape == (5, 2)
     assert sliced.shape == (5, 2, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :2])
 
-    sliced = kymo["0s":"-1s"]
+    sliced = kymo["0s":f"-{scan_time}s"]
     assert sliced.get_image("red").shape == (5, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :-1])
 
-    sliced = kymo["0s":"-2s"]
+    sliced = kymo["0s":f"-{2 * scan_time + 2 * dead_time}s"]
     assert sliced.get_image("red").shape == (5, 2)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :-2])
 
-    sliced = kymo["0s":"3s"]
+    sliced = kymo["0s":f"-{2 * scan_time + dead_time - 0.1}s"]  # Get a sliver of next frame
+    assert sliced.get_image("red").shape == (5, 3)
+    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :-1])
+
+    sliced = kymo["0s":f"{2 * scan_time + 2 * dead_time}s"]  # Two full frames
+    assert sliced.get_image("red").shape == (5, 2)
+    np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :2])
+
+    sliced = kymo["0s":f"{2 * scan_time + 2 * dead_time + 0.01}s"]  # Two full frames plus a bit
     assert sliced.get_image("red").shape == (5, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, kymo_reference[:, :3])
 
@@ -167,11 +180,14 @@ def test_plotting(test_kymos):
     # # The following assertion fails because of unequal line times in the test data. These
     # # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
     # # which is why the old version of this test fails.
-    # np.testing.assert_allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
+    line_time = 1.5625
+    np.testing.assert_allclose(np.sort(plt.xlim()), [-0.5 * line_time, 3.5 * line_time], atol=0.05)
 
     image = plt.gca().get_images()[0]
     np.testing.assert_allclose(image.get_array(), kymo.get_image("red"))
-    np.testing.assert_allclose(image.get_extent(), [-0.515625, 3.609375, 0.045, -0.005])
+    np.testing.assert_allclose(
+        image.get_extent(), [-0.5 * line_time, 3.5 * line_time, 0.045, -0.005]
+    )
 
     # test original kymo is labeled with microns and
     # that kymo calibrated with base pairs has appropriate label
@@ -208,32 +224,20 @@ def test_line_timestamp_ranges(test_kymos):
 
     expected_ranges = (
         [
-            (20000000000, 21000000000),
-            (21062500000, 22000000000),
-            (22000000000, 23000000000),
-            (23062500000, 24000000000),
+            (20000000000, 20937500000),
+            (21562500000, 22500000000),
+            (23125000000, 24062500000),
+            (24687500000, 25625000000),
         ],
         [
-            (20000000000, 21062500000),
-            (21062500000, 22125000000),
-            (22000000000, 23062500000),
-            (23062500000, 24125000000),
+            (20000000000, 21562500000),
+            (21562500000, 23125000000),
+            (23125000000, 24687500000),
+            (24687500000, 26250000000),
         ],
     )
-    expected_iw_chunks = (
-        [
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2],
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2],
-        ],
-        [
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2, 0],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2, 1, 0],
-            [1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2, 0],
-            [1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2],
-        ],
-    )
+    short = [1, 1, 2] * 5
+    expected_iw_chunks = [[[1, 1, 2] * 5] * 4, [short + [0] * 10] * 3 + [short]]
 
     for include, ref_ranges, ref_iw_chunks in zip(
         (False, True), expected_ranges, expected_iw_chunks
@@ -274,12 +278,7 @@ def test_plotting_with_force(kymo_h5_file):
 
     kymo.plot_with_force(force_channel="2x", color_channel="red")
     np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), [30, 30, 10, 10])
-
-    # The following assertion fails because of unequal line times in the test data. These
-    # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
-    # which is why the old version of this test fails.
-    # np.testing.assert_allclose(np.sort(plt.xlim()), [-0.5, 3.5], atol=0.05)
-    np.testing.assert_allclose(plt.xlim(), [-0.515625, 3.609375])
+    np.testing.assert_allclose(plt.xlim(), [-0.5 * 1.5625, 3.5 * 1.5625])
     np.testing.assert_allclose(np.sort(plt.ylim()), [10, 30])
 
 
@@ -351,7 +350,7 @@ def test_plotting_with_histograms(test_kymos):
     plt.close("all")
     kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=1)
     w, h = get_rectangle_data()
-    np.testing.assert_allclose(w, 1.03, atol=0.002)
+    np.testing.assert_allclose(w, [1.5625] * 4, atol=0.002)
     assert np.all(np.equal(h, [4, 0, 2, 3]))
     np.testing.assert_allclose(np.sort(plt.ylim()), [0, 4], atol=0.05)
 
@@ -367,7 +366,7 @@ def test_plotting_with_histograms(test_kymos):
         plt.close("all")
         kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=3)
         w, h = get_rectangle_data()
-        np.testing.assert_allclose(w, [3.09, 1.03], atol=0.02)
+        np.testing.assert_allclose(w, [4.6875, 1.5625], atol=0.02)
         assert np.all(np.equal(h, [6, 3]))
         np.testing.assert_allclose(np.sort(plt.ylim()), [0, 6], atol=0.05)
 

@@ -8,7 +8,7 @@ def test_point_scans_basic(test_point_scans, reference_timestamps, reference_cou
     ps = test_point_scans["PointScan1"]
     ps_red = ps.red_photon_count
 
-    assert ps_red.data.shape == (64,)
+    assert ps_red.data.shape == (90,)
 
     np.testing.assert_allclose(ps_red.timestamps, reference_timestamps)
     np.testing.assert_allclose(ps_red.data, reference_counts)
