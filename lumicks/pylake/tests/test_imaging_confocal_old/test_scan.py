@@ -12,18 +12,20 @@ def test_scan_attrs(test_scans):
     assert repr(scan) == "Scan(pixels=(4, 5))"
 
     # fmt: off
-    reference_timestamps = np.array([[2.006250e+10, 2.025000e+10, 2.043750e+10, 2.062500e+10],
-                                    [2.084375e+10, 2.109375e+10, 2.128125e+10, 2.146875e+10],
-                                    [2.165625e+10, 2.187500e+10, 2.206250e+10, 2.225000e+10],
-                                    [2.243750e+10, 2.262500e+10, 2.284375e+10, 2.309375e+10],
-                                    [2.328125e+10, 2.346875e+10, 2.365625e+10, 2.387500e+10]])
-    # fmt: on
+    reference_timestamps = np.array(
+        [
+            [20062500000, 20812500000, 22187500000, 23562500000, 24937500000],
+            [20250000000, 21625000000, 22375000000, 23750000000, 25125000000],
+            [20437500000, 21812500000, 23187500000, 23937500000, 25312500000],
+            [20625000000, 22000000000, 23375000000, 24750000000, 25500000000],
+        ]
+    ).T
 
     np.testing.assert_allclose(scan.timestamps, np.transpose(reference_timestamps))
     assert scan.num_frames == 1
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 5
-    assert len(scan.infowave) == 64
+    assert len(scan.infowave) == 90
     assert scan.get_image("rgb").shape == (4, 5, 3)
     assert scan.get_image("red").shape == (4, 5)
     assert scan.get_image("blue").shape == (4, 5)
@@ -45,7 +47,7 @@ def test_scan_attrs(test_scans):
     assert scan.num_frames == 2
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
-    assert len(scan.infowave) == 64
+    assert len(scan.infowave) == 90
     assert scan.get_image("rgb").shape == (2, 4, 3, 3)
     assert scan.get_image("red").shape == (2, 4, 3)
     assert scan.get_image("blue").shape == (2, 4, 3)
@@ -67,7 +69,7 @@ def test_scan_attrs(test_scans):
     assert scan.num_frames == 2
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
-    assert len(scan.infowave) == 64
+    assert len(scan.infowave) == 90
     assert scan.get_image("rgb").shape == (2, 3, 4, 3)
     assert scan.get_image("red").shape == (2, 3, 4)
     assert scan.get_image("blue").shape == (2, 3, 4)
@@ -89,7 +91,7 @@ def test_scan_attrs(test_scans):
     assert scan.num_frames == 2
     assert scan.pixels_per_line == 4
     assert scan.lines_per_frame == 3
-    assert len(scan.infowave) == 64
+    assert len(scan.infowave) == 90
     assert scan.get_image("rgb").shape == (2, 3, 4, 3)
     assert scan.get_image("red").shape == (2, 3, 4)
     assert scan.get_image("blue").shape == (2, 3, 4)
