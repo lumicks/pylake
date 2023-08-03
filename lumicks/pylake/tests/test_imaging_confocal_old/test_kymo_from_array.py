@@ -14,7 +14,7 @@ colors = ("red", "green", "blue")
 
 
 def make_kymo_from_array(kymo, image, color_format, no_pxsize=False):
-    start = kymo._timestamps("timestamps", np.min)[0, 0]
+    start = kymo._timestamps(np.min)[0, 0]
     exposure_time_sec = np.diff(kymo.line_timestamp_ranges(include_dead_time=False)[0])[0] * 1e-9
 
     return _kymo_from_array(

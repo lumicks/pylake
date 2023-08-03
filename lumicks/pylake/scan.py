@@ -99,7 +99,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             return self._image(channel)[slices]
 
         def timestamp_factory(_, reduce_timestamps):
-            ts = self._timestamps("timestamps", reduce_timestamps)
+            ts = self._timestamps(reduce_timestamps)
             return ts[slices]
 
         result = copy(self)
@@ -270,8 +270,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             file.force1x[start:stop].plot()
         """
 
-        ts_min = self._timestamps("timestamps", reduce=np.min)
-        ts_max = self._timestamps("timestamps", reduce=np.max)
+        ts_min = self._timestamps(reduce=np.min)
+        ts_max = self._timestamps(reduce=np.max)
         delta_ts = int(1e9 / self.infowave.sample_rate)  # We want the sample beyond the end
         if ts_min.ndim == 2:
             return [(np.min(ts_min), np.max(ts_max) + delta_ts)]
