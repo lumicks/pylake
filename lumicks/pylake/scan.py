@@ -5,6 +5,7 @@ import numpy as np
 
 from . import colormaps
 from .adjustments import no_adjustment
+from .detail.utilities import method_cache
 from .detail.confocal import ConfocalImage
 from .detail.image import make_image_title, reconstruct_num_frames, first_pixel_sample_indices
 from .detail.imaging_mixins import FrameIndex, VideoExport
@@ -205,6 +206,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         return new_scan
 
     @property
+    @method_cache("pixel_time_seconds")
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
         if self._has_default_factories():

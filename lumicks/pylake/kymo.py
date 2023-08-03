@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .detail.utilities import method_cache
 from . import colormaps
 from .adjustments import no_adjustment
 from .detail.confocal import (
@@ -252,6 +253,7 @@ class Kymo(ConfocalImage):
         return sliced_kymo
 
     @property
+    @method_cache("pixel_time_seconds")
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
         if self._has_default_factories():
@@ -324,6 +326,7 @@ class Kymo(ConfocalImage):
             return shape
 
     @property
+    @method_cache("line_time_seconds")
     def line_time_seconds(self):
         """Line time in seconds
 
