@@ -259,9 +259,7 @@ def test_plotting_with_force_downsampling(kymo_h5_file):
     #    np.testing.assert_allclose(np.mean(kymo.timestamps, axis=0)[:-1], ds.timestamps[:-1])
     # would have sufficed. However, in this case we need the following solution:
     ds = f.force2x.downsampled_over(ranges)
-    min_ts, max_ts = (
-        reduce(kymo._timestamps("timestamps", reduce), axis=0) for reduce in (np.min, np.max)
-    )
+    min_ts, max_ts = (reduce(kymo._timestamps(reduce), axis=0) for reduce in (np.min, np.max))
     target_timestamps = np.array(
         [
             np.mean(kymo.infowave[int(start) : int(stop) + 1].timestamps)
@@ -793,8 +791,7 @@ def test_kymo_slice_crop():
     np.testing.assert_allclose(sliced_cropped.get_image("red"), [[0, 0, 12], [12, 12, 0]])
     np.testing.assert_allclose(sliced_cropped._position_offset, 8e-3)
     np.testing.assert_equal(
-        sliced_cropped._timestamps("timestamps", reduce=np.min),
-        [[450e9, 595e9, 740e9], [475e9, 620e9, 765e9]],
+        sliced_cropped._timestamps(reduce=np.min), [[450e9, 595e9, 740e9], [475e9, 620e9, 765e9]]
     )
 
 

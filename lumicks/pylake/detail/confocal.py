@@ -3,7 +3,6 @@ import warnings
 from dataclasses import dataclass
 from typing import List
 
-import cachetools
 import numpy as np
 from numpy import typing as npt
 
@@ -11,7 +10,7 @@ from ..adjustments import no_adjustment
 from .image import reconstruct_image, reconstruct_image_sum
 from .imaging_mixins import TiffExport
 from .mixin import ExcitationLaserPower, PhotonCounts
-from .utilities import could_sum_overflow
+from .utilities import could_sum_overflow, method_cache
 
 
 def _int_mean(a, total_size, axis):
@@ -272,7 +271,7 @@ class ConfocalImage(BaseScan, TiffExport):
         """Implements any necessary post-processing actions after image reconstruction from infowave"""
         raise NotImplementedError
 
-    @cachetools.cachedmethod(lambda self: self._cache)
+    @method_cache("_image")
     def _image(self, channel) -> np.ndarray:
         """Returns a (read-only) reconstructed image.
 
@@ -289,20 +288,15 @@ class ConfocalImage(BaseScan, TiffExport):
 
         return image
 
-    @cachetools.cachedmethod(lambda self: self._cache)
-    def _timestamps(self, channel, reduce=timestamp_mean) -> np.ndarray:
+    @method_cache("_timestamps")
+    def _timestamps(self, reduce=timestamp_mean) -> np.ndarray:
         """Returns (read-only) reconstructed timestamps.
 
         Parameters
         ----------
-        channel : str
-            Must be "timestamps".
         reduce : callable
             Function to reduce sample timestamps into aggregate timestamps.
         """
-        if channel != "timestamps":
-            raise ValueError(f'channel must be "timestamps", got "{channel}"')
-
         timestamps = self._timestamp_factory(self, reduce)
         timestamps.flags.writeable = False
 
@@ -428,7 +422,7 @@ class ConfocalImage(BaseScan, TiffExport):
         The returned array has the same shape as the `{color}_image` arrays. Timestamps are defined
         at the mean of the timestamps.
         """
-        return self._timestamps("timestamps")
+        return self._timestamps()
 
     @property
     def pixelsize_um(self):

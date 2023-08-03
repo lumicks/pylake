@@ -68,13 +68,13 @@ def _default_line_time_factory(self: "Kymo"):
 def _default_line_timestamp_ranges_factory(self: "Kymo", exclude: bool):
     """Get start and stop timestamp of each line in the kymo."""
 
-    ts_min = self._timestamps("timestamps", reduce=np.min)[0]
+    ts_min = self._timestamps(reduce=np.min)[0]
 
     if exclude:
         # Take the max value of each line to account for unfinished final line
         # and add one sample to have proper slicing
         delta_ts = int(1e9 / self.infowave.sample_rate)
-        ts_max = self._timestamps("timestamps", reduce=np.max).max(axis=0) + delta_ts
+        ts_max = self._timestamps(reduce=np.max).max(axis=0) + delta_ts
     else:
         line_time = ts_min[1] - ts_min[0]
         ts_max = ts_min + line_time
@@ -617,7 +617,7 @@ class Kymo(ConfocalImage):
             return self._image(channel)[lower_pixels:upper_pixels, :]
 
         def timestamp_factory(_, reduce):
-            return self._timestamps("timestamps", reduce)[lower_pixels:upper_pixels, :]
+            return self._timestamps(reduce)[lower_pixels:upper_pixels, :]
 
         def pixelcount_factory(_):
             num_pixels = self._num_pixels
@@ -676,7 +676,7 @@ class Kymo(ConfocalImage):
             ill_defined("Line timestamp ranges")
 
         def timestamp_factory(_, reduce_timestamps):
-            ts = self._timestamps("timestamps", reduce_timestamps)
+            ts = self._timestamps(reduce_timestamps)
             full_blocks = ts[: round_down(ts.shape[0], position_factor), :]
             reshaped = full_blocks.reshape(-1, position_factor, ts.shape[1])
             return reduce_timestamps(reshaped, axis=1)
