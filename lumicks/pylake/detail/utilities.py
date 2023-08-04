@@ -1,7 +1,7 @@
 import math
-import contextlib
-import pathlib
 import inspect
+import pathlib
+import contextlib
 
 import numpy as np
 import cachetools

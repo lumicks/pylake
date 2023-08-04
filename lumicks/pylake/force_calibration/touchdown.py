@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import scipy
 
-from lumicks.pylake.detail.utilities import downsample
+from lumicks.pylake.detail.utilities import downsample, find_stack_level
 
 
 def mack_model(
@@ -82,7 +82,8 @@ def f_test(sse_restricted, sse_unrestricted, num_data, num_pars_difference, num_
             RuntimeWarning(
                 "Denominator in F-Test is zero. "
                 "This may be caused by using noise-free data or fewer than 4 data points."
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
         return 0.0
     else:
@@ -310,7 +311,8 @@ def touchdown(
             RuntimeWarning(
                 "Insufficient data available to reliably fit touchdown curve. We need at least two "
                 "oscillations to reliably fit the interference pattern."
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
         focal_shift = None
 
@@ -318,7 +320,8 @@ def touchdown(
         warnings.warn(
             RuntimeWarning(
                 "Surface detection failed (piecewise linear fit not better than linear fit)"
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
         surface_position = None
 

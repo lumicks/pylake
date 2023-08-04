@@ -9,6 +9,7 @@ import numpy as np
 import tifffile
 
 from .plotting import parse_color_channel
+from .utilities import find_stack_level
 from ..adjustments import no_adjustment
 
 
@@ -205,7 +206,7 @@ class TiffStack:
         # warn on file open if alignment is requested, but not possible
         # stacklevel=4 corresponds to ImageStack.__init__()
         if self._description._alignment.has_problem:
-            warnings.warn(self._description._alignment.status.value, stacklevel=4)
+            warnings.warn(self._description._alignment.status.value, stacklevel=find_stack_level())
 
         if roi is None:
             self._roi = Roi(0, self._description.width, 0, self._description.height)

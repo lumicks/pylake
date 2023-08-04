@@ -4,6 +4,8 @@ import warnings
 
 import numpy as np
 
+from .utilities import find_stack_level
+
 
 class InfowaveCode(enum.IntEnum):
     discard = 0  # this data sample does not contain useful information
@@ -197,7 +199,9 @@ def histogram_rows(image, pixels_per_bin, pixel_width):
     remainder = n_rows % pixels_per_bin
     if remainder != 0:
         warnings.warn(
-            f"{n_rows} pixels is not divisible by {pixels_per_bin}, final bin only contains {remainder} pixels"
+            f"{n_rows} pixels is not divisible by {pixels_per_bin}, final bin only contains "
+            f"{remainder} pixels",
+            stacklevel=find_stack_level(),
         )
         pad = np.zeros((pixels_per_bin - remainder, image.shape[1]))
         image = np.vstack((image, pad))

@@ -9,7 +9,7 @@ from numpy import typing as npt
 from .image import reconstruct_image, reconstruct_image_sum
 from .mixin import PhotonCounts, ExcitationLaserPower
 from .plotting import parse_color_channel
-from .utilities import method_cache, could_sum_overflow
+from .utilities import method_cache, find_stack_level, could_sum_overflow
 from ..adjustments import no_adjustment
 from .imaging_mixins import TiffExport
 
@@ -350,7 +350,8 @@ class ConfocalImage(BaseScan, TiffExport):
         except NotImplementedError:
             warnings.warn(
                 f"Pixel times are not defined for this {self.__class__.__name__}. "
-                "The corresponding metadata in the output file is set to `None`."
+                "The corresponding metadata in the output file is set to `None`.",
+                stacklevel=find_stack_level(),
             )
             pixel_time_seconds = None
 

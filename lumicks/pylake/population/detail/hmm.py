@@ -17,6 +17,7 @@ from ..mixture import GaussianMixtureModel
 from .fit_info import PopulationFitInfo
 from ...channel import Slice, Continuous
 from .validators import col, row
+from ...detail.utilities import find_stack_level
 
 
 def normalize_rows(matrix):
@@ -152,8 +153,11 @@ def baum_welch(data, model, tol, max_iter):
 
         if not converged:
             warnings.warn(
-                f"Model has not converged after {_itr} iterations. Last log likelihood step "
-                f"was {delta:0.4e}."
+                RuntimeWarning(
+                    f"Model has not converged after {_itr} iterations. Last log likelihood step "
+                    f"was {delta:0.4e}."
+                ),
+                stacklevel=find_stack_level(),
             )
 
     # free parameters; pi and each row of A constrained to sum to 1

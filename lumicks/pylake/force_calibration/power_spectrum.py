@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from lumicks.pylake.detail.utilities import downsample
+from lumicks.pylake.detail.utilities import downsample, find_stack_level
 
 
 class PowerSpectrum:
@@ -52,7 +52,10 @@ class PowerSpectrum:
             int(np.round(window_seconds * sample_rate)) if window_seconds else len(data)
         )
         if num_points_per_window > len(data):
-            warnings.warn(RuntimeWarning("Longer window than data duration: not using windowing."))
+            warnings.warn(
+                RuntimeWarning("Longer window than data duration: not using windowing."),
+                stacklevel=find_stack_level(),
+            )
             num_points_per_window = len(data)
 
         squared_fft_chunks = [

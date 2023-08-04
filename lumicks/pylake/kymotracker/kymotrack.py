@@ -4,7 +4,7 @@ import itertools
 from copy import copy
 
 from ..__about__ import __version__
-from ..detail.utilities import replace_key_aliases
+from ..detail.utilities import find_stack_level, replace_key_aliases
 from .detail.peakfinding import _sum_track_signal
 from ..population.dwelltime import DwelltimeModel
 from .detail.msd_estimation import *
@@ -154,7 +154,8 @@ def export_kymotrackgroup_to_csv(
                 "greater or equal to the minimum length used for the original tracking. For more "
                 "information refer to "
                 "https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html#migrating-old-track-files "
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
 
     version_header = f"Exported with pylake v{__version__} | track coordinates v4\n"
@@ -207,7 +208,7 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
                     "File contains non-integer time indices; round-off errors may have occurred "
                     "when loading the data"
                 ),
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
     def create_track(time, coord, min_length=None):
@@ -226,7 +227,8 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
                 "greater or equal to the minimum length used for the original tracking. For more "
                 "information refer to "
                 "https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html#migrating-old-track-files"
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
         min_duration_field = "minimum_length (-)"
     else:
@@ -592,7 +594,7 @@ class KymoTrack:
                     "ensure backward compatibility. To silence this warning use "
                     "`correct_origin=False`."
                 ),
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         # Time and coordinates are being cast to an integer since we use them to index into a data
@@ -905,7 +907,8 @@ class KymoTrack:
                     RuntimeWarning(
                         "Motion blur cannot be taken into account for this type of Kymo. As a "
                         "consequence, not all estimates will be available."
-                    )
+                    ),
+                    stacklevel=find_stack_level(),
                 )
                 blur = np.nan
 
@@ -1634,7 +1637,8 @@ class KymoTrackGroup:
                     "warning, but use the deprecated behavior use `observed_minimum=True`. To "
                     "enable the recommended method of estimating the minimum observable dwell "
                     "time use `observed_minimum=False`."
-                )
+                ),
+                stacklevel=find_stack_level(),
             )
             observed_minimum = True
 
@@ -1649,7 +1653,8 @@ class KymoTrackGroup:
                     "version of Pylake (`2.0.0`), using the discrete model will become the "
                     "default. Until then, the continuous model is still used for backward "
                     "compatibility."
-                )
+                ),
+                stacklevel=find_stack_level(),
             )
             discrete_model = False
 
@@ -1678,7 +1683,7 @@ class KymoTrackGroup:
                     "dropped from the analysis. If you wish to not see this warning, filter the "
                     "tracks with `lk.filter_tracks` with a minimum length of 2 samples."
                 ),
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         if dwelltimes.size == 0:
@@ -1861,10 +1866,11 @@ class KymoTrackGroup:
 
         if n_discarded and min_length is None:
             warnings.warn(
-                f"{n_discarded} tracks were shorter than the specified min_length "
-                "and discarded from the analysis.",
-                RuntimeWarning,
-                stacklevel=2,
+                RuntimeWarning(
+                    f"{n_discarded} tracks were shorter than the specified min_length and "
+                    f"discarded from the analysis.",
+                ),
+                stacklevel=find_stack_level(),
             )
 
         return [k.estimate_diffusion(method, *args, **kwargs) for k in filtered_tracks]
@@ -1925,6 +1931,7 @@ class KymoTrackGroup:
                         "Localization variances cannot be reliably calculated for an ensemble of "
                         "tracks from kymographs with different line times or pixel sizes."
                     ),
+                    stacklevel=find_stack_level(),
                 )
                 is_valid = False
             return ensemble_cve(self, calculate_localization_var=is_valid)

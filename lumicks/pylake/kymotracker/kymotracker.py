@@ -4,6 +4,7 @@ from itertools import chain
 import numpy as np
 
 from .kymotrack import KymoTrack, KymoTrackGroup
+from ..detail.utilities import find_stack_level
 from .detail.peakfinding import find_kymograph_peaks, refine_peak_based_on_moment
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
@@ -564,7 +565,8 @@ def refine_tracks_gaussian(
                 "track when a track momentarily disappears. When using the overlap strategy "
                 '"multiple" individual overlapping Gaussians could switch positions leading to'
                 "spurious track crossings."
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
 
     if len(tracks._kymos) > 1:
@@ -650,7 +652,10 @@ def refine_tracks_gaussian(
 
     if overlap_count and overlap_strategy != "ignore":
         warnings.warn(
-            f"There were {overlap_count} instances of overlapped tracks ignored while fitting."
+            UserWarning(
+                f"There were {overlap_count} instances of overlapped tracks ignored while fitting."
+            ),
+            stacklevel=find_stack_level(),
         )
 
     return KymoTrackGroup(

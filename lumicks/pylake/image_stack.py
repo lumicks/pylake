@@ -10,6 +10,7 @@ from .kymo import Kymo, _kymo_from_image_stack
 from .adjustments import no_adjustment
 from .detail.image import make_image_title
 from .detail.plotting import get_axes, show_image
+from .detail.utilities import find_stack_level
 from .detail.widefield import TiffStack, _frame_timestamps_from_exposure_timestamps
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 
@@ -658,7 +659,8 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
                     "lag behind. This means that when you average data over the frame, some frames "
                     "after the switch may take an incorrect exposure time into account in the "
                     "averaging."
-                )
+                ),
+                stacklevel=find_stack_level(),
             )
 
         return frame_timestamps

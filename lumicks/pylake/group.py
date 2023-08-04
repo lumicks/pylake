@@ -1,6 +1,7 @@
 import warnings
 
 from .channel import channel_class
+from .detail.utilities import find_stack_level
 
 
 class Group:
@@ -34,9 +35,11 @@ class Group:
         redirect_location, redirect_class = self._lk_file.redirect_list.get(item_type, (None, None))
         if redirect_location and not redirect_class:
             warnings.warn(
-                f"Direct access to this field is deprecated. Use file.{redirect_location} "
-                "instead. In case raw access is needed, go through the fn.h5 directly.",
-                FutureWarning,
+                FutureWarning(
+                    f"Direct access to this field is deprecated. Use file.{redirect_location} "
+                    "instead. In case raw access is needed, go through the fn.h5 directly.",
+                ),
+                stacklevel=find_stack_level(),
             )
 
         if type(thing) is h5py.Group:
