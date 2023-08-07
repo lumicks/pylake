@@ -1,16 +1,18 @@
 from collections import OrderedDict
+
+import numpy as np
+import pytest
+
 from lumicks.pylake.fitting.detail.utilities import (
-    parse_transformation,
-    unique_idx,
     escape_tex,
     latex_sqrt,
+    unique_idx,
+    parse_transformation,
 )
 from lumicks.pylake.fitting.detail.model_implementation import (
     calc_cubic_root,
     calc_cubic_root_derivatives,
 )
-import numpy as np
-import pytest
 
 
 def test_unique_idx():

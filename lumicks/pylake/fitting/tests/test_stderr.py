@@ -1,7 +1,8 @@
-from lumicks.pylake.fitting.model import Model
-from lumicks.pylake.fitting.fit import Fit
-import pytest
 import numpy as np
+import pytest
+
+from lumicks.pylake.fitting.fit import Fit
+from lumicks.pylake.fitting.model import Model
 
 
 def data_for_testing():

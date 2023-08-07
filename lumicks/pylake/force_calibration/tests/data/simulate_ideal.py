@@ -1,5 +1,6 @@
 import numpy as np
-import scipy.constants, scipy.signal
+import scipy.signal
+import scipy.constants
 
 
 def calculate_active_term(time, driving_sinusoid, stiffness, gamma):

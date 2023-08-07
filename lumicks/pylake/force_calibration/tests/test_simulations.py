@@ -1,8 +1,10 @@
-import pytest
 import numpy as np
+import pytest
+
 from lumicks.pylake.force_calibration.power_spectrum_calibration import calculate_power_spectrum
-from .data.simulate_calibration_data import generate_active_calibration_test_data
+
 from .data.simulate_ideal import simulate_calibration_data
+from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 
 @pytest.mark.slow

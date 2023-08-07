@@ -1,7 +1,8 @@
 import math
-import numpy as np
-from collections import namedtuple
 from itertools import product
+from collections import namedtuple
+
+import numpy as np
 
 
 def fit_analytical_lorentzian(ps):

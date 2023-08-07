@@ -28,20 +28,21 @@ References
        tweezers." Langmuir, 23(7), 3654-3665 (2007).
 """
 
-import numpy as np
 import math
+from collections import namedtuple
+
+import numpy as np
 import scipy
 import scipy.optimize
 import scipy.constants
 import matplotlib.pyplot as plt
 from tabulate import tabulate
-from collections import namedtuple
+
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.detail.power_models import (
     ScaledModel,
     fit_analytical_lorentzian,
 )
-
 
 CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value", "unit"])
 

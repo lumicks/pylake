@@ -1,12 +1,14 @@
-import pytest
 import re
+
 import numpy as np
-from lumicks.pylake.kymotracker.detail.localization_models import GaussianLocalizationModel
-from lumicks.pylake.kymotracker.kymotracker import *
-from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
-from lumicks.pylake.tests.data.mock_confocal import generate_kymo
-from lumicks.pylake.kymo import _kymo_from_array
+import pytest
 from scipy.stats import norm
+
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
+from lumicks.pylake.kymotracker.kymotracker import *
+from lumicks.pylake.tests.data.mock_confocal import generate_kymo
+from lumicks.pylake.kymotracker.detail.localization_models import GaussianLocalizationModel
 
 
 def test_kymotrack_interpolation(blank_kymo, blank_kymo_track_args):

@@ -1,8 +1,9 @@
-from lumicks.pylake import GaussianMixtureModel
-from lumicks.pylake.channel import Slice, Continuous
 import numpy as np
 import pytest
 import matplotlib.pyplot as plt
+
+from lumicks.pylake import GaussianMixtureModel
+from lumicks.pylake.channel import Slice, Continuous
 
 
 def test_gmm(trace_lownoise):

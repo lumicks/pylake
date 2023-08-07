@@ -1,11 +1,13 @@
-import pytest
-import numpy as np
 from copy import deepcopy
+
+import numpy as np
+import pytest
+
 from lumicks.pylake.kymo import _kymo_from_array
-from lumicks.pylake.kymotracker.detail.trace_line_2d import _traverse_line_direction, detect_lines
 from lumicks.pylake.kymotracker.kymotracker import track_lines, _interp_to_frame
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 from lumicks.pylake.kymotracker.detail.geometry_2d import get_candidate_generator
+from lumicks.pylake.kymotracker.detail.trace_line_2d import detect_lines, _traverse_line_direction
 
 
 def test_tracing():

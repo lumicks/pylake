@@ -1,13 +1,14 @@
-import itertools
 import re
 import pathlib
+import itertools
 from copy import copy
+
+from ..__about__ import __version__
 from ..detail.utilities import replace_key_aliases
+from .detail.peakfinding import _sum_track_signal
+from ..population.dwelltime import DwelltimeModel
 from .detail.msd_estimation import *
 from .detail.localization_models import LocalizationModel, CentroidLocalizationModel
-from .detail.peakfinding import _sum_track_signal
-from .. import __version__
-from ..population.dwelltime import DwelltimeModel
 
 
 def _read_txt(file, delimiter):
@@ -628,6 +629,7 @@ class KymoTrack:
             Forwarded to :func:`matplotlib.pyplot.plot`.
         """
         import matplotlib.patheffects as pe
+
         from ..detail.plotting import get_axes
 
         ax = get_axes(axes)

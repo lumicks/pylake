@@ -1,5 +1,7 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 from lumicks.pylake.kymotracker.detail.sequence import read_genbank
 
 

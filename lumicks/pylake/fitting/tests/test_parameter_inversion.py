@@ -1,8 +1,9 @@
+import numpy as np
+import pytest
+
 from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.parameter_trace import parameter_trace
-import numpy as np
-import pytest
 
 
 def test_parameter_inversion():

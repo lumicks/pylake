@@ -1,8 +1,9 @@
-from lumicks.pylake.tests.data.mock_confocal import generate_scan
-from lumicks.pylake.channel import Slice, Continuous
-import pytest
 import numpy as np
+import pytest
 import matplotlib as mpl
+
+from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.tests.data.mock_confocal import generate_scan
 
 
 def test_plot_correlated():

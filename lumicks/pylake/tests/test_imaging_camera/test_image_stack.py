@@ -1,19 +1,20 @@
-import numpy as np
-import json
 import re
-import tifffile
+import json
 from pathlib import Path
+
+import numpy as np
 import pytest
-from lumicks.pylake.adjustments import ColorAdjustment
-from lumicks.pylake import ImageStack
-from lumicks.pylake import CorrelatedStack
-from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
-from lumicks.pylake.detail.widefield import TiffStack
-from lumicks.pylake.kymotracker.kymotracker import track_greedy
-from lumicks.pylake import channel
+import tifffile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from ..data.mock_widefield import MockTiffFile, make_alignment_image_data, make_frame_times
+
+from lumicks.pylake import ImageStack, CorrelatedStack, channel
+from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.detail.widefield import TiffStack
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+from lumicks.pylake.kymotracker.kymotracker import track_greedy
+
+from ..data.mock_widefield import MockTiffFile, make_frame_times, make_alignment_image_data
 
 
 def to_tiff(image, description, bit_depth, start_time=1, num_images=2):

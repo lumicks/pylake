@@ -1,6 +1,7 @@
-import numpy as np
-import h5py
 import json
+
+import h5py
+import numpy as np
 
 # We generate mock data files for different versions of the Bluelake HDF5 file
 # format:

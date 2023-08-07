@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.signal.windows
+
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 

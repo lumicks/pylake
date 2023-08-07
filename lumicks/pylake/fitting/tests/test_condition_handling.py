@@ -1,9 +1,11 @@
-from lumicks.pylake.fitting.detail.utilities import parse_transformation
-from lumicks.pylake.fitting.detail.link_functions import generate_conditions
-from lumicks.pylake.fitting.fitdata import Condition, FitData
 from collections import OrderedDict
+
 import numpy as np
 import pytest
+
+from lumicks.pylake.fitting.fitdata import FitData, Condition
+from lumicks.pylake.fitting.detail.utilities import parse_transformation
+from lumicks.pylake.fitting.detail.link_functions import generate_conditions
 
 
 def test_build_conditions():

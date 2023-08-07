@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def generate_fdcurve_with_baseline_offset():
     # generate high frequency data
     distance_hf = np.linspace(1, 10, 500)                       # distance, HF

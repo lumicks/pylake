@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from ..data.mock_file import MockDataFile_v1, MockDataFile_v2
 
 

@@ -1,8 +1,9 @@
-import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
-from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
+import pytest
+
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack
+from lumicks.pylake.kymotracker.stitching import stitch_kymo_lines
+from lumicks.pylake.kymotracker.detail.stitch import distance_line_to_point
 
 
 def test_distance_line_to_point():

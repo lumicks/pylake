@@ -55,11 +55,11 @@ def force_offset(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        force_offset_model,
-        offset_model_jac,
-        offset_model_derivative,
         offset_equation,
+        offset_model_jac,
+        force_offset_model,
         offset_equation_tex,
+        offset_model_derivative,
     )
 
     return Model(
@@ -84,11 +84,11 @@ def distance_offset(name):
     """
     from .model import Model
     from .detail.model_implementation import (
-        distance_offset_model,
-        offset_model_jac,
-        offset_model_derivative,
         offset_equation,
+        offset_model_jac,
         offset_equation_tex,
+        distance_offset_model,
+        offset_model_derivative,
     )
 
     return Model(
@@ -123,12 +123,12 @@ def ewlc_marko_siggia_force(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         ewlc_marko_siggia_force,
         ewlc_marko_siggia_force_jac,
-        ewlc_marko_siggia_force_derivative,
         ewlc_marko_siggia_force_equation,
+        ewlc_marko_siggia_force_derivative,
         ewlc_marko_siggia_force_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -166,12 +166,12 @@ def ewlc_marko_siggia_distance(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         ewlc_marko_siggia_distance,
         ewlc_marko_siggia_distance_jac,
-        ewlc_marko_siggia_distance_derivative,
         ewlc_marko_siggia_distance_equation,
+        ewlc_marko_siggia_distance_derivative,
         ewlc_marko_siggia_distance_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -218,12 +218,12 @@ def wlc_marko_siggia_force(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         wlc_marko_siggia_force,
         wlc_marko_siggia_force_jac,
-        wlc_marko_siggia_force_derivative,
         wlc_marko_siggia_force_equation,
+        wlc_marko_siggia_force_derivative,
         wlc_marko_siggia_force_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -269,12 +269,12 @@ def wlc_marko_siggia_distance(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         wlc_marko_siggia_distance,
         wlc_marko_siggia_distance_jac,
-        wlc_marko_siggia_distance_derivative,
         wlc_marko_siggia_distance_equation,
+        wlc_marko_siggia_distance_derivative,
         wlc_marko_siggia_distance_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -309,12 +309,12 @@ def ewlc_odijk_distance(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         ewlc_odijk_distance,
         ewlc_odijk_distance_jac,
-        ewlc_odijk_distance_derivative,
         ewlc_odijk_distance_equation,
+        ewlc_odijk_distance_derivative,
         ewlc_odijk_distance_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -401,12 +401,12 @@ def ewlc_odijk_force(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         ewlc_odijk_force,
         ewlc_odijk_force_jac,
-        ewlc_odijk_force_derivative,
         ewlc_odijk_force_equation,
+        ewlc_odijk_force_derivative,
         ewlc_odijk_force_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -444,12 +444,12 @@ def efjc_distance(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         efjc_distance,
         efjc_distance_jac,
-        efjc_distance_derivative,
         efjc_distance_equation,
+        efjc_distance_derivative,
         efjc_distance_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -554,12 +554,12 @@ def twlc_distance(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         twlc_distance,
         twlc_distance_jac,
-        twlc_distance_derivative,
         twlc_distance_equation,
+        twlc_distance_derivative,
         twlc_distance_equation_tex,
-        Defaults,
     )
 
     return Model(
@@ -603,11 +603,11 @@ def twlc_force(name):
     """
     from .model import Model
     from .detail.model_implementation import (
+        Defaults,
         twlc_solve_force,
         twlc_solve_force_jac,
         twlc_solve_force_equation,
         twlc_solve_force_equation_tex,
-        Defaults,
     )
 
     return Model(

@@ -1,15 +1,17 @@
 import pytest
-from lumicks.pylake.force_calibration.power_spectrum_calibration import (
-    calculate_power_spectrum,
-    fit_power_spectrum,
-)
+
 from lumicks.pylake.force_calibration.calibration_models import (
-    PassiveCalibrationModel,
     ActiveCalibrationModel,
+    PassiveCalibrationModel,
 )
+from lumicks.pylake.force_calibration.detail.drag_models import *
 from lumicks.pylake.force_calibration.detail.power_models import g_diode
 from lumicks.pylake.force_calibration.detail.hydrodynamics import *
-from lumicks.pylake.force_calibration.detail.drag_models import *
+from lumicks.pylake.force_calibration.power_spectrum_calibration import (
+    fit_power_spectrum,
+    calculate_power_spectrum,
+)
+
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 

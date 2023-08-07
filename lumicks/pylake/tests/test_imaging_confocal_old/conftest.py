@@ -1,11 +1,12 @@
-import pytest
 import numpy as np
-from lumicks.pylake.point_scan import PointScan
+import pytest
+
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
+from lumicks.pylake.point_scan import PointScan
+
 from ..data.mock_file import MockDataFile_v2
 from ..data.mock_confocal import MockConfocalFile, generate_scan_json, generate_image_data
-
 
 start = np.int64(20e9)
 dt = np.int64(62.5e6)

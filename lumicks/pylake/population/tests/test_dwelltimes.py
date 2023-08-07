@@ -1,18 +1,19 @@
-import pytest
-import numpy as np
 import re
+
+import numpy as np
+import pytest
 import matplotlib.pyplot as plt
 
 from lumicks.pylake import DwelltimeModel
-from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
 from lumicks.pylake.population.dwelltime import (
-    _dwellcounts_from_statepath,
     DwelltimeBootstrap,
-    _handle_amplitude_constraint,
     _exponential_mle_optimize,
+    _dwellcounts_from_statepath,
+    _handle_amplitude_constraint,
     _exponential_mixture_log_likelihood,
     _exponential_mixture_log_likelihood_jacobian,
 )
+from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
 
 
 def test_likelihood(exponential_data):

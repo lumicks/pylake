@@ -1,10 +1,12 @@
-import pytest
 import pickle
+
 import numpy as np
+import pytest
+
 from lumicks.pylake.force_calibration.convenience import calibrate_force
 from lumicks.pylake.force_calibration.calibration_models import (
-    PassiveCalibrationModel,
     ActiveCalibrationModel,
+    PassiveCalibrationModel,
 )
 
 

@@ -1,16 +1,16 @@
 import json
 import warnings
-from dataclasses import dataclass
 from typing import List
+from dataclasses import dataclass
 
 import numpy as np
 from numpy import typing as npt
 
-from ..adjustments import no_adjustment
 from .image import reconstruct_image, reconstruct_image_sum
+from .mixin import PhotonCounts, ExcitationLaserPower
+from .utilities import method_cache, could_sum_overflow
+from ..adjustments import no_adjustment
 from .imaging_mixins import TiffExport
-from .mixin import ExcitationLaserPower, PhotonCounts
-from .utilities import could_sum_overflow, method_cache
 
 
 def _int_mean(a, total_size, axis):

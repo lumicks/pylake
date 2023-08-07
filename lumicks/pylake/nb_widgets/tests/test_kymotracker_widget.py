@@ -1,13 +1,15 @@
+import re
+
+import numpy as np
+import pytest
+
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.nb_widgets.kymotracker_widgets import (
     KymoWidgetGreedy,
     KymotrackerParameter,
     _get_default_parameters,
 )
-from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
-from lumicks.pylake.kymo import _kymo_from_array
-import numpy as np
-import re
-import pytest
 
 
 class MockLabel:

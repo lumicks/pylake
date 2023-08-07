@@ -1,6 +1,8 @@
-import pytest
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import pytest
+
 from .data.generate_exponential_data import read_dataset as read_dataset_exponential
 
 

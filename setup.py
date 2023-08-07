@@ -1,6 +1,7 @@
 import os
 import sys
-from setuptools import setup, PEP420PackageFinder
+
+from setuptools import PEP420PackageFinder, setup
 from setuptools.command.egg_info import manifest_maker
 
 if sys.version_info[:2] < (3, 9):

@@ -1,14 +1,16 @@
-import pytest
 import re
+
 import numpy as np
+import pytest
+
 from lumicks.pylake.kymotracker.detail.peakfinding import (
-    peak_estimate,
-    refine_peak_based_on_moment,
     KymoPeaks,
+    peak_estimate,
     merge_close_peaks,
-    bounds_to_centroid_data,
     unbiased_centroid,
     _clip_kernel_to_edge,
+    bounds_to_centroid_data,
+    refine_peak_based_on_moment,
 )
 
 

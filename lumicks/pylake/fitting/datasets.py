@@ -1,9 +1,11 @@
-from .detail.link_functions import generate_conditions
-from .detail.utilities import parse_transformation
-from .fitdata import FitData
 from copy import deepcopy
 from collections import OrderedDict
+
 import numpy as np
+
+from .fitdata import FitData
+from .detail.utilities import parse_transformation
+from .detail.link_functions import generate_conditions
 
 
 class Datasets:

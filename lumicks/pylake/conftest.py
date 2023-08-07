@@ -1,8 +1,9 @@
-import importlib
-import warnings
-import pytest
 import os.path
+import warnings
+import importlib
+
 import numpy as np
+import pytest
 import matplotlib.pyplot as plt
 
 

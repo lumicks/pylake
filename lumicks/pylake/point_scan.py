@@ -1,7 +1,8 @@
+from copy import copy
+
 from .detail.confocal import BaseScan
 from .detail.plotting import get_axes
 from .detail.timeindex import to_timestamp
-from copy import copy
 
 
 class PointScan(BaseScan):

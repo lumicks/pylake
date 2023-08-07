@@ -1,7 +1,8 @@
-from lumicks.pylake.detail.utilities import temp_seed
-from lumicks.pylake.simulation.diffusion import simulate_diffusive_tracks
 import numpy as np
 import pytest
+
+from lumicks.pylake.detail.utilities import temp_seed
+from lumicks.pylake.simulation.diffusion import simulate_diffusive_tracks
 
 
 def test_simulate_diffusive_tracks():

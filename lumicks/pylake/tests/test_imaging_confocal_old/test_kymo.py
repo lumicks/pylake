@@ -1,11 +1,14 @@
 import re
+
 import numpy as np
-from lumicks import pylake
 import pytest
-from lumicks.pylake.channel import Slice, Continuous, TimeSeries, empty_slice
-from lumicks.pylake.kymo import EmptyKymo, _default_line_time_factory
-from lumicks.pylake.adjustments import ColorAdjustment
 import matplotlib.pyplot as plt
+
+from lumicks import pylake
+from lumicks.pylake.kymo import EmptyKymo, _default_line_time_factory
+from lumicks.pylake.channel import Slice, Continuous, TimeSeries, empty_slice
+from lumicks.pylake.adjustments import ColorAdjustment
+
 from ..data.mock_confocal import generate_kymo
 
 

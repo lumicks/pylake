@@ -1,13 +1,13 @@
-import pytest
-import numpy as np
 import json
 
-from lumicks.pylake.tests.data.mock_widefield import make_alignment_image_data, MockTiffFile
-from lumicks.pylake.detail.widefield import TiffStack
-from lumicks.pylake import ImageStack
-from lumicks.pylake.nb_widgets.image_editing import ImageEditorWidget, KymoEditorWidget
-
+import numpy as np
+import pytest
 import matplotlib.pyplot as plt
+
+from lumicks.pylake import ImageStack
+from lumicks.pylake.detail.widefield import TiffStack
+from lumicks.pylake.nb_widgets.image_editing import KymoEditorWidget, ImageEditorWidget
+from lumicks.pylake.tests.data.mock_widefield import MockTiffFile, make_alignment_image_data
 
 
 def make_mock_stack():

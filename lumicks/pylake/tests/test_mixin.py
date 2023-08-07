@@ -1,5 +1,6 @@
-from lumicks.pylake.detail import mixin
 import itertools
+
+from lumicks.pylake.detail import mixin
 
 
 def test_force():

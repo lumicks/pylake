@@ -1,10 +1,12 @@
-from lumicks.pylake.detail.utilities import downsample
-import numpy as np
-from scipy.optimize import curve_fit, minimize_scalar
-from scipy import stats
-from dataclasses import dataclass
-import matplotlib.pyplot as plt
 import warnings
+from dataclasses import dataclass
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy.optimize import curve_fit, minimize_scalar
+
+from lumicks.pylake.detail.utilities import downsample
 
 
 def mack_model(

@@ -1,11 +1,13 @@
-import pytest
 import warnings
+
 import numpy as np
+import pytest
+
 from lumicks.pylake.force_calibration.touchdown import (
-    fit_piecewise_linear,
-    fit_damped_sine_with_polynomial,
     touchdown,
     mack_model,
+    fit_piecewise_linear,
+    fit_damped_sine_with_polynomial,
 )
 
 

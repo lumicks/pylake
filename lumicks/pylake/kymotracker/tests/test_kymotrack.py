@@ -1,11 +1,14 @@
 import re
+from copy import copy
+
 import pytest
 import matplotlib.pyplot as plt
-from copy import copy
+
+from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import *
 from lumicks.pylake.kymotracker.kymotracker import _to_half_kernel_size
 from lumicks.pylake.kymotracker.detail.localization_models import *
-from lumicks.pylake.kymo import _kymo_from_array
+
 from ...tests.data.mock_confocal import generate_kymo
 
 

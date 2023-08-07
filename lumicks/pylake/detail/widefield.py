@@ -1,11 +1,13 @@
-import numpy as np
 import re
-import json
-import tifffile
-import warnings
 import enum
+import json
+import warnings
 from copy import copy
 from dataclasses import dataclass
+
+import numpy as np
+import tifffile
+
 from ..adjustments import no_adjustment
 
 

@@ -1,5 +1,6 @@
 import pytest
-from ..data.mock_widefield import make_alignment_image_data, write_tiff_file
+
+from ..data.mock_widefield import write_tiff_file, make_alignment_image_data
 
 
 @pytest.fixture(scope="module")

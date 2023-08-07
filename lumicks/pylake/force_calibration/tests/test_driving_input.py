@@ -1,6 +1,7 @@
-from lumicks.pylake.force_calibration.detail.driving_input import estimate_driving_input_parameters
 import numpy as np
 import pytest
+
+from lumicks.pylake.force_calibration.detail.driving_input import estimate_driving_input_parameters
 
 
 @pytest.mark.parametrize(

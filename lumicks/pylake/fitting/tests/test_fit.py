@@ -1,12 +1,14 @@
-from lumicks.pylake.fitting.models import ewlc_odijk_distance, ewlc_odijk_force
-from lumicks.pylake.fitting.model import Model
-from lumicks.pylake.fitting.fit import Fit, FdFit, Params, Datasets
-from lumicks.pylake.fitting.parameters import Parameter
 import re
-import pytest
-import numpy as np
-import matplotlib.pyplot as plt
 from collections import OrderedDict
+
+import numpy as np
+import pytest
+import matplotlib.pyplot as plt
+
+from lumicks.pylake.fitting.fit import Fit, FdFit, Params, Datasets
+from lumicks.pylake.fitting.model import Model
+from lumicks.pylake.fitting.models import ewlc_odijk_force, ewlc_odijk_distance
+from lumicks.pylake.fitting.parameters import Parameter
 
 
 def test_model_defaults():

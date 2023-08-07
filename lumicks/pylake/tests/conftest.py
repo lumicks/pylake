@@ -1,5 +1,7 @@
-import pytest
 import json
+
+import pytest
+
 from .data.mock_file import MockDataFile_v2
 from .data.mock_fdcurve import generate_fdcurve_with_baseline_offset
 

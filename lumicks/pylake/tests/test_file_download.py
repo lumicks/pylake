@@ -1,9 +1,10 @@
 import pytest
+
 from lumicks.pylake.file_download import (
-    get_url_from_doi,
-    download_record_metadata,
     verify_hash,
+    get_url_from_doi,
     download_from_doi,
+    download_record_metadata,
 )
 
 

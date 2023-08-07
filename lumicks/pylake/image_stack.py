@@ -1,5 +1,5 @@
 import os
-from typing import Iterator, Union, Optional
+from typing import Union, Iterator, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -8,9 +8,9 @@ from deprecated.sphinx import deprecated
 from .kymo import Kymo, _kymo_from_image_stack
 from .adjustments import no_adjustment
 from .detail.image import make_image_title
-from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 from .detail.plotting import get_axes, show_image
 from .detail.widefield import TiffStack
+from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 
 
 class ImageStack(FrameIndex, TiffExport, VideoExport):

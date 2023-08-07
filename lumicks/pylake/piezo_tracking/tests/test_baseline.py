@@ -1,6 +1,8 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
-from copy import deepcopy
+
 from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
 
 

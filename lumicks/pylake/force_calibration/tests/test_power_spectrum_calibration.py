@@ -1,17 +1,20 @@
-from .data.simulate_calibration_data import generate_active_calibration_test_data
-from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
-from lumicks.pylake.force_calibration.calibration_models import (
-    PassiveCalibrationModel,
-    sphere_friction_coefficient,
-    viscosity_of_water,
-    NoFilter,
-)
-from textwrap import dedent
-import numpy as np
-import scipy as sp
 import os
 import re
+from textwrap import dedent
+
+import numpy as np
+import scipy as sp
 import pytest
+
+from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
+from lumicks.pylake.force_calibration.calibration_models import (
+    NoFilter,
+    PassiveCalibrationModel,
+    viscosity_of_water,
+    sphere_friction_coefficient,
+)
+
+from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 
 def test_model_parameters():

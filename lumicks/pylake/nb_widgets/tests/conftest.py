@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 

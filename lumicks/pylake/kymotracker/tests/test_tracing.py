@@ -1,13 +1,14 @@
 import numpy as np
-from lumicks.pylake.kymotracker.detail.scoring_functions import build_score_matrix, kymo_score
-from lumicks.pylake.kymotracker.detail.trace_line_2d import (
-    append_next_point,
-    extend_line,
-    points_to_line_segments,
-    KymoLineData,
-)
+
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack
 from lumicks.pylake.kymotracker.detail.peakfinding import KymoPeaks
+from lumicks.pylake.kymotracker.detail.trace_line_2d import (
+    KymoLineData,
+    extend_line,
+    append_next_point,
+    points_to_line_segments,
+)
+from lumicks.pylake.kymotracker.detail.scoring_functions import kymo_score, build_score_matrix
 
 
 def test_score_matrix(blank_kymo, blank_kymo_track_args):

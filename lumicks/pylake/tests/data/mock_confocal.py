@@ -1,13 +1,14 @@
-from dataclasses import dataclass
-from numbers import Integral
 from typing import List
+from numbers import Integral
+from dataclasses import dataclass
 
 import numpy as np
-from lumicks.pylake.channel import Continuous, Slice, empty_slice
-from lumicks.pylake.detail.confocal import ConfocalImage, ScanMetaData
-from lumicks.pylake.detail.image import InfowaveCode
+
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
+from lumicks.pylake.channel import Slice, Continuous, empty_slice
+from lumicks.pylake.detail.image import InfowaveCode
+from lumicks.pylake.detail.confocal import ScanMetaData, ConfocalImage
 
 from .mock_json import mock_json
 

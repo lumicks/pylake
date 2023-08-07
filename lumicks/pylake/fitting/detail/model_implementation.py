@@ -1,8 +1,10 @@
+import warnings
+
+import numpy as np
+
+from .utilities import latex_frac, latex_sqrt, solve_formatter, solve_formatter_tex
 from ..parameters import Parameter
 from .derivative_manipulation import invert_function, invert_jacobian, invert_function_interpolation
-from .utilities import latex_sqrt, latex_frac, solve_formatter, solve_formatter_tex
-import numpy as np
-import warnings
 
 
 class Defaults:

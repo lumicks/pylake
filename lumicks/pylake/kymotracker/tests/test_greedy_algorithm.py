@@ -1,10 +1,12 @@
-import pytest
 import re
+
 import numpy as np
+import pytest
+
 from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
-from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup
 
 
 def test_kymotracker_test_bias_rect():

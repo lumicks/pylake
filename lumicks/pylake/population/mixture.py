@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import stats
+
 from .dwelltime import _dwellcounts_from_statepath
 
 

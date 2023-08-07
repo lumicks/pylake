@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.models import ewlc_odijk_distance
 from lumicks.pylake.fitting.parameters import Params, Parameter

@@ -1,6 +1,7 @@
-from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 import numpy as np
 import pytest
+
+from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
 @pytest.mark.parametrize(

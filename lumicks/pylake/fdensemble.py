@@ -1,5 +1,6 @@
-from lumicks.pylake.detail.alignment import align_fd_simple
 import numpy as np
+
+from lumicks.pylake.detail.alignment import align_fd_simple
 
 
 class FdEnsemble:

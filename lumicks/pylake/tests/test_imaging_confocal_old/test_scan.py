@@ -1,9 +1,12 @@
+import re
+
+import numpy as np
 import pytest
 import matplotlib.pyplot as plt
-import numpy as np
-import re
-from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+
 from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+
 from ..data.mock_confocal import generate_scan
 
 

@@ -1,6 +1,8 @@
+import itertools
+
 import pytest
 import tifffile
-import itertools
+
 from lumicks.pylake import ImageStack
 
 

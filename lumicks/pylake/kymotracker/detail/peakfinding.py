@@ -1,7 +1,8 @@
-import numpy as np
-from scipy.ndimage import gaussian_filter, grey_dilation
-from scipy.signal import convolve2d
 import math
+
+import numpy as np
+from scipy.signal import convolve2d
+from scipy.ndimage import grey_dilation, gaussian_filter
 
 
 def peak_estimate(data, half_width, thresh):

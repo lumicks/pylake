@@ -1,12 +1,13 @@
-import deprecated
-import numpy as np
 from copy import copy, deepcopy
+from collections import namedtuple
+
+import numpy as np
+import deprecated
+
 from .channel import Slice, TimeSeries
 from .detail.mixin import DownsampledFD
 from .detail.utilities import find_contiguous
 from .nb_widgets.range_selector import FdTimeRangeSelectorWidget, FdDistanceRangeSelectorWidget
-from collections import namedtuple
-
 
 FdSlice = namedtuple("FdSlice", "f d")
 

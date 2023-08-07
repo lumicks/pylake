@@ -1,8 +1,10 @@
 import warnings
-import numpy as np
-import matplotlib.pyplot as plt
 from copy import copy
 from typing import List, Tuple
+
+import numpy as np
+import matplotlib.pyplot as plt
+
 from lumicks.pylake.detail.utilities import downsample
 
 
