@@ -1,0 +1,25 @@
+div.api-sub-header.docutils.container p {
+    color: var(--dimgray);
+    font-size: 0.85em;
+    margin-top: -2em;
+    font-family: monospace;
+}
+
+/* API docs, blocks */
+.rst-content dl.py.property {
+    width: 100%;
+}
+
+.rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple)>dt {
+    border-top: solid 5px var(--darkblue) !important;
+    background-color: var(--lightblue) !important;
+    width: 100%;
+    border-radius: 3px;
+}
+
+.rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple) dl:not(.field-list)>dt {
+    border-left: solid 3px var(--lightgray) !important;
+    border-top: 0px !important;
+    background-color: var(--lightestgray) !important;
+    padding-right: 25px;
+}

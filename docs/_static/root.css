@@ -1,0 +1,58 @@
+/* pylake logo colors */
+:root {
+  --gray: #404041;
+  --mediumgray: #666667;
+  --dimgray: #afafaf;
+  --lightgray: #d9d9d9;
+  --lightestgray: #f0f0f0;
+  --pink: #f08d97;
+  --green: #84c175;
+  --blue: #1dabe3;
+  --orange: #f8ae4b;
+  --darkpink: #E74555;
+  --darkgreen: #599F47;
+  --darkblue: #1686B2;
+  --darkorange: #E58508;
+  --lightpink: #F9CED2;
+  --lightgreen: #A5D19A;
+  --mediumblue: #92D7F2;
+  --lightblue: #C4E9F8;
+  --lightorange: #FCD4A0;
+}
+
+/* Links */
+a {
+  color: var(--blue);
+}
+
+a:visited {
+  color: var(--darkblue);
+}
+
+/* Cross references to same as color for links */
+code.xref.py {
+  color: var(--blue) !important;
+}
+
+code.xref.any.py {
+  color: var(--blue) !important;
+}
+
+/* inline code */
+.rst-content code.literal {
+  color: var(--gray);
+  border-color: var(--lightgray);
+  background-color: #edf0f2;
+  border-radius: 3px;
+}
+
+.rst-content code.download {
+  color: var(--blue);
+  background-color: rgba(0, 0, 0, 0);
+}
+
+/* code block, outer wrapper */
+.rst-content pre.literal-block,
+.rst-content div[class^='highlight'] {
+  border-radius: 3px;
+}

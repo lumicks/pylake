@@ -177,7 +177,7 @@ html_favicon = "fav.ico"
 html_static_path = ["_static"]
 # html_context = {'extra_css_files': ['_static/extra.css']}
 
-html_css_files = ["custom.css"]
+html_css_files = ["root.css", "sidebar.css", "admonitions.css", "api.css"]
 pygments_style = "pylake_syntax_theme.PylakeStyle"
 
 # Add any extra paths that contain custom files (such as robots.txt or
