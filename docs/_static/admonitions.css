@@ -12,7 +12,16 @@
 
 .rst-content .note a {
     color: var(--darkblue);
+    font-weight: bold;
 }
+
+.rst-content .note code.literal,
+.rst-content .note code.xref.py {
+    color: var(--darkblue) !important;
+    background-color: #e2f5fd;
+    border-color: var(--blue);
+}
+
 
 /* warning box */
 .rst-content .warning .admonition-title {
@@ -28,6 +37,14 @@
 
 .rst-content .warning a {
     color: var(--darkpink);
+    font-weight: bold;
+}
+
+.rst-content .warning code.literal,
+.rst-content .warning code.xref.py {
+    color: var(--darkpink) !important;
+    background-color: #feebec;
+    border-color: var(--pink);
 }
 
 /* important box */
@@ -44,4 +61,12 @@
 
 .rst-content .important a {
     color: var(--darkorange);
+    font-weight: bold;
+}
+
+.rst-content .important code.literal,
+.rst-content .important code.xref.py {
+    color: var(--darkorange) !important;
+    background-color: #fffbf6;
+    border-color: var(--orange);
 }

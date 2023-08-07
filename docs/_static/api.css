@@ -23,3 +23,11 @@ div.api-sub-header.docutils.container p {
     background-color: var(--lightestgray) !important;
     padding-right: 25px;
 }
+
+/* crossref in API table */
+table.autosummary code.xref.py {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0px;
+    padding-left: 0px;
+    padding-right: 3px;
+}
