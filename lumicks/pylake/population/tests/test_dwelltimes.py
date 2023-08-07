@@ -64,7 +64,7 @@ def test_invalid_multi_dwelltime_parameters():
             r"Size of maximum observation time array (4) must be equal to that of dwelltimes (3)"
         )
     ):
-        DwelltimeModel(data, min_observation_time=0, max_observation_time=np.array([1, 2, 3, 4]))
+        DwelltimeModel(data, min_observation_time=1.0, max_observation_time=np.array([1, 2, 3, 4]))
 
     with pytest.raises(
         ValueError,
@@ -73,7 +73,7 @@ def test_invalid_multi_dwelltime_parameters():
             r"discretization timesteps (2) should equal the number of dwell times provided (3)."
         )
     ):
-        DwelltimeModel(data, discretization_timestep=np.array([10, 1]))
+        DwelltimeModel(data, min_observation_time=10, discretization_timestep=np.array([10, 1]))
 
     with pytest.raises(
         ValueError,
@@ -82,7 +82,22 @@ def test_invalid_multi_dwelltime_parameters():
             r"zero as this leads to an invalid probability mass function."
         )
     ):
-        DwelltimeModel(data, discretization_timestep=np.array([10, 0, 10]))
+        DwelltimeModel(data, min_observation_time=10, discretization_timestep=np.array([10, 0, 10]))
+
+    for dt, min_obs in (
+        (np.array([10, 10, 10]), np.array([0.0, 0.0, 0.0])),
+        (10, np.array([0.0, 0.0, 0.0])),
+        (np.array([10, 10, 10]), 0.0),
+        (10, 0.0),
+    ):
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                r"The discretization timestep (10.0) cannot be larger than the minimum observable "
+                r"time (0.0)."
+            ),
+        ):
+            DwelltimeModel(data, discretization_timestep=dt, min_observation_time=min_obs)
 
 
 def test_optim_options(exponential_data):
@@ -123,8 +138,13 @@ def test_fit_parameters(exponential_data):
             None,
             (0.3497069, 1.3528150)
         ),
-        (0.1, 1.4, 0.2, (0.375963, 1.482267)),
-        (0.1, 1.4, np.array([0.2, 0.2, 0.4, 0.4]), (0.4263154934247158, 1.4892888434906768)),
+        (0.2, 1.4, 0.2, (0.247748, 1.463575)),
+        (
+            np.array([0.2, 0.2, 0.4, 0.4]),
+            1.4,
+            np.array([0.2, 0.2, 0.4, 0.4]),
+            (0.21762, 1.448516)
+        ),
     ]
 )
 def test_bootstrap_multi(min_obs, max_obs, ref_ci, time_step):
@@ -218,15 +238,13 @@ def test_dwelltime_profiles(exponential_data, exp_name, reference_bounds, reinte
 
     profiles = fit.profile_likelihood(max_chi2_step=0.25)
     for (name, component), ref_interval in reference_bounds:
-        print(profiles.get_interval(name, component))
-        #np.testing.assert_allclose(profiles.get_interval(name, component), ref_interval, rtol=1e-3)
+        np.testing.assert_allclose(profiles.get_interval(name, component), ref_interval, rtol=1e-3)
 
     # Re-interpolated confidence level (different significance level than originally profiled).
     for (name, component, significance), ref_interval in reinterpolated_bounds:
-        print(profiles.get_interval(name, component, significance))
-        #np.testing.assert_allclose(
-        #    profiles.get_interval(name, component, significance), ref_interval, rtol=1e-3
-        #)
+        np.testing.assert_allclose(
+            profiles.get_interval(name, component, significance), ref_interval, rtol=1e-3
+        )
 
     # Significance level cannot be chosen lower than what we profiled.
     with pytest.raises(
