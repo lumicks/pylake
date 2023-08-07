@@ -64,7 +64,12 @@ setup(
         "tqdm>=4.27.0",  # 4.27.0 introduced tqdm.auto which auto-selects notebook or console
     ],
     extras_require={
-        "notebook": ["notebook>=4.4.1", "ipywidgets>=7.0.0"],
+        "notebook": [
+            "notebook>=4.4.1",
+            "ipywidgets>=7.0.0",
+            "jupyter_client<8",  # https://github.com/jupyter/notebook/issues/6748
+            "pyzmq<25",  # https://github.com/jupyter/notebook/issues/6748
+        ],
     },
     zip_safe=False,
 )
