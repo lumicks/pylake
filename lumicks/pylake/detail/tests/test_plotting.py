@@ -143,8 +143,8 @@ def implements_plot_interface(cls, image=False, stack=False):
 def test_plot_interface_implementations():
     from lumicks.pylake import ImageStack
     from lumicks.pylake.kymo import Kymo
-    from lumicks.pylake.point_scan import PointScan
     from lumicks.pylake.scan import Scan
+    from lumicks.pylake.point_scan import PointScan
 
     # Check if classes properly implement the "plotting" interface
     assert implements_plot_interface(ImageStack, image=True, stack=True)

@@ -1,12 +1,14 @@
 import numpy as np
-import scipy.constants
 import pytest
+import scipy.constants
+
+from lumicks.pylake.force_calibration.calibration_models import ActiveCalibrationModel
 from lumicks.pylake.force_calibration.detail.power_models import sphere_friction_coefficient
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
-    calculate_power_spectrum,
     fit_power_spectrum,
+    calculate_power_spectrum,
 )
-from lumicks.pylake.force_calibration.calibration_models import ActiveCalibrationModel
+
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 

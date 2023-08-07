@@ -1,7 +1,9 @@
-from lumicks.pylake.fitting.models import ewlc_odijk_force
-from lumicks.pylake.fitting.fit import FdFit
-import numpy as np
 import pickle
+
+import numpy as np
+
+from lumicks.pylake.fitting.fit import FdFit
+from lumicks.pylake.fitting.models import ewlc_odijk_force
 
 
 def test_pickle(tmpdir_factory):

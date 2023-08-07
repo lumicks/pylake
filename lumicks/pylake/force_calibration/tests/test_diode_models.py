@@ -1,16 +1,18 @@
 import re
-import pytest
-import numpy as np
 from copy import deepcopy
+
+import numpy as np
+import pytest
+
 from lumicks.pylake.force_calibration.calibration_models import (
     FixedDiodeModel,
-    PassiveCalibrationModel,
     ActiveCalibrationModel,
+    PassiveCalibrationModel,
     diode_params_from_voltage,
 )
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
-    calculate_power_spectrum,
     fit_power_spectrum,
+    calculate_power_spectrum,
 )
 
 

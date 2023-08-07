@@ -1,6 +1,8 @@
-import pytest
 import numpy as np
+import pytest
+
 from lumicks import pylake
+
 from ..data.mock_json import force_feedback_dict
 
 

@@ -4,23 +4,18 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .detail.utilities import method_cache
-from . import colormaps
-from .adjustments import no_adjustment
-from .detail.confocal import (
-    ConfocalImage,
-    ScanAxis,
-    ScanMetaData,
-)
+from .adjustments import colormaps, no_adjustment
 from .detail.image import (
-    histogram_rows,
-    round_down,
-    seek_timestamp_next_line,
     InfowaveCode,
+    round_down,
+    histogram_rows,
+    seek_timestamp_next_line,
     first_pixel_sample_indices,
 )
+from .detail.confocal import ScanAxis, ScanMetaData, ConfocalImage
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
+from .detail.utilities import method_cache
 
 
 def _default_line_time_factory(self: "Kymo"):

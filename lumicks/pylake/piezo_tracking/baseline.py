@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from lumicks.pylake.channel import Slice, Continuous
 
+from lumicks.pylake.channel import Slice, Continuous
 
 __all__ = ["ForceBaseLine"]
 

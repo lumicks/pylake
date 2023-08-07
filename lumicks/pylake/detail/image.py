@@ -1,7 +1,8 @@
 import enum
 import math
-import numpy as np
 import warnings
+
+import numpy as np
 
 
 class InfowaveCode(enum.IntEnum):

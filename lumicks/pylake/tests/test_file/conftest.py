@@ -1,11 +1,12 @@
-import pytest
-import numpy as np
-import h5py
 import json
-from ..data.mock_file import MockDataFile_v1, MockDataFile_v2
-from ..data.mock_confocal import generate_scan_json
-from ..data.mock_json import mock_force_feedback_json
 
+import h5py
+import numpy as np
+import pytest
+
+from ..data.mock_file import MockDataFile_v1, MockDataFile_v2
+from ..data.mock_json import mock_force_feedback_json
+from ..data.mock_confocal import generate_scan_json
 
 # fmt: off
 counts = np.uint32([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,

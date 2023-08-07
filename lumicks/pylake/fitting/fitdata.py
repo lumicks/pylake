@@ -1,7 +1,9 @@
-import numpy as np
-from .parameters import Params
 from collections import OrderedDict
+
+import numpy as np
 import matplotlib.pyplot as plt
+
+from .parameters import Params
 
 
 class FitData:

@@ -1,5 +1,7 @@
+from dataclasses import fields, replace, dataclass
+
 import numpy as np
-from dataclasses import dataclass, replace, fields
+
 from .gaussian_mle import normal_pdf_1d
 
 __all__ = ["LocalizationModel", "GaussianLocalizationModel"]

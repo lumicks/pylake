@@ -1,12 +1,12 @@
 from lumicks.pylake.force_calibration.calibration_models import (
+    FixedDiodeModel,
     ActiveCalibrationModel,
     PassiveCalibrationModel,
-    FixedDiodeModel,
 )
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
+    CalibrationResults,
     fit_power_spectrum,
     calculate_power_spectrum,
-    CalibrationResults,
 )
 
 

@@ -1,6 +1,7 @@
+import numpy as np
+
 from ..fitdata import Condition
 from .utilities import unique_idx
-import numpy as np
 
 
 def generate_conditions(data_sets, parameter_lookup, model_params):

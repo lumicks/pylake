@@ -1,10 +1,11 @@
-from dataclasses import dataclass
-from scipy.stats import chi2
-import numpy as np
-from typing import Tuple, Optional
-import matplotlib.pyplot as plt
-from warnings import warn
 import enum
+from typing import Tuple, Optional
+from warnings import warn
+from dataclasses import dataclass
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import chi2
 
 
 def _validate_in_bound(error_description, params, lower_bounds, upper_bounds, bound_tolerance):

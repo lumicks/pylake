@@ -1,14 +1,15 @@
-import pytest
 import numpy as np
+import pytest
 import matplotlib.pyplot as plt
+
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
+from lumicks.pylake.detail.utilities import downsample
+from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
 from lumicks.pylake.piezo_tracking.piezo_tracking import (
+    PiezoForceDistance,
     DistanceCalibration,
     PiezoTrackingCalibration,
-    PiezoForceDistance,
 )
-from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
-from lumicks.pylake.detail.utilities import downsample
 
 
 def trap_pos_camera_distance():

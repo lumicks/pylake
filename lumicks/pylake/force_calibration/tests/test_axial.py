@@ -1,17 +1,18 @@
+import numpy as np
+import pytest
+
 from lumicks.pylake.force_calibration.calibration_models import (
     ActiveCalibrationModel,
     PassiveCalibrationModel,
 )
+from lumicks.pylake.force_calibration.detail.drag_models import faxen_factor, brenner_axial
+from lumicks.pylake.force_calibration.power_spectrum_calibration import (
+    fit_power_spectrum,
+    calculate_power_spectrum,
+)
 from lumicks.pylake.force_calibration.tests.data.simulate_calibration_data import (
     generate_active_calibration_test_data,
 )
-from lumicks.pylake.force_calibration.power_spectrum_calibration import (
-    calculate_power_spectrum,
-    fit_power_spectrum,
-)
-from lumicks.pylake.force_calibration.detail.drag_models import faxen_factor, brenner_axial
-import numpy as np
-import pytest
 
 
 @pytest.mark.parametrize("hydro", [False, True])

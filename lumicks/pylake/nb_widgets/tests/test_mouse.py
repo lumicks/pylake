@@ -1,5 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 
 

@@ -1,9 +1,10 @@
 import warnings
+from typing import List, Tuple, Optional
+from dataclasses import field, dataclass
+
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
-from typing import Tuple, List, Optional
-from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)

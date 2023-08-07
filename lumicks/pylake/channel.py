@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import numpy as np
-import numpy.typing as npt
 import numbers
 from typing import Union
 
-from .detail.utilities import downsample
+import numpy as np
+import numpy.typing as npt
+
 from .detail.timeindex import to_timestamp
+from .detail.utilities import downsample
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
 
 

@@ -1,11 +1,12 @@
 import json
-import numpy as np
-import numpy.typing as npt
-import tifffile
-from typing import Iterator, Union
+from typing import Union, Iterator
 
-from ..adjustments import no_adjustment
+import numpy as np
+import tifffile
+import numpy.typing as npt
+
 from .timeindex import to_timestamp
+from ..adjustments import no_adjustment
 
 _FIRST_TIMESTAMP = 1388534400
 
@@ -134,8 +135,8 @@ class VideoExport:
             Scale bar to add to the figure.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`."""
-        from matplotlib import animation
         import matplotlib.pyplot as plt
+        from matplotlib import animation
 
         channels = ("red", "green", "blue", "rgb")
         if channel not in channels:

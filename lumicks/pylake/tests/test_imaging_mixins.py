@@ -1,8 +1,8 @@
-import pytest
 import numpy as np
+import pytest
+from tifffile import TiffFile
 
 from lumicks.pylake.detail.imaging_mixins import TiffExport
-from tifffile import TiffFile
 
 
 def tiffexport_factory(
@@ -184,8 +184,9 @@ def test_export_tiff_tags(tmp_path, output_dtype, number_of_bits, sampleformat):
     """
 
     def grab_tags(file):
-        import tifffile
         from ast import literal_eval
+
+        import tifffile
 
         tiff_tags = []
         with tifffile.TiffFile(file) as tif:

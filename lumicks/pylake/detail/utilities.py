@@ -1,9 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import cachetools
 import math
 import contextlib
+
+import numpy as np
+import cachetools
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
 def method_cache(name):

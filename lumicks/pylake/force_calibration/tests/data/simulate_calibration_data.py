@@ -1,10 +1,12 @@
-import numpy as np
 from functools import partial
+
+import numpy as np
 import scipy.constants
+
 from lumicks.pylake.force_calibration.detail.power_models import (
+    g_diode,
     sphere_friction_coefficient,
     passive_power_spectrum_model,
-    g_diode,
 )
 from lumicks.pylake.force_calibration.detail.hydrodynamics import (
     passive_power_spectrum_model_hydro,

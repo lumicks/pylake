@@ -1,13 +1,14 @@
-import pytest
 import numpy as np
+import pytest
+
+from lumicks.pylake.channel import Slice, TimeSeries
+from lumicks.pylake.fdcurve import FdCurve
+from lumicks.pylake.fdensemble import FdEnsemble
 from lumicks.pylake.detail.alignment import (
+    align_fd_simple,
     align_force_simple,
     align_distance_simple,
-    align_fd_simple,
 )
-from lumicks.pylake.fdcurve import FdCurve
-from lumicks.pylake.channel import Slice, TimeSeries
-from lumicks.pylake.fdensemble import FdEnsemble
 
 
 def make_mock_fd(force, distance, start=0):

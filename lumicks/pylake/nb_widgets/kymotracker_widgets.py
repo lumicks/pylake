@@ -1,16 +1,17 @@
-from dataclasses import dataclass
-from typing import Optional
 import inspect
 import warnings
+from copy import copy
+from typing import Optional
+from dataclasses import dataclass
+
 import numpy as np
 import matplotlib.pyplot as plt
-from copy import copy
 from matplotlib.widgets import RectangleSelector
-from lumicks.pylake.kymotracker.kymotracker import track_greedy
+
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
-from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
-from lumicks.pylake.kymotracker.kymotracker import _to_half_kernel_size
+from lumicks.pylake.kymotracker.kymotracker import track_greedy, _to_half_kernel_size
+from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
 
@@ -410,8 +411,8 @@ class KymoWidget:
 
     def _create_widgets(self):
         """Create widgets for setting kymotracking settings"""
-        from IPython.display import display
         import ipywidgets
+        from IPython.display import display
 
         if not max([backend in plt.get_backend() for backend in ("nbAgg", "ipympl")]):
             raise RuntimeError(

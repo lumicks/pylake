@@ -1,7 +1,8 @@
+import re
+
+import numpy as np
 import pytest
 import matplotlib.pyplot as plt
-import numpy as np
-import re
 
 
 def test_point_scans_basic(test_point_scans, reference_timestamps, reference_counts):

@@ -1,13 +1,14 @@
+import numpy as np
+import pytest
+
 from lumicks.pylake import FdRangeSelector
+from lumicks.pylake.channel import Slice, TimeSeries
+from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.nb_widgets.range_selector import (
+    BaseRangeSelectorWidget,
     FdTimeRangeSelectorWidget,
     FdDistanceRangeSelectorWidget,
-    BaseRangeSelectorWidget,
 )
-from lumicks.pylake.fdcurve import FdCurve
-from lumicks.pylake.channel import TimeSeries, Slice
-import pytest
-import numpy as np
 
 
 def make_mock_fd(force, distance, start=0, dt=600e9):

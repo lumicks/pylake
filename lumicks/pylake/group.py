@@ -1,5 +1,7 @@
-import h5py
 import warnings
+
+import h5py
+
 from .channel import channel_class
 
 

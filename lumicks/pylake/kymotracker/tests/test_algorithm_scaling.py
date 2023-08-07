@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 

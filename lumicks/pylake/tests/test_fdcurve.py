@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from lumicks.pylake import File
-from lumicks.pylake.fdcurve import FdCurve
 from lumicks.pylake.channel import Slice, TimeSeries
+from lumicks.pylake.fdcurve import FdCurve
 
 
 def make_mock_fd(force, distance, start=0, file=None):

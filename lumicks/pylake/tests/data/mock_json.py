@@ -1,6 +1,5 @@
 import json
 
-
 force_feedback_dict = {
     "settings_at_start": {
         "enabled_status": 0,

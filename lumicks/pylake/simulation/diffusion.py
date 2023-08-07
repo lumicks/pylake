@@ -1,5 +1,6 @@
 import numpy as np
 from cachetools import cached
+
 from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotracker import KymoTrack, KymoTrackGroup
 

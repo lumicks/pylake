@@ -1,12 +1,14 @@
-import pytest
-import numpy as np
 from functools import partial
 
+import numpy as np
+import pytest
+
 from lumicks.pylake.kymotracker.detail import gaussian_mle
-from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
 from lumicks.pylake.kymotracker.detail.gaussian_mle import (
-    overlapping_pixels, _estimation_parameters_simultaneous
+    overlapping_pixels,
+    _estimation_parameters_simultaneous,
 )
+from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
 
 
 @pytest.mark.parametrize(

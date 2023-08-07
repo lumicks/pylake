@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import itertools
-import matplotlib.pyplot as plt
-from lumicks.pylake.kymo import _kymo_from_array
 
+import numpy as np
+import pytest
+import matplotlib.pyplot as plt
+
+from lumicks.pylake.kymo import _kymo_from_array
 
 timestamp_err_msg = (
     "Per-pixel timestamps are not implemented. "

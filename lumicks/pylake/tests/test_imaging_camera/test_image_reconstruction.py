@@ -1,9 +1,12 @@
-import pytest
-import numpy as np
 import json
 from copy import deepcopy
+
+import numpy as np
+import pytest
+
 from lumicks.pylake import ImageStack
 from lumicks.pylake.detail.widefield import TiffStack
+
 from ..data.mock_widefield import MockTiffFile, make_frame_times
 
 

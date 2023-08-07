@@ -1,10 +1,12 @@
+from dataclasses import field, dataclass
+
 import numpy as np
-from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.widgets import RectangleSelector
-from ..image_stack import ImageStack
+
 from ..kymo import Kymo
+from ..image_stack import ImageStack
 from ..detail.image import make_image_title
 
 

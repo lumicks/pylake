@@ -1,15 +1,17 @@
-import pytest
 import re
+
+import pytest
 import matplotlib.pyplot as plt
-from lumicks.pylake.simulation.diffusion import _simulate_diffusion_1d
+
 from lumicks.pylake.detail.utilities import temp_seed
+from lumicks.pylake.simulation.diffusion import _simulate_diffusion_1d
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
 from lumicks.pylake.kymotracker.detail.msd_estimation import (
+    _cve,
+    _diffusion_ols,
     _var_cve_known_var,
     _var_cve_unknown_var,
     _msd_diffusion_covariance,
-    _diffusion_ols,
-    _cve,
     _determine_optimal_points_ensemble,
 )
 

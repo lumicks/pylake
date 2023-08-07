@@ -1,5 +1,7 @@
-import numpy as np
 from copy import deepcopy
+
+import numpy as np
+
 from lumicks.pylake.kymotracker.detail.stitch import minimum_distance_extrapolants
 
 

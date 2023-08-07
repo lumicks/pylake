@@ -1,8 +1,8 @@
-import pytest
 import numpy as np
-from lumicks.pylake.channel import Slice, Continuous, TimeSeries, TimeTags
-from lumicks.pylake.calibration import ForceCalibration
+import pytest
 
+from lumicks.pylake.channel import Slice, TimeTags, Continuous, TimeSeries
+from lumicks.pylake.calibration import ForceCalibration
 
 start = 1 + int(1e18)
 calibration = ForceCalibration("Stop time (ns)", [{"Stop time (ns)": start, "kappa (pN/nm)": 0.45}])

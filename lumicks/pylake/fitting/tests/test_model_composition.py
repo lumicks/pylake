@@ -1,3 +1,6 @@
+import numpy as np
+import pytest
+
 from lumicks.pylake.fitting.model import (
     Model,
     InverseModel,
@@ -5,13 +8,11 @@ from lumicks.pylake.fitting.model import (
     SubtractIndependentOffset,
 )
 from lumicks.pylake.fitting.models import (
-    distance_offset,
     force_offset,
-    ewlc_odijk_distance,
+    distance_offset,
     ewlc_odijk_force,
+    ewlc_odijk_distance,
 )
-import pytest
-import numpy as np
 
 
 def test_model_composition():

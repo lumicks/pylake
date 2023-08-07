@@ -1,6 +1,7 @@
-from scipy.ndimage import gaussian_filter
-from .linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 import numpy as np
+from scipy.ndimage import gaussian_filter
+
+from .linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 
 
 def find_subpixel_location(gx, gy, largest_eigenvalue, nx, ny):

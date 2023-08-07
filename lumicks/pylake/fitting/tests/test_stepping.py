@@ -1,6 +1,7 @@
-import pytest
-from lumicks.pylake.fitting.profile_likelihood import clamp_step, StepConfig, do_step
 import numpy as np
+import pytest
+
+from lumicks.pylake.fitting.profile_likelihood import StepConfig, do_step, clamp_step
 
 
 @pytest.mark.parametrize(

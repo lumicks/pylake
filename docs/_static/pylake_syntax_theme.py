@@ -1,15 +1,15 @@
 from pygments.style import Style
 from pygments.token import (
-    Comment,
-    Error,
-    Generic,
     Name,
-    Number,
-    Operator,
-    String,
     Text,
-    Whitespace,
+    Error,
+    Number,
+    String,
+    Comment,
+    Generic,
     Keyword,
+    Operator,
+    Whitespace,
 )
 
 colors = {

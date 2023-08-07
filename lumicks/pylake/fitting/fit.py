@@ -1,14 +1,16 @@
-from .parameters import Params
-from .datasets import Datasets, FdDatasets
-from .model import Model
 from collections import OrderedDict
-from ..detail.utilities import unique, lighten_color
-from .detail.derivative_manipulation import numerical_jacobian
-from .detail.utilities import print_styled, optimal_plot_layout
-from .profile_likelihood import ProfileLikelihood1D
+
 import numpy as np
 import scipy.optimize as optim
 import matplotlib.pyplot as plt
+
+from .model import Model
+from .datasets import Datasets, FdDatasets
+from .parameters import Params
+from .detail.utilities import print_styled, optimal_plot_layout
+from ..detail.utilities import unique, lighten_color
+from .profile_likelihood import ProfileLikelihood1D
+from .detail.derivative_manipulation import numerical_jacobian
 
 
 def front(x):

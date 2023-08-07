@@ -1,11 +1,13 @@
 import re
-import h5py
-import pytest
-import numpy as np
 from dataclasses import dataclass
+
+import h5py
+import numpy as np
+import pytest
+import matplotlib as mpl
+
 from lumicks.pylake import channel
 from lumicks.pylake.calibration import ForceCalibration
-import matplotlib as mpl
 
 
 def with_offset(t, start_time=1592916040906356300):

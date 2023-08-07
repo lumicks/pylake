@@ -1,6 +1,7 @@
-import h5py
 import warnings
 from fnmatch import fnmatch
+
+import h5py
 
 
 def _write_numerical_data(

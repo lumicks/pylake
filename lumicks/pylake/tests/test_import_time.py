@@ -1,7 +1,8 @@
-from textwrap import dedent
-import numpy as np
-import subprocess
 import sys
+import subprocess
+from textwrap import dedent
+
+import numpy as np
 import pytest
 
 

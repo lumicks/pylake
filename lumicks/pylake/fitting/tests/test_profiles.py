@@ -1,8 +1,10 @@
-import warnings
-import pytest
 import re
-import numpy as np
+import warnings
 from textwrap import dedent
+
+import numpy as np
+import pytest
+
 from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
 from lumicks.pylake.fitting.parameters import Parameter

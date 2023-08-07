@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from lumicks.pylake.kymotracker.detail.localization_models import *
 from lumicks.pylake.kymotracker.detail.localization_models import CentroidLocalizationModel
 

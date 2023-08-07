@@ -1,12 +1,15 @@
 import json
+
+import numpy as np
 import pytest
 import matplotlib.pyplot as plt
-import numpy as np
+
 from lumicks.pylake.kymo import _kymo_from_array
-from lumicks.pylake.image_stack import ImageStack, TiffStack
+from lumicks.pylake.scalebar import ScaleBar, _create_scale_legend
+from lumicks.pylake.image_stack import TiffStack, ImageStack
+
 from .data.mock_confocal import generate_scan
 from .data.mock_widefield import MockTiffFile, make_frame_times
-from lumicks.pylake.scalebar import _create_scale_legend, ScaleBar
 
 
 def _validate_elements(ref_elements, item):

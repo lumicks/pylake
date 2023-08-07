@@ -1,15 +1,17 @@
-import pytest
-import numpy as np
-import inspect
-import re
 import io
-from pathlib import Path
+import re
+import inspect
 from copy import copy
+from pathlib import Path
+
+import numpy as np
+import pytest
+
 from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import (
-    _read_txt,
     KymoTrack,
     KymoTrackGroup,
+    _read_txt,
     import_kymotrackgroup_from_csv,
 )
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo

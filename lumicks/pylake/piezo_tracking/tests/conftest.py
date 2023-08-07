@@ -1,8 +1,9 @@
-import pytest
 import numpy as np
-from lumicks.pylake.channel import Continuous, TimeSeries, Slice
-from lumicks.pylake.fitting.models import ewlc_odijk_force
+import pytest
+
+from lumicks.pylake.channel import Slice, Continuous, TimeSeries
 from lumicks.pylake.calibration import ForceCalibration
+from lumicks.pylake.fitting.models import ewlc_odijk_force
 
 
 def reference_baseline():

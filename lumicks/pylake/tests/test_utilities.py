@@ -1,15 +1,16 @@
-from lumicks.pylake.detail.utilities import *
+import numpy as np
+import pytest
+import matplotlib as mpl
+from numpy.testing import assert_array_equal
+
 from lumicks.pylake.detail.confocal import timestamp_mean
+from lumicks.pylake.detail.utilities import *
 from lumicks.pylake.detail.utilities import (
+    method_cache,
     will_mul_overflow,
     could_sum_overflow,
     replace_key_aliases,
-    method_cache,
 )
-from numpy.testing import assert_array_equal
-import pytest
-import matplotlib as mpl
-import numpy as np
 
 
 def test_first():

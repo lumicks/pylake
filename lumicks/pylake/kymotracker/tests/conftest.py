@@ -1,8 +1,10 @@
-import pytest
 import numpy as np
-from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
+import pytest
+
 from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
+
 from .data.generate_gaussian_data import read_dataset as read_dataset_gaussian
 
 

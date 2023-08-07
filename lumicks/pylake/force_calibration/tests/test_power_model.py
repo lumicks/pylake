@@ -1,7 +1,10 @@
 import re
+
 import pytest
-from lumicks.pylake.force_calibration.detail.power_models import *
+
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
+from lumicks.pylake.force_calibration.detail.power_models import *
+
 from .data.simulate_calibration_data import power_model_to_time_series
 
 

@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox, VPacker, HPacker, TextArea
-from typing import Optional, Union
+from typing import Union, Optional
+from dataclasses import field, dataclass
+
+from matplotlib.offsetbox import HPacker, VPacker, TextArea, AuxTransformBox, AnchoredOffsetbox
 
 
 def _create_scale_legend(

@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
-from lumicks.pylake.detail.confocal import ScanAxis, ScanMetaData
-from lumicks.pylake.kymo import _kymo_from_array
 
-from ..data.mock_confocal import generate_scan_json, generate_scan, generate_kymo
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.detail.confocal import ScanAxis, ScanMetaData
+
+from ..data.mock_confocal import generate_kymo, generate_scan, generate_scan_json
 
 
 @pytest.mark.parametrize(

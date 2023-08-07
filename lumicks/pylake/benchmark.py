@@ -2,7 +2,9 @@ import os
 import timeit
 import tempfile
 import contextlib
+
 import numpy as np
+
 import lumicks.pylake as lk
 
 

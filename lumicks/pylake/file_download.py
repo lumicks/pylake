@@ -1,11 +1,11 @@
 import os
-import hashlib
 import json
+import hashlib
 import urllib.error
 from urllib.parse import urljoin
 from urllib.request import urlopen
-from tqdm.auto import tqdm
 
+from tqdm.auto import tqdm
 
 __all__ = ["download_from_doi"]
 

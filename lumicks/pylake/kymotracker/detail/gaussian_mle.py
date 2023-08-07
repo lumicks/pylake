@@ -1,5 +1,6 @@
-import numpy as np
 from functools import partial
+
+import numpy as np
 from scipy.optimize import minimize
 
 

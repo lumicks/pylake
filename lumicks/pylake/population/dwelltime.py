@@ -1,12 +1,14 @@
 import warnings
-import numpy as np
 from typing import Dict, Tuple, Union
+from dataclasses import field, dataclass
+
+import numpy as np
+import matplotlib.pyplot as plt
 from scipy.special import logsumexp
 from scipy.optimize import minimize
-from dataclasses import dataclass, field
-import matplotlib.pyplot as plt
 from deprecated.sphinx import deprecated
-from lumicks.pylake.fitting.parameters import Parameter, Params
+
+from lumicks.pylake.fitting.parameters import Params, Parameter
 from lumicks.pylake.fitting.profile_likelihood import ProfileLikelihood1D
 
 

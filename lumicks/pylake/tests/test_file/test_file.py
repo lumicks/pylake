@@ -1,12 +1,15 @@
-import numpy as np
-from lumicks import pylake
-import pytest
 import time
 from textwrap import dedent
+
+import numpy as np
+import pytest
+
+from lumicks import pylake
 from lumicks.pylake.detail.h5_helper import write_h5
-from . import test_file_items
 from lumicks.pylake.tests.data.mock_file import MockDataFile_v2
 from lumicks.pylake.tests.data.mock_confocal import generate_scan_json, generate_image_data
+
+from . import test_file_items
 
 
 def test_attributes(h5_file):

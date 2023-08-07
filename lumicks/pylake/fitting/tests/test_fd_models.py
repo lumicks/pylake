@@ -1,8 +1,10 @@
-from lumicks.pylake.fitting.models import *
-import lumicks.pylake.fitting.detail.model_implementation as model_impl
 from inspect import getfullargspec
+
 import numpy as np
 import pytest
+
+import lumicks.pylake.fitting.detail.model_implementation as model_impl
+from lumicks.pylake.fitting.models import *
 
 
 def test_deprecated_models():

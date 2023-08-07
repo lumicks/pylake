@@ -1,8 +1,9 @@
+from dataclasses import make_dataclass
+
 import numpy as np
 import matplotlib as mpl
-from matplotlib.colors import LinearSegmentedColormap
 from skimage.color import xyz2rgb
-from dataclasses import make_dataclass
+from matplotlib.colors import LinearSegmentedColormap
 
 
 class ColorAdjustment:

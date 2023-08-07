@@ -1,9 +1,10 @@
 import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
-from .baseline import ForceBaseLine
-from ..channel import Slice
 
+from ..channel import Slice
+from .baseline import ForceBaseLine
 
 __all__ = ["DistanceCalibration", "PiezoTrackingCalibration", "PiezoForceDistance"]
 

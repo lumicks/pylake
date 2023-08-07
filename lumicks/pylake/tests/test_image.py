@@ -1,12 +1,14 @@
-import pytest
 import re
+
 import numpy as np
-from lumicks.pylake.adjustments import ColorAdjustment, wavelength_to_xyz, colormaps
+import pytest
+
+from lumicks.pylake.adjustments import ColorAdjustment, colormaps, wavelength_to_xyz
 from lumicks.pylake.detail.image import (
+    histogram_rows,
     reconstruct_image,
     reconstruct_image_sum,
     reconstruct_num_frames,
-    histogram_rows,
     first_pixel_sample_indices,
 )
 

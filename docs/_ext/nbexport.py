@@ -1,15 +1,15 @@
+import os
 import itertools
 import mimetypes
-import os
 import posixpath
 from base64 import b64encode
 
 import nbformat
+from sphinx import roles, addnodes
 from docutils import nodes, writers
 from docutils.parsers.rst import directives
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
-from sphinx import addnodes, roles
 
 
 def _finalize_markdown_cells(nb):

@@ -1,26 +1,27 @@
-from .parameters import Parameter, Params
+import uuid
+import inspect
+from copy import deepcopy
+from collections import OrderedDict
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from .parameters import Params, Parameter
 from .detail.utilities import (
-    optimal_plot_layout,
-    print_styled,
-    solve_formatter_tex,
     escape_tex,
+    print_styled,
     solve_formatter,
+    optimal_plot_layout,
+    solve_formatter_tex,
 )
 from .detail.derivative_manipulation import (
-    numerical_jacobian,
     numerical_diff,
     invert_function,
     invert_jacobian,
     invert_derivative,
+    numerical_jacobian,
     invert_function_interpolation,
 )
-from collections import OrderedDict
-from copy import deepcopy
-
-import uuid
-import inspect
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 class Model:

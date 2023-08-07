@@ -1,42 +1,41 @@
+from . import simulation
+from .file import *
+from .scalebar import ScaleBar
 from .__about__ import (
-    __author__,
-    __copyright__,
     __doc__,
+    __url__,
     __email__,
+    __title__,
+    __author__,
     __license__,
     __summary__,
-    __title__,
-    __url__,
     __version__,
+    __copyright__,
 )
-
-from .file_download import *
 from .benchmark import benchmark
-from .adjustments import ColorAdjustment, colormaps
-from .scalebar import ScaleBar
-from .image_stack import ImageStack, CorrelatedStack
-from .piezo_tracking.piezo_tracking import *
-from .piezo_tracking.baseline import *
-from .file import *
-from .fitting.models import *
-from .fitting.fit import FdFit
-from .fitting.parameter_trace import parameter_trace
-from .nb_widgets.range_selector import FdRangeSelector, FdDistanceRangeSelector
-from .kymotracker.kymotracker import *
-from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from .fdensemble import FdEnsemble
 from .population import *
+from .adjustments import ColorAdjustment, colormaps
+from .fitting.fit import FdFit
+from .image_stack import ImageStack, CorrelatedStack
+from .file_download import *
+from .fitting.models import *
+from .fitting.parameter_trace import parameter_trace
+from .kymotracker.kymotracker import *
+from .piezo_tracking.baseline import *
+from .nb_widgets.range_selector import FdRangeSelector, FdDistanceRangeSelector
 from .force_calibration.convenience import calibrate_force
+from .piezo_tracking.piezo_tracking import *
+from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from .force_calibration.calibration_models import (
-    PassiveCalibrationModel,
     ActiveCalibrationModel,
+    PassiveCalibrationModel,
     viscosity_of_water,
 )
 from .force_calibration.power_spectrum_calibration import (
-    calculate_power_spectrum,
     fit_power_spectrum,
+    calculate_power_spectrum,
 )
-from . import simulation
 
 
 def pytest(args=None, plugins=None):
@@ -49,8 +48,9 @@ def pytest(args=None, plugins=None):
     plugins : list
         Plugin objects to be auto-registered during initialization.
     """
-    import pytest
     import pathlib
+
+    import pytest
 
     args = args or []
     module_path = str(pathlib.Path(__file__).parent)

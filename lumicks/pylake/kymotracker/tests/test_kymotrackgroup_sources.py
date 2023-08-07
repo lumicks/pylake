@@ -1,7 +1,9 @@
 import re
+
 import pytest
-from lumicks.pylake.kymotracker.kymotrack import *
+
 from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymotracker.kymotrack import *
 
 
 @pytest.fixture(scope="module")

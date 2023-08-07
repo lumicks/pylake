@@ -1,7 +1,8 @@
-import pytest
 import re
 
-from lumicks.pylake.detail.timeindex import regex_template, regex, Timeindex
+import pytest
+
+from lumicks.pylake.detail.timeindex import Timeindex, regex, regex_template
 
 
 def test_regex_template():
