@@ -70,7 +70,7 @@ def write_h5(
     ----------
     lk_file : lk.File
         pylake file handle
-    output_filename : str
+    output_filename : str | os.PathLike
         Output file name.
     compression_level : int
         Compression level for gzip compression.
