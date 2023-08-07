@@ -323,7 +323,7 @@ class KymoWidget:
 
         Parameters
         ----------
-        filename : str
+        filename : str | os.PathLike
             Filename to output kymograph tracks to.
         delimiter : str
             Which delimiter to use in the csv file.

@@ -17,7 +17,7 @@ class TiffExport:
 
         Parameters
         ----------
-        filename : str
+        filename : str | os.PathLike
             The name of the TIFF file where the image will be saved.
         dtype : np.dtype
             The data type of a single color channel in the resulting image.

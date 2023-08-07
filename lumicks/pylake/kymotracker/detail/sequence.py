@@ -38,7 +38,7 @@ def read_genbank(filename):
 
     Parameters
     ----------
-    filename: str
+    filename: str | os.PathLike
         Path to the file to be parsed.
     """
 

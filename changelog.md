@@ -30,6 +30,7 @@
 * [`File.save_as()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.File.html#lumicks.pylake.File.save_as) data now allows passing in a single string for the `omit_data` parameter.
 * Gracefully handle empty `Scan` after slicing. Previously, a slice operation on a `Scan` that resulted in no frames remaining raised a `NotImplementedError`. Now it returns an `EmptyScan`.
 * Improved performance of `Scan.pixel_time_seconds`, `Kymo.pixel_time_seconds` and `Kymo.line_time_seconds`.
+* Marked functions that take file paths as arguments with the `os.PathLike` type hint to idicate that `pathlib.Path` and similar types are also accepted (not just `str`).
 
 ## v1.1.1 | 2023-06-13
 

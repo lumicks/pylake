@@ -24,7 +24,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
     Parameters
     ----------
-    filename : str
+    filename : str | os.PathLike
         The HDF5 file to open in read-only mode
 
     Examples
@@ -313,7 +313,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
         Parameters
         ----------
-        filename : str
+        filename : str | os.PathLike
             Output file name.
         compression_level : int
             Compression level for gzip compression (default: 5).

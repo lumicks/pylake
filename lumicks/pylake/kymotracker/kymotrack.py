@@ -16,7 +16,7 @@ def _read_txt(file, delimiter):
 
     Parameters
     ----------
-    file : str or StringIO
+    file : str | os.PathLike | StringIO
         path to a file to read, or handle to read from directly
     delimiter : str
         Delimiter to use.
@@ -70,7 +70,7 @@ def export_kymotrackgroup_to_csv(
 
     Parameters
     ----------
-    filename : str
+    filename : str | os.PathLike
         Filename to output KymoTrackGroup to.
     kymotrack_group : KymoTrackGroup
         Kymograph tracks to export.
@@ -156,7 +156,7 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
 
     Parameters
     ----------
-    filename : str
+    filename : str | os.PathLike
         filename to import from.
     kymo : Kymo
         kymograph instance that the CSV data was tracked from.
@@ -1377,7 +1377,7 @@ class KymoTrackGroup:
 
         Parameters
         ----------
-        filename : str
+        filename : str | os.PathLike
             Filename to output kymograph tracks to.
         delimiter : str
             Which delimiter to use in the csv file.
