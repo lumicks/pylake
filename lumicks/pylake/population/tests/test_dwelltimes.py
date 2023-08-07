@@ -41,7 +41,7 @@ def test_likelihood(exponential_data):
         (np.array([0.2, 0.3, 0.6, 1.2]), 0.1, np.array([0.5, 0.5, 1.3, 1.3]), 1.1932900895106002),
         (np.array([0.2, 0.3, 0.6, 1.2]), np.array([0.1, 0.1, 0.3, 0.3]), np.array([0.5, 0.5, 1.3, 1.3]), 1.7155483581674074),
         # fmt:on
-    ]
+    ],
 )
 def test_multi_observation_limits(data, min_obs, max_obs, loglik):
     fit = DwelltimeModel(data, 1, min_observation_time=min_obs, max_observation_time=max_obs)
@@ -54,7 +54,7 @@ def test_invalid_multi_dwelltime_parameters():
         ValueError,
         match=re.escape(
             r"Size of minimum observation time array (2) must be equal to that of dwelltimes (3)"
-        )
+        ),
     ):
         DwelltimeModel(data, min_observation_time=np.array([0.1, 0.2]), max_observation_time=10.0)
 
@@ -62,7 +62,7 @@ def test_invalid_multi_dwelltime_parameters():
         ValueError,
         match=re.escape(
             r"Size of maximum observation time array (4) must be equal to that of dwelltimes (3)"
-        )
+        ),
     ):
         DwelltimeModel(data, min_observation_time=1.0, max_observation_time=np.array([1, 2, 3, 4]))
 
@@ -71,7 +71,7 @@ def test_invalid_multi_dwelltime_parameters():
         match=re.escape(
             r"When providing an array of discretization timesteps, the number of "
             r"discretization timesteps (2) should equal the number of dwell times provided (3)."
-        )
+        ),
     ):
         DwelltimeModel(data, min_observation_time=10, discretization_timestep=np.array([10, 1]))
 
@@ -80,7 +80,7 @@ def test_invalid_multi_dwelltime_parameters():
         match=re.escape(
             r"To use a continuous model, specify a discretization timestep of None. Do not pass "
             r"zero as this leads to an invalid probability mass function."
-        )
+        ),
     ):
         DwelltimeModel(data, min_observation_time=10, discretization_timestep=np.array([10, 0, 10]))
 
@@ -136,22 +136,18 @@ def test_fit_parameters(exponential_data):
             np.array([0.1, 0.1, 0.3, 0.3]),
             np.array([0.5, 0.5, 1.3, 1.3]),
             None,
-            (0.3497069, 1.3528150)
+            (0.3497069, 1.3528150),
         ),
         (0.2, 1.4, 0.2, (0.247748, 1.463575)),
-        (
-            np.array([0.2, 0.2, 0.4, 0.4]),
-            1.4,
-            np.array([0.2, 0.2, 0.4, 0.4]),
-            (0.21762, 1.448516)
-        ),
-    ]
+        (np.array([0.2, 0.2, 0.4, 0.4]), 1.4, np.array([0.2, 0.2, 0.4, 0.4]), (0.21762, 1.448516)),
+    ],
 )
 def test_bootstrap_multi(min_obs, max_obs, ref_ci, time_step):
     np.random.seed(123)
     data = np.array([0.2, 0.3, 0.6, 1.2])
     fit = DwelltimeModel(
-        data, 1,
+        data,
+        1,
         min_observation_time=min_obs,
         max_observation_time=max_obs,
         discretization_timestep=time_step,
@@ -233,7 +229,7 @@ def test_dwelltime_profiles(exponential_data, exp_name, reference_bounds, reinte
         dataset["data"],
         n_components=2,
         **dataset["parameters"].observation_limits,
-        discretization_timestep=dataset["parameters"].dt
+        discretization_timestep=dataset["parameters"].dt,
     )
 
     profiles = fit.profile_likelihood(max_chi2_step=0.25)
@@ -252,7 +248,7 @@ def test_dwelltime_profiles(exponential_data, exp_name, reference_bounds, reinte
         match=re.escape(
             "Significance level (0.001) cannot be chosen lower or equal than the minimum profiled "
             "level (0.01)."
-        )
+        ),
     ):
         profiles.get_interval("amplitude", 0, 0.001)
 
@@ -267,11 +263,11 @@ def test_dwelltime_profile_plots(n_components):
         max_observation_time=1e4,
     )
     profiles = fit.profile_likelihood(num_steps=2)  # Keep it short
-    plt.close('all')
+    plt.close("all")
     profiles.plot()
     np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 22.415292)
 
-    plt.close('all')
+    plt.close("all")
     profiles.plot(alpha=0.5)
     np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 19.02877)
 
@@ -288,7 +284,7 @@ def test_dwelltime_profiles_dunders(exponential_data):
         r"DwelltimeProfiles({'amplitude 0': <lumicks.pylake.fitting.profile_likelihood"
     )
 
-    ref_keys = ['amplitude 0', 'amplitude 1', 'lifetime 0', 'lifetime 1']
+    ref_keys = ["amplitude 0", "amplitude 1", "lifetime 0", "lifetime 1"]
     for key, ref_key in zip(profiles.keys(), ref_keys):
         assert key == ref_key
         assert profiles[key] is profiles.profiles[key]
@@ -371,12 +367,12 @@ def test_plots(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits)
     fit.hist()
-    plt.close('all')
+    plt.close("all")
 
     np.random.seed(123)
     bootstrap = fit.calculate_bootstrap(iterations=2)
     bootstrap.hist()
-    plt.close('all')
+    plt.close("all")
 
     with pytest.warns(DeprecationWarning):
         bootstrap.plot()
@@ -405,7 +401,8 @@ def test_integration_dwelltime_fixing_parameters(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     initial_params = np.array([0.2, 0.2, 0.5, 0.5])
     pars, log_likelihood = _exponential_mle_optimize(
-        2, dataset["data"],
+        2,
+        dataset["data"],
         **dataset["parameters"].observation_limits,
         initial_guess=initial_params,
         fixed_param_mask=[False, True, False, True],
@@ -417,7 +414,10 @@ def test_integration_dwelltime_fixing_parameters(exponential_data):
     "dataset, n_components, ref_discrete, ref_continuous",
     [
         (
-            "dataset_1exp_discrete", 1, [1, 1.512417], [1, 1.462961],  # True value: [1, 1.5]
+            "dataset_1exp_discrete",
+            1,
+            [1, 1.512417],
+            [1, 1.462961],  # True value: [1, 1.5]
         ),
         (
             "dataset_2exp_discrete",  # True values: [0.4, 0.6, 1.5, 5]
@@ -476,7 +476,7 @@ def test_discrete_dwelltimes(exponential_data, dataset, n_components, ref_discre
             1, np.array([0.3, 0.5]), [False, False],
             [False, True], None, 0, [1.0, 0.5],
         ],
-        # fmt:off
+        # fmt:on
     ],
 )
 def test_parameter_fixing(
@@ -503,7 +503,7 @@ def test_parameter_fixing(
         np.testing.assert_allclose(constraints["args"], free_amplitudes)
         np.testing.assert_allclose(
             constraints["fun"](np.arange(2 * n_components) / (2 * n_components), free_amplitudes),
-            ref_const_fun
+            ref_const_fun,
         )
     else:
         assert not constraints
@@ -514,7 +514,7 @@ def test_invalid_models():
         ValueError,
         match=re.escape(
             "Length of fixed parameter mask (4) is not equal to the number of model parameters (6)"
-        )
+        ),
     ):
         _handle_amplitude_constraint(
             2, np.array([1, 0.0001, 0.0, 0.3, 0.3, 0.3]), np.array([True, True, False, False])
@@ -524,7 +524,7 @@ def test_invalid_models():
         _handle_amplitude_constraint(
             3,
             np.array([1, 0.0001, 0.1, 0.3, 0.3, 0.3]),
-            np.array([True, True, False, False, False, False])
+            np.array([True, True, False, False, False, False]),
         )
 
     # If all amplitudes are fixed, they have to be 1.
@@ -537,15 +537,17 @@ def test_invalid_models():
     _handle_amplitude_constraint(
         3,
         np.array([0.25, 0.25, 0.5, 0.3, 0.3, 0.3]),
-        np.array([True, True, True, False, True, True])
+        np.array([True, True, True, False, True, True]),
     )
 
 
 @pytest.mark.parametrize(
-    "multiple_dt", [False, True],
+    "multiple_dt",
+    [False, True],
 )
 @pytest.mark.parametrize(
-    "dt", [None, 0.01, 0.0001],  # 0.1,
+    "dt",
+    [None, 0.01, 0.0001],  # 0.1,
 )
 @pytest.mark.parametrize(
     "params, t, min_observation_time, max_observation_time",
@@ -568,12 +570,13 @@ def test_invalid_models():
         [[0.4, 0.6, 1e-2, 1.0], np.arange(0.0, 10.0, 0.1), 0, 1.0 + np.arange(0.0, 10.0, 0.1) * 2],
         # Mix of infinity and values for t_max
         [[0.4, 0.6, 1e-2, 1.0], np.array([1.0, 2.0, 3.0]), 0, np.array([3.0, np.inf, 5.0])],
-    ]
+    ],
 )
 def test_analytic_gradient_exponential(
     params, t, min_observation_time, max_observation_time, dt, multiple_dt
 ):
     dt = dt * np.arange(1, len(t) + 1) if (multiple_dt and dt is not None) else dt
+
     def fn(params):
         return np.atleast_1d(
             _exponential_mixture_log_likelihood(
@@ -621,6 +624,7 @@ def test_analytic_gradient_exponential_used(monkeypatch):
 
 def test_dwelltime_exponential_no_free_params(monkeypatch):
     """When fitting a single parameter, we don't need to optimize"""
+
     def stop(*args, **kwargs):
         raise StopIteration
 
