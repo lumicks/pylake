@@ -29,15 +29,6 @@ a:visited {
   color: var(--darkblue);
 }
 
-/* Cross references to same as color for links */
-code.xref.py {
-  color: var(--blue) !important;
-}
-
-code.xref.any.py {
-  color: var(--blue) !important;
-}
-
 /* inline code */
 .rst-content code.literal {
   color: var(--gray);
@@ -55,4 +46,17 @@ code.xref.any.py {
 .rst-content pre.literal-block,
 .rst-content div[class^='highlight'] {
   border-radius: 3px;
+}
+
+/* Cross references to same as color for links */
+code.xref.py {
+  color: var(--blue) !important;
+  background-color: #e2f5fd;
+  border-color: var(--blue);
+}
+
+code.xref.any.py {
+  color: var(--blue) !important;
+  background-color: #e2f5fd;
+  border-color: var(--blue);
 }
