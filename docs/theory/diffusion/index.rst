@@ -7,4 +7,5 @@ Find out about diffusion
     :caption: Contents
     :maxdepth: 1
 
+    intro
     diffusion
