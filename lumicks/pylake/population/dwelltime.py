@@ -504,6 +504,10 @@ class DwelltimeModel:
     ValueError
         if `min_observation_time` or `max_observation_time` is not a scalar and is not the same
         length as `dwelltimes`.
+    ValueError
+        if `discretization_time` is provided and is bigger than the `min_observation_time`. A
+        minimum observation time shorter than the discretization step does not make sense under
+        this model.
     """
 
     def __init__(
@@ -541,6 +545,20 @@ class DwelltimeModel:
                         f"discretization timesteps ({discretization_timestep.size}) should equal "
                         f"the number of dwell times provided ({dwelltimes.size})."
                     )
+
+            # A minimum time shorter than the discretization time makes no sense (cannot be
+            # observed under this model)
+            rel_tolerance = 1e-6
+            if np.any(
+                violations := discretization_timestep > (1.0 + rel_tolerance) * min_observation_time
+            ):
+                dt, min_obs = np.array(
+                    list(np.broadcast(discretization_timestep, min_observation_time))
+                )[violations, :].T
+                raise ValueError(
+                    f"The discretization timestep ({dt.flat[0]}) cannot be larger than the minimum "
+                    f"observable time ({min_obs.flat[0]})."
+                )
 
         self.n_components = n_components
         self.dwelltimes = dwelltimes
