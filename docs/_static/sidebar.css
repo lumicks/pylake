@@ -1,0 +1,28 @@
+.wy-menu a {
+    color: var(--lightgray);
+}
+
+/* docs build indicator */
+.rst-versions .rst-current-version {
+    color: var(--pink);
+}
+
+/* Navigation side bar */
+.wy-side-nav-search {
+    background-color: var(--blue);
+}
+
+.wy-side-nav-search input[type=text] {
+    border-color: var(--darkblue);
+    border-width: 1.5px;
+}
+
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption {
+    color: var(--blue);
+}
+
+/* Navigation side bar - version label */
+.wy-side-nav-search>div.version {
+    color: rgba(255, 255, 255, 0.6);
+}
