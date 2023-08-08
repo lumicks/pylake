@@ -20,7 +20,11 @@ from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 def compare_kymotrack_group(group1, group2):
     assert len(group1) == len(group2)
     attributes = (
-        "coordinate_idx", "time_idx", "position", "seconds", "_minimum_observable_duration"
+        "coordinate_idx",
+        "time_idx",
+        "position",
+        "seconds",
+        "_minimum_observable_duration",
     )
     for track1, track2 in zip(group1, group2):
         for attr in attributes:

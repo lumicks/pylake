@@ -12,7 +12,9 @@ def generate_parameters(n_states):
     }
 
 
-def generate_trace(n_states, initial_state_prob, transition_prob, means, st_devs, n_frames=100, seed=123):
+def generate_trace(
+    n_states, initial_state_prob, transition_prob, means, st_devs, n_frames=100, seed=123
+):
     """Generate a time trace from HMM parameters.
 
     Parameters

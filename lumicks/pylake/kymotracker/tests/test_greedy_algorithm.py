@@ -39,7 +39,9 @@ def test_kymotracker_subset_test_greedy(kymo_integration_test_data):
     pixel_size = kymo_integration_test_data.pixelsize_um[0]
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
 
-    tracks = track_greedy(kymo_integration_test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
+    tracks = track_greedy(
+        kymo_integration_test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect
+    )
     np.testing.assert_allclose(
         tracks[0].sample_from_image(1, correct_origin=True), [40] * np.ones(10)
     )
@@ -81,7 +83,9 @@ def test_kymotracker_greedy_algorithm_integration_tests(kymo_integration_test_da
     np.testing.assert_allclose(tracks[1].photon_counts, np.full((10,), 42))
 
     rect = [[0.0 * line_time, 15.0 * pixel_size], [30 * line_time, 30.0 * pixel_size]]
-    tracks = track_greedy(test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect)
+    tracks = track_greedy(
+        test_data, "red", track_width=3 * pixel_size, pixel_threshold=4, rect=rect
+    )
     np.testing.assert_allclose(tracks[0].coordinate_idx, [21] * np.ones(10))
     np.testing.assert_allclose(tracks[0].time_idx, np.arange(15, 25))
 
@@ -128,10 +132,11 @@ def test_greedy_algorithm_input_validation(kymo_integration_test_data):
 def test_default_parameters(kymo_pixel_calibrations):
     # calibrated in microns, kilobase pairs, pixels
     for kymo, default_width in zip(kymo_pixel_calibrations, [0.35, 0.35 / 0.34, 4]):
-
         # test that default values are used when `None` is supplied
         default_threshold = np.percentile(kymo.get_image("red"), 98)
-        ref_tracks = track_greedy(kymo, "red", track_width=default_width, pixel_threshold=default_threshold)
+        ref_tracks = track_greedy(
+            kymo, "red", track_width=default_width, pixel_threshold=default_threshold
+        )
 
         tracks = track_greedy(kymo, "red", track_width=None, pixel_threshold=default_threshold)
         for ref, track in zip(ref_tracks, tracks):
@@ -157,7 +162,8 @@ def test_default_parameters(kymo_pixel_calibrations):
 
         # To verify this for the width, we have to make sure we go to the next odd window size.
         tracks = track_greedy(
-            kymo, "red",
+            kymo,
+            "red",
             track_width=default_width / kymo.pixelsize[0] + 2,
             pixel_threshold=None,
             bias_correction=False,
@@ -165,4 +171,3 @@ def test_default_parameters(kymo_pixel_calibrations):
         with pytest.raises(AssertionError):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
-

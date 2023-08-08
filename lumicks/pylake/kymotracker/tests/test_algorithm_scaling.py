@@ -38,11 +38,15 @@ def test_kymotracker_positional_scaling(vel, dt, dx):
     np.testing.assert_allclose(traces[0].position, ref_positions, rtol=1e-2)
 
     # Check whether a wrong velocity also fails to track the line
-    traces = track_greedy(kymo, "red", pixel_threshold=3, track_width=1, sigma=0.01, velocity=2 * vel)
+    traces = track_greedy(
+        kymo, "red", pixel_threshold=3, track_width=1, sigma=0.01, velocity=2 * vel
+    )
     np.testing.assert_equal(len(traces[0].seconds), 1)
     np.testing.assert_equal(len(traces[0].position), 1)
 
     # When sigma is large, we expect the line to be strung together despite the velocity being zero
-    traces = track_greedy(kymo, "red", pixel_threshold=3, track_width=1, sigma=0.5 * vel * dx, velocity=0)
+    traces = track_greedy(
+        kymo, "red", pixel_threshold=3, track_width=1, sigma=0.5 * vel * dx, velocity=0
+    )
     np.testing.assert_allclose(traces[0].seconds, ref_seconds)
     np.testing.assert_allclose(traces[0].position, ref_positions, rtol=1e-2)
