@@ -2,9 +2,8 @@ import warnings
 from dataclasses import dataclass
 
 import numpy as np
+import scipy
 import matplotlib.pyplot as plt
-from scipy import stats
-from scipy.optimize import curve_fit, minimize_scalar
 
 from lumicks.pylake.detail.utilities import downsample
 
@@ -89,7 +88,7 @@ def f_test(sse_restricted, sse_unrestricted, num_data, num_pars_difference, num_
         return 0.0
     else:
         f_statistic = nominator / denominator
-        p_value = 1.0 - stats.f.cdf(f_statistic, num_pars_difference, num_pars_unrestricted)
+        p_value = 1.0 - scipy.stats.f.cdf(f_statistic, num_pars_difference, num_pars_unrestricted)
         return p_value
 
 
@@ -115,7 +114,7 @@ def fit_piecewise_linear(x, y):
     slope1_est = (y_mid - y_start) / (x_mid - x_start)
     slope2_est = (y_end - y_mid) / (x_end - x_mid)
     initial_guess = [x_mid, y_mid, slope1_est, slope2_est]
-    pars, _ = curve_fit(piecewise_linear, x, y, initial_guess)
+    pars, _ = scipy.optimize.curve_fit(piecewise_linear, x, y, initial_guess)
 
     single_pars = np.polyfit(x, y, 1)
     sse_restricted = np.sum((np.polyval(single_pars, x) - y) ** 2)
@@ -194,10 +193,10 @@ def fit_damped_sine_with_polynomial(
         guesses[max(0, min_error_index - 1)],
         guesses[min(min_error_index + 1, guesses.size - 1)],
     ]
-    result = minimize_scalar(cost, method="bounded", bounds=search_range).x
+    result = scipy.optimize.minimize_scalar(cost, method="bounded", bounds=search_range).x
 
     # After obtaining the amplitude, we can fit the decay parameter reliably
-    result, _ = curve_fit(
+    result, _ = scipy.optimize.curve_fit(
         exp_sine_with_polynomial,
         independent,
         dependent,

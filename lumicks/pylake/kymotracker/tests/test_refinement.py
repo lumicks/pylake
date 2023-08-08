@@ -1,8 +1,8 @@
 import re
 
 import numpy as np
+import scipy
 import pytest
-from scipy.stats import norm
 
 from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
@@ -243,7 +243,7 @@ def test_no_swap_gaussian_refinement():
     def gen_gaussians(locs):
         x = np.arange(0, 20, 1)
         return np.random.poisson(
-            200 * np.sum(np.vstack([norm.pdf(x, loc=loc) for loc in locs]), axis=0) + 10
+            200 * np.sum(np.vstack([scipy.stats.norm.pdf(x, loc=loc) for loc in locs]), axis=0) + 10
         )
 
     np.random.seed(31415)

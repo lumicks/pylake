@@ -1,8 +1,7 @@
 import math
 
 import numpy as np
-from scipy.signal import convolve2d
-from scipy.ndimage import grey_dilation, gaussian_filter
+import scipy
 
 
 def peak_estimate(data, half_width, thresh):
@@ -23,8 +22,8 @@ def peak_estimate(data, half_width, thresh):
         Threshold for accepting something as a peak.
     """
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
-    data = gaussian_filter(data, [0.5, 0])
-    dilated = grey_dilation(data, (dilation_factor, 0))
+    data = scipy.ndimage.gaussian_filter(data, [0.5, 0])
+    dilated = scipy.ndimage.grey_dilation(data, (dilation_factor, 0))
     dilated[dilated < thresh] = -1
     coordinates, time_points = np.where(data == dilated)
     return coordinates, time_points
@@ -298,8 +297,8 @@ def refine_peak_based_on_moment(
     mean_kernel = np.ones((2 * half_kernel_size + 1, 1))
     coordinates = np.copy(coordinates)
 
-    m0 = convolve2d(data, mean_kernel, "same")
-    subpixel_offset = convolve2d(data, dir_kernel, "same") / (m0 + eps)
+    m0 = scipy.signal.convolve2d(data, mean_kernel, "same")
+    subpixel_offset = scipy.signal.convolve2d(data, dir_kernel, "same") / (m0 + eps)
 
     max_coordinates = subpixel_offset.shape[0]
     for _ in range(max_iter):

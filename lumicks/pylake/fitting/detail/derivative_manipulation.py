@@ -1,8 +1,7 @@
 import warnings
 
 import numpy as np
-import scipy.optimize as optim
-from scipy.interpolate import InterpolatedUnivariateSpline
+import scipy
 
 
 def numerical_diff(fn, x, dx=1e-6):
@@ -29,7 +28,7 @@ def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
     def fit_single(single_distance, initial_guess):
         """Invert a single independent / dependent data point"""
         jac = derivative_function if derivative_function else "2-point"
-        single_estimate = optim.least_squares(
+        single_estimate = scipy.optimize.least_squares(
             lambda f: model_function(f) - single_distance,
             initial_guess,
             jac=jac,
@@ -122,7 +121,7 @@ def invert_function_interpolation(
     result = np.zeros(d.shape)
     if np.sum(interpolated_idx) > 3 and len(f_range) > 3:
         try:
-            interp = InterpolatedUnivariateSpline(d_range, f_range, k=3)
+            interp = scipy.interpolate.InterpolatedUnivariateSpline(d_range, f_range, k=3)
             result[interpolated_idx] = interp(d[interpolated_idx])
         except Exception as e:
             warnings.warn(

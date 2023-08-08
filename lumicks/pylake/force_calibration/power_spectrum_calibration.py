@@ -33,8 +33,6 @@ from collections import namedtuple
 
 import numpy as np
 import scipy
-import scipy.optimize
-import scipy.constants
 import matplotlib.pyplot as plt
 from tabulate import tabulate
 

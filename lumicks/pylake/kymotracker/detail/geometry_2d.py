@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.ndimage import gaussian_filter
+import scipy
 
 from .linalg_2d import eigenvalues_2d_symmetric, eigenvector_2d_symmetric
 
@@ -112,11 +112,11 @@ def calculate_image_geometry(data, sig_x, sig_y):
     inside: np_array
         2D image mask whether it is a potential line center or not.
     """
-    gx = gaussian_filter(data, [sig_x, sig_y], order=[1, 0])
-    gy = gaussian_filter(data, [sig_x, sig_y], order=[0, 1])
-    gxx = gaussian_filter(data, [sig_x, sig_y], order=[2, 0])
-    gyy = gaussian_filter(data, [sig_x, sig_y], order=[0, 2])
-    gxy = gaussian_filter(data, [sig_x, sig_y], order=[1, 1])
+    gx = scipy.ndimage.gaussian_filter(data, [sig_x, sig_y], order=[1, 0])
+    gy = scipy.ndimage.gaussian_filter(data, [sig_x, sig_y], order=[0, 1])
+    gxx = scipy.ndimage.gaussian_filter(data, [sig_x, sig_y], order=[2, 0])
+    gyy = scipy.ndimage.gaussian_filter(data, [sig_x, sig_y], order=[0, 2])
+    gxy = scipy.ndimage.gaussian_filter(data, [sig_x, sig_y], order=[1, 1])
 
     nx, ny, largest_eig = largest_second_derivative_2d(gxx, gxy, gyy)
     px, py, inside = find_subpixel_location(gx, gy, largest_eig, nx, ny)
