@@ -13,7 +13,6 @@ exclude = '''
     | _build
     | build
     | dist
-    | tests  # ignore test directories until we have a better solution for test datasets
   )/
 )
 '''
