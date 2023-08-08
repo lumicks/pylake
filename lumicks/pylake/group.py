@@ -1,7 +1,5 @@
 import warnings
 
-import h5py
-
 from .channel import channel_class
 
 
@@ -29,6 +27,8 @@ class Group:
 
     def __getitem__(self, item):
         """Return a subgroup or a bluelake timeline channel"""
+        import h5py
+
         thing = self.h5[item]
         item_type = thing.name.split("/")[1]
         redirect_location, redirect_class = self._lk_file.redirect_list.get(item_type, (None, None))

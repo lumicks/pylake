@@ -1,8 +1,6 @@
 import warnings
 from fnmatch import fnmatch
 
-import h5py
-
 
 def _write_numerical_data(
     lk_file, out_file, name, node, compression_level, crop_time_range, verbose
@@ -82,6 +80,8 @@ def write_h5(
     verbose : bool, optional.
         Print verbose output. Default: False.
     """
+    import h5py
+
     omit_data = {omit_data} if isinstance(omit_data, str) else omit_data
     h5_file = lk_file.h5
 

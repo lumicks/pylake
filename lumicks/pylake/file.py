@@ -1,7 +1,6 @@
 import warnings
 from typing import Dict
 
-import h5py
 import numpy as np
 
 from .kymo import Kymo
@@ -41,6 +40,8 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     SUPPORTED_FILE_FORMAT_VERSIONS = [1, 2]
 
     def __init__(self, filename):
+        import h5py
+
         super().__init__(h5py.File(filename, "r"), lk_file=self)
         self._check_file_format()
 
@@ -112,6 +113,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
     def __str__(self):
         """Show a quick ASCII overview of the file's contents"""
+        import h5py
 
         def print_attributes(h5file):
             r = "File root metadata:\n"

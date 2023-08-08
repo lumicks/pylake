@@ -1,6 +1,5 @@
 import json
 
-import h5py
 import numpy as np
 
 # We generate mock data files for different versions of the Bluelake HDF5 file
@@ -9,6 +8,8 @@ import numpy as np
 
 class MockDataFile_v1:
     def __init__(self, file):
+        import h5py
+
         self.file = h5py.File(file, "w")
 
     def get_file_format_version(self):
