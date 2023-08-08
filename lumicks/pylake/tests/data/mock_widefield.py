@@ -86,7 +86,7 @@ def make_image(spots, bit_depth):
         img += Z.reshape(X.shape)
     img = img / img.max()
 
-    return (img * (2 ** bit_depth - 1)).astype(f"uint{bit_depth}")
+    return (img * (2**bit_depth - 1)).astype(f"uint{bit_depth}")
 
 
 def _make_base_description(version, bit_depth):
@@ -155,7 +155,6 @@ def make_alignment_image_data(
     camera="wt",
     version=1,
 ):
-
     spots = np.array(spots).T  # [2 x N]
     m_red, red_spots = apply_transform(spots, offsets=offsets, **red_warp_parameters)
     m_blue, blue_spots = apply_transform(spots, offsets=offsets, **blue_warp_parameters)

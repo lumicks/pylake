@@ -16,6 +16,7 @@ class MockLabel:
     def __init__(self):
         self.value = ""
 
+
 def calibrate_to_kymo(kymo):
     return (
         lambda coord_idx: kymo.pixelsize_um[0] * coord_idx,
@@ -29,7 +30,8 @@ def test_widget_open(kymograph):
 
 def test_parameters_kymo(kymograph):
     """Test whether the parameter setting is passed correctly to the algorithm. By setting the threshold to different
-    values we can check which tracks are detected and use that to verify that the parameter is used."""
+    values we can check which tracks are detected and use that to verify that the parameter is used.
+    """
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
     kymo_widget._algorithm_parameters["pixel_threshold"].value = 30
     kymo_widget._track_all()

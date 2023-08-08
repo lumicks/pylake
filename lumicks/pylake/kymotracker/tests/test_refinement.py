@@ -107,7 +107,11 @@ def test_refinement_with_background(loc, ref_count):
 
 def test_refinement_error(kymo_integration_test_data):
     args = [
-        [0], [25], kymo_integration_test_data, "red", kymo_integration_test_data.line_time_seconds
+        [0],
+        [25],
+        kymo_integration_test_data,
+        "red",
+        kymo_integration_test_data.line_time_seconds,
     ]
     with pytest.raises(
         ValueError, match=re.escape("track_width must at least be 3 pixels (0.150 [um])")
@@ -255,9 +259,7 @@ def test_no_swap_gaussian_refinement():
     )
     group = KymoTrackGroup(
         [
-            KymoTrack(
-                np.array([0, 1]), np.array([loc, loc]), kymo, "red", kymo.line_time_seconds
-            )
+            KymoTrack(np.array([0, 1]), np.array([loc, loc]), kymo, "red", kymo.line_time_seconds)
             for loc in locations
         ]
     )
@@ -406,7 +408,9 @@ def test_gaussian_refinement_plotting():
     group = KymoTrackGroup(
         [
             KymoTrack(np.array([0, 2]), np.array([2, 2]), kymo, "red", kymo.line_time_seconds),
-            KymoTrack(np.array([0, 1, 2]), np.array([4, 4, 4]), kymo, "red", kymo.line_time_seconds),
+            KymoTrack(
+                np.array([0, 1, 2]), np.array([4, 4, 4]), kymo, "red", kymo.line_time_seconds
+            ),
         ]
     )
 

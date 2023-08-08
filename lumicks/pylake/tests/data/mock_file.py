@@ -6,10 +6,10 @@ import numpy as np
 # We generate mock data files for different versions of the Bluelake HDF5 file
 # format:
 
-class MockDataFile_v1:
 
+class MockDataFile_v1:
     def __init__(self, file):
-        self.file = h5py.File(file, 'w')
+        self.file = h5py.File(file, "w")
 
     def get_file_format_version(self):
         return 1
@@ -90,16 +90,14 @@ class MockDataFile_v2(MockDataFile_v1):
 
             for i, v in attributes.items():
                 dset.attrs[i] = v
-    
+
     def make_note(self, note_name, attributes, note_text):
         if "Note" not in self.file:
             self.file.create_group("Note")
 
         if note_name not in self.file["Note"]:
             payload = {"name": note_name, "Note text": note_text}
-            dset = self.file["Note"].create_dataset(
-                note_name, data=json.dumps(payload)
-            )
+            dset = self.file["Note"].create_dataset(note_name, data=json.dumps(payload))
 
             for i, v in attributes.items():
                 dset.attrs[i] = v

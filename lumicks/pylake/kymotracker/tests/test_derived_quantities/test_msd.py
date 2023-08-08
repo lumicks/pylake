@@ -243,10 +243,18 @@ def test_diffusion_estimate_ols(
         (2.0, 1000, 5, 0.01, 0.5, 2.0191353993755534, 0.2691422691544549, 2, False),
         (2.0, 1000, 3, 0.01, 0.5, 1.5714322945079129, 0.8912916583320089, 2, True),
         (2.0, 5000, 5, 0.01, 0.5, 1.9352306588121024, 0.23809537086111288, 2, True),
-    ]
+    ],
 )
 def test_regression_ols_with_skipped_frames(
-    diffusion, num_points, max_lag, time_step, obs_noise, diff_est, std_err_est, skip, shuffle,
+    diffusion,
+    num_points,
+    max_lag,
+    time_step,
+    obs_noise,
+    diff_est,
+    std_err_est,
+    skip,
+    shuffle,
 ):
     with temp_seed(0):
         trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
@@ -426,7 +434,7 @@ def test_cve_skipped_samples(
             time_step,
             blur_constant,
             localization_var,
-            var_of_localization_var
+            var_of_localization_var,
         )
         np.testing.assert_allclose(diffusion_est, diffusion_ref)
         np.testing.assert_allclose(diffusion_var_est, diffusion_var_ref)

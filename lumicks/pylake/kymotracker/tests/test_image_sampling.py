@@ -27,13 +27,13 @@ def test_sampling():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
 
     # Tests the bound handling
     kymotrack = KymoTrack([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], test_img, "red", 0)
-    np.testing.assert_allclose(kymotrack.sample_from_image(
-        50, correct_origin=True), [0, 2, 3, 2, 0]
+    np.testing.assert_allclose(
+        kymotrack.sample_from_image(50, correct_origin=True), [0, 2, 3, 2, 0]
     )
     np.testing.assert_allclose(kymotrack.sample_from_image(2, correct_origin=True), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(1, correct_origin=True), [0, 2, 2, 2, 0])
@@ -46,8 +46,8 @@ def test_sampling():
     )
 
     kymotrack = KymoTrack([0, 1, 2, 3, 4], [0.1, 1.1, 2.1, 3.1, 4.1], test_img, "red", 0)
-    np.testing.assert_allclose(kymotrack.sample_from_image(
-        50, correct_origin=True), [0, 2, 3, 2, 0]
+    np.testing.assert_allclose(
+        kymotrack.sample_from_image(50, correct_origin=True), [0, 2, 3, 2, 0]
     )
     np.testing.assert_allclose(kymotrack.sample_from_image(2, correct_origin=True), [0, 2, 3, 2, 0])
     np.testing.assert_allclose(kymotrack.sample_from_image(1, correct_origin=True), [0, 2, 2, 2, 0])
@@ -71,10 +71,10 @@ def test_kymotrack_regression_sample_from_image_clamp():
         start=np.int64(20e9),
         dt=np.int64(1e9),
         samples_per_pixel=1,
-        line_padding=0
+        line_padding=0,
     )
-    assert np.array_equal(KymoTrack([0, 1], [2, 2], img, "red", 0).sample_from_image(
-        0, correct_origin=True), [1, 3]
+    assert np.array_equal(
+        KymoTrack([0, 1], [2, 2], img, "red", 0).sample_from_image(0, correct_origin=True), [1, 3]
     )
 
 
@@ -111,6 +111,6 @@ def test_origin_warning_sample_from_image():
             "the correct behavior and silence this warning, specify `correct_origin=True`. "
             "The old (incorrect) behavior is maintained until the next major release to "
             "ensure backward compatibility. To silence this warning use `correct_origin=False`"
-        )
+        ),
     ):
         tracks[0].sample_from_image(0)

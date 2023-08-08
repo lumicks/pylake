@@ -16,7 +16,6 @@ def test_distance_line_to_point():
 
 
 def test_stitching(blank_kymo, blank_kymo_track_args):
-
     segment_1 = KymoTrack([0, 1], [0, 1], *blank_kymo_track_args)
     segment_2 = KymoTrack([2, 3], [2, 3], *blank_kymo_track_args)
     segment_3 = KymoTrack([2, 3], [0, 0], *blank_kymo_track_args)
@@ -52,14 +51,16 @@ def test_stitching(blank_kymo, blank_kymo_track_args):
 
     # Check whether the alignment has to work in both directions
     # - and - should connect
-    track1, track2 = KymoTrack(
-        [0, 1], [0, 0], *blank_kymo_track_args), KymoTrack([2, 3], [0, 0], *blank_kymo_track_args
+    track1, track2 = (
+        KymoTrack([0, 1], [0, 0], *blank_kymo_track_args),
+        KymoTrack([2, 3], [0, 0], *blank_kymo_track_args),
     )
     assert len(stitch_kymo_lines([track1, track2], radius, 1, 2)) == 1
 
     # - and | should not connect.
-    track1, track2 = KymoTrack(
-        [0, 1], [0, 0], *blank_kymo_track_args), KymoTrack([2, 3], [0, 1], *blank_kymo_track_args
+    track1, track2 = (
+        KymoTrack([0, 1], [0, 0], *blank_kymo_track_args),
+        KymoTrack([2, 3], [0, 1], *blank_kymo_track_args),
     )
     assert len(stitch_kymo_lines([track1, track2], radius, 1, 2)) == 2
 

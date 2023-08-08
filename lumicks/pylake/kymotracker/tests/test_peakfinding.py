@@ -141,9 +141,7 @@ def test_bounds_to_centroid_data(bounds, selection_ref, center_ref, weights_ref)
     # fmt:on
 )
 def test_unbiased_centroid_estimator(data, ref_estimate):
-    np.testing.assert_allclose(
-        unbiased_centroid(np.array((3.5, 3.5)), data), ref_estimate
-    )
+    np.testing.assert_allclose(unbiased_centroid(np.array((3.5, 3.5)), data), ref_estimate)
 
 
 @pytest.mark.parametrize(

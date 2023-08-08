@@ -17,7 +17,7 @@ class GaussianParameters1D:
 
     @property
     def amplitude(self):
-        return self.total_photons * self.pixel_size * 1 / np.sqrt(2 * np.pi * self.width ** 2)
+        return self.total_photons * self.pixel_size * 1 / np.sqrt(2 * np.pi * self.width**2)
 
     def generate_coordinates(self, n_pixels):
         return np.arange(n_pixels) * self.pixel_size

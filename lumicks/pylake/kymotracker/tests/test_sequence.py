@@ -52,4 +52,4 @@ def test_read_genbank_corrupted():
     with pytest.raises(
         AttributeError, match="There is no feature table in this file; the format may be corrupted."
     ):
-        features = read_genbank(filename)
+        read_genbank(filename)

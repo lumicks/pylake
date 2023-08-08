@@ -44,7 +44,7 @@ def response_peak_ideal(corner_frequency, driving_frequency, driving_amplitude):
     Flyvbjerg, H. (2006). Calibration of optical tweezers with positional detection in the back
     focal plane. Review of scientific instruments, 77(10), 103101.
     """
-    return driving_amplitude ** 2 / (2 * (1 + (corner_frequency / driving_frequency) ** 2))
+    return driving_amplitude**2 / (2 * (1 + (corner_frequency / driving_frequency) ** 2))
 
 
 def generate_active_calibration_test_data(
