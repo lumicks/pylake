@@ -1,7 +1,6 @@
 from collections import OrderedDict
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from .parameters import Params
 
@@ -73,6 +72,8 @@ class FitData:
         return [x for x, y in self.transformations.items() if isinstance(y, str)]
 
     def plot(self, fmt, **kwargs):
+        import matplotlib.pyplot as plt
+
         return plt.plot(self.x, self.y, fmt, **kwargs)
 
     def __repr__(self):

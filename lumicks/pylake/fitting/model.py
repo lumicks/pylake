@@ -4,7 +4,6 @@ from copy import deepcopy
 from collections import OrderedDict
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from .parameters import Params, Parameter
 from .detail.utilities import (
@@ -384,6 +383,8 @@ class Model:
         **kwargs :
             Forwarded to :func:`matplotlib.pyplot.plot()`.
         """
+        import matplotlib.pyplot as plt
+
         if len(params) != len(self._params):
             raise ValueError(
                 "Parameter vector has invalid length. "
@@ -476,6 +477,8 @@ class Model:
             dna_model.plot(fit["data1"], distance1, 'k--')  # Plot model simulations for data set 1
             dna_model.plot(fit["data2"], distance2, 'k--')  # Plot model simulations for data set 2
         """
+        import matplotlib.pyplot as plt
+
         # Admittedly not very pythonic, but the errors you get otherwise are confusing.
         if not isinstance(params, Params):
             raise RuntimeError("Did not pass Params")

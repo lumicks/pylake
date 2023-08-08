@@ -3,8 +3,6 @@ import contextlib
 
 import numpy as np
 import cachetools
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
 
 def method_cache(name):
@@ -127,11 +125,15 @@ def unique(input_list):
 
 
 def get_color(i):
+    import matplotlib.pyplot as plt
+
     color_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     return color_cycle[i % len(color_cycle)]
 
 
 def lighten_color(c, amount):
+    import matplotlib as mpl
+
     hsv = mpl.colors.rgb_to_hsv(mpl.colors.to_rgb(c))
     hsv[2] = np.clip(hsv[2] + amount, 0.0, 1.0)
     return mpl.colors.hsv_to_rgb(hsv)

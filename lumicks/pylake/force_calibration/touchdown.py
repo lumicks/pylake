@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 
 from lumicks.pylake.detail.utilities import downsample
 
@@ -218,6 +217,8 @@ class TouchdownResult:
     interference_force: np.ndarray
 
     def plot(self, legend=True):
+        import matplotlib.pyplot as plt
+
         plt.plot(self.nanostage_position, self.axial_force, label="Axial force")
         plt.plot(
             self.interference_nanostage,

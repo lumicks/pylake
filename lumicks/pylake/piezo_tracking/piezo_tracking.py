@@ -1,7 +1,6 @@
 import warnings
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from ..channel import Slice
 from .baseline import ForceBaseLine
@@ -61,6 +60,8 @@ class DistanceCalibration:
 
     def plot(self):
         """Plot the calibration fit"""
+        import matplotlib.pyplot as plt
+
         plt.scatter(self.position, self.distance, s=2, label="data")
         plt.plot(self.position, self._model(self.position), "k", label=f"${str(self)}$")
         plt.xlabel("Mirror position")
@@ -70,6 +71,8 @@ class DistanceCalibration:
 
     def plot_residual(self):
         """Plot the residual of the calibration fit"""
+        import matplotlib.pyplot as plt
+
         plt.scatter(self.position, self._model(self.position) - self.distance, s=2)
         plt.ylabel("Residual [um]")
         plt.xlabel("Mirror position")

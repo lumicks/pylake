@@ -5,8 +5,6 @@ from typing import Optional
 from dataclasses import dataclass
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.widgets import RectangleSelector
 
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
@@ -412,6 +410,7 @@ class KymoWidget:
     def _create_widgets(self):
         """Create widgets for setting kymotracking settings"""
         import ipywidgets
+        import matplotlib.pyplot as plt
         from IPython.display import display
 
         if not max([backend in plt.get_backend() for backend in ("nbAgg", "ipympl")]):
@@ -546,6 +545,9 @@ class KymoWidget:
             self._track_splitter.set_active(True)
 
     def _show(self, use_widgets, **kwargs):
+        import matplotlib.pyplot as plt
+        from matplotlib.widgets import RectangleSelector
+
         if self._fig:
             plt.close(self._fig)
             self._plotted_tracks = []

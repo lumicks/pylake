@@ -2,7 +2,6 @@ from collections import OrderedDict
 
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 
 from .model import Model
 from .datasets import Datasets, FdDatasets
@@ -194,6 +193,8 @@ class Fit:
         fitted : array_like
             list of which parameters are fitted
         """
+        import matplotlib.pyplot as plt
+
         if show_fit:
             fig = plt.gcf()
 
@@ -431,6 +432,8 @@ class Fit:
         jacobian_fd = numerical_jacobian(self._calculate_residual, params, dx)
 
         if plot:
+            import matplotlib.pyplot as plt
+
             n_x, n_y = optimal_plot_layout(len(self.params))
             for i_parameter, parameter in enumerate(self.params):
                 plt.subplot(n_x, n_y, i_parameter + 1)
@@ -534,6 +537,8 @@ class Fit:
         )
 
     def _plot(self, model, data, fmt, overrides, independent, legend, plot_data, **kwargs):
+        import matplotlib.pyplot as plt
+
         self._rebuild()
 
         params, _ = self._override_params(overrides)

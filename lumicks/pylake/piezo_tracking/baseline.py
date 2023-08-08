@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from lumicks.pylake.channel import Slice, Continuous
 
@@ -68,6 +67,8 @@ class ForceBaseLine:
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.scatter()`.
         """
+        import matplotlib.pyplot as plt
+
         plt.scatter(self._trap_data.data, self._force.data, s=2, **kwargs)
         plt.plot(self._trap_data.data, self._model(self._trap_data.data), "k")
         plt.xlabel("Mirror position")
@@ -82,6 +83,8 @@ class ForceBaseLine:
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.scatter`.
         """
+        import matplotlib.pyplot as plt
+
         plt.scatter(
             self._trap_data.data,
             self._force.data - self._model(self._trap_data.data),

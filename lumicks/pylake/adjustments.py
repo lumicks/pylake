@@ -1,9 +1,5 @@
-from dataclasses import make_dataclass
-
 import numpy as np
 import skimage
-import matplotlib as mpl
-from matplotlib.colors import LinearSegmentedColormap
 
 
 class ColorAdjustment:
@@ -107,6 +103,8 @@ class ColorAdjustment:
         channel : str
             Channel that's being plotted (e.g. "red" or "rgb").
         """
+        import matplotlib as mpl
+
         if not self.mode:
             return
 
@@ -163,26 +161,22 @@ def wavelength_to_xyz(wavelength):
 
 
 def _make_cmap(name, color):
+    from matplotlib.colors import LinearSegmentedColormap
+
     return LinearSegmentedColormap.from_list(name, colors=[(0, 0, 0), color])
 
 
 _available_colormaps = {
-    "red": _make_cmap("red", (1, 0, 0)),
-    "green": _make_cmap("green", (0, 1, 0)),
-    "blue": _make_cmap("blue", (0, 0, 1)),
-    "magenta": _make_cmap("magenta", (1, 0, 1)),
-    "yellow": _make_cmap("yellow", (1, 1, 0)),
-    "cyan": _make_cmap("cyan", (0, 1, 1)),
+    "red": (1, 0, 0),
+    "green": (0, 1, 0),
+    "blue": (0, 0, 1),
+    "magenta": (1, 0, 1),
+    "yellow": (1, 1, 0),
+    "cyan": (0, 1, 1),
 }
 
 
-class _ColorMaps(
-    make_dataclass(
-        "ColorMaps",
-        [(key, LinearSegmentedColormap) for key in _available_colormaps.keys()],
-        frozen=True,
-    )
-):
+class _ColorMaps:
     """Pylake custom colormaps.
 
     Attributes
@@ -223,6 +217,11 @@ class _ColorMaps(
         kymo.plot(channel="blue", cmap=lk.colormaps.from_wavelength(521))
     """
 
+    def __getattr__(self, name):
+        if name not in _available_colormaps:
+            raise AttributeError
+        return _make_cmap(name, _available_colormaps[name])
+
     def __str__(self):
         return f"Pylake custom colormaps; available colormaps:\n\t{', '.join(_available_colormaps.keys())}"
 
@@ -236,4 +235,4 @@ class _ColorMaps(
         return _make_cmap(f"{wavelength}nm", rgb)
 
 
-colormaps = _ColorMaps(**_available_colormaps)
+colormaps = _ColorMaps()

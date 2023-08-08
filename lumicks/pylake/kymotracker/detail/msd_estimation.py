@@ -4,7 +4,6 @@ from dataclasses import field, dataclass
 
 import numpy as np
 import numpy.typing as npt
-import matplotlib.pyplot as plt
 
 
 @dataclass(frozen=True)
@@ -122,6 +121,8 @@ class EnsembleMSD:
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.errorbar`.
         """
+        import matplotlib.pyplot as plt
+
         plt.errorbar(self.seconds, self.msd, self.sem, **kwargs)
         plt.xlabel("Time [s]")
         plt.ylabel(f"Squared Displacement [{self._unit_label}]")
