@@ -453,6 +453,8 @@ class KymoTrack:
         IndexError
             if requesting a fit for an index out of bounds of the KymoTrack.
         """
+        import matplotlib.pyplot as plt
+
         model_fit = self._model_fit(node_idx)  # Verifies whether model exists for this index
         aliases = ["color", "c"]
         if show_data:
@@ -628,6 +630,7 @@ class KymoTrack:
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
         """
+        import matplotlib.pyplot as plt
         import matplotlib.patheffects as pe
 
         from ..detail.plotting import get_axes
@@ -1345,6 +1348,8 @@ class KymoTrackGroup:
 
             widgets.interact(plot_fit, frame=widgets.IntSlider(0, max=kymo.shape[1] - 1));
         """
+        import matplotlib.pyplot as plt
+
         self._validate_single_source("plot_fit")
 
         kymo = self._kymos[0]  # We can rely on there being one (_validate_single_source)

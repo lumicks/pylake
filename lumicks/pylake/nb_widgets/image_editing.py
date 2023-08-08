@@ -1,7 +1,6 @@
 from dataclasses import field, dataclass
 
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.widgets import RectangleSelector
 
@@ -243,6 +242,8 @@ class ImageEditorWidget:
         image : lk.ImageStack
             Image stack object
         """
+        import matplotlib.pyplot as plt
+
         plt.figure()
         self._ax = plt.subplot(
             1, 1, 1, projection=ImageEditorProjection(image, frame, channel, show_title, kwargs)
@@ -322,6 +323,8 @@ class KymoEditorWidget:
             If provided, the kymo returned from the `image` property will be automatically
             calibrated to this tether length.
         """
+        import matplotlib.pyplot as plt
+
         kymo._check_is_sliceable()
 
         plt.figure()

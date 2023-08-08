@@ -4,7 +4,6 @@ from dataclasses import field, dataclass
 
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 from deprecated.sphinx import deprecated
 
 from lumicks.pylake.fitting.parameters import Params, Parameter
@@ -208,6 +207,8 @@ class DwelltimeProfiles:
             default value of `None` results in using the significance level applied when
             profiling (default: 0.05).
         """
+        import matplotlib.pyplot as plt
+
         if self.n_components == 1:
             next(iter(self.profiles.values())).plot(significance_level=alpha)
         else:
@@ -429,6 +430,8 @@ class DwelltimeBootstrap:
             dictionary of plotting `kwargs` applied to the line indicating the
             distribution means
         """
+        import matplotlib.pyplot as plt
+
         hist_kwargs = {"facecolor": "#c5c5c5", "edgecolor": "#888888", **(hist_kwargs or {})}
         span_kwargs = {"facecolor": "tab:red", "alpha": 0.3, **(span_kwargs or {})}
         line_kwargs = {"color": "k", **(line_kwargs or {})}
@@ -842,6 +845,8 @@ class DwelltimeModel:
         yscale : {"log", "linear", None}
             scaling for the y-axis; when `None` default is same as `bin_spacing`
         """
+        import matplotlib.pyplot as plt
+
         if bin_spacing == "log":
             scale = np.logspace
             limits = (np.log10(self.dwelltimes.min()), np.log10(self.dwelltimes.max()))

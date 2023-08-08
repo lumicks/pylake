@@ -3,7 +3,6 @@ from copy import copy
 from typing import List, Tuple
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from lumicks.pylake.detail.utilities import downsample
 
@@ -249,6 +248,8 @@ class PowerSpectrum:
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
         """
+        import matplotlib.pyplot as plt
+
         plt.plot(self.frequency, self.power, **kwargs)
         plt.xlabel("Frequency [Hz]")
         plt.ylabel(f"Power [${self.unit}^2/Hz$]")

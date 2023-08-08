@@ -33,7 +33,6 @@ from collections import namedtuple
 
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 from tabulate import tabulate
 
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
@@ -83,6 +82,8 @@ class CalibrationResults:
 
     def plot(self):
         """Plot the fitted spectrum"""
+        import matplotlib.pyplot as plt
+
         self.ps_data.plot(label="Data")
         self.ps_model.plot(label="Model")
         plt.legend()
@@ -98,6 +99,8 @@ class CalibrationResults:
         In an ideal situation, the residual plot should show a noise band around 1 without any
         systematic deviations.
         """
+        import matplotlib.pyplot as plt
+
         residual = self.ps_data.power / self.ps_model.power
         theoretical_std = 1.0 / np.sqrt(self.ps_model.num_points_per_block)
 

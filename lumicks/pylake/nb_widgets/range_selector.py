@@ -1,7 +1,6 @@
 import time
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class BaseRangeSelectorWidget:
@@ -21,6 +20,8 @@ class BaseRangeSelectorWidget:
     """
 
     def __init__(self, axes=None, show=True, range_conversion_fcn=lambda point: point):
+        import matplotlib.pyplot as plt
+
         self._axes = axes if axes else plt.axes(label=f"lk_slice_widget_{time.time()}")
         self.connection_id = None
         self.current_range = []
@@ -45,6 +46,8 @@ class BaseRangeSelectorWidget:
         self.open = False
 
     def wait_for_input(self):
+        import matplotlib.pyplot as plt
+
         while self.open:
             plt.pause(0.0001)
 
@@ -102,6 +105,8 @@ class BaseRangeSelectorWidget:
             self._axes.get_figure().canvas.mpl_disconnect(self.connection_id)
 
     def update_plot(self):
+        import matplotlib.pyplot as plt
+
         self._axes.clear()
 
         for i, (t_start, t_end) in enumerate(self._ranges):
@@ -258,6 +263,7 @@ class BaseRangeSelector:
             Dictionary of :class:`~lumicks.pylake.fdcurve.FdCurve`
         """
         import ipywidgets
+        import matplotlib.pyplot as plt
 
         if len(fd_curves) == 0:
             raise ValueError(

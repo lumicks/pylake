@@ -1,11 +1,11 @@
-from matplotlib import pyplot as plt
-
 from ..adjustments import no_adjustment
 
 
 def get_axes(axes=None, image_handle=None):
     """Return `axes` or the axes of the provided `image_handle` or ensure both axes are the same. If
     neither `axes` nor `image_handle` are provided, fallback to the current `matplotlib` axes"""
+    import matplotlib.pyplot as plt
+
     if axes is None:
         axes = plt.gca() if image_handle is None else image_handle.axes
     if image_handle:

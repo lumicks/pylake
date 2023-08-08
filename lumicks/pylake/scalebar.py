@@ -1,8 +1,6 @@
 from typing import Union, Optional
 from dataclasses import field, dataclass
 
-from matplotlib.offsetbox import HPacker, VPacker, TextArea, AuxTransformBox, AnchoredOffsetbox
-
 
 def _create_scale_legend(
     transform,
@@ -42,6 +40,7 @@ def _create_scale_legend(
     **kwargs
         additional arguments passed to :class:`matplotlib.offsetbox.AnchoredOffsetBox`."""
     from matplotlib.patches import Rectangle
+    from matplotlib.offsetbox import HPacker, VPacker, TextArea, AuxTransformBox, AnchoredOffsetbox
 
     bars = AuxTransformBox(transform)
     bar_args = {"ec": color, "lw": barwidth, "fc": None}

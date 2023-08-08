@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 
 
 def _validate_in_bound(error_description, params, lower_bounds, upper_bounds, bound_tolerance):
@@ -634,6 +633,8 @@ class ProfileLikelihood1D:
             Desired significance level  (resulting in a 100 * (1 - alpha)% confidence interval) to
             plot. Default is the significance level specified when the profile was generated.
         """
+        import matplotlib.pyplot as plt
+
         dash_length = 5
         plt.plot(self.p, self.chi2, **kwargs)
 
@@ -671,6 +672,8 @@ class ProfileLikelihood1D:
             List of parameter names to plot (optional, omission plots all)
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`."""
+        import matplotlib.pyplot as plt
+
         parameters = self.parameters
 
         if not params:
