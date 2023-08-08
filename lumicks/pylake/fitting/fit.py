@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 import numpy as np
-import scipy.optimize as optim
+import scipy
 import matplotlib.pyplot as plt
 
 from .model import Model
@@ -217,7 +217,7 @@ class Fit:
             parameter_vector[fitted] = params
             return self._calculate_jacobian(parameter_vector)[:, fitted]
 
-        result = optim.least_squares(
+        result = scipy.optimize.least_squares(
             residual,
             parameter_vector[fitted],
             jac=jacobian if self.has_jacobian else "2-point",

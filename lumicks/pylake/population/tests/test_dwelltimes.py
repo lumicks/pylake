@@ -607,7 +607,7 @@ def test_dwelltime_exponential_no_free_params(monkeypatch):
         raise StopIteration
 
     with monkeypatch.context() as m:
-        m.setattr("lumicks.pylake.population.dwelltime.minimize", stop)
+        m.setattr("scipy.optimize.minimize", stop)
 
         def quick_fit(fixed_params):
             return _exponential_mle_optimize(

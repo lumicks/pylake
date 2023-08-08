@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import stats
+import scipy
 
 from .dwelltime import _dwellcounts_from_statepath
 
@@ -206,7 +206,9 @@ class GaussianMixtureModel:
             PDF array split into components for each state with shape (n_states, x.size).
             The full normalized PDF can be calculated by summing across rows.
         """
-        components = np.vstack([stats.norm(m, s).pdf(x) for m, s in zip(self.means, self.std)])
+        components = np.vstack(
+            [scipy.stats.norm(m, s).pdf(x) for m, s in zip(self.means, self.std)]
+        )
         return self.weights.reshape((-1, 1)) * components
 
     def hist(self, trace, n_bins=100, plot_kwargs=None, hist_kwargs=None):

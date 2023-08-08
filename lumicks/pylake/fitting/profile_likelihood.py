@@ -4,8 +4,8 @@ from warnings import warn
 from dataclasses import dataclass
 
 import numpy as np
+import scipy
 import matplotlib.pyplot as plt
-from scipy.stats import chi2
 
 
 def _validate_in_bound(error_description, params, lower_bounds, upper_bounds, bound_tolerance):
@@ -472,7 +472,7 @@ class ProfileLikelihood1D:
         self.profile_info = ProfileInfo(
             minimum_chi2=chi2_function(parameters.values),
             profiled_parameter_index=list(parameters.keys()).index(parameter_name),
-            delta_chi2=chi2.ppf(options["confidence_level"], options["num_dof"]),
+            delta_chi2=scipy.stats.chi2.ppf(options["confidence_level"], options["num_dof"]),
             confidence_level=options["confidence_level"],
             parameter_names=list(parameters.keys()),
         )
@@ -514,7 +514,7 @@ class ProfileLikelihood1D:
             fitted=fitted,
             step_function=step_function,
             termination_level=self.profile_info.minimum_chi2
-            + chi2.ppf(options["termination_significance"], options["num_dof"]),
+            + scipy.stats.chi2.ppf(options["termination_significance"], options["num_dof"]),
             bound_tolerance=options["bound_tolerance"],
         )
 
@@ -603,7 +603,7 @@ class ProfileLikelihood1D:
                 f"the minimum profiled level ({profiled_level:.2f})."
             )
 
-        cutoff = self.profile_info.minimum_chi2 + chi2.ppf(
+        cutoff = self.profile_info.minimum_chi2 + scipy.stats.chi2.ppf(
             1.0 - significance_level, self.options["num_dof"]
         )
 
@@ -642,7 +642,7 @@ class ProfileLikelihood1D:
             if significance_level is not None
             else self.profile_info.confidence_level
         )
-        delta_chi2 = chi2.ppf(confidence_coefficient, self.options["num_dof"])
+        delta_chi2 = scipy.stats.chi2.ppf(confidence_coefficient, self.options["num_dof"])
         confidence_chi2 = self.profile_info.minimum_chi2 + delta_chi2
         plt.axhline(y=confidence_chi2, linewidth=1, color="k", dashes=[dash_length, dash_length])
 

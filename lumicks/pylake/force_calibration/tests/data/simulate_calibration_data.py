@@ -1,7 +1,7 @@
 from functools import partial
 
 import numpy as np
-import scipy.constants
+import scipy
 
 from lumicks.pylake.force_calibration.detail.power_models import (
     g_diode,

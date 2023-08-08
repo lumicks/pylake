@@ -1,6 +1,5 @@
 import numpy as np
-import scipy.signal
-from scipy.ndimage import convolve
+import scipy
 
 
 def equal_length(kernels):
@@ -242,7 +241,7 @@ class MultiScaleVarianceStabilizingTransform:
         remainder : np.ndarray
             Image containing the remainder (what's left after adding the detail layers).
         """
-        filtered_imgs = [convolve(image, kernel) for kernel in self._full_kernels]
+        filtered_imgs = [scipy.ndimage.convolve(image, kernel) for kernel in self._full_kernels]
 
         # Stabilize variance
         if stabilize:

@@ -1,7 +1,7 @@
 from functools import partial
 
 import numpy as np
-from scipy.optimize import minimize
+import scipy
 
 
 def overlapping_pixels(coordinates, width):
@@ -83,7 +83,7 @@ def _mle_optimize(initial_guess, expectation_fun, derivatives_fun, photon_count,
         photon_count=photon_count,
     )
 
-    return minimize(
+    return scipy.optimize.minimize(
         optimization_fun,
         initial_guess,
         jac=jac_fun,

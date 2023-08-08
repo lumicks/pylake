@@ -1,6 +1,6 @@
 import numpy as np
+import scipy
 import pytest
-import scipy.constants
 
 from lumicks.pylake.force_calibration.calibration_models import ActiveCalibrationModel
 from lumicks.pylake.force_calibration.detail.power_models import sphere_friction_coefficient

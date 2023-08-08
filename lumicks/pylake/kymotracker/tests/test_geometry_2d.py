@@ -1,6 +1,6 @@
 import numpy as np
+import scipy
 import pytest
-from scipy.stats import norm
 
 from lumicks.pylake.kymotracker.detail.linalg_2d import (
     eigenvalues_2d_symmetric,
@@ -110,7 +110,7 @@ def test_eigen_2d():
     ],
 )
 def test_position_determination(loc, scale, sig_x, sig_y, transpose, tol=1e-2):
-    data = np.tile(0.0001 + norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
+    data = np.tile(0.0001 + scipy.stats.norm.pdf(np.arange(0, 50, 1), loc=loc, scale=scale), (5, 1))
     if transpose:
         data = data.transpose()
     max_derivative, normals, positions, inside = calculate_image_geometry(data, sig_x, sig_y)

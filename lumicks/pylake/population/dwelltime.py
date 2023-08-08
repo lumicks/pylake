@@ -3,9 +3,8 @@ from typing import Dict, Tuple, Union
 from dataclasses import field, dataclass
 
 import numpy as np
+import scipy
 import matplotlib.pyplot as plt
-from scipy.special import logsumexp
-from scipy.optimize import minimize
 from deprecated.sphinx import deprecated
 
 from lumicks.pylake.fitting.parameters import Params, Parameter
@@ -919,7 +918,7 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max, t_step
         log_lifetimes = np.log(lifetimes)
 
         partial_inv_norm_factor = np.log(discretization_factor) + np.log(time_term)
-        log_norm_factor = -logsumexp(
+        log_norm_factor = -scipy.special.logsumexp(
             log_amplitudes + log_lifetimes + partial_inv_norm_factor, axis=0
         )
         norm_factor = np.exp(log_norm_factor)
@@ -979,7 +978,7 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max, t_step
         components = np.log(norm_factor) + np.log(amplitudes) + -np.log(lifetimes) - t / lifetimes
 
     # The derivative of logsumexp is given by: sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
-    total_denom = np.exp(logsumexp(components, axis=0))
+    total_denom = np.exp(scipy.special.logsumexp(components, axis=0))
     sum_components = np.sum(np.exp(components), axis=0)
     dtotal_damp = (sum_components * dlognorm_damp + np.exp(components) * dlogamp_damp) / total_denom
     dtotal_dtau = (
@@ -1049,7 +1048,7 @@ def _exponential_mixture_log_likelihood_components(
             + np.log(np.exp(-(t_min - t_step) / lifetimes) - np.exp(-t_max / lifetimes))
             + np.log(discretization_factor)
         )
-        log_norm_factor = logsumexp(norm_factor, axis=0)
+        log_norm_factor = scipy.special.logsumexp(norm_factor, axis=0)
 
         tau_term = 2.0 * np.log(discretization_factor) + np.log(lifetimes)
         return -log_norm_factor + np.log(amplitudes) + tau_term - (t - t_step) / lifetimes
@@ -1057,7 +1056,7 @@ def _exponential_mixture_log_likelihood_components(
         norm_factor = np.log(amplitudes) + np.log(
             np.exp(-t_min / lifetimes) - np.exp(-t_max / lifetimes)
         )
-        log_norm_factor = logsumexp(norm_factor, axis=0)
+        log_norm_factor = scipy.special.logsumexp(norm_factor, axis=0)
         return -log_norm_factor + np.log(amplitudes) - np.log(lifetimes) - t / lifetimes
 
 
@@ -1084,7 +1083,7 @@ def _exponential_mixture_log_likelihood(params, t, t_min, t_max, t_step=None):
     components = _exponential_mixture_log_likelihood_components(
         amplitudes, lifetimes, t, t_min, t_max, t_step
     )
-    log_likelihood = logsumexp(components, axis=0)
+    log_likelihood = scipy.special.logsumexp(components, axis=0)
     return -np.sum(log_likelihood)
 
 
@@ -1294,7 +1293,7 @@ def _exponential_mle_optimize(
     # warnings disappear.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Values in x were outside bounds")
-        result = minimize(
+        result = scipy.optimize.minimize(
             cost_fun,
             current_params[fitted_param_mask],
             method="SLSQP",

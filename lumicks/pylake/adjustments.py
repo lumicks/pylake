@@ -1,8 +1,8 @@
 from dataclasses import make_dataclass
 
 import numpy as np
+import skimage
 import matplotlib as mpl
-from skimage.color import xyz2rgb
 from matplotlib.colors import LinearSegmentedColormap
 
 
@@ -232,7 +232,7 @@ class _ColorMaps(
 
     def from_wavelength(self, wavelength):
         xyz = wavelength_to_xyz(wavelength)
-        rgb = xyz2rgb(xyz.reshape([1, 1, 3])).squeeze()
+        rgb = skimage.color.xyz2rgb(xyz.reshape([1, 1, 3])).squeeze()
         return _make_cmap(f"{wavelength}nm", rgb)
 
 

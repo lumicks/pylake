@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.optimize as optim
+import scipy
 
 
 def parameter_trace(model, params, inverted_parameter, independent, dependent, **kwargs):
@@ -82,7 +82,7 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
             return -model.jacobian(x, param_vector)[inverted_parameter_index]
 
         jac = jacobian if model.has_jacobian else "2-point"
-        result = optim.least_squares(
+        result = scipy.optimize.least_squares(
             residual,
             param_vector[inverted_parameter_index],
             jac=jac,
