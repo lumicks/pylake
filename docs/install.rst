@@ -444,9 +444,13 @@ If you normally manage your environments with `pip`, you can just invoke::
 
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
 
-If you use Anaconda, then it is best to create a new environment for this installation. You can do this as follows::
+If you use Anaconda, then it is best to create a new environment for this installation. On MacOS an environment is created as follows::
 
     conda create -n pylake_pip
+
+And on Windows an environment is created as::
+
+    conda create -n pylake_pip conda=4.9
 
 Activate the environment as follows::
 
@@ -459,5 +463,9 @@ Install pip in the activated environment by invoking::
 Then install Pylake as follows::
 
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
+
+The above line does not include the installation of jupyter notebook. If you want to install jupyter notebook together with Pylake, invoke::
+
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake[notebook]
 
 Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip, and do not install additional dependencies via `conda install`, since this can break your environment.
