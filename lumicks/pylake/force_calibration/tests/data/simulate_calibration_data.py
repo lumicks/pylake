@@ -1,7 +1,6 @@
 from functools import partial
 
 import numpy as np
-import scipy
 
 from lumicks.pylake.force_calibration.detail.power_models import (
     g_diode,
@@ -100,6 +99,8 @@ def generate_active_calibration_test_data(
         Distance from bead center to the surface. Only used when using hydrodynamically correct
         model. None uses the approximation valid for deep in bulk.
     """
+    import scipy.constants
+
     pos_response_m_volt = pos_response_um_volt / 1e6
     gamma_0 = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)  # Ns/m
     diffusion_physical = scipy.constants.k * (temperature + 273.15) / gamma_0  # m^2/s

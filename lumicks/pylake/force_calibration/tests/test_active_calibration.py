@@ -32,6 +32,8 @@ def test_integration_active_calibration(
     power_density,
     response_power,
 ):
+    import scipy.constants
+
     """Functional end to end test for active calibration"""
     sample_rate, bead_diameter = 78125, 1.03
     np.random.seed(0)

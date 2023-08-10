@@ -146,9 +146,10 @@ def simulate_calibration_data(
     stage_pos : np.ndarray
         Stage position in microns.
     """
-    boltzmann_const = scipy.constants.k
+    import scipy.constants
+
     gamma = 3.0 * np.pi * viscosity * bead_diameter * 1e-6  # friction coefficient [Ns/m]
-    diffusion_const = (boltzmann_const * (temperature + 273.15)) / gamma  # diffusion [m^2/s]
+    diffusion_const = (scipy.constants.k * (temperature + 273.15)) / gamma  # diffusion [m^2/s]
     dt = 1 / sample_rate
     stiffness_si = stiffness * 1e-3  # Trap stiffness [N/m]
 
