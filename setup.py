@@ -66,7 +66,8 @@ setup(
     ],
     extras_require={
         "notebook": [
-            "notebook>=4.4.1",
+            # Notebook upper limit is a workaround for issues with IPython not being defined.
+            "notebook>=4.4.1,<7",
             "ipywidgets>=7.0.0",
             "jupyter_client<8",  # https://github.com/jupyter/notebook/issues/6748
             "pyzmq<25",  # https://github.com/jupyter/notebook/issues/6748
