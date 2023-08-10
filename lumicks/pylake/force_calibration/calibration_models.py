@@ -4,7 +4,6 @@ from functools import partial
 from dataclasses import dataclass
 
 import numpy as np
-import scipy
 
 from .detail.drag_models import faxen_factor, brenner_axial
 from .detail.power_models import (
@@ -524,6 +523,8 @@ class PassiveCalibrationModel:
         filter_params_err : list of float
             Standard errors for the filter model
         """
+        import scipy.constants
+
         # diameter [um] -> [m]
         temperature_k = scipy.constants.convert_temperature(self.temperature, "C", "K")
 
@@ -793,6 +794,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         filter_params_err : list of float
             Standard errors for the filter model
         """
+        import scipy.constants
+
         reference_peak = self(self.driving_frequency, fc, diffusion_constant_volts, *filter_params)
 
         # Equation 14 from [6]
