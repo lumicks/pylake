@@ -475,17 +475,17 @@ Such a peak is an outlier in the expected behavior of the spectrum and therefore
 As a result, the fit is skewed. In those cases, it can be beneficial to do a robust fit. When a robust fit is performed, one assumes that the probability of encountering one or multiple outliers is non-negligible.
 By taking this into account during fitting, the fit can be made more robust to outliers in the data. The following example illustrates the method. 
 
-Load a dataset of uncalibrated force sensor data of a 4.4 μm bead showing Brownian motion while being trapped. In particular, look at the `Force 2y` sensor signal::
+To see this effect, let's load a dataset of uncalibrated force sensor data of a 4.4 μm bead showing Brownian motion while being trapped. In particular, look at the `Force 2y` sensor signal::
 
     f = lk.File("test_data/robust_fit_data.h5")
     f2y = f.force2y
 
-First create a power spectrum without blocking or windowing, for later use. Then derive a power spectrum with blocking from the first power spectrum::
+First create a power spectrum without blocking or windowing for later use. Then derive a power spectrum with blocking from the first power spectrum::
 
     ps = lk.calculate_power_spectrum(f2y.data, sample_rate=f2y.sample_rate, num_points_per_block=1, fit_range=(10, 23e3))
     ps_blocked = ps.downsampled_by(200)
 
-Use a passive calibration model using the hydrodynamically correct model. Then perform a least-squares fit and plot the result::
+First use a passive calibration model using the hydrodynamically correct model to perform a least-squares fit and plot the result::
 
     model = lk.PassiveCalibrationModel(4.4, temperature=25.0, hydrodynamically_correct=True)
     fit = lk.fit_power_spectrum(ps_blocked, model)
@@ -493,7 +493,9 @@ Use a passive calibration model using the hydrodynamically correct model. Then p
     plt.figure()
     fit.plot()
     plt.title(
-        f'Skewed fit: $f_c$ = {fit.results["fc"].value:.1f}, $D$ = {fit.results["D"].value:.4f}, $f_d$ = {fit.results["f_diode"].value:.1f}'
+        f"Skewed fit: $f_c$ = {fit.results['fc'].value:.1f}, "
+        f"$D$ = {fit.results['D'].value:.4f}, "
+        f"$f_d$ = {fit.results['f_diode'].value:.1f}"
     )
     plt.show()
 
@@ -513,7 +515,9 @@ Now plot the robust fit::
     plt.figure()
     fit.plot()
     plt.title(
-        f'Robust fit: $f_c$ = {fit.results["fc"].value:.1f}, $D$ = {fit.results["D"].value:.4f}, $f_d$ = {fit.results["f_diode"].value:.1f}'
+        f"Robust fit: $f_c$ = {fit.results['fc'].value:.1f}, "
+        f"$D$ = {fit.results['D'].value:.4f}, "
+        f"$f_d$ = {fit.results['f_diode'].value:.1f}"
     )
     plt.show()
 
