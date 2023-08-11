@@ -112,14 +112,13 @@ def invert_function_interpolation(
 
     # Determine the points that lie within the range where it is reasonable to interpolate
     interpolated_idx = np.full(d.shape, False, dtype=bool)
-    f_range = np.arange(f_min_data, f_max_data, dx)
+    f_range = np.arange(f_min_data, f_max_data + dx, dx)
     if len(f_range) > 0:
         d_range = model_function(f_range)
-        d_min = np.min(d_range)
-        d_max = np.max(d_range)
+        d_min, d_max = np.min(d_range), np.max(d_range)
 
         # Interpolate for the points where interpolation is sensible
-        interpolated_idx = np.logical_and(d > d_min, d < d_max)
+        interpolated_idx = np.logical_and(d >= d_min, d <= d_max)
 
     result = np.zeros(d.shape)
     if np.sum(interpolated_idx) > 3 and len(f_range) > 3:
@@ -136,9 +135,9 @@ def invert_function_interpolation(
         result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
 
     # Do the manual inversion for the others
-    result[np.logical_not(interpolated_idx)] = manual_inversion(
-        d[np.logical_not(interpolated_idx)], initial
-    )
+    slow_inversions = np.logical_not(interpolated_idx)
+    if np.any(slow_inversions):
+        result[slow_inversions] = manual_inversion(d[slow_inversions], initial)
 
     return result
 
