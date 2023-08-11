@@ -1,3 +1,4 @@
+import copy
 import enum
 from typing import Tuple, Optional
 from warnings import warn
@@ -409,6 +410,16 @@ class ProfileLikelihood1D:
         self.profile_info = None
         self._chi2 = {}
         self._parameters = {}
+
+    def __copy__(self):
+        profile_copy = ProfileLikelihood1D(
+            self.parameter_name,
+            **self.options,
+        )
+        profile_copy.profile_info = copy.copy(self.profile_info)
+        profile_copy._chi2 = copy.deepcopy(self._chi2)
+        profile_copy._parameters = copy.deepcopy(self._parameters)
+        return profile_copy
 
     def __str__(self):
         def bound_string(value):

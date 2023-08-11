@@ -1,3 +1,4 @@
+import copy
 from collections import OrderedDict
 
 import numpy as np
@@ -50,6 +51,14 @@ class Parameter:
         self.unit = unit
         self.profile = None
         self.stderr = None
+
+    def __copy__(self):
+        param = Parameter(
+            self.value, self.lower_bound, self.upper_bound, self.fixed, self.shared, self.unit
+        )
+        param.profile = copy.copy(self.profile)
+        param.stderr = self.stderr
+        return param
 
     def __float__(self):
         return float(self.value)
@@ -109,12 +118,19 @@ class Params:
     """
 
     def __init__(self, **kwargs):
-        self._src = OrderedDict()
-        for key, value in kwargs.items():
-            if isinstance(value, Parameter):
-                self._src[key] = value
-            else:
-                self._src[key] = Parameter(float(value)) if value else Parameter(0)
+        self._src = {
+            key: (
+                value
+                if isinstance(value, Parameter)
+                else Parameter(float(value))
+                if value
+                else Parameter(0)
+            )
+            for key, value in kwargs.items()
+        }
+
+    def __copy__(self):
+        return self.__class__(**{key: copy.copy(value) for key, value in self._src.items()})
 
     def __iter__(self):
         return self._src.__iter__()
@@ -163,7 +179,7 @@ class Params:
 
     def __setitem__(self, item, value):
         if item in self._src:
-            self._src[item].value = value
+            self._src[item].value = copy.copy(value)
         else:
             raise IndexError(f"Parameter {item} not found in parameter vector {self.keys}!")
 
