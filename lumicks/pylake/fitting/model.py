@@ -260,7 +260,9 @@ class Model:
 
         return model_info
 
-    def invert(self, independent_min=0.0, independent_max=np.inf, interpolate=False):
+    def invert(
+        self, independent_min=0.0, independent_max=np.inf, interpolate=False, independent_step=1e-2
+    ):
         """Invert this model.
 
         This operation swaps the dependent and independent parameter and should be avoided if a
@@ -274,16 +276,18 @@ class Model:
 
         Parameters
         ----------
-        independent_min : float
+        independent_min : float, optional
             Minimum value for the independent variable over which to interpolate. Only used when
             `interpolate` is set to `True`.
-        independent_max : float
+        independent_max : float, optional
             Maximum value for the independent variable over which to interpolate. Only used when
             `interpolate` is set to `True`.
-        interpolate : bool
+        interpolate : bool, optional
             Use interpolation method rather than numerical inversion.
+        independent_step : float, optional
+            Interpolation step size. Default: 1e-2
         """
-        return InverseModel(self, independent_min, independent_max, interpolate)
+        return InverseModel(self, independent_min, independent_max, interpolate, independent_step)
 
     def subtract_independent_offset(self):
         """
@@ -621,7 +625,14 @@ class CompositeModel(Model):
 
 
 class InverseModel(Model):
-    def __init__(self, model, independent_min=0.0, independent_max=np.inf, interpolate=False):
+    def __init__(
+        self,
+        model,
+        independent_min=0.0,
+        independent_max=np.inf,
+        interpolate=False,
+        independent_step=1e-2,
+    ):
         """
         Combine two model outputs to form a new model (addition).
 
@@ -635,6 +646,8 @@ class InverseModel(Model):
             Note that a finite maximum has to be specified if you wish to use the interpolation mode.
         interpolate : bool
             Use interpolation approximation. Default: False.
+        independent_step : float, optional
+            Interpolation step size. Default: 1e-2
 
         Raises
         ------
@@ -648,11 +661,7 @@ class InverseModel(Model):
         self.interpolate = interpolate
         self.independent_min = independent_min
         self.independent_max = independent_max
-        if self.interpolate:
-            if not np.isfinite(independent_min) or not np.isfinite(independent_max):
-                raise ValueError(
-                    "Inversion limits have to be finite when using interpolation method."
-                )
+        self.independent_step = independent_step
 
     @property
     def dependent(self):
@@ -689,6 +698,7 @@ class InverseModel(Model):
                 self.independent_max,
                 lambda f_trial: self.model._raw_call(f_trial, param_vector),
                 lambda f_trial: self.model.derivative(f_trial, param_vector),
+                dx=self.independent_step,
             )
         else:
             return invert_function(
