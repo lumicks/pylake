@@ -134,19 +134,12 @@ def test_subtract_independent_offset_unit(model, param, unit):
     assert model.defaults[param].unit == unit
 
 
-def test_interpolation_inversion():
-    m = ewlc_odijk_distance("Nucleosome").invert(independent_max=120.0, interpolate=True)
+@pytest.mark.parametrize("method", ["exact", "interp_lsq", "interp_root"])
+def test_interpolation_inversion(method):
+    m = ewlc_odijk_distance("Nucleosome").invert(independent_max=120.0, method=method)
     parvec = [5.77336105517341, 7.014180463612673, 1500.0000064812095, 4.11]
     result = np.array([0.17843862, 0.18101283, 0.18364313, 0.18633117, 0.18907864])
     np.testing.assert_allclose(m._raw_call(np.arange(10, 250, 50) / 1000, parvec), result)
-
-
-@pytest.mark.parametrize("param", [{"independent_max": np.inf}, {"independent_min": -np.inf}])
-def test_interpolation_invalid_range(param):
-    with pytest.raises(
-        ValueError, match="Inversion limits have to be finite when using interpolation method"
-    ):
-        ewlc_odijk_distance("Nucleosome").invert(**param, interpolate=True)
 
 
 def test_uuids():

@@ -1,5 +1,6 @@
 import uuid
 import inspect
+import warnings
 from copy import deepcopy
 from collections import OrderedDict
 
@@ -261,7 +262,12 @@ class Model:
         return model_info
 
     def invert(
-        self, independent_min=0.0, independent_max=np.inf, interpolate=False, independent_step=1e-2
+        self,
+        independent_min=None,
+        independent_max=None,
+        interpolate=False,
+        method="exact",
+        independent_step=1e-2,
     ):
         """Invert this model.
 
@@ -284,10 +290,46 @@ class Model:
             `interpolate` is set to `True`.
         interpolate : bool, optional
             Use interpolation method rather than numerical inversion.
+        method : {"exact", "interp_root", "interp_lsq"}
+            - "exact" : Invert each point separately (exact, but slow).
+            - "interp_root" : Interpolate forward model as lookup table for inversion. Appropriate range is selected by rootfinding.
+            - "interp_lsq" : Interpolate forward model as lookup table for inversion. Appropriate range is selected by least_squares (deprecated).
+              Can only be used when track is equidistantly sampled.
+
         independent_step : float, optional
             Interpolation step size. Default: 1e-2
         """
-        return InverseModel(self, independent_min, independent_max, interpolate, independent_step)
+        if method not in ("exact", "interp_root", "interp_lsq"):
+            raise RuntimeError("Interpolation method should either be rootfinding or least_squares")
+
+        if interpolate:
+            method = "exact"
+            warnings.warn(
+                RuntimeWarning("The parameter `interpolate` is deprecated. Use method parameter.")
+            )
+
+        if method == "exact":
+            return InverseModel(
+                self, independent_min, independent_max, False, independent_step, rootfinding=False
+            )
+        elif method == "interp_root":
+            return InverseModel(
+                self,
+                1e-4 if independent_min is None else independent_min,
+                1e5 if independent_max is None else independent_max,
+                True,
+                independent_step,
+                rootfinding=True,
+            )
+        elif method == "interp_lsq":
+            return InverseModel(
+                self,
+                0.0 if independent_min is None else independent_min,
+                np.inf if independent_max is None else independent_max,
+                True,
+                independent_step,
+                rootfinding=False,
+            )
 
     def subtract_independent_offset(self):
         """
@@ -632,6 +674,7 @@ class InverseModel(Model):
         independent_max=np.inf,
         interpolate=False,
         independent_step=1e-2,
+        rootfinding=False,
     ):
         """
         Combine two model outputs to form a new model (addition).
@@ -648,6 +691,8 @@ class InverseModel(Model):
             Use interpolation approximation. Default: False.
         independent_step : float, optional
             Interpolation step size. Default: 1e-2
+        rootfinding : bool
+            Use rootfinding rather than least squares to invert model.
 
         Raises
         ------
@@ -662,6 +707,7 @@ class InverseModel(Model):
         self.independent_min = independent_min
         self.independent_max = independent_max
         self.independent_step = independent_step
+        self.rootfinding = rootfinding
 
     @property
     def dependent(self):
@@ -699,6 +745,7 @@ class InverseModel(Model):
                 lambda f_trial: self.model._raw_call(f_trial, param_vector),
                 lambda f_trial: self.model.derivative(f_trial, param_vector),
                 dx=self.independent_step,
+                rootfinding=self.rootfinding,
             )
         else:
             return invert_function(
@@ -708,6 +755,7 @@ class InverseModel(Model):
                 self.independent_max,
                 lambda f_trial: self.model._raw_call(f_trial, param_vector),  # Forward model
                 lambda f_trial: self.model.derivative(f_trial, param_vector),
+                rootfinding=self.rootfinding,
             )
 
     @property
