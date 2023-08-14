@@ -1,18 +1,19 @@
 # Changelog
 
-## v1.2.0 | t.b.d.
+## v1.2.0 | 2023-08-15
 
 #### New features
 
-* Added `KymoTrack.plot_fit()` and `KymoTrackGroup.plot_fit()` to show the fitted model obtained from gaussian refinement.
 * Added fitting mode `"simultaneous"` to `lk.refine_tracks_gaussian()` which enforces optimization bounds between the peak positions. This helps prevent `lk.refine_tracks_gaussian()` from reassigning points to the wrong track when a track momentarily disappears and `overlap_strategy` is set to `"multiple"` and `refine_missing_frames` is set to `True`. When fitting mode is set to `"simultaneous"`, bounds ensure that the individual Gaussians cannot switch position. In addition, this mode uses a better initial guess for the peak amplitudes based on the maximum photon count observed in each range.
-* Added the optional parameter `loss_function` to [`fit_power_spectrum()`](https://lumicks-pylake.readthedocs.io/en/v1.1.0/_api/lumicks.pylake.fit_power_spectrum.html#lumicks.pylake.fit_power_spectrum). Implemented loss functions are `"gaussian"` (default) and `"lorentzian"`. The default corresponds to regular least-squares fitting, whereas `"lorentzian"` invokes a robust fitting method that is less susceptible to spurious peaks in the power spectrum which comes at the cost of a small bias in the estimates for a spectrum without noise peaks. Furthermore, no estimates of the errors in the fitted parameters are provided. This is beta functionality. While usable, this has not yet been tested in a large number of different scenarios. The API can still be subject to change without any prior deprecation notice!
-* Added `PowerSpectrum.identify_peaks()` method to the [`PowerSpectrum`](https://lumicks-pylake.readthedocs.io/en/v1.0.0/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html) class. This method uses probability to identify peaks in the spectrum that are not due to the movement of beads in an optical trap. This is beta functionality. While usable, this has not yet been tested in a large number of different scenarios. The API can still be subject to change without any prior deprecation notice!
+* Added the option to take into account discretization effects in [`DwelltimeModel`](https://lumicks-pylake.readthedocs.io/en/v1.2.0/_api/lumicks.pylake.DwelltimeModel.html) by passing a `discretization_timestep` to the model when constructing it.
+* Added the option to take into account discretization effects when performing dwell time analysis on a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.2.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html). Simply pass `discrete_model=True` to `KymoTrackGroup.fit_binding_times()` to make use of this new functionality.
+* Added the optional parameter `loss_function` to [`fit_power_spectrum()`](https://lumicks-pylake.readthedocs.io/en/v1.2.0/_api/lumicks.pylake.fit_power_spectrum.html#lumicks.pylake.fit_power_spectrum). Implemented loss functions are `"gaussian"` (default) and `"lorentzian"`. The default corresponds to regular least-squares fitting, whereas `"lorentzian"` invokes a robust fitting method that is less susceptible to spurious peaks in the power spectrum which comes at the cost of a small bias in the estimates for a spectrum without noise peaks. Furthermore, no estimates of the errors in the fitted parameters are provided. This is beta functionality. While usable, this has not yet been tested in a large number of different scenarios. The API can still be subject to change without any prior deprecation notice!
+* Added `PowerSpectrum.identify_peaks()` method to the [`PowerSpectrum`](https://lumicks-pylake.readthedocs.io/en/v1.2.0/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html) class. This method uses probability to identify peaks in the spectrum that are not due to the movement of beads in an optical trap. This is beta functionality. While usable, this has not yet been tested in a large number of different scenarios. The API can still be subject to change without any prior deprecation notice!
+* Added `KymoTrack.plot_fit()` and `KymoTrackGroup.plot_fit()` to show the fitted model obtained from gaussian refinement.
+* Added the ability to specify a cropping region when exporting to an h5-file using `file.save_as(filename, crop_time_range=(starting_timestamp, ending_timestamp))`.
+* Added method to create colormaps approximating a color from emission wavelength. See [`lk.colormaps.from_wavelength()`](https://lumicks-pylake.readthedocs.io/en/v1.2.0/_api/lumicks.pylake.colormaps.html#lumicks.pylake.from_wavelength) for more information.
 * Added support for accessing `Kymo`, `Scan` and `PointScan` by path (e.g. `file["Kymograph"]["my_kymo"]` or `file["Kymograph/my_kymo"]`).
 * Added support for slicing `PointScan`.
-* Added the ability to specify a cropping region when exporting to an h5-file using `file.save_as(filename, crop_time_range=(starting_timestamp, ending_timestamp))`.
-* Added the option to take into account discretization effects in [`DwelltimeModel`](https://lumicks-pylake.readthedocs.io/en/v1.1.0/_api/lumicks.pylake.DwelltimeModel.html) by passing a `discretization_timestep` to the model when constructing it.
-* Added the option to take into account discretization effects when performing dwell time analysis on a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/v1.1.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html). Simply pass `discrete_model=True` to `KymoTrackGroup.fit_binding_times()` to make use of this new functionality.
 
 #### Bug fixes
 
@@ -24,13 +25,16 @@
 
 #### Other changes
 
-* Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
-* Use Unicode characters for µ and ² when plotting rather than TeX strings.
-* Deprecated fitting mode `"multiple"` in `lk.refine_tracks_gaussian()` as it could lead to spurious track crossings. See the entry for the fitting mode `"simultaneous"` under `New Features` for more information.
 * [`File.save_as()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.File.html#lumicks.pylake.File.save_as) data now allows passing in a single string for the `omit_data` parameter.
 * Gracefully handle empty `Scan` after slicing. Previously, a slice operation on a `Scan` that resulted in no frames remaining raised a `NotImplementedError`. Now it returns an `EmptyScan`.
 * Improved performance of `Scan.pixel_time_seconds`, `Kymo.pixel_time_seconds` and `Kymo.line_time_seconds`.
+* Dropped `opencv` dependency which was only used for calculating rotation matrices and performing the affine transformations required for image alignment. Pylake now uses `scikit-image` for this purpose.
 * Marked functions that take file paths as arguments with the `os.PathLike` type hint to idicate that `pathlib.Path` and similar types are also accepted (not just `str`).
+* Use Unicode characters for µ and ² when plotting rather than TeX strings.
+
+#### Deprecations
+
+* Deprecated fitting mode `"multiple"` in `lk.refine_tracks_gaussian()` as it could lead to spurious track crossings. See the entry for the fitting mode `"simultaneous"` under `New Features` for more information.
 
 ## v1.1.1 | 2023-06-13
 
