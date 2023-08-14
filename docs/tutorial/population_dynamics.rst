@@ -302,8 +302,16 @@ While the kinetic processes being analyzed are continuous, the observed dwell ti
 When lifetimes are short compared to the sampling rate this can have an effect on the parameter estimates.
 To take the discretization into account, we can provide a time step to the :class:`~lumicks.pylake.DwelltimeModel`::
 
-    dwell_d = lk.DwelltimeModel(dwell_times[1], n_components=1, discretization_timestep=1.0/force.sample_rate)
+    dwell_d = lk.DwelltimeModel(
+        dwell_times[1],
+        n_components=1,
+        discretization_timestep=1.0/force.sample_rate,
+        min_observation_time=1.0/force.sample_rate,
+    )
+
+    plt.figure()
     dwell_d.hist()
+    plt.show()
 
 .. image:: figures/population_dynamics/discrete_pop.png
 
