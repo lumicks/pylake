@@ -39,7 +39,7 @@ The various theoretical models that can be used to fit these data are described 
 We can download the data needed for this tutorial directly from Zenodo using Pylake.
 Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::
 
-    filenames = lk.download_from_doi("10.5281/zenodo.7729824", "test_data")
+    filenames = lk.download_from_doi("10.5281/zenodo.7729823", "test_data")
 
 Undoing the previous calibration
 --------------------------------
@@ -465,6 +465,8 @@ When working with small beads or at high laser powers, it is important to verify
 Sometimes, the filtering effect has been characterized independently.
 In that case, the arguments `fixed_diode` and `fixed_alpha` can be passed to :func:`~lumicks.pylake.calibrate_force()` to fix these parameters to their predetermined values.
 
+.. _robust_fitting:
+
 Robust fitting
 --------------
 
@@ -473,7 +475,7 @@ Blocking or windowing the power spectrum ensures that this assumption is close e
 Occasionally, the power spectrum might show a spurious noise peak.
 Such a peak is an outlier in the expected behavior of the spectrum and therefore interferes with the assumption of having a Gaussian error distribution.
 As a result, the fit is skewed. In those cases, it can be beneficial to do a robust fit. When a robust fit is performed, one assumes that the probability of encountering one or multiple outliers is non-negligible.
-By taking this into account during fitting, the fit can be made more robust to outliers in the data. The following example illustrates the method. 
+By taking this into account during fitting, the fit can be made more robust to outliers in the data. The following example illustrates the method.
 
 To see this effect, let's load a dataset of uncalibrated force sensor data of a 4.4 μm bead showing Brownian motion while being trapped. In particular, look at the `Force 2y` sensor signal::
 
@@ -523,19 +525,19 @@ Now plot the robust fit::
 
 .. image:: figures/force_calibration/power_spectrum_noise_peak_robust.png
 
-Notice how the model now follows the power spectrum nearly perfectly. The value for `f_diode` has increased significantly, now that it is not abused to reduce the error induced by the outlier. 
+Notice how the model now follows the power spectrum nearly perfectly. The value for `f_diode` has increased significantly, now that it is not abused to reduce the error induced by the outlier.
 
 This example shows that a robust fitting method is less likely to fail on outliers in the power spectrum data. It is therefore a fair question why one would not use it all the time?
 Robust fitting leads to a small bias in the fit results for which Pylake has no correction.
 Least-squares fitting also leads to a bias, but this bias is known (:cite:`norrelykke2010power`) and can be corrected with `bias_correction=True`.
 Secondly, for least-squares fitting, methods exist to estimate the expected standard errors in the estimates of the free parameters, which are implemented in the least-squares fitting routines that Pylake uses :cite:`press1990numerical`.
 These error estimates are not implemented for robust fitting, and as such, the fit results will show `nan` for the error estimates after a robust fit.
-However, as will be shown below, the robust fitting results may be used as a start to identify outliers automatically, in order to exclude these from a second, regular least-squares, fit. 
+However, as will be shown below, the robust fitting results may be used as a start to identify outliers automatically, in order to exclude these from a second, regular least-squares, fit.
 
 Automated spurious peak detection
 ---------------------------------
 
-We will continue the tutorial with the results of the previous section. If you did not yet do that part of the tutorial, please go back and execute the code examples in that section. 
+We will continue the tutorial with the results of the previous section. If you did not yet do that part of the tutorial, please go back and execute the code examples in that section.
 
 We still have the power spectrum `ps` that was created without blocking or windowing. Here we will use it to identify the peak and automatically obtain frequency exclusion ranges.
 We will use the method :meth:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.identify_peaks()` in order to do so.
@@ -594,4 +596,4 @@ The default values of `loss_function='gaussian'` and `bias_correction=True` ensu
 
 .. image:: figures/force_calibration/power_spectrum_no_noise_peak.png
 
-Notice that no skewing occurs, and that the values of `fc`, `D` and `f_diode` are now closer to values found via robust fitting in the section above. 
+Notice that no skewing occurs, and that the values of `fc`, `D` and `f_diode` are now closer to values found via robust fitting in the section above.
