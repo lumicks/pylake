@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 | t.b.d.
+
+#### Bug fixes
+
+* Fixed a bug that prevented resaving a `KymoTrackGroup` loaded from an older version of Pylake.
+
 ## v1.2.0 | 2023-08-15
 
 #### New features
