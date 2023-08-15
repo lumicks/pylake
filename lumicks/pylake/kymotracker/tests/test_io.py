@@ -215,3 +215,18 @@ def test_bad_csv(filename, blank_kymo):
     with pytest.raises(IOError, match="Invalid file format!"):
         file = Path(__file__).parent / "data" / filename
         import_kymotrackgroup_from_csv(file, blank_kymo, "red", delimiter=";")
+
+
+def test_min_obs_csv_regression(tmpdir_factory, blank_kymo):
+    """This tests a regression where saving a freshly imported older file does not function"""
+    testfile = Path(__file__).parent / f"./data/tracks_v0.csv"
+    imported_tracks = import_kymotrackgroup_from_csv(testfile, blank_kymo, "red", delimiter=";")
+    out_file = f"{tmpdir_factory.mktemp('pylake')}/no_min_lengths.csv"
+
+    err_msg = "Loaded tracks have no minimum length metadata defined"
+    with pytest.warns(RuntimeWarning, match=err_msg):
+        imported_tracks.save(out_file, ";", None, correct_origin=True)
+
+    out_file2 = f"{tmpdir_factory.mktemp('pylake')}/no_min_lengths2.csv"
+    with pytest.warns(RuntimeWarning, match=err_msg):
+        import_kymotrackgroup_from_csv(out_file, blank_kymo, "red", delimiter=";").save(out_file2)

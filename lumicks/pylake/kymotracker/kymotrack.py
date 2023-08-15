@@ -139,7 +139,21 @@ def export_kymotrackgroup_to_csv(
             ),
         )
 
-    store_column("minimum_length (-)", "%d", minimum_length)
+    if None not in minimum_length:
+        store_column("minimum_length (-)", "%d", minimum_length)
+    else:
+        warnings.warn(
+            RuntimeWarning(
+                "Loaded tracks have no minimum length metadata defined (CSV exported with "
+                "pylake <  1.2.0) therefore some analyses may not be possible with this file. To "
+                "remedy this error and add the required metadata, use `lk.filter_tracks()` on the "
+                "tracks from the widget with the desired minimum track length and resave "
+                "using the `KymoTrackGroup.save()` method. Note that the minimum length should be "
+                "greater or equal to the minimum length used for the original tracking. For more "
+                "information refer to "
+                "https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html#migrating-old-track-files "
+            )
+        )
 
     version_header = f"Exported with pylake v{__version__} | track coordinates v3\n"
     header = version_header + delimiter.join(column_titles)
