@@ -1739,7 +1739,6 @@ class KymoTrackGroup:
             max_position = n_rows * _kymo.pixelsize[0]
         else:
             (min_time, min_position), (max_time, max_position) = roi
-            n_rows = np.ceil((max_position - min_position) / _kymo.pixelsize[0])
             n_frames = np.ceil((max_time - min_time) / _kymo.line_time_seconds)
             start_frame = min_time // _kymo.line_time_seconds
 
