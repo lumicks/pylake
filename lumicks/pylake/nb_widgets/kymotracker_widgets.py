@@ -352,7 +352,12 @@ class KymoWidget:
                 "help(lk.KymoWidgetGreedy) for more info.",
             )
 
-        self.tracks.save(filename, delimiter, sampling_width, correct_origin=correct_origin)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            self.tracks.save(filename, delimiter, sampling_width, correct_origin=correct_origin)
+
+            if caught_warnings:
+                warning_string = "\n".join(str(warning.message) for warning in caught_warnings)
+                self._set_label("warning", warning_string)
 
     def _load_from_ui(self):
         try:
