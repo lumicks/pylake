@@ -298,3 +298,18 @@ Detected tracks are accessible through the :attr:`~lumicks.pylake.KymoWidgetGree
     KymoTrackGroup(N=132)
 
 For more information on its use, please see the example :ref:`cas9_kymotracking`.
+
+.. _track_migration:
+
+Migrating old track files
+-------------------------
+
+Prior to pylake `1.2.0`, tracks saved from the widget or API did not store the minimum length in the CSV file.
+This means that certain downstream analyses are not possible.
+To update a file with tracks to the new format, load the file in the widget, then filter the tracks by length using the largest minimum length you have used while tracking.
+You can do this as follows::
+
+    filtered_tracks = lk.filter_tracks(widget.tracks, minimum_length=4)
+    filtered_tracks.save("fixed_file.csv")
+
+where `4` should be replaced with a length relevant for your tracking settings.

@@ -26,7 +26,7 @@ times will be underestimated. For more information see the :doc:`changelog</chan
     Note that CSVs exported from the kymotracker widget  before `v1.2.0` will contain insufficient metadata
     to make use of the improved analysis. To create this metadata, use :func:`~lumicks.pylake.filter_tracks()` on the group with a specified
     `min_length` before further analysis. CSVs exported starting from `v1.2.0` contain an additional data column with this data
-    under the header `"minimum_length (-)"`.
+    under the header `"minimum_length (-)"`. For more information, see :ref:`tutorial<track_migration>`.
 
 Correct for discretization in binding lifetime analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
