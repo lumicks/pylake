@@ -199,7 +199,7 @@ def fit_damped_sine_with_polynomial(
         exp_sine_with_polynomial,
         independent,
         dependent,
-        [result, 0],
+        [result, 1e-8],
         bounds=((0, 0), (2 * result, np.inf)),
     )
 
