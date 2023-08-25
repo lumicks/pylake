@@ -70,3 +70,22 @@
     background-color: #fffbf6;
     border-color: var(--orange);
 }
+
+/* home page get started box */
+.rst-content .admonition-get-started {
+    /* border-style: solid;
+    border-color: var(--darkblue); */
+    border-radius: 10px;
+    background-color: #c1e9fb;
+    /* border-width: 3px; */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.rst-content .admonition-get-started .admonition-title {
+    background-color: rgba(255, 255, 255, 0);
+    color: var(--darkblue)
+}
+
+.rst-content .admonition-get-started a {
+    font-weight: bold;
+}

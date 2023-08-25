@@ -11,6 +11,11 @@
     The source code repository is `located on Github <https://github.com/lumicks/pylake>`_
     where you can also post any questions, comments or issues that you might have.
 
+.. admonition:: Get started
+
+    To get started check out the :doc:`Installation Guide <install>` and watch the
+    :doc:`What's New<whatsnew/index>` section to keep up to date with all of the latest
+    features!
 
 .. to build html, go in anaconda prompt and type python -m sphinx -b html docs build
 
@@ -19,28 +24,24 @@
     :titlesonly:
 
     changelog
-
-.. toctree::
-    :hidden:
-    :maxdepth: 2
-
     whatsnew/index
+    install
 
 .. toctree::
     :caption: User guide
     :maxdepth: 2
 
-    install
+
     tutorial/index
     examples/index
-    theory/index
-
+    api
 
 .. toctree::
-    :caption: Reference docs
-    :maxdepth: 2
+    :caption: Fundamentals
+    :maxdepth: 1
 
-    api
+    theory/diffusion/index
+    theory/force_calibration/index
 
 .. toctree::
     :caption: Literature
