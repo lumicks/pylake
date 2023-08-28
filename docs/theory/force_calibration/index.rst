@@ -8,3 +8,7 @@ Find out about force calibration
     :maxdepth: 1
 
     force_calibration
+    fitting
+    passive
+    hyco
+    active
