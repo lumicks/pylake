@@ -1,4 +1,3 @@
-import os.path
 import warnings
 import importlib
 
@@ -182,14 +181,14 @@ def reference_data(request):
         if test_name is not None:
             ref_data_filename = ref_data_filename.replace(calling_function, test_name)
 
-        calling_path_name = os.path.dirname(request.fspath)
+        calling_path = request.path.parent
 
-        reference_data_path = os.path.join(calling_path_name, "reference_data", calling_function)
-        reference_data_fn = os.path.join(reference_data_path, f"{ref_data_filename}.npz")
+        reference_data_path = calling_path / "reference_data" / calling_function
+        reference_file_path = reference_data_path / f"{ref_data_filename}.npz"
 
-        exists = os.path.exists(reference_data_fn)
-        if exists and not request.config.getoption("--update_reference_data"):
-            return np.load(reference_data_fn, allow_pickle=True)["arr_0"]
+        if reference_file_path.exists() and not request.config.getoption("--update_reference_data"):
+            with np.load(reference_file_path, allow_pickle=True) as npz_file:
+                return npz_file["arr_0"]
         else:
             if request.config.getoption("--strict_reference_data"):
                 raise RuntimeError(
@@ -197,9 +196,9 @@ def reference_data(request):
                     f"to check it in?"
                 )
 
-            os.makedirs(reference_data_path, exist_ok=True)
-            np.savez(reference_data_fn, reference_data)
-            print(f"\nWritten reference data {ref_data_filename} to {reference_data_fn}.")
+            reference_data_path.mkdir(parents=True, exist_ok=True)
+            np.savez(reference_file_path, reference_data)
+            print(f"\nWritten reference data {ref_data_filename} to {reference_file_path}.")
             return reference_data
 
     return get_reference_data
