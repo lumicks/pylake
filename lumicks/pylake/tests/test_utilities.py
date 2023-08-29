@@ -214,6 +214,15 @@ def test_freezing(reference_data, tst):
     np.testing.assert_allclose(
         test_data, reference_data(test_data, file_name=f"forced_filename_{tst}")
     )
+    ref_dict = {"a": 5, "b": np.array([1, tst, 3])}
+    test_dict = reference_data(ref_dict, test_name="dict")
+    assert test_dict["a"] == ref_dict["a"]
+    np.testing.assert_allclose(test_dict["b"], ref_dict["b"])
+
+    test_data = [[1, 2], [1, 2, 3]]
+    ref_data = reference_data(test_data, test_name="ragged")
+    for test, ref in zip(test_data, ref_data):
+        np.testing.assert_allclose(test, ref)
 
 
 def test_cache_method():

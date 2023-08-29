@@ -188,7 +188,7 @@ def reference_data(request):
 
         if reference_file_path.exists() and not request.config.getoption("--update_reference_data"):
             with np.load(reference_file_path, allow_pickle=True) as npz_file:
-                return npz_file["arr_0"]
+                return npz_file["arr_0"][()]
         else:
             if request.config.getoption("--strict_reference_data"):
                 raise RuntimeError(
@@ -197,6 +197,10 @@ def reference_data(request):
                 )
 
             reference_data_path.mkdir(parents=True, exist_ok=True)
+
+            if not isinstance(reference_data, np.ndarray):
+                reference_data = np.asarray(reference_data, dtype=object)
+
             np.savez(reference_file_path, reference_data)
             print(f"\nWritten reference data {ref_data_filename} to {reference_file_path}.")
             return reference_data
