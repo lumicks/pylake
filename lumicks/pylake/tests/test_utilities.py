@@ -224,6 +224,9 @@ def test_freezing(reference_data, tst):
     for test, ref in zip(test_data, ref_data):
         np.testing.assert_allclose(test, ref)
 
+    test_data = [[1, 2, 3], [1, 2, 3]]
+    np.testing.assert_allclose(test_data, reference_data(test_data, test_name="non_ndarray_matrix"))
+
 
 def test_cache_method():
     calls = 0

@@ -198,7 +198,9 @@ def reference_data(request):
 
             reference_data_path.mkdir(parents=True, exist_ok=True)
 
-            if not isinstance(reference_data, np.ndarray):
+            try:
+                reference_data = np.asarray(reference_data)
+            except ValueError:
                 reference_data = np.asarray(reference_data, dtype=object)
 
             np.savez(reference_file_path, reference_data)
