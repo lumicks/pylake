@@ -79,9 +79,8 @@ def fit_piecewise_continuous(x, y, n_breakpoints, tol=1e-5, max_iter=30, n_resta
         raise ValueError(f"Number of requested breakpoints must be >= 0, got {n_breakpoints}.")
     elif n_breakpoints == 0:
         return _optimize_linear(x, y)
-    else:
-        # todo: implement algorithm
-        pass
+
+    return _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter)
 
 
 def _optimize_linear(x, y):
@@ -116,4 +115,83 @@ def _optimize_linear(x, y):
 
     return PiecewiseModel(
         intercept, [slope], [], intercept_std, [slope_std], [], rss, bic, "converged"
+    )
+
+
+def _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter):
+    n_samples = len(x)
+    n_coeffs = 2 + 2 * n_breakpoints
+
+    def fit_iteration(breakpoints):
+        diff_term = x - breakpoints[:, np.newaxis]
+        heavi = np.vstack([np.heaviside(d, -1) for d in diff_term])
+        u = diff_term * heavi
+        v = -heavi
+        design_matrix = np.vstack((np.ones(x.size), x, u, v)).T
+
+        xtx = np.linalg.pinv(np.matmul(design_matrix.T, design_matrix))
+        coeffs = np.dot(
+            xtx,
+            np.dot(design_matrix.T, y),
+        )
+
+        fit = np.dot(design_matrix, coeffs)
+        residuals = fit - y
+        rss = np.sum(residuals**2)
+
+        intercept, alpha, *others = coeffs
+        beta, gamma = np.reshape(others, (2, n_breakpoints))
+
+        cov = (rss / (n_samples - n_coeffs)) * xtx
+
+        return intercept, alpha, beta, gamma, cov, rss
+
+    exitflag = "max iterations reached"
+    breakpoints = np.sort(np.random.uniform(np.min(x), np.max(x), n_breakpoints))
+
+    for _ in range(max_iter):
+        try:
+            intercept, alpha, beta, gamma, cov, rss = fit_iteration(breakpoints)
+        except (np.linalg.LinAlgError, FloatingPointError) as e:
+            exitflag = "invalid math error"
+            break
+
+        if np.all(gamma < tol):
+            exitflag = "converged"
+            break
+
+        # update breakpoints
+        with np.errstate(invalid="raise"):
+            breakpoints = gamma / beta + breakpoints
+        if np.any(breakpoints < np.min(x)) or np.any(breakpoints > np.max(x)):
+            exitflag = "breakpoints out of bounds"
+            break
+
+    # evaluate one more time to ensure that breakpoints are sorted
+    breakpoints = np.sort(breakpoints)
+    intercept, alpha, beta, gamma, cov, rss = fit_iteration(breakpoints)
+    bic = n_samples * np.log(rss / n_samples) + n_coeffs * np.log(n_samples)
+
+    # convert optimization coefficients to segment linear coefficients
+    # intercept remains, just calculate standard error
+    intercept_std = cov[0, 0]
+
+    # slopes
+    n_terms = n_breakpoints + 1
+    slope_terms = np.hstack((alpha, beta))
+    slope_block = cov[1 : n_terms + 1, 1 : n_terms + 1]
+    slopes = np.array([np.sum(slope_terms[:j]) for j in range(1, n_terms + 1)])
+    slopes_std = np.array([np.sqrt(np.sum(slope_block[:j, :j])) for j in range(1, n_terms + 1)])
+
+    # breakpoints
+    bg_block = cov[2:, 2:]
+    beta_var, gamma_var = np.reshape(np.diag(bg_block), (2, n_breakpoints))
+    bg_cov = np.diag(bg_block, k=n_breakpoints)
+    bp_std = [
+        (gv + bv * (g / b) ** 2 + 2 * (g / b) * bgcv) / (b**2)
+        for b, g, bv, gv, bgcv in zip(beta, gamma, beta_var, gamma_var, bg_cov)
+    ]
+
+    return PiecewiseModel(
+        intercept, slopes, breakpoints, intercept_std, slopes_std, bp_std, rss, bic, exitflag
     )
