@@ -6,6 +6,7 @@
 
 * Fixed a bug that prevented resaving a `KymoTrackGroup` loaded from an older version of Pylake.
 * Fixed a bug that inadvertently made us rely on `cachetools>=5.x`. Older versions of `cachetools` did not pass the instance to the key function resulting in a `TypeError: key() missing 1 required positional argument: '_'` error when accessing cached properties or methods.
+* Fixed a bug that could cause a division by zero while fitting power spectra with `f_diode`. The lower bound of `f_diode` was changed from 0 to 1.0 Hz. This change should not impact results unless users were getting failed calibrations with this error.
 
 ## v1.2.0 | 2023-08-15
 
