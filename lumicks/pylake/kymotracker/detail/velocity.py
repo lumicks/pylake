@@ -87,6 +87,7 @@ def fit_piecewise_continuous(x, y, n_breakpoints, tol=1e-5, max_iter=30, n_resta
     results = [_optimize_breakpoints(x, y, n_breakpoints, tol, max_iter) for _ in range(n_restarts)]
     filtered_results = [result for result in results if result.converged]
 
+    # todo: raise if model out of bounds
     # find best converged fit, fallback to un-converged if necessary
     return min(filtered_results if len(filtered_results) else results, key=lambda r: r.rss)
 
@@ -213,9 +214,16 @@ def _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter):
     breakpoints = np.sort(breakpoints)
     intercept, alpha, beta, gamma, cov, rss = fit_iteration(breakpoints)
     bic = n_samples * np.log(rss / n_samples) + n_coeffs * np.log(n_samples)
+    converted_coeffs = _convert_coefficients(intercept, alpha, beta, gamma, breakpoints, cov)
 
-    # convert optimization coefficients to segment linear coefficients
-    # intercept remains, just calculate standard error
+    return PiecewiseModel(*converted_coeffs, rss, bic, exitflag)
+
+
+def _convert_coefficients(intercept, alpha, beta, gamma, breakpoints, cov):
+    """Convert optimization coefficients to segment linear coefficients."""
+    n_breakpoints = len(breakpoints)
+
+    # intercept remains the same, just calculate standard error
     intercept_std = cov[0, 0]
 
     # slopes
@@ -226,14 +234,21 @@ def _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter):
     slopes_std = np.array([np.sqrt(np.sum(slope_block[:j, :j])) for j in range(1, n_terms + 1)])
 
     # breakpoints
+    @np.errstate(invalid="raise")
+    def calc_bp_std(beta, gamma, beta_var, gamma_var, beta_gamma_cov):
+        # if a breakpoint is out of bounds you end up with a 0/0
+        # mark as undefined for now and raise if the final returned best model
+        # is out of bounds at the public level
+        try:
+            return (
+                gamma_var + beta_var * (gamma / beta) ** 2 + 2 * (gamma / beta) * beta_gamma_cov
+            ) / (beta**2)
+        except FloatingPointError:
+            return np.nan
+
     bg_block = cov[2:, 2:]
     beta_var, gamma_var = np.reshape(np.diag(bg_block), (2, n_breakpoints))
     bg_cov = np.diag(bg_block, k=n_breakpoints)
-    bp_std = [
-        (gv + bv * (g / b) ** 2 + 2 * (g / b) * bgcv) / (b**2)
-        for b, g, bv, gv, bgcv in zip(beta, gamma, beta_var, gamma_var, bg_cov)
-    ]
+    bp_std = [calc_bp_std(*p) for p in zip(beta, gamma, beta_var, gamma_var, bg_cov)]
 
-    return PiecewiseModel(
-        intercept, slopes, breakpoints, intercept_std, slopes_std, bp_std, rss, bic, exitflag
-    )
+    return intercept, slopes, breakpoints, intercept_std, slopes_std, bp_std
