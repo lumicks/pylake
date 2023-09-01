@@ -39,8 +39,12 @@ class PiecewiseModel:
     bic: float
     exitflag: str
 
+    @property
+    def converged(self):
+        return self.exitflag == "converged"
 
-def fit_piecewise_continuous(x, y, n_breakpoints, tol=1e-5, max_iter=30, n_restarts=1):
+
+def fit_piecewise_continuous(x, y, n_breakpoints, tol=1e-5, max_iter=30, n_restarts=100):
     """Fit a piecewise continuous model to data.
 
     If the number of breakpoints requested is 0, simply returns a linear fit.
@@ -80,7 +84,11 @@ def fit_piecewise_continuous(x, y, n_breakpoints, tol=1e-5, max_iter=30, n_resta
     elif n_breakpoints == 0:
         return _optimize_linear(x, y)
 
-    return _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter)
+    results = [_optimize_breakpoints(x, y, n_breakpoints, tol, max_iter) for _ in range(n_restarts)]
+    filtered_results = [result for result in results if result.converged]
+
+    # find best converged fit, fallback to un-converged if necessary
+    return min(filtered_results if len(filtered_results) else results, key=lambda r: r.rss)
 
 
 def _optimize_linear(x, y):
@@ -119,10 +127,49 @@ def _optimize_linear(x, y):
 
 
 def _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter):
+    r"""
+    Optimization of breakpoint locations for a continuous piecewise linear model
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Dependent variable (time).
+    y : np.ndarray
+        Independent variable (position).
+    n_breakpoints : int
+        Number of requested breakpoints.
+    tol : float
+        Convergence tolerance. Ignored if `n_breakpoints == 0`.
+    max_iter : int
+        Maximum number of iterations allowed in the optimization algorithm. Ignored if
+        `n_breakpoints == 0`.
+    n_restarts : int
+        Number of times to run the optimization algorithm with breakpoint initial guesses drawn
+        from a uniform distribution. Ignored if `n_breakpoints == 0`.
+    """
     n_samples = len(x)
     n_coeffs = 2 + 2 * n_breakpoints
 
     def fit_iteration(breakpoints):
+        r"""
+        Single iteration of the breakpoint estimation algorithm, solving Eq 7. corresponding
+        to linearized form of piecewise continuous model, with nonlinear breakpoints term:
+
+        .. math::
+
+            \alpha x + \beta U + \gamma V
+
+        where :math:`\alpha` is the slope of the first section, :math:`\beta` models the
+        difference-in-slopes of the subsequent sections, and :math:`\gamma` is a reparameterization
+        of the breakpoints :math:`\psi`.
+
+        Given the current breakpoints guess :math:`\psi^{(0)}` and the ML estimates of above
+        parameters using OLS, the updated breakpoints can be calculated as:
+
+        .. math::
+
+            \psi = \frac{\gamma}{\beta} + \psi^{(0)}
+        """
         diff_term = x - breakpoints[:, np.newaxis]
         heavi = np.vstack([np.heaviside(d, -1) for d in diff_term])
         u = diff_term * heavi
@@ -150,19 +197,14 @@ def _optimize_breakpoints(x, y, n_breakpoints, tol, max_iter):
     breakpoints = np.sort(np.random.uniform(np.min(x), np.max(x), n_breakpoints))
 
     for _ in range(max_iter):
-        try:
-            intercept, alpha, beta, gamma, cov, rss = fit_iteration(breakpoints)
-        except (np.linalg.LinAlgError, FloatingPointError) as e:
-            exitflag = "invalid math error"
-            break
+        intercept, alpha, beta, gamma, cov, rss = fit_iteration(breakpoints)
 
         if np.all(gamma < tol):
             exitflag = "converged"
             break
 
-        # update breakpoints
-        with np.errstate(invalid="raise"):
-            breakpoints = gamma / beta + breakpoints
+        # update breakpoints and check in bounds
+        breakpoints = gamma / beta + breakpoints
         if np.any(breakpoints < np.min(x)) or np.any(breakpoints > np.max(x)):
             exitflag = "breakpoints out of bounds"
             break
