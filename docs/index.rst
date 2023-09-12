@@ -25,18 +25,34 @@
 
     changelog
     whatsnew/index
-    install
 
 .. toctree::
-    :caption: User guide
-    :maxdepth: 2
+    :hidden:
+    :caption: Getting Started
 
-
-    tutorial/index
+    install
     examples/index
     api
 
 .. toctree::
+    :hidden:
+    :caption: Tutorials
+    :maxdepth: 2
+
+    tutorial/file
+    tutorial/fdcurves
+    tutorial/scans
+    tutorial/kymographs
+    tutorial/imagestack
+    tutorial/fdfitting
+    tutorial/nbwidgets
+    tutorial/kymotracking
+    tutorial/force_calibration
+    tutorial/population_dynamics
+    tutorial/piezotracking
+
+.. toctree::
+    :hidden:
     :caption: Fundamentals
     :maxdepth: 1
 
@@ -44,6 +60,7 @@
     theory/force_calibration/index
 
 .. toctree::
+    :hidden:
     :caption: Literature
     :maxdepth: 2
 

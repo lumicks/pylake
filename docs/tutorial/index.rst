@@ -19,7 +19,6 @@ These import conventions are used consistently in the tutorial.
 
 .. toctree::
     :caption: Contents
-    :numbered:
     :maxdepth: 1
 
     file

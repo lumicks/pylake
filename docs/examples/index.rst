@@ -12,7 +12,6 @@ For all of the examples, it is assumed that the following lines precede any othe
 
 .. toctree::
     :caption: Segments
-    :numbered:
     :maxdepth: 1
 
     cst/index
