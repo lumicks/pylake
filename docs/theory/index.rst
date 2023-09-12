@@ -1,5 +1,7 @@
 :orphan:
 
+.. _fundamentals-index:
+
 Fundamentals
 ============
 

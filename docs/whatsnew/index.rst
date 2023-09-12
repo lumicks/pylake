@@ -1,3 +1,5 @@
+.. _whatsnew-index:
+
 What's new
 ==========
 

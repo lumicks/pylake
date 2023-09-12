@@ -11,11 +11,53 @@
     The source code repository is `located on Github <https://github.com/lumicks/pylake>`_
     where you can also post any questions, comments or issues that you might have.
 
-.. admonition:: Get started
+.. grid:: 1
+    :gutter: 3
 
-    To get started check out the :doc:`Installation Guide <install>` and watch the
-    :doc:`What's New<whatsnew/index>` section to keep up to date with all of the latest
-    features!
+    .. grid-item-card:: Get Started
+        :link: installation-index
+        :link-type: ref
+
+        Check out the Installation Guide for easy setup instructions and FAQs.
+
+.. grid:: 3
+    :gutter: 3
+
+    .. grid-item-card:: What's New
+        :link: whatsnew-index
+        :link-type: ref
+
+        Keep up to date with the latest and greatest features introduced in new versions!
+
+    .. grid-item-card:: Tutorials
+        :link: tutorials-index
+        :link-type: ref
+
+        We have full tutorials demonstrating the major functionality included in Pylake.
+
+    .. grid-item-card:: Fundamentals
+        :link: fundamentals-index
+        :link-type: ref
+
+        Take a deep dive into some single-molecule topics -- from the basics to advanced theory.
+
+    .. grid-item-card:: Examples
+        :link: examples-index
+        :link-type: ref
+
+        Full example scripts for analyzing data from different applications.
+
+    .. grid-item-card:: API References
+        :link: api-index
+        :link-type: ref
+
+        A detailed reference list of all the classes and functions available in Pylake.
+
+    .. grid-item-card:: Literature
+        :link: literature-index
+        :link-type: ref
+
+        Citations for all of the primary literature used in Pylake analysis implementation.
 
 .. to build html, go in anaconda prompt and type python -m sphinx -b html docs build
 

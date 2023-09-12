@@ -1,3 +1,5 @@
+.. _literature-index:
+
 This page lists references used for implementing specific functionality into Pylake. Please see below for more
 information on these topics.
 
