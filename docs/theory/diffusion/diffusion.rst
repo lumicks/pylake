@@ -47,6 +47,8 @@ As shown in the simulation model, the increments in free diffusion are independe
 Considering that diffusion is a stochastic process, it is important to average over many such increments to obtain a result not subject to significant stochastic error.
 The exact details of how to obtain a diffusion constant depend on the method in question and will be discussed below.
 
+.. _MSD Eqn:
+
 Mean Squared Displacements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -199,6 +201,7 @@ One can account for these correlations by computing the covariance matrix of the
 This covariance matrix can then be used in the estimation procedure to determine the diffusion constant.
 This option is implemented under the name generalized least squares (GLS).
 
+.. _CVE Eqn:
 
 CoVariance-based Estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -272,6 +275,8 @@ In the current implementation we assume the motion blur constant to be negligibl
 
 When estimating both localization uncertainty and the diffusion constant, the motion blur factor has no effect on the estimate of the diffusion constant itself, but it does affect the calculated uncertainties.
 In the case of a provided localization uncertainty, it does impact the estimate of the diffusion constant itself.
+
+.. _comparing diffusion estimators:
 
 Comparing the estimators on single tracks
 -----------------------------------------
@@ -439,6 +444,8 @@ The shaded area indicates the area encapsulated by the mean ± standard deviatio
 It is clear from this plot that for SNR > 1 all of the methods perform equally well.
 We also see that the uncertainty estimates (indicated with the solid vertical lines) are pretty accurate on average.
 For lower SNRs, the precision quickly drops for CVE, while there is some bias for OLS.
+
+.. _ensemble diffusion:
 
 Ensemble estimates
 ------------------

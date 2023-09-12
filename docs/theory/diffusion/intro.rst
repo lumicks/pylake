@@ -60,7 +60,7 @@ linear function to the MSD curve, as illustrated in the figure below (simulated 
 Note that for the MSD curve, the 'lag time' (aka 'time interval') is given on the x-axis, rather than 'time'.
 To compute the MSD for a certain lag time, you scan over a track, one data point at a time and compute
 the displacement squared from that time until that time + the lag time. So each point on the MSD curve,
-is an average of displacements squared for a specific lag time, see :doc:`this section</theory/diffusion/fitting>`
+is an average of displacements squared for a specific lag time, see :ref:`this section <MSD Eqn>`
 for the equation for the MSD.
 
 The largest possible lag time is the duration of a track and the shortest possible lag is the time resolution,
@@ -89,7 +89,7 @@ Covariance Based Estimator
 The Covariance Based Estimator (:ref:`'CVE' <diffusion_cve>`) in Pylake is a method for determining
 the diffusion coefficient that does not rely on the MSD :cite:`vestergaard2014optimal,vestergaard2016optimizing,Tanasie2022`.
 This method directly computes the diffusion coefficient from the displacements; there is no fitting
-involved. For the full equation, see :doc:`this section</theory/diffusion/fitting>`.
+involved. For the full equation, see :ref:`this section <CVE Eqn>`.
 
 Comparing CVE and MSD analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -100,7 +100,7 @@ A disadvantage of MSD analysis is that it can have a small bias when applied to 
 the diffusion coefficient is very small (when a method is biased, the diffusion coefficient obtained
 via that method deviates from the real diffusion constant). CVE on the other hand, is an unbiased method
 for determining the diffusion coefficient, but is only used for analysis of free (non-anomalous) diffusion.
-For a more detailed comparison between the performance of CVE and MSD analysis, see :doc:`here</theory/diffusion/comparing_estimators>`.
+For a more detailed comparison between the performance of CVE and MSD analysis, see :ref:`here<comparing diffusion estimators>`.
 
 Ensemble Based Estimate
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,7 +110,7 @@ For an ensemble estimate using MSD, Pylake averages the MSD for each lag time an
 This MSD can then be fitted to obtain the diffusion coefficient. For CVE, Pylake computes the average
 diffusion coefficient of all tracks, where each track is weighted by the number of data points.
 An example of how to compute the ensemble estimate using CVE is given :ref:`here <diffusion_cve>` and
-a comparison between using single and ensemble estimates can be found :doc:`here</theory/diffusion/ensemble>`.
+a comparison between using single and ensemble estimates can be found :ref:`here<ensemble diffusion>`.
 
 Tracking a diffusive protein
 ----------------------------
