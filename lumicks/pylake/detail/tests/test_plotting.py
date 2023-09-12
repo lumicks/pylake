@@ -5,7 +5,7 @@ import pytest
 from matplotlib import pyplot as plt
 
 from lumicks.pylake.adjustments import ColorAdjustment
-from lumicks.pylake.detail.plotting import get_axes, show_image
+from lumicks.pylake.detail.plotting import get_axes, parse_color_channel, show_image
 
 
 def test_get_axes():
@@ -29,6 +29,26 @@ def test_get_axes():
         ax = get_axes(axes=ax1, image_handle=ih2)
 
     plt.close(fig)
+
+
+def test_parse_color_channel():
+    for name, result in zip(("red", "green", "blue"), ("r", "g", "b")):
+        assert parse_color_channel(name) == result, f"failed on {name}"
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "channel must be 'red', 'green', 'blue' or a combination "
+            "of 'r', 'g', and/or 'b', got 'violet'."
+        ),
+    ):
+        parse_color_channel("violet")
+
+    for channel in ("r", "g", "b", "rg", "rb", "gb", "rgb"):
+        assert parse_color_channel(channel) == channel, f"failed on {channel}"
+
+    with pytest.raises(ValueError, match="color channel must be in 'rgb' order, got 'bg'."):
+        parse_color_channel("bg")
 
 
 def test_show_image():
