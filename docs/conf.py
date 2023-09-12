@@ -55,6 +55,7 @@ extensions = [
     "nbexport",
     "sphinx_lfs_content",
     "myst_parser",
+    "sphinx_design"
 ]
 
 autodoc_member_order = "groupwise"
