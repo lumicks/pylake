@@ -14,6 +14,26 @@ def get_axes(axes=None, image_handle=None):
     return axes
 
 
+def parse_color_channel(channel):
+    """Parse user supplied color channel specification to rgb-like format."""
+
+    if channel in (full_colors := {"red": "r", "green": "g", "blue": "b"}):
+        channel = full_colors[channel]
+
+    # check all specified components in 'rgb'
+    if not set(channel).issubset(set("rgb")):
+        raise ValueError(
+            "channel must be 'red', 'green', 'blue' or a combination of 'r', 'g', and/or 'b', "
+            f"got '{channel}'."
+        )
+
+    # check rgb order
+    if channel != "".join(sorted(channel)[::-1]):
+        raise ValueError(f"color channel must be in 'rgb' order, got '{channel}'.")
+
+    return channel
+
+
 def show_image(
     image,
     adjustment=no_adjustment,
