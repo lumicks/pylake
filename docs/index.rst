@@ -41,6 +41,7 @@
     :maxdepth: 1
 
     theory/diffusion/index
+    theory/binding_duration/index
     theory/force_calibration/index
 
 .. toctree::

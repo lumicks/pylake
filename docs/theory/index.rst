@@ -13,4 +13,5 @@ For all of the examples, it is assumed that the following lines precede any othe
     import lumicks.pylake as lk
 
 - :doc:`diffusion/index`
+- :doc:`binding_duration/index`
 - :doc:`force_calibration/index`
