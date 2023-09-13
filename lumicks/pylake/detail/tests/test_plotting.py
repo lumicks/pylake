@@ -5,7 +5,7 @@ import pytest
 from matplotlib import pyplot as plt
 
 from lumicks.pylake.adjustments import ColorAdjustment
-from lumicks.pylake.detail.plotting import get_axes, parse_color_channel, show_image
+from lumicks.pylake.detail.plotting import get_axes, show_image, parse_color_channel
 
 
 def test_get_axes():
@@ -47,8 +47,19 @@ def test_parse_color_channel():
     for channel in ("r", "g", "b", "rg", "rb", "gb", "rgb"):
         assert parse_color_channel(channel) == channel, f"failed on {channel}"
 
-    with pytest.raises(ValueError, match="color channel must be in 'rgb' order, got 'bg'."):
+    with pytest.raises(
+        ValueError, match="color channel must be in 'rgb' order; got 'bg', expected 'gb'."
+    ):
         parse_color_channel("bg")
+
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            "In future versions, the `channel` argument will be restricted to lowercase "
+            "letters only. Use 'rgb' instead of 'RGB'."
+        ),
+    ):
+        parse_color_channel("RGB")
 
 
 def test_show_image():
@@ -90,7 +101,7 @@ def test_show_image():
     assert ih.get_url() == "FORWARDED_KWARG"
 
     # Test if ColorAdjustment is applied to image_handle
-    ih = show_image(im2, axes=ax1, adjustment=ColorAdjustment(1.5, 2, mode="absolute"))
+    ih = show_image(im2, axes=ax1, adjustment=ColorAdjustment(1.5, 2, mode="absolute"), channel="g")
     assert ih.norm.vmin == 1.5
     assert ih.norm.vmax == 2
 

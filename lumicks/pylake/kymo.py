@@ -408,7 +408,7 @@ class Kymo(ConfocalImage):
                 -0.5 * self.pixelsize[0],
             ],
             aspect=(image.shape[0] / image.shape[1]) * (self.duration / size_calibrated),
-            cmap=getattr(colormaps, channel),
+            cmap=colormaps._get_default_colormap(channel),
         )
 
         image_handle = show_image(

@@ -66,7 +66,7 @@ class ColorAdjustment:
         self.minimum, self.maximum = minimum * np.ones((3,)), maximum * np.ones((3,))
         self.gamma = gamma * np.ones((3,))
 
-    def _get_data_rgb(self, image):
+    def _get_data_rgb(self, image, channel="rgb"):
         """Scale RGB data for plotting.
 
         Parameters
@@ -74,6 +74,12 @@ class ColorAdjustment:
         image : array_like
             Raw image data.
         """
+
+        if len(channel) == 2:
+            missing_channel = set("rgb") - set(channel)
+            missing_channel_index = "rgb".index(missing_channel.pop())
+            image[:, :, missing_channel_index] = 0
+
         if not self.mode:
             return image / np.max(image)
         elif self.mode == "absolute":
@@ -108,7 +114,10 @@ class ColorAdjustment:
         if not self.mode:
             return
 
-        idx = {"red": 0, "green": 1, "blue": 2, "rgb": 0}[channel]
+        if channel in ("rgb", "rg", "gb", "rb"):
+            return
+
+        idx = ({"red": 0, "green": 1, "blue": 2, "r": 0, "g": 1, "b": 2})[channel]
         limits = (self.minimum[idx], self.maximum[idx])
         if self.mode == "percentile":
             limits = np.percentile(image, limits)
@@ -233,6 +242,15 @@ class _ColorMaps:
         xyz = wavelength_to_xyz(wavelength)
         rgb = skimage.color.xyz2rgb(xyz.reshape([1, 1, 3])).squeeze()
         return _make_cmap(f"{wavelength}nm", rgb)
+
+    def _get_default_colormap(self, channel):
+        try:
+            return getattr(self, channel)
+        except AttributeError:
+            if channel in (channel_shorthand := {"r": "red", "g": "green", "b": "blue"}):
+                return getattr(self, channel_shorthand[channel])
+            else:
+                return self.rgb
 
 
 colormaps = _ColorMaps()

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 import tifffile
 
+from .plotting import parse_color_channel
 from ..adjustments import no_adjustment
 
 
@@ -99,14 +100,14 @@ class TiffFrame:
         if not self.is_rgb:
             return self.data
 
-        if channel.lower() == "rgb":
-            data = self.data.astype(float)
-            return adjustment._get_data_rgb(data)
-        else:
-            try:
-                return self.data[:, :, ("red", "green", "blue").index(channel.lower())]
-            except ValueError:
-                raise ValueError(f"'{channel}' is not a recognized channel")
+        channel = parse_color_channel(channel)
+
+        if channel in ("r", "g", "b"):
+            return self.data[:, :, "rgb".index(channel)]
+
+        data = self.data.astype(float)
+
+        return adjustment._get_data_rgb(data, channel=channel)
 
     @property
     def start(self):

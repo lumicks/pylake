@@ -1,3 +1,5 @@
+import warnings
+
 from ..adjustments import no_adjustment
 
 
@@ -20,6 +22,9 @@ def parse_color_channel(channel):
     if channel in (full_colors := {"red": "r", "green": "g", "blue": "b"}):
         channel = full_colors[channel]
 
+    input_channel = channel
+    channel = channel.lower()
+
     # check all specified components in 'rgb'
     if not set(channel).issubset(set("rgb")):
         raise ValueError(
@@ -27,9 +32,19 @@ def parse_color_channel(channel):
             f"got '{channel}'."
         )
 
+    if input_channel != channel:
+        warnings.warn(
+            DeprecationWarning(
+                "In future versions, the `channel` argument will be restricted to lowercase "
+                f"letters only. Use '{channel}' instead of '{input_channel}'."
+            )
+        )
+
     # check rgb order
-    if channel != "".join(sorted(channel)[::-1]):
-        raise ValueError(f"color channel must be in 'rgb' order, got '{channel}'.")
+    if channel != (correct_order := "".join(sorted(channel)[::-1])):
+        raise ValueError(
+            f"color channel must be in 'rgb' order; got '{channel}', expected '{correct_order}'."
+        )
 
     return channel
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.0 | t.b.d.
+
+#### New features
+
+* Added more options for plotting color channels for images:
+  * Shortcuts `"r"`, `"g"`, and `"b"` can now be used for plotting single color channels in addition to `"red"`, `"green"`, and `"blue"`.
+  * Two-channel visualizations can be plotted using `"rg"`, `"gb"`, or `"rb"`.
+
 ## v1.2.1 | t.b.d.
 
 #### Bug fixes
