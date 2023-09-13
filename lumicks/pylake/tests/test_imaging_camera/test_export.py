@@ -69,7 +69,13 @@ def test_stack_movie_export(
         stack.export_video("red", fn, start_frame=0, stop_frame=2)
         assert stat(fn).st_size > 0
 
-        with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "channel must be 'red', 'green', 'blue' or a combination of 'r', 'g', "
+                "and/or 'b', got 'gray'."
+            ),
+        ):
             stack.export_video("gray", "dummy.gif")  # Gray is not a color!
 
         stack._src.close()

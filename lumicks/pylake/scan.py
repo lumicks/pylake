@@ -334,9 +334,9 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         from lumicks.pylake.nb_widgets.correlated_plot import plot_correlated
 
         def plot_channel(frame):
-            if channel in ("red", "green", "blue", "rgb"):
+            try:
                 return self._get_plot_data(channel, frame=frame, adjustment=adjustment)
-            else:
+            except ValueError:
                 raise RuntimeError("Invalid channel selected")
 
         def post_update(image_handle, image):
@@ -354,7 +354,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             title_factory,
             frame,
             reduce,
-            colormap=getattr(colormaps, channel),
+            colormap=colormaps._get_default_colormap(channel),
             figure_scale=figure_scale,
             post_update=post_update,
         )
@@ -464,7 +464,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
             aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um),
-            cmap=getattr(colormaps, channel),
+            cmap=colormaps._get_default_colormap(channel),
         )
 
         image_handle = show_image(

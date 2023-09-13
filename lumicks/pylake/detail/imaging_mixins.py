@@ -5,6 +5,7 @@ import numpy as np
 import tifffile
 import numpy.typing as npt
 
+from .plotting import parse_color_channel
 from .timeindex import to_timestamp
 from ..adjustments import no_adjustment
 
@@ -138,9 +139,7 @@ class VideoExport:
         import matplotlib.pyplot as plt
         from matplotlib import animation
 
-        channels = ("red", "green", "blue", "rgb")
-        if channel not in channels:
-            raise ValueError(f"Channel should be {', '.join(channels[:-1])} or {channels[-1]}")
+        channel = parse_color_channel(channel)
 
         metadata = dict(title=self.name)
         if "ffmpeg" in animation.writers:

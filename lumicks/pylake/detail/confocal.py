@@ -8,6 +8,7 @@ from numpy import typing as npt
 
 from .image import reconstruct_image, reconstruct_image_sum
 from .mixin import PhotonCounts, ExcitationLaserPower
+from .plotting import parse_color_channel
 from .utilities import method_cache, could_sum_overflow
 from ..adjustments import no_adjustment
 from .imaging_mixins import TiffExport
@@ -312,11 +313,12 @@ class ConfocalImage(BaseScan, TiffExport):
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image if channel is set to "rgb".
         """
+        channel = parse_color_channel(channel)
         image = self.get_image(channel)
         frame_image = image if frame is None else image[frame]
 
-        if channel == "rgb":
-            frame_image = adjustment._get_data_rgb(frame_image)
+        if len(channel) > 1:
+            frame_image = adjustment._get_data_rgb(frame_image, channel=channel)
 
         return frame_image
 
@@ -450,7 +452,10 @@ class ConfocalImage(BaseScan, TiffExport):
         channel : {'red', 'green', 'blue', 'rgb'}
             The color channel of the requested data.
         """
-        if channel == "rgb":
+        if channel in (color_shorthand := {"r": "red", "g": "green", "b": "blue"}):
+            channel = color_shorthand[channel]
+
+        if channel not in ("red", "green", "blue"):
             return np.stack([self.get_image(color) for color in ("red", "green", "blue")], axis=-1)
         else:
             # Make sure we don't return a reference to our cache

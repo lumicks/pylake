@@ -294,7 +294,13 @@ def test_movie_export(tmpdir_factory, test_scans):
     with pytest.raises(IndexError):
         scan.export_video("rgb", f"{tmpdir}/rgb.gif", start_frame=0, stop_frame=4)
 
-    with pytest.raises(ValueError, match="Channel should be red, green, blue or rgb"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "channel must be 'red', 'green', 'blue' or a combination of 'r', 'g', "
+            "and/or 'b', got 'gray'."
+        ),
+    ):
         scan.export_video("gray", "dummy.gif")  # Gray is not a color!
 
 
