@@ -461,3 +461,13 @@ def test_h5_cropped_export_confocal(tmpdir_factory):
                 "PointScan1" not in f["Point Scan"]
                 or not f["Point Scan"]["PointScan1"].red_photon_count
             )
+
+
+def test_detector_mapping(h5_custom_detectors):
+    f = pylake.File.from_h5py(
+        h5_custom_detectors,
+        rgb_to_detectors={"Red": "Detector 1", "Green": "Detector 2", "Blue": "Detector 3"},
+    )
+    with pytest.raises(Exception):
+        f = pylake.File.from_h5py(h5_custom_detectors, match="Invalid RGB to detector mapping")
+    assert np.any(f.red_photon_count.data)

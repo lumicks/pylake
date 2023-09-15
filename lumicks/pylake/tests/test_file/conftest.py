@@ -207,3 +207,19 @@ def h5_kymo_as_scan(tmpdir_factory, request):
     ds.attrs["Stop time (ns)"] = np.int64(100e9)
 
     return mock_file.file
+
+
+@pytest.fixture(scope="module", params=[MockDataFile_v2])
+def h5_custom_detectors(tmpdir_factory, request):
+    mock_class = request.param
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join("%s.h5" % mock_class.__class__.__name__))
+    mock_file.write_metadata()
+
+    freq = 1e9 / 16
+    mock_file.make_continuous_channel("Photon count", "Detector 1", np.int64(20e9), freq, counts)
+    mock_file.make_continuous_channel("Photon count", "Detector 2", np.int64(20e9), freq, counts)
+    mock_file.make_continuous_channel("Photon count", "Detector 3", np.int64(20e9), freq, counts)
+    mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
+    return mock_file.file

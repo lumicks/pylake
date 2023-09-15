@@ -6,6 +6,7 @@
 
 * Added [`lk.HiddenMarkovModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.HiddenMarkovModel.html#lumicks.pylake.HiddenMarkovModel) for classifying data traces exhibiting transitions between discrete states. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#hidden-markov-models).
 * Added `emission_path()` and `plot_path()` methods to [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html)
+* Added option to [`File`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.File.html) to pass a custom mapping from Photon count detector to RGB colors colors. This is useful to reconstruct images on systems with non-standard imaging modules.
 
 #### Deprecations
 
