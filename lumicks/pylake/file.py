@@ -26,6 +26,9 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     filename : str | os.PathLike
         The HDF5 file to open in read-only mode
 
+    rgb_to_detectors : Dict[Color, str]
+        Dictionary that maps RGB colors to a photon detector channel (either photon counts, or photon time tags)
+
     Examples
     --------
     ::
@@ -35,15 +38,23 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         file = pylake.File("example.h5")
         file.force1x.plot()
         file.kymos["name"].plot()
+
+        # Open with custom detector mapping
+        file = pylake.File("example.h5", rgb_to_detectors={"Red": "Detector 1", "Green": "Detector 2", "Blue": "Detector 3"})
     """
 
     SUPPORTED_FILE_FORMAT_VERSIONS = [1, 2]
 
-    def __init__(self, filename):
+    def __init__(self, filename, *, rgb_to_detectors=None):
         import h5py
 
+        if rgb_to_detectors is None:
+            rgb_to_detectors = {"Red": "Red", "Green": "Green", "Blue": "Blue"}
+
+        self._rgb_to_detectors = rgb_to_detectors
         super().__init__(h5py.File(filename, "r"), lk_file=self)
         self._check_file_format()
+        self._check_detector_mapping()
 
     def _check_file_format(self):
         if "Bluelake version" not in self.h5.attrs:
@@ -69,13 +80,33 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             "Point Scan": ("point_scans", PointScan),
         }
 
+    def _check_detector_mapping(self):
+        detectors = set()
+        if "Photon time tags" in self.h5:
+            detectors = set(self.h5["Photon time tags"])
+        elif "Photon count" in self.h5:
+            detectors = set(self.h5["Photon count"])
+
+        # Only check if detector data was exported
+        if not detectors:
+            return
+
+        if not_found := set(self._rgb_to_detectors.values()) - detectors:
+            raise Exception(
+                f"Invalid RGB to detector mapping: {not_found} photon count channel(s) are missing, images cant't be reconstructed. Available detectors: {detectors}"
+            )
+
     @classmethod
-    def from_h5py(cls, h5py_file):
+    def from_h5py(cls, h5py_file, *, rgb_to_detectors=None):
         """Directly load an existing `h5py.File <https://docs.h5py.org/en/latest/high/file.html>`_"""
         new_file = cls.__new__(cls)
         new_file.h5 = h5py_file
         new_file._lk_file = new_file
         new_file._check_file_format()
+        if rgb_to_detectors is None:
+            rgb_to_detectors = {"Red": "Red", "Green": "Green", "Blue": "Blue"}
+        new_file._rgb_to_detectors = rgb_to_detectors
+        new_file._check_detector_mapping()
         return new_file
 
     @property
@@ -252,10 +283,14 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         return TimeSeries.from_dataset(self.h5["Distance"][f"Distance {n}"], r"Distance (μm)")
 
     def _get_photon_count(self, name):
-        return Continuous.from_dataset(self.h5["Photon count"][name], "Photon count")
+        return Continuous.from_dataset(
+            self.h5["Photon count"][self._rgb_to_detectors[name]], "Photon count"
+        )
 
     def _get_photon_time_tags(self, name):
-        return TimeTags.from_dataset(self.h5["Photon Time Tags"][name], "Photon time tags")
+        return TimeTags.from_dataset(
+            self.h5["Photon Time Tags"][self._rgb_to_detectors[name]], "Photon time tags"
+        )
 
     def _get_object_dictionary(self, field, cls):
         def try_from_dataset(*args):
