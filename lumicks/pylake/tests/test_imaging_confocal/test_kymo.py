@@ -1,7 +1,9 @@
-import pytest
 import numpy as np
-from lumicks.pylake.channel import Slice, Continuous
+import pytest
+
 from lumicks.pylake.kymo import _default_line_time_factory
+from lumicks.pylake.channel import Slice, Continuous
+
 from ..data.mock_confocal import generate_kymo
 
 
@@ -63,6 +65,28 @@ def test_damaged_kymo(truncated_kymo):
     with pytest.warns(RuntimeWarning):
         assert kymo.get_image("red").shape == (5, 3)
     np.testing.assert_allclose(kymo.get_image("red"), ref.image[:, 1:, 0])
+
+
+def test_line_timestamp_ranges(test_kymo):
+    kymo, ref = test_kymo
+
+    expected_ranges = (ref.timestamps.timestamp_ranges, ref.timestamps.timestamp_ranges_deadtime)
+
+    pixel_infowave = np.hstack((np.ones(ref.infowave.samples_per_pixel - 1, dtype=int), 2))
+    expected_iw_chunks = [
+        list(pixel_infowave) * ref.metadata.pixels_per_line,
+        list(pixel_infowave) * ref.metadata.pixels_per_line + ([0] * ref.infowave.line_padding * 2),
+    ]
+
+    for include, ref_ranges, ref_iw_chunks in zip(
+        (False, True), expected_ranges, expected_iw_chunks
+    ):
+        ranges = kymo.line_timestamp_ranges(include_dead_time=include)
+        np.testing.assert_equal(ranges, ref_ranges)
+
+        for rng in ranges:
+            iw_chunk = kymo.infowave[slice(*rng)].data
+            np.testing.assert_equal(iw_chunk, ref_iw_chunks[: iw_chunk.size])
 
 
 def test_regression_unequal_timestamp_spacing():
