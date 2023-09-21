@@ -47,7 +47,7 @@ def test_generate_timestamps(
     scan,
     x_axis_fast,
 ):
-    timestamps, ranges = generate_timestamps(
+    timestamps, ranges, ranges_deadtime = generate_timestamps(
         number_of_frames,
         lines_per_frame,
         pixels_per_line,
@@ -70,6 +70,8 @@ def test_generate_timestamps(
     assert timestamps.shape == shape_ref
     assert ranges.dtype == np.int64
     assert ranges.shape == (number_of_frames if scan else lines_per_frame, 2)
+    assert ranges_deadtime.dtype == np.int64
+    assert ranges_deadtime.shape == (number_of_frames if scan else lines_per_frame, 2)
 
     # Test crucial timestamp values (i.e. the first timestamp and increments in all dimensions)
     pixel_time = dt * samples_per_pixel
@@ -92,10 +94,13 @@ def test_generate_timestamps(
 
     # Test crucial ranges timestamp values
     assert ranges[0, 0] == start + padding_time
+    assert ranges_deadtime[0, 0] == start + padding_time
     np.testing.assert_equal(np.diff(ranges, axis=0), frame_time if scan else line_time)
     np.testing.assert_equal(
         np.diff(ranges, axis=1), (frame_time if scan else line_time) - 2 * padding_time
     )
+    np.testing.assert_equal(np.diff(ranges_deadtime, axis=0), frame_time if scan else line_time)
+    np.testing.assert_equal(np.diff(ranges_deadtime, axis=1), frame_time if scan else line_time)
 
 
 @pytest.mark.parametrize(

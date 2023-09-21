@@ -390,7 +390,7 @@ def _generate_confocal_reference(
         # switch the values of the variables.
         lines_per_frame, pixels_per_line = pixels_per_line, lines_per_frame
 
-    timestamps, timestamp_ranges = generate_timestamps(
+    timestamps, timestamp_ranges, timestamp_ranges_deadtime = generate_timestamps(
         number_of_frames=number_of_frames,
         lines_per_frame=lines_per_frame,
         pixels_per_line=pixels_per_line,
@@ -405,6 +405,7 @@ def _generate_confocal_reference(
     times_ref = TimeStampsRef(
         data=timestamps,
         timestamp_ranges=timestamp_ranges,
+        timestamp_ranges_deadtime=timestamp_ranges_deadtime,
         dt=dt,
         pixel_time_seconds=dt * samples_per_pixel * 1e-9,
         line_time_seconds=dt * (pixels_per_line * samples_per_pixel + line_padding * 2) * 1e-9,
@@ -494,20 +495,30 @@ def generate_timestamps(
     number_of_timestamps = number_of_frames * lines_per_frame * timestamps_per_line
     if start + int(number_of_timestamps + 1) * dt > 2**63:
         raise OverflowError("timestamps are too big for int64")
-    timestamps = np.arange(start, start + number_of_timestamps * dt - dt // 2, dt, dtype=np.int64)
+    timestamps_padded = np.arange(
+        start, start + number_of_timestamps * dt - dt // 2, dt, dtype=np.int64
+    ).reshape((number_of_frames, lines_per_frame, timestamps_per_line))
 
     # Remove line padding timestamps and get the line or frame start/stop timestamps
-    timestamps = timestamps.reshape((number_of_frames, lines_per_frame, timestamps_per_line))[
+    timestamps = timestamps_padded[
         :, :, slice(line_padding, -line_padding) if line_padding else slice(None)
     ]
 
     if scan or number_of_frames > 1:
         # frame timestamp ranges
         timestamp_ranges = np.c_[timestamps[:, 0, 0], timestamps[:, -1, -1] + dt]
+        timestamp_ranges_deadtime = np.c_[
+            timestamps_padded[:, 0, 0], timestamps_padded[:, -1, -1] + dt
+        ]
     else:
         # line timestamp ranges
         timestamp_ranges = timestamps[:, :, [0, -1]].squeeze()
         timestamp_ranges[:, 1] += dt
+        # we pad left and right, but we define the deadtime-included time as the time of the
+        # first true sample, up to the next true sample (hence the shift by the left padding)
+        timestamp_ranges_deadtime = timestamps_padded[:, :, [0, -1]].squeeze()
+        timestamp_ranges_deadtime[:, 1] += dt
+    timestamp_ranges_deadtime += dt * line_padding
 
     # Get pixel timestamps by calculating mean of all pixels (i.e. mean of first and last sample)
     timestamps = timestamps.reshape(
@@ -519,7 +530,7 @@ def generate_timestamps(
     timestamps = timestamps.reshape(number_of_frames, lines_per_frame, pixels_per_line)
     timestamps = timestamps if x_axis_fast else timestamps.swapaxes(2, 1)
 
-    return timestamps.squeeze(), timestamp_ranges
+    return timestamps.squeeze(), timestamp_ranges, timestamp_ranges_deadtime
 
 
 @dataclass(frozen=True)
@@ -550,6 +561,7 @@ class TimeStampsRef:
 
     data: np.ndarray
     timestamp_ranges: np.ndarray
+    timestamp_ranges_deadtime: np.ndarray
     dt: int
     pixel_time_seconds: float
     line_time_seconds: float
