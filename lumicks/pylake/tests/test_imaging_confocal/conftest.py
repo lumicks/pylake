@@ -40,3 +40,53 @@ def truncated_kymo():
     )
     kymo.start = start - 62500000
     return kymo, ref
+
+
+@pytest.fixture(scope="module")
+def downsampling_kymo():
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8,
+    )
+
+    kymo, ref = generate_kymo_with_ref(
+        "downsampler",
+        image,
+        pixel_size_nm=100,
+        start=1592916040906356300,
+        dt=int(1e9),
+        samples_per_pixel=5,
+        line_padding=2,
+    )
+
+    return kymo, ref
+
+
+@pytest.fixture(scope="module")
+def downsampled_results():
+    time_factor = 2
+    position_factor = 2
+    time_image = np.array(
+        [
+            [12, 12, 6],
+            [0, 0, 6],
+            [12, 0, 18],
+            [12, 24, 6],
+            [12, 24, 6],
+        ]
+    )
+    position_image = np.array(
+        [
+            [0, 12, 0, 12, 0, 12, 0],
+            [12, 12, 12, 12, 12, 12, 0],
+        ]
+    )
+    both_image = np.array([[12, 12, 12], [24, 24, 24]])
+
+    return time_factor, position_factor, time_image, position_image, both_image
