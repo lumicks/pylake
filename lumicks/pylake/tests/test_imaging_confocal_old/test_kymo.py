@@ -16,60 +16,6 @@ def with_offset(t, start_time=1592916040906356300):
     return np.array(t, dtype=np.int64) + start_time
 
 
-def test_kymo_properties(test_kymos):
-    kymo = test_kymos["Kymo1"]
-
-    reference_timestamps = np.array(
-        [
-            [20062500000, 21625000000, 23187500000, 24750000000],
-            [20250000000, 21812500000, 23375000000, 24937500000],
-            [20437500000, 22000000000, 23562500000, 25125000000],
-            [20625000000, 22187500000, 23750000000, 25312500000],
-            [20812500000, 22375000000, 23937500000, 25500000000],
-        ],
-        np.int64,
-    )
-
-    assert repr(kymo) == "Kymo(pixels=5)"
-    assert kymo.pixels_per_line == 5
-    assert len(kymo.infowave) == 90
-    assert kymo.shape == (5, 4, 3)
-    assert kymo.get_image("rgb").shape == (5, 4, 3)
-    assert kymo.get_image("red").shape == (5, 4)
-    assert kymo.get_image("blue").shape == (5, 4)
-    assert kymo.get_image("green").shape == (5, 4)
-    np.testing.assert_allclose(kymo.timestamps, reference_timestamps)
-    assert kymo.fast_axis == "X"
-    np.testing.assert_allclose(kymo.pixelsize_um, 10 / 1000)
-    np.testing.assert_allclose(kymo.line_time_seconds, 1.5625)
-    np.testing.assert_allclose(kymo.duration, 1.5625 * 4)
-    np.testing.assert_allclose(kymo.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(kymo.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(kymo.center_point_um["z"], 0)
-    np.testing.assert_allclose(kymo.size_um, [0.050])
-    np.testing.assert_allclose(kymo.pixel_time_seconds, 0.1875)
-    np.testing.assert_allclose(kymo.motion_blur_constant, 0)  # We neglect motion blur for confocal
-
-
-def test_empty_kymo_properties(test_kymos):
-    kymo = test_kymos["Kymo1"]
-    empty_kymo = kymo["3s":"2s"]
-
-    assert empty_kymo.fast_axis == "X"
-    np.testing.assert_allclose(empty_kymo.pixelsize_um, 10 / 1000)
-    np.testing.assert_equal(empty_kymo.duration, 0)
-    np.testing.assert_allclose(empty_kymo.center_point_um["x"], 58.075877109272604)
-    np.testing.assert_allclose(empty_kymo.center_point_um["y"], 31.978375270573267)
-    np.testing.assert_allclose(empty_kymo.center_point_um["z"], 0)
-    np.testing.assert_allclose(empty_kymo.size_um, [0.050])
-
-    with pytest.raises(RuntimeError, match="Can't get pixel timestamps if there are no pixels"):
-        empty_kymo.line_time_seconds
-
-    with pytest.raises(RuntimeError, match="Can't get pixel timestamps if there are no pixels"):
-        empty_kymo.pixel_time_seconds
-
-
 def test_kymo_slicing(test_kymos):
     kymo = test_kymos["Kymo1"]
     kymo_reference = np.transpose(
@@ -163,18 +109,6 @@ def test_kymo_slicing(test_kymos):
     assert isinstance(kymo["24.2s":], EmptyKymo)
 
 
-def test_damaged_kymo(test_kymos):
-    # Assume the user incorrectly exported only a partial Kymo
-    kymo = test_kymos["truncated_kymo"]
-    kymo_reference = np.transpose(
-        [[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]
-    )
-
-    with pytest.warns(RuntimeWarning):
-        assert kymo.get_image("red").shape == (5, 3)
-    np.testing.assert_allclose(kymo.get_image("red").data, kymo_reference[:, 1:])
-
-
 def test_plotting(test_kymos):
     kymo = test_kymos["Kymo1"]
 
@@ -220,36 +154,6 @@ def test_deprecated_plotting(test_kymos):
         ),
     ):
         kymo.plot("rgb", None, axes=None)
-
-
-def test_line_timestamp_ranges(test_kymos):
-    kymo = test_kymos["Kymo1"]
-
-    expected_ranges = (
-        [
-            (20000000000, 20937500000),
-            (21562500000, 22500000000),
-            (23125000000, 24062500000),
-            (24687500000, 25625000000),
-        ],
-        [
-            (20000000000, 21562500000),
-            (21562500000, 23125000000),
-            (23125000000, 24687500000),
-            (24687500000, 26250000000),
-        ],
-    )
-    short = [1, 1, 2] * 5
-    expected_iw_chunks = [[[1, 1, 2] * 5] * 4, [short + [0] * 10] * 3 + [short]]
-
-    for include, ref_ranges, ref_iw_chunks in zip(
-        (False, True), expected_ranges, expected_iw_chunks
-    ):
-        ranges = kymo.line_timestamp_ranges(include_dead_time=include)
-        np.testing.assert_equal(ranges, ref_ranges)
-
-        iw_chunks = [kymo.infowave[slice(*rng)].data for rng in ranges]
-        np.testing.assert_equal(iw_chunks, ref_iw_chunks)
 
 
 def test_plotting_with_force_downsampling(kymo_h5_file):
@@ -880,64 +784,6 @@ def test_slice_timestamps():
     np.testing.assert_allclose(sliced.timestamps, ref_ts[:, :6])
 
 
-def test_roundoff_errors_kymo():
-    """Test slicing with realistically sized timestamps (this tests against floating point errors
-    induced in kymograph reconstruction)"""
-    image = np.array(
-        [
-            [0, 12, 0, 12, 0, 6, 0],
-            [0, 0, 0, 0, 0, 6, 0],
-            [12, 0, 0, 0, 12, 6, 0],
-            [12, 0, 0, 0, 12, 6, 0],
-        ],
-        dtype=np.uint8,
-    )
-
-    test_parameters = {
-        "start": 1623965975045144000,
-        "dt": int(1e9),
-        "samples_per_pixel": 10,
-        "line_padding": 2,
-    }
-
-    kymo = generate_kymo(
-        "Mock",
-        image,
-        pixel_size_nm=4,
-        **test_parameters,
-    )
-
-    pixel_time = test_parameters["dt"] * test_parameters["samples_per_pixel"]
-    padding_time = test_parameters["dt"] * test_parameters["line_padding"]
-
-    first_pixel_start = test_parameters["start"] + padding_time
-    pixel_area_time = image.shape[0] * pixel_time
-    line_time = pixel_area_time + 2 * padding_time
-    # Note that the - dt comes from the mean over the pixel being not inclusive of the end.
-    first_pixel_center = (2 * first_pixel_start + pixel_time - test_parameters["dt"]) // 2
-    timestamp_line = first_pixel_center + np.arange(image.shape[0], dtype=np.int64) * pixel_time
-
-    ref_timestamps = np.tile(timestamp_line, (image.shape[1], 1)).T
-    ref_timestamps += np.arange(image.shape[1], dtype=np.int64) * line_time
-
-    np.testing.assert_equal(kymo.timestamps, ref_timestamps)
-
-
-def test_regression_unequal_timestamp_spacing():
-    """This particular set of initial timestamp and sampler per pixel led to unequal timestamp
-    spacing in an actual dataset."""
-    kymo = generate_kymo(
-        "Mock",
-        np.array([[1, 1, 1, 1, 1], [1, 1, 1, 1, 1]]),
-        pixel_size_nm=100,
-        start=1536582124217030400,
-        dt=int(1e9 / 78125),
-        samples_per_pixel=47,
-        line_padding=0,
-    )
-    assert len(np.unique(np.diff(kymo.timestamps))) == 1
-
-
 def test_calibrate_to_kbp():
     image = np.array(
         [
@@ -1016,30 +862,6 @@ def test_calibrate_to_kbp():
         kymo_bp._calibration.value * kymo._num_pixels[0] * 5 / 6,
         cropped_kymo_bp._calibration.value * cropped_kymo_bp._num_pixels[0],
     )
-
-
-def test_partial_pixel_kymo():
-    """This function tests whether a partial pixel at the end is fully dropped. This is important,
-    since in the timestamp reconstruction, we subtract the minimum value from a row prior to
-    averaging (to allow taking averages of larger chunks). Without this functionality, the lowest
-    pixel to be reconstructed can be smaller than the first timestamp, which means the subtraction
-    of the minimum is rendered less effective (leading to unnecessarily long reconstruction
-    times)."""
-    kymo = generate_kymo(
-        "Mock",
-        np.ones((5, 5)),
-        pixel_size_nm=100,
-        start=1536582124217030400,
-        dt=int(1e9 / 78125),
-        samples_per_pixel=47,
-        line_padding=0,
-    )
-
-    kymo.infowave.data[-60:] = 0  # Remove the last pixel entirely, and a partial pixel before that
-    np.testing.assert_equal(kymo.timestamps[-1, -1], 0)
-    np.testing.assert_equal(kymo.timestamps[-2, -1], 0)
-    np.testing.assert_equal(kymo.get_image("red")[-1, -1], 0)
-    np.testing.assert_equal(kymo.get_image("red")[-2, -1], 0)
 
 
 def test_plot_with_lf_force():
@@ -1147,45 +969,3 @@ def test_flip_kymo(test_kymos, crop):
             kymo_flipped.flip().get_image(channel=channel),
             kymo.get_image(channel=channel),
         )
-
-
-@pytest.mark.parametrize(
-    "data, ref_line_time, pixels_per_line, bad",
-    [
-        ([1, 1, 2, 1, 1, 2, 0, 0, 1, 1, 2, 1, 1, 2], 8 * 2, 2, False),
-        ([1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2, False),
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2, False),
-        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 0, 1], 10 * 2, 3, False),
-        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 2], 9 * 2, 3, False),  # No dead time
-        ([2, 2, 2, 0, 1], 4 * 2, 3, False),  # Three pixels and a one sample dead time
-        ([2, 2], 2 * 2, 3, True),  # Expected 3 pixels per line, but got partial line
-        ([2, 2, 2], 3 * 2, 3, True),  # A single line without dead time (can't be sure)
-        ([2, 2, 2, 0], 4 * 2, 3, True),  # 3 pixels, 1 sample dead time, but deadtime undefined
-        ([2, 2, 2, 2], 3 * 2, 3, False),  # Three pixels, a line and a little, without dead-time
-        ([0, 2, 2], 2 * 2, 3, True),  # Expected 3 pixels per line, but partial line
-        ([0, 2, 2, 2], 3 * 2, 3, True),  # A single line, but can't be sure
-        ([0, 2, 2, 2, 0], 4 * 2, 3, True),  # 3 pixels, 1 sample dead time, but deadtime undefined
-        ([0, 2, 2, 2, 2], 3 * 2, 3, False),  # Three pixels, a line and a little, without dead-time
-        ([0, 0, 2, 2, 2, 0, 1], 4 * 2, 3, False),  # Three pixels and a pixel dead time
-        ([1, 1], 2 * 2, 2, True),  # No full pixel available at all
-        ([1, 1, 2, 1, 1], 5 * 2, 2, True),  # No full line available
-        ([0, 0, 1, 1, 2, 1, 1], 5 * 2, 2, True),  # No full line available but padded
-        ([0, 0, 1, 1, 2, 1, 1, 2], 6 * 2, 2, True),  # Exactly a full line, w/o dead time
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0], 7 * 2, 2, True),  # Full line, dead time not yet defined
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0], 8 * 2, 2, True),  # Full line, dead time not yet defined
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1], 8 * 2, 2, False),  # Well defined
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1, 1], 8 * 2, 2, False),  # Well defined
-    ],
-)
-def test_direct_infowave_linetime(data, ref_line_time, pixels_per_line, bad):
-    class KymoWave:
-        def __init__(self):
-            self.infowave = Slice(Continuous(data, int(100e9), int(2e9)))
-            self._has_default_factories = lambda: True
-            self.pixels_per_line = pixels_per_line
-
-    if not bad:
-        assert _default_line_time_factory(KymoWave()) == ref_line_time
-    else:
-        with pytest.raises(RuntimeError, match=r"This kymograph consists of only a single line"):
-            _default_line_time_factory(KymoWave())
