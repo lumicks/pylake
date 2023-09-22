@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from ..data.mock_confocal import generate_kymo_with_ref
+from ..data.mock_file import MockDataFile_v2
+from ..data.mock_confocal import generate_scan_json, generate_kymo_with_ref
 
 start = np.int64(20e9)
 dt = np.int64(62.5e6)
@@ -90,3 +91,64 @@ def downsampled_results():
     both_image = np.array([[12, 12, 12], [24, 24, 24]])
 
     return time_factor, position_factor, time_image, position_image, both_image
+
+
+@pytest.fixture(scope="module")
+def kymo_h5_file(tmpdir_factory, test_kymo):
+    kymo, ref = test_kymo
+    dt = ref.timestamps.dt
+    start = ref.start
+
+    mock_class = MockDataFile_v2
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join(f"kymo_{mock_class.__class__.__name__}.h5"))
+    mock_file.write_metadata()
+
+    json_kymo = generate_scan_json(
+        [
+            {
+                "axis": 0,
+                "num of pixels": ref.metadata.num_pixels[0],
+                "pixel size (nm)": ref.metadata.pixelsize_um[0],
+            }
+        ]
+    )
+
+    for color in ("Red", "Green", "Blue"):
+        mock_file.make_continuous_channel(
+            "Photon count",
+            color,
+            np.int64(start),
+            dt,
+            getattr(kymo, f"{color.lower()}_photon_count").data,
+        )
+    mock_file.make_continuous_channel(
+        "Info wave", "Info wave", np.int64(start), dt, ref.infowave.data.data
+    )
+
+    ds = mock_file.make_json_data("Kymograph", kymo.name, json_kymo)
+    ds.attrs["Start time (ns)"] = np.int64(start)
+    ds.attrs["Stop time (ns)"] = np.int64(start + len(ref.infowave.data.data) * dt)
+
+    # Force channel that overlaps kymo; step from high to low force
+    # We want two lines of the kymo to have a force of 30, the other 10.
+    # Force starts 5 samples before the kymograph.
+    # A kymotrack line is 20 samples long, with a 50 sample dead time on either side.
+    # The pause before the third line starts after 245 samples.
+    force_start_offset = 5
+    lines_in_first_step = 2
+    padding_count = lines_in_first_step * ref.infowave.line_padding
+    pixels_count = ref.metadata.pixels_per_line * ref.infowave.samples_per_pixel
+    cutoff = force_start_offset + (padding_count + pixels_count) * lines_in_first_step
+
+    iw_mask = np.hstack((np.zeros(force_start_offset), np.copy(ref.infowave.data.data)))
+    force_data = np.zeros(len(ref.infowave.data.data) + force_start_offset)
+    force_data[:cutoff][iw_mask[:cutoff] > 0] = 30
+    force_data[cutoff:][iw_mask[cutoff:] > 0] = 10
+
+    # start force channel before infowave
+    force_start = np.int64(ds.attrs["Start time (ns)"] - (dt * force_start_offset))
+    mock_file.make_continuous_channel("Force HF", "Force 2x", force_start, dt, force_data)
+
+    return mock_file.file
