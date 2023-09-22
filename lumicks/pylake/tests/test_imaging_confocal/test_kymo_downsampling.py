@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+import lumicks.pylake as lk
 from lumicks.pylake.detail.confocal import timestamp_mean
 
 
@@ -134,3 +135,45 @@ def test_side_no_side_effects_downsampling(downsampling_kymo):
     np.testing.assert_allclose(kymo.line_time_seconds, ref.timestamps.line_time_seconds)
     np.testing.assert_equal(kymo.timestamps, ref.timestamps.data)
     assert kymo.contiguous
+
+
+def test_downsample_channel_downsampled_kymo(kymo_h5_file):
+    f = lk.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["tester"]
+    kymo_ds = kymo.downsampled_by(position_factor=2)
+
+    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
+    np.testing.assert_allclose(ds.data[:2], 30)
+    np.testing.assert_allclose(ds.data[2:], 10)
+    assert len(ds) == kymo.get_image("red").shape[1]
+
+    # Downsampling by a factor of two in position means that the last pixel will be dropped
+    # from this kymo when downsampling (as it is 5 pixels wide). This is why the before last
+    # sample is taken when determining the maxima.
+    mins = kymo._timestamp_factory(kymo, np.min)[0, :]
+    maxs = kymo._timestamp_factory(kymo, np.max)[-2, :]
+    np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
+
+    # Downsampling by a factor of five in position means no pixel will be dropped.
+    kymo_ds = kymo.downsampled_by(position_factor=5)
+    ds = f.force2x.downsampled_over(kymo_ds.line_timestamp_ranges(include_dead_time=False))
+    mins = kymo._timestamp_factory(kymo, np.min)[0, :]
+    maxs = kymo._timestamp_factory(kymo, np.max)[-1, :]
+    np.testing.assert_allclose(ds.timestamps, (maxs + mins) / 2)
+
+    # Down-sampling by time should invalidate plot_with_force as it would correspond to
+    # non-contiguous sampling
+    with pytest.raises(NotImplementedError, match="Line timestamp ranges are no longer available"):
+        kymo.downsampled_by(time_factor=2).plot_with_force("2x", "red")
+
+
+def test_downsampling_over_timestamp_ranges(kymo_h5_file):
+    f = lk.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["tester"]
+    ranges = kymo.line_timestamp_ranges(include_dead_time=False)
+
+    ds = f.force2x.downsampled_over(ranges)
+
+    np.testing.assert_allclose(ds.timestamps[:-1], timestamp_mean(kymo.timestamps, axis=0)[:-1])
+    np.testing.assert_allclose(ds.data[:2], 30)
+    np.testing.assert_allclose(ds.data[2:], 10)
