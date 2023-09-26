@@ -11,6 +11,7 @@
 #### Improvements
 
 * Kymographs consisting of a single scan line now return a valid `line_time_seconds`. This allows certain downstream functionality, such as `Kymo.plot()`.
+* Issue a more descriptive error when attempting to compute a diffusion constant of a track with no points.
 
 ## v1.2.1 | 2023-10-17
 
