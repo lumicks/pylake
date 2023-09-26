@@ -76,58 +76,34 @@ You can also obtain the image stack data as a :class:`numpy array <numpy.ndarray
 Plotting and exporting
 ----------------------
 
-You can quickly plot an individual frame using the :meth:`~lumicks.pylake.ImageStack.plot()` method::
+Pylake provides a convenience :meth:`plot()<lumicks.ImageStack.plot>` method to quickly
+visualize your data. For details and examples see the :doc:`plotting_images` section.
 
-    plt.figure()
-    stack_roi.plot("rgb")
-    plt.show()
+The stack can also be exported to TIFF format::
 
-.. image:: figures/imagestack/imagestack_cropped.png
+    stack_roi.export_tiff("aligned_stack.tiff")
+    stack_roi[3:7].export_tiff("aligned_short_stack.tiff")  # export a slice of the ImageStack
 
-The first argument is the color channel that you wish to plot. All additional arguments must be supplied as keyword arguments.
+Image stacks can also be exported to video formats. Exporting the red channel as a GIF can be
+done as follows::
 
-You can also plot only a single color channel. Note that you can also pass additional formatting
-arguments (here, the `"magma"` colormap), which are forwarded to :func:`plt.imshow() <matplotlib.pyplot.imshow()>`::
-
-    plt.figure()
-    stack_roi.plot(channel="red", cmap="magma")
-    plt.show()
-
-.. image:: figures/imagestack/imagestack_red.png
-
-There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`;
-the available colormaps are: `.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`.
-
-If the `channel` argument is not provided, the default behavior is `"rgb"` for 3-color images. For single-color
-images, this argument is ignored as there is only one channel available.
-
-Sometimes a few bright pixels can dominate the image. When this is the case, it may be beneficial to manually set the color limits
-for each of the channels. This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment` to plotting or export functions::
-
-    plt.figure()
-    stack_roi.plot("rgb", adjustment=lk.ColorAdjustment([100, 100, 100], [185, 200, 200]))
-    plt.show()
-
-.. image:: figures/imagestack/imagestack_adjust_absolute.png
-
-Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
-
-By default the limits should be provided in absolute values, although percentiles can be used instead for convenience::
-
-    plt.figure()
-    stack_roi.plot(
-        "rgb",
-        adjustment=lk.ColorAdjustment(20, 99, mode="percentile"),
-        scale_bar=lk.ScaleBar(),  # Adds a scale bar to the plot
+    stack_roi.export_video(
+        "red",
+        "test_red.gif",
+        adjustment=lk.ColorAdjustment(20, 99, mode="percentile")
     )
-    plt.show()
 
-.. image:: figures/imagestack/imagestack_adjust_percentile.png
+Or if we want to export a subset of frames (the first frame being 2, and the last frame being 7)
+of all three channels at a frame rate of 2 frames per second, we can do this::
 
-Finally, the aligned image stack can also be exported to TIFF format::
-
-    stack.export_tiff("aligned_stack.tiff")
-    stack[5:20].export_tiff("aligned_short_stack.tiff")  # export a slice of the ImageStack
+    stack_roi.export_video(
+        "rgb",
+        "test_rgb.gif",
+        start_frame=2,
+        stop_frame=7, f
+        ps=2,
+        adjustment=lk.ColorAdjustment(20, 99, mode="percentile")
+    )
 
 Defining a tether
 -----------------

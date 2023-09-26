@@ -41,72 +41,33 @@ Or just pick a single one by providing the name of the scan as ``scan=file.scans
 Plotting and Exporting
 ----------------------
 
-As shown above, there are convenience functions for plotting either the full RGB image or a single
-color channel::
+Pylake provides a convenience :meth:`plot()<lumicks.pylake.scan.Scan.plot>` method to quickly
+visualize your data. For details and examples see the :doc:`plotting_images` section.
 
-    plt.figure()
-    scan.plot(channel="rgb")
-    plt.show()
-
-The `channel` argument accepts the strings `“red”`, `“green”`, `“blue”`, or `“rgb”`. Multi-frame scans are also supported::
-
-    multiframe_file = lk.File("test_data/scan_stack.h5")
-    multiframe_scan = multiframe_file.scans["46"]
-
-    print(multiframe_scan.num_frames)
-    print(multiframe_scan.get_image("blue").shape)  # (self.num_frames, h, w) -> single color channel
-    print(multiframe_scan.get_image("rgb").shape)  # (self.num_frames, h, w, 3) -> three color channels
-
-    # plot frame at index 3 (first frame is index 0)
-    # defaults to the first frame if no argument is given
-    plt.figure()
-    multiframe_scan.plot("green", frame=3)
-    plt.show()
-
-Sometimes a few bright pixels can dominate the colormap of a scan.
-When this is the case, it may be beneficial to manually set the color limits for each of the channels.
-This can be accomplished by providing a :class:`~lumicks.pylake.ColorAdjustment` to plotting or export functions::
-
-    plt.figure()
-    scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
-    plt.show()
-
-Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
-
-There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`; the available colormaps are:
-`.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image with the cyan colormap::
-
-    plt.figure()
-    scan.plot(channel="blue", cmap=lk.colormaps.cyan)
-    plt.show()
-
-Here the first array gives the minimal values for the color scale of red, green and blue respectively (here `[0, 0, 0]`) and the second array gives the maximum values for the color scales.
-The color scale is linear by default, but `Gamma correction <https://en.wikipedia.org/wiki/Gamma_correction>`_ can be applied in addition to the bounds by supplying an extra argument named `gamma`.
-For example, a gamma adjustment of `0.1` to the green channel can be applied as follows::
-
-    plt.figure()
-    scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4], gamma=[1, 0.1, 1]))
-    plt.show()
-
-The limits can also be specified in percentiles::
-
-    plt.figure()
-    scan.plot(channel="rgb", adjustment=lk.ColorAdjustment([5, 5, 5], [95, 95, 95], mode="percentile"))
-    plt.show()
-
-Export an image in the TIFF format as follows::
+The scan can also be exported to TIFF format::
 
     scan.export_tiff("image.tiff")
 
-Scans can also be exported to video formats.
-Exporting the red channel of a multi-scan GIF can be done as follows::
+Scans can also be exported to video formats. Exporting the red channel of a multi-scan GIF can be
+done as follows::
 
-    multiframe_scan.export_video("red", "test_red.gif", adjustment=lk.ColorAdjustment([0], [4]))
+    multiframe_scan.export_video(
+        "red",
+        "test_red.gif",
+        adjustment=lk.ColorAdjustment([0], [4])
+    )
 
 Or if we want to export a subset of frames (the first frame being 2, and the last frame being 15) of all three channels
 at a frame rate of 2 frames per second, we can do this::
 
-    multiframe_scan.export_video("rgb", "test_rgb.gif", start_frame=2, stop_frame=15, fps=2,adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
+    multiframe_scan.export_video(
+        "rgb",
+        "test_rgb.gif",
+        start_frame=2,
+        stop_frame=15,
+        fps=2,
+        adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4])
+    )
 
 For other video formats such as `.mp4` or `.avi`, ffmpeg must be installed. See
 :ref:`installation instructions <ffmpeg_installation>` for more information on this.

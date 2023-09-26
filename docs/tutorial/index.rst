@@ -27,6 +27,7 @@ These import conventions are used consistently in the tutorial.
     scans
     kymographs
     imagestack
+    plotting_images
     fdfitting
     nbwidgets
     kymotracking
