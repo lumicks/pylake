@@ -500,6 +500,7 @@ class KymoWidget:
             # Without this, HBox fails to align horizontally.
             self._fig.canvas.show()
 
+        output.layout.width = "68%"  # by default, the output box leaves no room for the sliders
         ui = ipywidgets.HBox(
             [
                 output,
