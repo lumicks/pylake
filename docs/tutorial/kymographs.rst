@@ -33,60 +33,8 @@ Or access a particular `Kymo` object directly to work with::
 Plotting and exporting
 ----------------------
 
-We can use the :meth:`~lumicks.pylake.kymo.Kymo.plot()` convenience function to plot individual color channels and the full RGB image::
-
-    plt.figure()
-
-    # plot just the green channel
-    plt.subplot(2, 1, 1)
-    kymo.plot("green", adjustment=lk.ColorAdjustment(0, 15, mode="absolute"))
-
-    # plot full color
-    plt.subplot(2, 1, 2)
-    kymo.plot(channel="rgb", adjustment=lk.ColorAdjustment(0, 99, mode="percentile"))
-
-    plt.show()
-
-.. image:: figures/kymographs/kymo_intro.png
-
-Note that the axes are labeled with the appropriate time and position units.
-
-The first argument `channel` accepts the strings "red", "green", "blue", or "rgb". We also see that the color limits can be set easily using
-the :class:`~lumicks.pylake.ColorAdjustment` class. The first two arguments act like the `vmin` and `vmax` arguments used with
-:func:`plt.imshow() <matplotlib.pyplot.imshow()>` if `mode="absolute"`. In the second plot, we use `mode=percentile` to automatically calculate
-the limits at the 0th and 99th percentile of all of the pixel values.
-Similarly, you can add a scale bar to your plots by providing a :class:`~lumicks.pylake.ScaleBar` to plotting or export functions.
-In addition, this method also accepts keyword arguments that are passed to :func:`plt.imshow() <matplotlib.pyplot.imshow()>` internally.
-
-There are also a number of custom colormaps for plotting single channel images. These are available from :data:`~lumicks.pylake.colormaps`;
-the available colormaps are: `.red`, `.green`, `.blue`, `.magenta`, `.yellow`, and `.cyan`. For example, we can plot the blue channel image
-with the cyan colormap::
-
-    plt.figure()
-    kymo.plot(channel="blue", cmap=lk.colormaps.cyan)
-    plt.show()
-
-.. image:: figures/kymographs/kymo_blue.png
-
-We can also use the `lk.colormaps.from_wavelength()` method to generate a color map approximating the color of a particular wavelength::
-
-    adjustment = lk.ColorAdjustment(0, 99, mode="percentile")
-
-    plt.figure()
-    plt.subplot(2, 1, 1)
-    kymo.plot(channel="green", adjustment=adjustment)
-    plt.title("default 'green' colormap")
-    plt.subplot(2, 1, 2)
-    kymo.plot(
-        channel="green",
-        adjustment=adjustment,
-        cmap=lk.colormaps.from_wavelength(590)
-    )
-    plt.title("emission @ 590 nm")
-    plt.tight_layout()
-    plt.show()
-
-.. image:: figures/kymographs/kymo_wavelength_cmap.png
+Pylake provides a convenience :meth:`plot()<lumicks.pylake.kymo.Kymo.plot>` method to quickly
+visualize your data. For details and examples see the :doc:`plotting_images` section.
 
 The kymograph can also be exported to TIFF format::
 
