@@ -8,6 +8,10 @@
   * Shortcuts `"r"`, `"g"`, and `"b"` can now be used for plotting single color channels in addition to `"red"`, `"green"`, and `"blue"`.
   * Two-channel visualizations can be plotted using `"rg"`, `"gb"`, or `"rb"`.
 
+#### Improvements
+
+* Kymographs consisting of a single scan line now return a valid `line_time_seconds`. This allows certain downstream functionality, such as `Kymo.plot()`.
+
 ## v1.2.1 | 2023-10-17
 
 #### Bug fixes

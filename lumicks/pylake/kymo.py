@@ -22,18 +22,9 @@ def _default_line_time_factory(self: "Kymo"):
     """Line time in seconds
 
     The line time is defined as the time between frames (including the dead-time between frames).
-
-    Raises
-    ------
-    RuntimeError
-        If there is only a single scan line in the info wave (this makes it impossible to
-        determine the actual line time).
+    For a single-line scan, the line time is defined as the time without dead-time.
     """
     ns_to_sec = 1e-9
-    single_line_error = (
-        "This kymograph consists of only a single line. It is not possible to determine the "
-        "kymograph line time for a kymograph consisting only of a single line."
-    )
 
     if self._has_default_factories():
         infowave = self.infowave  # Make sure we pull this out only once, the slice is not free
@@ -41,23 +32,22 @@ def _default_line_time_factory(self: "Kymo"):
         pixel_samples = stop - start + 1
         scan_time = self.pixels_per_line * pixel_samples
 
-        try:
-            beyond_first_line = infowave.data[start + scan_time :] != InfowaveCode.discard
-            dead_time = np.argmax(beyond_first_line)
+        beyond_first_line = infowave.data[start + scan_time :] != InfowaveCode.discard
+        if not len(beyond_first_line):  # First line is empty
+            return scan_time * infowave._src.dt * ns_to_sec
 
-            # Special case for no dead time. Is it really no deadtime, or a single line?
-            if dead_time == 0 and not np.any(beyond_first_line):
-                raise RuntimeError(single_line_error)
+        dead_time = np.argmax(beyond_first_line)
 
-        except ValueError:  # ValueError occurs when beyond_first_line is empty
-            raise RuntimeError(single_line_error)
+        # Special case for no dead time. Is it really no deadtime, or a single line?
+        if dead_time == 0 and not np.any(beyond_first_line):
+            return scan_time * infowave._src.dt * ns_to_sec
 
         return (scan_time + dead_time) * infowave._src.dt * ns_to_sec
 
     elif self.timestamps.shape[1] > 1:
         return (self.timestamps[0, 1] - self.timestamps[0, 0]) * ns_to_sec
     else:
-        raise RuntimeError(single_line_error)
+        return self.pixels_per_line * self.pixel_time_seconds
 
 
 def _default_line_timestamp_ranges_factory(self: "Kymo", exclude: bool):

@@ -180,9 +180,11 @@ def first_pixel_sample_indices(infowave):
     if infowave.size == 0:
         return 0, 0
 
-    return np.argmax(infowave != InfowaveCode.discard), np.argmax(
-        infowave == InfowaveCode.pixel_boundary
-    )
+    pixel_boundary = np.argmax(infowave == InfowaveCode.pixel_boundary)
+    if infowave[pixel_boundary] != InfowaveCode.pixel_boundary:
+        raise RuntimeError("No completed pixel found in image")
+
+    return np.argmax(infowave != InfowaveCode.discard), pixel_boundary
 
 
 def histogram_rows(image, pixels_per_bin, pixel_width):
