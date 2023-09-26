@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from lumicks.pylake.kymo import _default_line_time_factory
+from lumicks.pylake.kymo import Kymo, _default_line_time_factory
 from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.detail.confocal import ScanMetaData
 
-from ..data.mock_confocal import generate_kymo
+from ..data.mock_confocal import MockConfocalFile, generate_kymo, generate_scan_json
 
 
 def test_kymo_properties(test_kymo):
@@ -129,42 +130,59 @@ def test_partial_pixel_kymo():
 
 
 @pytest.mark.parametrize(
-    "data, ref_line_time, pixels_per_line, bad",
+    "data, ref_line_time, pixels_per_line",
     [
-        ([1, 1, 2, 1, 1, 2, 0, 0, 1, 1, 2, 1, 1, 2], 8 * 2, 2, False),
-        ([1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2, False),
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2, False),
-        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 0, 1], 10 * 2, 3, False),
-        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 2], 9 * 2, 3, False),  # No dead time
-        ([2, 2, 2, 0, 1], 4 * 2, 3, False),  # Three pixels and a one sample dead time
-        ([2, 2], 2 * 2, 3, True),  # Expected 3 pixels per line, but got partial line
-        ([2, 2, 2], 3 * 2, 3, True),  # A single line without dead time (can't be sure)
-        ([2, 2, 2, 0], 4 * 2, 3, True),  # 3 pixels, 1 sample dead time, but deadtime undefined
-        ([2, 2, 2, 2], 3 * 2, 3, False),  # Three pixels, a line and a little, without dead-time
-        ([0, 2, 2], 2 * 2, 3, True),  # Expected 3 pixels per line, but partial line
-        ([0, 2, 2, 2], 3 * 2, 3, True),  # A single line, but can't be sure
-        ([0, 2, 2, 2, 0], 4 * 2, 3, True),  # 3 pixels, 1 sample dead time, but deadtime undefined
-        ([0, 2, 2, 2, 2], 3 * 2, 3, False),  # Three pixels, a line and a little, without dead-time
-        ([0, 0, 2, 2, 2, 0, 1], 4 * 2, 3, False),  # Three pixels and a pixel dead time
-        ([1, 1], 2 * 2, 2, True),  # No full pixel available at all
-        ([1, 1, 2, 1, 1], 5 * 2, 2, True),  # No full line available
-        ([0, 0, 1, 1, 2, 1, 1], 5 * 2, 2, True),  # No full line available but padded
-        ([0, 0, 1, 1, 2, 1, 1, 2], 6 * 2, 2, True),  # Exactly a full line, w/o dead time
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0], 7 * 2, 2, True),  # Full line, dead time not yet defined
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0], 8 * 2, 2, True),  # Full line, dead time not yet defined
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1], 8 * 2, 2, False),  # Well defined
-        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1, 1], 8 * 2, 2, False),  # Well defined
+        ([1, 1, 2, 1, 1, 2, 0, 0, 1, 1, 2, 1, 1, 2], 8 * 2, 2),
+        ([1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2),
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 1], 7 * 2, 2),
+        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 0, 1], 10 * 2, 3),
+        ([1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 2], 9 * 2, 3),  # No dead time
+        ([2, 2, 2, 0, 1], 4 * 2, 3),  # Three pixels and a one sample dead time
+        # Expected 3 pixels per line, but got partial line; line time still represents the full line
+        ([2, 2], 3 * 2, 3),
+        ([2, 2, 2], 3 * 2, 3),  # A single line without dead time (can't be sure)
+        # 3 pixels, 1 sample dead time, single line (hence dead time not included in line time).
+        ([2, 2, 2, 0], 3 * 2, 3),
+        ([2, 2, 2, 2], 3 * 2, 3),  # Three pixels, a line and a little, without dead-time
+        # Expected 3 pixels per line, but got partial line; line time still represents the full line
+        ([0, 2, 2], 3 * 2, 3),
+        ([0, 2, 2, 2], 3 * 2, 3),  # A single line, but can't be sure
+        ([0, 2, 2, 2, 0], 3 * 2, 3),  # 3 pixels, single line
+        ([0, 2, 2, 2, 2], 3 * 2, 3),  # Three pixels, a line and a little, without dead-time
+        ([0, 0, 2, 2, 2, 0, 1], 4 * 2, 3),  # Three pixels and a pixel dead time
+        ([1, 1, 2, 1, 1], 6 * 2, 2),  # No full line available => 2 pixels, 3 samples each = 6.
+        ([0, 0, 1, 1, 2, 1, 1], 6 * 2, 2),  # Same as previous but with padding
+        ([0, 0, 1, 1, 2, 1, 1, 2], 6 * 2, 2),  # Exactly a full line, w/o dead time
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0], 6 * 2, 2),  # Full line, dead time not yet defined
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0], 6 * 2, 2),  # Full line, dead time not yet defined
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1], 8 * 2, 2),  # Well defined
+        ([0, 0, 1, 1, 2, 1, 1, 2, 0, 0, 1, 1], 8 * 2, 2),  # Well defined
     ],
 )
-def test_direct_infowave_linetime(data, ref_line_time, pixels_per_line, bad):
+def test_direct_infowave_linetime(data, ref_line_time, pixels_per_line):
     class KymoWave:
         def __init__(self):
             self.infowave = Slice(Continuous(data, int(100e9), int(2e9)))
             self._has_default_factories = lambda: True
             self.pixels_per_line = pixels_per_line
 
-    if not bad:
-        assert _default_line_time_factory(KymoWave()) == ref_line_time
-    else:
-        with pytest.raises(RuntimeError, match=r"This kymograph consists of only a single line"):
-            _default_line_time_factory(KymoWave())
+    assert _default_line_time_factory(KymoWave()) == ref_line_time
+
+
+def test_partial_pixel():
+    def kymo_with_wave(infowave_data):
+        infowave = Slice(Continuous(np.array(infowave_data), 0, int(1e9)))
+        json_string = generate_scan_json([{"axis": 1, "num of pixels": 2, "pixel size (nm)": 1}])
+        metadata = ScanMetaData.from_json(json_string)
+        confocal_file = MockConfocalFile(infowave, None, None, None)
+        return Kymo("test", confocal_file, 0, int(6e9), metadata)
+
+    kymo = kymo_with_wave([1, 1, 1, 1])
+    with pytest.raises(RuntimeError):
+        kymo.pixel_time_seconds
+
+    with pytest.raises(RuntimeError):
+        kymo.line_time_seconds
+
+    np.testing.assert_allclose(kymo_with_wave([1, 1, 1, 1, 2]).pixel_time_seconds, 5)
+    np.testing.assert_allclose(kymo_with_wave([1, 1, 1, 1, 2]).line_time_seconds, 10)
