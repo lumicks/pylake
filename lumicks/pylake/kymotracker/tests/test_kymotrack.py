@@ -1211,6 +1211,18 @@ def test_kymotrack_group_diffusion_filter():
         d = tracks.estimate_diffusion("ols", min_length=2)
 
 
+@pytest.mark.parametrize("data", [[], [1, 2, 3, 4]])
+def test_ols_empty_kymotrack(blank_kymo, data):
+    track = KymoTrack(data, data, blank_kymo, "red", 0)
+
+    with pytest.raises(
+        RuntimeError,
+        match="You need at least 5 time points to estimate the number of points to include in the "
+        "fit.",
+    ):
+        track.estimate_diffusion("ols")
+
+
 @pytest.mark.parametrize("kbp_calibration, line_width", [(None, 7), (4, 7), (None, 8)])
 def test_ensemble_msd_calibration_from_kymo(blank_kymo, kbp_calibration, line_width):
     """Checks whether all the properties are correctly forwarded from the Kymo"""

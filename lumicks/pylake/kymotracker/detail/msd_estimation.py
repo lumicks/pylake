@@ -735,6 +735,12 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
 
         num_slopes.add(num_slope)
 
+        if len(coordinate) <= 4:
+            raise RuntimeError(
+                "You need at least 5 time points to estimate the number of points to include in "
+                "the fit."
+            )
+
         # Determine the number of points to include in the next fit
         num_slope, num_intercept = optimal_points(
             calculate_localization_error(frame_lags[:num_slope], msd[:num_slope]), len(coordinate)
