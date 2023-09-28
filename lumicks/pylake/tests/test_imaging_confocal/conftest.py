@@ -151,4 +151,22 @@ def kymo_h5_file(tmpdir_factory, test_kymo):
     force_start = np.int64(ds.attrs["Start time (ns)"] - (dt * force_start_offset))
     mock_file.make_continuous_channel("Force HF", "Force 2x", force_start, dt, force_data)
 
+    # LF force for plotting, 1 sample per pixel
+    # integer values within data, zeros within deadtime
+    n_pad = ref.infowave.line_padding
+    n_samples = ref.infowave.samples_per_pixel
+    n_pixels = ref.metadata.pixels_per_line
+    n_lines = ref.metadata.lines_per_frame
+    n_dead_pixels = n_pad // n_samples
+
+    force_line = np.hstack(
+        [np.zeros(n_dead_pixels + 1), np.ones(n_pixels), np.zeros(n_dead_pixels)]
+    )
+    lf_force = np.hstack([force_line * j for j in range(1, n_lines + 1)])
+    timestamps = start + (np.arange(lf_force.size, dtype=np.int64) * n_samples * dt)
+
+    mock_file.make_timeseries_channel(
+        "Force LF", "Force 2y", [(ts, pt) for ts, pt in zip(timestamps, lf_force)]
+    )
+
     return mock_file.file
