@@ -1,4 +1,5 @@
 import re
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -141,92 +142,77 @@ def test_plot_with_lf_force(kymo_h5_file):
 
 
 def test_plotting_with_histograms(test_kymo):
-    import matplotlib as mpl
+    def get_hist_data(axis):
+        assert axis in ("position", "time")
 
-    mpl.use("macosx")
-    import numpy as np
-    import matplotlib.pyplot as plt
+        patches = plt.gca().patches
+        widths = [p.get_width() for p in patches]
+        heights = [p.get_height() for p in patches]
 
-    def get_rectangle_data():
-        widths = [p.get_width() for p in plt.gca().patches]
-        heights = [p.get_height() for p in plt.gca().patches]
-        return widths, heights
+        counts, bin_widths = (widths, heights) if axis == "position" else (heights, widths)
+
+        return counts, bin_widths
 
     kymo, ref = test_kymo
-    image = ref.image[:, :, 0]
-    n_pos, n_time = image.shape
 
-    pixelsize = ref.metadata.pixelsize_um[0]
-    linetime = ref.timestamps.line_time_seconds
+    def process_binning(px_per_bin, axis):
+        assert axis in ("position", "time")
 
-    # position, no binning
-    kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=1)
-    counts = image.sum(axis=1)
-    w, h = get_rectangle_data()
+        image = ref.image[:, :, 0]
+        if axis == "time":
+            image = image.T
+        n_pixels = image.shape[0]
 
-    np.testing.assert_allclose(h, pixelsize)
-    np.testing.assert_equal(w, counts)
-    plt.close("all")
+        n_full_bins = n_pixels // px_per_bin
+        leftover_pixels = n_pixels % px_per_bin
 
-    # time, no binning
-    kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=1)
-    w, h = get_rectangle_data()
-    counts = image.sum(axis=0)
-    np.testing.assert_allclose(w, linetime)
-    np.testing.assert_equal(h, counts)
-    plt.close("all")
-
-    px_per_bin = 3
-    n_full_bins = n_pos // px_per_bin
-    with pytest.warns(
-        UserWarning,
-        match=(
-            f"{n_pos} pixels is not divisible by {px_per_bin}, final bin only "
-            f"contains {(leftover_pixels := n_pos % px_per_bin)} pixels"
-        ),
-    ):
-        kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=3)
-        w, h = get_rectangle_data()
-
-        counts_full = (
-            image[: (xx := n_full_bins * px_per_bin)].reshape((n_full_bins, -1)).sum(axis=1)
+        counts = np.hstack(
+            (
+                image[: (xx := n_full_bins * px_per_bin)].reshape((n_full_bins, -1)).sum(axis=1),
+                image[xx:].sum() if leftover_pixels else [],
+            )
         )
-        counts_partial = image[xx:].sum()
-        counts = np.hstack((counts_full, counts_partial))
 
+        size = (
+            ref.metadata.pixelsize_um[0] if axis == "position" else ref.timestamps.line_time_seconds
+        )
         bin_widths = np.hstack(
-            ([pixelsize * px_per_bin] * n_full_bins, pixelsize * leftover_pixels)
+            ([size * px_per_bin] * n_full_bins, size * leftover_pixels if leftover_pixels else [])
         )
 
-        np.testing.assert_allclose(h, bin_widths)
-        np.testing.assert_equal(w, counts)
-        plt.close("all")
-
-    n_full_bins = n_time // px_per_bin
-    with pytest.warns(
-        UserWarning,
-        match=(
-            f"{n_time} pixels is not divisible by {px_per_bin}, final bin only "
-            f"contains {(leftover_pixels := n_time % px_per_bin)} pixels"
-        ),
-    ):
-        kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=3)
-        w, h = get_rectangle_data()
-
-        counts_full = (
-            image[:, : (xx := n_full_bins * px_per_bin)]
-            .reshape((-1, n_full_bins), order="F")
-            .sum(axis=0)
+        warning_msg = (
+            (
+                f"{n_pixels} pixels is not divisible by {px_per_bin}, final bin only "
+                f"contains {leftover_pixels} pixels"
+            )
+            if leftover_pixels
+            else ""
         )
-        counts_partial = image[:, xx:].sum()
-        counts = np.hstack((counts_full, counts_partial))
 
-        bin_widths = np.hstack(
-            ([linetime * px_per_bin] * n_full_bins, linetime * leftover_pixels)
-        )
-        np.testing.assert_allclose(w, bin_widths)
-        np.testing.assert_equal(h, counts)
-        plt.close("all")
+        return counts, bin_widths, warning_msg
+
+    for px_per_bin in range(1, ref.image.shape[0] + 1):
+        ref_counts, ref_bin_widths, msg = process_binning(px_per_bin, "position")
+        with pytest.warns(
+            UserWarning,
+            match=msg,
+        ) if msg else nullcontext():
+            kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=px_per_bin)
+            counts, bin_widths = get_hist_data("position")
+
+            np.testing.assert_allclose(bin_widths, ref_bin_widths)
+            np.testing.assert_equal(counts, ref_counts)
+            plt.close("all")
+
+    for px_per_bin in range(1, ref.image.shape[1] + 1):
+        ref_counts, ref_bin_widths, msg = process_binning(px_per_bin, "time")
+        with pytest.warns(UserWarning, match=msg) if msg else nullcontext():
+            kymo.plot_with_time_histogram(color_channel="red", pixels_per_bin=px_per_bin)
+            counts, bin_widths = get_hist_data("time")
+
+            np.testing.assert_allclose(bin_widths, ref_bin_widths)
+            np.testing.assert_equal(counts, ref_counts)
+            plt.close("all")
 
     with pytest.raises(ValueError, match="bin size is larger than the available pixels"):
         kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=6)
