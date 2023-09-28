@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
+import lumicks.pylake as lk
+
 
 def test_plotting(test_kymo):
     kymo, ref = test_kymo
@@ -67,3 +69,73 @@ def test_deprecated_plotting(test_kymo):
         ),
     ):
         kymo.plot("rgb", None, axes=None)
+
+
+def test_plotting_with_force(kymo_h5_file):
+    f = lk.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["tester"]
+
+    linetime = kymo.line_time_seconds
+    ranges = np.vstack(kymo.line_timestamp_ranges())[:, 0]
+    ranges_sec = (ranges - ranges[0]) * 1e-9
+
+    kymo.plot_with_force(force_channel="2x", color_channel="red")
+
+    plot_line = plt.gca().lines[0].get_ydata()
+    np.testing.assert_allclose(plot_line[:2], 30)
+    np.testing.assert_allclose(plot_line[2:], 10)
+    np.testing.assert_allclose(np.sort(plt.ylim()), [10, 30])
+
+    np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), ranges_sec)
+    np.testing.assert_allclose(plt.xlim(), [-(linetime / 2), ranges_sec[-1] + (linetime / 2)])
+
+
+def test_regression_plot_with_force(kymo_h5_file):
+    # Plot_with_force used to fail when the last line of a kymograph was incomplete. The reason for
+    # this was that the last few timestamps on the last line had zero as their timestamp. This meant
+    # it was trying to downsample a range from X to 0, which made the downsampler think that there
+    # was no overlap between the kymograph and the force channel (as it checks the last timestamp
+    # of the ranges to downsample to against the first one of the channel to downsample).
+    f = lk.File.from_h5py(kymo_h5_file)
+
+    # Kymo ends before last pixel is finished. All but the last timestamp are OK.
+    kymo = f.kymos["tester"]
+    pixel_ends = np.argwhere(kymo.infowave.data == 2).squeeze()
+
+    kymo.stop = kymo.infowave.timestamps[pixel_ends[-1] - 1]
+    np.testing.assert_equal(kymo.timestamps[-1, -1], 0)
+    assert kymo.timestamps[-2, -1] != 0
+
+    kymo.plot_with_force(force_channel="2x", color_channel="red")
+    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
+    np.testing.assert_allclose(ds.data[:2], 30)
+    np.testing.assert_allclose(ds.data[2:], 10)
+
+    # Kymo ends on a partial last line. Multiple timestamps are zero now.
+    kymo = f.kymos["tester"]
+    kymo.stop = kymo.infowave.timestamps[pixel_ends[-3] - 1]
+    np.testing.assert_equal(kymo.timestamps[-3:, -1], 0)
+    assert kymo.timestamps[-4, -1] != 0
+
+    kymo.plot_with_force(force_channel="2x", color_channel="red")
+    ds = f.force2x.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
+    np.testing.assert_allclose(ds.data[:2], 30)
+    np.testing.assert_allclose(ds.data[2:], 10)
+
+
+def test_plot_with_lf_force(kymo_h5_file):
+    f = lk.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["tester"]
+    n_lines = kymo.get_image("red").shape[1]
+
+    print(f.downsampled_force2y.timestamps)
+
+    with pytest.warns(
+        RuntimeWarning, match="Using downsampled force since high frequency force is unavailable."
+    ):
+        kymo.plot_with_force("2y", "red")
+        np.testing.assert_allclose(plt.gca().lines[0].get_ydata(), np.arange(n_lines) + 1)
+
+    with pytest.raises(RuntimeError, match="Desired force channel 1x not available in h5 file"):
+        kymo.plot_with_force("1x", "red")
+
