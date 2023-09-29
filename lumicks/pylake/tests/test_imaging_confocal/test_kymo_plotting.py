@@ -18,10 +18,6 @@ def test_plotting(test_kymo):
     plt.figure()
     kymo.plot(channel="red")
 
-    # todo: this is confusing even in the context of the old test, check on this
-    # # The following assertion fails because of unequal line times in the test data. These
-    # # unequal line times are not typical for BL data. Kymo nowadays assumes equal line times
-    # # which is why the old version of this test fails.
     np.testing.assert_allclose(
         np.sort(plt.xlim()),
         [-0.5 * line_time, (n_lines - 0.5) * line_time],
@@ -52,7 +48,7 @@ def test_plotting(test_kymo):
 
 
 def test_deprecated_plotting(test_kymo):
-    kymo, ref = test_kymo
+    kymo, _ = test_kymo
 
     with pytest.raises(
         TypeError, match=re.escape("plot() takes from 1 to 2 positional arguments but 3 were given")
@@ -128,8 +124,6 @@ def test_plot_with_lf_force(kymo_h5_file):
     f = lk.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["tester"]
     n_lines = kymo.get_image("red").shape[1]
-
-    print(f.downsampled_force2y.timestamps)
 
     with pytest.warns(
         RuntimeWarning, match="Using downsampled force since high frequency force is unavailable."
