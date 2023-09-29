@@ -424,86 +424,6 @@ def test_slice_timestamps():
     np.testing.assert_allclose(sliced.timestamps, ref_ts[:, :6])
 
 
-def test_calibrate_to_kbp():
-    image = np.array(
-        [
-            [0, 12, 0, 12, 0, 6, 0],
-            [0, 0, 0, 0, 0, 6, 0],
-            [12, 0, 0, 0, 12, 6, 0],
-            [0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 6, 6, 0, 0, 12],
-            [6, 12, 12, 0, 0, 0, 0],
-        ],
-        dtype=np.uint8,
-    )
-
-    kymo = generate_kymo(
-        "Mock",
-        image,
-        pixel_size_nm=100,
-        start=1623965975045144000,
-        dt=int(1e9),
-        samples_per_pixel=5,
-        line_padding=2,
-    )
-
-    kymo_bp = kymo.calibrate_to_kbp(12.000)
-
-    # test that default calibration is in microns
-    assert kymo._calibration.unit == "um"
-    assert kymo._calibration.value == 0.1
-
-    # test that calibration is stored as kilobase-pairs
-    assert kymo_bp._calibration.unit == "kbp"
-    np.testing.assert_allclose(kymo_bp._calibration.value, 2.0)
-
-    # test conversion from microns to calibration units
-    np.testing.assert_allclose(kymo._calibration.value * kymo._num_pixels[0], 0.6)
-    np.testing.assert_allclose(kymo.pixelsize, 0.1)
-    np.testing.assert_allclose(kymo_bp._calibration.value * kymo._num_pixels[0], 12.0)
-    np.testing.assert_allclose(kymo_bp.pixelsize, 2.0)
-
-    # test that all factories were forwarded from original instance
-    def check_factory_forwarding(kymo1, kymo2, check_timestamps):
-        assert kymo1._image_factory == kymo2._image_factory
-        assert kymo1._timestamp_factory == kymo2._timestamp_factory
-        assert kymo1._line_time_factory == kymo2._line_time_factory
-        assert kymo1._pixelsize_factory == kymo2._pixelsize_factory
-        assert kymo1._pixelcount_factory == kymo2._pixelcount_factory
-        np.testing.assert_allclose(kymo1.get_image("red"), kymo2.get_image("red"))
-        if check_timestamps:
-            np.testing.assert_allclose(kymo1.timestamps, kymo2.timestamps)
-
-    # check that calibration is supported for any processing (downsampling/cropping)
-    # and that data remains the same after calibration
-    ds_kymo_time = kymo.downsampled_by(time_factor=2)
-    ds_kymo_pos = kymo.downsampled_by(position_factor=3)
-    ds_kymo_both = kymo.downsampled_by(time_factor=2, position_factor=3)
-    sliced_kymo = kymo["0s":"110s"]
-    cropped_kymo = kymo.crop_by_distance(0, 0.5)
-
-    ds_kymo_time_bp = ds_kymo_time.calibrate_to_kbp(12.000)
-    ds_kymo_pos_bp = ds_kymo_pos.calibrate_to_kbp(12.000)  # total length does not change
-    ds_kymo_both_bp = ds_kymo_both.calibrate_to_kbp(12.000)
-    sliced_kymo_bp = sliced_kymo.calibrate_to_kbp(12.000)
-    cropped_kymo_bp = cropped_kymo.calibrate_to_kbp(int(12.000 * (5 / 6)))
-
-    check_factory_forwarding(kymo, kymo_bp, True)
-    check_factory_forwarding(ds_kymo_time, ds_kymo_time_bp, False)
-    check_factory_forwarding(ds_kymo_pos, ds_kymo_pos_bp, True)
-    check_factory_forwarding(ds_kymo_both, ds_kymo_both_bp, False)
-    check_factory_forwarding(sliced_kymo, sliced_kymo_bp, True)
-    check_factory_forwarding(cropped_kymo, cropped_kymo_bp, True)
-
-    # if properly calibrated, cropping should not change pixel size
-    np.testing.assert_allclose(kymo_bp.pixelsize[0], cropped_kymo_bp.pixelsize[0])
-    # but will change total length
-    np.testing.assert_allclose(
-        kymo_bp._calibration.value * kymo._num_pixels[0] * 5 / 6,
-        cropped_kymo_bp._calibration.value * cropped_kymo_bp._num_pixels[0],
-    )
-
-
 def test_kymo_plot_rgb_absolute_color_adjustment(test_kymos):
     """Tests whether we can set an absolute color range for the RGB plot."""
     kymo = test_kymos["Kymo1"]
@@ -560,20 +480,3 @@ def test_kymo_plot_single_channel_absolute_color_adjustment(test_kymos):
         np.testing.assert_allclose(image.get_array(), kymo.get_image(channel))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
-
-
-@pytest.mark.parametrize("crop", [False, True])
-def test_flip_kymo(test_kymos, crop):
-    kymo = test_kymos["Kymo1"]
-    if crop:
-        kymo = kymo.crop_by_distance(0.01, 0.03)
-    kymo_flipped = kymo.flip()
-    for channel in ("red", "green", "blue", "rgb"):
-        np.testing.assert_allclose(
-            kymo_flipped.get_image(channel=channel),
-            np.flip(kymo.get_image(channel=channel), axis=0),
-        )
-        np.testing.assert_allclose(
-            kymo_flipped.flip().get_image(channel=channel),
-            kymo.get_image(channel=channel),
-        )
