@@ -1,0 +1,16 @@
+Pylake 1.3.0
+============
+
+.. only:: html
+
+Here's a sneak peek at the new features coming in Pylake `v1.3.0`:
+
+More options for plotting images
+--------------------------------
+
+Now there's more flexibility with which color channels to plot for images, including shorthand
+values for the red/green/blue channels and plotting only two colors:
+
+.. figure:: plot_channel_options.png
+
+Check out :doc:`../../tutorial/plotting_images` for more information.
