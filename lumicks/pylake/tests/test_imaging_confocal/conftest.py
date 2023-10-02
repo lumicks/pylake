@@ -94,6 +94,34 @@ def downsampled_results():
 
 
 @pytest.fixture(scope="module")
+def cropping_kymo():
+    image = np.array(
+        [
+            [0, 12, 0, 12, 0, 6, 0],
+            [0, 0, 0, 0, 0, 6, 0],
+            [12, 0, 0, 0, 12, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [0, 12, 12, 12, 0, 6, 0],
+            [12, 12, 12, 12, 0, 6, 0],
+            [24, 12, 12, 12, 0, 6, 0],
+        ],
+        dtype=np.uint8,
+    )
+
+    kymo, ref = generate_kymo_with_ref(
+        "cropper",
+        image,
+        pixel_size_nm=100,
+        start=1592916040906356300,
+        dt=int(1e9),
+        samples_per_pixel=5,
+        line_padding=2,
+    )
+
+    return kymo, ref
+
+
+@pytest.fixture(scope="module")
 def kymo_h5_file(tmpdir_factory, test_kymo):
     kymo, ref = test_kymo
     dt = ref.timestamps.dt
