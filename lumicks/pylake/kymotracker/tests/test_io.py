@@ -1,6 +1,7 @@
 import io
 import re
 import inspect
+import contextlib
 from copy import copy
 from pathlib import Path
 
@@ -43,6 +44,7 @@ def compare_kymotrack_group(group1, group2):
         [int(1e9), 1.0, ",", 0, 2],
         [int(1e9), 1.0, ";", 1, 3],
         [int(1e9), 2.0, ";", None, None],
+        [np.int64(12800), 1.0, ";", 0, 2],  # realistic infowave dt
     ],
 )
 def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sampling_outcome):
@@ -147,7 +149,7 @@ def test_roundtrip_without_file(
     tracks = KymoTrackGroup(
         [
             KymoTrack(
-                np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red", 0
+                np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red", 0.1
             )
             for time_idx, position_idx in track_coordinates
         ]
@@ -169,7 +171,7 @@ def test_roundtrip_without_file(
 
 @pytest.mark.parametrize(
     "version, read_with_version",
-    [[0, False], [1, False], [2, True]],
+    [[0, False], [1, False], [2, True], [3, True], [4, True]],
 )
 def test_csv_version(version, read_with_version):
     # Test that header is parsed properly on CSV import
@@ -190,13 +192,20 @@ def test_csv_version(version, read_with_version):
         test_data,
         pixel_size_nm=1.0 * 1000,
         start=np.int64(20e9),
-        dt=int(1e9),
+        dt=np.int64(12800),
         samples_per_pixel=5,
         line_padding=3,
     )
 
     testfile = Path(__file__).parent / f"./data/tracks_v{version}.csv"
-    imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
+    with pytest.warns(
+        RuntimeWarning,
+        match=(
+            "This CSV file is from a version in which the minimum observable track duration "
+            "was incorrectly rounded to an integer."
+        ),
+    ) if version == 3 else contextlib.nullcontext():
+        imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
 
     data, pylake_version, csv_version = _read_txt(testfile, ";")
 

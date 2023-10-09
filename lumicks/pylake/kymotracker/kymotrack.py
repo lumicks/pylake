@@ -109,7 +109,7 @@ def export_kymotrackgroup_to_csv(
 
     position = np.hstack([track.position for track in kymotrack_group])
     seconds = np.hstack([track.seconds for track in kymotrack_group])
-    minimum_length = np.hstack(
+    minimum_observable_duration = np.hstack(
         [np.full(len(track), track._minimum_observable_duration) for track in kymotrack_group]
     )
 
@@ -139,8 +139,10 @@ def export_kymotrackgroup_to_csv(
             ),
         )
 
-    if None not in minimum_length:
-        store_column("minimum_length (-)", "%d", minimum_length)
+    if None not in minimum_observable_duration:
+        store_column(
+            f"minimum observable duration ({time_units})", "%.6e", minimum_observable_duration
+        )
     else:
         warnings.warn(
             RuntimeWarning(
@@ -155,7 +157,7 @@ def export_kymotrackgroup_to_csv(
             )
         )
 
-    version_header = f"Exported with pylake v{__version__} | track coordinates v3\n"
+    version_header = f"Exported with pylake v{__version__} | track coordinates v4\n"
     header = version_header + delimiter.join(column_titles)
     data = np.vstack(data).T
     np.savetxt(filename, data, fmt=fmt, header=header, delimiter=delimiter)
@@ -213,8 +215,25 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
             min_length = float(np.unique(min_length).squeeze())
         return KymoTrack(time.astype(int), coord, kymo, channel, min_length)
 
-    if (min_length_field := "minimum_length (-)") in data:
-        mandatory_fields.append(min_length_field)
+    if csv_version == 3:
+        warnings.warn(
+            RuntimeWarning(
+                "This CSV file is from a version in which the minimum observable track duration "
+                "was incorrectly rounded to an integer. This may result in errors in certain "
+                "analyses. To remedy this error, use `lk.filter_tracks()` on the "
+                "tracks from the widget with the desired minimum track length and resave "
+                "using the `KymoTrackGroup.save()` method. Note that the minimum length should be "
+                "greater or equal to the minimum length used for the original tracking. For more "
+                "information refer to "
+                "https://lumicks-pylake.readthedocs.io/en/latest/tutorial/nbwidgets.html#migrating-old-track-files"
+            )
+        )
+        min_duration_field = "minimum_length (-)"
+    else:
+        min_duration_field = "minimum observable duration (seconds)"
+
+    if min_duration_field in data:
+        mandatory_fields.append(min_duration_field)
 
     data = [data[f] for f in mandatory_fields]
     return KymoTrackGroup([create_track(*track_data) for track_data in zip(*data)])
