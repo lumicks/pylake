@@ -158,7 +158,15 @@ By default, this will only install the Pylake package and not Jupyter notebook o
 Updating
 --------
 
-If you already have Pylake installed and you want to update to the latest version, just run::
+If you already have Pylake installed and you want to update to the latest version, follow these steps:
+
+#. Open the `Anaconda Prompt` on Windows or the `Terminal` on Mac
+
+#. Activate your environment::
+
+    conda activate pylake
+
+#. Then run::
 
     conda update lumicks.pylake
 
