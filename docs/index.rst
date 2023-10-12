@@ -9,13 +9,19 @@
     The :doc:`tutorial/index` section is a good place to start.
     It gives a good overview of the most important features with lots of code examples.
     The source code repository is `located on Github <https://github.com/lumicks/pylake>`_
-    where you can also post any questions, comments or issues that you might have.
+    where you can also post any questions, comments or issues that you might have. 
 
 .. admonition:: Get started
 
     To get started check out the :doc:`Installation Guide <install>` and watch the
     :doc:`What's New<whatsnew/index>` section to keep up to date with all of the latest
     features!
+
+.. admonition:: Citing Pylake
+
+    If you wish to publish results produced with this package, please mention the package name and cite the Zenodo DOI for this project: https://doi.org/10.5281/zenodo.4280788.
+    You'll find a "Cite as" section at the bottom right of the Zenodo page. 
+    You can select a citation style from the dropdown menu or export the data in BibTeX and similar formats. 
 
 .. to build html, go in anaconda prompt and type python -m sphinx -b html docs build
 
