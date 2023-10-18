@@ -244,3 +244,61 @@ def calculate_dn(n, k, alpha, beta, delta):
     )
     term3 = (2 * n + 1) * (2 * n + 3) * np.sinh(alpha - beta) * np.sinh(alpha + beta)
     return mul * (term1 + term2 + term3) / delta
+
+
+def coupling_correction_factor_stimson(radius1, radius2, distance, *, summands=50):
+    r"""Calculate the bead correction factors.
+
+    In the calibration of a dual-trap using active calibration, a bead is excited only by a reduced
+    driving flow field. The reason for this is that the other bead slows the fluid down. This
+    leads to a lower amplitude response than expected (and hence a lower peak power on the PSD).
+    This leads to a higher sensitivity than expected. Using the correction factor :math:`c`
+    calculated from this function, we can correct the displacement sensitivity :math:`R_d`,
+    force sensitivity :math:`R_f`, and stiffness :math:`\kappa` as follows:
+
+    .. math::
+
+        R_{d, corrected} = c R_d
+        R_{f, corrected} = \frac{R_f}{c}
+        \kappa_{corrected} = \frac{\kappa}{c^2}
+
+    Note that this function assumes the beads to be aligned along the axis in which the oscillation
+    is taking place.
+
+    Parameters
+    ----------
+    radius1, radius2 : float
+        Bead radii
+    distance : float
+        Distance between the bead centers
+    summands : int
+        How many summands to use. More leads to more accuracy.
+
+    References
+    ----------
+    .. [1] Stimson, M., & Jeffery, G. B. (1926). The motion of two spheres in a viscous fluid.
+           Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical
+           and Physical Character, 111(757), 110-116 (2007).
+    """
+    a, alpha, beta = to_curvilinear_coordinates(radius1, radius2, distance)
+    # In the paper we have:
+    #   F = 2 sqrt(2) pi nu V / a * summation, whereas the stokes force was given by 6 pi nu r V
+    # We are interested in the factor that translates from the regular flow velocity, to the
+    # effective flow velocity when coupling is present. We divide the force we get by the
+    # one we'd get in the absence of taking it into account.
+    # pre_factor = - (1.0 / 3.0) * np.sqrt(2) / a
+    pre_factor = -(1.0 / 3.0) * np.sqrt(2) / a
+    coupling1, coupling2 = 0, 0
+
+    for n in np.arange(1, summands + 1):
+        k = calculate_k(n, a)
+        delta = calculate_delta(n, alpha, beta)
+        an = calculate_an(n, k, alpha, beta, delta)
+        bn = calculate_bn(n, k, alpha, beta, delta)
+        cn = calculate_cn(n, k, alpha, beta, delta)
+        dn = calculate_dn(n, k, alpha, beta, delta)
+
+        coupling1 += (2 * n + 1) * (an + bn + cn + dn)
+        coupling2 += (2 * n + 1) * (an - bn + cn - dn)
+
+    return pre_factor * coupling1 / radius1, pre_factor * coupling2 / radius2
