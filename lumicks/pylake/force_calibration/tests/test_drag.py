@@ -99,3 +99,18 @@ def test_coupling_solution(distance, r1, r2):
     np.testing.assert_allclose(eq2a, eq2b)
     np.testing.assert_allclose(eq3a, eq3b)
     np.testing.assert_allclose(eq4a, eq4b)
+
+
+@pytest.mark.parametrize(
+    "distance, radius1, radius2, ref_factor1, ref_factor2",
+    [
+        [3.0e-6, 0.5e-6, 0.5e-6, 0.8047215852074429, 0.8047215852074429],
+        [6.0e-6, 0.5e-6, 0.8e-6, 0.8224250265105119, 0.8982938795749217],
+        [6.0e-6, 0.9e-6, 0.8e-6, 0.8402922788501829, 0.8147951224475662],
+        [2.0e-6, 1.0e-6, 0.9999e-6, 0.01958146863802238, 0.019580489165418463],
+    ],
+)
+def test_coupling_factors(distance, radius1, radius2, ref_factor1, ref_factor2):
+    f1, f2 = coupling_correction_factor_stimson(radius1, radius2, distance, summands=5)
+    np.testing.assert_allclose(f1, ref_factor1)
+    np.testing.assert_allclose(f2, ref_factor2)
