@@ -92,7 +92,6 @@ def to_curvilinear_coordinates(r1, r2, distance):
     .. [1] Stimson, M., & Jeffery, G. B. (1926). The motion of two spheres in a viscous fluid.
            Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical
            and Physical Character, 111(757), 110-116 (2007).
-
     """
     # Point has to be radical and thus fulfill d1**2 - r1**2 = d2**2 - r2**2
     # Substituting r2 by D - d1 yields: d1 = (r1**2 - r2**2 + D**2) / (2*D)
@@ -112,3 +111,136 @@ def to_curvilinear_coordinates(r1, r2, distance):
     a = distance / (d1_over_r1 / np.sinh(alpha) - d2_over_r2 / np.sinh(beta))
 
     return a, alpha, beta
+
+
+def calculate_delta(n, alpha, beta):
+    """Eqn. 27 from Stimson et al.
+
+    Parameters
+    ----------
+    n : int
+        iteration
+    alpha, beta : float
+        Curvilinear coordinates obtained with `to_curvilinear_coordinates`.
+    """
+    return (
+        4.0 * np.sinh((n + 0.5) * (alpha - beta)) ** 2
+        - (2.0 * n + 1.0) ** 2 * np.sinh(alpha - beta) ** 2
+    )
+
+
+def calculate_k(n, a):
+    """Eqn. 25 from Stimson et al.
+
+    Parameters
+    ----------
+    n : int
+        iteration
+    a : float
+        Curvilinear coordinate obtained with `to_curvilinear_coordinates`.
+    """
+    return (a**2 * n * (n + 1)) / (np.sqrt(2) * (2 * n - 1) * (2 * n + 1) * (2 * n + 3))
+
+
+def calculate_an(n, k, alpha, beta, delta):
+    """Eqn. 28 from Stimson et al.
+
+    Parameters
+    ----------
+    n : int
+        iteration
+    k : float
+        Term obtained with `calculate_k`.
+    alpha, beta : float
+        Curvilinear coordinate obtained with `to_curvilinear_coordinates`.
+    delta : float
+        Term obtained with `calculate_delta`.
+    """
+    mul = (2 * n + 3) * k
+    term1 = 4 * np.exp(-(n + 0.5) * (alpha - beta)) * np.sinh((n + 0.5) * (alpha - beta))
+    term2 = (2 * n + 1) ** 2 * np.exp(alpha - beta) * np.sinh(alpha - beta)
+    term3 = (
+        2 * (2 * n - 1) * np.sinh((n + 0.5) * (alpha - beta)) * np.cosh((n + 0.5) * (alpha + beta))
+    )
+    term4 = (
+        -2 * (2 * n + 1) * np.sinh((n + 1.5) * (alpha - beta)) * np.cosh((n - 0.5) * (alpha + beta))
+    )
+    term5 = -(2 * n + 1) * (2 * n - 1) * np.sinh(alpha - beta) * np.cosh(alpha + beta)
+    return mul * (term1 + term2 + term3 + term4 + term5) / delta
+
+
+def calculate_bn(n, k, alpha, beta, delta):
+    """Eqn. 29 from Stimson et al.
+
+    Parameters
+    ----------
+    n : int
+        iteration
+    k : float
+        Term obtained with `calculate_k`.
+    alpha, beta : float
+        Curvilinear coordinate obtained with `to_curvilinear_coordinates`.
+    delta : float
+        Term obtained with `calculate_delta`.
+    """
+    mul = -(2 * n + 3) * k
+    term1 = (
+        2 * (2 * n - 1) * np.sinh((n + 0.5) * (alpha - beta)) * np.sinh((n + 0.5) * (alpha + beta))
+    )
+    term2 = (
+        -2 * (2 * n + 1) * np.sinh((n + 1.5) * (alpha - beta)) * np.sinh((n - 0.5) * (alpha + beta))
+    )
+    term3 = (2 * n + 1) * (2 * n - 1) * np.sinh(alpha - beta) * np.sinh(alpha + beta)
+    return mul * (term1 + term2 + term3) / delta
+
+
+def calculate_cn(n, k, alpha, beta, delta):
+    """Eqn. 30 from Stimson et al.
+
+    Parameters
+    ----------
+    n : int
+        iteration
+    k : float
+        Term obtained with `calculate_k`.
+    alpha, beta : float
+        Curvilinear coordinate obtained with `to_curvilinear_coordinates`.
+    delta : float
+        Term obtained with `calculate_delta`.
+    """
+    mul = -(2 * n - 1) * k
+    term1 = 4 * np.exp(-(n + 0.5) * (alpha - beta)) * np.sinh((n + 0.5) * (alpha - beta))
+    term2 = -((2 * n + 1) ** 2) * np.exp(-(alpha - beta)) * np.sinh(alpha - beta)
+    term3 = (
+        2 * (2 * n + 1) * np.sinh((n - 0.5) * (alpha - beta)) * np.cosh((n + 1.5) * (alpha + beta))
+    )
+    term4 = (
+        -2 * (2 * n + 3) * np.sinh((n + 0.5) * (alpha - beta)) * np.cosh((n + 0.5) * (alpha + beta))
+    )
+    term5 = (2 * n + 1) * (2 * n + 3) * np.sinh(alpha - beta) * np.cosh(alpha + beta)
+    return mul * (term1 + term2 + term3 + term4 + term5) / delta
+
+
+def calculate_dn(n, k, alpha, beta, delta):
+    """Eqn. 31 from Stimson et al.
+
+    Parameters
+    ----------
+    n : int
+        iteration
+    k : float
+        Term obtained with `calculate_k`.
+    alpha, beta : float
+        Curvilinear coordinate obtained with `to_curvilinear_coordinates`.
+    delta : float
+        Term obtained with `calculate_delta`.
+    """
+    mul = (2 * n - 1) * k
+    term1 = (
+        2 * (2 * n + 1) * np.sinh((n - 0.5) * (alpha - beta)) * np.sinh((n + 1.5) * (alpha + beta))
+    )
+    term2 = (
+        -2 * (2 * n + 3) * np.sinh((n + 0.5) * (alpha - beta)) * np.sinh((n + 0.5) * (alpha + beta))
+    )
+    term3 = (2 * n + 1) * (2 * n + 3) * np.sinh(alpha - beta) * np.sinh(alpha + beta)
+    return mul * (term1 + term2 + term3) / delta
