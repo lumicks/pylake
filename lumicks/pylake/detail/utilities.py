@@ -41,9 +41,19 @@ def method_cache(name):
         test._cache
         # test._cache will now show {('example_property',): 10, ('example_method', 'hi'): 5}
     """
+    if int(cachetools.__version__.split(".")[0]) < 5:
 
-    def key(_, *args, **kwargs):
-        return cachetools.keys.hashkey(name, *args, **kwargs)
+        def key(*args, **kwargs):
+            return cachetools.keys.hashkey(name, *args, **kwargs)
+
+    else:
+        # cachetools>=5.0.0 started passing self as first argument. We don't want to bump the
+        # reference count by including a reference to the object we're about to store the cache
+        # into, so we explicitly drop the first argument. Note that for the default key, they
+        # do the same in the package, but we can't use the default key, since it doesn't hash
+        # in the method name.
+        def key(_, *args, **kwargs):
+            return cachetools.keys.hashkey(name, *args, **kwargs)
 
     return cachetools.cachedmethod(lambda self: self._cache, key=key)
 

@@ -161,7 +161,7 @@ class DiodeModel(FilterBase):
                 description="Diode low-pass filtering roll-off frequency",
                 unit="Hz",
                 initial=14000,
-                lower_bound=0.0,
+                lower_bound=1.0,
                 upper_bound=_nyquist,
             ),
             Param(
