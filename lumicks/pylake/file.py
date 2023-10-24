@@ -275,7 +275,16 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     @property
     def kymos(self) -> Dict[str, Kymo]:
         """Kymos stored in the file"""
-        return self._get_object_dictionary("Kymograph", Kymo)
+
+        # Due to an error in an earlier version of Bluelake, some Kymographs were stored in the
+        # `Scan` field. This reads those using a fallback mechanism.
+        scan_kymos = {
+            key: item
+            for key, item in self._get_object_dictionary("Scan", Kymo).items()
+            if item._metadata.num_axes == 1
+        }
+
+        return scan_kymos | self._get_object_dictionary("Kymograph", Kymo)
 
     @property
     def point_scans(self) -> Dict[str, Scan]:
