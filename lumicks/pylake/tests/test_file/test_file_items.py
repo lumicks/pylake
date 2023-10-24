@@ -117,3 +117,15 @@ def test_notes(h5_file):
         assert note.text == "Note content"
         assert note.start == 100
         assert note.stop == 100
+
+
+def test_kymos_in_scans(h5_kymo_as_scan):
+    """Tests whether Kymos accidentally put in Scan are loaded correctly"""
+    f = pylake.File.from_h5py(h5_kymo_as_scan)
+
+    assert len(f.kymos) == 1
+    assert f.kymos["Kymo1"].name == "Kymo1"
+
+    with pytest.warns():
+        scan_dict = f.scans
+        assert not scan_dict

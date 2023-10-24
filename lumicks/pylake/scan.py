@@ -30,6 +30,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
     def __init__(self, name, file, start, stop, metadata):
         super().__init__(name, file, start, stop, metadata)
+        if self._metadata.num_axes == 1:
+            raise RuntimeError("1D scans are not supported")
         if self._metadata.num_axes > 2:
             raise RuntimeError("3D scans are not supported")
 

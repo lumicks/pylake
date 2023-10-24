@@ -191,3 +191,19 @@ def h5_file_invalid_version(tmpdir_factory):
     mock_file.attrs["File format version"] = 254
 
     return mock_file
+
+
+@pytest.fixture(scope="module", params=[MockDataFile_v2])
+def h5_kymo_as_scan(tmpdir_factory, request):
+    mock_class = request.param
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join("%s.h5" % mock_class.__class__.__name__))
+    mock_file.write_metadata()
+
+    json_kymo = generate_scan_json([{"axis": 1, "num of pixels": 4, "pixel size (nm)": 191.0}])
+    ds = mock_file.make_json_data("Scan", "Kymo1", json_kymo)
+    ds.attrs["Start time (ns)"] = np.int64(20e9)
+    ds.attrs["Stop time (ns)"] = np.int64(100e9)
+
+    return mock_file.file
