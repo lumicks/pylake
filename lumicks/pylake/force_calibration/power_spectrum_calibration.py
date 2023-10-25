@@ -176,14 +176,109 @@ def calculate_power_spectrum(
     return power_spectrum
 
 
-def lorentzian_loss(p, model: ScaledModel, power_spectrum: PowerSpectrum):
-    expectation = model(power_spectrum.frequency, *p)
-    gamma = expectation / power_spectrum.num_points_per_block**0.5
-    # fmt: off
-    return np.sum(np.log(
-        1 + 0.5 * ((power_spectrum.power - model(power_spectrum.frequency, *p)) / gamma) ** 2
-    ))
-    # fmt: on
+def lorentzian_loss(p, model: ScaledModel, frequencies, powers, num_points_per_block):
+    expectation = model(frequencies, *p)
+    gamma = expectation / num_points_per_block**0.5
+    return np.sum(np.log(1 + 0.5 * ((powers - model(frequencies, *p)) / gamma) ** 2))
+
+
+def _fit_power_spectra(
+    model,
+    frequencies,
+    powers,
+    num_points_per_block,
+    initial_params,
+    lower_bounds,
+    upper_bounds,
+    ftol,
+    max_function_evals,
+    loss_function,
+):
+    """Fit power spectral data.
+
+    Parameters
+    ----------
+    model : callable
+        Function that takes a list of frequencies and parameters and returns a power spectral
+        density when called.
+    frequencies : np.ndarray
+        Frequency values.
+    powers : np.ndarray
+        Power spectral density values.
+    num_points_per_block: int
+        Number of points per block used to compute the power spectral density.
+    initial_params : np.ndarray
+        Initial guess for the model parameters
+    lower_bounds, upper_bounds : np.ndarray
+        Bounds for the model parameters
+    ftol : float
+        Termination tolerance for the model fit.
+    max_function_evals : int
+        Maximum number of function evaluations during the fit.
+    loss_function : string
+        Loss function to use during fitting. Options: "gaussian", "lorentzian" (robust fitting).
+
+    Returns
+    -------
+    solution_params : np.ndarray
+        Optimized parameter vector
+    perr : np.ndarray
+        Parameter error estimates
+    chi_squared : float
+        Chi-squared value after optimization
+    """
+    # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
+    # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
+    # care of this parameter rescaling.
+    scaled_model = ScaledModel(lambda f, *params: 1 / model(f, *params), initial_params)
+    lower_bounds = scaled_model.normalize_params(lower_bounds)
+    upper_bounds = scaled_model.normalize_params(upper_bounds)
+
+    # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
+    # "hacking" `scipy.optimize.curve_fit` for this purpose, and passing in "y" values of "1/ps.power"
+    # instead of just "ps.power", and a model function "1/model(...)" instead of "model(...)". This
+    # effectively transforms the curve fitter's objective function
+    # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
+    sigma = (1.0 / powers) / math.sqrt(num_points_per_block)
+    (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
+        scaled_model,
+        frequencies,
+        1.0 / powers,
+        p0=np.ones(len(initial_params)),
+        sigma=sigma,
+        absolute_sigma=True,
+        method="trf",
+        ftol=ftol,
+        maxfev=max_function_evals,
+        bounds=(lower_bounds, upper_bounds),
+    )
+    solution_params_rescaled = np.abs(solution_params_rescaled)
+    perr = np.sqrt(np.diag(pcov))
+
+    # Undo the scaling
+    solution_params = scaled_model.scale_params(solution_params_rescaled)
+    perr = scaled_model.scale_params(perr)
+
+    # Use the least squares method as a starting point for a robust fit
+    if loss_function == "lorentzian":
+        scaled_model = ScaledModel(lambda f, *p: model(f, *p), solution_params)
+        bounds = [(lower, upper) for lower, upper in zip(lower_bounds, upper_bounds)]
+        minimize_result = scipy.optimize.minimize(
+            lambda p: lorentzian_loss(p, scaled_model, frequencies, powers, num_points_per_block),
+            np.ones(len(solution_params)),
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={"maxiter": max_function_evals, "ftol": ftol},
+        )
+        solution_params_scaled = np.abs(minimize_result.x)
+        solution_params = scaled_model.scale_params(solution_params_scaled)
+
+        # Return NaN for perr, as scipy.optimize.minimize does not return the covariance matrix
+        perr = np.NaN * np.ones_like(solution_params)
+
+    chi_squared = np.sum(((1 / model(frequencies, *solution_params) - 1 / powers) / sigma) ** 2)
+
+    return solution_params, perr, chi_squared
 
 
 def fit_power_spectrum(
@@ -290,66 +385,22 @@ def fit_power_spectrum(
         )
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
-    initial_params = np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values])
-
-    # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
-    # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
-    # care of this parameter rescaling.
-    scaled_model = ScaledModel(lambda f, *params: 1 / model(f, *params), initial_params)
-    lower_bounds = scaled_model.normalize_params([0.0, 0.0, *model._filter.lower_bounds()])
-    upper_bounds = scaled_model.normalize_params(
-        [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
-    )
-
-    # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
-    # "hacking" `scipy.optimize.curve_fit` for this purpose, and passing in "y" values of "1/ps.power"
-    # instead of just "ps.power", and a model function "1/model(...)" instead of "model(...)". This
-    # effectively transforms the curve fitter's objective function
-    # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
-    sigma = (1 / power_spectrum.power) / math.sqrt(power_spectrum.num_points_per_block)
-    (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
-        scaled_model,
+    solution_params, perr, chi_squared = _fit_power_spectra(
+        model,
         power_spectrum.frequency,
-        1 / power_spectrum.power,
-        p0=np.ones(len(initial_params)),
-        sigma=sigma,
-        absolute_sigma=True,
-        method="trf",
+        power_spectrum.power,
+        power_spectrum.num_points_per_block,
+        initial_params=np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values]),
+        lower_bounds=np.array([0.0, 0.0, *model._filter.lower_bounds()]),
+        upper_bounds=np.array(
+            [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
+        ),
         ftol=ftol,
-        maxfev=max_function_evals,
-        bounds=(lower_bounds, upper_bounds),
+        max_function_evals=max_function_evals,
+        loss_function=loss_function,
     )
-    solution_params_rescaled = np.abs(solution_params_rescaled)
-    perr = np.sqrt(np.diag(pcov))
-
-    # Undo the scaling
-    solution_params = scaled_model.scale_params(solution_params_rescaled)
-    perr = scaled_model.scale_params(perr)
-
-    # Use the least squares method as a starting point for a robust fit
-    if loss_function == "lorentzian":
-        scaled_model = ScaledModel(
-            lambda f, fc, D, *filter_pars: model(f, fc, D, *filter_pars), solution_params
-        )
-        bounds = [(lower, upper) for lower, upper in zip(lower_bounds, upper_bounds)]
-        minimize_result = scipy.optimize.minimize(
-            lambda p: lorentzian_loss(p, scaled_model, power_spectrum),
-            np.ones(len(solution_params)),
-            method="L-BFGS-B",
-            bounds=bounds,
-            options={"maxiter": max_function_evals, "ftol": ftol},
-        )
-        solution_params_scaled = np.abs(minimize_result.x)
-        solution_params = scaled_model.scale_params(solution_params_scaled)
-
-        # Return NaN for perr, as scipy.optimize.minimize does not return the covariance matrix
-        perr = np.NaN * np.ones_like(solution_params)
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
-    chi_squared = np.sum(
-        ((1 / model(power_spectrum.frequency, *solution_params) - 1 / power_spectrum.power) / sigma)
-        ** 2
-    )
     n_degrees_of_freedom = power_spectrum.power.size - len(solution_params)
     chi_squared_per_deg = chi_squared / n_degrees_of_freedom
     backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
