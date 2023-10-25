@@ -177,12 +177,11 @@ def calculate_power_spectrum(
 
 
 def lorentzian_loss(p, model: ScaledModel, power_spectrum: PowerSpectrum):
-    expectation = model(power_spectrum.frequency, p[0], p[1], *p[2:])
+    expectation = model(power_spectrum.frequency, *p)
     gamma = expectation / power_spectrum.num_points_per_block**0.5
     # fmt: off
     return np.sum(np.log(
-        1 + 0.5 * ((power_spectrum.power - model(power_spectrum.frequency, p[0], p[1], *p[2:]))
-                   / gamma) ** 2
+        1 + 0.5 * ((power_spectrum.power - model(power_spectrum.frequency, *p)) / gamma) ** 2
     ))
     # fmt: on
 
@@ -296,8 +295,10 @@ def fit_power_spectrum(
     # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
     # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
     # care of this parameter rescaling.
-    scaled_model = ScaledModel(
-        lambda f, fc, D, *filter_pars: 1 / model(f, fc, D, *filter_pars), initial_params
+    scaled_model = ScaledModel(lambda f, *params: 1 / model(f, *params), initial_params)
+    lower_bounds = scaled_model.normalize_params([0.0, 0.0, *model._filter.lower_bounds()])
+    upper_bounds = scaled_model.normalize_params(
+        [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
     )
 
     # What we *actually* have to minimize, is the chi^2 expression in Eq. 39 of ref. 1. We're
@@ -306,10 +307,6 @@ def fit_power_spectrum(
     # effectively transforms the curve fitter's objective function
     # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
     sigma = (1 / power_spectrum.power) / math.sqrt(power_spectrum.num_points_per_block)
-    lower_bounds = scaled_model.normalize_params([0.0, 0.0, *model._filter.lower_bounds()])
-    upper_bounds = scaled_model.normalize_params(
-        [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
-    )
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
         scaled_model,
         power_spectrum.frequency,
