@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.2 | t.b.d.
+
+#### Bug fixes
+
+* Fixed `lk.download_from_doi()` to align with new Zenodo REST API.
+
 ## v1.2.1 | 2023-10-17
 
 #### Bug fixes

@@ -120,10 +120,7 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
     file_names = []
     for file in record_metadata["files"]:
         file_name = file["filename"]
-        url = (
-            f"https://zenodo.org/api/records/{record_metadata['record_id']}"
-            f"/files/{file_name}/content"
-        )
+        url = f"https://zenodo.org/api/records/{record_metadata['id']}/files/{file_name}/content"
 
         full_path = os.path.join(target_path, file_name)
 
