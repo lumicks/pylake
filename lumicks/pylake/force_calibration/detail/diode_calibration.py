@@ -7,7 +7,7 @@ from lumicks.pylake.force_calibration.power_spectrum_calibration import (
 )
 
 
-def fit_multi_spectra(model, powers, power_spectra):
+def fit_multi_spectra(model, powers, power_spectra, loss="gaussian"):
     power, num_points_per_block = [
         np.hstack([getattr(s, prop) for s in power_spectra])
         for prop in ("power", "num_points_per_block")
@@ -58,15 +58,15 @@ def fit_multi_spectra(model, powers, power_spectra):
 
     solution, err_estimates, chi_squared = _fit_power_spectra(
         multi_model,
-        [],
+        np.array([]),
         power,
-        np.unique(num_points_per_block),
+        int(np.unique(num_points_per_block)),
         np.asarray(initial_params),
         np.asarray(lower_bounds),
         np.asarray(upper_bounds),
         ftol=1e-7,
         max_function_evals=10000,
-        loss_function="gaussian",
+        loss_function=loss,
     )
 
     fc_min, d_fc_per_power, *other_params = solution
@@ -98,7 +98,7 @@ def fit_multi_spectra(model, powers, power_spectra):
     return results
 
 
-def fit_diode_model(model, powers, power_spectra):
+def fit_diode_model(model, powers, power_spectra, loss="gaussian"):
     power, num_points_per_block = [
         np.hstack([getattr(s, prop) for s in power_spectra])
         for prop in ("power", "num_points_per_block")
@@ -116,7 +116,7 @@ def fit_diode_model(model, powers, power_spectra):
     diffusion_constants = np.full(fill_value=diffusion_constant, shape=(n_spectra,))
 
     # delta_f_diode, rate_f_diode, max_f_diode, delta_alpha, rate_alpha, max_alpha
-    filter_params = [8000, 0.1, 15000, 0.4, 0.1, 1.0]
+    filter_params = [8000, 1, 15000, 0.4, 1, 0.9]
     filter_lb = [0, 0, 0, 0, 0, 0]
     filter_ub = [50000, 1e6, 50000, 1.0, 1e6, 1.0]
 
@@ -148,15 +148,15 @@ def fit_diode_model(model, powers, power_spectra):
 
     solution, err_estimates, chi_squared = _fit_power_spectra(
         multi_model,
-        [],
+        np.array([]),
         power,
-        np.unique(num_points_per_block),
+        int(np.unique(num_points_per_block)),
         np.asarray(initial_params),
         np.asarray(lower_bounds),
         np.asarray(upper_bounds),
         ftol=1e-7,
         max_function_evals=10000,
-        loss_function="gaussian",
+        loss_function=loss,
     )
 
     fc_min, d_fc_per_power, *other_params = solution
