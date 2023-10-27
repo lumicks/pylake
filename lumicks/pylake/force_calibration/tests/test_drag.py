@@ -114,3 +114,18 @@ def test_coupling_factors(distance, radius1, radius2, ref_factor1, ref_factor2):
     f1, f2 = coupling_correction_factor_stimson(radius1, radius2, distance, summands=5)
     np.testing.assert_allclose(f1, ref_factor1)
     np.testing.assert_allclose(f2, ref_factor2)
+
+
+@pytest.mark.parametrize(
+    "distance, radius, allow_rotation, ref_factor",
+    [
+        [3.0e-6, 0.5e-6, True, 0.8870658857069117],
+        [6.0e-6, 0.5e-6, False, 0.9409521069093458],
+        [6.0e-6, 0.5e-6, True, 0.9409202035835033],
+        [6.0e-6, 0.9e-6, True, 0.8975157966674805],
+        [1.0, 1.0e-6, True, 0.9999992500005626],
+    ],
+)
+def test_coupling_factors(distance, radius, allow_rotation, ref_factor):
+    factor = coupling_correction_factor_goldmann(radius, distance, allow_rotation=allow_rotation)
+    np.testing.assert_allclose(factor, ref_factor)
