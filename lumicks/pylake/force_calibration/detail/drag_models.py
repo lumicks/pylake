@@ -302,3 +302,58 @@ def coupling_correction_factor_stimson(radius1, radius2, distance, *, summands=5
         coupling2 += (2 * n + 1) * (an - bn + cn - dn)
 
     return pre_factor * coupling1 / radius1, pre_factor * coupling2 / radius2
+
+
+def coupling_correction_factor_goldmann(radius, distance, allow_rotation=True):
+    r"""Calculates a coupling correction factor for oscillating perpendicular to the
+    center-to-center axes of two beads.
+
+    In the calibration of a dual-trap using active calibration, a bead is excited only by a reduced
+    driving flow field. The reason for this is that the other bead slows the fluid down. This
+    leads to a lower amplitude response than expected (and hence a lower peak power on the PSD).
+    This leads to a higher sensitivity than expected. Using the correction factor :math:`c`
+    calculated from this function, we can correct the displacement sensitivity :math:`R_d`,
+    force sensitivity :math:`R_f`, and stiffness :math:`\kappa` as follows:
+
+    .. math::
+
+        R_{d, corrected} = c R_d
+        R_{f, corrected} = \frac{R_f}{c}
+        \kappa_{corrected} = \frac{\kappa}{c^2}
+
+    Note that this function assumes the beads to be aligned along the axis perpendicular to the
+    axis in which the oscillation is taking place. Both approximation models were obtained from
+    [3]_ but were originally presented in [1]_ (spheres prevented to rotate) and [2]_ (spheres
+    allowed to rotate).
+
+    Parameters
+    ----------
+    radius : float
+        Bead radius
+    distance : float
+        Distance between the bead centers
+    allow_rotation : float
+        Provide the solution for when spheres are allowed to rotate
+
+    References
+    ----------
+    .. [1] Happel, J., & Brenner, H. (1983). Low Reynolds number hydrodynamics: with special
+           applications to particulate media (Vol. 1). Springer Science & Business Media.
+    .. [2] Wakiya, S. (1967). Slow motions of a viscous fluid around two spheres. Journal of the
+           Physical Society of Japan, 22(4), 1101-1109.
+    .. [3] Goldman, A. J., Cox, R. G., & Brenner, H. (1966). The slow motion of two identical
+           arbitrarily oriented spheres through a viscous fluid. Chemical Engineering Science,
+           21(12), 1151-1170.
+    """
+    r_over_d = radius / distance
+
+    if allow_rotation:
+        # Solution for when spheres allowed to rotate. Eqn 5.8 in [3]. Originally from [2].
+        factors = [1, -3 / 4, 9 / 16, -59 / 64, 273 / 256, -1107 / 1024, 1 / (1 + r_over_d)]
+    else:
+        # Solution for when spheres are prevented to rotate. Eqn 3.59 in [3]. Originally from [1].
+        factors = [1, -3 / 4, 9 / 16, -59 / 64, 465 / 256, -15813 / 7168, 2 / (1 + r_over_d)]
+
+    powers = np.arange(len(factors))
+
+    return np.sum(factors * r_over_d**powers)
