@@ -8,6 +8,7 @@
   * Shortcuts `"r"`, `"g"`, and `"b"` can now be used for plotting single color channels in addition to `"red"`, `"green"`, and `"blue"`.
   * Two-channel visualizations can be plotted using `"rg"`, `"gb"`, or `"rb"`.
 * Added `duration` property to `KymoTrack` which returns the duration (in seconds) that the track was observed.
+* Added option to filter tracks by duration in seconds using `lk.filter_tracks(tracks, minimum_duration=duration_in_seconds)`.
 
 #### Improvements
 

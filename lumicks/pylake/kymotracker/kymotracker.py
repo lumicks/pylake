@@ -367,8 +367,8 @@ def track_lines(
     return refine_tracks_centroid(kymotrack_group, track_width=line_width, bias_correction=True)
 
 
-def filter_tracks(tracks, minimum_length):
-    """Remove tracks shorter than a minimum number of time points from the list.
+def filter_tracks(tracks, minimum_length=1, *, minimum_duration=0):
+    """Remove tracks shorter than specified criteria from the list.
 
     This can be used to enforce a minimum number of frames a spot has to be detected in order
     to be considered a valid track.
@@ -377,9 +377,19 @@ def filter_tracks(tracks, minimum_length):
     ----------
     tracks : List[KymoTrack]
         Detected tracks on a kymograph.
-    minimum_length : int
-        Minimum length for the track to be accepted.
+    minimum_length : int, optional
+        Minimum number of tracked points for the track to be accepted (default: 1).
+    minimum_duration : seconds, optional
+        Minimum duration in seconds for a track to be accepted (default: 0).
     """
+    def minimum_observable_time(track, min_length, min_duration):
+        line_time = track._kymo.line_time_seconds
+        minimum_length_based = (min_length - 1) * line_time
+
+        # When we filter with a minimum duration, we lose all durations up to the next
+        # full time step.
+        minimum_duration_based = np.ceil(min_duration / line_time) * line_time
+        return max(minimum_length_based, minimum_duration_based)
 
     return KymoTrackGroup(
         [
@@ -389,11 +399,11 @@ def filter_tracks(tracks, minimum_length):
                     track._minimum_observable_duration
                     if track._minimum_observable_duration is not None
                     else 0,
-                    (minimum_length - 1) * track._kymo.line_time_seconds,
+                    minimum_observable_time(track, minimum_length, minimum_duration),
                 )
             )
             for track in tracks
-            if len(track) >= minimum_length
+            if len(track) >= minimum_length and track.duration >= minimum_duration
         ]
     )
 

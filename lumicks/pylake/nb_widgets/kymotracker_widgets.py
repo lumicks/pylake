@@ -682,7 +682,7 @@ class KymoWidgetGreedy(KymoWidget):
         def wrapped_track_greedy(kymo, channel, min_length, **kwargs):
             return filter_tracks(
                 track_greedy(kymo, channel, **kwargs),
-                min_length,
+                minimum_length=min_length,
             )
 
         algorithm = wrapped_track_greedy
