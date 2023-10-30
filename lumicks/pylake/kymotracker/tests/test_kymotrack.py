@@ -47,6 +47,16 @@ def test_kymo_track(blank_kymo, blank_kymo_track_args):
     assert str(k1) == "KymoTrack(N=3)"
 
 
+@pytest.mark.parametrize(
+    "time_idx, ref_value", [[[0, 1, 2], 2], [[0, 2], 2], [[1, 3], 2], [[1, 4, 5], 4]]
+)
+def test_kymotrack_duration(blank_kymo, time_idx, ref_value):
+    np.testing.assert_allclose(
+        KymoTrack(time_idx, time_idx, blank_kymo, "red", 0).duration,
+        blank_kymo.line_time_seconds * ref_value,
+    )
+
+
 def test_kymotrack_selection(blank_kymo, blank_kymo_track_args):
     t = np.array([4, 5, 6])
     y = np.array([7, 7, 7])
