@@ -438,6 +438,11 @@ class KymoTrack:
         return self._localization.position
 
     @property
+    def duration(self):
+        """Track duration in seconds"""
+        return self.seconds[-1] - self.seconds[0]
+
+    @property
     def _line_time_seconds(self):
         """Source kymograph line time in seconds."""
         return self._kymo.line_time_seconds
@@ -1504,7 +1509,7 @@ class KymoTrackGroup:
                 if exclude_ambiguous_dwells
                 else group
             )
-            dwelltimes_sec = np.array([track.seconds[-1] - track.seconds[0] for track in tracks])
+            dwelltimes_sec = np.array([track.duration for track in tracks])
             nonzero_dwelltimes_sec = dwelltimes_sec[dwelltimes_sec > 0]
             removed_zeros = removed_zeros or len(nonzero_dwelltimes_sec) != len(dwelltimes_sec)
 
