@@ -446,10 +446,10 @@ def test_filter_tracks(blank_kymo, blank_kymo_track_args):
     k2 = KymoTrack([2, 3], [1, 2], *blank_kymo_track_args)
     k3 = KymoTrack([2, 3, 4, 5], [1, 2, 4, 5], *blank_kymo_track_args)
     tracks = KymoTrackGroup([k1, k2, k3])
-    assert len(filter_tracks(tracks, 5)) == 0
+    assert len(filter_tracks(tracks, minimum_length=5)) == 0
 
     # We compare the positions since a track doesn't have a proper equality operator.
-    filtered = filter_tracks(tracks, 5)
+    filtered = filter_tracks(tracks, minimum_length=5)
     assert all(
         [
             np.array_equal(track1.position, track2.position)
@@ -460,10 +460,10 @@ def test_filter_tracks(blank_kymo, blank_kymo_track_args):
 
     # Ensure that if we filter again with a shorter filter, we don't reduce the minimum observable
     # time, since we wouldn't recover lines.
-    twice = filter_tracks(filtered, 2)
+    twice = filter_tracks(filtered, minimum_length=2)
     assert all([t._minimum_observable_duration == 4 * k1._kymo.line_time_seconds for t in twice])
 
-    filtered = filter_tracks(tracks, 2)
+    filtered = filter_tracks(tracks, minimum_length=2)
     assert all(
         [
             np.array_equal(track1.position, track2.position)
@@ -474,10 +474,40 @@ def test_filter_tracks(blank_kymo, blank_kymo_track_args):
 
     # Ensure that a non-identified minimum time still gets handled gracefully.
     ktg = KymoTrackGroup([KymoTrack([1, 2, 3], [1, 2, 3], blank_kymo, "red", None)])
-    filtered = filter_tracks(ktg, 2)
+    filtered = filter_tracks(ktg, minimum_length=2)
     np.testing.assert_allclose(
         filtered[0]._minimum_observable_duration, blank_kymo.line_time_seconds
     )
+
+
+@pytest.mark.parametrize(
+    "minimum_duration, ref_length, ref_minimum, ref_minimum_dt2",
+    [
+        [1.0, 5, 1.0, 2.0],
+        [1.1, 4, 2.0, 2.0],  # Going over slightly bumps the minimum time to the next frame
+        [2.0, 4, 2.0, 2.0],
+        [2.1, 2, 3.0, 4.0],  # Last line gets a bigger bump in minimum time once we filter
+    ],
+)
+def test_filter_by_duration(
+    blank_kymo_track_args, minimum_duration, ref_length, ref_minimum, ref_minimum_dt2
+):
+    k1 = KymoTrack([1, 2, 3], [1, 2, 3], *blank_kymo_track_args)  # duration = 2
+    k2 = KymoTrack([2, 3], [1, 2], *blank_kymo_track_args)  # duration = 1
+    k3 = KymoTrack([2, 3, 5], [1, 2, 5], *blank_kymo_track_args)  # duration = 3
+
+    # Track with different line time. We use two line times because we want to test that the
+    # minimum observable time gets bumped correctly to the next full timestep.
+    kymo2 = _kymo_from_array(np.zeros((3, 3)), "r", line_time_seconds=2.0, pixel_size_um=50)
+    k4 = KymoTrack([2, 3], [1, 2, 5], kymo2, "red", 0)  # duration = 2
+    k5 = KymoTrack([2, 6], [1, 2, 5], kymo2, "red", 0)  # duration = 6
+
+    tracks = KymoTrackGroup([k1, k2, k3, k4, k5])
+
+    filtered = filter_tracks(tracks, minimum_length=0, minimum_duration=minimum_duration)
+    assert len(filtered) == ref_length
+    np.testing.assert_allclose(filtered[0]._minimum_observable_duration, ref_minimum)
+    np.testing.assert_allclose(filtered[-1]._minimum_observable_duration, ref_minimum_dt2)
 
 
 def test_empty_group():

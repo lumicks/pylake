@@ -694,12 +694,12 @@ We can filter tracks shorter than a certain length by using :func:`~lumicks.pyla
     methods = {
         "cve single": lambda list_of_tracks: [t.estimate_diffusion("cve") for tracks in list_of_tracks for t in tracks],
         "ols single": lambda list_of_tracks: [t.estimate_diffusion("ols") for tracks in list_of_tracks for t in tracks],
-        "cve (filtered)": lambda list_of_tracks: [t.estimate_diffusion("cve") for tracks in list_of_tracks for t in lk.filter_tracks(tracks, min_length)],
-        "ols (filtered)": lambda list_of_tracks: [t.estimate_diffusion("ols") for tracks in list_of_tracks for t in lk.filter_tracks(tracks, min_length)],
+        "cve (filtered)": lambda list_of_tracks: [t.estimate_diffusion("cve") for tracks in list_of_tracks for t in lk.filter_tracks(tracks, minimum_length=min_length)],
+        "ols (filtered)": lambda list_of_tracks: [t.estimate_diffusion("ols") for tracks in list_of_tracks for t in lk.filter_tracks(tracks, minimum_length=min_length)],
         "cve ensemble": lambda list_of_tracks: [t.ensemble_diffusion("cve") for t in list_of_tracks],
         "ols ensemble": lambda list_of_tracks: [t.ensemble_diffusion("ols") for t in list_of_tracks],
-        "cve ensemble (filtered)": lambda list_of_tracks: [lk.filter_tracks(t, min_length).ensemble_diffusion("cve") for t in list_of_tracks],
-        "ols ensemble (filtered)": lambda list_of_tracks: [lk.filter_tracks(t, min_length).ensemble_diffusion("ols") for t in list_of_tracks],
+        "cve ensemble (filtered)": lambda list_of_tracks: [lk.filter_tracks(t, minimum_length=min_length).ensemble_diffusion("cve") for t in list_of_tracks],
+        "ols ensemble (filtered)": lambda list_of_tracks: [lk.filter_tracks(t, minimum_length=min_length).ensemble_diffusion("ols") for t in list_of_tracks],
     }
 
     snrs = 10**np.arange(-1, 1.1, 0.125)

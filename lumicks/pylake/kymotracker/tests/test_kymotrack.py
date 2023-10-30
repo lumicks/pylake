@@ -6,10 +6,11 @@ import matplotlib.pyplot as plt
 
 from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import *
-from lumicks.pylake.kymotracker.kymotracker import _to_half_kernel_size
+from lumicks.pylake.kymotracker.kymotracker import filter_tracks, _to_half_kernel_size
 from lumicks.pylake.kymotracker.detail.localization_models import *
 
 from ...tests.data.mock_confocal import generate_kymo
+from ...population.tests.data.generate_exponential_data import ExponentialParameters, make_dataset
 
 
 def test_kymo_track(blank_kymo, blank_kymo_track_args):
@@ -1515,3 +1516,28 @@ def test_photon_counts_api(blank_kymo):
         ).photon_counts,
         [1, 2, 5],
     )
+
+
+@pytest.mark.slow
+def test_integration_binding_times_with_minimum_time():
+    """End-to-end test for dwell time analysis while filtering with a set duration"""
+    dt = 0.1
+    kymo = _kymo_from_array(np.zeros((1, 10000)), "r", dt)
+    params = ExponentialParameters(
+        amplitudes=[0.5, 0.5],
+        lifetimes=[0.2, 10.0],
+        _observation_limits=(0, np.inf),
+        dt=dt,
+    )
+
+    np.random.seed(10071985)
+    data = make_dataset(params, n_samples=100000)["data"]
+
+    tracks = KymoTrackGroup([KymoTrack([0, int(t / dt)], [0, 0], kymo, "red", 0) for t in data])
+
+    # Minimum we filter by is deliberately not a multiple of dt
+    tracks = filter_tracks(tracks, minimum_length=0, minimum_duration=0.15)
+    model = tracks.fit_binding_times(
+        2, exclude_ambiguous_dwells=False, discrete_model=True, observed_minimum=False
+    )
+    np.testing.assert_allclose(np.sort(model.lifetimes), [0.2, 10.0], rtol=1e-2)

@@ -112,8 +112,13 @@ For example, to omit all tracks with fewer than 4 detected points, we can invoke
 
     print(len(tracks))  # the number of tracks originally detected -- 134
 
-    tracks = lk.filter_tracks(tracks, 4)
+    tracks = lk.filter_tracks(tracks, minimum_length=4)
     print(len(tracks))  # the number of tracks after filtering -- 35
+
+We can also filter by track duration.
+
+    >>> print(len(lk.filter_tracks(tracks, minimum_duration=1)))
+    26
 
 There are also convenience plotting functions for both :meth:`KymoTrack.plot() <lumicks.pylake.kymotracker.kymotrack.KymoTrack.plot>`
 and :meth:`KymoTrackGroup.plot() <lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.plot>`. We can see the detected tracks overlaid
@@ -162,7 +167,7 @@ Sometimes we want to track only part of a kymograph without manually slicing and
 `[[min_time, min_position], [max_time, max_position]]`. To track the same region as before, we can do::
 
     tracks = lk.track_greedy(kymo, "green", rect=[[127, 9], [162, 26]])
-    tracks = lk.filter_tracks(tracks, 4)
+    tracks = lk.filter_tracks(tracks, minimum_length=4)
 
     plt.figure()
     kymo.plot("green", aspect="auto", adjustment=adjustment)
@@ -193,7 +198,7 @@ Let's perform track refinement with two different values for `track_width` to se
 
     # re-track our kymo
     tracks = lk.track_greedy(kymo40, "green", track_width=0.3)
-    tracks = lk.filter_tracks(tracks, 4)
+    tracks = lk.filter_tracks(tracks, minimum_length=4)
 
     # refine with the same track_width
     refined = lk.refine_tracks_centroid(tracks, track_width=0.3)
@@ -398,7 +403,7 @@ We can easily plot some histograms of the binding events located with the kymotr
 
     # re-track so we have fresh data to work with
     tracks = lk.track_greedy(kymo40, "green", track_width=0.3)
-    tracks = lk.filter_tracks(tracks, 4)
+    tracks = lk.filter_tracks(tracks, minimum_length=4)
     tracks = lk.refine_tracks_centroid(tracks, track_width=0.3)
 
     plt.figure()
@@ -708,8 +713,8 @@ Sometimes, we want to combine tracking results from multiple Kymographs to deter
 We can do this, by simply adding :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` instances together.
 We'll demonstrate this functionality using multiple sections on a single :class:`~lumicks.pylake.kymo.Kymo`, but it generalizes to tracks from different kymographs::
 
-    tracks1 = lk.filter_tracks(lk.track_greedy(kymo, "green", rect=[[127, 9], [162, 26]]), 4)
-    tracks2 = lk.filter_tracks(lk.track_greedy(kymo, "green", rect=[[175, 9], [200, 26]]), 4)
+    tracks1 = lk.filter_tracks(lk.track_greedy(kymo, "green", rect=[[127, 9], [162, 26]]), minimum_length=4)
+    tracks2 = lk.filter_tracks(lk.track_greedy(kymo, "green", rect=[[175, 9], [200, 26]]), minimum_length=4)
 
     multiple_groups = tracks1 + tracks2
     multiple_groups.plot()
