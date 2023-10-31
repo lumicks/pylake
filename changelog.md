@@ -5,6 +5,7 @@
 #### Bug fixes
 
 * Fixed `lk.download_from_doi()` to align with new Zenodo REST API.
+* Fixed a bug in `Scan.plot()` in which the default aspect ratio was calculated such that pixels always appeared square. For scans with non-square pixel sizes, this would result in distortion of the image.
 
 ## v1.2.1 | 2023-10-17
 
