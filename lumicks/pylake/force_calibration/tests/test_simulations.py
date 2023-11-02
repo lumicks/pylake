@@ -24,7 +24,7 @@ def test_simulation():
     }
 
     sim1_position, sim1_nanostage = simulate_calibration_data(
-        **params, anti_aliasing=True, oversampling=16
+        **params, anti_aliasing="fir", oversampling=16
     )
     sim2_position, sim2_nanostage = generate_active_calibration_test_data(**params)
 
