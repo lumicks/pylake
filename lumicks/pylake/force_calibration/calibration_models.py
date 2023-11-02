@@ -9,6 +9,8 @@ from .detail.drag_models import faxen_factor, brenner_axial
 from .detail.power_models import (
     g_diode,
     alias_spectrum,
+    motion_blur_peak,
+    motion_blur_spectrum,
     sphere_friction_coefficient,
     passive_power_spectrum_model,
     theoretical_driving_power_lorentzian,
@@ -414,8 +416,23 @@ class PassiveCalibrationModel:
     def __call__(self, f, fc, diffusion_constant, *filter_params) -> np.ndarray:
         return self._calculate_power_spectral_density(f, fc, diffusion_constant, *filter_params)
 
+    def _motion_blur(self, acquisition_time):
+        """Include effects of motion blur into the model
+
+        Parameters
+        ----------
+        acquisition_time : float
+            Acquisition time in seconds
+        """
+        new_model = copy(self)
+        new_model._calculate_power_spectral_density = motion_blur_spectrum(
+            new_model._calculate_power_spectral_density, acquisition_time
+        )
+
+        return new_model
+
     def _alias_model(self, sample_rate, num_aliases):
-        """Include effects of aliasing into the model
+        """Include effects of aliasing into the model.
 
         Parameters
         ----------
@@ -767,6 +784,21 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         power spectrum. It corresponds to the driven power spectrum minus the thermal power spectrum
         integrated over the frequency bin corresponding to the driving input."""
         return self._theoretical_driving_power_model(f_corner)
+
+    def _motion_blur(self, acquisition_time):
+        """Include effects of motion blur into the model
+
+        Parameters
+        ----------
+        acquisition_time : float
+            Acquisition time in seconds
+        """
+        new_model = super()._motion_blur(acquisition_time)
+        new_model._theoretical_driving_power_model = motion_blur_peak(
+            self._theoretical_driving_power_model, self.driving_frequency, acquisition_time
+        )
+
+        return new_model
 
     def calibration_results(
         self,

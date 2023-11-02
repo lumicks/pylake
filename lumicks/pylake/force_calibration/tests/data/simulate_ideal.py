@@ -1,6 +1,8 @@
 import numpy as np
 import scipy
 
+from lumicks.pylake.detail.utilities import downsample
+
 
 def calculate_active_term(time, driving_sinusoid, stiffness, gamma):
     """Simulate stage and bead position from simulation parameters.
@@ -124,8 +126,11 @@ def simulate_calibration_data(
         Temperature [C]
     pos_response_um_volt : float
         Response [um/V], also denoted in papers as Rd
-    anti_aliasing : bool
+    anti_aliasing : str, optional
         Should we anti-alias the data?
+        "fir": anti-alias with FIR filter
+        "integrate": just downsample by integration
+        None: just decimate by subsampling
     oversampling : int
         Oversampling factor. Relatively high oversampling ratios are required to reject aliasing
         effectively.
@@ -175,11 +180,15 @@ def simulate_calibration_data(
         positions = apply_diode_filter(positions, *diode, oversampled_dt)
 
     # Decimate the signal
-    positions = (
-        scipy.signal.decimate(positions, oversampling, ftype="fir")
-        if anti_aliasing
-        else positions[::oversampling]
-    )
+    if anti_aliasing == "fir":
+        positions = scipy.signal.decimate(positions, oversampling, ftype="fir")
+    elif anti_aliasing == "integrate":
+        positions = downsample(positions, oversampling, reduce=np.mean)
+    else:
+        if anti_aliasing:
+            raise RuntimeError("Chose invalid anti aliasing method")
+        positions = positions[::oversampling]
+
     time = time[::oversampling]
 
     if driving_sinusoid:

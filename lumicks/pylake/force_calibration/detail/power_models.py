@@ -159,6 +159,8 @@ def theoretical_driving_power_lorentzian(fc, driving_frequency, driving_amplitud
     power spectrum. It corresponds to the driven power spectrum minus the thermal power spectrum
     integrated over the frequency bin corresponding to the driving input.
 
+    Parameters
+    ----------
     fc : float
         Corner frequency [Hz]
     driving_frequency : float
@@ -167,6 +169,54 @@ def theoretical_driving_power_lorentzian(fc, driving_frequency, driving_amplitud
         Driving amplitude [m]
     """
     return driving_amplitude**2 / (2 * (1 + (fc / driving_frequency) ** 2))
+
+
+def motion_blur_peak(peak, driving_frequency, acquisition_time):
+    """Take into account motion blur on the driving peak.
+
+    Parameters
+    ----------
+    peak : callable
+        Function which takes a corner frequency and produces an estimated peak power.
+    driving_frequency : float
+        Driving frequency.
+    acquisition_time : float
+        Acquisition time in seconds.
+
+    References
+    ----------
+    .. [1] Wong, W. P., & Halvorsen, K. (2006). The effect of integration time on fluctuation
+       measurements: calibrating an optical trap in the presence of motion blur. Optics express,
+       14(25), 12517-12531.
+    """
+
+    def blurred(fc, *args, **kwargs):
+        return peak(fc, *args, **kwargs) * np.sinc(driving_frequency * acquisition_time) ** 2
+
+    return blurred
+
+
+def motion_blur_spectrum(psd, acquisition_time):
+    """Take into account motion blur on the spectrum.
+
+    Parameters
+    ----------
+    psd : callable
+        Function which takes a numpy array of frequencies and returns a power spectral density.
+    acquisition_time : float
+        Acquisition time in seconds.
+
+    References
+    ----------
+    .. [1] Wong, W. P., & Halvorsen, K. (2006). The effect of integration time on fluctuation
+       measurements: calibrating an optical trap in the presence of motion blur. Optics express,
+       14(25), 12517-12531.
+    """
+
+    def blurred(freq, *args, **kwargs):
+        return psd(freq, *args, **kwargs) * np.sinc(freq * acquisition_time) ** 2
+
+    return blurred
 
 
 def alias_spectrum(psd, sample_rate, num_alias=10):
