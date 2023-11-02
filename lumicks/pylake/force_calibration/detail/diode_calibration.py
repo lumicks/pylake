@@ -7,7 +7,7 @@ from lumicks.pylake.force_calibration.power_spectrum_calibration import (
 )
 
 
-def fit_multi_spectra(model, powers, power_spectra, loss="gaussian"):
+def fit_multi_spectra(model, powers, power_spectra, loss="gaussian", max_fc_min=2000):
     power, num_points_per_block = [
         np.hstack([getattr(s, prop) for s in power_spectra])
         for prop in ("power", "num_points_per_block")
@@ -24,13 +24,13 @@ def fit_multi_spectra(model, powers, power_spectra, loss="gaussian"):
     diffusion_constant = fit_power_spectrum(power_spectra[0], model)["D"].value
     diffusion_constants = np.full(fill_value=diffusion_constant, shape=(n_spectra,))
 
-    filter_params = np.hstack([14000, 0.1] * n_spectra)
+    filter_params = np.hstack([14000, 0.4] * n_spectra)
     filter_lb = np.hstack([1, 0] * n_spectra)
     filter_ub = np.hstack([1e6, 1] * n_spectra)
 
-    initial_params = [fc_min, fc_per_power_guess, *diffusion_constants, *filter_params]
-    lower_bounds = [1, 0, *np.zeros(diffusion_constants.shape), *filter_lb]
-    upper_bounds = [np.inf, np.inf, *np.full(diffusion_constants.shape, np.inf), *filter_ub]
+    initial_params = [0.1, fc_per_power_guess, *diffusion_constants, *filter_params]
+    lower_bounds = [0, 0, *np.zeros(diffusion_constants.shape), *filter_lb]
+    upper_bounds = [max_fc_min, np.inf, *np.full(diffusion_constants.shape, np.inf), *filter_ub]
 
     # The drag coefficient is linearly proportional to the viscosity(T)
     #
@@ -115,13 +115,13 @@ def fit_diode_model(model, powers, power_spectra, loss="gaussian"):
     diffusion_constant = fit_power_spectrum(power_spectra[0], model)["D"].value
     diffusion_constants = np.full(fill_value=diffusion_constant, shape=(n_spectra,))
 
-    # delta_f_diode, rate_f_diode, max_f_diode, delta_alpha, rate_alpha, max_alpha
-    filter_params = [8000, 1, 15000, 0.4, 1, 0.9]
+    # rel_delta_f_diode, rate_f_diode, max_f_diode, rel_delta_alpha, rate_alpha, max_alpha
+    filter_params = [0.25, 0.6, 15000, 0.4, 1, 0.7]
     filter_lb = [0, 0, 0, 0, 0, 0]
-    filter_ub = [50000, 1e6, 50000, 1.0, 1e6, 1.0]
+    filter_ub = [1, 1e6, 50000, 1.0, 1e6, 1.0]
 
-    initial_params = [fc_min, fc_per_power_guess, *diffusion_constants, *filter_params]
-    lower_bounds = [1, 0, *np.zeros(diffusion_constants.shape), *filter_lb]
+    initial_params = [0, fc_per_power_guess, *diffusion_constants, *filter_params]
+    lower_bounds = [0, 0, *np.zeros(diffusion_constants.shape), *filter_lb]
     upper_bounds = [np.inf, np.inf, *np.full(diffusion_constants.shape, np.inf), *filter_ub]
 
     # The drag coefficient is linearly proportional to the viscosity(T)
@@ -133,8 +133,22 @@ def fit_diode_model(model, powers, power_spectra, loss="gaussian"):
     #  Sensitivity might still depend on the laser power however.
     def multi_model(_, fc_min, d_fc_per_power, *other_params):
         corner_frequencies = fc_min + d_fc_per_power * powers
+
+        (
+            rel_delta_f_diode, rate_f_diode, max_f_diode, rel_delta_alpha, rate_alpha, max_alpha
+        ) = other_params[n_spectra:]
+
+        filter_params = [
+            rel_delta_f_diode * max_f_diode,
+            rate_f_diode,
+            max_f_diode,
+            rel_delta_alpha * max_alpha,
+            rate_alpha,
+            max_alpha
+        ]
+
         f_diode, alpha, _ = np.asarray(
-            [diode_params_from_voltage(p, *other_params[n_spectra:]) for p in powers]
+            [diode_params_from_voltage(p, *filter_params) for p in powers]
         ).T
 
         return np.hstack(
@@ -161,6 +175,8 @@ def fit_diode_model(model, powers, power_spectra, loss="gaussian"):
 
     fc_min, d_fc_per_power, *other_params = solution
     filter_params = other_params[n_spectra:]
+    filter_params[0] = filter_params[0] * filter_params[2]
+    filter_params[3] = filter_params[5] * filter_params[3]
     fc_min_err, d_fc_per_power_err, *other_params_err = err_estimates
 
     f_diode, alpha, _ = np.asarray([diode_params_from_voltage(p, *filter_params) for p in powers]).T
