@@ -30,15 +30,17 @@ def make_kymo_from_array(kymo, image, color_format, no_pxsize=False):
 
 
 @pytest.mark.parametrize("crop", [False, True])
-def test_from_array(test_kymos, crop):
-    kymo = test_kymos["noise"]
+def test_from_array(test_kymo, crop):
+    kymo, ref = test_kymo
     arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb")
 
     if crop:
-        arr_kymo = arr_kymo.crop_by_distance(0.0, 1.0)
+        arr_kymo = arr_kymo.crop_by_distance(0.0, 4 * ref.metadata.pixelsize_um[0])
+    ref_image = ref.image[:4, :, :] if crop else ref.image.data
+    ref_shape = (4,) if crop else kymo._reconstruction_shape
 
-    np.testing.assert_equal(kymo.get_image("rgb"), arr_kymo.get_image("rgb"))
-    np.testing.assert_equal(kymo._reconstruction_shape, arr_kymo._reconstruction_shape)
+    np.testing.assert_equal(arr_kymo.get_image("rgb"), ref_image)
+    np.testing.assert_equal(arr_kymo._reconstruction_shape, ref_shape)
 
     with pytest.raises(NotImplementedError, match=timestamp_err_msg):
         arr_kymo.pixel_time_seconds
@@ -73,8 +75,8 @@ def test_from_array(test_kymos, crop):
 
 
 @pytest.mark.parametrize("position_factor, time_factor", [[1, 1], [1, 2], [2, 1], [2, 2]])
-def test_downsampling(test_kymos, position_factor, time_factor):
-    kymo = test_kymos["noise"]
+def test_downsampling(test_kymo, position_factor, time_factor):
+    kymo, _ = test_kymo
 
     arr_kymo_ds = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb").downsampled_by(
         position_factor=position_factor, time_factor=time_factor
@@ -94,12 +96,12 @@ def test_downsampling(test_kymos, position_factor, time_factor):
     np.testing.assert_allclose(arr_kymo_ds.line_time_seconds, kymo_ds.line_time_seconds)
 
 
-def test_save_tiff(tmpdir_factory, test_kymos):
+def test_save_tiff(tmpdir_factory, test_kymo):
     from os import stat
 
     tmpdir = tmpdir_factory.mktemp("pylake")
 
-    kymo = test_kymos["noise"]
+    kymo, _ = test_kymo
 
     for no_pxsize in (True, False):
         arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb", no_pxsize=no_pxsize)
@@ -109,8 +111,8 @@ def test_save_tiff(tmpdir_factory, test_kymos):
             assert stat(f"{tmpdir}/kymo1.tiff").st_size > 0
 
 
-def test_from_array_no_pixelsize(test_kymos):
-    kymo = test_kymos["noise"]
+def test_from_array_no_pixelsize(test_kymo):
+    kymo, _ = test_kymo
     arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb", no_pxsize=True)
 
     np.testing.assert_equal(kymo.get_image("rgb"), arr_kymo.get_image("rgb"))
@@ -138,8 +140,8 @@ def test_from_array_no_pixelsize(test_kymos):
     assert arr_kymo._motion_blur_constant is None
 
 
-def test_throw_on_file_access(test_kymos):
-    kymo = test_kymos["noise"]
+def test_throw_on_file_access(test_kymo):
+    kymo, _ = test_kymo
     arr_kymo = make_kymo_from_array(kymo, kymo.get_image("rgb"), "rgb")
 
     attributes = (
@@ -155,8 +157,8 @@ def test_throw_on_file_access(test_kymos):
         arr_kymo.plot_with_force("1x", "red")
 
 
-def test_from_array_fewer_channels(test_kymos):
-    kymo = test_kymos["noise"]
+def test_from_array_fewer_channels(test_kymo):
+    kymo, _ = test_kymo
     rgb_image = kymo.get_image("rgb")
 
     # single-channel data
@@ -182,8 +184,8 @@ def test_from_array_fewer_channels(test_kymos):
                 np.testing.assert_equal(arr_kymo.get_image(channel), 0)
 
 
-def test_color_format(test_kymos):
-    kymo = test_kymos["noise"]
+def test_color_format(test_kymo):
+    kymo, _ = test_kymo
     image = kymo.get_image("rgb")
     with pytest.raises(
         ValueError, match="Invalid color format 'rgp'. Only 'r', 'g', and 'b' are valid components."
