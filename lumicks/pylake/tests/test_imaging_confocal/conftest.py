@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
 
+from lumicks.pylake.point_scan import PointScan
+
 from ..data.mock_file import MockDataFile_v2
-from ..data.mock_confocal import generate_scan_json, generate_kymo_with_ref
+from ..data.mock_confocal import MockConfocalFile, generate_scan_json, generate_kymo_with_ref
 
 start = np.int64(20e9)
 dt = np.int64(62.5e6)
@@ -198,3 +200,31 @@ def kymo_h5_file(tmpdir_factory, test_kymo):
     )
 
     return mock_file.file
+
+
+@pytest.fixture(scope="module")
+def test_point_scan():
+    n_samples = 90
+    data = {c: np.random.poisson(15, n_samples) for c in ("red", "green", "blue")}
+
+    mock_file, metadata, stop = MockConfocalFile.from_streams(
+        start,
+        dt,
+        [],
+        [],
+        [],
+        infowave=np.zeros(data["red"].shape),
+        red_photon_counts=data["red"],
+        green_photon_counts=data["green"],
+        blue_photon_counts=data["blue"],
+    )
+    point_scan = PointScan("PointScan1", mock_file, start, stop, metadata)
+
+    reference = {
+        "data": data,
+        "timestamps": np.arange(n_samples, dtype=np.int64) * dt + start,
+        "dt": dt,
+        "start": start,
+    }
+
+    return point_scan, reference
