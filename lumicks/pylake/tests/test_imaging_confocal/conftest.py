@@ -1,13 +1,23 @@
+from itertools import permutations
+
 import numpy as np
 import pytest
 
+from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.point_scan import PointScan
 
 from ..data.mock_file import MockDataFile_v2
-from ..data.mock_confocal import MockConfocalFile, generate_scan_json, generate_kymo_with_ref
+from ..data.mock_confocal import (
+    MockConfocalFile,
+    generate_scan_json,
+    generate_kymo_with_ref,
+    generate_scan_with_ref,
+)
 
 start = np.int64(20e9)
 dt = np.int64(62.5e6)
+axes_map = {"X": 0, "Y": 1, "Z": 2}
+channel_map = {"r": 0, "g": 1, "b": 2}
 
 
 @pytest.fixture(scope="module")
@@ -228,3 +238,109 @@ def test_point_scan():
     }
 
     return point_scan, reference
+
+
+@pytest.fixture(scope="module")
+def test_scans():
+    image = np.random.poisson(5, size=(4, 5, 3))
+    return {
+        (name := f"fast {axes[0]} slow {axes[1]}"): generate_scan_with_ref(
+            name,
+            image,
+            pixel_sizes_nm=[50, 50],
+            axes=[axes_map[k] for k in axes],
+            start=start,
+            dt=dt,
+            samples_per_pixel=5,
+            line_padding=50,
+            multi_color=True,
+        )
+        for axes in permutations(axes_map.keys(), 2)
+    }
+
+
+@pytest.fixture(scope="module")
+def test_scans_multiframe():
+    image = np.random.poisson(5, size=(2, 4, 5, 3))
+    return {
+        (name := f"fast {axes[0]} slow {axes[1]} multiframe"): generate_scan_with_ref(
+            name,
+            image,
+            pixel_sizes_nm=[50, 50],
+            axes=[axes_map[k] for k in axes],
+            start=start,
+            dt=dt,
+            samples_per_pixel=5,
+            line_padding=50,
+            multi_color=True,
+        )
+        for axes in permutations(axes_map.keys(), 2)
+    }
+
+
+@pytest.fixture(scope="module")
+def test_scan_missing_channels():
+    empty = Slice(Continuous([], start=start, dt=dt))
+
+    def make_data(*missing_channels):
+        image = np.random.poisson(5, size=(4, 5, 3))
+        for channel in missing_channels:
+            image[:, :, channel_map[channel[0]]] = 0
+
+        scan, ref = generate_scan_with_ref(
+            f"missing {', '.join(missing_channels)}",
+            image,
+            pixel_sizes_nm=[50, 50],
+            axes=[1, 0],
+            start=start,
+            dt=dt,
+            samples_per_pixel=5,
+            line_padding=50,
+            multi_color=True,
+        )
+
+        for channel in missing_channels:
+            setattr(scan.file, f"{channel}_photon_count", empty)
+
+        return scan, ref
+
+    return {key: make_data(*key) for key in [("red",), ("red", "blue"), ("red", "green", "blue")]}
+
+
+@pytest.fixture(scope="module")
+def test_scan_truncated():
+    image = np.random.poisson(5, size=(2, 4, 5, 3))
+    scan, ref = generate_scan_with_ref(
+        "truncated",
+        image,
+        pixel_sizes_nm=[50, 50],
+        axes=[1, 0],
+        start=start,
+        dt=dt,
+        samples_per_pixel=5,
+        line_padding=50,
+        multi_color=True,
+    )
+    scan.start = start - dt
+    return scan, ref
+
+
+@pytest.fixture(scope="module")
+def test_scan_sted_bug():
+    image = np.random.poisson(5, size=(2, 4, 5, 3))
+    scan, ref = generate_scan_with_ref(
+        "sted bug",
+        image,
+        pixel_sizes_nm=[50, 50],
+        axes=[1, 0],
+        start=start,
+        dt=dt,
+        samples_per_pixel=5,
+        line_padding=50,
+        multi_color=True,
+    )
+    corrected_start = scan.red_photon_count.timestamps[5]
+
+    # start *between* samples
+    scan.start = corrected_start - np.int64(dt - 1e5)
+    return scan, ref, corrected_start
