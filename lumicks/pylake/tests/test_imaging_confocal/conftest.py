@@ -5,6 +5,7 @@ import pytest
 
 from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.point_scan import PointScan
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 
 from ..data.mock_file import MockDataFile_v2
 from ..data.mock_confocal import (
@@ -261,7 +262,7 @@ def test_scans():
 
 @pytest.fixture(scope="module")
 def test_scans_multiframe():
-    image = np.random.poisson(5, size=(2, 4, 5, 3))
+    image = np.random.poisson(5, size=(10, 4, 5, 3))
     return {
         (name := f"fast {axes[0]} slow {axes[1]} multiframe"): generate_scan_with_ref(
             name,
@@ -344,3 +345,23 @@ def test_scan_sted_bug():
     # start *between* samples
     scan.start = corrected_start - np.int64(dt - 1e5)
     return scan, ref, corrected_start
+
+
+@pytest.fixture(scope="module")
+def test_scan_slicing():
+    start = _FIRST_TIMESTAMP + 100
+    dt = np.int64(1e7)
+    line_padding = 10
+
+    scan, ref = generate_scan_with_ref(
+        "slicing",
+        np.random.poisson(5, size=(10, 2, 2, 3)),
+        pixel_sizes_nm=[50, 50],
+        axes=[1, 0],
+        start=start - line_padding * dt,
+        dt=dt,
+        samples_per_pixel=15,
+        line_padding=line_padding,
+        multi_color=True,
+    )
+    return scan, ref
