@@ -36,6 +36,7 @@ def test_power_spectrum_attrs(frequency, num_data, sample_rate):
         atol=1e-16,
     )
     np.testing.assert_allclose(power_spectrum.total_duration, num_data / sample_rate)
+    np.testing.assert_allclose(power_spectrum.frequency_bin_width, sample_rate / num_data)
 
 
 @pytest.mark.parametrize(
@@ -66,10 +67,16 @@ def test_power_spectrum_blocking(
     np.testing.assert_allclose(
         blocked.num_points_per_block, np.floor(len(power_spectrum.power) / num_blocks)
     )
+    np.testing.assert_allclose(
+        blocked.frequency_bin_width, blocked.frequency[1] - blocked.frequency[0]
+    )
 
     # Downsample again and make sure the num_points_per_block is correct
     dual_blocked = blocked.downsampled_by(2)
     np.testing.assert_allclose(dual_blocked.num_points_per_block, blocked.num_points_per_block * 2)
+    np.testing.assert_allclose(
+        dual_blocked.frequency_bin_width, dual_blocked.frequency[1] - dual_blocked.frequency[0]
+    )
 
 
 @pytest.mark.parametrize(
@@ -104,6 +111,10 @@ def test_windowing_sine_wave(amp, frequency, data_duration, sample_rate, multipl
     # Check whether we report the correct amount of averaging
     num_points_per_window = int(np.round((window_duration * sample_rate)))
     assert power_spectrum_windowed.num_points_per_block == len(data) // num_points_per_window
+    np.testing.assert_allclose(
+        power_spectrum_windowed.frequency_bin_width,
+        power_spectrum_windowed.frequency[1] - power_spectrum_windowed.frequency[0],
+    )
 
     # When we don't use windowing, we leak when the driving frequency is not an exact multiple of
     # the sampling rate.
@@ -112,6 +123,10 @@ def test_windowing_sine_wave(amp, frequency, data_duration, sample_rate, multipl
         power_spectrum.frequency[1] - power_spectrum.frequency[0]
     )
     assert low_power < (power * delta_freq)
+    np.testing.assert_allclose(
+        power_spectrum_windowed.frequency_bin_width,
+        power_spectrum_windowed.frequency[1] - power_spectrum_windowed.frequency[0],
+    )
 
 
 def test_windowing_too_long_duration():
@@ -125,6 +140,10 @@ def test_windowing_too_long_duration():
     assert power_spectrum_windowed.num_points_per_block == 1
     np.testing.assert_allclose(ref_power_spectrum.frequency, power_spectrum_windowed.frequency)
     np.testing.assert_allclose(ref_power_spectrum.power, power_spectrum_windowed.power)
+    np.testing.assert_allclose(
+        power_spectrum_windowed.frequency_bin_width,
+        power_spectrum_windowed.frequency[1] - power_spectrum_windowed.frequency[0],
+    )
 
 
 def test_windowing_negative_duration():

@@ -70,6 +70,12 @@ class PowerSpectrum:
         self.sample_rate = sample_rate
         self.total_duration = data.size / sample_rate
         self.num_points_per_block = len(squared_fft_chunks)
+        self.total_sampled_used = num_points_per_window * self.num_points_per_block
+
+    @property
+    def frequency_bin_width(self):
+        """Returns the frequency bin width of the spectrum"""
+        return self.sample_rate / self.total_sampled_used * self.num_points_per_block
 
     def downsampled_by(self, factor, reduce=np.mean) -> "PowerSpectrum":
         """Returns a spectrum downsampled by a given factor."""
