@@ -748,10 +748,18 @@ def test_downsampling_like():
     ):
         s.downsampled_like(s)
 
-    for offset in (-4 * 4, t_downsampled[-1] + 1):
+    timestep = 4
+    for offset in (with_offset(-4 * timestep), t_downsampled[-1] - timestep + 1):
         with pytest.raises(RuntimeError, match="No overlap between slices"):
-            s = channel.Slice(channel.Continuous(np.array([1, 2, 3, 4]), with_offset(offset), 4))
+            s = channel.Slice(channel.Continuous(np.array([1, 2, 3, 4]), offset, timestep))
             s.downsampled_like(reference)
+
+    for offset, ref in [
+        (with_offset(-4 * timestep + 1), 4),
+        (t_downsampled[-1] - timestep, 1),
+    ]:
+        s = channel.Slice(channel.Continuous(np.array([1, 2, 3, 4]), offset, timestep))
+        np.testing.assert_equal(s.downsampled_like(reference)[0].data, ref)
 
 
 def test_channel_plot():
