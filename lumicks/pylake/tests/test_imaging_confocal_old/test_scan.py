@@ -5,9 +5,6 @@ import pytest
 import matplotlib.pyplot as plt
 
 from lumicks.pylake.adjustments import ColorAdjustment
-from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
-
-from ..data.mock_confocal import generate_scan
 
 
 def test_plotting(test_scans):
@@ -60,66 +57,6 @@ def test_deprecated_plotting(test_scans):
         ),
     ):
         scan.plot("rgb", None, axes=None)
-
-
-@pytest.mark.parametrize(
-    "scanname, tiffname",
-    [
-        ("fast Y slow X", "single_frame.tiff"),
-        ("fast Y slow X multiframe", "multi_frame.tiff"),
-    ],
-)
-def test_export_tiff(scanname, tiffname, tmp_path, test_scans, grab_tiff_tags):
-    from os import stat
-
-    scan = test_scans[scanname]
-    filename = tmp_path / tiffname
-    scan.export_tiff(filename)
-    assert stat(filename).st_size > 0
-    # Check if tags were properly stored, i.e. test functionality of `_tiff_image_metadata()`,
-    # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
-    tiff_tags = grab_tiff_tags(filename)
-    assert len(tiff_tags) == scan.num_frames
-    for tags, timestamp_range in zip(tiff_tags, scan._tiff_timestamp_ranges()):
-        assert tags["ImageDescription"] == scan._tiff_image_metadata()
-        assert tags["DateTime"] == f"{timestamp_range[0]}:{timestamp_range[1]}"
-        assert tags["Software"] == scan._tiff_writer_kwargs()["software"]
-        np.testing.assert_allclose(
-            tags["XResolution"][0] / tags["XResolution"][1],
-            scan._tiff_writer_kwargs()["resolution"][0],
-            rtol=1e-1,
-        )
-        np.testing.assert_allclose(
-            tags["YResolution"][0] / tags["YResolution"][1],
-            scan._tiff_writer_kwargs()["resolution"][1],
-            rtol=1e-1,
-        )
-        assert tags["ResolutionUnit"] == 3  # 3 = Centimeter
-
-
-def test_movie_export(tmpdir_factory, test_scans):
-    from os import stat
-
-    tmpdir = tmpdir_factory.mktemp("pylake")
-
-    scan = test_scans["fast Y slow X multiframe"]
-    scan.export_video("red", f"{tmpdir}/red.gif", start_frame=0, stop_frame=2)
-    assert stat(f"{tmpdir}/red.gif").st_size > 0
-    scan.export_video("rgb", f"{tmpdir}/rgb.gif", start_frame=0, stop_frame=2)
-    assert stat(f"{tmpdir}/rgb.gif").st_size > 0
-
-    # test stop frame > num frames
-    with pytest.raises(IndexError):
-        scan.export_video("rgb", f"{tmpdir}/rgb.gif", start_frame=0, stop_frame=4)
-
-    with pytest.raises(
-        ValueError,
-        match=(
-            "channel must be 'red', 'green', 'blue' or a combination of 'r', 'g', "
-            "and/or 'b', got 'gray'."
-        ),
-    ):
-        scan.export_video("gray", "dummy.gif")  # Gray is not a color!
 
 
 def test_scan_plot_rgb_absolute_color_adjustment(test_scans):
