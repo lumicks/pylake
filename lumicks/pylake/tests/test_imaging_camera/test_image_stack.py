@@ -39,6 +39,7 @@ def test_image_stack(shape):
     )
     stack = ImageStack.from_dataset(fake_tiff)
 
+    assert stack.name is None
     assert stack[0].start == 10
     assert stack[1].start == 20
     assert stack[-1].start == 60
@@ -119,6 +120,26 @@ def test_image_stack(shape):
     np.testing.assert_allclose([x.start for x in stack[:-1]], [10, 20, 30, 40, 50])
     np.testing.assert_allclose([x.start for x in stack[2:4]], [30, 40])
     np.testing.assert_allclose([x.start for x in stack[2]], [30])
+
+
+def test_stack_from_dataset():
+    frame_times = make_frame_times(2)
+    mock_stack = TiffStack(
+        [MockTiffFile([np.zeros((3, 3, 3))] * 2, frame_times)],
+        align_requested=False,
+    )
+
+    stack = ImageStack.from_dataset(mock_stack, name="hello", start_idx=1, stop_idx=2, step=3)
+    assert stack.name == "hello"
+    assert stack._start_idx == 1
+    assert stack._stop_idx == 2
+    assert stack._step == 3
+
+
+def test_stack_name_from_file(rgb_tiff_file):
+    cs = ImageStack(str(rgb_tiff_file), align=True)
+    assert cs.name == "rgb_single"
+    cs._src.close()
 
 
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
@@ -990,10 +1011,11 @@ def test_alignment_multistack(rgb_alignment_image_data, gray_alignment_image_dat
     assert full_stack.num_frames == len(ref_ts)
 
 
-def test_frame_timestamp_ranges_include_true():
+@pytest.mark.parametrize("steps", [2, 4])
+def test_frame_timestamp_ranges_include_true(steps):
     stack = ImageStack.from_dataset(
         TiffStack(
-            [MockTiffFile(data=[np.ones((5, 5))] * 4, times=make_frame_times(4, step=6))],
+            [MockTiffFile(data=[np.ones((5, 5))] * steps, times=make_frame_times(steps, step=6))],
             align_requested=False,
         )
     )
@@ -1002,7 +1024,9 @@ def test_frame_timestamp_ranges_include_true():
         [True, False],
         [[(10, 20), (20, 30), (30, 40), (40, 50)], [(10, 16), (20, 26), (30, 36), (40, 46)]],
     ):
-        np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)
+        np.testing.assert_allclose(
+            stack.frame_timestamp_ranges(include_dead_time=include), ranges[:steps]
+        )
 
 
 def test_frame_timestamp_ranges_snapshot():
@@ -1136,3 +1160,4 @@ def test_integration_test_to_kymo(
         lines[0].position, [(position - tether_start) * pixelsize] * num_images
     )
     np.testing.assert_allclose(np.max(kymo.get_image("red")), 5 * (1 + 2 * half_window))
+    np.testing.assert_equal(kymo.pixelsize_um[0], pixel_size)
