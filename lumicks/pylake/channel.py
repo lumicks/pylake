@@ -456,7 +456,7 @@ class Slice:
         timestamps = other_slice.timestamps
         delta_time = np.diff(timestamps)
 
-        if self._src.start >= timestamps[-1] or self._src.stop <= timestamps[0]:
+        if self._src.start > (timestamps[-1] - delta_time[-1]) or self._src.stop <= timestamps[0]:
             raise RuntimeError("No overlap between slices.")
 
         # When the frame rate changes, one frame is very long due to the delay of the camera. It

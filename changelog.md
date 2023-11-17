@@ -11,6 +11,10 @@
 * Added option to filter tracks by duration in seconds using `lk.filter_tracks(tracks, minimum_duration=duration_in_seconds)`.
 * Added `KymoTrackGroup.filter()` to filter tracks in-place. `tracks.filter(minimum_duration=2)` is equivalent to `tracks = lk.filter_tracks(tracks, minimum_duration=2)`.
 
+#### Bug fixes
+
+* Fixed a bug in `Slice.downsampled_like` that would fail to raise an error due to a lack of overlap between the low frequency and high frequency channel when the high frequency channel starts within the last sample of the low frequency channel.
+
 #### Improvements
 
 * Kymographs consisting of a single scan line now return a valid `line_time_seconds`. This allows certain downstream functionality, such as `Kymo.plot()`.
