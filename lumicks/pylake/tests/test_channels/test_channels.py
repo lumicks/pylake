@@ -711,6 +711,20 @@ def test_downsampling_over_subset():
     )
 
 
+def test_downsampling_out_of_range():
+    num_points = 4
+    s = channel.Slice(channel.Continuous(np.arange(num_points), start=with_offset(100), dt=10))
+
+    for intervals in [(20, 100), (100 + 10 * num_points, 10000)]:
+        with pytest.raises(RuntimeError, match="No overlap between range and selected channel."):
+            s.downsampled_over([*with_offset([intervals])])
+
+    np.testing.assert_allclose(s.downsampled_over([with_offset((20, 101))]), 0)
+    np.testing.assert_allclose(
+        s.downsampled_over([with_offset((100 + 10 * num_points - 1, 10000))]), 3
+    )
+
+
 def test_downsampling_like():
     d = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9]
     s = channel.Slice(channel.Continuous(d, with_offset(0), 2))
@@ -778,6 +792,19 @@ def test_with_data(data, new_data):
     np.testing.assert_allclose(data._with_data(new_data).data, new_data)
     old_timestamps = data.timestamps
     np.testing.assert_allclose(data._with_data(new_data).timestamps, old_timestamps)
+
+
+def test_empty_timeseries():
+    with pytest.raises(IndexError, match="End of empty time series is undefined"):
+        _ = channel.TimeSeries([], []).stop
+
+    with pytest.raises(IndexError, match="Start of empty time series is undefined"):
+        _ = channel.TimeSeries([], []).start
+
+
+def test_empty_timetags():
+    assert channel.TimeTags([]).stop == 0
+    assert channel.TimeTags([]).start == 0
 
 
 def test_slice_by_object():
