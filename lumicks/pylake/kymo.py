@@ -38,10 +38,6 @@ def _default_line_time_factory(self: "Kymo"):
 
         dead_time = np.argmax(beyond_first_line)
 
-        # Special case for no dead time. Is it really no deadtime, or a single line?
-        if dead_time == 0 and not np.any(beyond_first_line):
-            return scan_time * infowave._src.dt * ns_to_sec
-
         return (scan_time + dead_time) * infowave._src.dt * ns_to_sec
 
     elif self.timestamps.shape[1] > 1:
