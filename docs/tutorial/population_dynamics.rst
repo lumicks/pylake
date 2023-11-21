@@ -93,13 +93,6 @@ We can also plot the time trace with each data point labeled with its most likel
 
 .. image:: figures/population_dynamics/gmm_labeled_trace.png
 
-We can extract a list of dwell times (how long the system stays in one state before transitioning to another) using the
-:meth:`~lumicks.pylake.GaussianMixtureModel.extract_dwell_times` method::
-
-    dwell_times = gmm.extract_dwell_times(force)
-
-In the next section we'll fit these data to obtain lifetimes for the model states.
-
 .. _downsampling_artifacts:
 
 Downsampling and data artifacts
@@ -133,6 +126,55 @@ two different states and do not arise from any (bio)physically relevant mechanis
 Furthermore, states with very short lifetimes can be averaged out of the data if the downsampling factor is too high. Therefore,
 in order to ensure robust results, it may be advisable to carry out the analysis at a few different downsampled rates.
 
+Hidden Markov Models
+--------------------
+
+The GMM is useful for identifying discrete states in the data, however, it does not use any of the
+temporal information available in channel measurements. To take advantage of this extra information,
+we can use a Hidden Markov Model (HMM).
+
+As suggested by the name, HMMs are used to describe a Markovian process in which the underlying
+physical state of the system is hidden or unobservable.
+
+- A Markov process (or Markov chain) is a stochastic process in which the state of the system at some
+  time point :math:`t` only depends on the state of the system at the previous time point :math:`t-1`;
+  in other words, the system is *memory-less*. The probability of transitioning from one state to
+  another is given by a transition probability matrix.
+- The (hidden) physical state that we are interested in here is the conformation of the DNA hairpin;
+  (folded or unfolded). However we cannot directly observe this state in the measurements. Instead
+  we must infer the conformational state from some observed signal; ie., the force measurements.
+  The observed signal for a particular state is described by a Normal (Gaussian) distribution.
+
+This description is the most basic implementation of an HMM. For detailed theoretical and practical
+explanations on the use and training of HMMs see the seminal work by Rabiner :cite:`Rabiner1989HMM`.
+
+We can fit an HMM with a single line of code::
+
+    hmm = lk.HiddenMarkovModel(force["0s":"2s"], n_states=2)
+
+We can get some information about the training process from the :attr:`~lumicks.pylake.HiddenMarkovModel.fit_info`
+property::
+
+    >>> print(hmm.fit_info)
+    HmmFitInfo(converged=True, n_iter=5, bic=1589.2881620885353, aic=1550.067858853102, log_likelihood=-768.033929426551)
+
+Just as with the GMM we trained earlier, we can visually inspect the quality of the fitted
+model. First, let's look at the probability distribution of the observed data::
+
+    plt.figure()
+    hmm.hist(force["0s":"2s"])
+    plt.show()
+
+.. image:: figures/population_dynamics/hmm_hist.png
+
+We can also inspect the temporal evolution of the fit::
+
+    plt.figure()
+    hmm.plot(force["0s":"1s"])
+    plt.show()
+
+.. image:: figures/population_dynamics/hmm_labeled_trace.png
+
 Dwell time analysis
 -------------------
 
@@ -150,8 +192,18 @@ to another state. The distribution can alternatively be parameterized by a rate 
 
     \mathrm{Exp}\left(t | a, k \right) = \sum_i^M a_i k_i \exp{\left( -k_i t \right)}
 
-The :class:`~lumicks.pylake.DwelltimeModel` class can be used to optimize the model parameters for an array of determined dwell times.
-Here we'll use the dwell times determined above for the high force state::
+The :class:`~lumicks.pylake.DwelltimeModel` class can be used to optimize the model parameters for an array
+of determined dwell times (how long the system stays in one state before transitioning to another).
+
+We can extract arrays of dwell times for all states in a GMM or HMM with
+:meth:`lk.GaussianMixtureModel.extract_dwell_times()<lumicks.pylake.GaussianMixtureModel.extract_dwell_times>`
+or :meth:`lk.HiddenMarkovModel.extract_dwell_times()<lumicks.pylake.HiddenMarkovModel.extract_dwell_times>`,
+respectively::
+
+    dwell_times = gmm.extract_dwell_times(force)
+
+This returns a dictionary with state indices as keys and lists of the observed dwell times as the values.
+We can fit a model by passing the array of dwell times to :class:`~lumicks.pylake.DwelltimeModel`::
 
     dwell_1 = lk.DwelltimeModel(dwell_times[1], n_components=1)
 

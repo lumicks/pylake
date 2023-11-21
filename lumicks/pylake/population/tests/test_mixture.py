@@ -1,6 +1,4 @@
 import numpy as np
-import pytest
-import matplotlib.pyplot as plt
 
 from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
@@ -14,14 +12,13 @@ def test_gmm(trace_lownoise):
     weights = np.array([np.sum(statepath == j) for j in np.arange(params["n_states"])])
     weights = weights / weights.sum()
 
-    # assert np.all(np.equal(m.label(trace), statepath))
     np.testing.assert_allclose(m.means, params["means"], atol=0.05)
     np.testing.assert_allclose(m.std, params["st_devs"], atol=0.02)
     np.testing.assert_allclose(m.weights, weights)
 
 
 def test_gmm_from_slice(trace_simple):
-    data, statepath, params = trace_simple
+    data, _, params = trace_simple
     trace = Slice(Continuous(data, 20000, 12800))
     m = GaussianMixtureModel.from_channel(trace, params["n_states"])
     np.testing.assert_allclose(m.means, params["means"], atol=0.05)
@@ -37,7 +34,7 @@ def test_labels(trace_simple):
 
 
 def test_dwelltimes(trace_simple):
-    data, statepath, params = trace_simple
+    data, _, params = trace_simple
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
@@ -54,7 +51,7 @@ def test_dwelltimes(trace_simple):
 
 
 def test_information_criteria(trace_simple):
-    data, statepath, params = trace_simple
+    data, _, params = trace_simple
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
@@ -64,7 +61,7 @@ def test_information_criteria(trace_simple):
 
 
 def test_exit_flag(trace_simple):
-    data, statepath, params = trace_simple
+    data, _, params = trace_simple
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
@@ -76,7 +73,7 @@ def test_exit_flag(trace_simple):
 
 
 def test_pdf(trace_simple):
-    data, statepath, params = trace_simple
+    data, _, params = trace_simple
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
@@ -86,7 +83,9 @@ def test_pdf(trace_simple):
 
 
 def test_gmm_plots(trace_simple):
-    data, statepath, params = trace_simple
+    import matplotlib.pyplot as plt
+
+    data, _, params = trace_simple
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
