@@ -1277,6 +1277,22 @@ class KymoTrackGroup:
 
         self._src = [track for track in self._src if not track.in_rect(rect, all_points)]
 
+    def filter(self, *, minimum_length=1, minimum_duration=0):
+        """Remove tracks shorter than specified criteria from the list.
+
+        Parameters
+        ----------
+        minimum_length : int, optional
+            Minimum number of tracked points for the track to be accepted (default: 1).
+        minimum_duration : seconds, optional
+            Minimum duration in seconds for a track to be accepted (default: 0).
+        """
+        from .kymotracker import filter_tracks  # local import to avoid circular import
+
+        self._src = filter_tracks(
+            self, minimum_length=minimum_length, minimum_duration=minimum_duration
+        )._src
+
     def __repr__(self):
         return f"{self.__class__.__name__}(N={len(self)})"
 

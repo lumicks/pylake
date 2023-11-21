@@ -9,6 +9,7 @@
   * Two-channel visualizations can be plotted using `"rg"`, `"gb"`, or `"rb"`.
 * Added `duration` property to `KymoTrack` which returns the duration (in seconds) that the track was observed.
 * Added option to filter tracks by duration in seconds using `lk.filter_tracks(tracks, minimum_duration=duration_in_seconds)`.
+* Added `KymoTrackGroup.filter()` to filter tracks in-place. `tracks.filter(minimum_duration=2)` is equivalent to `tracks = lk.filter_tracks(tracks, minimum_duration=2)`.
 
 #### Improvements
 
