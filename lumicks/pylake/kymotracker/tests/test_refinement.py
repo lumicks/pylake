@@ -505,9 +505,17 @@ def test_filter_by_duration(
     tracks = KymoTrackGroup([k1, k2, k3, k4, k5])
 
     filtered = filter_tracks(tracks, minimum_length=0, minimum_duration=minimum_duration)
-    assert len(filtered) == ref_length
-    np.testing.assert_allclose(filtered[0]._minimum_observable_duration, ref_minimum)
-    np.testing.assert_allclose(filtered[-1]._minimum_observable_duration, ref_minimum_dt2)
+    assert len(tracks) == 5  # return new instance
+
+    tracks.filter(minimum_length=0, minimum_duration=minimum_duration)
+    assert len(tracks) == ref_length  # in-place modification
+
+    for filtered_tracks in (filtered, tracks):
+        assert len(filtered_tracks) == ref_length
+        np.testing.assert_allclose(filtered_tracks[0]._minimum_observable_duration, ref_minimum)
+        np.testing.assert_allclose(
+            filtered_tracks[-1]._minimum_observable_duration, ref_minimum_dt2
+        )
 
 
 def test_empty_group():

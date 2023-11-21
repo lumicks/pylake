@@ -382,6 +382,7 @@ def filter_tracks(tracks, minimum_length=1, *, minimum_duration=0):
     minimum_duration : seconds, optional
         Minimum duration in seconds for a track to be accepted (default: 0).
     """
+
     def minimum_observable_time(track, min_length, min_duration):
         line_time = track._kymo.line_time_seconds
         minimum_length_based = (min_length - 1) * line_time
