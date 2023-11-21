@@ -126,6 +126,7 @@ Population Dynamics
     :toctree: _api
     :template: class.rst
 
+    HiddenMarkovModel
     GaussianMixtureModel
     DwelltimeModel
     population.dwelltime.DwelltimeBootstrap
