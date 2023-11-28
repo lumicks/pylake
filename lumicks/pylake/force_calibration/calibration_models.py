@@ -6,6 +6,12 @@ from dataclasses import dataclass
 import numpy as np
 
 from .detail.drag_models import faxen_factor, brenner_axial
+from .detail.salty_water import (
+    _poly,
+    pressure_factor,
+    zero_pressure_viscosity,
+    _check_salt_model_validity,
+)
 from .detail.power_models import (
     g_diode,
     alias_spectrum,
@@ -62,15 +68,91 @@ def diode_params_from_voltage(
     )
 
 
-def viscosity_of_water(temperature):
-    """Computes the viscosity of water in [Pa*s] at a particular temperature.
+def density_of_water(temperature, molality, pressure=0.101325):
+    """Determine the density of water with NaCl.
 
-    These equations come from section 3.7 from [1]_.
+    This model is based on [1]_.
+
+    Parameters
+    ----------
+    temperature : array_like
+        Temperature in C
+    molality : float
+        Molality NaCl [mol/kg]
+    pressure : float, optional
+        Pressure (default: 0.101325) [MPa].
+
+    Raises
+    ------
+    ValueError
+        When the provided values are outside the valid range of this model. The valid ranges are:
+        Temperature (20°C <= T < 150°C), pressure <= 35 MPa and molality <= 6 mol/kg.
+
+    References
+    ----------
+    .. [1] Kestin, J., Khalifa, H. E., & Correia, R. J. (1981). Tables of the dynamic and
+       kinematic viscosity of aqueous NaCl solutions in the temperature range 20–150 C and
+       the pressure range 0.1–35 MPa. Journal of physical and chemical reference data, 10(1),
+       71-88.
+    """
+    import scipy.constants
+
+    _check_salt_model_validity("Density", temperature, pressure, molality)
+
+    temperature_k = scipy.constants.convert_temperature(temperature, "C", "K")
+    weight = 58.4428 / 1000  # kg/mol for NaCl
+    mass_fraction = (
+        molality * weight / (1.0 + molality * weight)
+    )  # mol NaCl/kg water -> kg NaCl/kg total
+
+    powers_ab = np.arange(-2, 3, 1)
+    powers_other = np.arange(0, 3, 1)
+
+    # All polynomials only depend on temperature
+    def poly(powers, coefficients):
+        return _poly(temperature_k, powers, coefficients)
+
+    # See page 73 of [1].
+    a_coeff = [1.006741e2, -1.127522, 5.916365e-3, -1.035794e-5, 9.270048e-9]
+    b_coeff = [1.042948, -1.1933677e-2, 5.307535e-5, -1.0688768e-7, 8.492739e-11]
+
+    c_coeff = [1.23268e-9, -6.861928e-12, 0]
+    d_coeff = [-2.5166e-3, 1.11766e-5, -1.70552e-8]
+    e_coeff = [2.84851e-3, -1.54305e-5, 2.23982e-8]
+    f_coeff = [-1.5106e-5, 8.4605e-8, -1.2715e-10]
+    g_coeff = [2.7676e-5, -1.5694e-7, 2.3102e-10]
+    h_coeff = [6.4633e-8, -4.1671e-10, 6.8599e-13]
+
+    terms = [
+        poly(powers_ab, a_coeff),
+        -poly(powers_ab, b_coeff) * pressure,
+        -poly(powers_other, c_coeff) * pressure**2,
+        mass_fraction * poly(powers_other, d_coeff),
+        (mass_fraction**2) * poly(powers_other, e_coeff),
+        -mass_fraction * poly(powers_other, f_coeff) * pressure,
+        -(mass_fraction**2) * poly(powers_other, g_coeff) * pressure,
+        -0.5 * poly(powers_other, h_coeff) * pressure**2,
+    ]
+
+    return 1.0 / np.sum(terms, axis=0)
+
+
+def viscosity_of_water(temperature, molality_nacl=None, pressure=None):
+    """Computes the viscosity of water in [Pa*s] at a particular temperature, molality of NaCl
+    and pressure.
+
+    These equations come from section 3.7 from [1]_. When pressure and/or molality of NaCl are
+    provided, equations from [2]_ are used. Note that the latter model has a slightly smaller
+    valid temperature range.
 
     Parameters
     ----------
     temperature : array_like
         Temperature [Celsius]. Should be between -20°C and 110°C
+    molality_nacl : float
+        Molality NaCl [mol/kg].
+    pressure : float, optional
+        Pressure (default: 0.101325) [MPa].
 
     Returns
     -------
@@ -80,22 +162,40 @@ def viscosity_of_water(temperature):
     Raises
     ------
     ValueError
-        If the requested temperature is outside the valid range of -20°C <= T < 110°C.
+        If no molality or pressure is provided and the requested temperature is outside the valid
+        range of -20°C <= T < 110°C.
+    ValueError
+        When molality and/or pressure are also provided and the provided values are outside the
+        valid range of this model. The valid ranges are:
+        Temperature (20°C <= T < 150°C), pressure <= 35 MPa and molality <= 6 mol/kg.
 
     References
     ----------
     .. [1] Huber, M. L., Perkins, R. A., Laesecke, A., Friend, D. G., Sengers, J. V.,
            Assael, M. J., & Miyagawa, K. (2009). New international formulation for the viscosity of
            H2O. Journal of Physical and Chemical Reference Data, 38(2), 101-125.
+    .. [2] Kestin, J., Khalifa, H. E., & Correia, R. J. (1981). Tables of the dynamic and
+           kinematic viscosity of aqueous NaCl solutions in the temperature range 20–150 C and
+           the pressure range 0.1–35 MPa. Journal of physical and chemical reference data, 10(1),
+           71-88.
     """
     temperature = np.asarray(temperature)
-    if not np.all(np.logical_and(temperature >= -20, temperature < 110)):
-        raise ValueError("Function for viscosity of water is only valid for -20°C <= T < 110°C")
+    if pressure or molality_nacl:
+        pressure = 0.101325 if pressure is None else pressure
+        _check_salt_model_validity("Viscosity", temperature, pressure, molality_nacl)
 
-    temp_tilde = np.tile((temperature + 273.15) / 300, (4, 1)).T
-    ai = np.array([280.68, 511.45, 61.131, 0.45903])
-    bi = np.array([-1.9, -7.7, -19.6, -40.0])
-    return np.sum(ai * temp_tilde**bi, axis=1).squeeze() * 1e-6
+        return (
+            1e-6
+            * zero_pressure_viscosity(temperature, molality_nacl)
+            * (1.0 + pressure_factor(temperature, molality_nacl) * pressure / 1000)
+        )
+    else:
+        if not np.all(np.logical_and(temperature >= -20, temperature < 110)):
+            raise ValueError("Function for viscosity of water is only valid for -20°C <= T < 110°C")
+
+        ai = np.array([280.68, 511.45, 61.131, 0.45903])
+        bi = np.array([-1.9, -7.7, -19.6, -40.0])
+        return _poly((temperature + 273.15) / 300, bi, ai) * 1e-6
 
 
 @dataclass

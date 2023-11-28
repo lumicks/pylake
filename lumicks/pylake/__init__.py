@@ -30,6 +30,7 @@ from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
 from .force_calibration.calibration_models import (
     ActiveCalibrationModel,
     PassiveCalibrationModel,
+    density_of_water,
     viscosity_of_water,
 )
 from .force_calibration.power_spectrum_calibration import (
