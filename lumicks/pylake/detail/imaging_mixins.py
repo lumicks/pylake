@@ -172,10 +172,12 @@ class VideoExport:
 
         fig = plt.figure()
         fig.patch.set_alpha(1.0)
-        line_ani = animation.FuncAnimation(
-            fig, plot, stop_frame - start_frame, interval=1, blit=True
+        # Don't store the FuncAnimation in a variable as this leads to mpl attempting to remove
+        # a callback that doesn't exist on plt.close(fig) when using the jupyter notebook backend.
+        animation.FuncAnimation(fig, plot, stop_frame - start_frame, interval=1, blit=True).save(
+            file_name,
+            writer=writer,
         )
-        line_ani.save(file_name, writer=writer)
         plt.close(fig)
 
 
