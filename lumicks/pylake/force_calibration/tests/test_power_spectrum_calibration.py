@@ -10,6 +10,7 @@ from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
 from lumicks.pylake.force_calibration.calibration_models import (
     NoFilter,
     PassiveCalibrationModel,
+    density_of_water,
     viscosity_of_water,
     sphere_friction_coefficient,
 )
@@ -393,6 +394,45 @@ def test_viscosity_calculation():
 
     np.testing.assert_allclose(viscosity_of_water(20), 0.0010015672646030015)
     assert viscosity_of_water(20).shape == ()
+
+
+@pytest.mark.parametrize(
+    "condition, temperature, molality, pressure, ref_value, ref_kinematic",
+    [
+        ("reference", 20, 0, 0.1, 1002.0, 1.0037),
+        ("temp", 40, 0, 0.1, 652.9, 0.6580),
+        ("temp", np.array([20, 40]), 0, 0.1, np.array([1002.0, 652.9]), np.array([1.0037, 0.6580])),
+        ("pressure", 20, 0, 15.0, 996.1, 0.9911),
+        ("pressure_temp", 40, 0, 15.0, 654.3, 0.6551),
+        ("salt", 20, 0.5, 0.1, 1043.2, 1.0244),
+        ("salt_temp", 40, 0.5, 0.1, 684.8, 0.6769),
+        ("salt_pressure", 20, 0.5, 10.0, 1041.1, 1.0179),
+        ("salt_pressure_temp", 40, 0.5, 10.0, 686.5, 0.6757),
+        ("salty_pressure_temp", 40, 1.0, 10.0, 722.0, 0.6978),
+        ("extreme_conditions", 20, 5.0, 0.1, 1714.8, 1.4661),
+        ("extreme_conditions2", 20, 5.0, 15, 1729.6, 1.4721),
+        ("extreme_conditions3", 100, 5.0, 15, 508.2, 0.4506),
+        ("extreme_conditions3", 100, 5.0, 20, 510.3, 0.4517),
+        ("middle_everything", 80, 3.0, 10, 503.0, 0.4658),
+        ("cook", 130, 3.0, 15, 310.3, 0.2958),
+    ],
+)
+def test_viscosity_salty_water(
+    condition, temperature, molality, pressure, ref_value, ref_kinematic
+):
+    viscosity = viscosity_of_water(temperature, molality, pressure)
+    np.testing.assert_allclose(
+        viscosity,
+        ref_value / 1e6,
+        rtol=5e-4,  # Reference values in the paper were reported with this tolerance
+        err_msg=condition,
+    )
+    np.testing.assert_allclose(
+        viscosity / density_of_water(temperature, molality, pressure),
+        ref_kinematic / 1e6,
+        rtol=1e-3,  # Reference values in the paper were reported with this tolerance
+        err_msg=condition,
+    )
 
 
 def test_invalid_densities():

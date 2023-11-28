@@ -47,6 +47,7 @@ Force calibration
     calculate_power_spectrum
     fit_power_spectrum
     viscosity_of_water
+    density_of_water
 
 
 FD Fitting
