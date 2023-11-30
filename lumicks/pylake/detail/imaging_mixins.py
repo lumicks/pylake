@@ -114,6 +114,8 @@ class VideoExport:
         fps=15,
         adjustment=no_adjustment,
         scale_bar=None,
+        channel_slice=None,
+        vertical=True,
         **kwargs,
     ):
         """Export a video
@@ -134,8 +136,55 @@ class VideoExport:
             Color adjustments to apply to the output image.
         scale_bar : lk.ScaleBar
             Scale bar to add to the figure.
+        channel_slice : lk.Slice, optional
+            When specified, we export a video correlated to channel data
+        vertical : bool, optional
+            Render with the plots vertically aligned (default: True).
         **kwargs
-            Forwarded to :func:`matplotlib.pyplot.imshow`."""
+            Forwarded to :func:`matplotlib.pyplot.imshow`.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            # Note that the examples are shown for an ImageStack, but the API for Scan stacks is
+            # identical.
+            imgs = lk.ImageStack("stack.tiff")
+            imgs.plot_correlated(f.force1x, frame=5, vertical=False)
+
+            # Perform a basic export of the full stack
+            imgs.export_video("rgb", "test.gif")
+
+            # Export the first 10 frames
+            imgs[:10].export_video("rgb", "test.gif")
+
+            # Export a cropped video (cropping from pixel 10 to 50 along each axis)
+            imgs[:, 10:50, 10:50].export_video("rgb", "test.gif")
+
+            # Export with a color adjustment using percentile based adjustment.
+            imgs.export_video(
+                "rgb", "test.gif", adjustment=lk.ColorAdjustment(2, 98, mode="percentile"
+            )
+
+            # Export a gif at 50 fps
+            imgs.export_video("rgb", "test.gif", fps=50)
+
+            # We can also export with correlated channel data
+            h5_file = lk.File("stack.h5")
+
+            # Export video with correlated force data. A marker will indicate the frame.
+            imgs.export_video("rgb", "test.gif", channel_slice=h5_file.force1x)
+
+            # If you want the subplots side by side, pass the extra argument `vertical=False`.
+            imgs.export_video("rgb", "test.gif", channel_slice=h5_file.force1x, vertical=False)
+
+            # Export to a mp4 file, note that this needs ffmpeg to be installed. See:
+            # https://lumicks-pylake.readthedocs.io/en/latest/install.html#optional-dependencies
+            # for more information.
+            imgs.export_video("rgb", "test.mp4")
+        """
         import matplotlib.pyplot as plt
         from matplotlib import animation
 
@@ -152,25 +201,44 @@ class VideoExport:
         start_frame = start_frame if start_frame else 0
         stop_frame = stop_frame if stop_frame else self.num_frames
 
-        def plot_func(frame, image_handle):
-            return self.plot(
-                channel=channel,
-                frame=frame,
-                image_handle=image_handle,
-                adjustment=adjustment,
-                scale_bar=scale_bar,
-                **kwargs,
+        shared_args = {"channel": channel, "adjustment": adjustment}
+        if channel_slice:
+            set_frame = self.plot_correlated(
+                **shared_args,
+                frame=start_frame,
+                channel_slice=channel_slice,
+                vertical=vertical,
+                return_frame_setter=True,
             )
+            fig = plt.gcf()  # plot_correlated makes its own plot
+            fig.patch.set_alpha(1.0)  # Circumvents grainy rendering
 
-        image_handle = None
+            def plot(frame):
+                set_frame(frame)
+                artists = []
+                for ax in fig.get_children():
+                    artists = ax.get_children()
+                    if artists:
+                        artists.extend(artists)
 
-        def plot(num):
-            nonlocal image_handle
-            image_handle = plot_func(frame=start_frame + num, image_handle=image_handle)
-            return plt.gca().get_children()
+                return artists
 
-        fig = plt.figure()
-        fig.patch.set_alpha(1.0)
+        else:
+            fig = plt.figure()
+            fig.patch.set_alpha(1.0)  # Circumvents grainy rendering
+            image_handle = None
+
+            def plot(frame):
+                nonlocal image_handle
+                image_handle = self.plot(
+                    **shared_args,
+                    frame=frame,
+                    image_handle=image_handle,
+                    scale_bar=scale_bar,
+                    **kwargs,
+                )
+                return plt.gca().get_children()
+
         line_ani = animation.FuncAnimation(
             fig, plot, stop_frame - start_frame, interval=1, blit=True
         )

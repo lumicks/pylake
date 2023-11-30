@@ -73,6 +73,8 @@ You can also obtain the image stack data as a :class:`numpy array <numpy.ndarray
     red_data = stack.get_image(channel="red") # shape = [n_frames, y_pixels, x_pixels]
     rgb_data = stack.get_image(channel="rgb") # shape = [n_frames, y_pixels, x_pixels, 3 channels]
 
+.. _stack_plotting:
+
 Plotting and exporting
 ----------------------
 
@@ -100,10 +102,25 @@ of all three channels at a frame rate of 2 frames per second, we can do this::
         "rgb",
         "test_rgb.gif",
         start_frame=2,
-        stop_frame=7, f
-        ps=2,
+        stop_frame=7,
+        fps=2,
         adjustment=lk.ColorAdjustment(20, 99, mode="percentile")
     )
+
+You can also export a video including correlated channel data by providing :meth:`~lumicks.pylake.ImageStack.export_video` with a :class:`~lumicks.pylake.channel.Slice`::
+
+    file = lk.File("test_data/stack.h5")  # Loading a stack.
+    stack_roi.export_video(
+        "rgb",
+        "with_channel.gif",
+        fps=2,
+        adjustment=lk.ColorAdjustment(20, 99, mode="percentile"),
+        channel_slice=file.force1x
+    )
+
+.. note::
+
+    To export to an `mp4` file, you will need to install `ffmpeg`. See :ref:`ffmpeg_installation` for more information.
 
 Defining a tether
 -----------------
