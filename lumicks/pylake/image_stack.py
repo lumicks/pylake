@@ -481,6 +481,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         channel="rgb",
         figure_scale=0.75,
         adjustment=no_adjustment,
+        vertical=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. `np.mean`) is evaluated for the time between a start and end time of a
@@ -509,6 +510,8 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             figure.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
+        vertical : bool
+            Align plots vertically.
 
         Note
         ----
@@ -542,6 +545,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             reduce=reduce,
             figure_scale=figure_scale,
             post_update=post_update,
+            vertical=vertical,
         )
 
     @property

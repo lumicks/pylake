@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
+from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.adjustments import ColorAdjustment
 
 
@@ -177,3 +178,31 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans_multiframe):
             np.testing.assert_allclose(image.get_array(), ref_image)
             np.testing.assert_allclose(image.get_clim(), [lb_abs, ub_abs])
             plt.close(fig)
+
+
+@pytest.mark.parametrize(
+    "frame, vertical, channel",
+    [
+        (0, False, "red"),
+        (0, False, "blue"),
+        (0, True, "red"),
+        (1, True, "red"),
+    ],
+)
+def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel):
+    import matplotlib as mpl
+
+    scan, ref = test_scans_multiframe["fast Y slow X multiframe"]
+    corr_data = Slice(
+        Continuous(np.arange(1000), scan.start, int(1e9)), labels={"title": "title", "y": "y"}
+    )
+
+    image_axis = 0 if vertical else 1
+    scan.plot_correlated(channel=channel, channel_slice=corr_data, frame=frame, vertical=vertical)
+    axes = plt.gcf().get_axes()
+    imgs = [obj for obj in axes[image_axis].get_children() if isinstance(obj, mpl.image.AxesImage)]
+
+    assert len(imgs) == 1
+    np.testing.assert_allclose(imgs[0].get_array(), scan[frame].get_image(channel))
+    assert axes[1 - image_axis].get_xlabel() == "Time [s]"
+    assert axes[image_axis].get_title() == f"[frame {frame + 1} / 10]"
