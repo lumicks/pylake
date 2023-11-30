@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from lumicks.pylake.channel import Slice, Continuous
+
 
 def test_export_tiff(tmp_path, test_kymo, grab_tiff_tags):
     from os import stat
@@ -92,3 +94,24 @@ def test_movie_export(tmpdir_factory, test_scans_multiframe):
         ),
     ):
         scan.export_video("gray", "dummy.gif")  # Gray is not a color!
+
+
+@pytest.mark.parametrize("vertical, channel", [(False, "red"), (True, "red"), (False, "rgb")])
+def test_correlated_movie_export(tmpdir_factory, test_scans_multiframe, vertical, channel):
+    from os import stat
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    scan, _ = test_scans_multiframe["fast Y slow X multiframe"]
+    corr_data = Slice(
+        Continuous(np.arange(1000), scan.start, int(1e9)), labels={"title": "title", "y": "y"}
+    )
+
+    scan.export_video(
+        channel,
+        f"{tmpdir}/{channel}_corr.gif",
+        start_frame=0,
+        stop_frame=0,
+        channel_slice=corr_data,
+        vertical=vertical,
+    )
+    assert stat(f"{tmpdir}/{channel}_corr.gif").st_size > 0

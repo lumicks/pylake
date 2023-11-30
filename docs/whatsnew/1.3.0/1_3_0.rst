@@ -5,6 +5,15 @@ Pylake 1.3.0
 
 Here's a sneak peek at the new features coming in Pylake `v1.3.0`:
 
+Export correlated movies
+------------------------
+
+Movies exported with Pylake can now optionally show a correlated data slice by simply providing a :class:`~lumicks.pylake.channel.Slice` to the :meth:`~lumicks.pylake.scan.Scan.export_video` function.
+
+.. figure:: export_correlated.gif
+
+Check out the exporting section in :ref:`ImageStack<stack_plotting>` and :ref:`Scan<confocal_plotting>` tutorial for more information.
+
 More options for plotting images
 --------------------------------
 

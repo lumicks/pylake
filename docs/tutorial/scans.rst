@@ -51,6 +51,9 @@ The scan can also be exported to TIFF format::
 Scans can also be exported to video formats. Exporting the red channel of a multi-scan GIF can be
 done as follows::
 
+    multiframe_file = lk.File("test_data/scan_stack.h5")
+    multiframe_scan = multiframe_file.scans["46"]
+
     multiframe_scan.export_video(
         "red",
         "test_red.gif",
@@ -72,6 +75,25 @@ at a frame rate of 2 frames per second, we can do this::
 For other video formats such as `.mp4` or `.avi`, ffmpeg must be installed. See
 :ref:`installation instructions <ffmpeg_installation>` for more information on this.
 
+You can also export the scan stack as a video including correlated channel data by providing :meth:`~lumicks.pylake.scan.Scan.export_video` with a :class:`~lumicks.pylake.channel.Slice`::
+
+    multiframe_scan.export_video(
+        "rgb",
+        "test_rgb.gif",
+        start_frame=2,
+        stop_frame=15,
+        fps=2,
+        adjustment=lk.ColorAdjustment(20, 99, mode="percentile"),
+        channel_slice=multiframe_file.force1x
+    )
+
+.. note::
+
+    To export to an `mp4` file, you will need to install `ffmpeg`. See :ref:`ffmpeg_installation` for more information.
+
+Photon counts
+-------------
+
 The images contain pixel data where each pixel represents summed photon counts.
 The photon count per pixel can be accessed as follows::
 
@@ -81,7 +103,7 @@ The photon count per pixel can be accessed as follows::
     plt.show()
 
 Scan metadeta
---------------
+-------------
 There are several properties available for convenient access to the scan metadata:
 
 * :attr:`scan.center_point_um <lumicks.pylake.scan.Scan.center_point_um>` provides a dictionary of

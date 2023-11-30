@@ -1,9 +1,11 @@
 import itertools
 
+import numpy as np
 import pytest
 import tifffile
 
 from lumicks.pylake import ImageStack
+from lumicks.pylake.channel import Slice, Continuous
 
 
 def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
@@ -56,8 +58,15 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
         stack._src.close()
 
 
+@pytest.mark.parametrize("vertical, correlated", [(False, False), (False, True), (True, True)])
 def test_stack_movie_export(
-    tmpdir_factory, rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi
+    tmpdir_factory,
+    rgb_tiff_file,
+    rgb_tiff_file_multi,
+    gray_tiff_file,
+    gray_tiff_file_multi,
+    vertical,
+    correlated,
 ):
     from os import stat
 
@@ -65,8 +74,21 @@ def test_stack_movie_export(
 
     for idx, filename in enumerate((rgb_tiff_file_multi, gray_tiff_file_multi)):
         stack = ImageStack(str(filename))
+
+        dt_stack = stack.frame_timestamp_ranges()[1][0] - stack.frame_timestamp_ranges()[0][0]
+        corr_data = (
+            Slice(
+                Continuous(np.arange(100), stack.start, dt_stack // 2),
+                labels={"title": "title", "y": "y"},
+            )
+            if correlated
+            else None
+        )
+
         fn = f"{tmpdir}/cstack{idx}.gif"
-        stack.export_video("red", fn, start_frame=0, stop_frame=2)
+        stack.export_video(
+            "red", fn, start_frame=0, stop_frame=2, channel_slice=corr_data, vertical=vertical
+        )
         assert stat(fn).st_size > 0
 
         with pytest.raises(

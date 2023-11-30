@@ -4,13 +4,14 @@
 
 #### New features
 
+* Added option to export [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack) and [`Scan`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html) stacks to movies correlated with channel data. Simply pass a [`Slice`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html) to the `channel_slice` parameter of [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video) or [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
 * Added more options for plotting color channels for images:
   * Shortcuts `"r"`, `"g"`, and `"b"` can now be used for plotting single color channels in addition to `"red"`, `"green"`, and `"blue"`.
   * Two-channel visualizations can be plotted using `"rg"`, `"gb"`, or `"rb"`.
 * Added `duration` property to `KymoTrack` which returns the duration (in seconds) that the track was observed.
 * Added option to filter tracks by duration in seconds using `lk.filter_tracks(tracks, minimum_duration=duration_in_seconds)`.
 * Added `KymoTrackGroup.filter()` to filter tracks in-place. `tracks.filter(minimum_duration=2)` is equivalent to `tracks = lk.filter_tracks(tracks, minimum_duration=2)`.
-* Added option to align plots vertically by passing `vertical=True` to `Scan.plot_correlated` and `ImageStack.plot_correlated()`.
+* Added option to align plots vertically by passing `vertical=True` to [`Scan.plot_correlated`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.plot_correlated) and [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated).
 
 #### Bug fixes
 

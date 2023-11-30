@@ -13,6 +13,7 @@ def plot_correlated(
     colormap="gray",
     figure_scale=0.75,
     post_update=None,
+    *,
     vertical=False,
 ):
     """Downsample channel on a frame by frame basis and plot the results.
@@ -43,6 +44,8 @@ def plot_correlated(
         been updated.
     vertical : bool
         Whether plots should be aligned vertically.
+    return_handle : bool
+        Whether to return a handle to the update function.
     """
     import matplotlib.pyplot as plt
 
@@ -106,6 +109,23 @@ def plot_correlated(
     frame_change_positions = np.hstack((np.asarray(frame_timestamps)[:, 0], np.inf))
     frame_change_ranges = np.stack((frame_change_positions[:-1], frame_change_positions[1:])).T
 
+    def update_frame(img_idx):
+        nonlocal poly
+        ax_img.set_title(title_factory(img_idx))
+        poly.remove()
+        img_data = get_plot_data(img_idx)
+        image_object.set_data(img_data)
+
+        if post_update:
+            post_update(image_object, img_data)
+        poly = update_position(*frame_timestamps[img_idx])
+
+        # fig.canvas.draw() is needed to refresh in interactive backends, but when exporting to a
+        # movie, it complains about the manager property being `None`. This workaround makes it
+        # work in both situations.
+        if fig.canvas.manager:
+            fig.canvas.draw()
+
     def select_frame(event):
         nonlocal poly
 
@@ -113,15 +133,9 @@ def plot_correlated(
             time = event.xdata * 1e9 + t0
             for img_idx, (start, stop) in enumerate(frame_change_ranges):
                 if start <= time < stop:
-                    ax_img.set_title(title_factory(img_idx))
-                    poly.remove()
-                    img_data = get_plot_data(img_idx)
-                    image_object.set_data(img_data)
-                    if post_update:
-                        post_update(image_object, img_data)
-                    poly = update_position(*frame_timestamps[img_idx])
-                    fig.canvas.draw()
+                    update_frame(img_idx)
                     return
 
     fig.canvas.mpl_connect("button_press_event", select_frame)
     plt.tight_layout()
+    return update_frame

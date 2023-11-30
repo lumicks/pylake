@@ -292,7 +292,9 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         channel="rgb",
         figure_scale=0.75,
         adjustment=no_adjustment,
+        *,
         vertical=False,
+        return_frame_setter=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
@@ -324,6 +326,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             Color adjustments to apply to the output image.
         vertical : bool
             Align plots vertically.
+        return_frame_setter : bool
+            Whether to return a handle that allows updating the plotted frame.
 
         Examples
         --------
@@ -351,7 +355,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
         frame_timestamps = self.frame_timestamp_ranges()
 
-        plot_correlated(
+        frame_setter = plot_correlated(
             channel_slice,
             frame_timestamps,
             plot_channel,
@@ -363,6 +367,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             post_update=post_update,
             vertical=vertical,
         )
+        if return_frame_setter:
+            return frame_setter
 
     @property
     def lines_per_frame(self):

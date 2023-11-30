@@ -481,7 +481,9 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         channel="rgb",
         figure_scale=0.75,
         adjustment=no_adjustment,
+        *,
         vertical=False,
+        return_frame_setter=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. `np.mean`) is evaluated for the time between a start and end time of a
@@ -512,6 +514,8 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             Color adjustments to apply to the output image.
         vertical : bool
             Align plots vertically.
+        return_frame_setter : bool
+            Whether to return a handle that allows updating the plotted frame.
 
         Note
         ----
@@ -536,7 +540,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         def post_update(image_handle, image):
             return adjustment._update_limits(image_handle, image, channel)
 
-        plot_correlated(
+        frame_setter = plot_correlated(
             channel_slice=channel_slice,
             frame_timestamps=self.frame_timestamp_ranges(),
             get_plot_data=frame_grabber,
@@ -547,6 +551,9 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             post_update=post_update,
             vertical=vertical,
         )
+
+        if return_frame_setter:
+            return frame_setter
 
     @property
     def size_um(self) -> Optional[list]:
