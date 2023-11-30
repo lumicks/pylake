@@ -292,6 +292,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         channel="rgb",
         figure_scale=0.75,
         adjustment=no_adjustment,
+        vertical=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
@@ -321,7 +322,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             figure.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-
+        vertical : bool
+            Align plots vertically.
 
         Examples
         --------
@@ -359,6 +361,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             colormap=colormaps._get_default_colormap(channel),
             figure_scale=figure_scale,
             post_update=post_update,
+            vertical=vertical,
         )
 
     @property

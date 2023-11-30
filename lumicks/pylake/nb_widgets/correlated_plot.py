@@ -13,6 +13,7 @@ def plot_correlated(
     colormap="gray",
     figure_scale=0.75,
     post_update=None,
+    vertical=False,
 ):
     """Downsample channel on a frame by frame basis and plot the results.
 
@@ -40,6 +41,8 @@ def plot_correlated(
     post_update : callable
         Function that will be called with the imshow handle and image data after the image data has
         been updated.
+    vertical : bool
+        Whether plots should be aligned vertically.
     """
     import matplotlib.pyplot as plt
 
@@ -52,29 +55,33 @@ def plot_correlated(
     aspect_ratio = plot_data.shape[0] / np.max([plot_data.shape])
 
     aspect_ratio = max(0.2, aspect_ratio)
-    fig, (ax1, ax2) = plt.subplots(
-        1,
-        2,
-        figsize=figure_scale * plt.figaspect(aspect_ratio / (aspect_ratio + 1)),
-        gridspec_kw={"width_ratios": [1, 1 / aspect_ratio]},
-    )
+    if vertical:
+        fig, (ax_img, ax_channel) = plt.subplots(2, 1)  # different axis order is on purpose
+    else:
+        fig, (ax_channel, ax_img) = plt.subplots(
+            1,
+            2,
+            figsize=figure_scale * plt.figaspect(aspect_ratio / (aspect_ratio + 1)),
+            gridspec_kw={"width_ratios": [1, 1 / aspect_ratio]},
+        )
+
     t0 = downsampled.timestamps[0]
     t, y = downsampled.seconds, downsampled.data
-    ax1.step(t, y, where="pre")
-    ax2.tick_params(
+    ax_channel.step(t, y, where="pre")
+    ax_img.tick_params(
         axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
     )
-    image_object = ax2.imshow(plot_data, cmap=colormap)
+    image_object = ax_img.imshow(plot_data, cmap=colormap)
     if post_update:
         post_update(image_object, plot_data)
-    ax2.set_title(title_factory(frame))
+    ax_img.set_title(title_factory(frame))
 
     # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
-    y1, y2 = ax1.get_ylim()
-    ax1.set_ylim(y1, y2)
+    y1, y2 = ax_channel.get_ylim()
+    ax_channel.set_ylim(y1, y2)
 
     def update_position(start, stop):
-        return ax1.fill_between(
+        return ax_channel.fill_between(
             (np.array([start, stop]) - t0) / 1e9,
             y1,
             y2,
@@ -84,10 +91,15 @@ def plot_correlated(
 
     poly = update_position(*frame_timestamps[frame])
 
-    ax1.set_xlabel("Time [s]")
-    ax1.set_ylabel(downsampled.labels["y"])
-    ax1.set_title(downsampled.labels["title"])
-    ax1.set_xlim([np.min(t), np.max(t)])
+    ax_channel.set_xlabel("Time [s]")
+    ax_channel.set_ylabel(downsampled.labels["y"])
+    ax_channel.set_title(downsampled.labels["title"])
+    ax_channel.set_xlim([np.min(t), np.max(t)])
+
+    if vertical:
+        # Make sure we don't get a really elongated time plot
+        x_lims, y_lims = ax_channel.get_xlim(), ax_channel.get_ylim()
+        ax_channel.set_aspect(aspect_ratio * abs((x_lims[1] - x_lims[0]) / (y_lims[1] - y_lims[0])))
 
     # For clicking, we want the region between the start of this frame and the start of the next
     # rather than the actual frame ranges.
@@ -97,11 +109,11 @@ def plot_correlated(
     def select_frame(event):
         nonlocal poly
 
-        if not event.canvas.widgetlock.locked() and event.inaxes == ax1:
+        if not event.canvas.widgetlock.locked() and event.inaxes == ax_channel:
             time = event.xdata * 1e9 + t0
             for img_idx, (start, stop) in enumerate(frame_change_ranges):
                 if start <= time < stop:
-                    ax2.set_title(title_factory(img_idx))
+                    ax_img.set_title(title_factory(img_idx))
                     poly.remove()
                     img_data = get_plot_data(img_idx)
                     image_object.set_data(img_data)
