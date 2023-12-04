@@ -67,9 +67,9 @@ def download_file(url, target_path, download_path, show_progress=True, block_siz
                     file.write(data)
 
 
-def verify_hash(file_name, reference_hash, chunk_size=65536):
+def verify_hash(file_name, algorithm, reference_hash, chunk_size=65536):
     """Verify the hash of a file"""
-    m = hashlib.new("md5")
+    m = hashlib.new(algorithm)
     with open(file_name, "rb") as f:
         b = f.read(chunk_size)
         while len(b) > 0:
@@ -119,9 +119,7 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
 
     file_names = []
     for file in record_metadata["files"]:
-        file_name = file["filename"]
-        url = f"https://zenodo.org/api/records/{record_metadata['id']}/files/{file_name}/content"
-
+        file_name, url = file["key"], file["links"]["self"]
         full_path = os.path.join(target_path, file_name)
 
         # If the file doesn't exist, we can't skip it
@@ -129,7 +127,8 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
 
         # If a file with the requested filename exists but does not match the data from Zenodo,
         # throw an error.
-        if not download and not verify_hash(full_path, file["checksum"]):
+        hash_algorithm, checksum = file["checksum"].split(":")
+        if not download and not verify_hash(full_path, hash_algorithm, checksum):
             if not force_download:
                 raise RuntimeError(
                     f"File {file_name} does not match file from Zenodo. Set force_download=True "
@@ -140,8 +139,10 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
         # Only download what we don't have yet.
         if download or force_download:
             download_file(url, target_path, file_name, show_progress)
-            if not verify_hash(full_path, file["checksum"]):
+            if not verify_hash(full_path, hash_algorithm, checksum):
                 raise RuntimeError("Download failed. Invalid checksum after download.")
+        else:
+            print(f"Already downloaded {file_name}.")
 
         file_names.append(full_path)
 
