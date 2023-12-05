@@ -474,7 +474,6 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
             extent=[0, x_um, y_um, 0],
-            aspect=(image.shape[0] / image.shape[1]) * (x_um / y_um),
             cmap=colormaps._get_default_colormap(channel),
         )
 

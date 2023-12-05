@@ -16,6 +16,9 @@
 #### Bug fixes
 
 * Fixed a bug in `Slice.downsampled_like` that would fail to raise an error due to a lack of overlap between the low frequency and high frequency channel when the high frequency channel starts within the last sample of the low frequency channel.
+* Fixed `lk.download_from_doi()` to align with new Zenodo REST API.
+* Fixed a bug in `Scan.plot()` in which the default aspect ratio was calculated such that pixels always appeared square. For scans with non-square pixel sizes, this would result in distortion of the image.
+* Don't store animation writer in a temporary variable as this results in a `matplotlib` error when attempting to export a movie on jupyter notebook. 
 
 #### Improvements
 
