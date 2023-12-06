@@ -115,11 +115,27 @@ class TiffFrame:
 
     @property
     def stop(self):
-        return self.frame_timestamp_range[1]
+        return self.exposure_timestamp_range[1]
 
     @property
     def frame_timestamp_range(self):
         return _get_page_timestamps(self._page)
+
+    @property
+    def exposure_timestamp_range(self):
+        try:
+            json_metadata = json.loads(self._page.description)
+        except json.decoder.JSONDecodeError:
+            json_metadata = {}
+
+        start, stop = _get_page_timestamps(self._page)
+        stop = (
+            start + int(np.round(1e6 * json_metadata["Exposure time (ms)"]))
+            if "Exposure time (ms)" in json_metadata
+            else stop
+        )
+
+        return start, stop
 
 
 class TiffStack:

@@ -22,7 +22,7 @@ def tiffexport_factory(
         return {"Writing": "tests is awesome!"}
 
     def tiff_timestamp_ranges_factory(number_of_frames):
-        def tiff_timestamp_ranges():
+        def tiff_timestamp_ranges(include_dead_time):
             return [
                 np.array([i, i + exposure_time])
                 for i in range(
@@ -70,7 +70,7 @@ def test_export_tiff_insufficient_implementation(tmp_path):
     with pytest.raises(NotImplementedError, match=message_meta):
         export_bare._tiff_image_metadata()
     with pytest.raises(NotImplementedError, match=message_time):
-        export_bare._tiff_timestamp_ranges()
+        export_bare._tiff_timestamp_ranges(include_dead_time=False)
     with pytest.raises(NotImplementedError, match=message_kwargs):
         export_bare._tiff_writer_kwargs()
     # Test if `export_tiff()` requires all `_tiff_*()` methods

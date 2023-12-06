@@ -239,9 +239,9 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         metadata["Number of frames"] = self.num_frames
         return metadata
 
-    def _tiff_timestamp_ranges(self) -> list:
+    def _tiff_timestamp_ranges(self, include_dead_time) -> list:
         """Create Timestamp ranges for the DateTime field of TIFFs used by `export_tiff()`."""
-        return self.frame_timestamp_ranges()
+        return self.frame_timestamp_ranges(include_dead_time=include_dead_time)
 
     def frame_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each frame in the scan.

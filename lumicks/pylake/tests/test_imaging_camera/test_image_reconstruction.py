@@ -17,7 +17,7 @@ def test_image_reconstruction_grayscale(gray_alignment_image_data):
             MockTiffFile(
                 data=[warped_image],
                 times=make_frame_times(1),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=8,
             )
         ],
@@ -38,7 +38,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
             MockTiffFile(
                 data=[warped_image],
                 times=make_frame_times(1),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -79,7 +79,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
             MockTiffFile(
                 data=[warped_image],
                 times=make_frame_times(1),
-                description=json.dumps(bad_description),
+                description=bad_description,
                 bit_depth=16,
             )
         ],
@@ -97,7 +97,7 @@ def test_image_reconstruction_rgb(rgb_alignment_image_data, rgb_alignment_image_
             MockTiffFile(
                 data=[warped_image],
                 times=make_frame_times(1),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -117,7 +117,7 @@ def test_no_alignment_requested(rgb_alignment_image_data):
             MockTiffFile(
                 data=[warped_image],
                 times=make_frame_times(1),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -135,7 +135,7 @@ def test_image_reconstruction_rgb_multiframe(rgb_alignment_image_data):
             MockTiffFile(
                 data=[warped_image] * 6,
                 times=make_frame_times(6, step=10),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -158,7 +158,10 @@ def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
         fake_tiff = TiffStack(
             [
                 MockTiffFile(
-                    data=[warped_image], times=make_frame_times(1), description="", bit_depth=16
+                    data=[warped_image],
+                    times=make_frame_times(1),
+                    bit_depth=16,
+                    no_metadata=True,
                 )
             ],
             align_requested=True,
@@ -177,7 +180,7 @@ def test_image_reconstruction_rgb_missing_metadata(rgb_alignment_image_data):
                 MockTiffFile(
                     data=[warped_image],
                     times=make_frame_times(1),
-                    description=json.dumps(description),
+                    description=description,
                     bit_depth=16,
                 )
             ],

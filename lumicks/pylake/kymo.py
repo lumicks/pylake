@@ -266,10 +266,10 @@ class Kymo(ConfocalImage):
         metadata["Stop pixel timestamp (ns)"] = int(self.line_timestamp_ranges()[-1][1])
         return metadata
 
-    def _tiff_timestamp_ranges(self) -> list:
+    def _tiff_timestamp_ranges(self, include_dead_time) -> list:
         """Create Timestamp ranges for the DateTime field of TIFFs used by `export_tiff`."""
         # As `Kymo` has only one frame, return a list with one timestamp range
-        ts_ranges = np.array(self.line_timestamp_ranges())
+        ts_ranges = np.array(self.line_timestamp_ranges(include_dead_time=include_dead_time))
         return [(np.min(ts_ranges), np.max(ts_ranges))]
 
     def _fix_incorrect_start(self):
