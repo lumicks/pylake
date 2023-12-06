@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Union, Iterator, Optional
 
 import numpy as np
@@ -594,9 +595,9 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         # to reflect the fact that the image has already been processed
         return self._src._description.for_export
 
-    def _tiff_timestamp_ranges(self) -> list:
+    def _tiff_timestamp_ranges(self, include_dead_time) -> list:
         """Create Timestamp ranges for DateTime field of TIFFs used by `export_tiff().`"""
-        return self.frame_timestamp_ranges()
+        return self.frame_timestamp_ranges(include_dead_time=include_dead_time)
 
     def _tiff_writer_kwargs(self) -> dict:
         """Create keyword arguments used for `TiffWriter.write()` in `self.export_tiff()`."""
@@ -637,20 +638,22 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         include_dead_time : bool
             Include dead time between frames.
         """
-        ts_ranges = [frame.frame_timestamp_range for frame in self]
         if include_dead_time:
-            frame_ts = [
-                (leading[0], trailing[0]) for leading, trailing in zip(ts_ranges, ts_ranges[1:])
-            ]
-            if len(ts_ranges) >= 2:
-                dt = ts_ranges[-1][0] - ts_ranges[-2][0]
-                stop = ts_ranges[-1][0] + dt
-            else:
-                stop = ts_ranges[-1][1]
-            frame_ts.append((ts_ranges[-1][0], stop))
-            return frame_ts
-        else:
-            return ts_ranges
+            return [frame.frame_timestamp_range for frame in self]
+
+        frame_timestamps = [frame.exposure_timestamp_range for frame in self]
+        if len(np.unique(np.diff(np.asarray(frame_timestamps), 1))) != 1:
+            warnings.warn(
+                RuntimeWarning(
+                    "This image stack contains a non-constant exposure time. While the start time "
+                    "of each frame is synchronized, the update of the exposure metadata can "
+                    "lag behind. This means that when you average data over the frame, some frames "
+                    "after the switch may take an incorrect exposure time into account in the "
+                    "averaging."
+                )
+            )
+
+        return frame_timestamps
 
 
 @deprecated(

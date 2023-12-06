@@ -17,7 +17,8 @@ def make_frame_times(n_frames, rate=10, step=8, start=10, framerate_jitter=0, st
     return [
         [
             f"{j + noise(framerate_jitter, j)}",
-            f"{j + step + noise(framerate_jitter, j) + noise(step_jitter, j)}",
+            f"{(j + 1) + noise(framerate_jitter, (j + 1))}",
+            step + noise(step_jitter, j),
         ]
         for j in range(start, start + n_frames * rate, rate)
     ]
@@ -72,6 +73,7 @@ def test_error_frame_rate_not_constant():
         _kymo_from_image_stack(stack)
 
 
+@pytest.mark.filterwarnings("ignore:This image stack contains a non-constant exposure time")
 def test_error_exposure_time_not_constant():
     stack = create_mock_stack(3, (3, 3, 3), step_jitter=1)
     with pytest.raises(

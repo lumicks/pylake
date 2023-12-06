@@ -23,9 +23,9 @@ def make_mock_stack():
     tiff = TiffStack(
         [
             MockTiffFile(
-                data=[image, image, image],
-                times=[["10", "18"], ["20", "28"], ["30", "38"]],
-                description=json.dumps(description),
+                data=[image] * 3,
+                times=[["10", "20", 18], ["20", "30", 28], ["30", "40", 38]],
+                description=description,
                 bit_depth=bit_depth,
             )
         ],

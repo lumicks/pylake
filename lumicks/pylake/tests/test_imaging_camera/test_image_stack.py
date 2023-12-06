@@ -21,7 +21,7 @@ def to_tiff(image, description, bit_depth, start_time=1, num_images=2):
     return MockTiffFile(
         data=[image] * num_images,
         times=make_frame_times(num_images, start=start_time),
-        description=json.dumps(description),
+        description=description,
         bit_depth=bit_depth,
     )
 
@@ -120,6 +120,18 @@ def test_image_stack(shape):
     np.testing.assert_allclose([x.start for x in stack[:-1]], [10, 20, 30, 40, 50])
     np.testing.assert_allclose([x.start for x in stack[2:4]], [30, 40])
     np.testing.assert_allclose([x.start for x in stack[2]], [30])
+
+
+def test_warning_unequal_exposure():
+    times = make_frame_times(6)
+    times[1][2] = times[1][2] / 2  # Ensure unequal exposure
+    fake_tiff = TiffStack(
+        tiff_files=[MockTiffFile(data=[np.ones((4, 3, 3))] * 6, times=times)],
+        align_requested=False,
+    )
+    stack = ImageStack.from_dataset(fake_tiff)
+    with pytest.warns(RuntimeWarning, match="image stack contains a non-constant exposure time"):
+        stack.frame_timestamp_ranges()
 
 
 def test_stack_from_dataset():
@@ -240,12 +252,13 @@ def test_correlation(shape):
 
     # Test image stack without dead time
     fake_tiff = TiffStack(
-        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6, step=10))],
+        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6))],
         align_requested=False,
     )
     stack = ImageStack.from_dataset(fake_tiff)
     np.testing.assert_allclose(
-        np.hstack([cc[x.start : x.stop].data for x in stack[2:4]]), np.arange(30, 50, 2)
+        np.hstack([cc[x.start : x.stop].data for x in stack[2:4]]),
+        np.hstack((np.arange(30, 38, 2), np.arange(40, 48, 2))),
     )
 
     # Test image stack with dead time
@@ -351,7 +364,7 @@ def test_image_stack_plotting(rgb_alignment_image_data):
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -578,7 +591,7 @@ def test_define_tether():
                 MockTiffFile(
                     data=[data],
                     times=make_frame_times(1),
-                    description=json.dumps(description),
+                    description=description,
                     bit_depth=bit_depth,
                 )
             ],
@@ -721,7 +734,7 @@ def test_image_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image_data
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -748,7 +761,7 @@ def test_image_stack_plot_channels_absolute_color_adjustment(rgb_alignment_image
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -775,7 +788,7 @@ def test_image_stack_plot_rgb_percentile_color_adjustment(rgb_alignment_image_da
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -807,7 +820,7 @@ def test_image_stack_plot_single_channel_percentile_color_adjustment(rgb_alignme
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -1037,7 +1050,7 @@ def test_frame_timestamp_ranges_snapshot():
         )
     )
 
-    for include, ranges in zip([True, False], [[(10, 16)], [(10, 16)]]):
+    for include, ranges in zip([True, False], [[(10, 20)], [(10, 16)]]):
         np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)
 
 

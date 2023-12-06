@@ -35,11 +35,22 @@ class MockTiffPage:
 
 
 class MockTiffFile:
-    def __init__(self, data, times, description="", bit_depth=8):
+    def __init__(self, data, times, description=None, bit_depth=8, no_metadata=False):
         self.pages = []
-        for d, r in zip(data, times):
+
+        if not description:
+            description = {}
+
+        for d, (start_frame, stop_frame, exposure) in zip(data, times):
+            description["Exposure time (ms)"] = exposure
             self.pages.append(
-                MockTiffPage(d, r[0], r[1], description=description, bit_depth=bit_depth)
+                MockTiffPage(
+                    d,
+                    start_frame,
+                    stop_frame,
+                    description=json.dumps(description, indent=4) if not no_metadata else "",
+                    bit_depth=bit_depth,
+                )
             )
 
     @property
@@ -49,7 +60,8 @@ class MockTiffFile:
 
 def make_frame_times(n_frames, step=8, start=10, frame_time=10):
     return [
-        [f"{j}", f"{j+step}"] for j in range(start, start + (n_frames + 1) * frame_time, frame_time)
+        [f"{j}", f"{j + frame_time}", step * 1e-6 if step else frame_time * 1e-6]
+        for j in range(start, start + (n_frames + 1) * frame_time, frame_time)
     ]
 
 
@@ -188,7 +200,8 @@ def write_tiff_file(image, description, n_frames, filename):
 
     with tifffile.TiffWriter(filename) as tif:
         for n, frame in enumerate(movie):
-            str_datetime = f"{n*10+10}:{n*10+18}"
+            description["Exposure time (ms)"] = 18e-6  # ns -> ms
+            str_datetime = f"{n*10+10}:{(n + 1)*10 + 10}"
             tag_datetime = (306, "s", len(str_datetime), str_datetime, False)
             tif.write(
                 frame,

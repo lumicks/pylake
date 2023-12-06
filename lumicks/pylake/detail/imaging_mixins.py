@@ -29,11 +29,12 @@ class TiffExport:
         # If the exported tiff should be cast to `dtype`, get the full image stack to later safely
         # cast it. Otherwise, try to get an iterator, to save memory.
         frames = self._tiff_frames(iterator=dtype is None)
-        timestamp_ranges = self._tiff_timestamp_ranges()
+        frame_timestamp_ranges = self._tiff_timestamp_ranges(include_dead_time=True)
+        frame_exposure_ranges = self._tiff_timestamp_ranges(include_dead_time=False)
 
         # Check length of timestamp ranges, as this is easier than checking the number of frames,
         # which could be an iterator or an np.ndarray.
-        if len(timestamp_ranges) == 0:
+        if len(frame_timestamp_ranges) == 0:
             raise RuntimeError("Can't export TIFF if there are no images.")
 
         # Cast frames if a specific dtype is requested.
@@ -68,13 +69,20 @@ class TiffExport:
 
         # Save the tiff file page by page
         with tifffile.TiffWriter(filename) as tif:
-            for frame, timestamp_range in zip(frames, timestamp_ranges):
+            metadata = self._tiff_image_metadata()
+            exposure_times = (
+                np.atleast_1d(np.diff(np.vstack(frame_exposure_ranges), axis=1).squeeze()) * 1e-6
+            )
+            for frame, timestamp_range, exposure_time in zip(
+                frames, frame_timestamp_ranges, exposure_times
+            ):
+                metadata["Exposure time (ms)"] = exposure_time
                 tif.write(
                     frame,
                     contiguous=False,  # write tags on each page
                     extratags=extratags(timestamp_range),
                     metadata=None,  # suppress tifffile default ImageDescription tag
-                    description=json.dumps(self._tiff_image_metadata(), indent=4),
+                    description=json.dumps(metadata, indent=4),
                     **self._tiff_writer_kwargs(),
                 )
 
@@ -90,7 +98,7 @@ class TiffExport:
             f"`{self.__module__}.{self.__class__.__name__}` does not implement `_tiff_image_metadata()`."
         )
 
-    def _tiff_timestamp_ranges(self) -> Union[list, Iterator]:
+    def _tiff_timestamp_ranges(self, include_dead_time) -> Union[list, Iterator]:
         """Create Timestamp ranges for DateTime field of TIFFs used by `export_tiff()`."""
         raise NotImplementedError(
             f"`{self.__module__}.{self.__class__.__name__}` does not implement `_tiff_timestamp_ranges()`."

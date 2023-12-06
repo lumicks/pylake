@@ -5,6 +5,7 @@
 #### Bug fixes
 
 * Fixed a bug where the time indicator was off by one frame in [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) and [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
+* Fixed a bug where the time between frames was incorrectly not excluded when calling [`ImageStack.frame_timestamp_ranges()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.frame_timestamp_ranges) with `include_dead_time=False`. Note that `Scan` and `Kymo` are not affected.
 
 ## v1.3.1 | 2023-12-07
 
