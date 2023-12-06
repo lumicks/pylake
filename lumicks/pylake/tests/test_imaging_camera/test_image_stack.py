@@ -478,7 +478,7 @@ def test_plot_correlated_smaller_channel():
 def test_stack_name(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(
-            "lumicks.pylake.detail.widefield.TiffStack.from_file",
+            "lumicks.pylake.image_stack.TiffStack.from_file",
             lambda *args, **kwargs: TiffStack(
                 [MockTiffFile([np.zeros((3, 3, 3))] * 2, make_frame_times(2))],
                 align_requested=False,
@@ -707,7 +707,7 @@ def test_calibrated_tether(monkeypatch, scaling, ref_point1, ref_point2):
         return stack
 
     with monkeypatch.context() as m:
-        m.setattr("lumicks.pylake.detail.widefield.TiffStack.with_tether", check_points)
+        m.setattr("lumicks.pylake.image_stack.TiffStack.with_tether", check_points)
         m.setattr("lumicks.pylake.ImageStack.pixelsize_um", scaling)
 
         stack.define_tether([1.0, 2.0], [4.0, 5.0])
