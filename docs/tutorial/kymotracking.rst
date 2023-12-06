@@ -107,6 +107,8 @@ As such, it will include a contribution from any background signal that may be p
 The number of pixels to sum is set by the tracking parameter `track_width`.
 More accurate estimates of the photons emitted by a particle can be obtained using :ref:`gaussian refinement<kymotracker_gaussian_refinement>` detailed further below.
 
+.. _filter_tracks_tutorial:
+
 Sometimes, we can have very short spurious tracks. To remove these we can use :func:`~lumicks.pylake.filter_tracks`.
 For example, to omit all tracks with fewer than 4 detected points, we can invoke::
 

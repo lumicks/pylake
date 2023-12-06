@@ -3,7 +3,7 @@ Pylake 1.3.0
 
 .. only:: html
 
-Here's a sneak peek at the new features coming in Pylake `v1.3.0`:
+Pylake `v1.3.0` has been released with new features and improvements to existing analyses. Here’s some of the highlights:
 
 Export correlated movies
 ------------------------
@@ -23,3 +23,10 @@ values for the red/green/blue channels and plotting only two colors:
 .. figure:: plot_channel_options.png
 
 Check out :doc:`../../tutorial/plotting_images` for more information.
+
+Filtering by duration
+---------------------
+
+You can now filter a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` by track duration (in seconds) rather than number of points.
+You can do this by passing a `minimum_duration` to :meth:`~lumicks.pylake.filter_tracks`.
+For more information see the :ref:`kymotracking tutorial<filter_tracks_tutorial>`.

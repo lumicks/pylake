@@ -1,28 +1,28 @@
 # Changelog
 
-## v1.3.0 | t.b.d.
+## v1.3.0 | 2023-12-07
 
 #### New features
 
-* Added option to export [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack) and [`Scan`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html) stacks to movies correlated with channel data. Simply pass a [`Slice`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html) to the `channel_slice` parameter of [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video) or [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
+* Added option to export [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack) and [`Scan`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.scan.Scan.html) stacks to movies correlated with channel data. Simply pass a [`Slice`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.channel.Slice.html) to the `channel_slice` parameter of [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video) or [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
 * Added more options for plotting color channels for images:
   * Shortcuts `"r"`, `"g"`, and `"b"` can now be used for plotting single color channels in addition to `"red"`, `"green"`, and `"blue"`.
   * Two-channel visualizations can be plotted using `"rg"`, `"gb"`, or `"rb"`.
-* Added `duration` property to `KymoTrack` which returns the duration (in seconds) that the track was observed.
-* Added option to filter tracks by duration in seconds using `lk.filter_tracks(tracks, minimum_duration=duration_in_seconds)`.
-* Added `KymoTrackGroup.filter()` to filter tracks in-place. `tracks.filter(minimum_duration=2)` is equivalent to `tracks = lk.filter_tracks(tracks, minimum_duration=2)`.
-* Added option to align plots vertically by passing `vertical=True` to [`Scan.plot_correlated`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.plot_correlated) and [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated).
+* Added option to filter tracks by duration in seconds using [`lk.filter_tracks(tracks, minimum_duration=duration_in_seconds)`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.filter_tracks.html#lumicks.pylake.filter_tracks).
+* Added option to align plots vertically by passing `vertical=True` to [`Scan.plot_correlated`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.plot_correlated) and [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated).
+* Added [`duration`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.duration) property to [`KymoTrack`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html) which returns the duration (in seconds) that the track was observed.
+* Added [`KymoTrackGroup.filter()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.filter_tracks.html#lumicks.pylake.filter_tracks) to filter tracks in-place. `tracks.filter(minimum_duration=2)` is equivalent to `tracks = lk.filter_tracks(tracks, minimum_duration=2)`.
 
 #### Bug fixes
 
-* Fixed a bug in `Slice.downsampled_like` that would fail to raise an error due to a lack of overlap between the low frequency and high frequency channel when the high frequency channel starts within the last sample of the low frequency channel.
-* Fixed `lk.download_from_doi()` to align with new Zenodo REST API.
-* Fixed a bug in `Scan.plot()` in which the default aspect ratio was calculated such that pixels always appeared square. For scans with non-square pixel sizes, this would result in distortion of the image.
+* Fixed a bug in [`Scan.plot()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.plot) in which the default aspect ratio was calculated such that pixels always appeared square. For scans with non-square pixel sizes, this would result in distortion of the image.
+* Fixed a bug in [`Slice.downsampled_like`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.downsampled_like) that would fail to raise an error due to a lack of overlap between the low frequency and high frequency channel when the high frequency channel starts within the last sample of the low frequency channel.
+* Fixed [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi) to align with new Zenodo REST API.
 * Don't store animation writer in a temporary variable as this results in a `matplotlib` error when attempting to export a movie on jupyter notebook. 
 
 #### Improvements
 
-* Kymographs consisting of a single scan line now return a valid `line_time_seconds`. This allows certain downstream functionality, such as `Kymo.plot()`.
+* Kymographs consisting of a single scan line now return a valid [`line_time_seconds`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.line_time_seconds). This allows certain downstream functionality, such as `Kymo.plot()`.
 * Issue a more descriptive error when attempting to compute a diffusion constant of a track with no points.
 * Pylake can now handle kymographs that were erroneously stored in the `Scan` field. Kymographs with a pre-specified number of lines to record were incorrectly being marked on the timeline and exported as 'Scan' instead of 'Kymograph' in versions of Bluelake prior to `2.5.0`.
 
