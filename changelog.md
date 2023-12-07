@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.1 | 2023-12-07
+
+#### Bug fixes
+
+* Fixed a bug in [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.3.1/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video) and [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.3.1/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video) which resulted in empty frames being written when exporting with channel data.
+
 ## v1.3.0 | 2023-12-07
 
 #### New features
