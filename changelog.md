@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.2 | t.b.d.
+
+#### Bug fixes
+
+* Fixed a bug where the time indicator was off by one frame in [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) and [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
+
 ## v1.3.1 | 2023-12-07
 
 #### Bug fixes
