@@ -70,7 +70,21 @@ def plot_correlated(
 
     t0 = downsampled.timestamps[0]
     t, y = downsampled.seconds, downsampled.data
-    ax_channel.step(t, y, where="pre")
+
+    # We explicitly append the last frame time to make sure that it still shows up
+    last_dt = np.diff(
+        [
+            frame_range
+            for frame_range in frame_timestamps
+            if frame_range[0] >= channel_slice.start and frame_range[1] <= channel_slice.stop
+        ][-1]
+    )
+    t = np.hstack((t, t[-1] + last_dt * 1e-9))
+    y = np.hstack((y, y[-1]))
+
+    # We want a constant line from the start of the first frame, to the end. So we plot up to
+    # the second point.
+    ax_channel.step(t, y, where="post")
     ax_img.tick_params(
         axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
     )
