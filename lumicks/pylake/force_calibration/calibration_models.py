@@ -5,7 +5,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .detail.drag_models import faxen_factor, brenner_axial
+from .detail.drag_models import (
+    faxen_factor,
+    brenner_axial,
+    coupling_correction_factor_stimson,
+    coupling_correction_factor_goldmann,
+)
 from .detail.power_models import (
     g_diode,
     alias_spectrum,
@@ -94,6 +99,67 @@ def viscosity_of_water(temperature):
     ai = np.array([280.68, 511.45, 61.131, 0.45903])
     bi = np.array([-1.9, -7.7, -19.6, -40.0])
     return np.sum(ai * temp_tilde**bi, axis=1).squeeze() * 1e-6
+
+
+def coupling_correction_2d(dx, dy, bead_diameter, is_y_oscillation=False, allow_rotation=True):
+    """Calculates the coupling correction factor for a 2D problem.
+
+    This function rotates the coordinate system and decomposes the fluid velocity into a component
+    perpendicular and aligned with the bead-to-bead axis. For the aligned component, we use the
+    model presented in [4]_ to determine a correction factor, while for the perpendicular axis
+    we use the model presented in [2, 3].
+
+    Parameters
+    ----------
+    dx, dy: array_like or float
+        X and Y distances from bead 1 to bead 2 [um].
+    bead_diameter : float
+        Bead radius [um].
+    is_y_oscillation : bool
+        Is this a vertical oscillation?
+    allow_rotation : float
+        Provide the solution for when spheres are allowed to rotate
+
+    References
+    ----------
+    .. [1] Happel, J., & Brenner, H. (1983). Low Reynolds number hydrodynamics: with special
+           applications to particulate media (Vol. 1). Springer Science & Business Media.
+    .. [2] Wakiya, S. (1967). Slow motions of a viscous fluid around two spheres. Journal of the
+           Physical Society of Japan, 22(4), 1101-1109.
+    .. [3] Goldman, A. J., Cox, R. G., & Brenner, H. (1966). The slow motion of two identical
+           arbitrarily oriented spheres through a viscous fluid. Chemical Engineering Science,
+           21(12), 1151-1170.
+    .. [4] Stimson, M., & Jeffery, G. B. (1926). The motion of two spheres in a viscous fluid.
+           Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical
+           and Physical Character, 111(757), 110-116 (2007).
+    """
+    dx, dy = (np.atleast_1d(arr) for arr in (dx, dy))
+    radius = bead_diameter / 2
+    distances = np.sqrt(dx**2 + dy**2)
+
+    e_osc = np.array([0, 1]) if is_y_oscillation else np.array([1, 0])
+
+    # Calculate coupling factors for on and off-axis oscillation
+    coupling_factor_aligned = np.asarray(
+        [coupling_correction_factor_stimson(radius, radius, dist)[0] for dist in distances]
+    )
+    coupling_factor_perpendicular = np.asarray(
+        [coupling_correction_factor_goldmann(radius, dist, allow_rotation) for dist in distances]
+    )
+
+    # Unit vectors defining the principal oscillation axes
+    dir_aligned = np.vstack([dx, dy]) / distances
+    dir_perp = np.vstack([dy, -dx]) / distances
+
+    # Get velocity in axes relative to the bead's principal oscillation axes
+    # and calculate the velocity in those directions
+    v_aligned = np.dot(dir_aligned.T, e_osc) * coupling_factor_aligned
+    v_perp = np.dot(dir_perp.T, e_osc) * coupling_factor_perpendicular
+
+    # Project back to regular axis
+    v_factor = v_aligned * np.dot(dir_aligned.T, e_osc) + v_perp * np.dot(dir_perp.T, e_osc)
+
+    return v_factor.squeeze()
 
 
 @dataclass
