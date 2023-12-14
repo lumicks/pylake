@@ -299,11 +299,21 @@ def coupling_correction_factor_stimson(
 
     for n in np.arange(1, max_summands + 1):
         k = calculate_k(n, a)
-        delta = calculate_delta(n, alpha, beta)
-        an = calculate_an(n, k, alpha, beta, delta)
-        bn = calculate_bn(n, k, alpha, beta, delta)
-        cn = calculate_cn(n, k, alpha, beta, delta)
-        dn = calculate_dn(n, k, alpha, beta, delta)
+
+        # When summing for beads that are very close, the sinh and cosh functions can result in overflows for the
+        # delta constant, which forms denominator of an, bn, cn and dn. The limit of those coefficients in that case
+        # is zero, so we can safely silence this error and simply check whether delta is infinite (in which case
+        # we set the coefficients to zero).
+        with np.errstate(over="ignore"):
+            delta = calculate_delta(n, alpha, beta)
+
+        if np.isfinite(delta):
+            an = calculate_an(n, k, alpha, beta, delta)
+            bn = calculate_bn(n, k, alpha, beta, delta)
+            cn = calculate_cn(n, k, alpha, beta, delta)
+            dn = calculate_dn(n, k, alpha, beta, delta)
+        else:
+            an, bn, cn, dn = 0, 0, 0, 0
 
         d_coupling1 = (2 * n + 1) * (an + bn + cn + dn)
         d_coupling2 = (2 * n + 1) * (an - bn + cn - dn)
