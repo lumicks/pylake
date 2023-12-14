@@ -1,5 +1,6 @@
 import pytest
 
+from lumicks.pylake.force_calibration.calibration_models import coupling_correction_2d
 from lumicks.pylake.force_calibration.detail.drag_models import *
 
 
@@ -128,4 +129,35 @@ def test_coupling_factors(distance, radius1, radius2, ref_factor1, ref_factor2):
 )
 def test_coupling_factors(distance, radius, allow_rotation, ref_factor):
     factor = coupling_correction_factor_goldmann(radius, distance, allow_rotation=allow_rotation)
+    np.testing.assert_allclose(factor, ref_factor)
+
+
+@pytest.mark.parametrize(
+    "dx, dy, radius, allow_rotation, ref_factor, vertical",
+    [
+        # First we test the same cases as above (consistency check)
+        [0.0, 3.0e-6, 0.5e-6, True, 0.8870592515374689, False],
+        [0.0, 6.0e-6, 0.5e-6, False, 0.9409521069093458, False],
+        [0.0, 1.0, 1.0e-6, True, 0.9999992500005626, False],
+        [3.0e-6, 0.0, 0.5e-6, True, 0.8870592515374689, True],
+        [6.0e-6, 0.0, 0.5e-6, False, 0.9409521069093458, True],
+        [1.0, 0.0, 1.0e-6, True, 0.9999992500005626, True],
+        [3.0e-6, 0.0e-6, 0.5e-6, True, 0.8047217606696428, False],
+        [0.0, 3.0e-6, 0.5e-6, True, 0.8047217606696428, True],
+        # When the beads are diagonal, it doesn't matter whether we oscillate vertically or
+        # horizontally.
+        [3.0e-6, 3.0e-6, 0.5e-6, True, 0.8847851093315549, True],
+        [-3.0e-6, -3.0e-6, 0.5e-6, True, 0.8847851093315549, True],
+        [3.0e-6, -3.0e-6, 0.5e-6, True, 0.8847851093315549, True],
+        [3.0e-6, 3.0e-6, 0.5e-6, True, 0.8847851093315549, True],
+        [3.0e-6, 3.0e-6, 0.5e-6, True, 0.8847851093315549, False],
+        [-3.0e-6, -3.0e-6, 0.5e-6, True, 0.8847851093315549, False],
+        [3.0e-6, -3.0e-6, 0.5e-6, True, 0.8847851093315549, False],
+        [3.0e-6, 3.0e-6, 0.5e-6, True, 0.8847851093315549, False],
+    ],
+)
+def test_2d_coupling_factors(dx, dy, radius, allow_rotation, ref_factor, vertical):
+    factor = coupling_correction_2d(
+        dx, dy, bead_diameter=2 * radius, allow_rotation=allow_rotation, is_y_oscillation=vertical
+    )
     np.testing.assert_allclose(factor, ref_factor)
