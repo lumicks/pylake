@@ -1,4 +1,5 @@
 import os
+import uuid
 import itertools
 import mimetypes
 import posixpath
@@ -7,9 +8,13 @@ from base64 import b64encode
 import nbformat
 from sphinx import roles, addnodes
 from docutils import nodes, writers
+from nbclient.exceptions import CellExecutionError
 from docutils.parsers.rst import directives
 from nbconvert.preprocessors import ExecutePreprocessor
-from nbconvert.preprocessors.execute import CellExecutionError
+
+
+def _cell_uuid():
+    return uuid.uuid4().hex[:8]
 
 
 def _finalize_markdown_cells(nb):
@@ -92,7 +97,14 @@ class NBTranslator(nodes.NodeVisitor):
     def write_markdown(self, text):
         if self.nb.cells[-1].cell_type != "markdown":
             self.nb.cells.append(
-                nbformat.from_dict({"cell_type": "markdown", "metadata": {}, "source": []})
+                nbformat.from_dict(
+                    {
+                        "cell_type": "markdown",
+                        "metadata": {},
+                        "source": [],
+                        "id": _cell_uuid(),
+                    }
+                )
             )
 
         self.nb.cells[-1].source.append(text.replace("\n", "\n" + " " * self.indent))
@@ -117,6 +129,7 @@ class NBTranslator(nodes.NodeVisitor):
                     "metadata": {},
                     "source": code.strip(),
                     "outputs": [],
+                    "id": _cell_uuid(),
                 }
             )
         )
