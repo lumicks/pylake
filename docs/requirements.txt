@@ -1,5 +1,6 @@
 sphinx_lfs_content==1.0.0
 matplotlib
+nbclient>=0.5.0
 nbconvert
 nbformat
 numpy
