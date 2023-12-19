@@ -2,3 +2,4 @@ include license.md readme.md
 global-include *.npz
 global-include *.gb
 global-include *.csv
+global-include *.tiff

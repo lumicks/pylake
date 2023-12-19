@@ -1174,3 +1174,33 @@ def test_integration_test_to_kymo(
     )
     np.testing.assert_allclose(np.max(kymo.get_image("red")), 5 * (1 + 2 * half_window))
     np.testing.assert_equal(kymo.pixelsize_um[0], pixel_size)
+
+
+@pytest.mark.filterwarnings(
+    r"ignore:File does not contain alignment matrices. Only raw data is available"
+)
+@pytest.mark.parametrize("include_dead_time", [True, False])
+def test_legacy_exposure_handling(tmpdir_factory, reference_data, include_dead_time):
+    """For confocal Scans exported with Pylake `<v1.3.2` timestamps contained the start and end time
+    of the exposure, rather than the full frame. This behaviour was inconsistent with Bluelake and
+    therefore changed. This test makes sure that such old files produce correct frame times in
+    Pylake."""
+    im = ImageStack(Path(__file__).parent / "data/tiff_from_scan_v1_3_1.tiff")
+    assert im._src._description._legacy_exposure is True
+    ts_ranges = im.frame_timestamp_ranges(include_dead_time=include_dead_time)
+    np.testing.assert_equal(ts_ranges, reference_data(ts_ranges, test_name="dead_time"))
+
+    # Save it again
+    tmpdir = tmpdir_factory.mktemp("legacy_exposures")
+    tmp_file = tmpdir.join(f"include_dead_time={include_dead_time}.tiff")
+    im.export_tiff(tmp_file)
+    im._src.close()
+
+    # Test whether the round trip results in valid results
+    im2 = ImageStack(tmp_file)
+    ts_ranges2 = im2.frame_timestamp_ranges(include_dead_time=include_dead_time)
+    np.testing.assert_equal(ts_ranges2, ts_ranges)
+
+    # Verify that this migrated the file, and we are no longer using legacy reading for this
+    assert im2._src._description._legacy_exposure is False
+    im2._src.close()

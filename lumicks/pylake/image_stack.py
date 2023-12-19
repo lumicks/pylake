@@ -10,7 +10,7 @@ from .kymo import Kymo, _kymo_from_image_stack
 from .adjustments import no_adjustment
 from .detail.image import make_image_title
 from .detail.plotting import get_axes, show_image
-from .detail.widefield import TiffStack
+from .detail.widefield import TiffStack, _frame_timestamps_from_exposure_timestamps
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 
 
@@ -639,7 +639,12 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             Include dead time between frames.
         """
         if include_dead_time:
-            return [frame.frame_timestamp_range for frame in self]
+            ts_ranges = [frame.frame_timestamp_range for frame in self]
+
+            if self._src._description._legacy_exposure:
+                return _frame_timestamps_from_exposure_timestamps(ts_ranges)
+
+            return ts_ranges
 
         frame_timestamps = [frame.exposure_timestamp_range for frame in self]
         if len(np.unique(np.diff(np.asarray(frame_timestamps), 1))) != 1:
