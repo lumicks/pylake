@@ -376,6 +376,9 @@ class ImageDescription:
         if self.width != other.width or self.height != other.height:
             raise ValueError("Cannot mix differently sized tiffs into a single stack.")
 
+        if self._legacy_exposure != other._legacy_exposure:
+            raise ValueError("Cannot mix tiffs exported before and after Pylake v1.3.2.")
+
         # We only allow merging stacks with the exact same alignment settings
         if self._alignment_matrices or other._alignment_matrices:
             if self._alignment.do_alignment != other._alignment.do_alignment:
@@ -396,6 +399,10 @@ class ImageDescription:
                         "Alignment matrices must be the same for stacks to be merged. The "
                         f"alignment matrix for channel {channel} is different."
                     )
+
+    @property
+    def _legacy_exposure(self):
+        return "Pylake" in self.software and "Exposure time (ms)" not in self.json
 
     @property
     def alignment_roi(self):
@@ -669,3 +676,29 @@ class Tether:
         """Tether end points in the processed image coordinate system."""
         rotated_ends = self.rot_matrix.warp_coordinates(self._ends)
         return self.offsets.invert().warp_coordinates(rotated_ends)
+
+
+def _frame_timestamps_from_exposure_timestamps(ts_ranges):
+    """Generate frame timestamp ranges from confocal scans exported with legacy Pylake metadata
+    format.
+
+    For confocal Scans exported with Pylake `<v1.3.2` timestamps contained the start and end time
+    of the exposure, rather than the full frame. This behavior was inconsistent with Bluelake
+    and therefore changed. To be able to load files generated in this way, we need to be able
+    to reconstruct timestamps using only the start timestamp of each frame
+
+    Parameters
+    ----------
+    ts_ranges : list of tuple
+        Modern timestamp ranges in nanoseconds given by a list of tuples according to the format
+        (start of frame, start of next frame).
+    """
+    frame_ts = [(leading[0], trailing[0]) for leading, trailing in zip(ts_ranges, ts_ranges[1:])]
+    if len(ts_ranges) >= 2:
+        dt = ts_ranges[-1][0] - ts_ranges[-2][0]
+        stop = ts_ranges[-1][0] + dt
+    else:
+        stop = ts_ranges[-1][1]
+    frame_ts.append((ts_ranges[-1][0], stop))
+
+    return frame_ts
