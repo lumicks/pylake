@@ -484,6 +484,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         adjustment=no_adjustment,
         *,
         vertical=False,
+        include_dead_time=False,
         return_frame_setter=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
@@ -513,10 +514,12 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             figure.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-        vertical : bool
-            Align plots vertically.
-        return_frame_setter : bool
-            Whether to return a handle that allows updating the plotted frame.
+        vertical : bool, optional
+            Align plots vertically, default: False.
+        include_dead_time : bool, optional
+            Include dead time between frames, default: False.
+        return_frame_setter : bool, optional
+            Whether to return a handle that allows updating the plotted frame, default: False.
 
         Note
         ----
@@ -543,7 +546,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
 
         frame_setter = plot_correlated(
             channel_slice=channel_slice,
-            frame_timestamps=self.frame_timestamp_ranges(),
+            frame_timestamps=self.frame_timestamp_ranges(include_dead_time=include_dead_time),
             get_plot_data=frame_grabber,
             title_factory=lambda frame: make_image_title(self, frame, show_name=False),
             frame=frame,
