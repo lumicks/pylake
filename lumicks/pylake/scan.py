@@ -294,6 +294,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         adjustment=no_adjustment,
         *,
         vertical=False,
+        include_dead_time=False,
         return_frame_setter=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
@@ -324,9 +325,11 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             figure.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-        vertical : bool
+        vertical : bool, optional
             Align plots vertically.
-        return_frame_setter : bool
+        include_dead_time : bool, optional
+            Include dead time between scan frames.
+        return_frame_setter : bool, optional
             Whether to return a handle that allows updating the plotted frame.
 
         Examples
@@ -353,7 +356,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         def title_factory(frame):
             return make_image_title(self, frame, show_name=False)
 
-        frame_timestamps = self.frame_timestamp_ranges()
+        frame_timestamps = self.frame_timestamp_ranges(include_dead_time=include_dead_time)
 
         frame_setter = plot_correlated(
             channel_slice,
