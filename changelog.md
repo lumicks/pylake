@@ -2,6 +2,9 @@
 
 ## v1.5.0 | t.b.d.
 
+#### New features
+
+* Added model to correct for bead-bead coupling when using active calibration deep in bulk with two beads. See [`tutorial`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#active-calibration-with-two-beads-far-away-from-the-surface) and [`theory`](https://lumicks-pylake.readthedocs.io/en/latest/theory/force_calibration/active.html#bead-bead-coupling) for more information.
 * Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
 
 ## v1.4.0 | 2024-02-28
