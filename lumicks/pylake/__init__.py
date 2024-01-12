@@ -32,6 +32,7 @@ from .force_calibration.calibration_models import (
     PassiveCalibrationModel,
     density_of_water,
     viscosity_of_water,
+    coupling_correction_2d,
 )
 from .force_calibration.power_spectrum_calibration import (
     fit_power_spectrum,

@@ -4,6 +4,7 @@
 
 #### New features
 
+* Added model to correct for bead-bead coupling when using active calibration deep in bulk with two beads. See [`tutorial`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/force_calibration.html#active-calibration-with-two-beads-far-away-from-the-surface) and [`theory`](https://lumicks-pylake.readthedocs.io/en/latest/theory/force_calibration/active.html#bead-bead-coupling) for more information.
 * Added option to highlight a region on a time plot using [`Slice.highlight_time_range()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.highlight_time_range). For more information see the [`tutorial`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#highlight-time-range).
 * Added parameter `allow_overwrite` to [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi) to allow re-downloading only those files where the checksum does not match.
 * Added force calibration information to channels accessed directly via the square bracket notation (e.g. `file["Force HF"]["Force 1x"].calibration`).
