@@ -4,7 +4,9 @@ information on these topics.
 Force Calibration
 -----------------
 
-The passive force calibration method was based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2006power`.
+The passive force calibration method was based on a number of publications by the Flyvbjerg group :cite:`berg2004power,tolic2004matlab,hansen2006tweezercalib,berg2003unintended,berg2006power,norrelykke2010power`.
+Corrections for the drag coefficient of lateral and axial force when approaching the surface were based on :cite:`schaffer2007surface,brenner1961slow`.
+The active calibration method was based on :cite:`tolic2006calibration`. The corrections for dual trap calibration were based on work presented in :cite:`stimson1926motion,goldman1966slow` and numerically compared to simulations using the software :cite:`the_fenics_project_developers_2023_10432590`.
 
 F,d Fitting
 -----------
@@ -35,6 +37,7 @@ Diffusion constant estimation
 
 The unweighted ordinary least squares estimation method (including the optimal number of lag computation) is implemented from :cite:`michalet2012optimal`.
 The generalized least squares method was based on :cite:`bullerjahn2020optimal`
+The CVE method is based on :cite:`vestergaard2014optimal,vestergaard2015estimation,vestergaard2016optimizing`.
 
 References
 ----------
