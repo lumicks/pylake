@@ -61,7 +61,7 @@ class ClassicHmm:
         """
         data = Slice(Continuous(data, 0, 1))
         if gmm is None:
-            gmm = GaussianMixtureModel.from_channel(data, n_states)
+            gmm = GaussianMixtureModel(data, n_states)
         statepath = gmm.state_path(data).data
         A = normalize_rows(
             np.vstack(

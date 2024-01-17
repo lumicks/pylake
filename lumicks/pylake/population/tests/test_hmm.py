@@ -65,7 +65,7 @@ def test_initial_guess(trace_simple):
     model = HiddenMarkovModel(trace, n_states)
 
     # GMM initial guess
-    gmm_guess = GaussianMixtureModel.from_channel(trace, n_states)
+    gmm_guess = GaussianMixtureModel(trace, n_states)
     model = HiddenMarkovModel(trace, n_states, initial_guess=gmm_guess)
 
     # HMM initial guess
@@ -90,7 +90,7 @@ def test_initial_guess(trace_simple):
             f"expected {n_states} got {n_states + 1}."
         ),
     ):
-        bad_gmm_guess = GaussianMixtureModel.from_channel(trace, n_states + 1)
+        bad_gmm_guess = GaussianMixtureModel(trace, n_states + 1)
         model = HiddenMarkovModel(trace, n_states, initial_guess=bad_gmm_guess)
 
     with pytest.raises(

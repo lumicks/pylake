@@ -55,9 +55,10 @@ The weights :math:`\phi_i` give the fraction of time spent in each state with th
 standard deviations :math:`\sigma_i` indicate the average signal and noise for each state, respectively.
 
 The Pylake GMM implementation :class:`~lumicks.pylake.GaussianMixtureModel` is a wrapper around :class:`sklearn.mixture.GaussianMixture` with some
-added convenience methods and properties for working with C-Trap data. We can initialize a model from a force channel using :meth:`~lumicks.pylake.GaussianMixtureModel.from_channel`. Here we train a two-state model using only the first 20 seconds of the force data to speed up the calculation::
+added convenience methods and properties for working with C-Trap data.
+Here we train a two-state model using only the first 20 seconds of the force data to speed up the calculation::
 
-    gmm = lk.GaussianMixtureModel.from_channel(force["0s":"20s"], n_states=2)
+    gmm = lk.GaussianMixtureModel(force["0s":"20s"], n_states=2)
 
 We can inspect the parameters of the model with the :attr:`~lumicks.pylake.GaussianMixtureModel.weights`, :attr:`~lumicks.pylake.GaussianMixtureModel.means`,
 and :attr:`~lumicks.pylake.GaussianMixtureModel.std` properties. Note that, unlike the `scikit-learn` implementation, the states here are always ordered from
@@ -109,7 +110,7 @@ We can test this by training models on the same data downsampled by different fa
     for j, ds_factor in enumerate([10, 78, 350]):
         plt.subplot(3, 1, j+1)
         ds = raw_force["0s":"20s"].downsampled_by(ds_factor)
-        tmp_gmm = lk.GaussianMixtureModel.from_channel(ds, n_states=2)
+        tmp_gmm = lk.GaussianMixtureModel(ds, n_states=2)
         tmp_gmm.hist(ds)
         plt.xlim(8, 11)
         plt.title(f"downsampled by {ds_factor}")

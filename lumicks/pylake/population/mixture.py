@@ -40,7 +40,7 @@ class GaussianMixtureModel:
 
     Parameters
     ----------
-    data : numpy.ndarray
+    data : numpy.ndarray | Slice
         Data array used for model training.
     n_states : int
         The number of Gaussian components in the model.
@@ -55,8 +55,11 @@ class GaussianMixtureModel:
         The maximum number of iterations to perform.
     """
 
-    def __init__(self, data, n_states, init_method, n_init, tol, max_iter):
+    def __init__(self, data, n_states, init_method="kmeans", n_init=1, tol=1e-3, max_iter=100):
         from sklearn.mixture import GaussianMixture
+
+        if isinstance(data, Slice):
+            data = data.data
 
         self.n_states = n_states
         self._model = GaussianMixture(
@@ -78,27 +81,18 @@ class GaussianMixtureModel:
         )
 
     @classmethod
+    @deprecated(
+        reason=(
+            "This method has been deprecated and will be removed in a future version. You can now "
+            "use `Slice` instances to construct this class directly."
+        ),
+        action="always",
+        version="1.4.0",
+    )
     def from_channel(cls, slc, n_states, init_method="kmeans", n_init=1, tol=1e-3, max_iter=100):
-        """Initialize a model from channel data.
-
-        Parameters
-        ----------
-        slc : Slice
-            Channel data used for model training.
-        n_states : int
-            The number of Gaussian components in the model.
-        init_method : {'kmeans', 'random'}
-            - "kmeans" : parameters are initialized via k-means algorithm
-            - "random" : parameters are initialized randomly
-        n_init : int
-            The number of initializations to perform.
-        tol : float
-            The tolerance for training convergence.
-        max_iter : int
-            The maximum number of iterations to perform.
-        """
+        """Initialize a model from channel data."""
         return cls(
-            slc.data, n_states, init_method=init_method, n_init=n_init, tol=tol, max_iter=max_iter
+            slc, n_states, init_method=init_method, n_init=n_init, tol=tol, max_iter=max_iter
         )
 
     @property

@@ -6,24 +6,32 @@ from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.population.detail.fit_info import GmmFitInfo
 
 
+def make_channel(data, labels=None):
+    return Slice(
+        Continuous(data, np.int64(20e9), np.int64(1 / 78125 * 1e9)),
+        labels={} if labels is None else labels,
+    )
+
+
 def test_gmm(trace_lownoise):
     data, statepath, params = trace_lownoise
-    m = GaussianMixtureModel(
-        data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
-    )
-    weights = np.array([np.sum(statepath == j) for j in np.arange(params["n_states"])])
-    weights = weights / weights.sum()
+    for data in (data, make_channel(data)):
+        m = GaussianMixtureModel(data, params["n_states"])
+        weights = np.array([np.sum(statepath == j) for j in np.arange(params["n_states"])])
+        weights = weights / weights.sum()
 
-    np.testing.assert_allclose(m.means, params["means"], atol=0.05)
-    np.testing.assert_allclose(m.std, params["st_devs"], atol=0.02)
-    np.testing.assert_allclose(m.weights, weights)
+        np.testing.assert_allclose(m.means, params["means"], atol=0.05)
+        np.testing.assert_allclose(m.std, params["st_devs"], atol=0.02)
+        np.testing.assert_allclose(m.weights, weights)
 
 
 def test_gmm_from_slice(trace_simple):
     data, _, params = trace_simple
-    trace = Slice(Continuous(data, 20000, 12800))
-    m = GaussianMixtureModel.from_channel(trace, params["n_states"])
-    np.testing.assert_allclose(m.means, params["means"], atol=0.05)
+    trace = make_channel(data)
+
+    with pytest.warns(DeprecationWarning):
+        m = GaussianMixtureModel.from_channel(trace, params["n_states"])
+        np.testing.assert_allclose(m.means, params["means"], atol=0.05)
 
 
 def test_labels(trace_simple):
@@ -32,13 +40,13 @@ def test_labels(trace_simple):
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
     with pytest.warns(DeprecationWarning):
-        labels = m.label(Slice(Continuous(data, 20000, 12800)))
+        labels = m.label(make_channel(data))
         np.testing.assert_equal(labels, statepath)
 
 
 def test_state_path(trace_simple):
     data, ref_statepath, params = trace_simple
-    trace = Slice(Continuous(data, 20000, 12800), labels={"title": "mock", "y": "Force (pN)"})
+    trace = make_channel(data, labels={"title": "mock", "y": "Force (pN)"})
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
@@ -60,7 +68,7 @@ def test_dwelltimes(trace_simple):
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
 
-    channel = Slice(Continuous(data, 20000, 12800))
+    channel = make_channel(data)
 
     dwell_times = m.extract_dwell_times(channel, exclude_ambiguous_dwells=False)
     np.testing.assert_allclose(dwell_times[0], [3.200e-04, 2.432e-04, 5.120e-05])
@@ -128,7 +136,7 @@ def test_gmm_plots(trace_simple):
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
-    trace = Slice(Continuous(data, 20000, 12800))
+    trace = make_channel(data)
 
     m.hist(trace)
     plt.close()
