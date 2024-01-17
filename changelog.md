@@ -8,7 +8,10 @@
 
 #### Deprecations
 
-* Deprecated `GaussianMixtureModel.label()`. Use [`GaussianMixtureModel.state_path()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.state_path) instead. Note, the returned instance is type `Slice` rather than `np.ndarray`.
+* Deprecated `GaussianMixtureModel.from_channel()`. The class constructor now accepts `Slice` instances directly.
+* Deprecated `GaussianMixtureModel.label()`. Use [`GaussianMixtureModel.state_path()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.state_path) instead. Note, the returned instance is type `Slice` rather than `np.ndarray`. The data can be accessed via `model.state_path(channel_slice).data`.
+* Deprecated `GaussianMixtureModel.exit_flag` Use [`GaussianMixtureModel.fit_info()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.fit_info) instead. Note, the returned instance is a `GmmFitInfo` dataclass with attributes matching the keys of the `dict` returned from `exit_flag` (along with `bic` and `aic`; see next point).
+* Deprecated `GaussianMixtureModel.bic` and `GaussianMixtureModel.aic` properties. These values can now be accessed via the `bic` and `aic` properties of `GaussianMixtureModel.fit_info`.
 
 ## v1.3.2 | t.b.d.
 
