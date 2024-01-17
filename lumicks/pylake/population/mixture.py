@@ -1,6 +1,8 @@
 import numpy as np
 import scipy
+from deprecated.sphinx import deprecated
 
+from ..channel import Slice
 from .dwelltime import _dwellcounts_from_statepath
 
 
@@ -129,6 +131,14 @@ class GaussianMixtureModel:
         """Model state standard deviations."""
         return np.sqrt(self.variances)
 
+    @deprecated(
+        reason=(
+            "This method has been replaced with `GaussianMixtureModel.path()` and will be removed "
+            "in a future release."
+        ),
+        action="always",
+        version="1.4.0",
+    )
     def label(self, trace):
         """Label channel data as states.
 
@@ -137,10 +147,29 @@ class GaussianMixtureModel:
         trace : Slice
             Channel data to label.
         """
-        data = trace.data.reshape((-1, 1))
-        labels = self._model.predict(data)  # wrapped model labels
+        return self.state_path(trace).data
+
+    def state_path(self, trace):
+        """Calculate the state emission path for a given data trace.
+
+        Parameters
+        ----------
+        trace : Slice
+            Channel data to determine path.
+
+        Returns
+        -------
+        state_path : Slice
+            Estimated state path
+        """
+        labels = self._model.predict(trace.data.reshape((-1, 1)))  # wrapped model labels
         output_states = np.argsort(self._map)  # output model state labels in wrapped model order
-        return output_states[labels]  # output model labels
+        state_path = output_states[labels]  # output model labels
+
+        src = trace._src._with_data(state_path)
+        labels = trace.labels.copy()
+        labels["y"] = "state"
+        return Slice(src, labels=labels)
 
     def extract_dwell_times(self, trace, *, exclude_ambiguous_dwells=True):
         """Calculate lists of dwelltimes for each state in a time-ordered statepath array.
@@ -159,11 +188,11 @@ class GaussianMixtureModel:
         dict:
             Dictionary of all dwell times (in seconds) for each state. Keys are state labels.
         """
-        statepath = self.label(trace)
-        dt_seconds = 1.0 / trace.sample_rate
+        statepath = self.state_path(trace)
+        dt_seconds = 1.0 / statepath.sample_rate
 
         dwell_counts, _ = _dwellcounts_from_statepath(
-            statepath, exclude_ambiguous_dwells=exclude_ambiguous_dwells
+            statepath.data, exclude_ambiguous_dwells=exclude_ambiguous_dwells
         )
         dwell_times = {key: counts * dt_seconds for key, counts in dwell_counts.items()}
         return dwell_times
@@ -259,8 +288,8 @@ class GaussianMixtureModel:
         trace_kwargs = {"c": "#c5c5c5", **(trace_kwargs or {})}
         label_kwargs = {"marker": "o", "ls": "none", "ms": 3, **(label_kwargs or {})}
 
-        labels = self.label(trace)
+        state_path = self.state_path(trace)
         trace.plot(**trace_kwargs)
         for k in range(self.n_states):
-            ix = np.argwhere(labels == k)
+            ix = np.argwhere(state_path.data == k)
             plt.plot(trace.seconds[ix], trace.data[ix], **label_kwargs)

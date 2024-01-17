@@ -6,6 +6,9 @@
 
 * Added [`lk.HiddenMarkovModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.HiddenMarkovModel.html#lumicks.pylake.HiddenMarkovModel) for classifying data traces exhibiting transitions between discrete states. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#hidden-markov-models).
 
+#### Deprecations
+
+* Deprecated `GaussianMixtureModel.label()`. Use [`GaussianMixtureModel.state_path()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.state_path) instead. Note, the returned instance is type `Slice` rather than `np.ndarray`.
 
 ## v1.3.2 | t.b.d.
 
@@ -37,7 +40,7 @@
 * Fixed a bug in [`Scan.plot()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.plot) in which the default aspect ratio was calculated such that pixels always appeared square. For scans with non-square pixel sizes, this would result in distortion of the image.
 * Fixed a bug in [`Slice.downsampled_like`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.downsampled_like) that would fail to raise an error due to a lack of overlap between the low frequency and high frequency channel when the high frequency channel starts within the last sample of the low frequency channel.
 * Fixed [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi) to align with new Zenodo REST API.
-* Don't store animation writer in a temporary variable as this results in a `matplotlib` error when attempting to export a movie on jupyter notebook. 
+* Don't store animation writer in a temporary variable as this results in a `matplotlib` error when attempting to export a movie on jupyter notebook.
 
 #### Improvements
 

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
@@ -29,8 +30,27 @@ def test_labels(trace_simple):
     m = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
-    labels = m.label(Slice(Continuous(data, 20000, 12800)))
-    np.testing.assert_equal(labels, statepath)
+    with pytest.warns(DeprecationWarning):
+        labels = m.label(Slice(Continuous(data, 20000, 12800)))
+        np.testing.assert_equal(labels, statepath)
+
+
+def test_state_path(trace_simple):
+    data, ref_statepath, params = trace_simple
+    trace = Slice(Continuous(data, 20000, 12800), labels={"title": "mock", "y": "Force (pN)"})
+    m = GaussianMixtureModel(
+        data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
+    )
+
+    statepath = m.state_path(trace)
+    np.testing.assert_equal(statepath.data, ref_statepath)
+
+    np.testing.assert_equal(trace.data, data)
+
+    assert statepath.labels["y"] == "state"
+    assert trace.labels["y"] == "Force (pN)"
+    assert statepath.labels["title"] == "mock"
+    assert trace.labels["title"] == "mock"
 
 
 def test_dwelltimes(trace_simple):
