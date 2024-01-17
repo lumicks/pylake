@@ -4,6 +4,7 @@ from .mixture import GaussianMixtureModel
 from ..channel import Slice
 from .dwelltime import _dwellcounts_from_statepath
 from .detail.hmm import ClassicHmm, viterbi, baum_welch
+from .detail.fit_info import HmmFitInfo
 from .detail.validators import col
 
 
@@ -66,23 +67,17 @@ class HiddenMarkovModel:
         self._model, self._fit_info = baum_welch(data, initial_guess, tol=tol, max_iter=max_iter)
 
     @property
-    def fit_info(self):
-        """Information about the model training exit conditions.
-
-        Returns
-        -------
-        HmmFitInfo
-            Fitting information for the model.
-        """
+    def fit_info(self) -> HmmFitInfo:
+        """Information about the model training exit conditions."""
         return self._fit_info
 
     @property
-    def initial_state_probability(self):
+    def initial_state_probability(self) -> np.ndarray:
         """Model initial state probability."""
         return self._model.pi
 
     @property
-    def transition_matrix(self):
+    def transition_matrix(self) -> np.ndarray:
         """Model state transition matrix.
 
         Element `i, j` gives the probability of transitioning from state `i` at time point `t`
@@ -91,17 +86,17 @@ class HiddenMarkovModel:
         return self._model.A
 
     @property
-    def means(self):
+    def means(self) -> np.ndarray:
         """Model state means."""
         return self._model.mu
 
     @property
-    def variances(self):
+    def variances(self) -> np.ndarray:
         """Model state variances."""
         return 1 / self._model.tau
 
     @property
-    def std(self):
+    def std(self) -> np.ndarray:
         """Model state standard deviations."""
         return np.sqrt(self.variances)
 

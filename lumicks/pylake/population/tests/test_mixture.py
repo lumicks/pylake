@@ -3,6 +3,7 @@ import pytest
 
 from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.population.detail.fit_info import GmmFitInfo
 
 
 def test_gmm(trace_lownoise):
@@ -76,8 +77,11 @@ def test_information_criteria(trace_simple):
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
 
-    np.testing.assert_allclose(m.bic, -20.04115465)
-    np.testing.assert_allclose(m.aic, -33.06700559)
+    with pytest.warns(DeprecationWarning):
+        np.testing.assert_allclose(m.bic, -20.04115465)
+
+    with pytest.warns(DeprecationWarning):
+        np.testing.assert_allclose(m.aic, -33.06700559)
 
 
 def test_exit_flag(trace_simple):
@@ -86,10 +90,25 @@ def test_exit_flag(trace_simple):
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
 
-    ef = m.exit_flag
-    assert ef["converged"] == True
-    assert ef["n_iter"] == 2
-    np.testing.assert_allclose(ef["lower_bound"], 0.215335, rtol=1e-5)
+    with pytest.warns(DeprecationWarning):
+        ef = m.exit_flag
+        assert ef["converged"] == True
+        assert ef["n_iter"] == 2
+        np.testing.assert_allclose(ef["lower_bound"], 0.215335, rtol=1e-5)
+
+
+def test_fit_info(trace_simple):
+    data, _, params = trace_simple
+    model = GaussianMixtureModel(
+        data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
+    )
+
+    assert isinstance(model.fit_info, GmmFitInfo)
+    assert model.fit_info.converged
+    assert model.fit_info.n_iter == 2
+    np.testing.assert_allclose(model.fit_info.bic, -20.04115465)
+    np.testing.assert_allclose(model.fit_info.aic, -33.06700559)
+    np.testing.assert_allclose(model.fit_info.lower_bound, 0.215335, rtol=1e-5)
 
 
 def test_pdf(trace_simple):

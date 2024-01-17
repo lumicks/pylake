@@ -4,6 +4,7 @@ from deprecated.sphinx import deprecated
 
 from ..channel import Slice
 from .dwelltime import _dwellcounts_from_statepath
+from .detail.fit_info import GmmFitInfo
 
 
 def as_sorted(fcn):
@@ -67,8 +68,14 @@ class GaussianMixtureModel:
         )
         data = np.reshape(data, (-1, 1))
         self._model.fit(data)
-        self._bic = self._model.bic(data)
-        self._aic = self._model.aic(data)
+
+        self._fit_info = GmmFitInfo(
+            self._model.converged_,
+            self._model.n_iter_,
+            self._model.bic(data),
+            self._model.aic(data),
+            self._model.lower_bound_,
+        )
 
     @classmethod
     def from_channel(cls, slc, n_states, init_method="kmeans", n_init=1, tol=1e-3, max_iter=100):
@@ -95,13 +102,26 @@ class GaussianMixtureModel:
         )
 
     @property
+    @deprecated(
+        reason=(
+            "This property has been replaced with `GaussianMixtureModel.fit_info` and will be removed "
+            "in a future release."
+        ),
+        action="always",
+        version="1.4.0",
+    )
     def exit_flag(self) -> dict:
         """Model optimization information."""
         return {
-            "converged": self._model.converged_,
-            "n_iter": self._model.n_iter_,
-            "lower_bound": self._model.lower_bound_,
+            "converged": self.fit_info.converged,
+            "n_iter": self.fit_info.n_iter,
+            "lower_bound": self.fit_info.lower_bound,
         }
+
+    @property
+    def fit_info(self) -> GmmFitInfo:
+        """Information about the model training exit conditions."""
+        return self._fit_info
 
     @property
     def _map(self) -> np.ndarray:
@@ -133,8 +153,8 @@ class GaussianMixtureModel:
 
     @deprecated(
         reason=(
-            "This method has been replaced with `GaussianMixtureModel.path()` and will be removed "
-            "in a future release."
+            "This method has been replaced with `GaussianMixtureModel.state_path()` and will be "
+            "removed in a future release."
         ),
         action="always",
         version="1.4.0",
@@ -198,28 +218,30 @@ class GaussianMixtureModel:
         return dwell_times
 
     @property
+    @deprecated(
+        reason=(
+            "This property has been deprecated and will be removed in a future version. Use "
+            "`GaussianMixtureModel.fit_info.bic` instead."
+        ),
+        action="always",
+        version="1.4.0",
+    )
     def bic(self) -> float:
-        r"""Calculates the Bayesian Information Criterion:
-
-        .. math::
-            BIC = k \ln{(n)} - 2 \ln{(L)}
-
-        Where k refers to the number of parameters, n to the number of observations (or data points)
-        and L to the maximized value of the likelihood function
-        """
-        return self._bic
+        r"""Calculates the Bayesian Information Criterion:"""
+        return self.fit_info.bic
 
     @property
+    @deprecated(
+        reason=(
+            "This method has been deprecated and will be removed in a future version. Use "
+            "`GaussianMixtureModel.fit_info.aic` instead."
+        ),
+        action="always",
+        version="1.4.0",
+    )
     def aic(self) -> float:
-        r"""Calculates the Akaike Information Criterion:
-
-        .. math::
-            AIC = 2 k - 2 \ln{(L)}
-
-        Where k refers to the number of parameters, n to the number of observations (or data
-        points) and L to the maximized value of the likelihood function.
-        """
-        return self._aic
+        r"""Calculates the Akaike Information Criterion:"""
+        return self.fit_info.aic
 
     def pdf(self, x):
         """Calculate the Probability Distribution Function (PDF) given the independent data array `x`.
