@@ -1,0 +1,21 @@
+Pylake 1.4.0
+============
+
+.. only:: html
+
+Get a sneak peak at the new features coming in `v1.4.0`:
+
+Hidden Markov Models
+--------------------
+
+Hidden Markov Models (HMMs) are often used for analyzing data that shows transitions among discrete
+states. Now with just a few lines of code you can fit any channel data and view the results.
+If you're interested in kinetics, the model also generates data that can be used with
+:class:`~lumicks.pylake.DwelltimeModel` to extract state lifetimes.
+
+Check out the :ref:`hmm-section` tutorial and the
+:class:`~lumicks.pylake.HiddenMarkovModel` API page for more information.
+
+.. figure:: hmm_hairpin.png
+
+   HMM analysis of a tethered DNA hairpin held at three different bead separations.

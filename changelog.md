@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.4.0 | t.b.d.
+
+#### New features
+
+* Added [`lk.HiddenMarkovModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.HiddenMarkovModel.html#lumicks.pylake.HiddenMarkovModel) for classifying data traces exhibiting transitions between discrete states. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#hidden-markov-models).
+
+
 ## v1.3.2 | t.b.d.
 
 #### Bug fixes

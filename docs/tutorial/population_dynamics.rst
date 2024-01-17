@@ -126,6 +126,8 @@ two different states and do not arise from any (bio)physically relevant mechanis
 Furthermore, states with very short lifetimes can be averaged out of the data if the downsampling factor is too high. Therefore,
 in order to ensure robust results, it may be advisable to carry out the analysis at a few different downsampled rates.
 
+.. _hmm-section:
+
 Hidden Markov Models
 --------------------
 
