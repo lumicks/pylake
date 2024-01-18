@@ -400,6 +400,8 @@ However, if we do not provide the height above the surface, we can see that the 
     Consequently, when this model is selected, this parameter affects both passive and active calibration.
     For more information on this see the :doc:`theory section on force calibration</theory/force_calibration/force_calibration>` section.
 
+.. _bead_bead_tutorial:
+
 Active calibration with two beads far away from the surface
 -----------------------------------------------------------
 
