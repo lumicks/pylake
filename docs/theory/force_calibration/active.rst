@@ -92,6 +92,8 @@ We can also include a distance to the surface like before. This results in an ex
 coefficient :math:`\gamma` that depends on the distance to the surface which is given by the same
 equations as listed in the section on the :doc:`hydrodynamically correct model<hyco>`.
 
+.. _bead_bead_theory:
+
 Bead-bead coupling
 ------------------
 
