@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 
@@ -246,7 +248,9 @@ def calculate_dn(n, k, alpha, beta, delta):
     return mul * (term1 + term2 + term3) / delta
 
 
-def coupling_correction_factor_stimson(radius1, radius2, distance, *, summands=50):
+def coupling_correction_factor_stimson(
+    radius1, radius2, distance, *, max_summands=100000, tol=1e-10
+):
     r"""Calculate the bead correction factors.
 
     In the calibration of a dual-trap using active calibration, a bead is excited only by a reduced
@@ -271,8 +275,10 @@ def coupling_correction_factor_stimson(radius1, radius2, distance, *, summands=5
         Bead radii
     distance : float
         Distance between the bead centers
-    summands : int
-        How many summands to use. More leads to more accuracy.
+    max_summands : int
+        How many summands to use maximally. More leads to more accuracy.
+    tol : float
+        Termination tolerance (when to stop summing), lower leads to more accuracy.
 
     References
     ----------
@@ -288,9 +294,11 @@ def coupling_correction_factor_stimson(radius1, radius2, distance, *, summands=5
     # one we'd get in the absence of taking it into account.
     # pre_factor = - (1.0 / 3.0) * np.sqrt(2) / a
     pre_factor = -(1.0 / 3.0) * np.sqrt(2) / a
+    tol1 = tol / abs(pre_factor / radius1)
+    tol2 = tol / abs(pre_factor / radius2)
     coupling1, coupling2 = 0, 0
 
-    for n in np.arange(1, summands + 1):
+    for n in np.arange(1, max_summands + 1):
         k = calculate_k(n, a)
 
         # When summing for beads that are very close, the sinh and cosh functions can result in overflows for the
@@ -308,8 +316,20 @@ def coupling_correction_factor_stimson(radius1, radius2, distance, *, summands=5
         else:
             an, bn, cn, dn = 0, 0, 0, 0
 
-        coupling1 += (2 * n + 1) * (an + bn + cn + dn)
-        coupling2 += (2 * n + 1) * (an - bn + cn - dn)
+        d_coupling1 = (2 * n + 1) * (an + bn + cn + dn)
+        d_coupling2 = (2 * n + 1) * (an - bn + cn - dn)
+        coupling1 += d_coupling1
+        coupling2 += d_coupling2
+
+        # Converged?
+        if abs(d_coupling1) < tol1 and abs(d_coupling2) < tol2:
+            break
+    else:
+        warnings.warn(
+            RuntimeWarning(
+                "Warning, maximum summations exceeded. Coupling factor may be inaccurate"
+            )
+        )
 
     return pre_factor * coupling1 / radius1, pre_factor * coupling2 / radius2
 
