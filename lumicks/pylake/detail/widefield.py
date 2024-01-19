@@ -138,12 +138,39 @@ class TiffFrame:
         return start, stop
 
 
+class WrappedTiffFile:
+    """TIFF file wrapper that closes file upon garbage collection. The reason we can't put this behavior in ImageStack
+    or TiffStack itself is because TiffFiles are shared between instances of these."""
+
+    def __init__(self, file, *args, **kwargs):
+        self._src = tifffile.TiffFile(file, *args, **kwargs)
+        self._fn = self._src.filename
+
+    @property
+    def pages(self):
+        if not self._src:
+            raise IOError(
+                f"The file handle for this TiffStack ({self._fn}) has already been closed."
+            )
+
+        return self._src.pages
+
+    def close(self):
+        if self._src:
+            self._src.close()
+
+        self._src = None
+
+    def __del__(self):
+        self.close()
+
+
 class TiffStack:
     """TIFF images exported from Bluelake
 
     Parameters
     ----------
-    tiff_files : list of tifffile.TiffFile
+    tiff_files : list of WrappedTiffFile
         List of TIFF files recorded from a camera in Bluelake.
     align_requested : bool
         Whether color channel alignment is requested.
@@ -219,8 +246,9 @@ class TiffStack:
             Does the user request these images to be aligned?
         """
         file_names = image_files if isinstance(image_files, (list, tuple)) else [image_files]
+
         return TiffStack(
-            [tifffile.TiffFile(fn) for fn in file_names], align_requested=align_requested
+            [WrappedTiffFile(fn) for fn in file_names], align_requested=align_requested
         )
 
     def with_roi(self, roi):

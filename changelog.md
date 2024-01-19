@@ -9,6 +9,10 @@
 * Added option to [`File`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.File.html) to pass a custom mapping from Photon count detector to RGB colors colors. This is useful to reconstruct images on systems with non-standard imaging modules.
 * Added option to determine the viscosity and density of water with NaCl dissolved in it using `lk.viscosity_of_water()` and `lk.density_of_water()`.
 
+#### Improvements
+
+* `ImageStack` now closes any file handles it has open upon garbage collection.
+
 #### Deprecations
 
 * Deprecated `GaussianMixtureModel.from_channel()`. The class constructor now accepts `Slice` instances directly.
