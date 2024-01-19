@@ -1,5 +1,6 @@
 import re
 import json
+import weakref
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +30,6 @@ def to_tiff(image, description, bit_depth, start_time=1, num_images=2):
 def test_correlated_stack_deprecation(rgb_tiff_file):
     with pytest.warns(DeprecationWarning):
         cs = CorrelatedStack(str(rgb_tiff_file), align=True)
-        cs._src.close()
 
 
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
@@ -151,7 +151,6 @@ def test_stack_from_dataset():
 def test_stack_name_from_file(rgb_tiff_file):
     cs = ImageStack(str(rgb_tiff_file), align=True)
     assert cs.name == "rgb_single"
-    cs._src.close()
 
 
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
@@ -520,7 +519,6 @@ def test_cropping(rgb_tiff_file, gray_tiff_file):
                 stack._get_frame(0).raw_data[25:50, 25:50],
                 err_msg=f"failed on {Path(filename).name}, align={align}, frame.raw_data",
             )
-            stack._src.close()
 
 
 def test_cropping_then_export(
@@ -539,7 +537,6 @@ def test_cropping_then_export(
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
-        stack._src.close()
 
 
 def test_get_image():
@@ -1194,7 +1191,6 @@ def test_legacy_exposure_handling(tmpdir_factory, reference_data, include_dead_t
     tmpdir = tmpdir_factory.mktemp("legacy_exposures")
     tmp_file = tmpdir.join(f"include_dead_time={include_dead_time}.tiff")
     im.export_tiff(tmp_file)
-    im._src.close()
 
     # Test whether the round trip results in valid results
     im2 = ImageStack(tmp_file)
@@ -1203,4 +1199,36 @@ def test_legacy_exposure_handling(tmpdir_factory, reference_data, include_dead_t
 
     # Verify that this migrated the file, and we are no longer using legacy reading for this
     assert im2._src._description._legacy_exposure is False
-    im2._src.close()
+
+
+def test_tiffstack_automatic_cleanup(gray_tiff_file_multi):
+    im = TiffStack.from_file(gray_tiff_file_multi, False)
+    weakref_file = weakref.ref(im._tiff_files[0])
+    handle = im._tiff_files[0]._src.filehandle
+    assert not handle.closed
+    del im
+    assert handle.closed
+    assert not weakref_file()
+
+    im = TiffStack.from_file(gray_tiff_file_multi, False)
+    handle = im._tiff_files[0]._src.filehandle
+    im2 = im.with_roi((1, 3, 1, 3))
+    weakref_file = weakref.ref(im._tiff_files[0])
+    assert not handle.closed
+    del im
+    assert weakref_file()  # im2 should keep it alive
+    assert not handle.closed
+    del im2
+    assert handle.closed
+    assert not weakref_file()
+
+    im = TiffStack.from_file(gray_tiff_file_multi, False)
+    handle = im._tiff_files[0]._src.filehandle
+    assert not handle.closed
+    im.close()
+    assert handle.closed
+    with pytest.raises(
+        IOError,
+        match=r"The file handle for this TiffStack \(gray_multi.tiff\) has already been closed.",
+    ):
+        im.get_frame(0)

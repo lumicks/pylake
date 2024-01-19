@@ -16,7 +16,6 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
         stack = ImageStack(str(filename), align=align)
         stack.export_tiff(savename)
-        stack._src.close()
         assert stat(savename).st_size > 0
 
         with tifffile.TiffFile(str(filename)) as tif_in, tifffile.TiffFile(savename) as tif_out:
@@ -54,8 +53,6 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
-
-        stack._src.close()
 
 
 @pytest.mark.parametrize("vertical, correlated", [(False, False), (False, True), (True, True)])
@@ -99,5 +96,3 @@ def test_stack_movie_export(
             ),
         ):
             stack.export_video("gray", "dummy.gif")  # Gray is not a color!
-
-        stack._src.close()
