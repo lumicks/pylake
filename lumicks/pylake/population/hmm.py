@@ -2,13 +2,13 @@ import numpy as np
 
 from .mixture import GaussianMixtureModel
 from ..channel import Slice
-from .dwelltime import _dwellcounts_from_statepath
 from .detail.hmm import ClassicHmm, viterbi, baum_welch
+from .detail.mixin import TimeSeriesMixin
 from .detail.fit_info import HmmFitInfo
 from .detail.validators import col
 
 
-class HiddenMarkovModel:
+class HiddenMarkovModel(TimeSeriesMixin):
     """A Hidden Markov Model describing hidden state occupancy and state transitions of observed
     time series data (force, fluorescence, etc.)
 
@@ -100,119 +100,13 @@ class HiddenMarkovModel:
         """Model state standard deviations."""
         return np.sqrt(self.variances)
 
-    def state_path(self, trace):
-        """Calculate the state emission path for a given data trace.
+    def _calculate_state_path(self, trace):
+        return viterbi(trace.data, self._model)
 
-        Parameters
-        ----------
-        trace : Slice
-            Channel data to determine path.
-
-        Returns
-        -------
-        state_path : Slice
-            Estimated state path
-        """
-        state_path = viterbi(trace.data, self._model)
-        src = trace._src._with_data(state_path)
-        labels = trace.labels.copy()
-        labels["y"] = "state"
-        return Slice(src, labels=labels)
-
-    def emission_path(self, trace):
-        """Calculate the emission path for a given data trace.
-
-        Parameters
-        ----------
-        trace : Slice
-            Channel data to determine path.
-
-        Returns
-        -------
-        emission_path : Slice
-            Estimated emission path
-        """
-        emission_path = self.means[self.state_path(trace).data]
-        return Slice(trace._src._with_data(emission_path), labels=trace.labels.copy())
-
-    def extract_dwell_times(self, trace, *, exclude_ambiguous_dwells=True):
-        """Calculate lists of dwelltimes for each state in a time-ordered statepath array.
-
-        Parameters
-        ----------
-        trace : Slice
-            Channel data to be analyzed.
-        exclude_ambiguous_dwells : bool
-            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, the first
-            and last dwells are not used in the analysis, since the exact start/stop times of these events are
-            not definitively known.
-
-        Returns
-        -------
-        dict:
-            Dictionary of all dwell times (in seconds) for each state. Keys are state labels.
-        """
-        state_path = self.state_path(trace).data
-        dt_seconds = 1.0 / trace.sample_rate
-
-        dwell_counts, _ = _dwellcounts_from_statepath(
-            state_path, exclude_ambiguous_dwells=exclude_ambiguous_dwells
-        )
-        dwell_times = {key: counts * dt_seconds for key, counts in dwell_counts.items()}
-        return dwell_times
-
-    def hist(self, trace, n_bins=100, plot_kwargs=None, hist_kwargs=None):
-        """Plot a histogram of the data overlaid with the model PDF.
-
-        Parameters
-        ----------
-        trace : Slice
-            Data object to histogram.
-        n_bins : int
-            Number of histogram bins.
-        plot_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the PDF line plot.
-        hist_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the histogram plot.
-        """
-        import matplotlib.pyplot as plt
-
-        hist_kwargs = {"facecolor": "#c5c5c5", **(hist_kwargs or {})}
-
-        lims = (np.min(trace.data), np.max(trace.data))
-        bins = np.linspace(*lims, num=n_bins)
-        x = np.linspace(*lims, num=(n_bins * 5))
-
+    def _calculate_gaussian_components(self, x, trace):
         state_path = self.state_path(trace)
         fractions = col(
             [np.sum(state_path.data == j) / len(state_path) for j in np.unique(state_path.data)]
         )
         pdf = np.exp(self._model.state_log_likelihood(x))
-        g_components = pdf * fractions
-
-        plt.hist(trace.data, bins=bins, density=True, **hist_kwargs)
-        # reset color cycle
-        plt.gca().set_prop_cycle(None)
-        plt.plot(x, g_components.T, **(plot_kwargs or {}))
-        plt.ylabel("density")
-        plt.xlabel(trace.labels.get("y", "signal"))
-
-    def plot(self, trace, *, trace_kwargs=None, path_kwargs=None):
-        """Plot a time trace with each data point labeled with the state assignment.
-
-        Parameters
-        ----------
-        trace : Slice
-            Data object to histogram.
-        trace_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the data line plot.
-        path_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the state path line plot.
-        """
-
-        trace_kwargs = {"c": "#c5c5c5", **(trace_kwargs or {})}
-        path_kwargs = {"c": "tab:blue", "lw": 2, **(path_kwargs or {})}
-
-        trace.plot(**trace_kwargs)
-        emission_path = self.emission_path(trace)
-        emission_path.plot(**path_kwargs)
+        return pdf * fractions
