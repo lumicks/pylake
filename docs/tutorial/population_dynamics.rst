@@ -173,7 +173,7 @@ model. First, let's look at the probability distribution of the observed data::
 We can also inspect the temporal evolution of the fit::
 
     plt.figure()
-    hmm.plot(force["0s":"1s"])
+    hmm.plot_path(force["0s":"1s"])
     plt.show()
 
 .. image:: figures/population_dynamics/hmm_labeled_trace.png

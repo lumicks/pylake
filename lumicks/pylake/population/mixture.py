@@ -3,7 +3,7 @@ import scipy
 from deprecated.sphinx import deprecated
 
 from ..channel import Slice
-from .dwelltime import _dwellcounts_from_statepath
+from .detail.mixin import TimeSeriesMixin
 from .detail.fit_info import GmmFitInfo
 
 
@@ -23,7 +23,7 @@ def as_sorted(fcn):
     return wrapper
 
 
-class GaussianMixtureModel:
+class GaussianMixtureModel(TimeSeriesMixin):
     """A wrapper around :class:`sklearn.mixture.GaussianMixture`.
 
     This model accepts a 1D array as training data. *The state parameters are sorted according
@@ -163,53 +163,10 @@ class GaussianMixtureModel:
         """
         return self.state_path(trace).data
 
-    def state_path(self, trace):
-        """Calculate the state emission path for a given data trace.
-
-        Parameters
-        ----------
-        trace : Slice
-            Channel data to determine path.
-
-        Returns
-        -------
-        state_path : Slice
-            Estimated state path
-        """
+    def _calculate_state_path(self, trace):
         labels = self._model.predict(trace.data.reshape((-1, 1)))  # wrapped model labels
         output_states = np.argsort(self._map)  # output model state labels in wrapped model order
-        state_path = output_states[labels]  # output model labels
-
-        src = trace._src._with_data(state_path)
-        labels = trace.labels.copy()
-        labels["y"] = "state"
-        return Slice(src, labels=labels)
-
-    def extract_dwell_times(self, trace, *, exclude_ambiguous_dwells=True):
-        """Calculate lists of dwelltimes for each state in a time-ordered statepath array.
-
-        Parameters
-        ----------
-        trace : Slice
-            Channel data to be analyzed.
-        exclude_ambiguous_dwells : bool
-            Determines whether to exclude dwelltimes which are not exactly determined. If `True`, the first
-            and last dwells are not used in the analysis, since the exact start/stop times of these events are
-            not definitively known.
-
-        Returns
-        -------
-        dict:
-            Dictionary of all dwell times (in seconds) for each state. Keys are state labels.
-        """
-        statepath = self.state_path(trace)
-        dt_seconds = 1.0 / statepath.sample_rate
-
-        dwell_counts, _ = _dwellcounts_from_statepath(
-            statepath.data, exclude_ambiguous_dwells=exclude_ambiguous_dwells
-        )
-        dwell_times = {key: counts * dt_seconds for key, counts in dwell_counts.items()}
-        return dwell_times
+        return output_states[labels]  # output model labels
 
     @property
     @deprecated(
@@ -256,56 +213,5 @@ class GaussianMixtureModel:
         )
         return self.weights.reshape((-1, 1)) * components
 
-    def hist(self, trace, n_bins=100, plot_kwargs=None, hist_kwargs=None):
-        """Plot a histogram of the data overlaid with the model PDF.
-
-        Parameters
-        ----------
-        trace : Slice
-            Data object to histogram.
-        n_bins : int
-            Number of histogram bins.
-        plot_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the PDF line plot.
-        hist_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the histogram plot.
-        """
-        import matplotlib.pyplot as plt
-
-        hist_kwargs = {"facecolor": "#c5c5c5", **(hist_kwargs or {})}
-
-        lims = (np.min(trace.data), np.max(trace.data))
-        bins = np.linspace(*lims, num=n_bins)
-        x = np.linspace(*lims, num=(n_bins * 5))
-
-        g_components = self.pdf(x)
-
-        plt.hist(trace.data, bins=bins, density=True, **hist_kwargs)
-        # reset color cycle
-        plt.gca().set_prop_cycle(None)
-        plt.plot(x, g_components.T, **(plot_kwargs or {}))
-        plt.ylabel("density")
-        plt.xlabel(trace.labels.get("y", "signal"))
-
-    def plot(self, trace, trace_kwargs=None, label_kwargs=None):
-        """Plot a time trace with each data point labeled with the state assignment.
-
-        Parameters
-        ----------
-        trace : Slice
-            Data object to histogram.
-        trace_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the data line plot.
-        label_kwargs : Optional[dict]
-            Plotting keyword arguments passed to the state labels plot.
-        """
-        import matplotlib.pyplot as plt
-
-        trace_kwargs = {"c": "#c5c5c5", **(trace_kwargs or {})}
-        label_kwargs = {"marker": "o", "ls": "none", "ms": 3, **(label_kwargs or {})}
-
-        state_path = self.state_path(trace)
-        trace.plot(**trace_kwargs)
-        for k in range(self.n_states):
-            ix = np.argwhere(state_path.data == k)
-            plt.plot(trace.seconds[ix], trace.data[ix], **label_kwargs)
+    def _calculate_gaussian_components(self, x, trace):
+        return self.pdf(x)
