@@ -1232,3 +1232,19 @@ def test_tiffstack_automatic_cleanup(gray_tiff_file_multi):
         match=r"The file handle for this TiffStack \(gray_multi.tiff\) has already been closed.",
     ):
         im.get_frame(0)
+
+
+def test_imagestack_explicit_close(gray_tiff_file_multi):
+    im = ImageStack(gray_tiff_file_multi)
+    handle = im._src._tiff_files[0]._src.filehandle
+    derived_im = im.crop_by_pixels(1, 3, 1, 3)
+    assert not handle.closed
+    im.close()
+    assert handle.closed
+
+    for current_stack in (im, derived_im):
+        with pytest.raises(
+            IOError,
+            match=r"The file handle for this TiffStack \(gray_multi.tiff\) has already been closed.",
+        ):
+            current_stack.get_image("rgb")
