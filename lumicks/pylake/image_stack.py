@@ -663,6 +663,17 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
 
         return frame_timestamps
 
+    def close(self):
+        """Closes `ImageStack` file handle.
+
+        Note
+        ----
+        Attempting to access image data after closing the file handle will result in an `IOError` for both this
+        `ImageStack` and any `ImageStack` derived from it through e.g. `ImageStack.crop_by_pixels()` or
+        `ImageStack.define_tether()`
+        """
+        self._src.close()
+
 
 @deprecated(
     reason="`CorrelatedStack` has been renamed to `ImageStack` and will be removed in the next release.",

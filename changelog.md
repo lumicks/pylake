@@ -8,6 +8,7 @@
 * Added `emission_path()` and `plot_path()` methods to [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html)
 * Added option to [`File`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.File.html) to pass a custom mapping from Photon count detector to RGB colors colors. This is useful to reconstruct images on systems with non-standard imaging modules.
 * Added option to determine the viscosity and density of water with NaCl dissolved in it using `lk.viscosity_of_water()` and `lk.density_of_water()`.
+* Added `ImageStack.close()` to force close file handles. Note that this prohibits further access to images from the `ImageStack` it is called on, but also any `ImageStack` derived from it (i.e. through [`ImageStack.define_tether()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.define_tether) or [`ImageStack.crop_by_pixels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.crop_by_pixels)).
 
 #### Improvements
 
