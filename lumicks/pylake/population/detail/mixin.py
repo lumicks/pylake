@@ -1,10 +1,33 @@
+from dataclasses import dataclass
+
 import numpy as np
 
+from .fit_info import PopulationFitInfo
 from ...channel import Slice
 from ..dwelltime import _dwellcounts_from_statepath
 
 
 class TimeSeriesMixin:
+    @property
+    def fit_info(self) -> PopulationFitInfo:
+        """Information about the model training exit conditions."""
+        return self._fit_info
+
+    @property
+    def means(self) -> np.ndarray:
+        """Model state means."""
+        return self._model.mu
+
+    @property
+    def variances(self) -> np.ndarray:
+        """Model state variances."""
+        return 1 / self._model.tau
+
+    @property
+    def std(self) -> np.ndarray:
+        """Model state standard deviations."""
+        return np.sqrt(self.variances)
+
     def extract_dwell_times(self, trace, *, exclude_ambiguous_dwells=True):
         """Calculate lists of dwelltimes for each state in a time-ordered state path array.
 
@@ -151,3 +174,10 @@ class TimeSeriesMixin:
         path_kwargs = {"c": "tab:blue", "lw": 2, **(path_kwargs or {})}
         emission_path = self.emission_path(trace)
         emission_path.plot(**path_kwargs)
+
+
+@dataclass(frozen=True)
+class LatentVariableModel:
+    K: int
+    mu: np.ndarray
+    tau: np.ndarray

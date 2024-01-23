@@ -4,7 +4,6 @@ from .mixture import GaussianMixtureModel
 from ..channel import Slice
 from .detail.hmm import ClassicHmm, viterbi, baum_welch
 from .detail.mixin import TimeSeriesMixin
-from .detail.fit_info import PopulationFitInfo
 from .detail.validators import col
 
 
@@ -67,11 +66,6 @@ class HiddenMarkovModel(TimeSeriesMixin):
         self._model, self._fit_info = baum_welch(data, initial_guess, tol=tol, max_iter=max_iter)
 
     @property
-    def fit_info(self) -> PopulationFitInfo:
-        """Information about the model training exit conditions."""
-        return self._fit_info
-
-    @property
     def initial_state_probability(self) -> np.ndarray:
         """Model initial state probability."""
         return self._model.pi
@@ -84,21 +78,6 @@ class HiddenMarkovModel(TimeSeriesMixin):
         to state `j` at time point `t+1`.
         """
         return self._model.A
-
-    @property
-    def means(self) -> np.ndarray:
-        """Model state means."""
-        return self._model.mu
-
-    @property
-    def variances(self) -> np.ndarray:
-        """Model state variances."""
-        return 1 / self._model.tau
-
-    @property
-    def std(self) -> np.ndarray:
-        """Model state standard deviations."""
-        return np.sqrt(self.variances)
 
     def _calculate_state_path(self, trace):
         return viterbi(trace.data, self._model)
