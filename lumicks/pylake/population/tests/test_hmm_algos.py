@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from lumicks.pylake import HiddenMarkovModel, GaussianMixtureModel
+from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.population.detail.hmm import (
     ClassicHmm,
     viterbi,
@@ -118,20 +118,20 @@ def test_viterbi_with_zeros(trace_simple):
     data, _, params = trace_simple
     model = ClassicHmm(
         params["n_states"],
-        [1, 0],
-        normalize_rows(params["transition_prob"]),
         params["means"],
         params["st_devs"],
+        [1, 0],
+        normalize_rows(params["transition_prob"]),
     )
 
     viterbi(data, model)
 
     model = ClassicHmm(
         params["n_states"],
-        params["initial_state_prob"],
-        [[1, 0], [0.1, 0.9]],
         params["means"],
         params["st_devs"],
+        params["initial_state_prob"],
+        [[1, 0], [0.1, 0.9]],
     )
 
     viterbi(data, model)

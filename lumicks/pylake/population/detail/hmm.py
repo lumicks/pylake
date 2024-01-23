@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .mixin import LatentVariableModel
 from ..mixture import GaussianMixtureModel
 from .fit_info import PopulationFitInfo
 from ...channel import Slice, Continuous
@@ -23,28 +24,25 @@ def normalize_rows(matrix):
 
 
 @dataclass(frozen=True)
-class ClassicHmm:
+class ClassicHmm(LatentVariableModel):
     """Model parameters for classic Hidden Markov Model.
 
     Parameters
     ----------
     K : int
         number of states
-    pi : np.ndarray
-        initial state probabilities, shape [K, ]
-    A : np.ndarray
-        state transition probability matrix, shape [K, K]
     mu : np.ndarray
         state means, shape [K, ]
     tau : np.ndarray
         state precision (1 / variance), shape [K, ]
+    pi : np.ndarray
+        initial state probabilities, shape [K, ]
+    A : np.ndarray
+        state transition probability matrix, shape [K, K]
     """
 
-    K: int
     pi: np.ndarray
     A: np.ndarray
-    mu: np.ndarray
-    tau: np.ndarray
 
     @classmethod
     def guess(cls, data, n_states, gmm=None):
@@ -76,7 +74,7 @@ class ClassicHmm:
         )
         pi = np.ones(n_states) / n_states
 
-        return cls(n_states, pi, A, gmm.means, 1 / gmm.variances)
+        return cls(n_states, gmm.means, 1 / gmm.variances, pi, A)
 
     def state_log_likelihood(self, x):
         """Calculate the state likelihood of the observation data `x`. Work in log space to avoid
@@ -103,7 +101,7 @@ class ClassicHmm:
         x_bar = np.sum(gamma * col(data), axis=0) / gamma.sum(axis=0)  # Eq 53
         variance = np.sum(gamma * (col(data) - row(x_bar)) ** 2, axis=0) / gamma.sum(axis=0)  # Eq54
 
-        return ClassicHmm(self.K, pi, A, x_bar, 1 / variance)
+        return ClassicHmm(self.K, x_bar, 1 / variance, pi, A)
 
 
 def baum_welch(data, model, tol, max_iter):

@@ -1,26 +1,31 @@
+from dataclasses import dataclass
+
 import numpy as np
 import scipy
 from deprecated.sphinx import deprecated
 
 from ..channel import Slice
-from .detail.mixin import TimeSeriesMixin
+from .detail.mixin import TimeSeriesMixin, LatentVariableModel
 from .detail.fit_info import PopulationFitInfo
 
 
-def as_sorted(fcn):
-    """Decorator to return results sorted according to mapping array.
+@dataclass(frozen=True)
+class ClassicGmm(LatentVariableModel):
+    """Model parameters for classic Gaussian Mixture Model.
 
-    To be used as a method decorator in a class that supplies an index
-    mapping array via the `._map` attribute.
+    Parameters
+    ----------
+    K : int
+        number of states
+    mu : np.ndarray
+        state means, shape [K, ]
+    tau : np.ndarray
+        state precision (1 / variance), shape [K, ]
+    weights: np.ndarray
+        state fractional weights
     """
 
-    def wrapper(self, *args, **kwargs) -> np.ndarray:
-        result = fcn(self, *args, **kwargs)
-        return result[self._map]
-
-    wrapper.__doc__ = fcn.__doc__
-
-    return wrapper
+    weights: np.ndarray
 
 
 class GaussianMixtureModel(TimeSeriesMixin):
@@ -62,7 +67,7 @@ class GaussianMixtureModel(TimeSeriesMixin):
             data = data.data
 
         self.n_states = n_states
-        self._model = GaussianMixture(
+        model = GaussianMixture(
             n_components=n_states,
             init_params=init_method,
             n_init=n_init,
@@ -70,14 +75,25 @@ class GaussianMixtureModel(TimeSeriesMixin):
             max_iter=max_iter,
         )
         data = np.reshape(data, (-1, 1))
-        self._model.fit(data)
+        model.fit(data)
+
+        # todo: remove when exit_flag is removed
+        self._deprecated_lower_bound = model.lower_bound_
+
+        idx = np.argsort(model.means_.squeeze())
+        self._model = ClassicGmm(
+            K=n_states,
+            mu=model.means_.squeeze()[idx],
+            tau=1 / model.covariances_.squeeze()[idx],
+            weights=model.weights_[idx],
+        )
 
         self._fit_info = PopulationFitInfo(
-            self._model.converged_,
-            self._model.n_iter_,
-            self._model.bic(data),
-            self._model.aic(data),
-            np.sum(self._model.score_samples(data)),
+            converged=model.converged_,
+            n_iter=model.n_iter_,
+            bic=model.bic(data),
+            aic=model.aic(data),
+            log_likelihood=np.sum(model.score_samples(data)),
         )
 
     @classmethod
@@ -109,41 +125,13 @@ class GaussianMixtureModel(TimeSeriesMixin):
         return {
             "converged": self.fit_info.converged,
             "n_iter": self.fit_info.n_iter,
-            "lower_bound": self._model.lower_bound_,
+            "lower_bound": self._deprecated_lower_bound,
         }
 
     @property
-    def fit_info(self) -> PopulationFitInfo:
-        """Information about the model training exit conditions."""
-        return self._fit_info
-
-    @property
-    def _map(self) -> np.ndarray:
-        """Indices of sorted means."""
-        return np.argsort(self._model.means_.squeeze())
-
-    @property
-    @as_sorted
     def weights(self):
         """Model state weights."""
-        return self._model.weights_
-
-    @property
-    @as_sorted
-    def means(self):
-        """Model state means."""
-        return self._model.means_.squeeze()
-
-    @property
-    @as_sorted
-    def variances(self):
-        """Model state variances."""
-        return self._model.covariances_.squeeze()
-
-    @property
-    def std(self) -> np.ndarray:
-        """Model state standard deviations."""
-        return np.sqrt(self.variances)
+        return self._model.weights
 
     @deprecated(
         reason=(
@@ -164,9 +152,7 @@ class GaussianMixtureModel(TimeSeriesMixin):
         return self.state_path(trace).data
 
     def _calculate_state_path(self, trace):
-        labels = self._model.predict(trace.data.reshape((-1, 1)))  # wrapped model labels
-        output_states = np.argsort(self._map)  # output model state labels in wrapped model order
-        return output_states[labels]  # output model labels
+        return np.argmax(self.pdf(trace.data), axis=0)
 
     @property
     @deprecated(
