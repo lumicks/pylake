@@ -131,8 +131,7 @@ Population Dynamics
     DwelltimeModel
     population.dwelltime.DwelltimeBootstrap
     population.dwelltime.DwelltimeProfiles
-    population.detail.fit_info.HmmFitInfo
-    population.detail.fit_info.GmmFitInfo
+    population.detail.fit_info.PopulationFitInfo
 
 Piezo tracking
 --------------
