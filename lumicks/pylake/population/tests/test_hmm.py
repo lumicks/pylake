@@ -6,7 +6,7 @@ import pytest
 from lumicks.pylake import HiddenMarkovModel, GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.population.detail.hmm import ClassicHmm
-from lumicks.pylake.population.detail.fit_info import HmmFitInfo
+from lumicks.pylake.population.detail.fit_info import PopulationFitInfo
 
 
 def make_channel(data):
@@ -162,7 +162,7 @@ def test_fit_info(trace_simple):
 
     model = HiddenMarkovModel(data, params["n_states"])
 
-    assert isinstance(model.fit_info, HmmFitInfo)
+    assert isinstance(model.fit_info, PopulationFitInfo)
     assert model.fit_info.converged
     assert model.fit_info.n_iter == 2
     np.testing.assert_allclose(model.fit_info.bic, -104.03696527084878)

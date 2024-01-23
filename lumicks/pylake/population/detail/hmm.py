@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..mixture import GaussianMixtureModel
-from .fit_info import HmmFitInfo
+from .fit_info import PopulationFitInfo
 from ...channel import Slice, Continuous
 from .validators import col, row
 
@@ -165,7 +165,7 @@ def baum_welch(data, model, tol, max_iter):
     bic = k * np.log(len(data)) - 2 * current_log_likelihood
     aic = 2 * k - 2 * current_log_likelihood
 
-    fit_info = HmmFitInfo(converged, _itr, bic, aic, current_log_likelihood)
+    fit_info = PopulationFitInfo(converged, _itr, bic, aic, current_log_likelihood)
 
     return model, fit_info
 

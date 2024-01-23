@@ -4,7 +4,7 @@ from deprecated.sphinx import deprecated
 
 from ..channel import Slice
 from .detail.mixin import TimeSeriesMixin
-from .detail.fit_info import GmmFitInfo
+from .detail.fit_info import PopulationFitInfo
 
 
 def as_sorted(fcn):
@@ -72,12 +72,12 @@ class GaussianMixtureModel(TimeSeriesMixin):
         data = np.reshape(data, (-1, 1))
         self._model.fit(data)
 
-        self._fit_info = GmmFitInfo(
+        self._fit_info = PopulationFitInfo(
             self._model.converged_,
             self._model.n_iter_,
             self._model.bic(data),
             self._model.aic(data),
-            self._model.lower_bound_,
+            np.sum(self._model.score_samples(data)),
         )
 
     @classmethod
@@ -109,11 +109,11 @@ class GaussianMixtureModel(TimeSeriesMixin):
         return {
             "converged": self.fit_info.converged,
             "n_iter": self.fit_info.n_iter,
-            "lower_bound": self.fit_info.lower_bound,
+            "lower_bound": self._model.lower_bound_,
         }
 
     @property
-    def fit_info(self) -> GmmFitInfo:
+    def fit_info(self) -> PopulationFitInfo:
         """Information about the model training exit conditions."""
         return self._fit_info
 

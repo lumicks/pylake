@@ -3,7 +3,7 @@ import pytest
 
 from lumicks.pylake import GaussianMixtureModel
 from lumicks.pylake.channel import Slice, Continuous
-from lumicks.pylake.population.detail.fit_info import GmmFitInfo
+from lumicks.pylake.population.detail.fit_info import PopulationFitInfo
 
 
 def make_channel(data, labels=None):
@@ -105,18 +105,36 @@ def test_exit_flag(trace_simple):
         np.testing.assert_allclose(ef["lower_bound"], 0.215335, rtol=1e-5)
 
 
+def test_log_likelihood_calculation(trace_simple):
+    """We calculate the log likelihood ourselves using the sklearn model's `score_samples` method
+    (which according to their docs calculates the log likelihood for each data point) and then take
+    the sum. A simple way to validate this is to use the value to calculate the BIC and compare
+    it to the BIC returned from the sklearn model instance."""
+
+    data, _, params = trace_simple
+    model = GaussianMixtureModel(
+        data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
+    )
+
+    n_states = model.n_states
+    k = n_states * 3 - 1  # number of parameters
+    n = len(data)  # num data points
+    bic = k * np.log(n) - (2 * model.fit_info.log_likelihood)
+    np.testing.assert_equal(bic, model.fit_info.bic)
+
+
 def test_fit_info(trace_simple):
     data, _, params = trace_simple
     model = GaussianMixtureModel(
         data, params["n_states"], init_method="kmeans", n_init=1, tol=1e-3, max_iter=100
     )
 
-    assert isinstance(model.fit_info, GmmFitInfo)
+    assert isinstance(model.fit_info, PopulationFitInfo)
     assert model.fit_info.converged
     assert model.fit_info.n_iter == 2
     np.testing.assert_allclose(model.fit_info.bic, -20.04115465)
     np.testing.assert_allclose(model.fit_info.aic, -33.06700559)
-    np.testing.assert_allclose(model.fit_info.lower_bound, 0.215335, rtol=1e-5)
+    np.testing.assert_allclose(model.fit_info.log_likelihood, 21.533503, rtol=1e-5)
 
 
 def test_pdf(trace_simple):
