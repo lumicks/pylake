@@ -5,7 +5,7 @@ from setuptools import PEP420PackageFinder, setup
 from setuptools.command.egg_info import manifest_maker
 
 if sys.version_info[:2] < (3, 9):
-    print("Python >= 3.9 is required.")
+    print("Python >= 3.10 is required.")
     sys.exit(-1)
 
 
@@ -49,7 +49,7 @@ setup(
     ],
     packages=PEP420PackageFinder.find(include=["lumicks.*"]),
     include_package_data=True,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=[
         "pytest>=3.5",
         "h5py>=3.4, <4",

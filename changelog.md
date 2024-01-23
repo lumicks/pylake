@@ -16,6 +16,7 @@
 
 #### Breaking changes (alpha functionality)
 * `trace_kwargs` and `label_kwargs` are now keyword-only arguments for `lk.GaussianMixtureModel.plot()`.
+* Drop support for Python 3.9
 
 ## v1.3.2 | t.b.d.
 
