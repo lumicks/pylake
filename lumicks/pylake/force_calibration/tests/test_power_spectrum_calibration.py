@@ -14,6 +14,11 @@ from lumicks.pylake.force_calibration.calibration_models import (
     viscosity_of_water,
     sphere_friction_coefficient,
 )
+from lumicks.pylake.force_calibration.detail.salty_water import (
+    molality_to_molarity,
+    molarity_to_molality,
+    _density_of_salt_solution,
+)
 
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 
@@ -397,11 +402,47 @@ def test_viscosity_calculation():
 
 
 @pytest.mark.parametrize(
+    "temperature, pressure",
+    (
+        (20, 0.101325),
+        (25, 0.101325),
+        (45, 0.401325),
+        (40, 0.201325),
+        (130, 15),
+        (130, 5),
+    ),
+)
+def test_molality_molarity_conversions(temperature, pressure):
+    molarities = np.hstack((np.arange(0, 5, 0.1), np.arange(0, 0.2, 0.01)))
+    round_trip = [
+        molality_to_molarity(
+            molarity_to_molality(c, temperature, pressure, molecular_weight=58.4428),
+            temperature,
+            pressure,
+            molecular_weight=58.4428,
+        )
+        for c in molarities
+    ]
+    np.testing.assert_allclose(molarities, round_trip)
+
+
+def test_molarity_molality_conversion_out_of_range():
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "outside the valid range of the solution density model (0.0, 5.310637057482627)"
+        ),
+    ):
+        molarity_to_molality(5.32, 23, 0.1, molecular_weight=58.4428)
+
+    molarity_to_molality(5.31, 23, 0.1, molecular_weight=58.4428)
+
+
+@pytest.mark.parametrize(
     "condition, temperature, molality, pressure, ref_value, ref_kinematic",
     [
         ("reference", 20, 0, 0.1, 1002.0, 1.0037),
         ("temp", 40, 0, 0.1, 652.9, 0.6580),
-        ("temp", np.array([20, 40]), 0, 0.1, np.array([1002.0, 652.9]), np.array([1.0037, 0.6580])),
         ("pressure", 20, 0, 15.0, 996.1, 0.9911),
         ("pressure_temp", 40, 0, 15.0, 654.3, 0.6551),
         ("salt", 20, 0.5, 0.1, 1043.2, 1.0244),
@@ -420,7 +461,8 @@ def test_viscosity_calculation():
 def test_viscosity_salty_water(
     condition, temperature, molality, pressure, ref_value, ref_kinematic
 ):
-    viscosity = viscosity_of_water(temperature, molality, pressure)
+    molarity = molality_to_molarity(molality, temperature, pressure, molecular_weight=58.4428)
+    viscosity = viscosity_of_water(temperature, molarity, pressure)
     np.testing.assert_allclose(
         viscosity,
         ref_value / 1e6,
@@ -428,11 +470,39 @@ def test_viscosity_salty_water(
         err_msg=condition,
     )
     np.testing.assert_allclose(
-        viscosity / density_of_water(temperature, molality, pressure),
+        viscosity / density_of_water(temperature, molarity, pressure),
         ref_kinematic / 1e6,
         rtol=1e-3,  # Reference values in the paper were reported with this tolerance
         err_msg=condition,
     )
+    np.testing.assert_allclose(
+        viscosity / _density_of_salt_solution(temperature, molality, pressure),
+        ref_kinematic / 1e6,
+        rtol=1e-3,  # Reference values in the paper were reported with this tolerance
+        err_msg=condition,
+    )
+
+
+def test_viscosity_temperature_array():
+    temperature = np.arange(20, 40, 5)
+    ref_viscosity = [
+        0.00100977454389667,
+        0.0008974568504064918,
+        0.0008041499558427885,
+        0.0007257335507374668,
+    ]
+    np.testing.assert_allclose(viscosity_of_water(temperature, 0.1, 0.1), ref_viscosity)
+
+
+def test_density_temperature_array():
+    temperature = np.arange(20, 40, 5)
+    ref_density = [
+        1002.325455422484,
+        1001.1379828996089,
+        999.7116776292133,
+        998.0679282931027,
+    ]
+    np.testing.assert_allclose(density_of_water(temperature, 0.1), ref_density)
 
 
 def test_invalid_densities():

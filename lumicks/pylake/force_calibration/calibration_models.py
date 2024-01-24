@@ -9,7 +9,9 @@ from .detail.drag_models import faxen_factor, brenner_axial
 from .detail.salty_water import (
     _poly,
     pressure_factor,
+    molarity_to_molality,
     zero_pressure_viscosity,
+    _density_of_salt_solution,
     _check_salt_model_validity,
 )
 from .detail.power_models import (
@@ -68,7 +70,7 @@ def diode_params_from_voltage(
     )
 
 
-def density_of_water(temperature, molality, pressure=0.101325):
+def density_of_water(temperature, molarity, pressure=0.101325):
     """Determine the density of water with NaCl.
 
     This model is based on [1]_.
@@ -77,8 +79,8 @@ def density_of_water(temperature, molality, pressure=0.101325):
     ----------
     temperature : array_like
         Temperature in C
-    molality : float
-        Molality NaCl [mol/kg]
+    molarity : float
+        Molarity NaCl [mol/L]
     pressure : float, optional
         Pressure (default: 0.101325) [MPa].
 
@@ -95,49 +97,17 @@ def density_of_water(temperature, molality, pressure=0.101325):
        the pressure range 0.1–35 MPa. Journal of physical and chemical reference data, 10(1),
        71-88.
     """
-    import scipy.constants
-
-    _check_salt_model_validity("Density", temperature, pressure, molality)
-
-    temperature_k = scipy.constants.convert_temperature(temperature, "C", "K")
-    weight = 58.4428 / 1000  # kg/mol for NaCl
-    mass_fraction = (
-        molality * weight / (1.0 + molality * weight)
-    )  # mol NaCl/kg water -> kg NaCl/kg total
-
-    powers_ab = np.arange(-2, 3, 1)
-    powers_other = np.arange(0, 3, 1)
-
-    # All polynomials only depend on temperature
-    def poly(powers, coefficients):
-        return _poly(temperature_k, powers, coefficients)
-
-    # See page 73 of [1].
-    a_coeff = [1.006741e2, -1.127522, 5.916365e-3, -1.035794e-5, 9.270048e-9]
-    b_coeff = [1.042948, -1.1933677e-2, 5.307535e-5, -1.0688768e-7, 8.492739e-11]
-
-    c_coeff = [1.23268e-9, -6.861928e-12, 0]
-    d_coeff = [-2.5166e-3, 1.11766e-5, -1.70552e-8]
-    e_coeff = [2.84851e-3, -1.54305e-5, 2.23982e-8]
-    f_coeff = [-1.5106e-5, 8.4605e-8, -1.2715e-10]
-    g_coeff = [2.7676e-5, -1.5694e-7, 2.3102e-10]
-    h_coeff = [6.4633e-8, -4.1671e-10, 6.8599e-13]
-
-    terms = [
-        poly(powers_ab, a_coeff),
-        -poly(powers_ab, b_coeff) * pressure,
-        -poly(powers_other, c_coeff) * pressure**2,
-        mass_fraction * poly(powers_other, d_coeff),
-        (mass_fraction**2) * poly(powers_other, e_coeff),
-        -mass_fraction * poly(powers_other, f_coeff) * pressure,
-        -(mass_fraction**2) * poly(powers_other, g_coeff) * pressure,
-        -0.5 * poly(powers_other, h_coeff) * pressure**2,
-    ]
-
-    return 1.0 / np.sum(terms, axis=0)
+    temperature = np.atleast_1d(temperature)
+    densities = []
+    for t in temperature:
+        molality = molarity_to_molality(
+            molarity, temperature=t, pressure=pressure, molecular_weight=58.4428
+        )
+        densities.append(_density_of_salt_solution(t, molality, pressure))
+    return np.array(densities).squeeze()
 
 
-def viscosity_of_water(temperature, molality_nacl=None, pressure=None):
+def viscosity_of_water(temperature, molarity_nacl=None, pressure=None):
     """Computes the viscosity of water in [Pa*s] at a particular temperature, molality of NaCl
     and pressure.
 
@@ -149,8 +119,8 @@ def viscosity_of_water(temperature, molality_nacl=None, pressure=None):
     ----------
     temperature : array_like
         Temperature [Celsius]. Should be between -20°C and 110°C
-    molality_nacl : float
-        Molality NaCl [mol/kg].
+    molarity_nacl : float
+        Molarity NaCl [mol/L].
     pressure : float, optional
         Pressure (default: 0.101325) [MPa].
 
@@ -179,16 +149,22 @@ def viscosity_of_water(temperature, molality_nacl=None, pressure=None):
            the pressure range 0.1–35 MPa. Journal of physical and chemical reference data, 10(1),
            71-88.
     """
-    temperature = np.asarray(temperature)
-    if pressure or molality_nacl:
+    temperature = np.atleast_1d(temperature)
+    if pressure or molarity_nacl:
         pressure = 0.101325 if pressure is None else pressure
-        _check_salt_model_validity("Viscosity", temperature, pressure, molality_nacl)
+        viscosities = []
+        for t in temperature:
+            molality_nacl = molarity_to_molality(
+                molarity_nacl, temperature=t, pressure=pressure, molecular_weight=58.4428
+            )
+            _check_salt_model_validity("Viscosity", t, pressure, molality_nacl)
+            viscosities.append(
+                1e-6
+                * zero_pressure_viscosity(t, molality_nacl)
+                * (1.0 + pressure_factor(t, molality_nacl) * pressure / 1000)
+            )
 
-        return (
-            1e-6
-            * zero_pressure_viscosity(temperature, molality_nacl)
-            * (1.0 + pressure_factor(temperature, molality_nacl) * pressure / 1000)
-        )
+        return np.array(viscosities).squeeze()
     else:
         if not np.all(np.logical_and(temperature >= -20, temperature < 110)):
             raise ValueError("Function for viscosity of water is only valid for -20°C <= T < 110°C")
