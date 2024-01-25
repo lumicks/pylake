@@ -1,5 +1,4 @@
-<img src="./docs/logo_light.png#gh-light-mode-only" alt="logo" width="489px"/>
-<img src="./docs/logo_dark.png#gh-dark-mode-only" alt="logo" width="489px"/>
+<img src="https://media.githubusercontent.com/media/lumicks/pylake/main/docs/logo_light.png" alt="logo" width="489px"/>
 
 [![DOI](https://zenodo.org/badge/133832492.svg)](https://zenodo.org/badge/latestdoi/133832492)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](license.md)
