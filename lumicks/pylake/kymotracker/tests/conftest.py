@@ -66,7 +66,7 @@ def two_gaussians_1d():
 
 @pytest.fixture
 def blank_kymo():
-    return generate_kymo(
+    kymo = generate_kymo(
         "",
         np.ones((1, 10)),
         pixel_size_nm=1000,
@@ -75,6 +75,8 @@ def blank_kymo():
         samples_per_pixel=1,
         line_padding=0,
     )
+    kymo._motion_blur_constant = 0
+    return kymo
 
 
 @pytest.fixture

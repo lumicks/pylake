@@ -12,6 +12,7 @@
 * Fixed a bug where the time between frames was incorrectly not excluded when calling [`ImageStack.frame_timestamp_ranges()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.frame_timestamp_ranges) with `include_dead_time=False`. Note that `Scan` and `Kymo` are not affected.
 * Fixed a bug where [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) was not excluding the dead time between frames.
 * Changed the `DateTime` tag on TIFFs exported with Pylake from `Scan` and `Kymo` objects. Before the change, the start and end of the scanning period in nanoseconds was stored. After the change, we store the starting timestamp of the frame, followed by the starting timestamp of the next frame to be consistent with data exported from Bluelake. The scanning time is stored in the field `Exposure time (ms)` on the Description tag.
+* Fixed tests to be compatible with `pytest>=8.0.0`.
 
 ## v1.3.1 | 2023-12-07
 

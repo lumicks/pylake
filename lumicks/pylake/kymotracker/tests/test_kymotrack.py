@@ -867,7 +867,9 @@ def test_fit_binding_times_nonzero(blank_kymo, blank_kymo_track_args):
         r"analysis. If you wish to not see this warning, filter the tracks with "
         r"`lk.filter_tracks` with a minimum length of 2 samples.",
     ):
-        dwelltime_model = tracks.fit_binding_times(1)
+        dwelltime_model = tracks.fit_binding_times(
+            n_components=1, observed_minimum=True, discrete_model=False
+        )
         np.testing.assert_equal(dwelltime_model.dwelltimes, [4, 4, 4, 4])
         np.testing.assert_equal(dwelltime_model._observation_limits[0], 4)
         np.testing.assert_allclose(dwelltime_model.lifetimes[0], [0.4])
@@ -1145,6 +1147,7 @@ def test_kymotrack_group_diffusion_filter():
     image = np.random.randint(0, 20, size=(10, 10, 3))
     kwargs = dict(line_time_seconds=10e-3, start=np.int64(20e9), pixel_size_um=0.05, name="test")
     kymo = _kymo_from_array(image, "rgb", **kwargs)
+    kymo._motion_blur_constant = 0
 
     base_coordinates = (
         np.arange(1, 10),
@@ -1407,8 +1410,15 @@ def test_invalid_ensemble_diffusion(blank_kymo):
 def test_ensemble_diffusion_different_attributes():
     line_times = (1, 0.5)
     pixel_sizes = (0.1, 0.05)
-    kwargs = [{"line_time_seconds": t, "pixel_size_um": s} for t in line_times for s in pixel_sizes]
-    kymos = [_kymo_from_array(np.random.poisson(5, (25, 25, 3)), "rgb", **k) for k in kwargs]
+    multi_kwargs = [
+        {"line_time_seconds": t, "pixel_size_um": s} for t in line_times for s in pixel_sizes
+    ]
+    kymos = []
+    for kwargs in multi_kwargs:
+        kymo = _kymo_from_array(np.random.poisson(5, (25, 25, 3)), "rgb", **kwargs)
+        kymo._motion_blur_constant = 0
+        kymos.append(kymo)
+
     tracks = [
         KymoTrackGroup(
             [KymoTrack(np.arange(5), np.random.uniform(3, 5, 5), k, "green", 0) for _ in range(5)]
