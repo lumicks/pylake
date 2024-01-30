@@ -74,7 +74,6 @@ class ColorAdjustment:
         image : array_like
             Raw image data.
         """
-
         if len(channel) == 2:
             missing_channel = set("rgb") - set(channel)
             missing_channel_index = "rgb".index(missing_channel.pop())
@@ -114,10 +113,13 @@ class ColorAdjustment:
         if not self.mode:
             return
 
-        if channel in ("rgb", "rg", "gb", "rb"):
+        # Single channel images can come in any of the channel parameters but should be treated
+        # as though a single channel was sliced.
+        if channel in ("rgb", "rg", "gb", "rb") and image.ndim == 3:
             return
 
-        idx = ({"red": 0, "green": 1, "blue": 2, "r": 0, "g": 1, "b": 2})[channel]
+        color_mapping = {"red": 0, "green": 1, "blue": 2, "r": 0, "g": 1, "b": 2}
+        idx = color_mapping.get(channel, 0)  # The default of zero is for monochrome images
         limits = (self.minimum[idx], self.maximum[idx])
         if self.mode == "percentile":
             limits = np.percentile(image, limits)

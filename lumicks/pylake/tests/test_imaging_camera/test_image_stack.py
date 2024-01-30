@@ -847,6 +847,41 @@ def test_image_stack_plot_single_channel_percentile_color_adjustment(rgb_alignme
         plt.close(fig)
 
 
+def test_single_channel_image_adjustment(gray_alignment_image_data):
+    """Tests whether we can set color ranges for single channel images."""
+    reference_image, warped_image, description, bit_depth = gray_alignment_image_data
+    fake_tiff = TiffStack(
+        [
+            MockTiffFile(
+                data=[warped_image] * 2,
+                times=make_frame_times(2),
+                description=description,
+            )
+        ],
+        align_requested=True,
+    )
+    stack = ImageStack.from_dataset(fake_tiff)
+
+    lbs, ubs = np.array([94, 93, 95]), np.array([95, 98, 97])
+    lbs_ref, ubs_ref = [*lbs, 94], [*ubs, 95]
+    for lb, ub, channel in zip(lbs_ref, ubs_ref, ("red", "green", "blue", "rgb")):
+        # Test whether setting RGB values and then sampling one of them works correctly.
+        fig = plt.figure()
+        stack.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+        # Test whether setting a single color value correctly
+        fig = plt.figure()
+        stack.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        image = plt.gca().get_images()[0]
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_clim(), [lb, ub])
+        plt.close(fig)
+
+
 def test_invalid_slicing():
     n_frames = 3
     data = [np.random.rand(5, 4) for j in range(n_frames)]
