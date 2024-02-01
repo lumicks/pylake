@@ -13,6 +13,7 @@ def find_kymograph_peaks(
     bias_correction=True,
     rect=None,
     filter_width=0.5,
+    adjacency_half_width=None,
 ):
     """Find local peaks in a kymograph.
 
@@ -31,9 +32,22 @@ def find_kymograph_peaks(
         (time, position) coordinates. Default: no cropping.
     filter_width : float
         Width of the point spread function in pixels. Default: 0.5.
+    adjacency_half_width : int, optional
+        When provided, a detection always needs a detection within a certain cutoff radius (in
+        pixels) in an adjacent frame. This can be used to suppress singular noise peaks.
+
+        If the center pixel is being tested with an adjacency_half_width of 1:
+
+          [0 0 0]           [1 0 0]              [0 0 0]
+          [1 0 0]           [0 0 0]              [0 0 0]
+          [0 1 0] => Pass   [0 1 0] => Reject    [0 1 0] ==> Pass
+          [0 0 0]           [0 0 0]   (too far)  [0 0 1]
+          [0 0 0]           [0 0 0]              [0 0 0]
     """
     filtered_data = scipy.ndimage.gaussian_filter(kymograph_data, [filter_width, 0], output=float)
-    coordinates, time_points = peak_estimate(filtered_data, half_width_pixels, threshold)
+    coordinates, time_points = peak_estimate(
+        filtered_data, half_width_pixels, threshold, adjacency_half_width
+    )
     if len(coordinates) == 0:
         return KymoPeaks([], [], [])
 
@@ -56,7 +70,7 @@ def find_kymograph_peaks(
     return merge_close_peaks(KymoPeaks(position, time, m0), half_width_pixels)
 
 
-def peak_estimate(data, half_width, thresh):
+def peak_estimate(data, half_width, thresh, adjacency_half_width=None):
     """Estimate initial peak locations from data.
 
     Peaks are detected by dilating the image, and then determining which pixels did not change.
@@ -74,7 +88,12 @@ def peak_estimate(data, half_width, thresh):
         peak-finding.
     thresh : float
         Threshold for accepting something as a peak.
+    adjacency_half_width : int, optional
+        When provided, a detection always needs a detection within a certain cutoff radius in an
+        adjacent frame. This can be used to suppress singular noise peaks.
     """
+    import scipy.signal
+
     if thresh <= (minimum_value := np.min(data)):
         raise RuntimeError(
             f"Threshold ({thresh}) cannot be lower than or equal to the lowest filtered "
@@ -83,8 +102,18 @@ def peak_estimate(data, half_width, thresh):
 
     dilation_factor = int(math.ceil(half_width)) * 2 + 1
     dilated = scipy.ndimage.grey_dilation(data, (dilation_factor, 0))
-    dilated[dilated < thresh] = -1
-    coordinates, time_points = np.where(data == dilated)
+
+    thresholded_local_maxima = np.logical_and(data == dilated, data >= thresh)
+
+    # Reject maxima that have no maximum in an adjacent frame.
+    if adjacency_half_width:
+        mask_size = 2 * adjacency_half_width + 1
+        mask = np.vstack((np.ones(mask_size), np.zeros(mask_size), np.ones(mask_size))).T
+        thresholded_local_maxima *= (
+            scipy.signal.convolve2d(thresholded_local_maxima, mask, mode="same") > 0
+        )
+
+    coordinates, time_points = np.where(thresholded_local_maxima)
     return coordinates, time_points
 
 
