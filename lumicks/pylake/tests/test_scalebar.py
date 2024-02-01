@@ -142,7 +142,7 @@ def test_scalebar_integration(monkeypatch):
                         MockTiffFile(
                             data=[np.ones((1, 1))] * 2,
                             times=make_frame_times(2),
-                            description=json.dumps(description),
+                            description=description,
                         )
                     ],
                     align_requested=False,

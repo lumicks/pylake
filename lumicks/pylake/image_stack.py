@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Union, Iterator, Optional
 
 import numpy as np
@@ -9,7 +10,7 @@ from .kymo import Kymo, _kymo_from_image_stack
 from .adjustments import no_adjustment
 from .detail.image import make_image_title
 from .detail.plotting import get_axes, show_image
-from .detail.widefield import TiffStack
+from .detail.widefield import TiffStack, _frame_timestamps_from_exposure_timestamps
 from .detail.imaging_mixins import FrameIndex, TiffExport, VideoExport
 
 
@@ -483,6 +484,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         adjustment=no_adjustment,
         *,
         vertical=False,
+        include_dead_time=False,
         return_frame_setter=False,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
@@ -512,10 +514,12 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             figure.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-        vertical : bool
-            Align plots vertically.
-        return_frame_setter : bool
-            Whether to return a handle that allows updating the plotted frame.
+        vertical : bool, optional
+            Align plots vertically, default: False.
+        include_dead_time : bool, optional
+            Include dead time between frames, default: False.
+        return_frame_setter : bool, optional
+            Whether to return a handle that allows updating the plotted frame, default: False.
 
         Note
         ----
@@ -542,7 +546,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
 
         frame_setter = plot_correlated(
             channel_slice=channel_slice,
-            frame_timestamps=self.frame_timestamp_ranges(),
+            frame_timestamps=self.frame_timestamp_ranges(include_dead_time=include_dead_time),
             get_plot_data=frame_grabber,
             title_factory=lambda frame: make_image_title(self, frame, show_name=False),
             frame=frame,
@@ -594,9 +598,9 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         # to reflect the fact that the image has already been processed
         return self._src._description.for_export
 
-    def _tiff_timestamp_ranges(self) -> list:
+    def _tiff_timestamp_ranges(self, include_dead_time) -> list:
         """Create Timestamp ranges for DateTime field of TIFFs used by `export_tiff().`"""
-        return self.frame_timestamp_ranges()
+        return self.frame_timestamp_ranges(include_dead_time=include_dead_time)
 
     def _tiff_writer_kwargs(self) -> dict:
         """Create keyword arguments used for `TiffWriter.write()` in `self.export_tiff()`."""
@@ -637,20 +641,27 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         include_dead_time : bool
             Include dead time between frames.
         """
-        ts_ranges = [frame.frame_timestamp_range for frame in self]
         if include_dead_time:
-            frame_ts = [
-                (leading[0], trailing[0]) for leading, trailing in zip(ts_ranges, ts_ranges[1:])
-            ]
-            if len(ts_ranges) >= 2:
-                dt = ts_ranges[-1][0] - ts_ranges[-2][0]
-                stop = ts_ranges[-1][0] + dt
-            else:
-                stop = ts_ranges[-1][1]
-            frame_ts.append((ts_ranges[-1][0], stop))
-            return frame_ts
-        else:
+            ts_ranges = [frame.frame_timestamp_range for frame in self]
+
+            if self._src._description._legacy_exposure:
+                return _frame_timestamps_from_exposure_timestamps(ts_ranges)
+
             return ts_ranges
+
+        frame_timestamps = [frame.exposure_timestamp_range for frame in self]
+        if len(np.unique(np.diff(np.asarray(frame_timestamps), 1))) != 1:
+            warnings.warn(
+                RuntimeWarning(
+                    "This image stack contains a non-constant exposure time. While the start time "
+                    "of each frame is synchronized, the update of the exposure metadata can "
+                    "lag behind. This means that when you average data over the frame, some frames "
+                    "after the switch may take an incorrect exposure time into account in the "
+                    "averaging."
+                )
+            )
+
+        return frame_timestamps
 
 
 @deprecated(

@@ -21,7 +21,7 @@ def to_tiff(image, description, bit_depth, start_time=1, num_images=2):
     return MockTiffFile(
         data=[image] * num_images,
         times=make_frame_times(num_images, start=start_time),
-        description=json.dumps(description),
+        description=description,
         bit_depth=bit_depth,
     )
 
@@ -120,6 +120,18 @@ def test_image_stack(shape):
     np.testing.assert_allclose([x.start for x in stack[:-1]], [10, 20, 30, 40, 50])
     np.testing.assert_allclose([x.start for x in stack[2:4]], [30, 40])
     np.testing.assert_allclose([x.start for x in stack[2]], [30])
+
+
+def test_warning_unequal_exposure():
+    times = make_frame_times(6)
+    times[1][2] = times[1][2] / 2  # Ensure unequal exposure
+    fake_tiff = TiffStack(
+        tiff_files=[MockTiffFile(data=[np.ones((4, 3, 3))] * 6, times=times)],
+        align_requested=False,
+    )
+    stack = ImageStack.from_dataset(fake_tiff)
+    with pytest.warns(RuntimeWarning, match="image stack contains a non-constant exposure time"):
+        stack.frame_timestamp_ranges()
 
 
 def test_stack_from_dataset():
@@ -240,12 +252,13 @@ def test_correlation(shape):
 
     # Test image stack without dead time
     fake_tiff = TiffStack(
-        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6, step=10))],
+        [MockTiffFile(data=[np.ones(shape)] * 6, times=make_frame_times(6))],
         align_requested=False,
     )
     stack = ImageStack.from_dataset(fake_tiff)
     np.testing.assert_allclose(
-        np.hstack([cc[x.start : x.stop].data for x in stack[2:4]]), np.arange(30, 50, 2)
+        np.hstack([cc[x.start : x.stop].data for x in stack[2:4]]),
+        np.hstack((np.arange(30, 38, 2), np.arange(40, 48, 2))),
     )
 
     # Test image stack with dead time
@@ -351,7 +364,7 @@ def test_image_stack_plotting(rgb_alignment_image_data):
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -578,7 +591,7 @@ def test_define_tether():
                 MockTiffFile(
                     data=[data],
                     times=make_frame_times(1),
-                    description=json.dumps(description),
+                    description=description,
                     bit_depth=bit_depth,
                 )
             ],
@@ -721,7 +734,7 @@ def test_image_stack_plot_rgb_absolute_color_adjustment(rgb_alignment_image_data
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -748,7 +761,7 @@ def test_image_stack_plot_channels_absolute_color_adjustment(rgb_alignment_image
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -775,7 +788,7 @@ def test_image_stack_plot_rgb_percentile_color_adjustment(rgb_alignment_image_da
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -807,7 +820,7 @@ def test_image_stack_plot_single_channel_percentile_color_adjustment(rgb_alignme
             MockTiffFile(
                 data=[warped_image] * 2,
                 times=make_frame_times(2),
-                description=json.dumps(description),
+                description=description,
                 bit_depth=16,
             )
         ],
@@ -1037,7 +1050,7 @@ def test_frame_timestamp_ranges_snapshot():
         )
     )
 
-    for include, ranges in zip([True, False], [[(10, 16)], [(10, 16)]]):
+    for include, ranges in zip([True, False], [[(10, 20)], [(10, 16)]]):
         np.testing.assert_allclose(stack.frame_timestamp_ranges(include_dead_time=include), ranges)
 
 
@@ -1161,3 +1174,33 @@ def test_integration_test_to_kymo(
     )
     np.testing.assert_allclose(np.max(kymo.get_image("red")), 5 * (1 + 2 * half_window))
     np.testing.assert_equal(kymo.pixelsize_um[0], pixel_size)
+
+
+@pytest.mark.filterwarnings(
+    r"ignore:File does not contain alignment matrices. Only raw data is available"
+)
+@pytest.mark.parametrize("include_dead_time", [True, False])
+def test_legacy_exposure_handling(tmpdir_factory, reference_data, include_dead_time):
+    """For confocal Scans exported with Pylake `<v1.3.2` timestamps contained the start and end time
+    of the exposure, rather than the full frame. This behaviour was inconsistent with Bluelake and
+    therefore changed. This test makes sure that such old files produce correct frame times in
+    Pylake."""
+    im = ImageStack(Path(__file__).parent / "data/tiff_from_scan_v1_3_1.tiff")
+    assert im._src._description._legacy_exposure is True
+    ts_ranges = im.frame_timestamp_ranges(include_dead_time=include_dead_time)
+    np.testing.assert_equal(ts_ranges, reference_data(ts_ranges, test_name="dead_time"))
+
+    # Save it again
+    tmpdir = tmpdir_factory.mktemp("legacy_exposures")
+    tmp_file = tmpdir.join(f"include_dead_time={include_dead_time}.tiff")
+    im.export_tiff(tmp_file)
+    im._src.close()
+
+    # Test whether the round trip results in valid results
+    im2 = ImageStack(tmp_file)
+    ts_ranges2 = im2.frame_timestamp_ranges(include_dead_time=include_dead_time)
+    np.testing.assert_equal(ts_ranges2, ts_ranges)
+
+    # Verify that this migrated the file, and we are no longer using legacy reading for this
+    assert im2._src._description._legacy_exposure is False
+    im2._src.close()

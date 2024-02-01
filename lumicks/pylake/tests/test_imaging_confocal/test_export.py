@@ -54,8 +54,12 @@ def test_export_tiff(
     # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
     tiff_tags = grab_tiff_tags(filename)
     assert len(tiff_tags) == scan.num_frames
-    for tags, timestamp_range in zip(tiff_tags, scan._tiff_timestamp_ranges()):
-        assert tags["ImageDescription"] == scan._tiff_image_metadata()
+    ref_ts_inclusive = scan._tiff_timestamp_ranges(include_dead_time=True)
+    ref_exposures = scan._tiff_timestamp_ranges(include_dead_time=False)
+    for tags, timestamp_range, exposure_range in zip(tiff_tags, ref_ts_inclusive, ref_exposures):
+        assert tags["ImageDescription"] == scan._tiff_image_metadata() | {
+            "Exposure time (ms)": (exposure_range[1] - exposure_range[0]) * 1e-6
+        }
         assert tags["DateTime"] == f"{timestamp_range[0]}:{timestamp_range[1]}"
         assert tags["Software"] == scan._tiff_writer_kwargs()["software"]
         np.testing.assert_allclose(

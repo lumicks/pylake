@@ -76,7 +76,7 @@ We can plot this spectrum for different diffusion constants::
 
     f = np.arange(100, 23000)
     for diffusion in 10**np.arange(1, 4):
-        plt.loglog(f, diffusion / (np.pi * f**2), label=f"D={diffusion} $\mu m^2/s$")
+        plt.loglog(f, diffusion / (np.pi**2 * f**2), label=f"D={diffusion} $\mu m^2/s$")
 
     plt.xlabel("Frequency [Hz]")
     plt.ylabel("Amplitude [$\mu m^2$/Hz]");
@@ -113,7 +113,7 @@ When plotting this equation for various values of the corner frequency, we see t
     plt.subplot(1, 2, 1)
     diffusion, corner_freq = 1000, 1000
     for diffusion in 10**np.arange(1, 4):
-        plt.loglog(f, diffusion / (np.pi * (f**2 + corner_freq**2)), label=f"D={diffusion} $\mu m^2/s$")
+        plt.loglog(f, diffusion / (np.pi**2 * (f**2 + corner_freq**2)), label=f"D={diffusion} $\mu m^2/s$")
 
     plt.xlabel("Frequency [Hz]")
     plt.ylabel("Amplitude [$\mu m^2$/Hz]");
@@ -123,7 +123,7 @@ When plotting this equation for various values of the corner frequency, we see t
     diffusion, corner_freq = 1000, 1000
     for corner_freq in [1000, 5000, 10000]:
         line, = plt.loglog(
-            f, diffusion / (np.pi * (f**2 + corner_freq**2)), label=f"$f_c$={corner_freq} Hz"
+            f, diffusion / (np.pi**2 * (f**2 + corner_freq**2)), label=f"$f_c$={corner_freq} Hz"
         )
         plt.axvline(corner_freq, color=line.get_color(), linestyle="--")
 
