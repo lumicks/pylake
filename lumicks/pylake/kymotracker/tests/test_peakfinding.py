@@ -188,3 +188,21 @@ def test_unbiased_centroid_estimator(data, ref_estimate):
 )
 def test_clip_halfwidth(coords, data_shape, half_width, ref):
     np.testing.assert_allclose(_clip_kernel_to_edge(half_width, coords, data_shape), ref)
+
+
+@pytest.mark.parametrize(
+    "data, adjacency_half_width, ref_positions",
+    [
+        ([[255, 0, 0, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 0, 0]], None, 2),  # No filter
+        ([[255, 0, 0, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 0, 0]], 1, 0),  # second peak out
+        ([[255, 0, 0, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 0, 0]], 2, 2),  # second peak in
+        ([[255, 0, 0, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 255, 0]], 1, 2),  # second peak out
+        ([[255, 0, 0, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 0, 255]], 1, 0),  # both out
+        ([[255, 0, 0, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 0, 255]], 2, 3),  # all in
+    ],
+)
+def test_adjacency_filter(data, adjacency_half_width, ref_positions):
+    position, time = peak_estimate(
+        np.array(data).T, 0, thresh=128, adjacency_half_width=adjacency_half_width
+    )
+    assert len(position) == ref_positions

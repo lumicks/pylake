@@ -65,6 +65,7 @@ def track_greedy(
     filter_width=None,
     pixel_threshold=None,
     window=8,
+    adjacency_filter=False,
     sigma=None,
     velocity=0.0,
     diffusion=0.0,
@@ -117,6 +118,8 @@ def track_greedy(
     window : int
         Number of kymograph lines in which the particle is allowed to disappear (and still be part
         of the same track).
+    adjacency_filter : bool
+        Require that any true peak detection has a positive detection in an adjacent frame.
     sigma : float or None
         Uncertainty in the particle position. This parameter will determine whether a peak in the
         next frame will be linked to this one. Increasing this value will make the algorithm tend
@@ -185,6 +188,7 @@ def track_greedy(
         pixel_threshold,
         bias_correction=bias_correction,
         filter_width=filter_width / kymograph.pixelsize_um[0] if filter_width is not None else 0.5,
+        adjacency_half_width=half_width_pixels if adjacency_filter else False,
         rect=_to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds)
         if rect
         else None,

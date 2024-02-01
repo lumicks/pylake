@@ -10,6 +10,7 @@
 * Allow customizing the filter width of the Gaussian filter that is applied prior to spot detection in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#). Increasing this value results in fewer false detections at the cost of resolution. Note that the current default is set to half a pixel to preserve the old behavior. 
 * Added option to determine the viscosity and density of water with NaCl dissolved in it using `lk.viscosity_of_water()` and `lk.density_of_water()`.
 * Added `ImageStack.close()` to force close file handles. Note that this prohibits further access to images from the `ImageStack` it is called on, but also any `ImageStack` derived from it (i.e. through [`ImageStack.define_tether()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.define_tether) or [`ImageStack.crop_by_pixels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.crop_by_pixels)).
+* Added option to filter kymograph spot detections where there are no detections in adjacent frames using `adjacency_filter=True` in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#).
 
 #### Improvements
 
