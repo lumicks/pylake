@@ -339,7 +339,9 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     @property
     def markers(self) -> Dict[str, Marker]:
         """Markers stored in the file"""
-        return self._get_object_dictionary("Marker", Marker)
+        return self._get_object_dictionary("Other", Marker) | self._get_object_dictionary(
+            "Marker", Marker
+        )
 
     @property
     def notes(self) -> Dict[str, Note]:
