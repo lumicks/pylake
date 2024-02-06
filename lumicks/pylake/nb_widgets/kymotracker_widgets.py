@@ -618,9 +618,14 @@ class KymoWidgetGreedy(KymoWidget):
     pixel_threshold : float, optional
         Intensity threshold for the pixels. Local maxima above this intensity level will be designated as a track
         origin. Defaults to 98th percentile of the pixel intensities.
+    filter_width : float, optional
+        Filter width in microns. Should ideally be chosen to the width of the PSF (default: None which
+        results in half a pixel size for legacy reasons).
     window : int, optional
         Number of kymograph frames in which the particle is allowed to disappear (and still be part of the same
         track). Defaults to 4.
+    adjacency_filter : bool
+        Require that any true peak detection has a positive detection in an adjacent frame.
     sigma : float or None, optional
         Uncertainty in the particle position. This parameter will determine whether a peak in the next frame will be
         linked to this one. Increasing this value will make the algorithm tend to allow more positional variation in
@@ -666,8 +671,10 @@ class KymoWidgetGreedy(KymoWidget):
         *,
         axis_aspect_ratio=None,
         track_width=None,
+        filter_width=None,
         pixel_threshold=None,
         window=None,
+        adjacency_filter=False,
         sigma=None,
         velocity=None,
         diffusion=None,
