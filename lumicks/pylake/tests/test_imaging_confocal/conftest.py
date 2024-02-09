@@ -1,8 +1,10 @@
+import pathlib
 from itertools import permutations
 
 import numpy as np
 import pytest
 
+from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.point_scan import PointScan
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
@@ -132,6 +134,19 @@ def cropping_kymo():
     )
 
     return kymo, ref
+
+
+@pytest.fixture(scope="module")
+def bead_kymo():
+    data = np.load(pathlib.Path(__file__).parent / "data" / "bead_kymo.npz")
+
+    return _kymo_from_array(
+        data["rgb"],
+        color_format="rgb",
+        line_time_seconds=data["line_time_seconds"],
+        exposure_time_seconds=0,
+        pixel_size_um=data["pixelsize_um"],
+    )
 
 
 @pytest.fixture(scope="module")

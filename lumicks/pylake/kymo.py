@@ -16,6 +16,7 @@ from .detail.confocal import ScanAxis, ScanMetaData, ConfocalImage
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
 from .detail.utilities import method_cache
+from .detail.bead_cropping import find_beads
 
 
 def _default_line_time_factory(self: "Kymo"):
@@ -569,6 +570,90 @@ class Kymo(ConfocalImage):
         ax_hist.set_xlim(ax_kymo.get_xlim())
         ax_hist.set_ylabel("counts")
         ax_hist.set_title(self.name)
+
+    def estimate_bead_edges(
+        self, bead_diameter, *, channel="green", plot=False, threshold_percentile=70, **kwargs
+    ):
+        """Determine approximate positional coordinates of the bead edges.
+
+        Searches for the bead edges by checking where the fluorescence drops below a threshold.
+        Only intended for stationary beads.
+
+        .. warning::
+
+            This is early access alpha functionality. While usable, this has not yet been tested in
+            a large number of different scenarios. The API can still be subject to change without
+            any prior deprecation notice! If you use this functionality keep a close eye on the
+            changelog for any changes that may affect your analysis.
+
+        Parameters
+        ----------
+        bead_diameter : float
+            Rough estimate for the bead size (microns).
+        channel : 'red', 'green', 'blue', optional
+            Channel to use for bead detection.
+        plot : bool, optional
+            Plot result
+        threshold_percentile : int
+            Percentile to drop down to before accepting that we have left the bead area. Higher
+            values will make the bounds go closer to the bead edge but risk the algorithm failing
+            or having high background.
+        **kwargs
+            Forwarded to bead finding function.
+
+        Returns
+        -------
+        list of float
+            List of the two edge positions in microns.
+
+        Raises
+        ------
+        RuntimeError
+            When the algorithm fails to locate two edges during the bead finding stage.
+        """
+        if self._calibration.unit != "um":
+            raise RuntimeError(
+                f"This kymograph is not calibrated in um but in {self._calibration.unit}. "
+                f"Please make sure the kymograph is calibrated to microns before using this "
+                f"functionality."
+            )
+
+        return (
+            find_beads(
+                self.get_image(channel).sum(axis=1),
+                bead_diameter_pixels=bead_diameter / self.pixelsize_um[0],
+                plot=plot,
+                threshold_percentile=threshold_percentile,
+                **kwargs,
+            )
+            * self.pixelsize_um[0]
+        )
+
+    def crop_beads(self, bead_diameter, channel="green", **kwargs):
+        """Estimates the edges of stationary beads and returns a copy of the kymograph cropped to
+        these limits.
+
+        .. warning::
+
+            This is early access alpha functionality. While usable, this has not yet been tested in
+            a large number of different scenarios. The API can still be subject to change without
+            any prior deprecation notice! If you use this functionality keep a close eye on the
+            changelog for any changes that may affect your analysis.
+
+        Parameters
+        ----------
+        bead_diameter : float
+            Rough estimate for the bead size (microns).
+        channel : 'red', 'green', 'blue', optional
+            Channel to use for bead detection.
+        **kwargs
+            Forwarded to :meth:`Kymo.bead_roi()`.
+        """
+        to_current_units = self.pixelsize[0] / self.pixelsize_um[0]
+        crop_locations = np.asarray(
+            self.estimate_bead_edges(bead_diameter, channel=channel, **kwargs)
+        )
+        return self.crop_by_distance(*(crop_locations * to_current_units))
 
     def crop_by_distance(self, lower, upper):
         """Crop the kymo by position.
