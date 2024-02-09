@@ -5,7 +5,8 @@
 #### New features
 
 * Added [`lk.HiddenMarkovModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.HiddenMarkovModel.html#lumicks.pylake.HiddenMarkovModel) for classifying data traces exhibiting transitions between discrete states. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#hidden-markov-models).
-* Added API to determine bead edges in a kymograph using [`Kymo.bead_roi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.bead_roi).
+* Added option to crop beads out of a kymograph using [`Kymo.crop_beads()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.crop_beads).
+* Added API to determine bead edges in a kymograph using [`Kymo.estimate_bead_edges()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.estimate_bead_edges).
 * Added `emission_path()` and `plot_path()` methods to [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html)
 * Added option to [`File`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.File.html) to pass a custom mapping from Photon count detector to RGB colors colors. This is useful to reconstruct images on systems with non-standard imaging modules.
 * Added option to customize the filter width of the Gaussian filter that is applied prior to spot detection in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#). Increasing this value results in fewer false detections at the cost of resolution. Note that the current default is set to half a pixel to preserve the old behavior.

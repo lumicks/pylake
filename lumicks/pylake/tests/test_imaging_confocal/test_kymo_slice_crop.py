@@ -1,3 +1,5 @@
+import pathlib
+
 import numpy as np
 import pytest
 
@@ -275,3 +277,24 @@ def test_incremental_offset(cropping_kymo):
     np.testing.assert_allclose(twice_cropped.line_time_seconds, kymo.line_time_seconds)
     np.testing.assert_allclose(twice_cropped.pixels_per_line, 2)
     np.testing.assert_allclose(twice_cropped._position_offset, 2 * px_size)
+
+
+@pytest.mark.parametrize(
+    "color, ref_locations, percentile",
+    [
+        ("red", (7.65, 17.7), 70),
+        ("green", (7.65, 17.65), 70),
+        ("blue", (7.25, 20.9), 70),
+        ("blue", (7.25, 20.45), 20),
+    ],
+)
+def test_bead_crop(bead_kymo, color, ref_locations, percentile):
+    np.testing.assert_allclose(
+        bead_kymo.estimate_bead_edges(4.89, channel=color, threshold_percentile=percentile),
+        ref_locations,
+    )
+    np.testing.assert_allclose(
+        bead_kymo.crop_beads(4.89, channel=color, threshold_percentile=percentile).size_um,
+        np.diff(ref_locations),
+        atol=bead_kymo.pixelsize_um[0],
+    )
