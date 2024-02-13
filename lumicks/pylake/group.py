@@ -55,6 +55,9 @@ class Group:
     def __next__(self):
         return self.h5.__next__()
 
+    def __contains__(self, name):
+        return self.h5.__contains__(name)
+
     def __repr__(self):
         """Return formatted representation of group keys"""
         group_keys = ", ".join(f"'{k}'" for k in self.h5)

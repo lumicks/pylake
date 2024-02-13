@@ -56,7 +56,7 @@ setup(
         "numpy>=1.24, <2",  # 1.24 is needed for dtype in vstack/hstack (Dec 18th, 2022)
         "scipy>=1.9, <2",  # 1.9.0 needed for lazy imports (July 29th, 2022)
         "matplotlib>=3.5",
-        "tifffile>=2020.9.30",
+        "tifffile>=2022.7.28",
         "tabulate>=0.8.8, <0.9",
         "cachetools>=3.1",
         "deprecated>=1.2.8",
