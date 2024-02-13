@@ -54,6 +54,14 @@ def test_groups(h5_file):
             assert set(t) == set(["Force 1x", "Force 1y", "Force 1z"])
 
 
+def test_contains(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    assert "Force HF" in f
+    assert "Force 1x" in f["Force HF"]
+    assert "Force HF/Force 1x" in f
+    assert "Force HF" not in f["Force HF"]
+
+
 def test_redirect_list(h5_file):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
