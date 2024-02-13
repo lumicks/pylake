@@ -14,6 +14,7 @@
 * Fixed a bug where color adjustments on a single channel [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack) would not be applied unless a channel was provided as argument. This bug was introduced in `v1.3.0`.
 * Changed the `DateTime` tag on TIFFs exported with Pylake from `Scan` and `Kymo` objects. Before the change, the start and end of the scanning period in nanoseconds was stored. After the change, we store the starting timestamp of the frame, followed by the starting timestamp of the next frame to be consistent with data exported from Bluelake. The scanning time is stored in the field `Exposure time (ms)` on the Description tag.
 * Fixed tests to be compatible with `pytest>=8.0.0`.
+* Ensure `in` returns `True` for a valid data path (e.g. `"Force HF/Force 1x" in file` should return `True`).
 
 #### Other changes
 
