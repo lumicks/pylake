@@ -389,7 +389,8 @@ class ConfocalImage(BaseScan, TiffExport):
             pixel_sizes_um[1] if len(pixel_sizes_um) == 2 else pixel_sizes_um[0],
         )
         if pixel_size_x:
-            write_kwargs["resolution"] = (1e4 / pixel_size_x, 1e4 / pixel_size_y, "CENTIMETER")
+            write_kwargs["resolution"] = (1e4 / pixel_size_x, 1e4 / pixel_size_y)
+            write_kwargs["resolutionunit"] = "CENTIMETER"
 
         return write_kwargs
 

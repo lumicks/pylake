@@ -15,6 +15,10 @@
 * Changed the `DateTime` tag on TIFFs exported with Pylake from `Scan` and `Kymo` objects. Before the change, the start and end of the scanning period in nanoseconds was stored. After the change, we store the starting timestamp of the frame, followed by the starting timestamp of the next frame to be consistent with data exported from Bluelake. The scanning time is stored in the field `Exposure time (ms)` on the Description tag.
 * Fixed tests to be compatible with `pytest>=8.0.0`.
 
+#### Other changes
+
+* Bump `tifffile` dependency to `>=2022.7.28`.
+
 ## v1.3.1 | 2023-12-07
 
 #### Bug fixes
