@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
+from lumicks.pylake.detail.utilities import fwhm_to_sigma
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
 from lumicks.pylake.kymotracker.kymotracker import track_greedy, _to_half_kernel_size
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
@@ -784,8 +785,8 @@ class KymotrackerParameter:
     description: str
     type: str
     value: Number
-    lower_bound: Number
-    upper_bound: Number
+    lower_bound: Optional[Number]
+    upper_bound: Optional[Number]
     ui_visible: bool
     extended_description: str
     abridged_name: Optional[str] = None
@@ -814,27 +815,33 @@ def _get_default_parameters(kymo, channel):
         "pixel_threshold": KymotrackerParameter(
             "Minimum photon counts",
             "Set the pixel intensity threshold.",
-            "int",
-            max(1, int(np.percentile(data.flatten(), 98))),
-            *(1, max(2, np.max(data))),
-            True,
-            r"Minimum intensity defines the minimum signal required in a single pixel for it to be "
-            r"considered part of a track. This parameter should be chosen slightly above the "
-            r"background photon count. Higher values reject more noise, but parts of the track may "
-            r"be missed.",
+            "float",
+            value=max(1, int(np.percentile(data.flatten(), 98))),
+            lower_bound=1,
+            upper_bound=max(2, np.percentile(data, 99)),
+            ui_visible=True,
+            extended_description=(
+                r"Minimum intensity defines the minimum signal required in a single pixel for it "
+                r"to be considered part of a track. This parameter should be chosen slightly above "
+                r"the background photon count. Higher values reject more noise, but parts of the "
+                r"track may be missed."
+            ),
             abridged_name="Min intensity",
         ),
         "sigma": KymotrackerParameter(
             "Positional search range",
             "How much does the track fluctuate?",
             "float",
-            2 * position_scale,
-            *(1.0 * position_scale, 5.0 * position_scale),
-            True,
-            r"Search range defines how much the position of a particle is allowed to fluctuate "
-            r"from one time point to the next while still being considered part of the same "
-            r"track. Larger values will result in a wider range in which points are added to a "
-            r"track.",
+            value=2 * position_scale,
+            lower_bound=position_scale,
+            upper_bound=5.0 * position_scale,
+            ui_visible=True,
+            extended_description=(
+                r"Search range defines how much the position of a particle is allowed to fluctuate "
+                r"from one time point to the next while still being considered part of the same "
+                r"track. Larger values will result in a wider range in which points are added to a "
+                r"track."
+            ),
             abridged_name="Search range",
             display_unit=kymo._calibration.unit_label,
         ),
@@ -842,15 +849,18 @@ def _get_default_parameters(kymo, channel):
             "Maximum gap",
             "How many frames can a track disappear.",
             "int",
-            4,
-            *(1, 15),
-            True,
-            r"Maximum gap defines how many scan lines without detected points can occur between "
-            r"two points and still be connected within a single track. This can occur, for "
-            r"instance, due to fluorophore blinking or the signal falling slightly below the "
-            r"intensity threshold. This value should be chosen such that small gaps in a track "
-            r"can be overcome and tracked as one, but not so large that separate tracks are strung "
-            r"together.",
+            value=4,
+            lower_bound=1,
+            upper_bound=15,
+            ui_visible=True,
+            extended_description=(
+                r"Maximum gap defines how many scan lines without detected points can occur between "
+                r"two points and still be connected within a single track. This can occur, for "
+                r"instance, due to fluorophore blinking or the signal falling slightly below the "
+                r"intensity threshold. This value should be chosen such that small gaps in a track "
+                r"can be overcome and tracked as one, but not so large that separate tracks are "
+                r"strung together."
+            ),
             abridged_name="Max gap",
             display_unit="scan lines",
         ),
@@ -858,13 +868,16 @@ def _get_default_parameters(kymo, channel):
             "Minimum length",
             "Minimum number of frames a spot has to be detected in to be considered.",
             "int",
-            3,
-            *(2, 10),
-            True,
-            r"Minimum length defines the minimum number of points a tracked line must contain for "
-            r"it to be considered valid. Increasing this parameter can be effective in reducing "
-            r"tracking noise. Note that this length refers to the number of detected points, not "
-            r"length in time!",
+            value=3,
+            lower_bound=2,
+            upper_bound=10,
+            ui_visible=True,
+            extended_description=(
+                r"Minimum length defines the minimum number of points a tracked line must contain "
+                r"for it to be considered valid. Increasing this parameter can be effective in "
+                r"reducing tracking noise. Note that this length refers to the number of detected "
+                r"points, not length in time!"
+            ),
             abridged_name="Min length",
             display_unit="points",
         ),
@@ -872,15 +885,49 @@ def _get_default_parameters(kymo, channel):
             "Expected spot size",
             "How big a particle needs to appear to be tracked as a single molecule.",
             "float",
-            4 * position_scale,
-            *(3.0 * position_scale, 15.0 * position_scale),
-            True,
-            r"Expected spot size defines how big a bound particle needs to appear as on the "
-            r"kymograph for it to be tracked as a single molecule. This parameter should be set to "
-            r"roughly the width of the point spread function. Setting it larger rejects more "
-            r"noise, but at the cost of potentially merging tracks that are close together.",
+            value=4 * position_scale,
+            lower_bound=3.0 * position_scale,
+            upper_bound=15.0 * position_scale,
+            ui_visible=True,
+            extended_description=(
+                r"Expected spot size defines how big a bound particle needs to appear as on the "
+                r"kymograph for it to be tracked as a single molecule. This parameter should be "
+                r"set to roughly the width of the point spread function. Setting it larger rejects "
+                r"more noise, but at the cost of potentially merging tracks that are close "
+                r"together."
+            ),
             abridged_name="Spot size",
             display_unit=kymo._calibration.unit_label,
+        ),
+        "filter_width": KymotrackerParameter(
+            "Width of the Gaussian filter to apply",
+            "Set the intensity filter width.",
+            "float",
+            value=fwhm_to_sigma(0.35),  # 0.5 * position_scale
+            lower_bound=0.5 * fwhm_to_sigma(0.35),
+            upper_bound=15.0 * fwhm_to_sigma(0.35),
+            ui_visible=True,
+            extended_description=(
+                r"Prior to peak detection, the kymograph is filtered using a Gaussian kernel. This "
+                r"procedure rejects noise and helps tracking. Ideally, the width of this filter "
+                r"should be chosen to match the point spread function."
+            ),
+            abridged_name="Filter width",
+            display_unit=kymo._calibration.unit_label,
+        ),
+        "adjacency_filter": KymotrackerParameter(
+            "Adjacency filter",
+            "Force adjacent detections.",
+            "int",
+            value=0,
+            lower_bound=0,
+            upper_bound=1,
+            ui_visible=True,
+            extended_description=(
+                r"Filter spurious peaks (fluorescent peaks with no fluorescent peaks in an "
+                r"adjacent kymograph frame)."
+            ),
+            abridged_name="Spurious",
         ),
         "velocity": KymotrackerParameter(
             "Expected velocity",
@@ -900,12 +947,16 @@ def _get_default_parameters(kymo, channel):
             "Diffusion",
             "Expected diffusion constant.",
             "float",
-            0.0,
-            *(None, None),
-            False,
-            r"When tracking, the algorithm searches for points in future frames to connect. Points "
-            r"within a certain distance from the expected future position are connected. The "
-            r"diffusion parameter determines how quickly this distance grows over time.",
+            value=0.0,
+            lower_bound=None,
+            upper_bound=None,
+            ui_visible=False,
+            extended_description=(
+                r"When tracking, the algorithm searches for points in future frames to connect. "
+                r"Points within a certain distance from the expected future position are "
+                r"connected. The diffusion parameter determines how quickly this distance grows "
+                r"over time."
+            ),
             display_unit=f"{kymo._calibration.unit_label}²/s",
         ),
         "sigma_cutoff": KymotrackerParameter(
@@ -913,13 +964,16 @@ def _get_default_parameters(kymo, channel):
             "Number of standard deviations from the expected trajectory a particle no longer "
             "belongs to a trace.",
             "float",
-            2.0,
-            *(None, None),
-            False,
-            r"Search range (sigma) controls how much the location can fluctuate from one time "
-            r"point to the next while still being considered part of the same track. Sigma cutoff "
-            r"controls the actual threshold applied to the expected positional variability. Larger "
-            r"values for sigma or sigma_cutoff will be more permissive when it comes to connecting "
-            r"detected peaks into a track.",
+            value=2.0,
+            lower_bound=None,
+            upper_bound=None,
+            ui_visible=False,
+            extended_description=(
+                "Search range (sigma) controls how much the location can fluctuate from one time "
+                r"point to the next while still being considered part of the same track. Sigma "
+                r"cutoff controls the actual threshold applied to the expected positional "
+                r"variability. Larger values for sigma or sigma_cutoff will be more permissive "
+                r"when it comes to connecting detected peaks into a track."
+            ),
         ),
     }

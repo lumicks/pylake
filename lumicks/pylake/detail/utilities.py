@@ -213,3 +213,11 @@ def temp_seed(seed):
         yield
     finally:
         np.random.seed(None)
+
+
+def sigma_to_fwhm(sigma):
+    return 2.0 * np.sqrt(2.0 * np.log(2.0)) * sigma
+
+
+def fwhm_to_sigma(fwhm):
+    return fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
