@@ -380,8 +380,8 @@ class KymoWidget:
         return ipywidgets.interactive(
             set_value,
             value=slider_types[parameter.type](
-                description=parameter.abridged_name,
-                description_tooltip=parameter.extended_description,
+                description=name,
+                description_tooltip=f"{parameter.abridged_name}\n{parameter.extended_description}",
                 min=parameter.lower_bound,
                 max=parameter.upper_bound,
                 step=parameter.step_size,
@@ -784,8 +784,8 @@ class KymotrackerParameter:
     description: str
     type: str
     value: Number
-    lower_bound: Number
-    upper_bound: Number
+    lower_bound: Optional[Number]
+    upper_bound: Optional[Number]
     ui_visible: bool
     extended_description: str
     abridged_name: Optional[str] = None
@@ -814,9 +814,9 @@ def _get_default_parameters(kymo, channel):
         "pixel_threshold": KymotrackerParameter(
             "Minimum photon counts",
             "Set the pixel intensity threshold.",
-            "int",
-            max(1, int(np.percentile(data.flatten(), 98))),
-            *(1, max(2, np.max(data))),
+            "float",
+            max(1.0, int(np.percentile(data.flatten(), 98))),
+            *(1.0, max(2.0, np.max(data))),
             True,
             r"Minimum intensity defines the minimum signal required in a single pixel for it to be "
             r"considered part of a track. This parameter should be chosen slightly above the "
@@ -881,6 +881,37 @@ def _get_default_parameters(kymo, channel):
             r"noise, but at the cost of potentially merging tracks that are close together.",
             abridged_name="Spot size",
             display_unit=kymo._calibration.unit_label,
+        ),
+        "filter_width": KymotrackerParameter(
+            "Width of the Gaussian filter to apply",
+            "Set the intensity filter width.",
+            "float",
+            value=0.5 * position_scale,
+            # PSF will roughly have a sigma = 0.35 um / (2.0 * sqrt(2 * ln(2))) = 0.15
+            lower_bound=min(0.5 * position_scale, 0.5 * 0.15),
+            upper_bound=15.0 * 0.15,
+            ui_visible=False,
+            extended_description=(
+                r"Prior to peak detection, the kymograph is filtered using a Gaussian kernel. This "
+                r"procedure rejects noise and helps tracking. Ideally, the width of this filter "
+                r"should be chosen to match the point spread function."
+            ),
+            abridged_name="Filter width",
+            display_unit=kymo._calibration.unit_label,
+        ),
+        "adjacency_filter": KymotrackerParameter(
+            "Adjacency filter",
+            "Force adjacent detections.",
+            "int",
+            value=0,
+            lower_bound=0,
+            upper_bound=1,
+            ui_visible=False,
+            extended_description=(
+                r"Filter spurious peaks (fluorescent peaks with no fluorescent peaks in an "
+                r"adjacent kymograph frame)."
+            ),
+            abridged_name="Spurious",
         ),
         "velocity": KymotrackerParameter(
             "Expected velocity",
