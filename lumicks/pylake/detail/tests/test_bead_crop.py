@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from lumicks.pylake.detail.bead_cropping import find_beads_brightness, find_beads_template
+from lumicks.pylake.detail.bead_cropping import find_beads_template, find_beads_brightness
 
 
 @pytest.mark.parametrize(
@@ -24,7 +24,9 @@ from lumicks.pylake.detail.bead_cropping import find_beads_brightness, find_bead
 def test_bead_cropping_allow_negative_beads(filename, ref_edges, ref_edges_no_negative):
     data = np.load(pathlib.Path(__file__).parent / "data" / f"{filename}.npz")
 
-    edges = find_beads_brightness(data["green"], bead_diameter_pixels=4.84 / data["pixelsize"], plot=False)
+    edges = find_beads_brightness(
+        np.atleast_2d(data["green"]).T, bead_diameter_pixels=4.84 / data["pixelsize"], plot=False
+    )
     # Asserting equal to pin behavior, but I wouldn't expect more accuracy than half a micron
     # because the fluorescence typically tails out wide.
     np.testing.assert_equal(edges, ref_edges)
@@ -33,13 +35,15 @@ def test_bead_cropping_allow_negative_beads(filename, ref_edges, ref_edges_no_ne
         RuntimeError, match="Did not find two beads"
     ):
         edges = find_beads_brightness(
-            data["green"], bead_diameter_pixels=4.84 / data["pixelsize"], allow_negative_beads=False
+            np.atleast_2d(data["green"]).T,
+            bead_diameter_pixels=4.84 / data["pixelsize"],
+            allow_negative_beads=False,
         )
         np.testing.assert_equal(edges, ref_edges_no_negative)
 
 
 def test_bead_cropping_failure():
-    mock = np.zeros((100,))
+    mock = np.zeros((100, 1))
     mock[50] = 1  # Standard deviation of the data should not be zero or the KDE estimate fails.
     with pytest.raises(RuntimeError, match="Did not find two beads"):
         find_beads_brightness(mock, bead_diameter_pixels=1, plot=True)
@@ -49,7 +53,7 @@ def test_plotting():
     data = np.load(pathlib.Path(__file__).parent / "data" / f"kymo_sum0.npz")
     for allow_negative in (False, True):
         edges = find_beads_brightness(
-            data["green"],
+            np.atleast_2d(data["green"]).T,
             bead_diameter_pixels=4.84 / data["pixelsize"],
             plot=True,
             allow_negative_beads=allow_negative,

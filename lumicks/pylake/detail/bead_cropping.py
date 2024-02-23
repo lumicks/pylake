@@ -21,7 +21,7 @@ def _move_inward_percentile(data, bead_edges, threshold_percentile):
 
 
 def find_beads_brightness(
-    summed_kymo,
+    kymograph_image,
     bead_diameter_pixels,
     plot=False,
     threshold_percentile=70,
@@ -34,8 +34,8 @@ def find_beads_brightness(
 
     Parameters
     ----------
-    summed_kymo : np.ndarray
-        Kymograph image data (single channel summed along the time axis).
+    kymograph_image : np.ndarray
+        2D kymograph image
     bead_diameter_pixels : float
         Estimate for the bead size in pixels.
     plot : bool
@@ -59,6 +59,7 @@ def find_beads_brightness(
     import scipy.ndimage
     import matplotlib.pyplot as plt
 
+    summed_kymo = kymograph_image.sum(axis=1)
     data = summed_kymo.astype(float)
 
     # Makes sure we can handle dark beads

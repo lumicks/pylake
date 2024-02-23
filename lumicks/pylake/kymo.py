@@ -16,7 +16,7 @@ from .detail.confocal import ScanAxis, ScanMetaData, ConfocalImage
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
 from .detail.utilities import method_cache
-from .detail.bead_cropping import find_beads_brightness
+from .detail.bead_cropping import find_beads_template, find_beads_brightness
 
 
 def _default_line_time_factory(self: "Kymo"):
@@ -572,12 +572,17 @@ class Kymo(ConfocalImage):
         ax_hist.set_title(self.name)
 
     def estimate_bead_edges(
-        self, bead_diameter, *, channel="green", plot=False, threshold_percentile=70, **kwargs
+        self,
+        bead_diameter,
+        algorithm,
+        *,
+        channel="green",
+        plot=False,
+        threshold_percentile=70,
+        allow_movement=False,
+        downsample_num_frames=5,
     ):
-        """Determine approximate positional coordinates of the bead edges.
-
-        Searches for the bead edges by checking where the fluorescence drops below a threshold.
-        Only intended for stationary beads.
+        """Determine approximate positional coordinates of the bead edges. Only intended for stationary beads.
 
         .. warning::
 
@@ -586,20 +591,48 @@ class Kymo(ConfocalImage):
             any prior deprecation notice! If you use this functionality keep a close eye on the
             changelog for any changes that may affect your analysis.
 
+        There are two algorithms to determine bead edges:
+
+            - "brightness": brightness based bead edge detection
+            - "template": template correlation-based bead edge detection
+
+        * *Brightness: brightness based bead edge detection.*
+          Searches for bead edges by summing along the temporal direction and removing small
+          features. The result is smoothed and peaks are detected. Bead edges are found by checking
+          where the fluorescence drops below a threshold.
+
+        * *Template: template correlation-based bead edge detection.*
+          Downsamples the kymograph to a specific number of frames (specified with the optional
+          parameter `downsample_num_frames`). For each frame, we traverse the scan line pixel by
+          pixel, extracting a template at each pixel. This template is then correlated with the
+          next frame. This process is repeated until all frames have been processed and a 2D matrix
+          is acquired. This matrix is then summed over the temporal axis obtaining a similarity
+          score over time. This score can be interpreted as a measure for how long a template
+          taken at that particular location is present. The outer maxima of this curve provide
+          the bead centers.
+
         Parameters
         ----------
         bead_diameter : float
             Rough estimate for the bead size (microns).
+        algorithm : 'brightness', 'template'
+            Which algorithm to use.
         channel : 'red', 'green', 'blue', optional
             Channel to use for bead detection.
         plot : optional[bool]
             Plot result
-        threshold_percentile : int
+        threshold_percentile : optional[int]
             Percentile to drop down to before accepting that we have left the bead area. Higher
             values will make the bounds go closer to the bead edge but risk the algorithm failing
-            or having high background.
-        **kwargs
-            Forwarded to bead finding function.
+            or having high background (default: 70).
+        allow_movement : optional[bool]
+            Allow movement of the template between frames. Only relevant for `algorithm="template"`.
+            When this is enabled, the maximum correlation along the spatial axis is selected
+            between frames. This allows the template to move which can lead to better detection
+            for cases where the beads may be moving slightly (default: False).
+        downsample_num_frames : optional[int]
+            Number of time frames to downsample to (must be larger than 3). Only relevant for
+            `algorithm="template"`. Default: 5.
 
         Returns
         -------
@@ -618,18 +651,33 @@ class Kymo(ConfocalImage):
                 f"functionality."
             )
 
-        return (
-            find_beads_brightness(
-                self.get_image(channel).sum(axis=1),
-                bead_diameter_pixels=bead_diameter / self.pixelsize_um[0],
-                plot=plot,
-                threshold_percentile=threshold_percentile,
-                **kwargs,
+        if algorithm not in ("brightness", "template"):
+            raise ValueError(
+                f'Unrecognized algorithm {algorithm} selected. Choose "brightness" or "template"'
             )
-            * self.pixelsize_um[0]
-        )
 
-    def crop_beads(self, bead_diameter, channel="green", **kwargs):
+        shared_parameters = {
+            "kymograph_image": self.get_image(channel),
+            "bead_diameter_pixels": bead_diameter / self.pixelsize_um[0],
+            "plot": plot,
+            "threshold_percentile": threshold_percentile,
+        }
+
+        if algorithm == "brightness":
+            return np.array(find_beads_brightness(**shared_parameters)) * self.pixelsize_um[0]
+        elif algorithm == "template":
+            return (
+                np.array(
+                    find_beads_template(
+                        **shared_parameters,
+                        allow_movement=allow_movement,
+                        downsample_num_frames=downsample_num_frames,
+                    )
+                )
+                * self.pixelsize_um[0]
+            )
+
+    def crop_beads(self, bead_diameter, algorithm, *, channel="green", **kwargs):
         """Estimates the edges of stationary beads and returns a copy of the kymograph cropped to
         these limits.
 
@@ -644,14 +692,16 @@ class Kymo(ConfocalImage):
         ----------
         bead_diameter : float
             Rough estimate for the bead size (microns).
+        algorithm : 'brightness', 'template'
+            Which algorithm to use. See :meth:`Kymo.estimate_bead_edges()` for more information.
         channel : 'red', 'green', 'blue', optional
             Channel to use for bead detection.
         **kwargs
-            Forwarded to :meth:`Kymo.bead_roi()`.
+            Forwarded to :meth:`Kymo.estimate_bead_edges()`.
         """
         to_current_units = self.pixelsize[0] / self.pixelsize_um[0]
         crop_locations = np.asarray(
-            self.estimate_bead_edges(bead_diameter, channel=channel, **kwargs)
+            self.estimate_bead_edges(bead_diameter, algorithm=algorithm, channel=channel, **kwargs)
         )
         return self.crop_by_distance(*(crop_locations * to_current_units))
 
