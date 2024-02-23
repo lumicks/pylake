@@ -16,7 +16,7 @@ from .detail.confocal import ScanAxis, ScanMetaData, ConfocalImage
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
 from .detail.utilities import method_cache
-from .detail.bead_cropping import find_beads
+from .detail.bead_cropping import find_beads_brightness
 
 
 def _default_line_time_factory(self: "Kymo"):
@@ -592,7 +592,7 @@ class Kymo(ConfocalImage):
             Rough estimate for the bead size (microns).
         channel : 'red', 'green', 'blue', optional
             Channel to use for bead detection.
-        plot : bool, optional
+        plot : optional[bool]
             Plot result
         threshold_percentile : int
             Percentile to drop down to before accepting that we have left the bead area. Higher
@@ -603,7 +603,7 @@ class Kymo(ConfocalImage):
 
         Returns
         -------
-        list of float
+        bead_edges : list[float]
             List of the two edge positions in microns.
 
         Raises
@@ -619,7 +619,7 @@ class Kymo(ConfocalImage):
             )
 
         return (
-            find_beads(
+            find_beads_brightness(
                 self.get_image(channel).sum(axis=1),
                 bead_diameter_pixels=bead_diameter / self.pixelsize_um[0],
                 plot=plot,
