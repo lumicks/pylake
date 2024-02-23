@@ -280,21 +280,31 @@ def test_incremental_offset(cropping_kymo):
 
 
 @pytest.mark.parametrize(
-    "color, ref_locations, percentile",
+    "color, ref_locations, algorithm, kwargs",
     [
-        ("red", (7.65, 17.7), 70),
-        ("green", (7.65, 17.65), 70),
-        ("blue", (7.25, 20.9), 70),
-        ("blue", (7.25, 20.45), 20),
+        ("red", (7.65, 17.7), "brightness", {"threshold_percentile": 70}),
+        ("green", (7.65, 17.65), "brightness", {"threshold_percentile": 70}),
+        ("blue", (7.25, 20.9), "brightness", {"threshold_percentile": 70}),
+        ("blue", (7.25, 20.45), "brightness", {"threshold_percentile": 20}),
+        ("red", (7.4, 17.7), "template", {}),
+        ("green", (7.35, 17.75), "template", {}),
+        ("blue", (7.05, 18.45), "template", {}),
+        ("blue", (7.2, 18.3), "template", {"threshold_percentile": 20}),
+        ("blue", (6.9, 18.45), "template", {"allow_movement": True}),
     ],
 )
-def test_bead_crop(bead_kymo, color, ref_locations, percentile):
+def test_bead_crop(bead_kymo, color, ref_locations, algorithm, kwargs):
     np.testing.assert_allclose(
-        bead_kymo.estimate_bead_edges(4.89, channel=color, threshold_percentile=percentile),
+        bead_kymo.estimate_bead_edges(4.89, algorithm=algorithm, channel=color, **kwargs),
         ref_locations,
     )
     np.testing.assert_allclose(
-        bead_kymo.crop_beads(4.89, channel=color, threshold_percentile=percentile).size_um,
+        bead_kymo.crop_beads(4.89, algorithm=algorithm, channel=color, **kwargs).size_um,
         np.diff(ref_locations),
         atol=bead_kymo.pixelsize_um[0],
     )
+
+
+def test_bead_crop_invalid_algorithm(bead_kymo):
+    with pytest.raises(ValueError, match="Unrecognized algorithm godot"):
+        bead_kymo.crop_beads(4.89, algorithm="godot", channel="green")
