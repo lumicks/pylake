@@ -156,7 +156,7 @@ def test_default_parameters(kymo_pixel_calibrations):
         tracks = track_greedy(
             kymo, "red", track_width=None, pixel_threshold=default_threshold * 0.7
         )
-        with pytest.raises(AssertionError):
+        with np.testing.assert_raises(AssertionError):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
 
@@ -168,6 +168,6 @@ def test_default_parameters(kymo_pixel_calibrations):
             pixel_threshold=None,
             bias_correction=False,
         )
-        with pytest.raises(AssertionError):
+        with np.testing.assert_raises(AssertionError):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
