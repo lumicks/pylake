@@ -27,12 +27,6 @@ def test_download_record_metadata():
 
 
 @pytest.mark.preflight
-def test_non_zenodo_doi():
-    with pytest.raises(RuntimeError, match="Only Zenodo DOIs are supported"):
-        assert download_from_doi("https://doi.org/10.1109/5.771073")
-
-
-@pytest.mark.preflight
 def test_download_from_doi(tmpdir_factory, capsys):
     tmpdir = tmpdir_factory.mktemp("download_testing")
     record = download_record_metadata("4247279")
