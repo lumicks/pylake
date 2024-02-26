@@ -1,18 +1,29 @@
 # Changelog
 
-## v1.4.0 | t.b.d.
+## v1.4.0 | 2024-02-28
 
 #### New features
 
-* Added [`lk.HiddenMarkovModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.HiddenMarkovModel.html#lumicks.pylake.HiddenMarkovModel) for classifying data traces exhibiting transitions between discrete states. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#hidden-markov-models).
-* Added option to crop beads out of a kymograph using [`Kymo.crop_beads()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.crop_beads).
-* Added API to determine bead edges in a kymograph using [`Kymo.estimate_bead_edges()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.estimate_bead_edges).
-* Added `emission_path()` and `plot_path()` methods to [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html)
-* Added option to [`File`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.File.html) to pass a custom mapping from Photon count detector to RGB colors colors. This is useful to reconstruct images on systems with non-standard imaging modules.
-* Added option to customize the filter width of the Gaussian filter that is applied prior to spot detection in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#). Increasing this value results in fewer false detections at the cost of resolution. Note that the current default is set to half a pixel to preserve the old behavior.
-* Added option to determine the viscosity and density of water with NaCl dissolved in it using `lk.viscosity_of_water()` and `lk.density_of_water()`.
-* Added `ImageStack.close()` to force close file handles. Note that this prohibits further access to images from the `ImageStack` it is called on, but also any `ImageStack` derived from it (i.e. through [`ImageStack.define_tether()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.define_tether) or [`ImageStack.crop_by_pixels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.crop_by_pixels)).
-* Added option to filter kymograph spot detections where there are no detections in adjacent frames using `adjacency_filter=True` in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.track_greedy.html#).
+* Added [`lk.HiddenMarkovModel`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.HiddenMarkovModel.html#lumicks.pylake.HiddenMarkovModel) for classifying data traces exhibiting transitions between discrete states. For more information, see the tutorials section on [Population Dynamics](https://lumicks-pylake.readthedocs.io/en/v1.4.0/tutorial/population_dynamics.html#hidden-markov-models).
+* Added option to crop beads out of a kymograph using [`Kymo.crop_beads()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.crop_beads).
+* Added API to determine bead edges in a kymograph using [`Kymo.estimate_bead_edges()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.estimate_bead_edges).
+* Added `emission_path()` and `plot_path()` methods to [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.GaussianMixtureModel.html)
+* Added option to [`File`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.File.html) to pass a custom mapping from Photon count detector to RGB colors colors. This is useful to reconstruct images on systems with non-standard imaging modules.
+* Added option to customize the filter width of the Gaussian filter that is applied prior to spot detection in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.track_greedy.html#). Increasing this value results in fewer false detections at the cost of resolution. Note that the current default is set to half a pixel to preserve the old behavior.
+* Added option to determine the viscosity and density of water with NaCl dissolved in it using [`lk.viscosity_of_water()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.viscosity_of_water.html) and [`lk.density_of_water()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.density_of_water.html).
+* Added [`ImageStack.close()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.close) to force close file handles. Note that this prohibits further access to images from the [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#) it is called on, but also any [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#) derived from it (i.e. through [`ImageStack.define_tether()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.define_tether) or [`ImageStack.crop_by_pixels()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.crop_by_pixels)).
+* Added option to filter kymograph spot detections where there are no detections in adjacent frames using `adjacency_filter=True` in [`lk.track_greedy()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.track_greedy.html#).
+* Add option to `include_dead_time` to [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) for [`Scan`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.scan.Scan.html) and [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html). This parameter defaults to `True`.
+
+#### Bug fixes
+
+* Fixed a bug where the time indicator was off by one frame in [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) and [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
+* Fixed a bug where the time between frames was incorrectly not excluded when calling [`ImageStack.frame_timestamp_ranges()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.frame_timestamp_ranges) with `include_dead_time=False`. Note that `Scan` and `Kymo` are not affected.
+* Fixed a bug where [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) was not excluding the dead time between frames.
+* Fixed a bug where color adjustments on a single channel [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack) would not be applied unless a channel was provided as argument. This bug was introduced in `v1.3.0`.
+* Changed the `DateTime` tag on TIFFs exported with Pylake from [`Scan`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.scan.Scan.html) and [`Kymo`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.kymo.Kymo.html) objects. Before the change, the start and end of the scanning period in nanoseconds was stored. After the change, we store the starting timestamp of the frame, followed by the starting timestamp of the next frame to be consistent with data exported from Bluelake. The scanning time is stored in the field `Exposure time (ms)` on the Description tag.
+* Fixed tests to be compatible with `pytest>=8.0.0`.
+* Ensure `in` returns `True` for a valid data path (e.g. `"Force HF/Force 1x" in file` should return `True`).
 
 #### Improvements
 
@@ -21,29 +32,13 @@
 #### Deprecations
 
 * Deprecated `GaussianMixtureModel.from_channel()`. The class constructor now accepts `Slice` instances directly.
-* Deprecated `GaussianMixtureModel.label()`. Use [`GaussianMixtureModel.state_path()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.state_path) instead. Note, the returned instance is type `Slice` rather than `np.ndarray`. The data can be accessed via `model.state_path(channel_slice).data`.
-* Deprecated `GaussianMixtureModel.exit_flag` Use [`GaussianMixtureModel.fit_info()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.fit_info) instead. Note, the returned instance is a `GmmFitInfo` dataclass with attributes matching the keys of the `dict` returned from `exit_flag` (along with `bic` and `aic`; see next point).
+* Deprecated `GaussianMixtureModel.label()`. Use [`GaussianMixtureModel.state_path()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.state_path) instead. Note, the returned instance is type `Slice` rather than `np.ndarray`. The data can be accessed via `model.state_path(channel_slice).data`.
+* Deprecated `GaussianMixtureModel.exit_flag` Use [`GaussianMixtureModel.fit_info()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.fit_info) instead. Note, the returned instance is a `GmmFitInfo` dataclass with attributes matching the keys of the `dict` returned from `exit_flag` (along with `bic` and `aic`; see next point).
 * Deprecated `GaussianMixtureModel.bic` and `GaussianMixtureModel.aic` properties. These values can now be accessed via the `bic` and `aic` properties of `GaussianMixtureModel.fit_info`.
 
 #### Breaking changes (alpha functionality)
 
-* `trace_kwargs` and `label_kwargs` are now keyword-only arguments for `lk.GaussianMixtureModel.plot()`.
-
-## v1.3.2 | t.b.d.
-
-#### New features
-
-* Add option to `include_dead_time` to [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) for `Scan` and `ImageStack`. This parameter defaults to `True`. 
-
-#### Bug fixes
-
-* Fixed a bug where the time indicator was off by one frame in [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) and [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video).
-* Fixed a bug where the time between frames was incorrectly not excluded when calling [`ImageStack.frame_timestamp_ranges()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.frame_timestamp_ranges) with `include_dead_time=False`. Note that `Scan` and `Kymo` are not affected.
-* Fixed a bug where [`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.3.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated) was not excluding the dead time between frames.
-* Fixed a bug where color adjustments on a single channel [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack) would not be applied unless a channel was provided as argument. This bug was introduced in `v1.3.0`.
-* Changed the `DateTime` tag on TIFFs exported with Pylake from `Scan` and `Kymo` objects. Before the change, the start and end of the scanning period in nanoseconds was stored. After the change, we store the starting timestamp of the frame, followed by the starting timestamp of the next frame to be consistent with data exported from Bluelake. The scanning time is stored in the field `Exposure time (ms)` on the Description tag.
-* Fixed tests to be compatible with `pytest>=8.0.0`.
-* Ensure `in` returns `True` for a valid data path (e.g. `"Force HF/Force 1x" in file` should return `True`).
+* `trace_kwargs` and `label_kwargs` are now keyword-only arguments for [`GaussianMixtureModel.plot()`](https://lumicks-pylake.readthedocs.io/en/v1.4.0/_api/lumicks.pylake.GaussianMixtureModel.html#lumicks.pylake.GaussianMixtureModel.plot).
 
 #### Other changes
 
