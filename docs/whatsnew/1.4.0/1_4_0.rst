@@ -3,7 +3,7 @@ Pylake 1.4.0
 
 .. only:: html
 
-Get a sneak peak at the new features coming in `v1.4.0`:
+Pylake `v1.4.0` has been released with new features and improvements to existing analyses. Here’s some of the highlights:
 
 Hidden Markov Models
 --------------------
@@ -19,3 +19,33 @@ Check out the :ref:`hmm-section` tutorial and the
 .. figure:: hmm_hairpin.png
 
    HMM analysis of a tethered DNA hairpin held at three different bead separations.
+
+Automatic bead cropping
+-----------------------
+
+Added :meth:`~lumicks.pylake.kymo.Kymo.estimate_bead_edges()` and :meth:`~lumicks.pylake.kymo.Kymo.crop_beads()` for quickly crop the beads out of a kymograph using an estimate of the bead edges. This can help when batch processing of kymographs.
+
+.. figure:: bead_edges.png
+
+Filter customization kymotracking
+---------------------------------
+
+We added the option to customize the filters applied prior to peak detection to :func:`~lumicks.pylake.track_greedy`.
+To do this, we added two additional parameters:
+
+- `filter_width` allows customizing the filter applied prior to detection.
+- `adjacency_filter` applies a filter on the detected peaks, removing any fluorescent peaks that do not have a detected peak in an adjacent frame.
+
+This allows using lower thresholds, while keeping false detections in check.
+
+.. figure:: tracking_comparison.png
+
+.. figure:: tracking_comparison_threshold.png
+
+Other changes
+-------------
+
+In addition, this release contains several other bug-fixes and improvements.
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!
