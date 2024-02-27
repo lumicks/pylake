@@ -19,8 +19,9 @@ Here, we quantify these changes using the worm-like chain model.
 
 Let's first load our data and see which curves are present in these files::
 
-    >>> control_file = lk.File("RecA/20200430-192424 FD Curve FD_5_control_forw.h5")
-    >>> reca_file = lk.File("RecA/20200430-192432 FD Curve FD_5_3_RecA_forw.h5")
+    >>> filenames = lk.download_from_doi("10.5281/zenodo.7729929", "test_data")
+    >>> control_file = lk.File("test_data/fdcurve.h5")
+    >>> reca_file = lk.File("test_data/fdcurve_reca.h5")
 
     >>> print(control_file.fdcurves)
     >>> print(reca_file.fdcurves)
@@ -283,7 +284,7 @@ point of this model while keeping all other parameters the same.
 
 Let's load the data and have a look::
 
-    dynamic_file = lk.File("RecA/20200430-182304 FD Curve 40.h5")
+    dynamic_file = lk.File("test_data/fd_multiple_Lc.h5")
     dynamic_name, dynamic_curve = dynamic_file.fdcurves.popitem()
     dynamic_curve.plot_scatter()
 

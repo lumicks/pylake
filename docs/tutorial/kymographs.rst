@@ -98,6 +98,15 @@ crop the region from `9.5` micron to `26` microns using the following command::
 
 .. image:: figures/kymographs/kymo_cropped.png
 
+If we know the bead diameter, we can automatically crop the kymo to an estimate of the bead edges using :meth:`~lumicks.pylake.kymo.Kymo.crop_beads()`.
+This can be convenient when batch processing many kymographs::
+
+    plt.figure()
+    kymo.crop_beads(4.84, algorithm="brightness").plot("rgb", aspect="auto", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+    plt.show()
+
+.. image:: figures/kymographs/kymo_cropped_bead_edges.png
+
 .. note::
 
     Note, slicing in time is currently only supported for unprocessed kymographs. If you want to both crop and slice a kymo,
