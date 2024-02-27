@@ -577,12 +577,14 @@ class Kymo(ConfocalImage):
         algorithm,
         *,
         channel="green",
+        extra_cropping=0,
         plot=False,
         threshold_percentile=70,
         allow_movement=False,
         downsample_num_frames=5,
     ):
-        """Determine approximate positional coordinates of the bead edges. Only intended for stationary beads.
+        """Determine approximate positional coordinates of the bead edges. Only intended for
+        stationary beads.
 
         .. warning::
 
@@ -619,6 +621,8 @@ class Kymo(ConfocalImage):
             Which algorithm to use.
         channel : 'red', 'green', 'blue', optional
             Channel to use for bead detection.
+        extra_cropping : float, optional
+            How much to move the returned edge inwards from the detected bead edge in microns.
         plot : optional[bool]
             Plot result
         threshold_percentile : optional[int]
@@ -663,21 +667,30 @@ class Kymo(ConfocalImage):
             "threshold_percentile": threshold_percentile,
         }
 
-        if algorithm == "brightness":
-            return np.array(find_beads_brightness(**shared_parameters)) * self.pixelsize_um[0]
-        elif algorithm == "template":
-            return (
-                np.array(
-                    find_beads_template(
-                        **shared_parameters,
-                        allow_movement=allow_movement,
-                        downsample_num_frames=downsample_num_frames,
-                    )
-                )
-                * self.pixelsize_um[0]
+        edges_pixels = (
+            find_beads_brightness(**shared_parameters)
+            if algorithm == "brightness"
+            else find_beads_template(
+                **shared_parameters,
+                allow_movement=allow_movement,
+                downsample_num_frames=downsample_num_frames,
+            )
+        )
+
+        bead_edges = np.array(edges_pixels) * self.pixelsize_um[0] + np.array(
+            [extra_cropping, -extra_cropping]
+        )
+
+        if np.diff(bead_edges) <= self.pixelsize_um[0]:
+            raise RuntimeError(
+                f"Detected bead edges in combination with chosen extra cropping "
+                f"({extra_cropping:.2f}) lead to empty kymograph. Cropping region: "
+                f"{bead_edges[0]:.2f}, {bead_edges[1]:.2f}."
             )
 
-    def crop_beads(self, bead_diameter, algorithm, *, channel="green", **kwargs):
+        return bead_edges
+
+    def crop_beads(self, bead_diameter, algorithm, *, channel="green", extra_cropping=0, **kwargs):
         """Estimates the edges of stationary beads and returns a copy of the kymograph cropped to
         these limits.
 
@@ -696,12 +709,20 @@ class Kymo(ConfocalImage):
             Which algorithm to use. See :meth:`Kymo.estimate_bead_edges()` for more information.
         channel : 'red', 'green', 'blue', optional
             Channel to use for bead detection.
+        extra_cropping : float, optional
+            How much to move the returned edge inwards from the detected bead edge in microns.
         **kwargs
             Forwarded to :meth:`Kymo.estimate_bead_edges()`.
         """
         to_current_units = self.pixelsize[0] / self.pixelsize_um[0]
         crop_locations = np.asarray(
-            self.estimate_bead_edges(bead_diameter, algorithm=algorithm, channel=channel, **kwargs)
+            self.estimate_bead_edges(
+                bead_diameter,
+                algorithm=algorithm,
+                channel=channel,
+                extra_cropping=extra_cropping,
+                **kwargs,
+            )
         )
         return self.crop_by_distance(*(crop_locations * to_current_units))
 
