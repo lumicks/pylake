@@ -88,9 +88,9 @@ Downsampling the kymograph
 
 To make it a bit easier to tweak the algorithm parameters, we will make use of a notebook widget.
 While we could work on the full time resolution data, we can make things a little easier for the kymotracking algorithm by downsampling the data a little bit.
-We downsample the data by a factor of `2`::
+We crop the beads out of the kymograph and downsample the data by a factor of `2`::
 
-    kymo_ds = kymo.downsampled_by(2)
+    kymo_ds = kymo.downsampled_by(2).crop_beads(4.89, algorithm="template")
 
 Performing the kymotracking
 ---------------------------
@@ -107,6 +107,7 @@ brackets while hovering over the kymograph). The `track width` should roughly be
 track. The `window` should be chosen such that small gaps in a track can be overcome, but not so large that spurious
 points may be strung together as a track. `Sigma` controls how much the location can fluctuate from one time point to the
 next, while the `min length` determines how many peak points should be in a track for it to be considered a valid track.
+The optional `adjacency_filter` removes detections that have no detections in their neighboring frame (prior to tracking) which can cut down on noise.
 
 Holding down the left mouse button and dragging pans the view, while the right mouse button allows us to drag a region
 where we should perform tracking. Any track which overlaps with the selected area will be removed before tracking new ones.
@@ -134,13 +135,15 @@ bead. This binding should be omitted from the analysis::
     kymowidget = lk.KymoWidgetGreedy(
         kymo_ds,
         "green",
-        axis_aspect_ratio=0.5,
+        axis_aspect_ratio=2.5,
         min_length=4,
         pixel_threshold=3,
-        window=6,
+        window=7,
         sigma=0.14,
         vmax=8,
-        cmap="viridis"
+        adjacency_filter=True,
+        cmap="viridis",
+        correct_origin=True
     )
 
 .. image:: kymowidget.png
@@ -184,7 +187,7 @@ earlier is subtracted from the photon counts. Since the kymograph was downsample
 the background per pixel is multiplied by 2::
 
     window = 3
-    bg_corrected = longest_track.sample_from_image(window) - (2 * window + 1) * 2 * green_background_per_pixel
+    bg_corrected = longest_track.sample_from_image(window, correct_origin=True) - (2 * window + 1) * 2 * green_background_per_pixel
 
     plt.figure()
     plt.plot(longest_track.seconds, bg_corrected)

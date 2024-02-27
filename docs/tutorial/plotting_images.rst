@@ -103,7 +103,6 @@ the pixel values::
 The color scale is linear by default, but `Gamma correction <https://en.wikipedia.org/wiki/Gamma_correction>`_
 can be applied in addition to the bounds by supplying an extra argument named `gamma`.
 For example, a gamma adjustment of `0.1` to the red channel can be applied as follows::
-::
 
     plt.figure()
 

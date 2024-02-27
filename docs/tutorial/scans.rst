@@ -102,7 +102,7 @@ The photon count per pixel can be accessed as follows::
     plt.plot(photons.timestamps, photons.data)
     plt.show()
 
-Scan metadeta
+Scan metadata
 -------------
 There are several properties available for convenient access to the scan metadata:
 
