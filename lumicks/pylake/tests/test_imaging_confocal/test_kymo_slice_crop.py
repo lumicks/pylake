@@ -291,6 +291,7 @@ def test_incremental_offset(cropping_kymo):
         ("blue", (7.05, 18.45), "template", {}),
         ("blue", (7.2, 18.3), "template", {"threshold_percentile": 20}),
         ("blue", (6.9, 18.45), "template", {"allow_movement": True}),
+        ("red", (7.65 + 1.5, 17.7 - 1.5), "brightness", {"extra_cropping": 1.5}),
     ],
 )
 def test_bead_crop(bead_kymo, color, ref_locations, algorithm, kwargs):
@@ -308,3 +309,19 @@ def test_bead_crop(bead_kymo, color, ref_locations, algorithm, kwargs):
 def test_bead_crop_invalid_algorithm(bead_kymo):
     with pytest.raises(ValueError, match="Unrecognized algorithm godot"):
         bead_kymo.crop_beads(4.89, algorithm="godot", channel="green")
+
+
+def test_bead_crop_invalid_extra_crop(bead_kymo):
+    extra_cropping = (17.65 - 7.65) / 2 - bead_kymo.pixelsize_um[0]
+    bead_kymo.crop_beads(
+        4.89, algorithm="brightness", channel="green", extra_cropping=extra_cropping
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"Detected bead edges in combination with chosen extra cropping \(5\.00\)",
+    ):
+        extra_cropping = (17.65 - 7.65) / 2
+        bead_kymo.crop_beads(
+            4.89, algorithm="brightness", channel="green", extra_cropping=extra_cropping
+        )
