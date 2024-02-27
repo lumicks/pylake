@@ -34,9 +34,11 @@ def _simulate_diffusion_1d(diffusion_constant, steps, dt, observation_noise):
 def _get_blank_kymo(*, line_time_seconds):
     """Generate kymo with particular properties"""
 
-    return _kymo_from_array(
+    kymo = _kymo_from_array(
         np.zeros((0, 0)), "r", line_time_seconds=line_time_seconds, pixel_size_um=1.0
     )
+    kymo._motion_blur_constant = 0
+    return kymo
 
 
 def simulate_diffusive_tracks(
