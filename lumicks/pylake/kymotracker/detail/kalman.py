@@ -1,6 +1,7 @@
-import numpy as np
-
+from typing import List
 from dataclasses import dataclass
+
+import numpy as np
 
 
 @dataclass(slots=True)
@@ -128,3 +129,49 @@ def generate_diffusion_model(n_states=2, dt=1, observation_noise=0.1, n_obs=1):
         observation_matrix=observation_matrix,
         measurement_noise=np.eye(n_obs) * observation_noise,
     )
+
+
+@dataclass
+class KalmanFrame:
+    coordinates: np.ndarray
+    time_points: np.ndarray
+    filter_states: List[List[FilterState]]
+    motion_model: np.ndarray  # Which motion model are we using?
+    unassigned: np.ndarray
+
+    def __post_init__(self):
+        fields = ("coordinates", "unassigned")
+        self.unassigned = np.zeros(self.time_points.shape, dtype=bool)
+
+        if any(len(self.time_points) != len(getattr(self, x)) for x in fields):
+            raise ValueError("""All properties need to have the same number of elements""")
+
+    @classmethod
+    def _from_kymopeak_frame(cls, peaks, state=np.zeros((2, 1)), cov=np.eye(2), model_index=0):
+        return cls(
+            peaks.coordinates,
+            peaks.time_points,
+            [[FilterState(np.array([pos, 0]), cov) for pos in peaks.coordinates]],
+            peaks.coordinates,
+            peaks.unassigned,
+        )
+
+
+def score_to_connections(score_matrix):
+    if score_matrix.size == 0:
+        return []
+
+    connections = []
+
+    score_matrix = score_matrix.copy()
+    for _ in range(score_matrix.shape[0]):
+        from_point, to_point = np.unravel_index(np.argmax(score_matrix), score_matrix.shape)
+
+        if np.isfinite(score_matrix[from_point, to_point]):
+            score_matrix[from_point, :] = -np.inf
+            score_matrix[:, to_point] = -np.inf
+            connections.append([from_point, to_point])
+        else:
+            break
+
+    return connections
