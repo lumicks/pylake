@@ -39,6 +39,8 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
             for page0, page in zip(tif_in.pages, tif_out.pages):
                 assert page0.tags["DateTime"].value == page.tags["DateTime"].value
 
+        stack.close()
+
 
 def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
     from os import stat
@@ -53,6 +55,8 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
+
+        stack.close()
 
 
 @pytest.mark.parametrize("vertical, correlated", [(False, False), (False, True), (True, True)])
@@ -96,3 +100,5 @@ def test_stack_movie_export(
             ),
         ):
             stack.export_video("gray", "dummy.gif")  # Gray is not a color!
+
+        stack.close()

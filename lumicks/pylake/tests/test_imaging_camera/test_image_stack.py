@@ -30,6 +30,7 @@ def to_tiff(image, description, bit_depth, start_time=1, num_images=2):
 def test_correlated_stack_deprecation(rgb_tiff_file):
     with pytest.warns(DeprecationWarning):
         cs = CorrelatedStack(str(rgb_tiff_file), align=True)
+        cs.close()
 
 
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
@@ -151,6 +152,7 @@ def test_stack_from_dataset():
 def test_stack_name_from_file(rgb_tiff_file):
     cs = ImageStack(str(rgb_tiff_file), align=True)
     assert cs.name == "rgb_single"
+    cs.close()
 
 
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
@@ -519,6 +521,7 @@ def test_cropping(rgb_tiff_file, gray_tiff_file):
                 stack._get_frame(0).raw_data[25:50, 25:50],
                 err_msg=f"failed on {Path(filename).name}, align={align}, frame.raw_data",
             )
+            stack.close()
 
 
 def test_cropping_then_export(
@@ -537,6 +540,8 @@ def test_cropping_then_export(
         with tifffile.TiffFile(savename) as tif:
             assert tif.pages[0].tags["ImageWidth"].value == 180
             assert tif.pages[0].tags["ImageLength"].value == 60
+
+        stack.close()
 
 
 def test_get_image():
@@ -1226,6 +1231,7 @@ def test_legacy_exposure_handling(tmpdir_factory, reference_data, include_dead_t
     tmpdir = tmpdir_factory.mktemp("legacy_exposures")
     tmp_file = tmpdir.join(f"include_dead_time={include_dead_time}.tiff")
     im.export_tiff(tmp_file)
+    im.close()
 
     # Test whether the round trip results in valid results
     im2 = ImageStack(tmp_file)
@@ -1234,6 +1240,7 @@ def test_legacy_exposure_handling(tmpdir_factory, reference_data, include_dead_t
 
     # Verify that this migrated the file, and we are no longer using legacy reading for this
     assert im2._src._description._legacy_exposure is False
+    im2.close()
 
 
 def test_tiffstack_automatic_cleanup(gray_tiff_file_multi):
