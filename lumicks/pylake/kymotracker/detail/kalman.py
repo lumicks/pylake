@@ -132,26 +132,37 @@ def generate_diffusion_model(n_states=2, dt=1, observation_noise=0.1, n_obs=1):
 
 
 @dataclass
-class KalmanFrame:
+class KalmanFrame():
     coordinates: np.ndarray
     time_points: np.ndarray
+    source_point: np.ndarray  # Where were we coming from?
     filter_states: List[List[FilterState]]
     motion_model: np.ndarray  # Which motion model are we using?
     unassigned: np.ndarray
 
     def __post_init__(self):
-        fields = ("coordinates", "unassigned")
+        fields = ("coordinates", "filter_states")
         self.unassigned = np.zeros(self.time_points.shape, dtype=bool)
 
-        if any(len(self.time_points) != len(getattr(self, x)) for x in fields):
-            raise ValueError("""All properties need to have the same number of elements""")
+        # if any(len(self.time_points) != len(getattr(self, x)) for x in fields):
+        #    raise ValueError(
+        #        """All properties need to have the same number of elements"""
+        #    )
 
     @classmethod
-    def _from_kymopeak_frame(cls, peaks, state=np.zeros((2, 1)), cov=np.eye(2), model_index=0):
+    def _from_kymopeak_frame(
+            cls, peaks, state=np.zeros((2, 1)), cov=np.eye(2), model_index=0
+    ):
         return cls(
             peaks.coordinates,
             peaks.time_points,
-            [[FilterState(np.array([pos, 0]), cov) for pos in peaks.coordinates]],
+            np.full(peaks.coordinates.shape, -1),
+            [
+                [
+                    FilterState(np.array([pos, 0]), cov)
+                    for pos in peaks.coordinates
+                ]
+            ],
             peaks.coordinates,
             peaks.unassigned,
         )
@@ -163,15 +174,37 @@ def score_to_connections(score_matrix):
 
     connections = []
 
-    score_matrix = score_matrix.copy()
     for _ in range(score_matrix.shape[0]):
         from_point, to_point = np.unravel_index(np.argmax(score_matrix), score_matrix.shape)
 
         if np.isfinite(score_matrix[from_point, to_point]):
-            score_matrix[from_point, :] = -np.inf
-            score_matrix[:, to_point] = -np.inf
+            score_matrix[from_point, :] = - np.inf
+            score_matrix[:, to_point] = - np.inf
             connections.append([from_point, to_point])
         else:
             break
 
     return connections
+
+
+def forward_pass(forward, kalman_filter):
+    # Initialization pass (forward)
+    for ix, (from_frame, to_frame) in enumerate(zip(forward[:-1], forward[1:])):
+        score_matrix = np.atleast_2d(
+            [
+                np.atleast_1d(
+                    kalman_filter.predict(state, to_frame.coordinates)
+                )
+                for state in from_frame.filter_states[0]
+            ]
+        )
+
+        # Find the most likely connections and run the Kalman filters
+        for from_point, to_point in score_to_connections(score_matrix):
+            state = from_frame.filter_states[0][from_point]
+            state = kalman_filter.timestep(state)
+            state = kalman_filter.add_measurement(state, to_frame.coordinates[to_point])
+            to_frame.filter_states[0][to_point] = state
+            to_frame.source_point[to_point] = from_point
+
+    return forward
