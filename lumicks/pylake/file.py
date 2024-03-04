@@ -186,6 +186,9 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             calibration = "  .calibration\n" if field.calibration else ""
             return f".{field_name}\n{calibration}" if field else ""
 
+        rng = range(4)
+        axes = ("x", "y", "z")
+
         return (
             print_attributes(self.h5)
             + "\n"
@@ -195,20 +198,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             + "".join(
                 (
                     print_force(field)
-                    for field in [
-                        "force1x",
-                        "force1y",
-                        "force1z",
-                        "force2x",
-                        "force2y",
-                        "force2z",
-                        "force3x",
-                        "force3y",
-                        "force3z",
-                        "force4x",
-                        "force4y",
-                        "force4z",
-                    ]
+                    for field in [f"force{channel+1}{axis}" for channel in rng for axis in axes]
                 )
             )
             + "\n"
@@ -216,18 +206,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
                 (
                     print_force(field)
                     for field in [
-                        "downsampled_force1x",
-                        "downsampled_force1y",
-                        "downsampled_force1z",
-                        "downsampled_force2x",
-                        "downsampled_force2y",
-                        "downsampled_force2z",
-                        "downsampled_force3x",
-                        "downsampled_force3y",
-                        "downsampled_force3z",
-                        "downsampled_force4x",
-                        "downsampled_force4y",
-                        "downsampled_force4z",
+                        f"downsampled_force{channel+1}{axis}" for channel in rng for axis in axes
                     ]
                 )
             )
