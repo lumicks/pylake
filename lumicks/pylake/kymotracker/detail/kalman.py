@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass
 
 import numpy as np
@@ -131,40 +131,35 @@ def generate_diffusion_model(n_states=2, dt=1, observation_noise=0.1, n_obs=1):
     )
 
 
+class Track:
+    def __init__(self, coord, time, std):
+        self.coordinate, self.time_idx, self.stdev = [], [], []
+        self.prepend(coord, time, std)
+
+    def prepend(self, coord, time, std):
+        self.coordinate.insert(0, coord)
+        self.time_idx.insert(0, time)
+        self.stdev.insert(0, std)
+
+
 @dataclass
-class KalmanFrame():
+class KalmanFrame:
     coordinates: np.ndarray
     time_points: np.ndarray
     source_point: np.ndarray  # Where were we coming from?
     filter_states: List[List[FilterState]]
     motion_model: np.ndarray  # Which motion model are we using?
-    unassigned: np.ndarray
-
-    def __post_init__(self):
-        fields = ("coordinates", "filter_states")
-        self.unassigned = np.zeros(self.time_points.shape, dtype=bool)
-
-        # if any(len(self.time_points) != len(getattr(self, x)) for x in fields):
-        #    raise ValueError(
-        #        """All properties need to have the same number of elements"""
-        #    )
+    track: List[Optional[Track]]
 
     @classmethod
-    def _from_kymopeak_frame(
-            cls, peaks, state=np.zeros((2, 1)), cov=np.eye(2), model_index=0
-    ):
+    def _from_kymopeak_frame(cls, peaks, state=np.zeros((2, 1)), cov=np.eye(2), model_index=0):
         return cls(
             peaks.coordinates,
             peaks.time_points,
             np.full(peaks.coordinates.shape, -1),
-            [
-                [
-                    FilterState(np.array([pos, 0]), cov)
-                    for pos in peaks.coordinates
-                ]
-            ],
-            peaks.coordinates,
-            peaks.unassigned,
+            [[FilterState(np.array([pos, 0]), cov) for pos in peaks.coordinates]],
+            np.zeros(peaks.coordinates.shape),
+            [None for _ in range(len(peaks.coordinates))],
         )
 
 
@@ -178,8 +173,8 @@ def score_to_connections(score_matrix):
         from_point, to_point = np.unravel_index(np.argmax(score_matrix), score_matrix.shape)
 
         if np.isfinite(score_matrix[from_point, to_point]):
-            score_matrix[from_point, :] = - np.inf
-            score_matrix[:, to_point] = - np.inf
+            score_matrix[from_point, :] = -np.inf
+            score_matrix[:, to_point] = -np.inf
             connections.append([from_point, to_point])
         else:
             break
@@ -192,9 +187,7 @@ def forward_pass(forward, kalman_filter):
     for ix, (from_frame, to_frame) in enumerate(zip(forward[:-1], forward[1:])):
         score_matrix = np.atleast_2d(
             [
-                np.atleast_1d(
-                    kalman_filter.predict(state, to_frame.coordinates)
-                )
+                np.atleast_1d(kalman_filter.predict(state, to_frame.coordinates))
                 for state in from_frame.filter_states[0]
             ]
         )
@@ -208,3 +201,23 @@ def forward_pass(forward, kalman_filter):
             to_frame.source_point[to_point] = from_point
 
     return forward
+
+
+def stitch_from_end(forward):
+    total = len(forward)
+
+    all_tracks = []
+    for frame_idx, (frame, prev_frame) in enumerate(zip(reversed(forward), reversed(forward[:-1]))):
+        for track, coordinate, filter_state, source_point in zip(
+            frame.track, frame.coordinates, frame.filter_states[0], frame.source_point
+        ):
+            if not track:
+                track = Track(coordinate, total - frame_idx, filter_state.cov[0, 0])
+                all_tracks.append(track)
+            else:
+                track.prepend(coordinate, total - frame_idx, filter_state.cov[0, 0])
+
+            if source_point > -1:
+                prev_frame.track[source_point] = track
+
+    return all_tracks
