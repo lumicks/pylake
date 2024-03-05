@@ -6,9 +6,9 @@ import numpy as np
 
 @dataclass(slots=True)
 class PredictionError:
-    m: float = 0
+    m: np.ndarray = np.array([[0, 0]])
     n: int = 0
-    M: float = 0
+    M: np.ndarray = np.array([[0, 0], [0, 0]])
 
     def with_update(self, kalman_update):
         """Update the average prediction error"""
@@ -24,11 +24,13 @@ class PredictionError:
         # kalman update is x_hat = x_prediction + K * (z - H * x_prediction)
         n = self.n + 1
         m = self.m + (kalman_update - self.m) / n
-        return PredictionError(m, n, self.M + (kalman_update - m).T * (kalman_update - m))
+
+        return PredictionError(m, n, self.M + (kalman_update - m).T @ (kalman_update - m))
 
     def process_noise(self):
-        if self.n == 0:
-            return 1.0
+        if self.n < 3:
+            # TODO: Better fallback for absence of process noise estimate
+            return np.eye(self.M.shape[0])
 
         return self.M / self.n
 
@@ -47,6 +49,18 @@ class FilterState:
 
     def update_process_error(self, state, cov, kalman_update):
         return FilterState(state, cov, self.prediction_error.with_update(kalman_update))
+
+    def average_with(self, new_state):
+        """Average the resulting state estimate with a new incoming one"""
+        avg_cov = np.linalg.pinv(np.linalg.pinv(self.cov) + np.linalg.pinv(new_state.cov))
+        weighted_mean = (
+            np.linalg.pinv(self.cov) @ self.state + np.linalg.pinv(new_state.cov) @ new_state.state
+        )
+        return FilterState(
+            avg_cov @ weighted_mean,
+            avg_cov,
+            new_state.prediction_error,
+        )
 
 
 class KalmanFilter:
@@ -77,6 +91,11 @@ class KalmanFilter:
             + state.prediction_error.process_noise(),
         )
 
+    def reverse(self):
+        return KalmanFilter(
+            np.linalg.pinv(self.transition_matrix), self.observation_matrix, self.measurement_noise
+        )
+
     def inverse_system_uncertainty(self, state):
         cov_observed = state.cov @ self.observation_matrix.T
         system_uncertainty = self.observation_matrix @ cov_observed + self.measurement_noise
@@ -103,12 +122,24 @@ class KalmanFilter:
         h = self.observation_matrix  # shorthand
         return h @ state.state, h @ state.cov @ h.T + self.measurement_noise
 
-    def predict(self, state, measurement):
+    def predict(self, state, measurement, innovation_cutoff=None):
         """Determine measurement probability densities"""
         from scipy.stats import multivariate_normal
 
         meas, meas_cov = self.measurement_pdf(state)
-        return multivariate_normal.pdf(measurement, mean=meas, cov=meas_cov)
+        log_pdf = np.atleast_1d(multivariate_normal.logpdf(measurement, mean=meas, cov=meas_cov))
+        if not innovation_cutoff:
+            return log_pdf
+
+        h = self.observation_matrix
+        innovation_cov = (
+            innovation_cutoff
+            * np.sqrt(2 * h @ state.prediction_error.process_noise() @ h.T).squeeze()
+        )
+        pos = np.sqrt((h @ state.state - measurement) ** 2)
+        log_pdf[pos > innovation_cov] = -np.inf
+
+        return log_pdf
 
 
 def generate_constant_velocity_model(n_states=2, dt=1, observation_noise=0.1, n_obs=1):
@@ -147,6 +178,7 @@ class KalmanFrame:
     coordinates: np.ndarray
     time_points: np.ndarray
     source_point: np.ndarray  # Where were we coming from?
+    log_pdf: np.ndarray  # Last log-pdf
     filter_states: List[List[FilterState]]
     motion_model: np.ndarray  # Which motion model are we using?
     track: List[Optional[Track]]
@@ -157,6 +189,7 @@ class KalmanFrame:
             peaks.coordinates,
             peaks.time_points,
             np.full(peaks.coordinates.shape, -1),
+            np.full(peaks.coordinates.shape, -np.inf),
             [[FilterState(np.array([pos, 0]), cov) for pos in peaks.coordinates]],
             np.zeros(peaks.coordinates.shape),
             [None for _ in range(len(peaks.coordinates))],
@@ -167,40 +200,21 @@ def score_to_connections(score_matrix):
     if score_matrix.size == 0:
         return []
 
-    connections = []
+    connections, scores = [], []
 
     for _ in range(score_matrix.shape[0]):
         from_point, to_point = np.unravel_index(np.argmax(score_matrix), score_matrix.shape)
+        score = score_matrix[from_point, to_point]
 
-        if np.isfinite(score_matrix[from_point, to_point]):
+        if np.isfinite(score):
             score_matrix[from_point, :] = -np.inf
             score_matrix[:, to_point] = -np.inf
             connections.append([from_point, to_point])
+            scores.append(score)
         else:
             break
 
-    return connections
-
-
-def forward_pass(forward, kalman_filter):
-    # Initialization pass (forward)
-    for ix, (from_frame, to_frame) in enumerate(zip(forward[:-1], forward[1:])):
-        score_matrix = np.atleast_2d(
-            [
-                np.atleast_1d(kalman_filter.predict(state, to_frame.coordinates))
-                for state in from_frame.filter_states[0]
-            ]
-        )
-
-        # Find the most likely connections and run the Kalman filters
-        for from_point, to_point in score_to_connections(score_matrix):
-            state = from_frame.filter_states[0][from_point]
-            state = kalman_filter.timestep(state)
-            state = kalman_filter.add_measurement(state, to_frame.coordinates[to_point])
-            to_frame.filter_states[0][to_point] = state
-            to_frame.source_point[to_point] = from_point
-
-    return forward
+    return connections, scores
 
 
 def stitch_from_end(forward):
@@ -221,3 +235,147 @@ def stitch_from_end(forward):
                 prev_frame.track[source_point] = track
 
     return all_tracks
+
+
+def forward_pass(kalman_frames, kalman_filter, cutoff):
+    """Initialization pass (forward)
+
+    Parameters
+    ----------
+    kalman_frames : List[KalmanFrame]
+        Frame of detected peaks associated with filter states
+    kalman_filter : KalmanFilter
+        Kalman filter used
+    cutoff : float
+        Cutoff parameter for connecting two points
+    """
+    frames = [frame for frame in kalman_frames]
+    for ix, (from_frame, to_frame) in enumerate(zip(frames[:-1], frames[1:])):
+        score_matrix = np.atleast_2d(
+            [
+                np.atleast_1d(kalman_filter.predict(state, to_frame.coordinates, cutoff))
+                for state in from_frame.filter_states[0]
+            ]
+        )
+
+        # Find the most likely connections and run the Kalman filters
+        for (from_point, to_point), loglik in zip(*score_to_connections(score_matrix)):
+            state = from_frame.filter_states[0][from_point]
+            state = kalman_filter.timestep(state)
+            state = kalman_filter.add_measurement(state, to_frame.coordinates[to_point])
+            to_frame.filter_states[0][to_point] = state
+            to_frame.source_point[to_point] = from_point
+            to_frame.log_pdf[to_point] = loglik
+
+    return frames
+
+
+@dataclass
+class EmptyFrame:
+    coordinates: np.ndarray = np.atleast_1d([])
+    source_point: np.ndarray = np.atleast_1d([])
+
+
+def reverse_frames(frames):
+    """Reverses the way the peaks are linked.
+
+    Every peak contains a source which reflects where it came from. Since we want
+    to run the filter in backwards fashion, we reverse where this information is stored
+    so that the algorithm itself can stay the same for all passes.
+
+    Instead of storing the linkage on the frame we move towards, we store it in the
+    frame we came from. This also means moving the log-likelihood with.
+    """
+    # Reverse the linkages
+    flipped_source_points = []
+    flipped_log_pdf = []
+    for ix, (from_frame, to_frame) in enumerate(zip(frames[:-1], frames[1:])):
+        from_source_point = np.full(from_frame.coordinates.shape, -1)
+        from_log_pdf = np.full(from_frame.coordinates.shape, -np.inf)
+        for target_idx, (from_idx, log_pdf) in enumerate(
+            zip(to_frame.source_point, to_frame.log_pdf)
+        ):
+            if from_idx > -1:
+                from_source_point[from_idx] = target_idx
+                from_log_pdf[from_idx] = log_pdf
+
+        flipped_source_points.append(from_source_point)
+        flipped_log_pdf.append(from_log_pdf)
+
+    for frame, new_source_points, new_log_pdf in zip(
+        frames, flipped_source_points, flipped_log_pdf
+    ):
+        frame.source_point = new_source_points
+        frame.log_pdf = new_log_pdf
+
+    frames[-1].source_point = np.full(frames[-1].coordinates.shape, -1)
+
+    return [f for f in reversed(frames)]
+
+
+def iterate_filters(kalman_frames, kalman_filter, cutoff):
+    """Iterated Kalman Tracking pass.
+
+    Parameters
+    ----------
+    kalman_frames : List[KalmanFrame]
+        Frame of detected peaks associated with filter states
+    kalman_filter : KalmanFilter
+        Kalman filter used
+    cutoff : float
+        Cutoff parameter for connecting two points
+    """
+    frames = reverse_frames(kalman_frames)
+
+    new_source_points = []
+    for ix, (from_frame, to_frame) in enumerate(zip(frames[:-1], frames[1:])):
+        if to_frame.coordinates.size == 0:
+            new_source_points.append([])
+            continue
+
+        score_matrix = np.atleast_2d(
+            [
+                np.atleast_1d(kalman_filter.predict(state, to_frame.coordinates, cutoff))
+                for state in from_frame.filter_states[0]
+            ]
+        )
+
+        # Find the most likely connections and run the Kalman filters
+        for (from_point, to_point), loglik in zip(*score_to_connections(score_matrix)):
+            state = from_frame.filter_states[0][from_point]
+            state = kalman_filter.timestep(state)
+
+            # Update step (don't commit yet!)
+            new_to_state = kalman_filter.add_measurement(state, to_frame.coordinates[to_point])
+
+            # Are we finding the same connection as before?
+            if to_frame.source_point[to_point] == from_point:
+                # From here, we have two options, if the point we are considering
+                # (to_frame->to_point) is the one we would've linked from in the previous pass and
+                # the motion type is the same (TO-DO), then we're good and we can average these
+                # two state estimates!
+                old_to_state = to_frame.filter_states[0][to_point]
+                to_frame.filter_states[0][to_point] = old_to_state.average_with(new_to_state)
+                to_frame.source_point[to_point] = from_point
+
+                if abs(to_frame.log_pdf[to_point] - loglik):
+                    assert np.isfinite(to_frame.log_pdf[to_point])
+
+                to_frame.log_pdf[to_point] = loglik  # Update log likelihood of the measurement
+
+            else:
+                # Let's see if the connection we are proposing is better.
+                previous_connection_log_likelihood = to_frame.log_pdf[to_point]
+
+                # TODO: Mark as new motion regime once we have multiple filters
+                # From the paper: Indeed even though two consecutive modes can be the same, the
+                # selection of two different measurements justifies the definition of two
+                # independent motion regimes
+
+                # We grab the one with the best likelihood
+                if loglik > previous_connection_log_likelihood:
+                    to_frame.filter_states[0][to_point] = new_to_state
+                    to_frame.source_point[to_point] = from_point
+                    to_frame.log_pdf[to_point] = loglik
+
+    return frames
