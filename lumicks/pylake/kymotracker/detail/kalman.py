@@ -253,7 +253,11 @@ def forward_pass(kalman_frames, kalman_filter, cutoff):
     for ix, (from_frame, to_frame) in enumerate(zip(frames[:-1], frames[1:])):
         score_matrix = np.atleast_2d(
             [
-                np.atleast_1d(kalman_filter.predict(state, to_frame.coordinates, cutoff))
+                np.atleast_1d(
+                    kalman_filter.predict(
+                        kalman_filter.timestep(state), to_frame.coordinates, cutoff
+                    )
+                )
                 for state in from_frame.filter_states[0]
             ]
         )
@@ -335,7 +339,11 @@ def iterate_filters(kalman_frames, kalman_filter, cutoff):
 
         score_matrix = np.atleast_2d(
             [
-                np.atleast_1d(kalman_filter.predict(state, to_frame.coordinates, cutoff))
+                np.atleast_1d(
+                    kalman_filter.predict(
+                        kalman_filter.timestep(state), to_frame.coordinates, cutoff
+                    )
+                )
                 for state in from_frame.filter_states[0]
             ]
         )
@@ -362,7 +370,6 @@ def iterate_filters(kalman_frames, kalman_filter, cutoff):
                     assert np.isfinite(to_frame.log_pdf[to_point])
 
                 to_frame.log_pdf[to_point] = loglik  # Update log likelihood of the measurement
-
             else:
                 # Let's see if the connection we are proposing is better.
                 previous_connection_log_likelihood = to_frame.log_pdf[to_point]
@@ -371,10 +378,11 @@ def iterate_filters(kalman_frames, kalman_filter, cutoff):
                 # From the paper: Indeed even though two consecutive modes can be the same, the
                 # selection of two different measurements justifies the definition of two
                 # independent motion regimes
+                old_to_state = to_frame.filter_states[0][to_point]
 
                 # We grab the one with the best likelihood
                 if loglik > previous_connection_log_likelihood:
-                    to_frame.filter_states[0][to_point] = new_to_state
+                    # to_frame.filter_states[0][to_point] = new_to_state  # Do not overwrite with our current filter!
                     to_frame.source_point[to_point] = from_point
                     to_frame.log_pdf[to_point] = loglik
 
