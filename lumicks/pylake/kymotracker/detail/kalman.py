@@ -71,20 +71,35 @@ class KalmanFilter:
         self,
         transition_matrix,
         observation_matrix,
-        # process_noise=None,
+        process_noise_guess=None,
         measurement_noise=None,
     ):
+        """Initialize a Kalman Filter
+
+        Parameters
+        ----------
+        transition_matrix : np.ndarray
+            Transition matrix (n_states * n_states)
+        observation_matrix : np.ndarray
+            Observation matrix (n_observables * n_states)
+        process_noise_guess : np.ndarray
+            Initial guess for the process noise. The actual process noise is determined
+            via an online estimation procedure.
+        measurement_noise : np.ndarray
+            Measurement noise.
+        """
+
         self.dim = transition_matrix.shape[0]
         self.transition_matrix = transition_matrix
         self.observation_matrix = observation_matrix
-        # self.process_noise = process_noise
+        self.process_noise_guess = process_noise_guess
         self.measurement_noise = measurement_noise
 
         # Check matrix consistency
         assert self.transition_matrix.shape[1] == self.dim
         assert self.observation_matrix.shape[1] == self.dim
         assert self.measurement_noise.shape == (self.observation_matrix.shape[0],) * 2
-        # assert self.process_noise.shape == (self.dim, self.dim)
+        assert self.process_noise_guess.shape == (self.dim, self.dim)
 
     def timestep(self, state):
         """Predict a state update"""
@@ -131,6 +146,7 @@ class KalmanFilter:
 
         meas, meas_cov = self.measurement_pdf(state)
         log_pdf = np.atleast_1d(multivariate_normal.logpdf(measurement, mean=meas, cov=meas_cov))
+
         if not innovation_cutoff:
             return log_pdf
 
@@ -139,8 +155,9 @@ class KalmanFilter:
             innovation_cutoff
             * np.sqrt(2 * h @ state.prediction_error.process_noise() @ h.T).squeeze()
         )
-        pos = np.sqrt((h @ state.state - measurement) ** 2)
-        log_pdf[pos > innovation_cov] = -np.inf
+        dist = np.sqrt((h @ state.state - measurement) ** 2)
+
+        log_pdf[dist > innovation_cov] = -np.inf
 
         return log_pdf
 
