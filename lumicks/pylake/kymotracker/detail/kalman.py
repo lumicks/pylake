@@ -6,9 +6,17 @@ import numpy as np
 
 @dataclass(slots=True)
 class PredictionError:
-    m: np.ndarray = np.array([[0, 0]])
-    n: int = 0
-    M: np.ndarray = np.array([[0, 0], [0, 0]])
+    m: np.ndarray
+    n: int
+    M: np.ndarray
+
+    @staticmethod
+    def from_diagonal_error(diagonal_errors):
+        return PredictionError(
+            np.asarray(diagonal_errors),
+            1,
+            np.diag(diagonal_errors),
+        )
 
     def with_update(self, kalman_update):
         """Update the average prediction error"""
@@ -17,7 +25,7 @@ class PredictionError:
 
         # The kalman update is defined by the kalman gain times the innovation
         #
-        #   x_updated = x_predicition + kalman_update = x_prediction + K * (z - H * x)
+        #   x_updated = x_prediction + kalman_update = x_prediction + K * (z - H * x)
         #
         # Here z is the measurement, K is the Kalman gain and x is the state
         #
@@ -28,10 +36,6 @@ class PredictionError:
         return PredictionError(m, n, self.M + (kalman_update - m).T @ (kalman_update - m))
 
     def process_noise(self):
-        if self.n < 3:
-            # TODO: Better fallback for absence of process noise estimate
-            return np.eye(self.M.shape[0])
-
         return self.M / self.n
 
 
