@@ -162,22 +162,24 @@ class KalmanFilter:
         return log_pdf
 
 
-def generate_constant_velocity_model(n_states=2, dt=1, observation_noise=0.1, n_obs=1):
+def generate_constant_velocity_model(n_states=2, dt=1, process_noise=0.1, observation_noise=0.1, n_obs=1):
     observation_matrix = np.zeros((n_obs, n_states))
     observation_matrix[0, 0] = 1
     return KalmanFilter(
         transition_matrix=np.array([[1.0, dt], [0.0, 1.0]]),
         observation_matrix=observation_matrix,
+        process_noise_guess=np.array([process_noise, 0.0]),
         measurement_noise=np.eye(n_obs) * observation_noise,
     )
 
 
-def generate_diffusion_model(n_states=2, dt=1, observation_noise=0.1, n_obs=1):
+def generate_diffusion_model(n_states=2, dt=1, process_noise=0.1, observation_noise=0.1, n_obs=1):
     observation_matrix = np.zeros((n_obs, n_states))
     observation_matrix[0, 0] = 1
     return KalmanFilter(
         transition_matrix=np.array([[1.0, 0.0], [0.0, 1.0]]),
         observation_matrix=observation_matrix,
+        process_noise_guess=np.array([process_noise, 0.0]),
         measurement_noise=np.eye(n_obs) * observation_noise,
     )
 
