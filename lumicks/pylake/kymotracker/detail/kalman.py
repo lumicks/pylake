@@ -44,9 +44,8 @@ class FilterState:
     state: np.ndarray
     cov: np.ndarray
 
-    # Serves as an estimate of the process noise. We do an online estimate
-    # of this.
-    prediction_error: PredictionError = PredictionError()
+    # Serves as an estimate of the process noise. We do an online estimate of this.
+    prediction_error: PredictionError
 
     def with_state(self, state, cov):
         return FilterState(state, cov, self.prediction_error)
