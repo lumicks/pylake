@@ -190,9 +190,8 @@ def make_alignment_image_data(
     return reference_image, warped_image, description, bit_depth
 
 
-def write_tiff_file(image, description, n_frames, filename):
+def write_tiff_file(image, description, n_frames, filename, **kwargs):
     # We use the dimension of image data to evaluate the number of color channels
-    channels = 1 if image.ndim == 2 else 3
     movie = np.stack([image for n in range(n_frames)], axis=0)
 
     # Orientation = ORIENTATION.TOPLEFT
@@ -210,4 +209,5 @@ def write_tiff_file(image, description, n_frames, filename):
                 metadata=None,
                 contiguous=False,
                 extratags=(tag_orientation, tag_datetime),
+                **kwargs,
             )

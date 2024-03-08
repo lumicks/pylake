@@ -47,9 +47,20 @@ class TiffFrame:
     def _is_aligned(self):
         return self._description._alignment.is_aligned
 
+    def _normalize_array(self):
+        img = self._page.asarray()
+        if not self.is_rgb or img.shape[-1] == 3:
+            return img
+
+        # Handle two color images. We up-convert them to a 3-color image to be able to handle
+        # rgb-mappable images in a uniform manner.
+        three_colors = np.zeros((img.shape[0], img.shape[1], 3))
+        three_colors[:, :, self._description.channel_order] = img
+        return three_colors
+
     def _align_image(self):
         """reconstruct image using alignment matrices from Bluelake; return aligned image as a NumPy array"""
-        img = self._page.asarray()
+        img = self._normalize_array()
         for channel, mat in self._description._alignment_matrices.items():
             mat = self._tether.rot_matrix * mat
             img[:, :, channel] = mat.warp_image(img[:, :, channel])
@@ -60,13 +71,13 @@ class TiffFrame:
         data = (
             self._align_image()
             if self._description._alignment.do_alignment
-            else self._tether.rot_matrix.warp_image(self._page.asarray())
+            else self._tether.rot_matrix.warp_image(self._normalize_array())
         )
         return self._roi(data)
 
     @property
     def raw_data(self):
-        return self._roi(self._page.asarray())
+        return self._roi(self._normalize_array())
 
     @property
     def bit_depth(self):
@@ -334,7 +345,7 @@ class ImageDescription:
     def __init__(self, tiff_file, align_requested):
         first_page = tiff_file.pages[0]
         tags = first_page.tags
-        self.is_rgb = tags["SamplesPerPixel"].value == 3
+        self.is_rgb = tags["SamplesPerPixel"].value > 1
         self.width = tags["ImageWidth"].value
         self.height = tags["ImageLength"].value
         self.software = tags["Software"].value if "Software" in tags else ""
@@ -364,13 +375,25 @@ class ImageDescription:
                 self.json[f"Channel {j} alignment"] = self.json.pop(f"Alignment {color} channel")
                 self.json[f"Channel {j} detection wavelength (nm)"] = "N/A"
 
-        if "Channel 0 alignment" in self.json:
-            self._alignment_matrices = {
-                channel: TransformMatrix.from_alignment(
-                    self._raw_alignment_matrix(channel), *self.offsets
-                ).invert()
-                for channel in range(3)
-            }
+        excitation_colors = [
+            key.split(" ")[0] for key in self.json.keys() if "Excitation Laser wavelength" in key
+        ]
+
+        self.channel_order = (0, 1, 2)
+        if len(excitation_colors) == 2:
+            self.channel_order = [
+                ix
+                for ix, color in enumerate(("Red", "Green", "Blue"))
+                if color in excitation_colors
+            ]
+
+        self._alignment_matrices = {
+            rgb_channel: TransformMatrix.from_alignment(
+                self._raw_alignment_matrix(channel), *self.offsets
+            ).invert()
+            for channel, rgb_channel in enumerate(self.channel_order)
+            if f"Channel {channel} alignment" in self.json
+        }
 
         # check alignment status
         if not self.is_rgb:
@@ -452,7 +475,8 @@ class ImageDescription:
         out = copy(self.json)
         if self._alignment.do_alignment:
             for j in range(3):
-                out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
+                if f"Channel {j} alignment" in out:
+                    out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
         return out
 
 

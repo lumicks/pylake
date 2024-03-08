@@ -1290,3 +1290,40 @@ def test_imagestack_explicit_close(gray_tiff_file_multi):
             match=r"The file handle for this TiffStack \(gray_multi.tiff\) has already been closed.",
         ):
             current_stack.get_image("rgb")
+
+
+def test_two_color(gb_tiff_file_single, gb_tiff_file_multi):
+    for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
+        im = ImageStack(filename)
+        np.testing.assert_allclose(
+            im.get_image().astype(float),
+            reference_image.astype(float),
+            atol=5e-2 * np.max(np.abs(reference_image)),  # zeroes in the image mess with using rtol
+        )
+        im.close()
+
+
+@pytest.mark.parametrize("align_export, align_load", [(False, False), (True, True), (False, True)])
+def test_two_color_write_again(
+    tmpdir_factory, gb_tiff_file_single, gb_tiff_file_multi, align_export, align_load
+):
+    tmp_dir = tmpdir_factory.mktemp("two_color")
+    for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
+        im = ImageStack(filename, align=align_export)
+        tmp_file = tmp_dir.join(f"export_{filename.basename}")
+        im.export_tiff(tmp_file)
+
+        # The tiff file we imported data was 2 channels.
+        assert im._src._tiff_files[0].pages[0].shape[-1] == 2
+        im.close()
+
+        # Reload source since we want to be able to test whether we can successfully align
+        im_read = ImageStack(tmp_file, align=align_load)
+        im = ImageStack(filename, align=align_load)
+        np.testing.assert_allclose(im_read.get_image(), im.get_image())
+
+        # Pylake always exports 3 channels, mapped to the correct RGB colors.
+        assert im_read._src._tiff_files[0].pages[0].shape[-1] == 3
+
+        im.close()
+        im_read.close()
