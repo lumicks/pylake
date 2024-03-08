@@ -376,7 +376,7 @@ class PassiveCalibrationModel:
 
         power_spectrum = lk.calculate_power_spectrum(
             volts.data,
-            sample_rate=78125,
+            sample_rate=volts.sample_rate,
             excluded_ranges=[[4400, 4500]],  # Exclude a noise peak
             num_points_per_block=350,
         )
@@ -754,7 +754,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
 
         power_spectrum = lk.calculate_power_spectrum(
             volts.data,
-            sample_rate=78125,
+            sample_rate=volts.sample_rate,
             excluded_ranges=[[4400, 4500]],  # Exclude a noise peak
             num_points_per_block=350,
         )
@@ -763,7 +763,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             f["Nanostage position"]["X"].data,  # Driving data
             volts.data,  # Position sensitive detector data
             temperature=25,
-            sample_rate=78125,
+            sample_rate=volts.sample_rate,
             bead_diameter=4.89,
             driving_frequency_guess=37,  # Have to provide a guess for the frequency
             hydrodynamically_correct=True,  # Big bead, so use hydrodynamic model
