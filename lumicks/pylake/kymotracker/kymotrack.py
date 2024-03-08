@@ -417,6 +417,7 @@ class KymoTrack:
 
     @property
     def time_idx(self):
+        """Return temporal coordinates in units of pixels."""
         return self._time_idx
 
     @property
