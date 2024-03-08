@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.5.0 | t.b.d.
+
+* Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
+
 ## v1.4.0 | 2024-02-28
 
 #### New features
