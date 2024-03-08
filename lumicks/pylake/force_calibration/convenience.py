@@ -150,14 +150,16 @@ def calibrate_force(
         volts = force_slice / force_slice.calibration[0]["Response (pN/V)"]
 
         # Determine calibration factors using the viscosity of water at T=25 C.
-        lk.calibrate_force(volts.data, bead_diameter=0.58, temperature=25, sample_rate=78125)
+        lk.calibrate_force(
+            volts.data, bead_diameter=0.58, temperature=25, sample_rate=volts.sample_rate
+        )
 
         # Determine calibration factors using the hydrodynamically correct model
         lk.calibrate_force(
             volts.data,
             bead_diameter=4.89,
             temperature=25,
-            sample_rate=78125,
+            sample_rate=volts.sample_rate,
             hydrodynamically_correct=True
         )
 
@@ -168,7 +170,7 @@ def calibrate_force(
             volts.data,
             bead_diameter=4.89,
             temperature=25,
-            sample_rate=78125,
+            sample_rate=volts.sample_rate,
             hydrodynamically_correct=True,
             distance_to_surface=7,
             driving_data=driving_data.data,

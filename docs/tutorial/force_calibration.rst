@@ -326,7 +326,7 @@ Let's have a look to see if this peak indeed appears in our power spectrum.
 To see it clearly, we reduce the blocking amount and show the spectrum all the way up to a frequency of 10 Hz::
 
     show_peak = lk.calculate_power_spectrum(
-        volts.data, sample_rate=78125, num_points_per_block=5, fit_range=(10, 23000)
+        volts.data, sample_rate=volts.sample_rate, num_points_per_block=5, fit_range=(10, 23000)
     )
 
     plt.figure()
@@ -339,7 +339,7 @@ The driving peak is clearly visible in the spectrum.
 Next let's calculate the power spectrum we'll use for fitting.
 It is important to *not* include the driving peak when doing this (the default will only go up to 100 Hz)::
 
-    power_spectrum = lk.calculate_power_spectrum(volts.data, sample_rate=78125)
+    power_spectrum = lk.calculate_power_spectrum(volts.data, sample_rate=volts.sample_rate)
 
 We can now use this to fit our data::
 
