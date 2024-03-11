@@ -1,6 +1,7 @@
 import warnings
 
 from ..adjustments import no_adjustment
+from ..detail.utilities import find_stack_level
 
 
 def get_axes(axes=None, image_handle=None):
@@ -36,8 +37,9 @@ def parse_color_channel(channel):
         warnings.warn(
             DeprecationWarning(
                 "In future versions, the `channel` argument will be restricted to lowercase "
-                f"letters only. Use '{channel}' instead of '{input_channel}'."
-            )
+                f"letters only. Use '{channel}' instead of '{input_channel}'.",
+            ),
+            stacklevel=find_stack_level(),
         )
 
     # check rgb order

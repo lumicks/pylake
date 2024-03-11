@@ -15,7 +15,7 @@ from .detail.image import (
 from .detail.confocal import ScanAxis, ScanMetaData, ConfocalImage
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
-from .detail.utilities import method_cache
+from .detail.utilities import method_cache, find_stack_level
 from .detail.bead_cropping import find_beads_template, find_beads_brightness
 
 
@@ -279,8 +279,10 @@ class Kymo(ConfocalImage):
         self.start = seek_timestamp_next_line(self.infowave[self.start :])
         self._cache = {}
         warnings.warn(
-            "Start of the kymograph was truncated. Omitting the truncated first line.",
-            RuntimeWarning,
+            RuntimeWarning(
+                "Start of the kymograph was truncated. Omitting the truncated first line."
+            ),
+            stacklevel=find_stack_level(),
         )
 
     def _to_spatial(self, data):
@@ -475,7 +477,10 @@ class Kymo(ConfocalImage):
                 )
 
             warnings.warn(
-                RuntimeWarning("Using downsampled force since high frequency force is unavailable.")
+                RuntimeWarning(
+                    "Using downsampled force since high frequency force is unavailable."
+                ),
+                stacklevel=find_stack_level(),
             )
 
         time_ranges = self.line_timestamp_ranges(include_dead_time=False)
