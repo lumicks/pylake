@@ -1292,20 +1292,34 @@ def test_imagestack_explicit_close(gray_tiff_file_multi):
             current_stack.get_image("rgb")
 
 
-def test_two_color(gb_tiff_file_single, gb_tiff_file_multi):
+def test_two_color(gb_tiff_file_single, gb_tiff_file_multi, bg_tiff_file_single):
     for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
         im = ImageStack(filename)
+
+        normalization = 1.0 / np.max(np.abs(reference_image))
         np.testing.assert_allclose(
-            im.get_image().astype(float),
-            reference_image.astype(float),
-            atol=5e-2 * np.max(np.abs(reference_image)),  # zeroes in the image mess with using rtol
+            im.get_image() * normalization,
+            reference_image * normalization,
+            atol=0.05,
         )
         im.close()
 
 
+def test_invalid_order(bg_tiff_file_single):
+    with pytest.raises(
+        RuntimeError, match=re.escape("Wavelengths are not in descending order [525.0, 600.0]")
+    ):
+        ImageStack(bg_tiff_file_single[0])
+
+
 @pytest.mark.parametrize("align_export, align_load", [(False, False), (True, True), (False, True)])
 def test_two_color_write_again(
-    tmpdir_factory, gb_tiff_file_single, gb_tiff_file_multi, align_export, align_load
+    tmpdir_factory,
+    gb_tiff_file_single,
+    gb_tiff_file_multi,
+    bg_tiff_file_single,
+    align_export,
+    align_load,
 ):
     tmp_dir = tmpdir_factory.mktemp("two_color")
     for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
@@ -1324,6 +1338,10 @@ def test_two_color_write_again(
 
         # Pylake always exports 3 channels, mapped to the correct RGB colors.
         assert im_read._src._tiff_files[0].pages[0].shape[-1] == 3
+        assert im_read._src._description.json["Pylake"]["Channel mapping"] == {
+            "green": 0,
+            "blue": 1,
+        }
 
         im.close()
         im_read.close()
