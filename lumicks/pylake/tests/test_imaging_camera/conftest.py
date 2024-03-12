@@ -56,21 +56,33 @@ def rgb_tiff_file(tiff_dir, rgb_alignment_image_data):
     return mock_filename
 
 
-def _create_gb_tiff(mock_filename, spot_coordinates, warp_parameters, num_frames):
+def _create_gb_tiff(
+    mock_filename, spot_coordinates, warp_parameters, num_frames, swap_channels=False
+):
     rgb_reference_image, warped_image, description, _ = make_alignment_image_data(
         spot_coordinates, version=2, bit_depth=16, camera="wt", **warp_parameters
     )
+    # Ensure that we can tell the order apart
+    scaling = np.array([2, 1, 4], dtype=warped_image.dtype)[np.newaxis, np.newaxis, :]
+    warped_image //= scaling
+    rgb_reference_image //= scaling
 
-    # For two-color tiff files with green and blue, channel 0 refers to the green channel.
+    # Drop the red channel
     description = {
         key: value for key, value in description.items() if "Red Excitation Laser" not in key
     }
-    description["Channel 0 alignment"] = description["Channel 1 alignment"]
-    description["Channel 1 alignment"] = description["Channel 2 alignment"]
-    description.pop("Channel 2 alignment")
 
-    # RGB -> GB
-    warped_image = warped_image[:, :, 1:]
+    # Optionally swap around the alignment matrix / wavelength pairs.
+    from_channels, to_channels = ((2, 1), (0, 1)) if swap_channels else ((1, 2), (0, 1))
+    for replacement in (
+        lambda channel: f"Channel {channel} alignment",
+        lambda channel: f"Channel {channel} detection wavelength (nm)",
+    ):
+        for from_channel, to_channel in zip(from_channels, to_channels):
+            description[replacement(to_channel)] = description[replacement(from_channel)]
+        description.pop(replacement(2))
+
+    warped_image = warped_image[:, :, :-3:-1] if swap_channels else warped_image[:, :, 1:]
     write_tiff_file(
         warped_image,
         description,
@@ -91,14 +103,21 @@ def _create_gb_tiff(mock_filename, spot_coordinates, warp_parameters, num_frames
 @pytest.fixture(scope="module")
 def gb_tiff_file_single(tiff_dir, spot_coordinates, warp_parameters):
     return _create_gb_tiff(
-        tiff_dir.join("single_two_color.tiff"), spot_coordinates, warp_parameters, 1
+        tiff_dir.join("single_two_color.tiff"), spot_coordinates, warp_parameters, 1, False
+    )
+
+
+@pytest.fixture(scope="module")
+def bg_tiff_file_single(tiff_dir, spot_coordinates, warp_parameters):
+    return _create_gb_tiff(
+        tiff_dir.join("bg_tiff.tiff"), spot_coordinates, warp_parameters, 1, True
     )
 
 
 @pytest.fixture(scope="module")
 def gb_tiff_file_multi(tiff_dir, spot_coordinates, warp_parameters):
     return _create_gb_tiff(
-        tiff_dir.join("multiple_two_color.tiff"), spot_coordinates, warp_parameters, 5
+        tiff_dir.join("multiple_two_color.tiff"), spot_coordinates, warp_parameters, 5, False
     )
 
 

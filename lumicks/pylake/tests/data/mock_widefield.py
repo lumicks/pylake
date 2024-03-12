@@ -140,18 +140,22 @@ def make_irm_description(version, bit_depth):
 def make_wt_description(version, bit_depth, m_red, m_blue, offsets):
     if version == 1:
         alignment_matrices = lambda color: f"Alignment {color} channel"
+        wavelength_fields = lambda color: f"Channel {color} detection wavelength (nm)"
         channel_choices = ("red", "green", "blue")
     else:
         alignment_matrices = lambda index: f"Channel {index} alignment"
+        wavelength_fields = lambda index: f"Channel {index} detection wavelength (nm)"
         channel_choices = range(3)
 
     offsets = [0, 0] if offsets is None else offsets
     matrices = (m_red, np.eye(3), m_blue)
+    wavelengths = ("680/42", "600/50", "525/40")
 
     description = _make_base_description(version, bit_depth)
     description["Camera"] = "WT"
-    for c, mat in zip(channel_choices, matrices):
+    for c, mat, wavelength in zip(channel_choices, matrices, wavelengths):
         description[alignment_matrices(c)] = mat[:2].ravel().tolist()
+        description[wavelength_fields(c)] = wavelength
     description["Alignment region of interest (x, y, width, height)"] = [*offsets, 200, 100]
     description["TIRF"] = None
     description["TIRF angle (device units)"] = None

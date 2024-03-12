@@ -322,6 +322,14 @@ class TiffStack:
             file.close()
 
 
+def _parse_wavelength(wavelength_field):
+    """Parse excitation wavelength"""
+    try:
+        return float(wavelength_field.split("/")[0])  # Format is wavelength / width
+    except ValueError:
+        return
+
+
 class ImageDescription:
     """Wrapper around TIFF ImageDescription tag and other pylake specific metadata.
 
@@ -381,11 +389,24 @@ class ImageDescription:
 
         self.channel_order = (0, 1, 2)
         if len(excitation_colors) == 2:
-            self.channel_order = [
+            self.channel_order = tuple(
                 ix
                 for ix, color in enumerate(("Red", "Green", "Blue"))
                 if color in excitation_colors
-            ]
+            )
+
+        excitation_filter_wavelengths = [
+            _parse_wavelength(self.json[f"Channel {channel} detection wavelength (nm)"])
+            for channel in range(3)
+            if f"Channel {channel} detection wavelength (nm)" in self.json
+        ]
+
+        if excitation_filter_wavelengths and all(excitation_filter_wavelengths):
+            # Validate that the wavelengths are in ascending order
+            if not all(np.diff(excitation_filter_wavelengths) < 0):
+                raise RuntimeError(
+                    f"Wavelengths are not in descending order {excitation_filter_wavelengths}"
+                )
 
         self._alignment_matrices = {
             rgb_channel: TransformMatrix.from_alignment(
@@ -477,6 +498,14 @@ class ImageDescription:
             for j in range(3):
                 if f"Channel {j} alignment" in out:
                     out[f"Applied channel {j} alignment"] = out.pop(f"Channel {j} alignment")
+
+        # Add some Pylake specific metadata
+        out["Pylake"] = {
+            "Channel mapping": {
+                ("red", "green", "blue")[channel_idx]: idx
+                for idx, channel_idx in enumerate(self.channel_order)
+            }
+        }
         return out
 
 
