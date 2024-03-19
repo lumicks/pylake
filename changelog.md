@@ -2,7 +2,11 @@
 
 ## v1.5.0 | t.b.d.
 
+#### New features
+
 * Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
+* Made ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) callable to evaluate the fitted model power spectral density at the specified frequencies.
+* Added `fitted_params` field to ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) for convenience.
 
 ## v1.4.0 | 2024-02-28
 

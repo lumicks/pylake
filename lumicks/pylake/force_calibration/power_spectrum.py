@@ -123,11 +123,10 @@ class PowerSpectrum:
 
         Parameters
         ----------
-        power_spectrum : PowerSpectrum
-            The power spectrum of the Brownian motion of the bead in a trap
         model_fun : callable
             A function of one argument, frequency, that gives the theoretical power spectrum. The
-            function is used to normalize the experimental power spectrum
+            function is used to normalize the experimental power spectrum. Note that you can
+            pass an instance of `CalibrationResults`.
         peak_cutoff: float
             Indicates what value of the normalized spectrum is deemed abnormally high. Default is
             20.0, which corresponds to a chance of about 2 in 1E9 that a peak of that magnitude
@@ -188,7 +187,8 @@ class PowerSpectrum:
 
         baseline_ranges = grab_contiguous_ranges(baseline_mask)
 
-        # Find start points of baseline sections (int because derivative can be negative, and bool doesn't allow that).
+        # Find start points of baseline sections (int because derivative can be negative, and bool
+        # doesn't allow that).
         start_points = np.diff(baseline_mask, prepend=0) > 0
 
         # This allows us to look up which baseline range to grab

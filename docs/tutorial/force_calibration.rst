@@ -543,15 +543,20 @@ We still have the power spectrum `ps` that was created without blocking or windo
 We will use the method :meth:`~lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.identify_peaks()` in order to do so.
 This method takes a function that accurately models the power spectrum as a function of frequency, in order to normalize it.
 It then identifies peaks based on the likelihood of encountering a peak of a certain magnitude in the resulting data set.
-If we have a "good fit", then the easiest way to get that function is to extract it from our fit parameters and the model that was used during fitting::
+If we have a "good fit", then the easiest way to get that function is to use our fitted model::
 
-    params = [v.value for k, v in fit.results.items() if k in ['fc', 'D', 'f_diode', 'alpha']]
-    model_fun = lambda f: fit.model(f, *params)
+    plt.figure()
+    frequency_range = np.arange(100, 22000)
+    # We can call the fit with a list of frequencies to evaluate the model at those frequencies.
+    # This uses the best fit parameters from fit.fitted_params.
+    plt.plot(frequency_range, fit(frequency_range))
+    plt.xscale("log")
+    plt.yscale("log")
 
 If there are no spurious peaks, then normalizing the unblocked power spectrum results in random numbers with an exponential distribution with a mean value of 1.
 The chance of encountering increasingly larger numbers decays exponentially, and this fact is used by `identify_peaks()`::
 
-    frequency_exclusions = ps.identify_peaks(model_fun, peak_cutoff=20, baseline=1)
+    frequency_exclusions = ps.identify_peaks(fit, peak_cutoff=20, baseline=1)
 
 The parameter `peak_cutoff` is taken as the minimum magnitude of any value in the normalized power spectrum in order to be concidered a peak.
 The default value is 20, and it corresponds to a chance of about 2 in a billion of a peak of magnitude 20 or larger occuring naturally in a data set.
