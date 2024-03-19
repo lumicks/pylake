@@ -260,7 +260,12 @@ def test_attributes_ps_calibration(reference_calibration_result):
 
     with pytest.raises(RuntimeError):
         psc.CalibrationResults(
-            model=None, ps_model=None, ps_data=None, params={"test": 5}, results={"test2": 5}
+            model=None,
+            ps_model=None,
+            ps_data=None,
+            params={"test": 5},
+            results={"test2": 5},
+            fitted_params=[],
         )
 
 
@@ -274,6 +279,7 @@ def test_calibration_results_params():
             "Rf": psc.CalibrationParameter("Rf", "val", 5),
             "kappa": psc.CalibrationParameter("kappa", "val", 5),
         },
+        fitted_params=[],
     )
     assert "test" in result
     assert "Rf" in result

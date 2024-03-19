@@ -545,13 +545,14 @@ This method takes a function that accurately models the power spectrum as a func
 It then identifies peaks based on the likelihood of encountering a peak of a certain magnitude in the resulting data set.
 If we have a "good fit", then the easiest way to get that function is to extract it from our fit parameters and the model that was used during fitting::
 
-    params = [v.value for k, v in fit.results.items() if k in ['fc', 'D', 'f_diode', 'alpha']]
-    model_fun = lambda f: fit.model(f, *params)
+    model_fun = lambda f: fit.model(f, *fit.fitted_params)
+
+But for convenience, we can also call the returned :class:`~lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults` directly to obtain values for the spectral density.
 
 If there are no spurious peaks, then normalizing the unblocked power spectrum results in random numbers with an exponential distribution with a mean value of 1.
 The chance of encountering increasingly larger numbers decays exponentially, and this fact is used by `identify_peaks()`::
 
-    frequency_exclusions = ps.identify_peaks(model_fun, peak_cutoff=20, baseline=1)
+    frequency_exclusions = ps.identify_peaks(fit, peak_cutoff=20, baseline=1)
 
 The parameter `peak_cutoff` is taken as the minimum magnitude of any value in the normalized power spectrum in order to be concidered a peak.
 The default value is 20, and it corresponds to a chance of about 2 in a billion of a peak of magnitude 20 or larger occuring naturally in a data set.
