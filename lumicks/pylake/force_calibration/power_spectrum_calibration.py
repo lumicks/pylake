@@ -59,20 +59,33 @@ class CalibrationResults:
         Dictionary of input parameters.
     results : dict
         Dictionary of calibration results.
+    fitted_params : np.ndarray
+        Fitted parameters.
     """
 
-    def __init__(self, model, ps_model, ps_data, params, results):
+    def __init__(self, model, ps_model, ps_data, params, results, fitted_params):
         self.model = model
         self.ps_model = ps_model
         self.ps_data = ps_data
         self.params = params
         self.results = results
+        self.fitted_params = fitted_params
 
         # A few parameters have to be present for this calibration to be used.
         mandatory_params = ["kappa", "Rf"]
         for key in mandatory_params:
             if key not in results:
                 raise RuntimeError(f"Calibration did not provide calibration parameter {key}")
+
+    def __call__(self, frequency):
+        """Evaluate the spectral model for one or more frequencies
+
+        Parameters
+        ----------
+        frequency : array_like
+            One or more frequencies at which to evaluate the spectral model.
+        """
+        return self.model(frequency, *self.fitted_params)
 
     def __contains__(self, key):
         return key in self.params or key in self.results
@@ -452,4 +465,5 @@ def fit_power_spectrum(
                 "Loss function used during minimization", loss_function, ""
             ),
         },
+        fitted_params=solution_params,
     )
