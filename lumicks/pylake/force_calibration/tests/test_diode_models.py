@@ -65,6 +65,9 @@ def test_fixed_f_diode(model_params, fixed_params, free_params, reference_models
     for model in models:
         model._filter = FixedDiodeModel(**model_params)
         fit = fit_power_spectrum(power_spectrum, model=model, bias_correction=False)
+        np.testing.assert_allclose(fit(fit.ps_model.frequency), fit.ps_model.power)
+        ref_params = [fit[p].value for p in ("fc", "D", "f_diode", "alpha") if p in fit.results]
+        np.testing.assert_allclose(fit.fitted_params, ref_params)
 
         # Test good fit
         np.testing.assert_allclose(fit.results["fc"].value, 4000, 1e-6)
@@ -84,6 +87,9 @@ def test_fixed_f_diode(model_params, fixed_params, free_params, reference_models
             bad_params[key] *= 1.1
         model._filter = FixedDiodeModel(**bad_params)
         fit = fit_power_spectrum(power_spectrum, model=model, bias_correction=False)
+        np.testing.assert_allclose(fit(fit.ps_model.frequency), fit.ps_model.power)
+        ref_params = [fit[p].value for p in ("fc", "D", "f_diode", "alpha") if p in fit.results]
+        np.testing.assert_allclose(fit.fitted_params, ref_params)
         assert abs(fit.results["fc"].value - 4000) > 1.0
         assert abs(fit.results["D"].value - 1.14632) > 1e-2
 
