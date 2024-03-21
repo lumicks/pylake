@@ -444,36 +444,28 @@ After uninstalling, you should be able to reinstall using the regular installati
 
 **Conda-forge is very slow in China, what can I do?**
 
-Conda-forge can be slow when accessed from China.
-This can be resolved by using a Chinese mirror to install Pylake.
-Since there is no mirror for `conda-forge`, Pylake then has to be installed using pip, as outlined below.
+In China, the installation instructions as presented above can be slow. The following steps explain how to install Pylake using a Chinese mirror site, which is typically faster.
 
-If you normally manage your environments with `pip`, you can just invoke::
+First, follow the first 3 steps of the installation instructions at the top of this page. 
+Next, create a new environment::
 
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
-
-If you use Anaconda, then it is best to create a new environment for this installation. On MacOS an environment is created as follows::
-
-    conda create -n pylake_pip
-
-And on Windows an environment is created as::
-
-    conda create -n pylake_pip conda=23.7.2
+    conda create -n pylake conda=23.7.2
 
 Activate the environment as follows::
 
-    conda activate pylake_pip
+    conda activate pylake
 
+The line where you enter your next command should now start with the text `(pylake)` instead of `(base)`, to indicate you are in the pylake environment you just created.
 Install pip in the activated environment by invoking::
 
     conda install pip
 
-Then install Pylake as follows::
-
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake
-
-The above line does not include the installation of jupyter notebook. If you want to install jupyter notebook together with Pylake, invoke::
+Then install Pylake and Jupyter Notebook as follows::
 
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake[notebook]
 
-Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip, and do not install additional dependencies via `conda install`, since this can break your environment.
+Next, you can start Jupyter Notebook by typing::
+
+    jupyter notebook
+
+Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip to install packages, and do not install additional dependencies via `conda install`, since this can break your environment.
