@@ -250,7 +250,9 @@ To summarize, the workflow can be visualized as follows:
 
 .. note::
 
-    Note that the drag coefficient that Pylake returns always corresponds to the drag coefficient extrapolated back to its bulk value.
+    Note that the drag coefficient `gamma_ex` that Pylake returns always corresponds to the drag coefficient extrapolated back to its bulk value.
+    This ensures that drag coefficients can be compared and carried over between experiments performed at different heights.
+    The field `local_drag_coefficient` contains the locally measured drag coefficient.
 
 Axial Force
 -----------

@@ -1,3 +1,4 @@
+from .data.simulate_calibration_data import generate_active_calibration_test_data
 import numpy as np
 import pytest
 
@@ -67,3 +68,37 @@ def mack_parameters():
         "focal_shift": 0.921283446497108,
         "nonlinear_shift": 0.0,
     }
+
+
+@pytest.fixture(scope="session")
+def active_calibration_surface_data():
+    shared_pars = {
+        "bead_diameter": 1.03,
+        "viscosity": 1.1e-3,
+        "temperature": 25,
+        "rho_sample": 997.0,
+        "rho_bead": 1040.0,
+        "distance_to_surface": 1.03 / 2 + 500e-3,
+    }
+
+    sim_pars = {
+        "sample_rate": 78125,
+        "stiffness": 0.1,
+        "pos_response_um_volt": 0.618,
+        "driving_sinusoid": (500, 31.95633),
+        "diode": (0.4, 15000),
+    }
+
+    np.random.seed(10071985)
+    volts, stage = generate_active_calibration_test_data(
+        10, hydrodynamically_correct=True, **sim_pars, **shared_pars
+    )
+
+    active_pars = {
+        "force_voltage_data": volts,
+        "driving_data": stage,
+        "sample_rate": 78125,
+        "driving_frequency_guess": 32,
+    }
+
+    return shared_pars, sim_pars, active_pars
