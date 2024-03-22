@@ -403,7 +403,7 @@ def fit_power_spectrum(
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
     n_degrees_of_freedom = power_spectrum.power.size - len(solution_params)
     chi_squared_per_deg = chi_squared / n_degrees_of_freedom
-    backing = (1 - scipy.special.gammainc(chi_squared / 2, n_degrees_of_freedom / 2)) * 100
+    backing = scipy.stats.chi2.sf(chi_squared, n_degrees_of_freedom) * 100
 
     # Fitted power spectrum values.
     ps_model = power_spectrum.with_spectrum(
