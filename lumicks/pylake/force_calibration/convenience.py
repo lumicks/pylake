@@ -96,7 +96,10 @@ def calibrate_force(
     excluded_ranges : list of tuple of float, optional
         List of ranges to exclude specified as a list of (frequency_min, frequency_max).
     drag : float, optional
-        Overrides the drag coefficient to this particular value.
+        Overrides the drag coefficient to this particular value. Note that you want to use the
+        bulk drag coefficient for this (obtained from the field `gamma_ex`). This can be used to
+        carry over an estimate of the drag coefficient obtained using an active calibration
+        procedure.
     fixed_diode : float, optional
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional

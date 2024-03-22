@@ -3,6 +3,7 @@ import scipy
 import pytest
 
 from lumicks.pylake.force_calibration.calibration_models import ActiveCalibrationModel
+from lumicks.pylake.force_calibration.detail.drag_models import faxen_factor
 from lumicks.pylake.force_calibration.detail.power_models import sphere_friction_coefficient
 from lumicks.pylake.force_calibration.power_spectrum_calibration import (
     fit_power_spectrum,
@@ -87,6 +88,9 @@ def test_integration_active_calibration(
         rtol=1e-9,
     )
     np.testing.assert_allclose(fit["gamma_ex"].value, drag_coeff_calc * 1e12, rtol=1e-9)
+    np.testing.assert_allclose(
+        fit["local_drag_coefficient"].value, drag_coeff_calc * 1e12, rtol=1e-9
+    )
 
     np.testing.assert_allclose(fit["Bead diameter"].value, bead_diameter)
     np.testing.assert_allclose(fit["Driving frequency (guess)"].value, driving_frequency_guess)
@@ -150,41 +154,16 @@ def test_bias_correction():
     assert fit_debiased.params["Bias correction"].value is True
 
 
-def test_faxen_correction_active():
+def test_faxen_correction_active(active_calibration_surface_data):
     """Active calibration should barely be affected by surface corrections for the drag coefficient.
     However, the interpretation of gamma_ex, which may be carried over to the other calibration
     *is* important, so this should be covered by a specific test."""
-    shared_pars = {
-        "bead_diameter": 1.03,
-        "viscosity": 1.1e-3,
-        "temperature": 25,
-        "rho_sample": 997.0,
-        "rho_bead": 1040.0,
-        "distance_to_surface": 1.03 / 2 + 500e-3,
-    }
-    sim_pars = {
-        "sample_rate": 78125,
-        "stiffness": 0.1,
-        "pos_response_um_volt": 0.618,
-        "driving_sinusoid": (500, 31.95633),
-        "diode": (0.4, 15000),
-    }
-
-    np.random.seed(10071985)
-    volts, stage = generate_active_calibration_test_data(
-        10, hydrodynamically_correct=True, **sim_pars, **shared_pars
+    shared_pars, sim_pars, active_pars = active_calibration_surface_data
+    power_spectrum = calculate_power_spectrum(
+        active_pars["force_voltage_data"], sim_pars["sample_rate"]
     )
-    power_spectrum = calculate_power_spectrum(volts, sim_pars["sample_rate"])
 
-    active_pars = {
-        "force_voltage_data": volts,
-        "driving_data": stage,
-        "sample_rate": 78125,
-        "driving_frequency_guess": 32,
-        "hydrodynamically_correct": False,
-    }
-
-    model = ActiveCalibrationModel(**active_pars, **shared_pars)
+    model = ActiveCalibrationModel(**active_pars, **shared_pars, hydrodynamically_correct=False)
     fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
 
     # Fitting with *no* hydrodynamically correct model, but *with* Faxen's law
@@ -194,10 +173,16 @@ def test_faxen_correction_active():
     # gamma_0 and gamma_ex should be the same, since gamma_ex is corrected to be "in bulk".
     np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
     np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.1271667835127709e-08)
+    np.testing.assert_allclose(
+        fit.results["local_drag_coefficient"].value,
+        1.1271667835127709e-08
+        * faxen_factor(shared_pars["distance_to_surface"], shared_pars["bead_diameter"] / 2),
+    )
 
     # Disabling Faxen's correction on the drag makes the estimates *much* worse
-    shared_pars["distance_to_surface"] = None
-    model = ActiveCalibrationModel(**active_pars, **shared_pars)
+    model = ActiveCalibrationModel(
+        **active_pars, **dict(shared_pars, distance_to_surface=None), hydrodynamically_correct=False
+    )
     fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
 
     np.testing.assert_allclose(fit.results["Rd"].value, 0.5979577465734786)
@@ -210,3 +195,34 @@ def test_faxen_correction_active():
     np.testing.assert_allclose(
         fit.results[model._measured_drag_fieldname].value, 1.571688034506783e-08
     )
+    # The local estimate is now the same.
+    np.testing.assert_allclose(fit.results["local_drag_coefficient"].value, 1.571688034506783e-08)
+
+
+def test_hydro_active(active_calibration_surface_data):
+    shared_pars, sim_pars, active_pars = active_calibration_surface_data
+    power_spectrum = calculate_power_spectrum(
+        active_pars["force_voltage_data"], sim_pars["sample_rate"]
+    )
+    model = ActiveCalibrationModel(**active_pars, **shared_pars, hydrodynamically_correct=True)
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
+
+    np.testing.assert_allclose(fit.results["Rd"].value, 0.6093861540574103)
+    np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
+    # Note proximity to gamma_0
+    gamma_ex = fit.results["gamma_ex"].value
+    np.testing.assert_allclose(gamma_ex, 1.0984573910537512e-08)
+    np.testing.assert_allclose(fit.results["local_drag_coefficient"].value, 1.537177770849885e-08)
+    np.testing.assert_allclose(
+        fit.results["local_drag_coefficient"].value,
+        gamma_ex
+        / (1 - (9 / 16) * 0.5 * shared_pars["bead_diameter"] / shared_pars["distance_to_surface"]),
+    )
+
+    model = ActiveCalibrationModel(
+        **active_pars, **dict(shared_pars, distance_to_surface=None), hydrodynamically_correct=True
+    )
+    fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
+    # No way to correct back to bulk without a height
+    np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.6258510187033216e-08)
+    np.testing.assert_allclose(fit.results["local_drag_coefficient"].value, 1.6258510187033216e-08)

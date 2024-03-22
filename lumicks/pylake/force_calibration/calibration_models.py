@@ -25,6 +25,7 @@ from .detail.power_models import (
 )
 from .detail.driving_input import driving_power_peak, estimate_driving_input_parameters
 from .detail.hydrodynamics import (
+    calculate_complex_drag,
     passive_power_spectrum_model_hydro,
     theoretical_driving_power_hydrodynamics,
 )
@@ -446,7 +447,8 @@ class PassiveCalibrationModel:
 
             # The hydrodynamically correct model already accounts for the effect of a nearby wall.
             # Here the drag coefficient in the model represents the bulk drag coefficient.
-            self._drag_correction_factor = 1
+            self._drag_correction_factor = 1.0
+
             # This model is only valid up to l/R < 1.5 [6] so throw in case that is violated.
             if (
                 distance_to_surface is not None
@@ -464,24 +466,42 @@ class PassiveCalibrationModel:
             if rho_bead < 100.0:
                 raise ValueError("Density of the bead cannot be below 100 kg/m^3")
 
+            bead_radius_m = self.bead_diameter * 1e-6 / 2.0  # um diameter -> m radius
+            distance_to_surface_m = (
+                None if self.distance_to_surface is None else self.distance_to_surface * 1e-6
+            )  # um => m
+
+            # The hydrodynamic model is expressed as a function of drag in bulk. Therefore,
+            # to get the local drag, we have to forward-calculate it.
+            complex_drag = calculate_complex_drag(
+                f=0,
+                gamma0=1,
+                rho_sample=self.rho_sample,
+                bead_radius=bead_radius_m,
+                distance_to_surface=distance_to_surface_m,
+            )
+            self._to_local_drag_coefficient = complex_drag[0]
+
             self._passive_power_spectrum_model = partial(
                 passive_power_spectrum_model_hydro,
                 gamma0=self.drag_coeff,
-                bead_radius=self.bead_diameter * 1e-6 / 2.0,  # um diameter -> m radius
+                bead_radius=bead_radius_m,
                 rho_sample=self.rho_sample,
                 rho_bead=self.rho_bead,
-                distance_to_surface=None
-                if self.distance_to_surface is None
-                else self.distance_to_surface * 1e-6,  # um => m
+                distance_to_surface=distance_to_surface_m,
             )
         else:
+            # When performing active calibration with the simple models, the measured drag
+            # coefficient already corresponds to the value close to the surface.
+            self._to_local_drag_coefficient = 1.0
+
             if distance_to_surface:
                 args = (distance_to_surface * 1e-6, bead_diameter * 1e-6 / 2.0)
                 self._drag_correction_factor = (
                     brenner_axial(*args) if self.axial else faxen_factor(*args)
                 )
             else:
-                self._drag_correction_factor = 1
+                self._drag_correction_factor = 1.0
 
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
@@ -933,6 +953,11 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             self._measured_drag_fieldname: CalibrationParameter(
                 "Measured bulk drag coefficient",
                 measured_drag_coeff / self._drag_correction_factor,
+                "kg/s",
+            ),
+            "local_drag_coefficient": CalibrationParameter(
+                "Measured local drag coefficient",
+                measured_drag_coeff * self._to_local_drag_coefficient,
                 "kg/s",
             ),
             "driving_amplitude": CalibrationParameter(
