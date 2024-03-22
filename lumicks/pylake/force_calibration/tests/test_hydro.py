@@ -303,7 +303,7 @@ def test_integration_active_calibration_hydrodynamics(integration_test_parameter
         "err_f_diode": 352.2917702189488,
         "err_alpha": 0.014231238753589254,
         "chi_squared_per_deg": 0.8659867914094764,
-        "backing": 14.340689726784328,
+        "backing": 84.05224555962526,
     }
 
     for key, value in expected_params.items():
@@ -348,7 +348,7 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
         "err_f_diode": 352.2917702189488,
         "err_alpha": 0.014231238753589254,
         "chi_squared_per_deg": 0.8659867914094764,
-        "backing": 14.340689726784328,
+        "backing": 84.05224555962526,
     }
 
     for key, value in expected_params.items():
@@ -402,7 +402,7 @@ def test_integration_active_calibration_hydrodynamics_bulk(integration_test_para
         "err_f_diode": 376.8360414675165,
         "err_alpha": 0.014653541838852356,
         "chi_squared_per_deg": 0.8692145118092963,
-        "backing": 14.917612794899505,
+        "backing": 83.40493086075664,
     }
 
     assert fit.params["Distance to surface"].value is None

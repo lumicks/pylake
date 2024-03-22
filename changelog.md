@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.1 | t.b.d.
+
+#### Bug fixes
+
+* Fixed statistical backing returning an incorrect value.
+
 ## v1.4.0 | 2024-02-28
 
 #### New features
