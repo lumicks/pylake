@@ -62,7 +62,7 @@ def calculate_complex_drag(f, gamma0, rho_sample, bead_radius, distance_to_surfa
         Bead radius [m]
     rho_sample : float
         Sample mass density [kg/m^3]
-    distance_to_surface : float
+    distance_to_surface : float | None
         Distance from bead center to nearest surface [m]
     """
     # frequency_nu is the frequency at which the penetration depth in the liquid of the
@@ -139,7 +139,7 @@ def passive_power_spectrum_model_hydro(
         Sample mass density, in kg/m^3
     rho_bead : float
         Bead mass density, in kg/m^3
-    distance_to_surface : float
+    distance_to_surface : float | None
         Distance to nearest surface, in m
     """
     re_drag, im_drag = calculate_complex_drag(
