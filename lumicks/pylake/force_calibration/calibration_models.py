@@ -439,6 +439,8 @@ class PassiveCalibrationModel:
         Fast sensor? Fast sensors do not have the diode effect included in the model.
     axial : bool
         Is this an axial force model?
+    has_offset : bool
+        Include an offset in the observation model to account for the noise floor (default: False)
 
     Raises
     ------
@@ -514,6 +516,7 @@ class PassiveCalibrationModel:
         rho_bead=1060.0,
         fast_sensor=False,
         axial=False,
+        has_offset=False,
     ):
         if bead_diameter < 1e-2:
             raise ValueError(
@@ -537,6 +540,7 @@ class PassiveCalibrationModel:
         self._filter = NoFilter() if fast_sensor else DiodeModel()
         self._drag_fieldname = "gamma_0"
         self._drag_description = "Theoretical bulk drag coefficient"
+        self.has_offset = has_offset
 
         self.axial = axial
         self.hydrodynamically_correct = hydrodynamically_correct
@@ -613,12 +617,15 @@ class PassiveCalibrationModel:
 
             self._passive_power_spectrum_model = passive_power_spectrum_model
 
-    def _calculate_power_spectral_density(self, f, fc, diffusion_constant, *filter_params):
+    def _calculate_power_spectral_density(self, f, fc, diffusion_constant, *other_params):
         physical_spectrum = self._passive_power_spectrum_model(f, fc, diffusion_constant)
-        return physical_spectrum * self._filter(f, *filter_params)
+        if self.has_offset:
+            return physical_spectrum * self._filter(f, *other_params[1:]) + other_params[0]
+        else:
+            return physical_spectrum * self._filter(f, *other_params)
 
-    def __call__(self, f, fc, diffusion_constant, *filter_params) -> np.ndarray:
-        return self._calculate_power_spectral_density(f, fc, diffusion_constant, *filter_params)
+    def __call__(self, f, fc, diffusion_constant, *other_params) -> np.ndarray:
+        return self._calculate_power_spectral_density(f, fc, diffusion_constant, *other_params)
 
     def _motion_blur(self, acquisition_time):
         """Include effects of motion blur into the model
@@ -837,6 +844,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
     fast_sensor : bool
         Fast sensor? Fast sensors do not have the diode effect included in the model.
+    has_offset : bool
+        Include an offset in the observation model to account for the noise floor (default: False)
 
     Attributes
     ----------
@@ -935,17 +944,19 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         rho_sample=None,
         rho_bead=1060.0,
         fast_sensor=False,
+        has_offset=False,
     ):
         super().__init__(
-            bead_diameter,
-            viscosity,
-            temperature,
-            hydrodynamically_correct,
-            distance_to_surface,
-            rho_sample,
-            rho_bead,
-            fast_sensor,
-            False,
+            bead_diameter=bead_diameter,
+            viscosity=viscosity,
+            temperature=temperature,
+            hydrodynamically_correct=hydrodynamically_correct,
+            distance_to_surface=distance_to_surface,
+            rho_sample=rho_sample,
+            rho_bead=rho_bead,
+            fast_sensor=fast_sensor,
+            axial=False,
+            has_offset=has_offset,
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate

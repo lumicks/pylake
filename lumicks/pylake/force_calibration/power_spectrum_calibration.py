@@ -293,15 +293,24 @@ def fit_power_spectrum(
         )
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
+    if model.has_offset:
+        init_offset, min_offset, max_offset = [0.26e-12], [0.0], [np.inf]
+        filter_param_index = 3
+    else:
+        init_offset, min_offset, max_offset = [], [], []
+        filter_param_index = 2
+
     solution_params, perr, chi_squared = _fit_power_spectra(
         model,
         power_spectrum.frequency,
         power_spectrum.power,
         power_spectrum.num_points_per_block,
-        initial_params=np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values]),
-        lower_bounds=np.array([0.0, 0.0, *model._filter.lower_bounds()]),
+        initial_params=np.array(
+            [anl_fit_res.fc, anl_fit_res.D, *init_offset, *model._filter.initial_values]
+        ),
+        lower_bounds=np.array([0.0, 0.0, *min_offset, *model._filter.lower_bounds()]),
         upper_bounds=np.array(
-            [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
+            [np.inf, np.inf, *max_offset, *model._filter.upper_bounds(power_spectrum.sample_rate)]
         ),
         ftol=ftol,
         max_function_evals=max_function_evals,
@@ -333,13 +342,18 @@ def fit_power_spectrum(
             **model.calibration_results(
                 fc=solution_params[0],
                 diffusion_constant_volts=solution_params[1],
-                filter_params=solution_params[2:],
+                filter_params=solution_params[filter_param_index:],
                 fc_err=perr[0],
                 diffusion_constant_volts_err=perr[1],
-                filter_params_err=perr[2:],
+                filter_params_err=perr[filter_param_index:],
             ),
             "chi_squared_per_deg": CalibrationParameter(
                 "Chi squared per degree of freedom", chi_squared_per_deg, ""
+            ),
+            "offset": (
+                CalibrationParameter("Offset", solution_params[2], "Vˆ2/Hz")
+                if model.has_offset
+                else None
             ),
             "backing": CalibrationParameter("Statistical backing", backing, "%"),
             "Kind": CalibrationParameter("Calibration type", "Full calibration", "-"),

@@ -32,6 +32,7 @@ def calibrate_force(
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
+    include_offset=False,
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
@@ -104,6 +105,8 @@ def calibrate_force(
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
         Fix diode relaxation factor to particular value.
+    include_offset : bool
+        Include an offset in the observation model (default: False)
 
     Raises
     ------
@@ -205,6 +208,7 @@ def calibrate_force(
         "hydrodynamically_correct": hydrodynamically_correct,
         "rho_sample": rho_sample,
         "rho_bead": rho_bead,
+        "has_offset": include_offset,
     }
 
     model = (
