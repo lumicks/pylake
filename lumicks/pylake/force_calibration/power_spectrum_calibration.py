@@ -221,6 +221,7 @@ def _fit_power_spectra(
     ftol,
     max_function_evals,
     loss_function,
+    prior=None,
 ):
     """Fit power spectral data.
 
@@ -245,6 +246,8 @@ def _fit_power_spectra(
         Maximum number of function evaluations during the fit.
     loss_function : string
         Loss function to use during fitting. Options: "gaussian", "lorentzian" (robust fitting).
+    prior : callable
+        Quadratic priors
 
     Returns
     -------
@@ -258,7 +261,14 @@ def _fit_power_spectra(
     # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
     # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
     # care of this parameter rescaling.
-    scaled_model = ScaledModel(lambda f, *params: 1 / model(f, *params), initial_params)
+    if prior:
+        scaled_model = ScaledModel(
+            lambda f, *params: np.hstack((1 / model(f[:-1], *params), prior(params))),
+            initial_params,
+        )
+    else:
+        scaled_model = ScaledModel(lambda f, *params: 1 / model(f, *params), initial_params)
+
     lower_bounds = scaled_model.normalize_params(lower_bounds)
     upper_bounds = scaled_model.normalize_params(upper_bounds)
 
@@ -268,10 +278,17 @@ def _fit_power_spectra(
     # effectively transforms the curve fitter's objective function
     # "np.sum( ((f(xdata, *popt) - ydata) / sigma)**2 )" into the expression in Eq. 39 of ref. 1.
     sigma = (1.0 / powers) / math.sqrt(num_points_per_block)
+    data = 1.0 / powers
+
+    if prior:
+        frequencies = np.hstack((frequencies, 0))
+        sigma = np.hstack((sigma, 0.5e-7))
+        data = np.hstack((data, 4.1e-7))
+
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
         scaled_model,
         frequencies,
-        1.0 / powers,
+        data,
         p0=np.ones(len(initial_params)),
         sigma=sigma,
         absolute_sigma=True,
@@ -282,6 +299,11 @@ def _fit_power_spectra(
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
     perr = np.sqrt(np.diag(pcov))
+
+    if prior:
+        # Remove the junk we added
+        frequencies = frequencies[:-1]
+        sigma = sigma[:-1]
 
     # Undo the scaling
     solution_params = scaled_model.scale_params(solution_params_rescaled)
@@ -414,11 +436,13 @@ def fit_power_spectrum(
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
     if model.has_offset:
-        init_offset, min_offset, max_offset = [np.min(power_spectrum.power)], [0.0], [np.inf]
+        init_offset, min_offset, max_offset = [np.min(power_spectrum.power) / 10], [0.0], [np.inf]
         filter_param_index = 3
+        prior = lambda params: params[2]
     else:
         init_offset, min_offset, max_offset = [], [], []
         filter_param_index = 2
+        prior = None
 
     solution_params, perr, chi_squared = _fit_power_spectra(
         model,
@@ -435,6 +459,7 @@ def fit_power_spectrum(
         ftol=ftol,
         max_function_evals=max_function_evals,
         loss_function=loss_function,
+        prior=prior,
     )
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
@@ -470,7 +495,9 @@ def fit_power_spectrum(
             "chi_squared_per_deg": CalibrationParameter(
                 "Chi squared per degree of freedom", chi_squared_per_deg, ""
             ),
-            "offset": solution_params[2],
+            "offset": CalibrationParameter(
+                "Estimated background", solution_params[2] if model.has_offset else 0, "Vˆ2/s"
+            ),
             "backing": CalibrationParameter("Statistical backing", backing, "%"),
         },
         params={
