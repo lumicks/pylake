@@ -486,6 +486,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         vertical=False,
         include_dead_time=False,
         return_frame_setter=False,
+        downsample_channel=True,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. `np.mean`) is evaluated for the time between a start and end time of a
@@ -520,6 +521,8 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             Include dead time between frames, default: False.
         return_frame_setter : bool, optional
             Whether to return a handle that allows updating the plotted frame, default: False.
+        downsample_channel : bool, optional
+            Downsample the channel data over frame timestamp ranges (default: True).
 
         Note
         ----
@@ -554,6 +557,7 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
             figure_scale=figure_scale,
             post_update=post_update,
             vertical=vertical,
+            downsample_channel=downsample_channel,
         )
 
         if return_frame_setter:

@@ -15,6 +15,7 @@ def plot_correlated(
     post_update=None,
     *,
     vertical=False,
+    downsample_channel=True,
 ):
     """Downsample channel on a frame by frame basis and plot the results.
 
@@ -46,12 +47,18 @@ def plot_correlated(
         Whether plots should be aligned vertically.
     return_handle : bool
         Whether to return a handle to the update function.
+    downsample_channel : bool
+        Downsample the channel data over frame timestamp ranges (default: True).
     """
     import matplotlib.pyplot as plt
 
-    downsampled = channel_slice.downsampled_over(frame_timestamps, where="left", reduce=reduce)
+    processed_channel = (
+        channel_slice.downsampled_over(frame_timestamps, where="left", reduce=reduce)
+        if downsample_channel
+        else channel_slice[frame_timestamps[0][0] : frame_timestamps[-1][-1]]
+    )
 
-    if len(downsampled.timestamps) < len(frame_timestamps):
+    if len(processed_channel.timestamps) < len(frame_timestamps):
         warnings.warn("Only subset of time range available for selected channel")
 
     plot_data = get_plot_data(frame)
@@ -68,8 +75,8 @@ def plot_correlated(
             gridspec_kw={"width_ratios": [1, 1 / aspect_ratio]},
         )
 
-    t0 = downsampled.timestamps[0]
-    t, y = downsampled.seconds, downsampled.data
+    t0 = processed_channel.timestamps[0]
+    t, y = processed_channel.seconds, processed_channel.data
 
     # We explicitly append the last frame time to make sure that it still shows up
     last_dt = np.diff(
@@ -109,8 +116,8 @@ def plot_correlated(
     poly = update_position(*frame_timestamps[frame])
 
     ax_channel.set_xlabel("Time [s]")
-    ax_channel.set_ylabel(downsampled.labels["y"])
-    ax_channel.set_title(downsampled.labels["title"])
+    ax_channel.set_ylabel(processed_channel.labels["y"])
+    ax_channel.set_title(processed_channel.labels["title"])
     ax_channel.set_xlim([np.min(t), np.max(t)])
 
     if vertical:
