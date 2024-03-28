@@ -145,6 +145,32 @@ class CalibrationResults:
     def _repr_html_(self):
         return self._print_data(tablefmt="html")
 
+    @property
+    def _combined_dict(self):
+        return self.results | self.params
+
+    def keys(self):
+        return self._combined_dict.keys()
+
+    def items(self):
+        return self._combined_dict.items()
+
+    def values(self):
+        return self._combined_dict.values()
+
+    def next(self):
+        return self._combined_dict.next
+
+    def __iter__(self):
+        return iter(self._combined_dict)
+
+    def as_dict(self):
+        """Convert to a simple dictionary that has the calibration results."""
+        return {
+            f"{key}{f' ({param.unit})' if param.unit else ''}": param.value
+            for key, param in self._combined_dict.items()
+        }
+
     def __str__(self) -> str:
         return self._print_data()
 
