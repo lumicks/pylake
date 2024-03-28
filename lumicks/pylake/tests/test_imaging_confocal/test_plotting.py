@@ -181,15 +181,16 @@ def test_plot_single_channel_percentile_color_adjustment(test_scans_multiframe):
 
 
 @pytest.mark.parametrize(
-    "frame, vertical, channel",
+    "frame, vertical, channel, downsample",
     [
-        (0, False, "red"),
-        (0, False, "blue"),
-        (0, True, "red"),
-        (1, True, "red"),
+        (0, False, "red", True),
+        (0, False, "blue", True),
+        (0, True, "red", True),
+        (1, True, "red", True),
+        (0, False, "red", False),
     ],
 )
-def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel):
+def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel, downsample):
     import matplotlib as mpl
 
     scan, ref = test_scans_multiframe["fast Y slow X multiframe"]
@@ -198,7 +199,13 @@ def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel):
     )
 
     image_axis = 0 if vertical else 1
-    scan.plot_correlated(channel=channel, channel_slice=corr_data, frame=frame, vertical=vertical)
+    scan.plot_correlated(
+        channel=channel,
+        channel_slice=corr_data,
+        frame=frame,
+        vertical=vertical,
+        downsample_channel=downsample,
+    )
     axes = plt.gcf().get_axes()
     imgs = [obj for obj in axes[image_axis].get_children() if isinstance(obj, mpl.image.AxesImage)]
 
@@ -206,3 +213,14 @@ def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel):
     np.testing.assert_allclose(imgs[0].get_array(), scan[frame].get_image(channel))
     assert axes[1 - image_axis].get_xlabel() == "Time [s]"
     assert axes[image_axis].get_title() == f"[frame {frame + 1} / 10]"
+
+    # Fetch raw data
+    lines = [o for o in axes[1 - image_axis].get_children() if isinstance(o, mpl.lines.Line2D)]
+    _, y = lines[0].get_data()
+
+    ts_ranges = scan.frame_timestamp_ranges()
+    if downsample:
+        ds = corr_data.downsampled_over(ts_ranges)
+        np.testing.assert_allclose(ds.data, y[:-1])  # Last sample is double because of step plot
+    else:
+        np.testing.assert_allclose(corr_data[ts_ranges[0][0] : ts_ranges[-1][-1]].data, y[:-1])

@@ -124,6 +124,7 @@ class VideoExport:
         scale_bar=None,
         channel_slice=None,
         vertical=True,
+        downsample_channel=True,
         **kwargs,
     ):
         """Export a video
@@ -148,6 +149,8 @@ class VideoExport:
             When specified, we export a video correlated to channel data
         vertical : bool, optional
             Render with the plots vertically aligned (default: True).
+        downsample_channel : bool, optional
+            Downsample the channel data over frame timestamp ranges (default: True).
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
 
@@ -217,6 +220,7 @@ class VideoExport:
                 channel_slice=channel_slice,
                 vertical=vertical,
                 return_frame_setter=True,
+                downsample_channel=downsample_channel,
             )
             fig = plt.gcf()  # plot_correlated makes its own plot
             fig.patch.set_alpha(1.0)  # Circumvents grainy rendering
