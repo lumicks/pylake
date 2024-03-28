@@ -15,6 +15,7 @@ def plot_correlated(
     post_update=None,
     *,
     vertical=False,
+    downsample_channel=True,
 ):
     """Downsample channel on a frame by frame basis and plot the results.
 
@@ -46,10 +47,16 @@ def plot_correlated(
         Whether plots should be aligned vertically.
     return_handle : bool
         Whether to return a handle to the update function.
+    downsample_channel : bool
+        Downsample the channel data over the frame (default: True).
     """
     import matplotlib.pyplot as plt
 
-    downsampled = channel_slice.downsampled_over(frame_timestamps, where="left", reduce=reduce)
+    downsampled = (
+        channel_slice.downsampled_over(frame_timestamps, where="left", reduce=reduce)
+        if downsample_channel
+        else channel_slice[frame_timestamps[0][0] : frame_timestamps[-1][-1]]
+    )
 
     if len(downsampled.timestamps) < len(frame_timestamps):
         warnings.warn("Only subset of time range available for selected channel")

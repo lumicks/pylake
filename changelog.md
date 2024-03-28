@@ -2,7 +2,10 @@
 
 ## v1.5.0 | t.b.d.
 
+#### New features
+
 * Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
+* Allow making correlated plots ([`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated)) and videos [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video) of correlated plots without downsampling the time channel data to the frame timestamps by passing the argument `downsample_channel=False`.
 
 ## v1.4.0 | 2024-02-28
 
