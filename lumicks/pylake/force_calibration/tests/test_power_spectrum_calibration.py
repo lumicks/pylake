@@ -126,7 +126,7 @@ def test_good_fit_integration_test(
         compare_to_reference_dict(
             {
                 par: ps_calibration[par].value
-                for par in ("err_fc", "err_D", "err_f_diode", "err_alpha")
+                for par in ("err_fc", "err_D", "err_f_diode", "err_alpha", "err_kappa", "err_Rd")
             }
         )
 
@@ -315,6 +315,8 @@ def test_repr(reference_calibration_result):
         kappa                Trap stiffness (pN/nm)                                    0.171495
         Rf                   Force response (pN/V)                                     1243.97
         gamma_0              Theoretical bulk drag coefficient (kg/s)                  4.1552e-08
+        err_kappa            Stiffness Std Err (pN/V)                                  0.00841414
+        err_Rd               Distance response Std Err (um/V)                          0.125966
         fc                   Corner frequency (Hz)                                     656.872
         D                    Diffusion constant (V^2/s)                                0.00185126
         err_fc               Corner frequency Std Err (Hz)                             32.2284
