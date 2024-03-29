@@ -61,10 +61,19 @@ class PowerSpectrum:
             )
             for chunk_idx in np.arange(len(data) // num_points_per_window)
         ]
+
         squared_fft = np.mean(squared_fft_chunks, axis=0)
 
         self.frequency = np.fft.rfftfreq(num_points_per_window, 1.0 / sample_rate)
-        self.power = (2.0 / sample_rate) * squared_fft / num_points_per_window
+        scaling_factor = (2.0 / sample_rate) / num_points_per_window
+        self.power = scaling_factor * squared_fft
+
+        # Store a variance for temporally blocked power spectra
+        self._variance = (
+            scaling_factor**2 * np.var(squared_fft_chunks, axis=0)
+            if len(squared_fft_chunks) > 1
+            else None
+        )
 
         # Store metadata
         self.sample_rate = sample_rate
@@ -83,6 +92,7 @@ class PowerSpectrum:
         ba.frequency = downsample(self.frequency, factor, reduce)
         ba.power = downsample(self.power, factor, reduce)
         ba.num_points_per_block = self.num_points_per_block * factor
+        ba._variance = None  # Not supported
 
         return ba
 
@@ -105,6 +115,10 @@ class PowerSpectrum:
 
         ps.frequency = ps.frequency[indices]
         ps.power = ps.power[indices]
+
+        if self._variance is not None:
+            ps._variance = ps._variance[indices]
+
         return ps
 
     def identify_peaks(
@@ -212,12 +226,16 @@ class PowerSpectrum:
         mask = (self.frequency > frequency_min) & (self.frequency <= frequency_max)
         ir.frequency = self.frequency[mask]
         ir.power = self.power[mask]
+
+        if self._variance is not None:
+            ir._variance = self._variance[mask]
+
         return ir
 
     def num_samples(self) -> int:
         return self.frequency.size
 
-    def with_spectrum(self, power, num_points_per_block=1) -> "PowerSpectrum":
+    def with_spectrum(self, power, num_points_per_block=1, variance=None) -> "PowerSpectrum":
         """Return a copy with a different spectrum
 
         Parameters
@@ -226,6 +244,8 @@ class PowerSpectrum:
             Vector of power spectral values
         num_points_per_block : int
             Number of points per block used to obtain power spectral values.
+        variance : numpy.ndarray, optional
+            Variance of the power spectrum.
 
         Returns
         -------
@@ -243,6 +263,7 @@ class PowerSpectrum:
         ps = copy(self)
         ps.power = power
         ps.num_points_per_block = num_points_per_block
+        ps._variance = variance
 
         return ps
 
