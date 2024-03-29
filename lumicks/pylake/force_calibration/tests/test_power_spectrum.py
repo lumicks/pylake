@@ -4,6 +4,41 @@ import pytest
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
+def test_power_spectrum_variance():
+    """Testing the variance of Welch PSD estimates"""
+    sigma, sample_rate = 40, 100
+
+    np.random.seed(90083773)
+    ps = PowerSpectrum(sigma * np.random.normal(size=(1000000)), sample_rate, window_seconds=1)
+    avg_variance = np.mean(ps._variance[1:-1])  # First and last bin have twice the variance
+
+    # scaling_factor = (2.0 / sample_rate)
+    # average power is: sigma**2 * scaling_factor
+    # its variance is: (sigma**2 * scaling_factor)**2 (1024 here)
+    np.testing.assert_allclose(avg_variance, 1019.8465525703106)
+
+    mask = np.logical_and(ps.frequency > 10, ps.frequency <= 25)
+    np.testing.assert_equal(
+        ps.in_range(frequency_min=10.0, frequency_max=25.0)._variance, ps._variance[mask]
+    )
+
+    mask = np.logical_or(ps.frequency < 10, ps.frequency >= 25)
+    np.testing.assert_equal(ps._exclude_range([[10, 25]])._variance, ps._variance[mask])
+
+    # A single window won't give us a variance
+    ps = PowerSpectrum(
+        sigma * np.random.normal(size=(2 * sample_rate - 1)), sample_rate, window_seconds=1
+    )
+    assert ps._variance is None
+    assert ps.in_range(10, 15)._variance is None
+
+    # Two windows will (though it will likely not be a great estimate)
+    ps = PowerSpectrum(
+        sigma * np.random.normal(size=(2 * sample_rate)), sample_rate, window_seconds=1
+    )
+    assert np.all(ps._variance)
+
+
 @pytest.mark.parametrize(
     "frequency, num_data, sample_rate",
     [
@@ -216,6 +251,7 @@ def test_exclusions(exclusion_ranges, result_frequency, result_power):
     ps = PowerSpectrum([1], 78125, unit="V")
     ps.frequency = np.arange(1, 12, 2)
     ps.power = np.arange(10, 120, 20)
+    ps._variance = None
     excluded_range = ps._exclude_range(exclusion_ranges)
     np.testing.assert_allclose(excluded_range.frequency, result_frequency)
     np.testing.assert_allclose(excluded_range.power, result_power)
