@@ -715,6 +715,13 @@ class PassiveCalibrationModel:
         # Stiffness is output in pN/nm (N/m -> pN/nm or 1e12 / 1e9 = 1e3)
         kappa = 2 * np.pi * self._drag * fc * 1e3
 
+        # Determine errors by Gaussian Error Propagation (note that this neglects errors
+        # present in the drag due to imprecision in viscosity / temperature).
+        kappa_err = (kappa / fc) * fc_err
+        distance_response_err = (
+            distance_response / (2 * diffusion_constant_volts) * diffusion_constant_volts_err
+        )
+
         # Force response (Rf) is output in pN/V. Rd [um/V], stiffness [pN/nm]: um -> nm = 1e3
         force_response = distance_response * kappa * 1e3
 
@@ -724,6 +731,10 @@ class PassiveCalibrationModel:
             "Rf": CalibrationParameter("Force response", force_response, "pN/V"),
             self._drag_fieldname: CalibrationParameter(
                 self._drag_description, self.drag_coeff, "kg/s"
+            ),
+            "err_kappa": CalibrationParameter("Stiffness Std Err", kappa_err, "pN/V"),
+            "err_Rd": CalibrationParameter(
+                "Distance response Std Err", distance_response_err, "um/V"
             ),
             **self._format_passive_result(
                 fc,
