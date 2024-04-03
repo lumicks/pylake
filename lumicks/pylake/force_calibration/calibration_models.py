@@ -712,9 +712,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
     temperature : float, optional
         Liquid temperature [Celsius].
     num_windows : int, optional
-        Number of windows to average for the uncalibrated force. Using a larger number of
-        windows potentially increases spectral bleed from adjacent peaks, but may be useful when
-        the SNR is low.
+        Number of oscillations per window. Using a larger number of oscillations reduces the
+        spectral scalloping loss, but comes at the cost of SNR (due to less averaging taking place).
     hydrodynamically_correct : bool, optional
         Enable hydrodynamically correct model.
     distance_to_surface : float, optional
@@ -839,7 +838,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
-        self.num_windows = num_windows
+        self.num_windows = num_windows  # caveat: misnamed parameter
         self._measured_drag_fieldname = "gamma_ex"
 
         # Estimate driving input and response
@@ -883,6 +882,11 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             ),
             "num_windows": CalibrationParameter(
                 "Number of oscillations per window", self.num_windows, ""
+            ),
+            "points_per_block_driving_power": CalibrationParameter(
+                "Points per block for driving power estimation",
+                self.output_power.ps.num_points_per_block,
+                "",
             ),
         }
 
