@@ -3,6 +3,8 @@ import warnings
 import numpy as np
 import scipy
 
+from ...detail.utilities import find_stack_level
+
 
 def numerical_diff(fn, x, dx=1e-6):
     return (fn(x + dx) - fn(x - dx)) / (2.0 * dx)
@@ -126,7 +128,8 @@ def invert_function_interpolation(
         except Exception as e:
             warnings.warn(
                 f"Interpolation failed. Cause: {e}. Falling back to brute force evaluation. "
-                f"Results should be fine, but slower."
+                f"Results should be fine, but slower.",
+                stacklevel=find_stack_level(),
             )
             result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
     else:

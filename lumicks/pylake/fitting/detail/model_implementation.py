@@ -4,6 +4,7 @@ import numpy as np
 
 from .utilities import latex_frac, latex_sqrt, solve_formatter, solve_formatter_tex
 from ..parameters import Parameter
+from ...detail.utilities import find_stack_level
 from .derivative_manipulation import invert_function, invert_jacobian, invert_function_interpolation
 
 
@@ -103,8 +104,10 @@ def wlc_marko_siggia_force(d, Lp, Lc, kT):
 
     if np.any(d > Lc):
         warnings.warn(
-            "Marko Siggia model is only defined properly up to the contour length (d = Lc)",
-            RuntimeWarning,
+            RuntimeWarning(
+                "Marko Siggia model is only defined properly up to the contour length (d = Lc)"
+            ),
+            stacklevel=find_stack_level(),
         )
 
     d_div_Lc = d / Lc

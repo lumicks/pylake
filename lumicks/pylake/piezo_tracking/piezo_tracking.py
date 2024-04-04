@@ -4,6 +4,7 @@ import numpy as np
 
 from ..channel import Slice
 from .baseline import ForceBaseLine
+from ..detail.utilities import find_stack_level
 
 __all__ = ["DistanceCalibration", "PiezoTrackingCalibration", "PiezoForceDistance"]
 
@@ -34,7 +35,8 @@ class DistanceCalibration:
                 RuntimeWarning(
                     "There were frames with missing video tracking: "
                     f"{missed_frames} data point(s) were omitted."
-                )
+                ),
+                stacklevel=find_stack_level(),
             )
 
         coeffs = np.polyfit(self.position, self.distance, degree)

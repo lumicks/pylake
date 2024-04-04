@@ -14,6 +14,7 @@ from .point_scan import PointScan
 from .calibration import ForceCalibration
 from .detail.mixin import Force, PhotonCounts, DownsampledFD, PhotonTimeTags, BaselineCorrectedForce
 from .detail.h5_helper import write_h5
+from .detail.utilities import find_stack_level
 
 __all__ = ["File"]
 
@@ -276,7 +277,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             try:
                 return cls.from_dataset(*args)
             except Exception as e:
-                warnings.warn(e.args[0])
+                warnings.warn(e.args[0], stacklevel=find_stack_level())
                 return None
 
         if field not in self.h5:

@@ -5,6 +5,8 @@ from dataclasses import field, dataclass
 import numpy as np
 import numpy.typing as npt
 
+from ...detail.utilities import find_stack_level
+
 
 @dataclass(frozen=True)
 class DiffusionEstimate:
@@ -472,7 +474,10 @@ def _diffusion_gls(lag_idx, mean_squared_displacements, num_points, tolerance=1e
 
     def fallback(warning_message):
         """Fallback method if the GLS fails"""
-        warnings.warn(RuntimeWarning(f"{warning_message} Reverting to two-point OLS."))
+        warnings.warn(
+            RuntimeWarning(f"{warning_message} Reverting to two-point OLS."),
+            stacklevel=find_stack_level(),
+        )
         return _diffusion_ols(lag_idx[:2], mean_squared_displacements[:2], num_points)
 
     # Since the covariance matrix depends on the parameters for the intercept and slope, we obtain
@@ -600,7 +605,7 @@ def estimate_diffusion_constant_simple(
                     "`help(lk.refine_tracks_centroid)` or `help(lk.refine_tracks_gaussian)` for "
                     "more information."
                 ),
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
     frame_lags, msd = calculate_msd(frame_idx, coordinate, max_lag)
@@ -718,7 +723,8 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
             RuntimeWarning(
                 "Your tracks have missing frames. Note that this can lead to a suboptimal "
                 "estimate of the optimal number of lags when using OLS."
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
 
     num_slope = max(2, len(coordinate) // 10)  # Need at least two points for a linear regression!
@@ -750,7 +756,8 @@ def determine_optimal_points(frame_idx, coordinate, max_iterations=100):
             return num_slope, num_intercept
 
     warnings.warn(
-        RuntimeWarning("Warning, maximum number of iterations exceeded. Returning best solution.")
+        RuntimeWarning("Warning, maximum number of iterations exceeded. Returning best solution."),
+        stacklevel=find_stack_level(),
     )
     return num_slope, num_intercept
 
@@ -1129,7 +1136,8 @@ def _determine_optimal_points_ensemble(frame_lags, msds, n_coord, max_iterations
             return num_slope
 
     warnings.warn(
-        RuntimeWarning("Warning, maximum number of iterations exceeded. Returning best solution.")
+        RuntimeWarning("Warning, maximum number of iterations exceeded. Returning best solution."),
+        stacklevel=find_stack_level(),
     )
 
     return num_slope
@@ -1143,7 +1151,8 @@ def ensemble_ols(kymotracks, max_lag):
         warnings.warn(
             RuntimeWarning(
                 "Your tracks have missing frames. Note that this can lead to a suboptimal estimates"
-            )
+            ),
+            stacklevel=find_stack_level(),
         )
 
     optimal_lags = (

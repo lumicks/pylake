@@ -2,6 +2,8 @@ import warnings
 
 import numpy as np
 
+from ..detail.utilities import find_stack_level
+
 
 def plot_correlated(
     channel_slice,
@@ -52,7 +54,10 @@ def plot_correlated(
     downsampled = channel_slice.downsampled_over(frame_timestamps, where="left", reduce=reduce)
 
     if len(downsampled.timestamps) < len(frame_timestamps):
-        warnings.warn("Only subset of time range available for selected channel")
+        warnings.warn(
+            UserWarning("Only subset of time range available for selected channel"),
+            stacklevel=find_stack_level(),
+        )
 
     plot_data = get_plot_data(frame)
     aspect_ratio = plot_data.shape[0] / np.max([plot_data.shape])

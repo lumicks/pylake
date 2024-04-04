@@ -1,4 +1,6 @@
 import math
+import inspect
+import pathlib
 import contextlib
 
 import numpy as np
@@ -213,3 +215,22 @@ def temp_seed(seed):
         yield
     finally:
         np.random.seed(None)
+
+
+def find_stack_level() -> int:
+    """Find where we leave the module"""
+    import lumicks.pylake as lk
+
+    pylake_folder = pathlib.Path(lk.__file__).parent
+
+    depth = 0
+    frame = inspect.currentframe()
+    while frame:
+        current_path = pathlib.Path(inspect.getfile(frame))
+        if pylake_folder in current_path.parents and "tests" not in current_path.parts:
+            frame = frame.f_back
+            depth += 1
+        else:
+            break
+
+    return depth
