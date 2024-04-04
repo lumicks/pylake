@@ -15,14 +15,15 @@ from .data.simulate_calibration_data import generate_active_calibration_test_dat
 
 @pytest.mark.parametrize(
     "stiffness, viscosity, temperature, pos_response_um_volt, driving_sinusoid, diode, driving_"
-    "frequency_guess, power_density, response_power",
+    "frequency_guess",
     [
-        [0.1, 1.002e-3, 20, 0.618, (500, 31.95633), (0.4, 15000), 32, 1.958068e-5, 0.000124879648],
-        [0.2, 1.012e-3, 20, 1.618, (500, 31.95633), (0.4, 14000), 32, 7.28664e-07, 4.64730000e-06],
-        [0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29, 1.098337e-07, 6.63921666e-07],
+        [0.1, 1.002e-3, 20, 0.618, (500, 31.95633), (0.4, 15000), 32],
+        [0.2, 1.012e-3, 20, 1.618, (500, 31.95633), (0.4, 14000), 32],
+        [0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29],
     ],
 )
 def test_integration_active_calibration(
+    compare_to_reference_dict,
     stiffness,
     viscosity,
     temperature,
@@ -30,8 +31,6 @@ def test_integration_active_calibration(
     driving_sinusoid,
     diode,
     driving_frequency_guess,
-    power_density,
-    response_power,
 ):
     import scipy.constants
 
@@ -63,11 +62,6 @@ def test_integration_active_calibration(
     # Validate estimation of the driving input
     np.testing.assert_allclose(model.driving_amplitude, driving_sinusoid[0] * 1e-9, rtol=1e-5)
     np.testing.assert_allclose(model.driving_frequency, driving_sinusoid[1], rtol=1e-5)
-
-    np.testing.assert_allclose(model._response_power_density, power_density, rtol=1e-5)
-    num_points_per_window = int(np.round(sample_rate * model.num_windows / model.driving_frequency))
-    freq_axis = np.fft.rfftfreq(num_points_per_window, 1.0 / sample_rate)
-    np.testing.assert_allclose(model._frequency_bin_width, freq_axis[1] - freq_axis[0])
 
     power_spectrum = calculate_power_spectrum(force_voltage_data, sample_rate)
     fit = fit_power_spectrum(power_spectrum, model)
@@ -102,7 +96,20 @@ def test_integration_active_calibration(
         fit["driving_amplitude"].value, driving_sinusoid[0] * 1e-3, rtol=1e-5
     )
     np.testing.assert_allclose(fit["driving_frequency"].value, driving_sinusoid[1], rtol=1e-5)
-    np.testing.assert_allclose(fit["driving_power"].value, response_power, rtol=1e-6)
+
+    compare_to_reference_dict(
+        {
+            par: fit[par].value
+            for par in (
+                "driving_power",
+                "err_driving_power",
+                "err_theoretical_power",
+                "theoretical_power",
+                "err_kappa",
+                "err_Rd",
+            )
+        }
+    )
 
 
 def test_bias_correction():
