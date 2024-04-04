@@ -44,6 +44,13 @@ class PowerSpectrum:
         def squared_fft(d):
             return np.square(np.abs(np.fft.rfft(d)))
 
+        data = np.asarray(data)
+        if data.ndim != 1:
+            raise ValueError(
+                f"Only 1D arrays of data are supported. You provided a {data.ndim}D array of "
+                f"shape {data.shape}."
+            )
+
         self.unit = unit
         data = data - np.mean(data)
 

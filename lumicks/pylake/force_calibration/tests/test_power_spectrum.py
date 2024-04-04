@@ -4,6 +4,14 @@ import pytest
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 
 
+def test_power_spectrum_bad_shape():
+    with pytest.raises(
+        ValueError,
+        match=r"Only 1D arrays of data are supported. You provided a 2D array of shape \(10, 2\)",
+    ):
+        _ = PowerSpectrum(np.ones((10, 2)), 1, window_seconds=1)
+
+
 def test_power_spectrum_variance():
     """Testing the variance of Welch PSD estimates"""
     sigma, sample_rate = 40, 100
