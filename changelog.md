@@ -15,6 +15,7 @@
 
 * Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes. 
 * Warn when parameter estimates are hitting the fitting bounds when using [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html).
+* Added `err_kappa` and `err_Rd` to force calibration results. These contain error estimates for the calibration constants propagated from the fitting errors.
 
 ## v1.4.1 | t.b.d.
 
