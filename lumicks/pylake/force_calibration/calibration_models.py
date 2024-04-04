@@ -28,7 +28,7 @@ from .detail.power_models import (
     passive_power_spectrum_model,
     theoretical_driving_power_lorentzian,
 )
-from .detail.driving_input import driving_power_peak, estimate_driving_input_parameters
+from .detail.driving_input import DrivenPower, estimate_driving_input_parameters
 from .detail.hydrodynamics import (
     calculate_complex_drag,
     passive_power_spectrum_model_hydro,
@@ -909,14 +909,15 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         self._measured_drag_fieldname = "gamma_ex"
 
         # Estimate driving input and response
-        amplitude_um, self.driving_frequency = estimate_driving_input_parameters(
+        amplitude_um, self.driving_frequency, amplitude_um_std = estimate_driving_input_parameters(
             sample_rate, driving_data, driving_frequency_guess
         )
         self.driving_amplitude = amplitude_um * 1e-6
+        self._driving_amplitude_err = amplitude_um_std * 1e-6
 
         # The power density is the density (V^2/Hz) at the driving input. Multiplying this with
         # the frequency bin width gives the absolute power.
-        self._response_power_density, self._frequency_bin_width = driving_power_peak(
+        self.output_power = DrivenPower(
             force_voltage_data, sample_rate, self.driving_frequency, num_windows
         )
 
@@ -946,7 +947,9 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             "Driving frequency (guess)": CalibrationParameter(
                 "Driving frequency (guess)", self.driving_frequency_guess, "Hz"
             ),
-            "num_windows": CalibrationParameter("Number of averaged windows", self.num_windows, ""),
+            "num_windows": CalibrationParameter(
+                "Number of oscillations per window", self.num_windows, ""
+            ),
         }
 
     def _theoretical_driving_power(self, f_corner):
@@ -1001,13 +1004,32 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         """
         import scipy.constants
 
-        reference_peak = self(self.driving_frequency, fc, diffusion_constant_volts, *filter_params)
+        thermal_noise = self(self.driving_frequency, fc, diffusion_constant_volts, *filter_params)
 
-        # Equation 14 from [6]
-        power_exp = (self._response_power_density - reference_peak) * self._frequency_bin_width
+        power_exp, power_exp_err = self.output_power.determine_power_output(thermal_noise)
+        power_theoretical = self._theoretical_driving_power(fc)
 
         # Equation 12 from [6]
-        distance_response = np.sqrt(self._theoretical_driving_power(fc) / power_exp)  # m/V
+        distance_response = np.sqrt(power_theoretical / power_exp)  # m/V
+
+        # dpower/dfc, dpower/dA in the limit driving_frequency->0 equates to
+        # -2/fc * power and 2/amplitude * power for both calibration models
+        dpower_fc = -(2 / fc) * power_theoretical
+        dpower_damp = (2 / self.driving_amplitude) * power_theoretical
+        power_theoretical_err = np.sqrt(
+            dpower_fc**2 * fc_err**2 + dpower_damp**2 * self._driving_amplitude_err**2
+        )
+
+        # Rd_err = sqrt((dRd/dPth)**2 * Pth_err**2 + (dRd/dPexp)**2+ Pexp_err**2)
+        dpower_dexp = -1 / (2 * power_exp)
+        dpower_dtheoretical = 1 / (2 * power_theoretical)
+        distance_response_err = (
+            np.sqrt(
+                dpower_dexp**2 * power_exp_err**2
+                + dpower_dtheoretical**2 * power_theoretical_err**2
+            )
+            * distance_response
+        )
 
         # Equation 16 from [6]
         temperature_kelvin = scipy.constants.convert_temperature(self.temperature, "C", "K")
@@ -1016,7 +1038,22 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             distance_response**2 * diffusion_constant_volts
         )  # kg/s
 
+        measured_drag_coeff_err = (
+            np.sqrt(
+                (-2 / distance_response) ** 2 * distance_response_err**2
+                + (-1 / diffusion_constant_volts) ** 2 * diffusion_constant_volts_err**2
+            )
+            * measured_drag_coeff
+        )
+
         kappa = 2.0 * np.pi * fc * measured_drag_coeff  # N/m
+        kappa_err = (
+            np.sqrt(
+                (1 / fc) ** 2 * fc_err**2
+                + (1 / measured_drag_coeff) ** 2 * measured_drag_coeff_err**2
+            )
+            * kappa
+        )
 
         force_response = distance_response * kappa  # N/V
 
@@ -1052,6 +1089,28 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
                 "spectrum",
                 power_exp,
                 "V^2",
+            ),
+            "err_driving_power": CalibrationParameter(
+                "Experimentally determined power in the spike observed on the positional power "
+                "spectrum",
+                power_exp_err,
+                "V^2",
+            ),
+            "err_theoretical_power": CalibrationParameter(
+                "Experimentally determined power in the spike observed on the positional power "
+                "spectrum",
+                power_theoretical_err,
+                "V^2",
+            ),
+            "theoretical_power": CalibrationParameter(
+                "Theoretical determined power in the spike observed on the positional power "
+                "spectrum",
+                power_theoretical,
+                "V^2",
+            ),
+            "err_kappa": CalibrationParameter("Stiffness Std Err", kappa_err * 1e3, "pN/V"),
+            "err_Rd": CalibrationParameter(
+                "Distance response Std Err", distance_response_err * 1e6, "um/V"
             ),
             **self._format_passive_result(
                 fc,
