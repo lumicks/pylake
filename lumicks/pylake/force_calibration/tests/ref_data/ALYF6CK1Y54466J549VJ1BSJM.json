@@ -1,0 +1,26 @@
+{
+  "test": "integration_active_calibration",
+  "parametrization": {
+    "stiffness": 0.2,
+    "viscosity": 0.001012,
+    "temperature": 20,
+    "pos_response_um_volt": 1.618,
+    "driving_sinusoid": [
+      500,
+      31.95633
+    ],
+    "diode": [
+      0.4,
+      14000
+    ],
+    "driving_frequency_guess": 32
+  },
+  "result": {
+    "driving_power": 4.647300003613614e-06,
+    "err_driving_power": 2.4593216057592066e-08,
+    "err_theoretical_power": 1.6553276910440138e-19,
+    "theoretical_power": 1.2131842744049879e-17,
+    "err_kappa": 0.0037748151555964116,
+    "err_Rd": 0.01182276505096945
+  }
+}
