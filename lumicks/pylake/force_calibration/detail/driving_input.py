@@ -62,9 +62,9 @@ def estimate_driving_input_parameters(
         guess of the driving frequency
     window_factor : float, optional
         data is windowed in the time domain with a Gaussian of width num_points / window_factor. The
-        window should be chosen such that the window has decayed sufficiently to zero (preventing
-        ringing in the frequency domain) but wide enough to make sure the resulting peaks are
-        narrow (preventing spectral bleed). Default value is 10.
+        window should be chosen such that the window has decayed sufficiently to zero (bigger than
+        5 is recommended) but low enough to make sure the resulting peaks are narrow (preventing
+        spectral bleed). Default value is 10.
     f_search : float, optional
         how close the target frequency is expected to be to the entered value
     n_fit : int, optional
@@ -72,9 +72,21 @@ def estimate_driving_input_parameters(
 
         Note: More does not necessarily mean better as the points get noisier away from the peak!
         Default is set to 1.
+
+    Returns
+    -------
+    amp : float
+        Amplitude of the determined oscillation.
+    freq : float
+        Frequency of the determined oscillation.
+    amp_std : float
+        Rough estimate of the amplitude error. Note that this estimate is based on a uniform
+        noise distribution under the peak and may yield inaccurate results when this assumption
+        is violated.
     """
     # Standard deviation of the Gaussian curve in the time domain
     num_points = len(driving_data)
+
     std = num_points / window_factor
 
     # Multiply the signal with a Gaussian window after removing any constant offset (which would
@@ -112,19 +124,46 @@ def estimate_driving_input_parameters(
         )
 
     delta_freq = 2 / sample_rate
+    # TODO: This neglects truncation effects (due to the implicit rectangular window being
+    #  applied). For large values of the window_factor (>5) this is fine, but for smaller values,
+    #  this can lead to systematic bias.
     amp = np.exp(p[2] - 0.25 * p[1] ** 2 / p[0] + 0.5 * np.log(-np.pi / p[0])) * delta_freq
 
-    return amp, freq
+    # Calculate the equivalent noise bandwidth for this window
+    enbw = num_points * np.sum(gauss_window**2) / (np.sum(gauss_window) ** 2)
+
+    # Rough estimate of the noise power under the quantified peak. This assumes uniform noise under
+    # the peak.
+    total_power = np.var(driving_data)
+    amp_power = amp**2 / 2  # variance
+    noise_std = np.sqrt(np.abs(total_power - amp_power))
+    amp_std = enbw * noise_std / np.sqrt(num_points)
+
+    return amp, freq, amp_std
 
 
-def driving_power_peak(psd_data, sample_rate, driving_frequency, num_windows, freq_window=50.0):
-    """This function finds the amplitude and frequency bin size of the driving input."""
-    power_spectrum = PowerSpectrum(
-        psd_data, sample_rate, window_seconds=num_windows / driving_frequency
-    )
+class DrivenPower:
+    def __init__(self, psd_data, sample_rate, driving_frequency, num_windows, freq_window=50.0):
+        """This class is used to determine power in the driven peak."""
+        self.ps = PowerSpectrum(
+            psd_data, sample_rate, window_seconds=num_windows / driving_frequency
+        ).in_range(max(1.0, driving_frequency - freq_window), driving_frequency + freq_window)
 
-    power_spectrum = power_spectrum.in_range(
-        max(1.0, driving_frequency - freq_window), driving_frequency + freq_window
-    )
+    def determine_power_output(self, thermal_noise):
+        """Determines the driven power output in the presence of thermal background noise"""
+        max_idx = np.argmax(self.ps.power)
+        max_power_density = self.ps.power[max_idx]
+        df = self.ps.frequency_bin_width
 
-    return max(power_spectrum.power), power_spectrum.frequency[1] - power_spectrum.frequency[0]
+        # Equation 14 from [6]
+        power_exp = (max_power_density - thermal_noise) * df
+
+        # We include a contribution of the thermal noise here. This contribution should be a lot
+        # smaller as sigma_thermal is given by P_thermal / sqrt(N), leading to a conservative
+        # estimate.
+        power_exp_err = (
+            np.sqrt(self.ps._variance[max_idx] / self.ps.num_points_per_block) * df
+            if self.ps._variance is not None
+            else np.nan
+        )
+        return power_exp, power_exp_err
