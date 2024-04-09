@@ -204,7 +204,7 @@ def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel, d
         channel_slice=corr_data,
         frame=frame,
         vertical=vertical,
-        downsample_channel=downsample,
+        downsample_to_frames=downsample,
     )
     axes = plt.gcf().get_axes()
     imgs = [obj for obj in axes[image_axis].get_children() if isinstance(obj, mpl.image.AxesImage)]
