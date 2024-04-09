@@ -137,7 +137,7 @@ def test_side_no_side_effects_downsampling(downsampling_kymo):
     assert kymo.contiguous
 
 
-def test_downsample_channel_downsampled_kymo(kymo_h5_file):
+def test_downsample_to_frames_downsampled_kymo(kymo_h5_file):
     f = lk.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["tester"]
     kymo_ds = kymo.downsampled_by(position_factor=2)

@@ -296,7 +296,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         vertical=False,
         include_dead_time=False,
         return_frame_setter=False,
-        downsample_channel=True,
+        downsample_to_frames=True,
     ):
         """Downsample channel on a frame by frame basis and plot the results. The downsampling
         function (e.g. np.mean) is evaluated for the time between a start and end time of a frame.
@@ -332,7 +332,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             Include dead time between scan frames.
         return_frame_setter : bool, optional
             Whether to return a handle that allows updating the plotted frame.
-        downsample_channel : bool, optional
+        downsample_to_frames : bool, optional
             Downsample the channel data over frame timestamp ranges (default: True).
 
         Examples
@@ -372,7 +372,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             figure_scale=figure_scale,
             post_update=post_update,
             vertical=vertical,
-            downsample_channel=downsample_channel,
+            downsample_to_frames=downsample_to_frames,
         )
         if return_frame_setter:
             return frame_setter
