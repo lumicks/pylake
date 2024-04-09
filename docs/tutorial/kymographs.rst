@@ -235,15 +235,15 @@ and therefore each pixel no longer has an identifiable time. For example, we can
 Additionally, a downsampled kymograph cannot be sliced (same as cropped kymographs mentioned above). Therefore you should
 first slice the kymograph and then downsample.
 
-Correlating with force
-----------------------
+Correlating with channel data
+-----------------------------
 
 We can downsample channel data according to the lines in a kymo. We can use
 :func:`~lumicks.pylake.kymo.Kymo.line_timestamp_ranges()` for this::
 
     line_timestamp_ranges = kymo.line_timestamp_ranges()
 
-This returns a list of start and stop timestamps that can be passed directly to :func:`~lumicks.pylake.channel.Slice.downsampled_to`,
+This returns a list of start and stop timestamps that can be passed directly to :func:`~lumicks.pylake.channel.Slice.downsampled_over`,
 which will then return a :class:`~lumicks.pylake.channel.Slice` with a datapoint per line::
 
     force = file.force1x
@@ -256,6 +256,27 @@ which will then return a :class:`~lumicks.pylake.channel.Slice` with a datapoint
     plt.show()
 
 .. image:: ./figures/kymographs/force_downsampled_like_kymo.png
+
+We can plot a list of (multiple) channels correlated with the kymograph using :meth:`~lumicks.pylake.kymo.Kymo.plot_with_channels`.
+For example, we can plot the kymograph with the force downsampled by a factor `100` and the photon counts downsampled over each kymograph line as follows::
+
+    kymo.plot_with_channels(
+        [
+            file.force1x.downsampled_by(100),
+            file["Photon count"]["Green"].downsampled_over(kymo.line_timestamp_ranges(), reduce=np.sum),
+        ],
+        "rgb",
+        adjustment=lk.ColorAdjustment(5, 98, "percentile"),
+        aspect_ratio=0.2,
+        title_vertical=True,
+    )
+
+.. image:: ./figures/kymographs/kymo_plot_with_channels.png
+
+Note that in this example, we also customized the method used for downsampling the photon counts.
+We achieved this by passing `np.sum` to the `reduce` parameter of :func:`~lumicks.pylake.channel.Slice.downsampled_over`.
+This results in summing the photon counts rather than taking their average.
+The argument `title_vertical=True` places the channel names along the y-axis instead of the axis title allowing a slightly more compact plot.
 
 There is also a convenience function :meth:`~lumicks.pylake.kymo.Kymo.plot_with_force` to plot a kymograph along with a
 downsampled force trace::

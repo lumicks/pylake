@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .channel import Slice
 from .adjustments import colormaps, no_adjustment
 from .detail.image import (
     InfowaveCode,
@@ -413,6 +414,104 @@ class Kymo(ConfocalImage):
 
         return image_handle
 
+    def plot_with_channels(
+        self,
+        channels,
+        color_channel="rgb",
+        *,
+        aspect_ratio=0.25,
+        kymo_args=None,
+        adjustment=no_adjustment,
+        title_vertical=False,
+        **kwargs,
+    ):
+        """Plot kymo with channel data.
+
+        Parameters
+        ----------
+        channels : Slice | List[Slice]
+            data slice or list of slices
+        color_channel : str
+            color channel of kymo to plot ('red', 'green', 'blue', 'rgb')
+        aspect_ratio: float
+            aspect ratio of the axes (i.e. ratio of y-unit to x-unit)
+        kymo_args : Optional[dict]
+            Forwarded to :func:`matplotlib.pyplot.imshow()`
+        adjustment : lk.ColorAdjustment
+            Color adjustments to apply to the output image.
+        title_vertical : bool
+            Place channel title on vertical axis
+        **kwargs
+            Forwarded to :meth:`Slice.plot() <lumicks.pylake.channel.Slice.plot()>`.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+            import matplotlib.pyplot as plt
+            import numpy as np
+
+            h5_file = lk.File("example.h5")
+            _, kymo = h5_file.kymos.popitem()
+
+            kymo.plot_with_channels(
+                [
+                    h5_file.force1x.downsampled_by(100),
+                    h5_file["Photon count"]["Green"].downsampled_over(kymo.line_timestamp_ranges(), reduce=np.sum),
+                ],
+                "rgb",
+                adjustment=lk.ColorAdjustment(5, 98, "percentile"),
+                aspect_ratio=0.2,
+                title_vertical=True,
+            )
+        """
+
+        def set_aspect_ratio(axis, ar):
+            """This function forces a specific aspect ratio, can be useful when aligning figures"""
+            axis.set_aspect(ar * np.abs(np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim()))[0])
+
+        import matplotlib.pyplot as plt
+
+        channels = [channels] if isinstance(channels, Slice) else channels
+        for channel in channels:
+            if not isinstance(channel, Slice):
+                raise ValueError(
+                    "channel is not a Slice or list of Slice objects. "
+                    f"Got {type(channel).__name__} instead."
+                )
+
+        _, axes = plt.subplots(len(channels) + 1, 1, sharex="all")
+
+        # plot kymo
+        self.plot(channel=color_channel, axes=axes[0], adjustment=adjustment, **(kymo_args or {}))
+
+        # Storing these since plotting the data channels will change the limits
+        xlim_kymo = axes[0].get_xlim()
+
+        # plot data channels
+        for ax, channel in zip(axes[1:], channels):
+            plt.sca(ax)
+            channel.plot(**kwargs)
+            ax.set_xlim(xlim_kymo)
+
+            if title_vertical:
+                ax.set_title(None)
+                y_label = channel.labels.get('y', '')
+
+                # Labelling with y is unnecessary.
+                y_label = f"\n{y_label}" if y_label != "y" else ""
+
+                ax.set_ylabel(
+                    f"{channel.labels.get('title', '').split('/')[-1]}{y_label}"
+                )
+
+        for ax in axes:
+            set_aspect_ratio(ax, aspect_ratio)
+
+        for ax in axes[:-1]:
+            ax.set_xlabel(None)
+
     def plot_with_force(
         self,
         force_channel,
@@ -429,11 +528,11 @@ class Kymo(ConfocalImage):
 
         Parameters
         ----------
-        force_channel: str
+        force_channel : str
             name of force channel to downsample and plot (e.g. '1x')
-        color_channel: str
+        color_channel : str
             color channel of kymo to plot ('red', 'green', 'blue', 'rgb')
-        aspect_ratio: float
+        aspect_ratio : float
             aspect ratio of the axes (i.e. ratio of y-unit to x-unit)
         reduce : callable
             The :mod:`numpy` function which is going to reduce multiple samples into one. Forwarded
@@ -445,22 +544,6 @@ class Kymo(ConfocalImage):
         **kwargs
             Forwarded to :meth:`Slice.plot() <lumicks.pylake.channel.Slice.plot()>`.
         """
-
-        def set_aspect_ratio(axis, ar):
-            """This function forces a specific aspect ratio, can be useful when aligning figures"""
-            axis.set_aspect(ar * np.abs(np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim()))[0])
-
-        import matplotlib.pyplot as plt
-
-        _, (ax1, ax2) = plt.subplots(2, 1, sharex="all")
-
-        # plot kymo
-        self.plot(channel=color_channel, axes=ax1, adjustment=adjustment, **(kymo_args or {}))
-        ax1.set_xlabel(None)
-        xlim_kymo = ax1.get_xlim()  # Stored since plotting the force channel will change the limits
-
-        # plot force channel
-        plt.sca(ax2)
         try:
             channel = getattr(self.file, f"force{force_channel}")
         except ValueError:
@@ -478,14 +561,16 @@ class Kymo(ConfocalImage):
                 RuntimeWarning("Using downsampled force since high frequency force is unavailable.")
             )
 
-        time_ranges = self.line_timestamp_ranges(include_dead_time=False)
-        force = channel.downsampled_over(time_ranges, reduce=reduce, where="center")
-
-        force.plot(**kwargs)
-        ax2.set_xlim(xlim_kymo)
-
-        set_aspect_ratio(ax1, aspect_ratio)
-        set_aspect_ratio(ax2, aspect_ratio)
+        self.plot_with_channels(
+            channel.downsampled_over(
+                self.line_timestamp_ranges(include_dead_time=False), reduce=reduce, where="center"
+            ),
+            color_channel,
+            aspect_ratio=aspect_ratio,
+            kymo_args=kymo_args,
+            adjustment=adjustment,
+            **kwargs,
+        )
 
     def plot_with_position_histogram(
         self,
@@ -904,11 +989,11 @@ class Kymo(ConfocalImage):
         --------
         ::
 
-            from lumicks import pylake
+            import lumicks.pylake as lk
             import matplotlib.pyplot as plt
 
             # Loading a kymograph.
-            h5_file = pylake.File("example.h5")
+            h5_file = lk.File("example.h5")
             _, kymo = h5_file.kymos.popitem()
             widget = kymo.crop_and_calibrate("green", 48.502)
             plt.show()

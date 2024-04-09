@@ -4,6 +4,7 @@
 
 #### New features
 
+* Added [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels) for plotting a kymograph with corresponding channel data. For more information, please refer to the [kymograph tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#correlating-with-channel-data).
 * Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
 * Made ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) callable to evaluate the fitted model power spectral density at the specified frequencies.
 * Added `fitted_params` field to ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) for convenience.
