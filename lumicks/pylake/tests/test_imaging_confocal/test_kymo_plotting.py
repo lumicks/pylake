@@ -82,10 +82,21 @@ def test_plotting_with_channels(kymo_h5_file):
         kymo.plot_with_force(force_channel="2x", color_channel="red")
 
     def plot_channels():
-        kymo.plot_with_channels(force_over_kymolines, color_channel="red")
+        kymo.plot_with_channels(
+            force_over_kymolines,
+            color_channel="red",
+            labels="single",
+            colors=[0, 0, 1],
+            scale_bar=lk.ScaleBar(5.0, 5.0),
+        )
 
     def plot_with_multiple_channels():
-        kymo.plot_with_channels([force_over_kymolines, force_over_kymolines], color_channel="red")
+        kymo.plot_with_channels(
+            [force_over_kymolines, force_over_kymolines],
+            color_channel="red",
+            labels=["f2x", "f2x"],
+            colors=["red", [1.0, 0.0, 0.1]],
+        )
 
     for plot_func in (plot_with_force, plot_channels, plot_with_multiple_channels):
         plot_func()
@@ -103,12 +114,43 @@ def test_plotting_with_channels_no_downsampling(kymo_h5_file):
     kymo = f.kymos["tester"]
     kymo.plot_with_channels(f.force2x, color_channel="red")
     plot_line = plt.gca().lines[0].get_ydata()
-    np.testing.assert_allclose(plot_line, f.force2x.data)
+    np.testing.assert_allclose(plot_line, f.force2x[kymo.start : kymo.stop + 1].data)
 
     linetime = kymo.line_time_seconds
     ranges = np.vstack(kymo.line_timestamp_ranges())[:, 0]
     ranges_sec = (ranges - ranges[0]) * 1e-9
     np.testing.assert_allclose(plt.xlim(), [-(linetime / 2), ranges_sec[-1] + (linetime / 2)])
+
+
+def test_plotting_labels(kymo_h5_file):
+    f = lk.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["tester"]
+
+    def check_axes(labels, titles):
+        axes = plt.gcf().get_axes()
+        for label, title, ax in zip(labels, titles, axes[1:]):
+            assert ax.get_title() == title
+            assert ax.get_ylabel() == label
+
+    kymo.plot_with_channels(f.force2x, color_channel="red")
+    check_axes(["Force (pN)"], ["Force HF/Force 2x"])
+
+    kymo.plot_with_channels(f.force2x, color_channel="red", labels="force")
+    check_axes(["force"], ["Force HF/Force 2x"])
+
+    kymo.plot_with_channels(f.force2x, color_channel="red", labels="force", title_vertical=True)
+    check_axes(["force"], [""])
+
+    kymo.plot_with_channels(f.force2x, color_channel="red", title_vertical=True)
+    check_axes(["Force 2x\nForce (pN)"], [""])
+
+    kymo.plot_with_channels(
+        [f.force2x, f["Photon count"]["Red"]], color_channel="red", title_vertical=True
+    )
+    check_axes(["Force 2x\nForce (pN)", "Red"], [""] * 2)
+
+    kymo.plot_with_channels([f.force2x, f["Photon count"]["Red"]], color_channel="red")
+    check_axes(["Force (pN)", "y"], ["Force HF/Force 2x", "Photon count/Red"])
 
 
 def test_plotting_with_channels_bad_args(kymo_h5_file):
@@ -126,6 +168,21 @@ def test_plotting_with_channels_bad_args(kymo_h5_file):
         match="channel must be 'red', 'green', 'blue' or a combination of 'r', 'g', and/or 'b', got 'boo'.",
     ):
         kymo.plot_with_channels(f.force1x, color_channel="boo")
+
+    for channels, labels, colors in (
+        (f.force1x, ["too", "many"], None),
+        ([f.force1x], ["too", "many"], None),
+        ([f.force1x, f.force1x], ["too_few_labels"], None),
+        ([f.force1x, f.force1x], ["too", "many", "labels"], None),
+        ([f.force1x, f.force1x], None, ["Red", "g", "b"]),
+        ([f.force1x, f.force1x], None, ["Red"]),
+        ([f.force1x, f.force1x], None, [0, 1, 0]),  # Valid single color that is still a list!
+    ):
+        with pytest.raises(
+            ValueError,
+            match="needs to have the same length as the number of channels",
+        ):
+            kymo.plot_with_channels(channels, color_channel="rgb", labels=labels, colors=colors)
 
 
 def test_regression_plot_with_force(kymo_h5_file):
