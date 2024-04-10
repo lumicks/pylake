@@ -294,6 +294,35 @@ If you see that `pip` is either not on your path or it is being fetched from a d
 You can activate an environment by invoking `conda activate <environment name>`, where `<environment name>` should be replaced with the environment you want to activate.
 If you have already activated the correct environment, but you still do not see `pip` being fetched from it then you can install it into this environment by invoking `conda install pip`.
 
+Installation instructions for China
+-----------------------------------
+
+In China, the installation instructions as presented above can be slow. The following steps explain how to install Pylake using a Chinese mirror site, which is typically faster.
+
+First, follow the first 3 steps of the installation instructions at the top of this page.
+Next, create a new environment::
+
+    conda create -n pylake conda=23.7.2
+
+Activate the environment as follows::
+
+    conda activate pylake
+
+The line where you enter your next command should now start with the text `(pylake)` instead of `(base)`, to indicate you are in the pylake environment you just created.
+Install pip in the activated environment by invoking::
+
+    conda install pip
+
+Then install Pylake and Jupyter Notebook as follows::
+
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake[notebook]
+
+Next, you can start Jupyter Notebook by typing::
+
+    jupyter notebook
+
+Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip to install packages, and do not install additional dependencies via `conda install`, since this can break your environment.
+
 Frequently asked questions
 --------------------------
 
@@ -440,32 +469,3 @@ If creating a new environment does not work then it may be best to uninstall and
 *Note that this means you will lose all the environments you have created!*
 Please follow these `uninstall instructions`_ to uninstall conda.
 After uninstalling, you should be able to reinstall using the regular installation instructions.
-
-
-**Conda-forge is very slow in China, what can I do?**
-
-In China, the installation instructions as presented above can be slow. The following steps explain how to install Pylake using a Chinese mirror site, which is typically faster.
-
-First, follow the first 3 steps of the installation instructions at the top of this page. 
-Next, create a new environment::
-
-    conda create -n pylake conda=23.7.2
-
-Activate the environment as follows::
-
-    conda activate pylake
-
-The line where you enter your next command should now start with the text `(pylake)` instead of `(base)`, to indicate you are in the pylake environment you just created.
-Install pip in the activated environment by invoking::
-
-    conda install pip
-
-Then install Pylake and Jupyter Notebook as follows::
-
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake[notebook]
-
-Next, you can start Jupyter Notebook by typing::
-
-    jupyter notebook
-
-Important to note is that packages on `conda` and `pip` are typically *not* compatible. Therefore, whenever you use this environment, *only* use pip to install packages, and do not install additional dependencies via `conda install`, since this can break your environment.

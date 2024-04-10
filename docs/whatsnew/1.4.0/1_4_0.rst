@@ -23,7 +23,7 @@ Check out the :ref:`hmm-section` tutorial and the
 Automatic bead cropping
 -----------------------
 
-Added :meth:`~lumicks.pylake.kymo.Kymo.estimate_bead_edges()` and :meth:`~lumicks.pylake.kymo.Kymo.crop_beads()` for quickly crop the beads out of a kymograph using an estimate of the bead edges. This can help when batch processing of kymographs.
+Added :meth:`~lumicks.pylake.kymo.Kymo.estimate_bead_edges()` and :meth:`~lumicks.pylake.kymo.Kymo.crop_beads()` to quickly crop the beads out of a kymograph using an estimate of the bead edges. This can help when batch processing kymographs.
 
 .. figure:: bead_edges.png
 

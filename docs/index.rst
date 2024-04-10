@@ -31,12 +31,15 @@
 
     changelog
     whatsnew/index
+
+.. toctree::
+    :maxdepth: 2
+
     install
 
 .. toctree::
     :caption: User guide
     :maxdepth: 2
-
 
     tutorial/index
     examples/index
