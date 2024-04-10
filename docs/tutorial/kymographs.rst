@@ -278,6 +278,24 @@ We achieved this by passing `np.sum` to the `reduce` parameter of :func:`~lumick
 This results in summing the photon counts rather than taking their average.
 The argument `title_vertical=True` places the channel names along the y-axis instead of the axis title allowing a slightly more compact plot.
 
+Note that the plot can be further customized by specifying custom `labels`, `colors` and a `scale_bar`::
+
+    kymo.plot_with_channels(
+        [
+            file.force1x.downsampled_by(100),
+            file["Photon count"]["Green"].downsampled_over(kymo.line_timestamp_ranges(), reduce=np.sum),
+        ],
+        "rgb",
+        adjustment=lk.ColorAdjustment(5, 98, "percentile"),
+        aspect_ratio=0.2,
+        title_vertical=True,
+        scale_bar=lk.ScaleBar(10.0, 5.0),
+        colors=[[1.0, 0.2, 0.5], "green"],
+        labels=["My force", "My photons"],
+    )
+
+.. image:: ./figures/kymographs/kymo_plot_with_channels_customized.png
+
 There is also a convenience function :meth:`~lumicks.pylake.kymo.Kymo.plot_with_force` to plot a kymograph along with a
 downsampled force trace::
 

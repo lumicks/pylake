@@ -423,6 +423,9 @@ class Kymo(ConfocalImage):
         kymo_args=None,
         adjustment=no_adjustment,
         title_vertical=False,
+        labels=None,
+        colors=None,
+        scale_bar=None,
         **kwargs,
     ):
         """Plot kymo with channel data.
@@ -441,6 +444,12 @@ class Kymo(ConfocalImage):
             Color adjustments to apply to the output image.
         title_vertical : bool
             Place channel title on vertical axis
+        labels : str | List[str]
+            Custom labels to plot with the channels
+        colors : List[matplotlib.color]
+            Forwarded to color argument of :func:`matplotlib.pyplot.plot()`.
+        scale_bar : lk.ScaleBar, optional
+            Scale bar to add to the kymograph.
         **kwargs
             Forwarded to :meth:`Slice.plot() <lumicks.pylake.channel.Slice.plot()>`.
 
@@ -471,7 +480,16 @@ class Kymo(ConfocalImage):
             """This function forces a specific aspect ratio, can be useful when aligning figures"""
             axis.set_aspect(ar * np.abs(np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim()))[0])
 
+        def check_length(items, item_type):
+            if len(items) != len(channels):
+                raise ValueError(
+                    f"When a list of {item_type} is provided, it needs to have the same length as "
+                    f"the number of channels provided. Expected {len(channels)}, got: "
+                    f"{len(items)}."
+                )
+
         import matplotlib.pyplot as plt
+        from matplotlib.colors import is_color_like
 
         channels = [channels] if isinstance(channels, Slice) else channels
         for channel in channels:
@@ -481,30 +499,43 @@ class Kymo(ConfocalImage):
                     f"Got {type(channel).__name__} instead."
                 )
 
+        if labels:
+            labels = [labels] if isinstance(labels, str) else labels
+            check_length(labels, "labels")
+
+        if colors:
+            colors = [colors] if is_color_like(colors) else colors
+            check_length(colors, "colors")
+
         _, axes = plt.subplots(len(channels) + 1, 1, sharex="all")
 
         # plot kymo
-        self.plot(channel=color_channel, axes=axes[0], adjustment=adjustment, **(kymo_args or {}))
+        scale_bar = {"scale_bar": scale_bar} if scale_bar is not None else {}
+        kymo_args = ({} if kymo_args is None else kymo_args) | scale_bar
+        self.plot(channel=color_channel, axes=axes[0], adjustment=adjustment, **kymo_args)
 
         # Storing these since plotting the data channels will change the limits
         xlim_kymo = axes[0].get_xlim()
 
         # plot data channels
-        for ax, channel in zip(axes[1:], channels):
+        for idx, (ax, channel) in enumerate(zip(axes[1:], channels)):
             plt.sca(ax)
-            channel.plot(**kwargs)
+            plot_args = kwargs if not colors else kwargs | {"color": colors[idx]}
+            # Cropping the channel to the kymograph time range leads to better axis limits
+            channel[self.start : self.stop + 1].plot(**plot_args)
             ax.set_xlim(xlim_kymo)
 
             if title_vertical:
                 ax.set_title(None)
-                y_label = channel.labels.get('y', '')
+                y_label = channel.labels.get("y", "")
 
                 # Labelling with y is unnecessary.
                 y_label = f"\n{y_label}" if y_label != "y" else ""
 
-                ax.set_ylabel(
-                    f"{channel.labels.get('title', '').split('/')[-1]}{y_label}"
-                )
+                ax.set_ylabel(f"{channel.labels.get('title', '').split('/')[-1]}{y_label}")
+
+            if labels:
+                ax.set_ylabel(labels[idx])
 
         for ax in axes:
             set_aspect_ratio(ax, aspect_ratio)
