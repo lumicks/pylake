@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 import matplotlib as mpl
@@ -226,6 +228,46 @@ def test_freezing(reference_data, tst):
 
     test_data = [[1, 2, 3], [1, 2, 3]]
     np.testing.assert_allclose(test_data, reference_data(test_data, test_name="non_ndarray_matrix"))
+
+
+@pytest.mark.parametrize("tst", [1, 2])
+def test_ref_dict_freezing(compare_to_reference_dict, reference_data, tst):
+    ref_dict = {"a": 5, "b": np.pi if tst == 1 else 1e-12}
+    test_dict = reference_data(ref_dict, test_name="dict", json=True)
+    np.testing.assert_allclose(list(test_dict.values()), list(ref_dict.values()))
+    compare_to_reference_dict(test_dict)
+
+
+def test_ref_dict_freezing_fail(compare_to_reference_dict):
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Differences with reference data detected.\n"
+            "a: 5 vs 5 (match)\n"
+            "b: 2 vs 3 (difference)"
+        ),
+    ):
+        compare_to_reference_dict({"a": 5, "b": 2})
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Differences with reference data detected.\n"
+            "a: 5 vs 5 (match)\n"
+            "b: missing vs 3 (reference only)"
+        ),
+    ):
+        compare_to_reference_dict({"a": 5})
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Differences with reference data detected.\n"
+            "a: 5 vs 5 (match)\n"
+            "b: 3 vs missing (test only)"
+        ),
+    ):
+        compare_to_reference_dict({"a": 5, "b": 3}, file_name="ref_dict_freezing_2")
 
 
 def test_cache_method():

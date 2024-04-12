@@ -1,3 +1,4 @@
+import json
 import warnings
 import importlib
 
@@ -106,6 +107,35 @@ def configure_mpl():
         plt.close("all")
 
 
+def _json_read_write():
+    def read_data(file_path):
+        with open(file_path) as f:
+            return json.load(f)
+
+    def write_data(file_path, data):
+        with open(file_path, "w") as f:
+            json.dump(data, f)
+            f.write("\n")  # Text files should end with a newline
+
+    return read_data, write_data, "json"
+
+
+def _npz_read_write():
+    def read_data(file_path):
+        with np.load(file_path, allow_pickle=True) as npz_file:
+            return npz_file["arr_0"][()]
+
+    def write_data(file_path, data):
+        try:
+            data = np.asarray(data)
+        except ValueError:
+            data = np.asarray(data, dtype=object)
+
+        np.savez(file_path, data)
+
+    return read_data, write_data, "npz"
+
+
 @pytest.fixture
 def reference_data(request):
     """Read or update test reference data.
@@ -139,7 +169,7 @@ def reference_data(request):
             np.testing.assert_allclose(test_data, reference_data(test_data, file_name="file_name"))
     """
 
-    def get_reference_data(reference_data, test_name=None, file_name=None):
+    def get_reference_data(reference_data, test_name=None, file_name=None, json=False):
         """Read or write reference data
 
         Reads or writes reference data at the location `reference_data/test_name/dataset_name`.
@@ -161,12 +191,16 @@ def reference_data(request):
         file_name : str, optional
             If this is provided the dataset name will be exactly the file_name without the
             parametrization suffixed.
+        json : bool
+            Store as json rather than npz.
 
         Raises
         ------
         ValueError
             If both test_name and file_name are provided.
         """
+        read_data, write_data, extension = _json_read_write() if json else _npz_read_write()
+
         if test_name and file_name:
             raise ValueError("You cannot specify both a test_name and file_name")
 
@@ -184,27 +218,63 @@ def reference_data(request):
         calling_path = request.path.parent
 
         reference_data_path = calling_path / "reference_data" / calling_function
-        reference_file_path = reference_data_path / f"{ref_data_filename}.npz"
+        reference_file_path = reference_data_path / f"{ref_data_filename}.{extension}"
 
         if reference_file_path.exists() and not request.config.getoption("--update_reference_data"):
-            with np.load(reference_file_path, allow_pickle=True) as npz_file:
-                return npz_file["arr_0"][()]
+            return read_data(reference_file_path)
         else:
             if request.config.getoption("--strict_reference_data"):
                 raise RuntimeError(
                     f"Test data for {calling_function}/{ref_data_filename} missing! Did you forget "
-                    f"to check it in?"
+                    f"to check the file {reference_file_path} in?"
                 )
 
             reference_data_path.mkdir(parents=True, exist_ok=True)
+            write_data(reference_file_path, reference_data)
 
-            try:
-                reference_data = np.asarray(reference_data)
-            except ValueError:
-                reference_data = np.asarray(reference_data, dtype=object)
-
-            np.savez(reference_file_path, reference_data)
             print(f"\nWritten reference data {ref_data_filename} to {reference_file_path}.")
             return reference_data
 
     return get_reference_data
+
+
+@pytest.fixture
+def compare_to_reference_dict(reference_data):
+    """Read or update test reference dictionary.
+
+    Intended to store and/or compare to a reference dictionary stored in a human-readable json
+    file. Only intended for single numeric values. See `reference_data` for usage information.
+
+    Examples
+    --------
+    ::
+
+        @pytest.mark.parametrize()
+        def test_freezing(compare_to_reference_dict):
+            compare_to_reference_dict({"a": 5, "b": 1e-12}, rtol=1e-6)
+    """
+
+    def validate_dictionary_equality(data, test_name=None, file_name=None, rtol=1e-7, atol=0):
+        def check_similarity(key, test_dict, ref_dict):
+            if key not in test_dict:
+                return f"{key}: missing vs {ref_dict[key]} (reference only)", False
+            elif key not in ref_dict:
+                return f"{key}: {test_dict[key]} vs missing (test only)", False
+            elif not np.allclose(
+                (test_value := test_dict[key]), (ref_value := ref_dict[key]), rtol=rtol, atol=atol
+            ):
+                return f"{key}: {test_value} vs {ref_value} (difference)", False
+            else:
+                return f"{key}: {test_value} vs {ref_value} (match)", True
+
+        ref_data = reference_data(data, test_name=test_name, file_name=file_name, json=True)
+        all_keys = (ref_data | data).keys()
+
+        difference_str, match = zip(*[check_similarity(key, data, ref_data) for key in all_keys])
+
+        if not all(match):
+            raise RuntimeError(
+                "Differences with reference data detected.\n" + "\n".join(difference_str)
+            )
+
+    return validate_dictionary_equality

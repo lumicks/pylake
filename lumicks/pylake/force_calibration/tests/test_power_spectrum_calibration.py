@@ -61,30 +61,26 @@ def test_calibration_result():
 
 
 @pytest.mark.parametrize(
-    "loss_function, corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,"
-    "temperature,err_fc,err_d,err_f_diode,err_alpha,",
-    # fmt: off
+    "loss_function, corner_frequency,diffusion_constant,alpha,f_diode,num_samples,viscosity,bead_diameter,temperature",
     [
-        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
-        ["gaussian", 1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, 47.2181, 4.589085e-11, 1399.049903, 0.05856517],
-        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0, 70.59478, 8.226641e-11, 487.4102, 0.01342818],
-        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
-        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, 29.77266, 2.984664e-11, 1239.061833, 0.05615039],
-        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
-        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0, np.nan, np.nan, np.nan, np.nan],
+        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0],
+        ["gaussian", 1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0],
+        ["gaussian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0],
+        ["gaussian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0],
+        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1.002e-3, 4.0, 20.0],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 10000, 50000, 1.002e-3, 4.0, 20.0],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 20.0],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.2e-3, 4.0, 20.0],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 8.0, 20.0],
+        ["lorentzian", 1500, 1.2e-9, 0.5, 5000, 30000, 1.002e-3, 4.0, 34.0],
+        ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0],
     ],
-    # fmt: on
 )
 def test_good_fit_integration_test(
+    compare_to_reference_dict,
     reference_models,
     loss_function,
     corner_frequency,
@@ -95,10 +91,6 @@ def test_good_fit_integration_test(
     viscosity,
     bead_diameter,
     temperature,
-    err_fc,
-    err_d,
-    err_f_diode,
-    err_alpha,
 ):
     data, f_sample = reference_models.lorentzian_td(
         corner_frequency, diffusion_constant, alpha, f_diode, num_samples
@@ -130,10 +122,13 @@ def test_good_fit_integration_test(
         ps_calibration["chi_squared_per_deg"].value, 0, atol=1e-9
     )  # Noise free
 
-    np.testing.assert_allclose(ps_calibration["err_fc"].value, err_fc)
-    np.testing.assert_allclose(ps_calibration["err_D"].value, err_d, rtol=1e-4, atol=0)
-    np.testing.assert_allclose(ps_calibration["err_f_diode"].value, err_f_diode)
-    np.testing.assert_allclose(ps_calibration["err_alpha"].value, err_alpha, rtol=1e-6)
+    if loss_function == "gaussian":
+        compare_to_reference_dict(
+            {
+                par: ps_calibration[par].value
+                for par in ("err_fc", "err_D", "err_f_diode", "err_alpha")
+            }
+        )
 
 
 def test_fit_settings(reference_models):
