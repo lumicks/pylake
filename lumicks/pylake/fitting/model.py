@@ -158,7 +158,9 @@ class Model:
         Parameters
         ----------
         independent : array_like
-        params : lumicks.pylake.fitting.parameters.Params
+            Values for the independent parameter
+        params : lumicks.pylake.fitting.parameters.Params | Dict[float | Parameter]
+            Model parameters
         """
         independent = np.asarray(independent, dtype=np.float64)
         missing_parameters = set(self.parameter_names) - set(params.keys())
@@ -175,6 +177,9 @@ class Model:
 
     def _raw_call(self, independent, param_vector):
         return self.model_function(independent, *param_vector)
+
+    def __getitem__(self, item):
+        return self.defaults[item]
 
     def __add__(self, other):
         """
@@ -276,6 +281,7 @@ class Model:
 
     @property
     def defaults(self):
+        """Default model parameters when added to an FdFit"""
         return self._params
 
     @property

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -70,3 +72,13 @@ def test_parameter_trace_invalid_args():
 
     with pytest.raises(ValueError, match="Missing parameter f/b in supplied params"):
         parameter_trace(model, {"f/a": 5}, inverted_parameter="f/a", **data)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "The argument params takes a dictionary with `Parameter` values. This can be "
+            "obtained from a fit by slicing it by a dataset (i.e. fit[dataset_handle]) or "
+            "from a model (i.e. model.defaults). See help(parameter_trace) for more information."
+        ),
+    ):
+        parameter_trace(model, {"f/a": 5, "f/b": 3}, inverted_parameter="f/a", **data)

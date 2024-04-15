@@ -9,6 +9,11 @@
 * Made ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) callable to evaluate the fitted model power spectral density at the specified frequencies.
 * Added `fitted_params` field to ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) for convenience.
 * Added option to disable downsampling channel data to frame rates with correlated plots ([`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated), [`Scan.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.Scan.html#lumicks.pylake.Scan.plot_correlated)) and exported videos ([`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video), [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.Scan.html#lumicks.pylake.Scan.export_video)) using `downsample_to_frames=False`.
+* Allow accessing FdFit model defaults through key access notation (i.e. `model["m/Lc"]`).
+
+#### Improvements
+
+* Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes. 
 
 ## v1.4.1 | t.b.d.
 
