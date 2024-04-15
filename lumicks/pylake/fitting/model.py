@@ -159,7 +159,7 @@ class Model:
         ----------
         independent : array_like
             Values for the independent parameter
-        params : lumicks.pylake.fitting.parameters.Params | Dict[float | Parameter]
+        params : Params | Dict[float | Parameter]
             Model parameters
         """
         independent = np.asarray(independent, dtype=np.float64)

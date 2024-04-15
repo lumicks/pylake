@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import scipy
 
@@ -8,6 +10,19 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
     This function fits a unique parameter value for every data point in this data-set while keeping
     all other parameters fixed. This can be used to for example invert the model with respect to
     the contour length or some other parameter.
+
+    .. note::
+
+        Inverting the model with respect to a particular parameter enforces any bounds
+        defined for that parameter in `params`. Results can only be trusted for values where the
+        parameter estimate does not hit these bounds. Note that `Pylake` will issue a warning
+        whenever this condition is met.
+
+        For example, when creating a worm-like chain model the parameter `contour length` has a
+        lower bound of the length of one base pair by default, since zero and negative values are
+        non-physical. If the contour length is then estimated to be exactly at the lower bound by
+        this function, a warning is issued. Note that these bounds can be modified by changing
+        them through the `lower_bound` and `upper_bound` attributes of a `Parameter`.
 
     Parameters
     ----------
@@ -112,4 +127,22 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
 
         return result.x[0]
 
-    return np.asarray([fit_single_point(x, y) for (x, y) in zip(independent, dependent)])
+    inverted_values = np.asarray([fit_single_point(x, y) for (x, y) in zip(independent, dependent)])
+
+    tolerance = 1e-8  # empirical tolerance, unfortunately np.nextafter did not catch most of these
+    ub_hit = np.any(inverted_values >= (ub - tolerance))
+    if (lb_hit := np.any(inverted_values <= (lb + tolerance))) or ub_hit:
+        if lb_hit and ub_hit:
+            warning = (
+                f"Some values for {inverted_parameter} hit the lower bound ({lb}), while others hit "
+                f"the upper bound ({ub})"
+            )
+        else:
+            warning = (
+                f"Some values for {inverted_parameter} hit the "
+                f"{f'lower bound ({lb})' if lb_hit else f'upper bound ({ub})'}"
+            )
+
+        warnings.warn(RuntimeWarning(warning), stacklevel=2)
+
+    return inverted_values
