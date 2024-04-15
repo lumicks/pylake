@@ -90,12 +90,14 @@ class Parameter:
 
 class Params:
     """
-    Model parameters. Internally stored as a list of Parameter.
+    Model parameters.
 
     Examples
     --------
     ::
-        fit = pylake.FdFit(pylake.ewlc_odijk_distance("my_model"))
+
+        import lumicks.pylake as lk
+        fit = lk.FdFit(lk.ewlc_odijk_distance("my_model"))
 
         print(fit.params)  # Prints the model parameters
         fit["test_parameter"].value = 5  # Set parameter test_parameter to 5

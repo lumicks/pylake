@@ -5,6 +5,7 @@ import pytest
 
 from lumicks.pylake.fitting.fit import Fit
 from lumicks.pylake.fitting.model import Model
+from lumicks.pylake.fitting.parameters import Parameter
 from lumicks.pylake.fitting.parameter_trace import parameter_trace
 
 
@@ -82,3 +83,34 @@ def test_parameter_trace_invalid_args():
         ),
     ):
         parameter_trace(model, {"f/a": 5, "f/b": 3}, inverted_parameter="f/a", **data)
+
+
+def test_parameter_inversion_warning():
+    def f(independent, a, b):
+        return a + b * independent - 1
+
+    model = Model("m", f, a=Parameter(1, 0, 10), b=Parameter(1, 0, 10))
+    model["m/b"].value = 2
+    vals = parameter_trace(model, model.defaults, "m/b", [1, 2, 3], [1, 4, 9])
+    np.testing.assert_allclose(vals, [1, 2, 3])
+
+    model["m/b"].upper_bound = 2.5
+    with pytest.warns(
+        RuntimeWarning, match=re.escape("Some values for m/b hit the upper bound (2.5)")
+    ):
+        _ = parameter_trace(model, model.defaults, "m/b", [1, 2, 3], [1, 4, 9])
+
+    model["m/b"].lower_bound = 1.5
+    with pytest.warns(
+        RuntimeWarning,
+        match=re.escape(
+            "Some values for m/b hit the lower bound (1.5), while others hit the upper bound (2.5)"
+        ),
+    ):
+        _ = parameter_trace(model, model.defaults, "m/b", [1, 2, 3], [1, 4, 9])
+
+    model["m/b"].upper_bound = np.inf
+    with pytest.warns(
+        RuntimeWarning, match=re.escape("Some values for m/b hit the lower bound (1.5)")
+    ):
+        _ = parameter_trace(model, model.defaults, "m/b", [1, 2, 3], [1, 4, 9])

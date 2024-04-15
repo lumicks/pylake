@@ -59,6 +59,8 @@ FD Fitting
 
     fitting.model.Model
     FdFit
+    fitting.parameters.Params
+    fitting.parameters.Parameter
 
     :template: function.rst
     parameter_trace
