@@ -208,3 +208,9 @@ def test_convenience_models(convenience_model, ref_model, ref_params):
     # The convenience part is in the parameters, with the old parameters they should produce the
     # exact same as what they are supposed to be based on
     np.testing.assert_allclose(model(x, params), ref_model("m")(x, params))
+
+
+def test_model_get_item():
+    m = ewlc_odijk_force("m")
+    m["m/Lc"].value = 3.1415
+    np.testing.assert_equal(float(m.defaults["m/Lc"]), 3.1415)

@@ -37,6 +37,8 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
     ValueError
         If a parameter required for model simulation is missing from the supplied parameters in
         `params`.
+    ValueError
+        If parameters are provided that do not have a `lower_bound` or `upper_bound` property.
 
     Examples
     --------
@@ -53,6 +55,16 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
 
         # Calculate a per data point contour length
         lcs = parameter_trace(model, current_fit[data_handle], "model/Lc", distance, force)
+
+        # Alternatively, if rather than a reference curve to fit, you have model parameters, you
+        # can use a Params dictionary obtained from a model directly.
+        model2 = lk.ewlc_odijk_distance("m")
+
+        model2["m/Lp"].value = 50
+        model2["m/St"].value = 1200
+        model2["m/Lc"].value = 5
+
+        lk.parameter_trace(model2, model2.defaults, "m/Lc", force, distance)
     """
     param_names = model.parameter_names
     if inverted_parameter not in params:
@@ -65,9 +77,16 @@ def parameter_trace(model, params, inverted_parameter, independent, dependent, *
             raise ValueError(f"Missing parameter {key} in supplied params.")
 
     # Grab reference parameter vector and index for the parameter list
-    param_vector = [params[key].value for key in param_names]
-    lb = params[inverted_parameter].lower_bound
-    ub = params[inverted_parameter].upper_bound
+    param_vector = [float(params[key]) for key in param_names]
+    try:
+        lb = params[inverted_parameter].lower_bound
+        ub = params[inverted_parameter].upper_bound
+    except AttributeError:
+        raise ValueError(
+            "The argument params takes a dictionary with `Parameter` values. This can be obtained "
+            "from a fit by slicing it by a dataset (i.e. fit[dataset_handle]) or from a "
+            "model (i.e. model.defaults). See help(parameter_trace) for more information."
+        )
     inverted_parameter_index = param_names.index(inverted_parameter)
 
     def fit_single_point(x, y):

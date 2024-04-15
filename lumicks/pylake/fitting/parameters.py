@@ -210,9 +210,9 @@ class Params:
 
         Parameters
         ----------
-        params : list of str
+        params : List[str]
             parameter names
-        defaults : Parameter or None
+        defaults : List[Optional[Parameter]]
             default parameter objects
         """
         new_params = OrderedDict(
