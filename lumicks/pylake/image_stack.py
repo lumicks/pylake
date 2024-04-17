@@ -220,6 +220,18 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         data = self._src.with_tether(np.asarray((point1, point2)) / self._pixel_calibration_factors)
         return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
 
+    def with_alignment(self, other):
+        """Returns a copy of the stack with an alignment matrix originating from a different
+        stack
+
+        Parameters
+        ----------
+        other : TiffStack
+            TiffStack object.
+        """
+        data = self._src.with_alignment(other._src)
+        return self.from_dataset(data, self.name, self._start_idx, self._stop_idx)
+
     def to_kymo(self, half_window, reduce=np.sum) -> Kymo:
         """Convert this :class:`ImageStack` to a :class:`~lumicks.pylake.kymo.Kymo` by sampling
         along the tether.

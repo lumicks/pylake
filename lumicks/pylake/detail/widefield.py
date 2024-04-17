@@ -204,7 +204,9 @@ class TiffStack:
         order = np.argsort(timestamps)
         self._tiff_files = [tiff_files[idx] for idx in order]
 
-        descriptions = [ImageDescription(tiff_file, align_requested) for tiff_file in tiff_files]
+        descriptions = [
+            ImageDescription.from_tiff(tiff_file, align_requested) for tiff_file in tiff_files
+        ]
 
         # Verify that the images in the stack are compatible accepting it as one stack,
         # this means that they need to have the same transform, number of pixels and channels.
@@ -224,6 +226,14 @@ class TiffStack:
             self._roi = roi
 
         self._tether = Tether(self._roi.origin) if tether is None else tether
+
+    def with_alignment(self, other: 'TiffStack'):
+        stack = copy(self)
+        stack._description = self._description.with_alignment(
+            [other._description._raw_alignment_matrix(ix) for ix in (0, 1, 2)],
+            other._description.alignment_roi,
+        )
+        return stack
 
     @property
     def is_rgb(self):
@@ -339,6 +349,8 @@ class ImageDescription:
         TIFF file recorded from a camera in Bluelake.
     align_requested : bool
         whether user has requested color channels to be aligned via affine transform.
+    json : Optional[dict]
+        json file with metadata
 
     Attributes
     ----------
@@ -350,38 +362,20 @@ class ImageDescription:
         dictionary of parsed json string held in frame ImageDescription tag.
     """
 
-    def __init__(self, tiff_file, align_requested):
-        first_page = tiff_file.pages[0]
-        tags = first_page.tags
-        self.is_rgb = tags["SamplesPerPixel"].value > 1
-        self.width = tags["ImageWidth"].value
-        self.height = tags["ImageLength"].value
-        self.software = tags["Software"].value if "Software" in tags else ""
-        self.pixelsize_um = None
-        self._alignment_matrices = {}
+    _ALIGNMENT_ROI_FIELDNAME = "Alignment region of interest (x, y, width, height)"
 
-        # parse json string stored in ImageDescription tag
-        try:
-            self.json = json.loads(first_page.description)
-        except json.decoder.JSONDecodeError:
-            self.json = {}
+    def __init__(self, is_rgb, width, height, software, align_requested, json):
+        self.is_rgb = is_rgb
+        self.width = width
+        self.height = height
+        self.software = software
+        self._alignment_matrices = {}
+        self.json = json
 
         # if metadata is missing, set default values
         if len(self.json) == 0:
             self._alignment = Alignment(align_requested, AlignmentStatus.empty, False)
             return
-
-        self.pixelsize_um = (
-            float(self.json["Pixel calibration (nm/pix)"]) / 1000
-            if "Pixel calibration (nm/pix)" in self.json
-            else None
-        )
-
-        # update json fields if necessary
-        if "Alignment red channel" in self.json:
-            for j, color in enumerate(("red", "green", "blue")):
-                self.json[f"Channel {j} alignment"] = self.json.pop(f"Alignment {color} channel")
-                self.json[f"Channel {j} detection wavelength (nm)"] = "N/A"
 
         excitation_colors = [
             key.split(" ")[0] for key in self.json.keys() if "Excitation Laser wavelength" in key
@@ -425,6 +419,71 @@ class ImageDescription:
             self._alignment = Alignment(align_requested, AlignmentStatus.applied, True)
         else:
             self._alignment = Alignment(align_requested, AlignmentStatus.missing, False)
+
+    @staticmethod
+    def from_tiff(tiff_file, align_requested):
+        first_page = tiff_file.pages[0]
+        tags = first_page.tags
+
+        try:
+            # parse json string stored in ImageDescription tag
+            json_metadata = json.loads(first_page.description)
+        except json.decoder.JSONDecodeError:
+            json_metadata = {}
+
+        # update json fields if necessary
+        if "Alignment red channel" in json_metadata:
+            for j, color in enumerate(("red", "green", "blue")):
+                json_metadata[f"Channel {j} alignment"] = json_metadata.pop(
+                    f"Alignment {color} channel"
+                )
+                json_metadata[f"Channel {j} detection wavelength (nm)"] = "N/A"
+
+        return ImageDescription(
+            is_rgb=tags["SamplesPerPixel"].value > 1,
+            width=tags["ImageWidth"].value,
+            height=tags["ImageLength"].value,
+            software=tags["Software"].value if "Software" in tags else "",
+            align_requested=align_requested,
+            json=json_metadata,
+        )
+
+    def with_alignment(self, raw_alignment_matrices, alignment_roi):
+        """Create description with alternate alignment data
+
+        Parameters
+        ----------
+        raw_alignment_matrices : List[np.ndarray]
+            List with 2 by 3 alignment matrix for each channel.
+        alignment_roi : np.ndarray
+            Alignment ROI
+        """
+        json_metadata = self.json
+
+        json_metadata[self._ALIGNMENT_ROI_FIELDNAME] = alignment_roi
+
+        for channel, matrix in enumerate(raw_alignment_matrices):
+            if matrix.shape != (2, 3):
+                raise RuntimeError("Passed alignment matrix has the wrong shape")
+
+            self.json[f"Channel {channel} alignment"] = matrix.flatten()
+
+        return ImageDescription(
+            is_rgb=self.is_rgb,
+            width=self.width,
+            height=self.height,
+            software=self.software,
+            align_requested=self._alignment.requested,
+            json=json_metadata,
+        )
+
+    @property
+    def pixelsize_um(self):
+        return (
+            float(self.json["Pixel calibration (nm/pix)"]) / 1000
+            if "Pixel calibration (nm/pix)" in self.json
+            else None
+        )
 
     def verify_stack_similarity(self, other):
         """Verifies that the metadata for these images reflects a compatible image
@@ -478,7 +537,7 @@ class ImageDescription:
 
     @property
     def alignment_roi(self):
-        return np.array(self.json["Alignment region of interest (x, y, width, height)"])
+        return np.array(self.json[self._ALIGNMENT_ROI_FIELDNAME])
 
     @property
     def roi(self):
