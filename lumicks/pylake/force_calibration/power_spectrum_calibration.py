@@ -263,7 +263,7 @@ def _fit_power_spectra(
     # care of this parameter rescaling.
     if prior:
         scaled_model = ScaledModel(
-            lambda f, *params: np.hstack((1 / model(f[:-1], *params), prior(params))),
+            lambda f, *params: np.hstack((1 / model(f[:-1], *params), prior[0](params))),
             initial_params,
         )
     else:
@@ -282,8 +282,8 @@ def _fit_power_spectra(
 
     if prior:
         frequencies = np.hstack((frequencies, 0))
-        sigma = np.hstack((sigma, 0.5e-7))
-        data = np.hstack((data, 4.1e-7))
+        sigma = np.hstack((sigma, 0.5))
+        data = np.hstack((data, prior[1]))
 
     (solution_params_rescaled, pcov) = scipy.optimize.curve_fit(
         scaled_model,
@@ -436,9 +436,9 @@ def fit_power_spectrum(
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
     if model.has_offset:
-        init_offset, min_offset, max_offset = [np.min(power_spectrum.power) / 10], [0.0], [np.inf]
+        init_offset, min_offset, max_offset = [model.has_offset], [0.0], [np.inf]
         filter_param_index = 3
-        prior = lambda params: params[2]
+        prior = (lambda params: params[2], model.has_offset)
     else:
         init_offset, min_offset, max_offset = [], [], []
         filter_param_index = 2
