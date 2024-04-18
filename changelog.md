@@ -10,6 +10,12 @@
 * Added `fitted_params` field to ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) for convenience.
 * Added option to disable downsampling channel data to frame rates with correlated plots ([`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated), [`Scan.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.Scan.html#lumicks.pylake.Scan.plot_correlated)) and exported videos ([`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video), [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.Scan.html#lumicks.pylake.Scan.export_video)) using `downsample_to_frames=False`.
 
+## v1.4.1 | t.b.d.
+
+#### Bug fixes
+
+* Fixed statistical backing returning an incorrect value.
+
 ## v1.4.0 | 2024-02-28
 
 #### New features

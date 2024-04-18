@@ -199,6 +199,20 @@ def reference_calibration_result():
     return ps_calibration, model, reference_spectrum
 
 
+def test_bad_fit(reference_calibration_result):
+    ps_calibration, model, reference_spectrum = reference_calibration_result
+    bad_spectrum = reference_spectrum.power.copy()
+    bad_spectrum[30:31] = reference_spectrum.power[10]  # Chop!
+    bad_spectrum = reference_spectrum.with_spectrum(
+        bad_spectrum, num_points_per_block=reference_spectrum.num_points_per_block
+    )
+    bad_calibration = psc.fit_power_spectrum(
+        power_spectrum=bad_spectrum, model=model, loss_function="gaussian"
+    )
+
+    assert ps_calibration["backing"].value > bad_calibration["backing"].value
+
+
 def test_actual_spectrum(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
 
@@ -208,7 +222,7 @@ def test_actual_spectrum(reference_calibration_result):
         "Rf": {"desired": 1243.966729922322, "rtol": 1e-4},
         "kappa": {"desired": 0.17149463585651784, "rtol": 1e-4},
         "alpha": {"desired": 0.5006070381347969, "rtol": 1e-4},
-        "backing": {"desired": 66.43310564863437, "rtol": 1e-4},
+        "backing": {"desired": 30.570451, "rtol": 1e-4},
         "chi_squared_per_deg": {"desired": 1.0637833024139873, "rtol": 1e-4},
         "err_fc": {"desired": 32.22822335114943, "rtol": 1e-4},
         "err_D": {"desired": 6.429704886151389e-05, "rtol": 1e-4, "atol": 0},
@@ -310,7 +324,7 @@ def test_repr(reference_calibration_result):
         err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.715
         err_alpha            Diode 'relaxation factor' Std Err                         0.0131406
         chi_squared_per_deg  Chi squared per degree of freedom                         1.06378
-        backing              Statistical backing (%)                                   66.4331"""
+        backing              Statistical backing (%)                                   30.5705"""
     )
 
 
