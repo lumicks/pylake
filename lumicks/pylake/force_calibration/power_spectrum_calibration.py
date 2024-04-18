@@ -93,6 +93,59 @@ class CalibrationResults:
     def __getitem__(self, item):
         return self.params[item] if item in self.params else self.results[item]
 
+    def validate_results(self, alpha=0.1):
+        """This function checks some force calibration quality criteria."""
+        from scipy import stats
+
+        fc = self.results["fc"].value
+
+        if fc < (freq_resolution := self.ps_data.frequency_bin_width):
+            raise RuntimeError(
+                f"Corner frequency ({fc} Hz) is below the spectral frequency resolution "
+                f"({freq_resolution} Hz). Consider increasing the acquisition duration or reducing "
+                f"the number of points per block. Note that the latter can lead to biased "
+                f"estimates when the number of points per block is low."
+            )
+
+        if fc < (min_freq := self.ps_data.frequency[0]):
+            raise RuntimeError(
+                f"Estimated corner frequency ({fc} Hz) is below lowest frequency in the power "
+                f"spectrum ({min_freq} Hz). Consider lowering the minimum fit range."
+            )
+
+        # If we fitted a diode model, check that the diode parameter does not fall into the
+        # approximate confidence interval of the corner frequency. Note that checking for
+        # overlapping confidence intervals is problematic, since the diode confidence interval
+        # can be large when it is difficult to estimate.
+        if "err_f_diode" in self.results:
+            sigma_level = stats.norm.ppf(1 - alpha / 2)
+            fc_width = sigma_level * self.results[f"err_fc"].value
+            if fc - fc_width <= self.results["f_diode"].value <= fc + fc_width:
+                raise RuntimeError(
+                    "Warning, the estimate for the parasitic filtering frequency falls within the"
+                    "confidence interval for the corner frequency. This means that the corner "
+                    "frequency is too high to be reliably estimated. Lower the laser power or "
+                    "use a pre-calibrated diode model for more reliable results."
+                )
+
+        if self.results["backing"].value < 0.01:
+            raise RuntimeError(
+                "Statistical backing is too low. It is probable that the fit of the thermal "
+                "calibration spectrum is bad. Verify that your fit does not show a residual"
+                "trend with `result.plot_spectrum_residual()`."
+            )
+
+        for parameter, description in (
+            ("fc", "corner frequency"),
+            ("Rd", "distance calibration"),
+            ("kappa", "stiffness")
+        ):
+            if self.results[f"err_{parameter}"].value > 0.2 * self.results[parameter].value:
+                raise RuntimeError(
+                    f"More than 20% error in the {description}. There is high uncertainty in the "
+                    "calibration factors."
+                )
+
     def plot(self):
         """Plot the fitted spectrum"""
         import matplotlib.pyplot as plt
