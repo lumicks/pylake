@@ -95,7 +95,7 @@ equations as listed in the section on the :doc:`hydrodynamically correct model<h
 .. _bead_bead_theory:
 
 Bead-bead coupling
-------------------
+^^^^^^^^^^^^^^^^^^
 
 .. warning::
 
@@ -147,7 +147,7 @@ Filling in the maximal velocity we expect during the oscillation, we find the fo
 Here :math:`\rho` refers to the fluid density, :math:`u` the characteristic velocity, :math:`L` the characteristic length scale, :math:`\eta` the viscosity, :math:`f` the oscillation frequency, :math:`A` the oscillation amplitude and :math:`d` the bead diameter.
 For microfluidic flow, this value is typically much smaller than `1`.
 
-In this limit, the Navier-Stokes equation reduces to the following expressions:
+In this limit, the Navier-Stokes equation describing fluid flow reduces to the following expressions:
 
 .. math::
 
