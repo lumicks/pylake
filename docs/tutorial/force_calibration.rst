@@ -159,10 +159,10 @@ In literature, passive calibration is often referred to as thermal calibration.
 It involves fitting a physical model to the power spectrum obtained in the previous step.
 This physical model relies on a number of parameters that have to be specified in order to get the correct calibration factors.
 
-The most important of these is the bead diameter (in microns).
+The most important parameters are the bead diameter (in microns) and viscosity.
 Let's use the bead diameter found in the calibration performed in Bluelake.
 
-You can optionally also provide a viscosity (in Pa/s) and temperature (in degrees Celsius).
+Note that the viscosity of water strongly depends on :ref:`temperature<temperature_theory>`.
 To find the viscosity of water at a particular temperature, Pylake uses :func:`~lumicks.pylake.viscosity_of_water` which implements the model presented in :cite:`huber2009new`.
 When omitted, this function will automatically be used to look up the viscosity of water for that particular temperature
 
@@ -412,15 +412,21 @@ Active calibration with two beads far away from the surface
     The API can still be subject to change *without any prior deprecation notice*!
     If you use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
-When performing active calibration, we get a smaller fluid velocity around the beads than expected when calibrating with two beads in a dual trap configuration.
-This leads to a smaller voltage readout than expected if there's no coupling and therefore a higher displacement sensitivity (microns per volt).
+When performing active calibration with two beads, we get a lower fluid velocity around the beads than we would with a single bead.
+This leads to a smaller voltage readout than expected and therefore a higher displacement sensitivity (microns per volt).
 Failing to take this into account results in a bias.
 Pylake offers a function to calculate a correction factor to account for the lower velocity around the bead.
-Appropriate coupling correction factors for oscillation in x can be calculated as follows::
+
+.. note::
+
+    For more information on how these factors are derived, please refer to the :ref:`theory<bead_bead_theory>` section on this topic.
+
+Appropriate correction factors for oscillation in x can be calculated as follows::
 
     factor = lk.coupling_correction_2d(dx=5.0, dy=0, bead_diameter=bead_diameter, is_y_oscillation=False)
 
-Here `dx` and `dy` represent the horizontal and vertical distance between the beads, while the parameter `bead_diameter` refers to the bead diameter.
+Here `dx` and `dy` represent the horizontal and vertical distance between the beads.
+Note that these refer to *center to center distances* (unlike the distance channel in Bluelake, which represents the bead surface to surface distance).
 Note that all three parameters have to be specified in the same spatial unit (meters or micron).
 The final parameter `is_y_oscillation` indicates whether the stage was oscillated in the y-direction.
 

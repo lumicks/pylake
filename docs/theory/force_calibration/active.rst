@@ -95,7 +95,7 @@ equations as listed in the section on the :doc:`hydrodynamically correct model<h
 .. _bead_bead_theory:
 
 Bead-bead coupling
-------------------
+^^^^^^^^^^^^^^^^^^
 
 .. warning::
 
@@ -130,7 +130,7 @@ Filling in the maximal velocity we expect during the oscillation, we find the fo
 Here :math:`\rho` refers to the fluid density, :math:`u` the characteristic velocity, :math:`L` the characteristic length scale and :math:`\mu` the viscosity.
 For microfluidic flow, this value is typically much smaller than `1`.
 
-In this limit, the Navier-Stokes equation reduces to the following expressions:
+In this limit, the Navier-Stokes equation describing fluid flow reduces to the following expressions:
 
 .. math::
 
@@ -181,3 +181,4 @@ The response of this combined model for equally sized beads can be calculated as
 .. image:: figures/correction_factor.png
 
 Here, when providing only a horizontal distance recovers the Stimson model :cite:`stimson1926motion`, while a vertical displacement recovers the Goldman model :cite:`goldman1966slow`.
+To find out more about how to use these correction factors, please refer to the :ref:`tutorial<bead_bead_tutorial>`.
