@@ -60,6 +60,61 @@ drag coefficient of a sphere and is given by:
 
 .. math::
 
-    \gamma_0 = 3 \pi \eta d \tag{$\mathrm{kg/s}$}
+    \gamma_0 = 3 \pi \eta(T) d \tag{$\mathrm{kg/s}$}
 
-where :math:`\eta` corresponds to the dynamic viscosity [Pa*s] and :math:`d` is the bead diameter [m].
+where :math:`\eta(T)` corresponds to the dynamic viscosity [Pa*s] and :math:`d` is the bead diameter [m].
+
+.. _temperature_theory:
+
+The effect of temperature
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As we can see above, temperature enters the calibration procedure both directly, as well as through the medium viscosity.
+It is especially the latter that results in large calibration errors when mis-specified.
+
+.. math::
+
+    \begin{align}
+    \kappa = 2 \pi \gamma(T) f_c &\propto& \eta(T)\\
+    R_d = \sqrt{\frac{kT}{\gamma(T)D_{volts}}} &\propto& \sqrt{T / \eta(T)}\\
+    R_f = R_d \kappa &\propto& \sqrt{T \eta(T)}
+    \end{align}
+
+Mis-specification can lead to errors in calibration. To get a feeling for the magnitude of these errors, we can plot them::
+
+    plt.figure(figsize=(12, 3))
+    temps = np.arange(20, 35)
+    viscosity_25 = lk.viscosity_of_water(25)
+    plt.subplot(1, 4, 1)
+    plt.plot(temps, 1000 * lk.viscosity_of_water(temps))
+    plt.xlabel("Temperature ($^o$C)")
+    plt.ylabel("Viscosity of water (mPa*s)")
+
+    plt.subplot(1, 4, 2)
+    viscosities = lk.viscosity_of_water(temps)
+    kappa_err = 100 * (viscosity_25 / viscosities - 1)
+    plt.plot(temps, kappa_err)
+    plt.xlabel("Actual Temperature ($^o$C)")
+    plt.ylabel("Stiffness error (%)")
+    plt.axvline(25, linestyle="--", color="k")
+    plt.tight_layout()
+
+    plt.subplot(1, 4, 3)
+    rd_err = 100 * (np.sqrt((25 + 273.15) / viscosity_25) / np.sqrt((temps + 273.15) / viscosities) - 1)
+    plt.plot(temps, rd_err)
+    plt.xlabel("Actual Temperature ($^o$C)")
+    plt.ylabel("Displacement error (%)")
+    plt.axvline(25, linestyle="--", color="k")
+    plt.tight_layout()
+
+    plt.subplot(1, 4, 4)
+    rf_err = 100 * (np.sqrt((25 + 273.15) * viscosity_25) / np.sqrt((temps + 273.15) * viscosities) - 1)
+    plt.plot(temps, rf_err)
+    plt.xlabel("Actual Temperature ($^o$C)")
+    plt.ylabel("Force sensitivity error (%)")
+    plt.axvline(25, linestyle="--", color="k", label="Assumed temperature")
+    plt.suptitle("Effect of mis-specifying temperature")
+    plt.tight_layout()
+    plt.legend()
+
+.. image:: figures/temperature_dependence.png
