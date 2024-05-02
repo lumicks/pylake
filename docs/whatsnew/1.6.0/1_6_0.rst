@@ -12,4 +12,4 @@ Bead-bead coupling correction
 
 When performing active calibration with two beads coupling effects can bias the estimated calibration parameters (force and displacement sensitivity, and the stiffness).
 In Pylake 1.6.0, we include a model to account for bead-bead coupling between two beads in bulk.
-See :ref:`theory<bead_bead_theory>` and :ref:`tutorial<bead_bead_tutorial>` for more information.
+See :ref:`theory<bead_bead_theory>` and :ref:`tutorial<bead_bead_tutorial>` and the :doc:`example</examples/bead_coupling/coupling>` for more information.
