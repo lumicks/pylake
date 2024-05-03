@@ -1,0 +1,10 @@
+{
+  "test": "ref_dict_freezing",
+  "parametrization": {
+    "tst": 1
+  },
+  "result": {
+    "a": 5,
+    "b": 3.141592653589793
+  }
+}

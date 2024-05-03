@@ -1,4 +1,5 @@
 import json
+import hashlib
 import warnings
 import importlib
 
@@ -107,14 +108,39 @@ def configure_mpl():
         plt.close("all")
 
 
+def filename_hash(string_to_hash):
+    """Hash a filename for a test
+
+    Parameters
+    ----------
+    string_to_hash : str
+        String to return the hash of.
+
+    We use a base36 hash to ensure that we can safely store these hashes as filenames on all
+    operating systems. Base64 contains / and includes both small and capital case. This leads
+    to issues on windows since its file systems are not case-sensitive. Base36 is still shorter
+    than a hexadecimal hash.
+    """
+    md5_hash = hashlib.md5(string_to_hash.encode())
+    return np.base_repr(int(md5_hash.hexdigest(), 16), 36)
+
+
 def _json_read_write():
     def read_data(file_path):
         with open(file_path) as f:
-            return json.load(f)
+            return json.load(f)["result"]
 
-    def write_data(file_path, data):
+    def write_data(file_path, data, parametrization, calling_function):
         with open(file_path, "w") as f:
-            json.dump(data, f)
+            json.dump(
+                {
+                    "test": calling_function,
+                    "parametrization": parametrization,
+                    "result": data,
+                },
+                f,
+                indent=2,
+            )
             f.write("\n")  # Text files should end with a newline
 
     return read_data, write_data, "json"
@@ -125,7 +151,7 @@ def _npz_read_write():
         with np.load(file_path, allow_pickle=True) as npz_file:
             return npz_file["arr_0"][()]
 
-    def write_data(file_path, data):
+    def write_data(file_path, data, _parametrization, _calling_function):
         try:
             data = np.asarray(data)
         except ValueError:
@@ -142,7 +168,7 @@ def reference_data(request):
 
     Some tests require relatively big reference matrices. If the purpose of the test is just to
     ensure that changes to the results are noticed, then this fixture can be used to store
-    reference data. Simply import the fixture in the test, and call `reference_data` with a unique
+    reference data. Simply import the fixture in the test, and call `ref_data` with a unique
     name per result and the dataset that needs to be stored. Check the resulting files into git to
     pin the results.
 
@@ -150,29 +176,32 @@ def reference_data(request):
     pytest with the option `--update_reference_data`. In order to explicitly disallow creation (and
     raise if the file is not found, run with the option `--strict_reference_data`).
 
+    Note that filenames with test parametrization are hashed to make sure we do not end up with
+    excessively long filenames.
+
     Examples
     --------
     ::
 
         @pytest.mark.parametrize("par", [1])
-        def test_freezing(reference_data, par):
+        def test_freezing(ref_data, par):
             test_data = np.array([[1, 2, 3], [1, 2, 3]])
 
-            # Writes to a file function/freezing[parametrization descriptions].npz
-            np.testing.assert_allclose(test_data, reference_data(test_data))
+            # Writes to a file function/hash(freezing[parametrization descriptions]).npz
+            np.testing.assert_allclose(test_data, ref_data(test_data))
 
-            # Writes to a file function/test_data[parametrization descriptions].npz
-            np.testing.assert_allclose(test_data, reference_data(test_data, test_name="test_data"))
+            # Writes to a file function/hash(test_data[parametrization descriptions]).npz
+            np.testing.assert_allclose(test_data, ref_data(test_data, test_name="test_data"))
 
             # Writes to a file function/filename.npz. Note that when using this form, you are
-            # responsible for assembling the parameterization into the `file_name`!
-            np.testing.assert_allclose(test_data, reference_data(test_data, file_name="file_name"))
+            # responsible for assembling the parametrization into the `file_name`!
+            np.testing.assert_allclose(test_data, ref_data(test_data, file_name="file_name"))
     """
 
     def get_reference_data(reference_data, test_name=None, file_name=None, json=False):
         """Read or write reference data
 
-        Reads or writes reference data at the location `reference_data/test_name/dataset_name`.
+        Reads or writes reference data at `ref_data/test_name/hash(dataset_name)`.
         This function reads and returns reference data if it is available at the provided location.
         If it is not available, it writes a file containing the data (unless strict is enforced
         through `pytest` in which case it throws).
@@ -204,20 +233,25 @@ def reference_data(request):
         if test_name and file_name:
             raise ValueError("You cannot specify both a test_name and file_name")
 
-        calling_function = request.function.__name__.replace("test_", "")
+        calling_function = request.function.__name__.replace("test_", "")  # Just the name
+        ref_data_filename = request.node.name.replace("test_", "")  # Name plus parametrization
 
-        # Force output file name.
-        ref_data_filename = (
-            request.node.name.replace("test_", "") if file_name is None else file_name
-        )
-
-        # Overwrite only the identifier part Test[par1-par2-par3] -> mytest[par1-par2,par3].
+        # Overwrite identifier part Test[par1-par2-par3] -> mytest[par1-par2,par3].
         if test_name is not None:
             ref_data_filename = ref_data_filename.replace(calling_function, test_name)
 
-        calling_path = request.path.parent
+        # Fetch parametrization if it exists
+        params = request.node.callspec.params if hasattr(request.node, "callspec") else {}
 
-        reference_data_path = calling_path / "reference_data" / calling_function
+        # Parametrized test filenames can be overly long, hence we hash them.
+        if params:
+            ref_data_filename = filename_hash(ref_data_filename)
+
+        # Override filename
+        ref_data_filename = file_name if file_name else ref_data_filename
+
+        calling_path = request.path.parent
+        reference_data_path = calling_path / "ref_data"
         reference_file_path = reference_data_path / f"{ref_data_filename}.{extension}"
 
         if reference_file_path.exists() and not request.config.getoption("--update_reference_data"):
@@ -225,12 +259,12 @@ def reference_data(request):
         else:
             if request.config.getoption("--strict_reference_data"):
                 raise RuntimeError(
-                    f"Test data for {calling_function}/{ref_data_filename} missing! Did you forget "
-                    f"to check the file {reference_file_path} in?"
+                    f"Test data for {calling_function} ({ref_data_filename}) missing! Did you "
+                    f"forget to check the file {reference_file_path} in?"
                 )
 
             reference_data_path.mkdir(parents=True, exist_ok=True)
-            write_data(reference_file_path, reference_data)
+            write_data(reference_file_path, reference_data, params, calling_function)
 
             print(f"\nWritten reference data {ref_data_filename} to {reference_file_path}.")
             return reference_data
@@ -243,13 +277,13 @@ def compare_to_reference_dict(reference_data):
     """Read or update test reference dictionary.
 
     Intended to store and/or compare to a reference dictionary stored in a human-readable json
-    file. Only intended for single numeric values. See `reference_data` for usage information.
+    file. Only intended for single numeric values. See `ref_data` for usage information.
 
     Examples
     --------
     ::
 
-        @pytest.mark.parametrize()
+        # Writes to a test file named freezing/freezing.json
         def test_freezing(compare_to_reference_dict):
             compare_to_reference_dict({"a": 5, "b": 1e-12}, rtol=1e-6)
     """
