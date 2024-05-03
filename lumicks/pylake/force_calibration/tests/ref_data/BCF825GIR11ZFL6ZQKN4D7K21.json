@@ -1,0 +1,20 @@
+{
+  "test": "good_fit_integration",
+  "parametrization": {
+    "loss_function": "gaussian",
+    "corner_frequency": 1500,
+    "diffusion_constant": 1.2e-09,
+    "alpha": 0.5,
+    "f_diode": 5000,
+    "num_samples": 30000,
+    "viscosity": 0.0012,
+    "bead_diameter": 4.0,
+    "temperature": 20.0
+  },
+  "result": {
+    "err_fc": 70.59478133693653,
+    "err_D": 8.22664110562314e-11,
+    "err_f_diode": 487.41016253763706,
+    "err_alpha": 0.013428175518853247
+  }
+}

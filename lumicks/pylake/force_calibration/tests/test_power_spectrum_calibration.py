@@ -79,7 +79,7 @@ def test_calibration_result():
         ["lorentzian", 1000, 1e-9, 0.5, 10000, 30000, 1, 4.0, 20.0],
     ],
 )
-def test_good_fit_integration_test(
+def test_good_fit_integration(
     compare_to_reference_dict,
     reference_models,
     loss_function,
