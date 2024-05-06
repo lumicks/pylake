@@ -4,6 +4,7 @@
 
 #### New features
 
+* Support Python `3.12`, dropped support for `3.9`.
 * Added [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels) for plotting a kymograph with corresponding channel data. For more information, please refer to the [kymograph tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#correlating-with-channel-data).
 * Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
 * Made ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) callable to evaluate the fitted model power spectral density at the specified frequencies.
@@ -16,6 +17,10 @@
 * Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes. 
 * Warn when parameter estimates are hitting the fitting bounds when using [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html).
 * Added `err_kappa` and `err_Rd` to force calibration results. These contain error estimates for the calibration constants propagated from the fitting errors.
+
+#### Other changes
+
+* Switch to notebook v7 with `ipympl`. See https://blog.jupyter.org/announcing-jupyter-notebook-7-8d6d66126dcf for more information. Note that this means that you have to have to invoke `%matplotlib widget` in notebooks where you previously used `%matplotlib notebook`.
 
 #### Bug fixes
 
