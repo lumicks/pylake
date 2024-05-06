@@ -8,11 +8,11 @@ Notebook Widgets
 When analyzing notebooks, it can be helpful to make use of interactive widgets. For this, we provide some widgets
 to help you analyze your data. To enable such widgets, start the notebook with::
 
-    # enable this line if you are using jupyter lab
-    %matplotlib widget
-
-    # enable this line if you are using jupyter notebook
+    # enable this line if you are using nbclassic
     # %matplotlib notebook
+
+    # enable this line if you are using jupyter notebook or lab
+    %matplotlib widget
 
 We can download the data needed for this tutorial directly from Zenodo using Pylake.
 Since we don't want it in our working folder, we'll put it in a folder called `"test_data"`::

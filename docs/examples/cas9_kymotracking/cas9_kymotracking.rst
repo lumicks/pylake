@@ -25,11 +25,11 @@ required Python modules and choosing an interactive backend for `matplotlib`::
     import matplotlib.pyplot as plt
     import numpy as np
 
-    # Use notebook if you're in Jupyter Notebook
-    # %matplotlib notebook
-
-    # Use widget (depends on ipympl) if you're using Jupyter lab
+    # Use widget if you're using Jupyter lab or notebook
     %matplotlib widget
+
+    # Use notebook if you're in nbclassic
+    # %matplotlib notebook
 
 Download the kymograph data
 ---------------------------

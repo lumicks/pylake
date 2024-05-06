@@ -418,18 +418,6 @@ To enable interactive plots, you have to invoke the correct `magic commands <htt
 in the notebook. When using Jupyter notebook, the following command will switch the `matplotlib` backend from the inline
 one (which renders images) to the interactive backend::
 
-    %matplotlib notebook
-
-You can also choose to install `ipympl`, which can perform better in some cases. You can install it with `pip`::
-
-    pip install ipympl
-
-or `conda`::
-
-    conda install -c conda-forge ipympl
-
-The `ipympl` backend can be activated by invoking the following magic command in a notebook::
-
     %matplotlib widget
 
 *Note that switching backends typically requires you to restart the Jupyter kernel*. When using JupyterLab, `ipympl` is

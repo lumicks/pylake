@@ -185,7 +185,7 @@ you can use the following function::
 
 .. image:: figures/imagestack/imagestack_correlated.png
 
-If the plot is interactive (for example, when `%matplotlib notebook` is used in a Jupyter notebook), you can click
+If the plot is interactive (for example, when `%matplotlib widget` is used in a Jupyter notebook), you can click
 on the left graph to select a particular force. The corresponding video frame will then automatically appear on the right.
 
 In some cases, additional processing may be needed, and we wish to have the data
