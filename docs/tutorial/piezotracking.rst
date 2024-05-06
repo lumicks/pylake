@@ -166,7 +166,7 @@ Which we can then plot::
 
     plt.figure()
     plt.scatter(tether_length.data, force_data.data, s=1)
-    plt.xlabel('Distance [$\mu$m]')
+    plt.xlabel(r'Distance [$\mu$m]')
     plt.ylabel('Force [pN]')
     plt.show()
 
@@ -177,7 +177,7 @@ We can compare this to the camera-based distance and raw force curve and see a c
     plt.figure()
     plt.scatter(tether_length.data, force_data.data, s=1, label="corrected")
     plt.scatter(pulling_curve.distance1.data, - (pulling_curve.downsampled_force2x.data - f2_offset), s=1, label="raw")
-    plt.xlabel('Distance [$\mu$m]')
+    plt.xlabel(r'Distance [$\mu$m]')
     plt.ylabel('Force [pN]')
     plt.legend()
     plt.show()

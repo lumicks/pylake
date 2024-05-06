@@ -69,8 +69,8 @@ Downsample the y force data::
 
 The two sampling rates are::
 
-    >>> print('Original sampling rate is ' + str(sample_rate) + ' Hz')
-    >>> print('Downsampled rate is ' + str(downsampled_rate) + ' Hz')
+    >>> print(f"Original sampling rate is {sample_rate} Hz")
+    >>> print(f"Downsampled rate is {downsampled_rate} Hz")
 
     Original sampling rate is 30000 Hz
     Downsampled rate is 100 Hz
@@ -108,8 +108,8 @@ Get stiffness from force calibration::
     
 The stiffness values are::
 
-    >>> print(ky) # this is in pN/nm
-    >>> print(kx) # this is in pN/nm
+    >>> print(ky)  # this is in pN/nm
+    >>> print(kx)  # this is in pN/nm
     0.02648593456747345
     0.019126295617530483
 

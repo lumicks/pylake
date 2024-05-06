@@ -447,7 +447,7 @@ class DwelltimeBootstrap:
 
             label = "a" if key == "amplitude" else r"\tau"
             unit = "" if key == "amplitude" else "sec"
-            prefix = rf"${label}_{component+1}$" if use_index else rf"${label}$"
+            prefix = rf"${label}_{component + 1}$" if use_index else rf"${label}$"
             plt.title(f"{prefix} = {mean:0.2g} ({lower:0.2g}, {upper:0.2g}) {unit}")
 
         if self.n_components == 1:

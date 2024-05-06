@@ -29,7 +29,7 @@ To visualizes an FD curve, you can use the built-in :meth:`.plot_scatter()
 An :class:`~lumicks.pylake.fdcurve.FdCurve` slices some force and distance data from the timeline data.
 You can find the range it uses for slicing in its :attr:`~lumicks.pylake.fdcurve.start` and :attr:`~lumicks.pylake.fdcurve.stop` property::
 
-    >>> all(file.downsampled_force2[fd.start:fd.stop].data == fd.f.data)
+    >>> all(file.downsampled_force2[fd.start : fd.stop].data == fd.f.data)
     True
 
 The attribute :attr:`.fdcurves <lumicks.pylake.File.fdcurves>` is a standard Python dictionary, so we can do all the things you can do with a regular dictionary.
@@ -85,7 +85,7 @@ Plot FD curve manually::
     plt.figure()
     plt.scatter(distance.data, force.data)
     plt.ylabel("Force (pN)")
-    plt.xlabel("Distance ($\mu$m)")
+    plt.xlabel(r"Distance ($\mu$m)")
     plt.title("Manually plotted fd curve")
     plt.show()
 
@@ -130,7 +130,7 @@ and distance from such an ensemble using::
     plt.figure()
     plt.scatter(d, f, s=1)
     plt.ylabel("Force (pN)")
-    plt.xlabel("Distance $\mu$m")
+    plt.xlabel(r"Distance $\mu$m")
     plt.title("Two aligned fd curves")
     plt.show()
 

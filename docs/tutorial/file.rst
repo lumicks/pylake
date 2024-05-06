@@ -245,7 +245,7 @@ Simple arithmetic operations can be performed directly on slices::
     >>> diff_force = (file.force1x - file.force2x) / 2
     <lumicks.pylake.channel.Slice at 0x2954d3016d0>
 
-    >>> force_magnitude = (file.force1x ** 2 + file.force1y ** 2) ** 0.5
+    >>> force_magnitude = (file.force1x**2 + file.force1y**2) ** 0.5
     <lumicks.pylake.channel.Slice at 0x2954d3016d0>
 
 Downsampling
@@ -329,20 +329,20 @@ We can see that the file also contains markers. These can be accessed from the m
 
 The actual markers can be obtained from the dictionary as follows::
 
-    >>> file.markers['Tether: 11']
+    >>> file.markers["Tether: 11"]
     <lumicks.pylake.marker.Marker at 0x1785ccf1990>
 
 We can find the start and stop time with ``.start`` and ``.stop``.
 
-    >>> print(file.markers['Tether: 11'].start)
+    >>> print(file.markers["Tether: 11"].start)
     1638534506519544400
 
-    >>> print(file.markers['Tether: 11'].stop)
+    >>> print(file.markers["Tether: 11"].stop)
     1638534716503544401
 
 Note that you can slice channel data directly using markers (or any other item that has a ``.start`` and ``.stop`` property)::
 
-    >>> file.force1x[file.markers['Tether: 11']]
+    >>> file.force1x[file.markers["Tether: 11"]]
     <lumicks.pylake.channel.Slice at 0x1785ccf1390>
 
 Exporting h5 files
