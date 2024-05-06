@@ -175,7 +175,7 @@ These coordinates can be accessed with the :attr:`~lumicks.pylake.kymotracker.ky
     plt.figure(figsize=(5, 3))
     plt.plot(longest_track.seconds, longest_track.position)
     plt.xlabel('Time [s]')
-    plt.ylabel('Position [$\mu$m]')
+    plt.ylabel(r'Position [$\mu$m]')
     plt.tight_layout()
     plt.show()
 

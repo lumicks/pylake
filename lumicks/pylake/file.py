@@ -198,7 +198,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             + "".join(
                 (
                     print_force(field)
-                    for field in [f"force{channel+1}{axis}" for channel in rng for axis in axes]
+                    for field in [f"force{channel + 1}{axis}" for channel in rng for axis in axes]
                 )
             )
             + "\n"
@@ -206,7 +206,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
                 (
                     print_force(field)
                     for field in [
-                        f"downsampled_force{channel+1}{axis}" for channel in rng for axis in axes
+                        f"downsampled_force{channel + 1}{axis}" for channel in rng for axis in axes
                     ]
                 )
             )

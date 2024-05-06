@@ -87,7 +87,7 @@ of the longest track we can do::
     plt.figure()
     plt.plot(longest_track.seconds, longest_track.position)
     plt.xlabel("Time [s]")
-    plt.ylabel("Position [$\mu$m]")
+    plt.ylabel(r"Position [$\mu$m]")
     plt.show()
 
 .. image:: figures/kymotracking/longest_track.png
@@ -593,7 +593,7 @@ MSDs for individual tracks are available through :meth:`~lumicks.pylake.kymotrac
 
 which returns a tuple of lags and MSD estimates. If we only wish MSDs up to a certain lag, we can provide a `max_lag` argument::
 
-    >>> tracks[0].msd(max_lag = 5)
+    >>> tracks[0].msd(max_lag=5)
     (array([0.16, 0.32, 0.48, 0.64, 0.8 ]), array([ 3.63439512,  6.13181603,  9.08823918, 11.43574189, 12.61152129]))
 
 If it is safe to assume that all particles exhibit the same diffusive motion, one can calculate the ensemble and time-averaged MSD for an entire group of tracks using the method :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.ensemble_msd`::
@@ -726,7 +726,7 @@ We'll demonstrate this functionality using multiple sections on a single :class:
 The API for the different methods is identical, requiring no changes to your downstream analysis compared to the case of tracks from a single kymograph.
 For instance, one can compute the binding lifetime with::
 
-    multi_dwell = multiple_groups.fit_binding_times(n_components=2)
+    multi_dwell = multiple_groups.fit_binding_times(n_components=2, observed_minimum=False, discrete_model=True)
     print(multi_dwell.lifetimes)  # list of bound lifetimes
     print(multi_dwell.amplitudes)  # list of fractional amplitudes for each component
 

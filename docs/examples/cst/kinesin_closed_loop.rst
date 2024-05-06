@@ -55,8 +55,8 @@ Plot it::
 
 Determine force fluctuations::
 
-    >>> print('Mean force is: '+str(np.mean(forcey_downsamp.data)) + ' pN' )
-    >>> print('Variation in the force is: '+str(np.std(forcey_downsamp.data)) + ' pN' )
+    >>> print(f"Mean force is: {np.mean(forcey_downsamp.data)} pN")
+    >>> print(f"Variation in the force is: {np.std(forcey_downsamp.data)} pN")
 
     Mean force is: 1.6587699919874592 pN
     Variation in the force is: 0.17120278599815678 pN

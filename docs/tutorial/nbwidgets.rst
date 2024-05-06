@@ -95,7 +95,7 @@ These timestamps can directly be used to extract the relevant data::
             fdcurves["40"].f[t_start:t_stop].data,
             s=2,  # Use a smaller marker size
         )
-        plt.xlabel("Distance [$\mu$m]")
+        plt.xlabel(r"Distance [$\mu$m]")
         plt.ylabel("Force [pN]")
 
     plt.tight_layout()

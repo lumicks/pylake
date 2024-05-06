@@ -301,7 +301,7 @@ If there are unexplained issues with the calibration, it is a good idea to plot 
     plt.figure()
     driving_data.plot()
     plt.xlim(0, 0.1)
-    plt.ylabel("Nanostage position ($\mu$m)")
+    plt.ylabel(r"Nanostage position ($\mu$m)")
     plt.show()
 
 .. image:: figures/force_calibration/nanostage_position.png
@@ -372,13 +372,17 @@ For convenience, assign most of the parameter to a dictionary first::
 
 Next, unpack this dictionary using the unpacking operator `**`::
 
-    >>> fit = lk.calibrate_force(**shared_parameters, active_calibration=True, distance_to_surface=distance_to_surface)
+    >>> fit = lk.calibrate_force(
+    ...     **shared_parameters, active_calibration=True, distance_to_surface=distance_to_surface
+    ... )
     >>> print(fit["kappa"].value)
     0.11662183772410809
 
 And compare this to the passive calibration result::
 
-    >>> fit = lk.calibrate_force(**shared_parameters, active_calibration=False, distance_to_surface=distance_to_surface)
+    >>> fit = lk.calibrate_force(
+    ...     **shared_parameters, active_calibration=False, distance_to_surface=distance_to_surface
+    ... )
     >>> print(fit["kappa"].value)
     0.11763849764570819
 

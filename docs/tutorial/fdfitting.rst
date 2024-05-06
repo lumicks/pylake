@@ -56,8 +56,6 @@ We can also obtain the parameters as a list::
 
     ['DNA/Lp', 'DNA/Lc', 'DNA/St', 'kT']
 
-
-
 Simulating the model
 --------------------
 
@@ -70,7 +68,7 @@ We can simulate the model by passing a dictionary with parameters values::
     plt.figure()
     plt.plot(distance,force)
     plt.ylabel("Force [pN]")
-    plt.xlabel("Distance [$\\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_ewlc.png
@@ -202,7 +200,7 @@ initial guesses yourself.::
     plt.figure()
     fit.plot()
     plt.ylabel("Force [pN]")
-    plt.xlabel("Distance [$\\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.title("Before fitting")
     plt.show()
 
@@ -223,7 +221,7 @@ Plot the result of the fit::
     plt.figure()
     fit.plot()
     plt.ylabel("Force [pN]")
-    plt.xlabel("Distance [$\\mu$m]");
+    plt.xlabel(r"Distance [$\mu$m]");
     plt.title("After fitting")
     plt.show()
 
@@ -233,7 +231,7 @@ If you wish to customize the label that appears in the legend, you can pass a cu
 
     plt.figure()
     fit.plot(label="my_fit")
-    plt.xlabel("Distance [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.ylabel("Force [pN]")
     plt.show()
 
@@ -246,7 +244,7 @@ do this as follows::
     plt.figure()
     fit.plot("Control", "--", np.arange(2.0, 3.0, 0.01))
     fit.plot("RecA", "--", np.arange(2.0, 3.4, 0.01))
-    plt.xlabel("Distance [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.ylabel("Force [pN]")
     plt.show()
 
@@ -256,7 +254,7 @@ Plot the fitted model without data::
 
     plt.figure()
     fit.plot("Control", "k--", np.arange(2.0, 4.0, 0.01), plot_data=False)
-    plt.xlabel("Distance [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.ylabel("Force [pN]")
     plt.show()
 
@@ -268,7 +266,7 @@ It is also possible to obtain simulations from the model directly, using the fit
     simulated_force = model(distance, fit["Control"])
     plt.figure()
     plt.plot(distance, simulated_force)
-    plt.xlabel("Distance [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.ylabel("Force [pN]")
     plt.show()
 
@@ -350,8 +348,8 @@ Now, we wish to allow the contour length to vary on a per data point basis. For 
     lcs = lk.parameter_trace(model, fit["Control"], "model/Lc", distance3, force3)
     plt.figure()
     plt.plot(distance3,lcs)
-    plt.xlabel("Distance [$\mu$m]")
-    plt.ylabel("Lc [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
+    plt.ylabel(r"Lc [$\mu$m]")
     plt.show()
 
 .. image:: figures/fdfitting/fdfitting_reca_parameter_trace.png
@@ -470,8 +468,8 @@ following two examples::
     >>> model = lk.ewlc_odijk_force("DNA")
     >>> fit = lk.FdFit(model)
     >>> for i, (distance, force) in enumerate(zip(distances, forces)):
-    >>>     fit.add_data(f"AdK {i}", f=force, d=distance)
-    >>>
+    ...     fit.add_data(f"AdK {i}", f=force, d=distance)
+    ...
     >>> fit.fit()
     >>> print(fit["DNA/Lc"])
     lumicks.pylake.fdfit.Parameter(value: 0.34975137317062743, lower bound: 0.00034, upper bound: inf, fixed: False)
@@ -479,9 +477,10 @@ following two examples::
 and::
 
     >>> for i, (distance, force) in enumerate(zip(distances, forces)):
-    >>>     model = lk.ewlc_odijk_force("DNA")
-    >>>     fit = lk.FdFit(model)
-    >>>     fit.add_data(f"AdK {i}", f=force, d=distance)
+    ...     model = lk.ewlc_odijk_force("DNA")
+    ...     fit = lk.FdFit(model)
+    ...     fit.add_data(f"AdK {i}", f=force, d=distance)
+    ...
     >>>
     >>> fit.fit()
     >>> print(fit["DNA/Lc"])
@@ -504,7 +503,8 @@ if the only expected difference between the experiments is the contour length, t
     >>> model = lk.ewlc_odijk_force("DNA")
     >>> fit = lk.FdFit(model)
     >>> for i, (distance, force) in enumerate(zip(distances, forces)):
-    >>>     fit.add_data(f"AdK {i}", force, distance, {"DNA/Lc": f"DNA/Lc_{i}"})
+    ...     fit.add_data(f"AdK {i}", force, distance, {"DNA/Lc": f"DNA/Lc_{i}"})
+    ...
     >>> fit.fit()
     >>> print(fit.params)
     Name           Value  Unit      Fitted      Lower bound    Upper bound
@@ -546,7 +546,7 @@ Let's plot what we have fitted so far::
     fit.fit()
     plt.figure()
     fit[model1].plot()
-    plt.xlabel("Distance [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.ylabel("Force [pN]")
     plt.show()
 
@@ -573,10 +573,10 @@ Next, we fit the data after the unfolding event. To speed up the computation, we
     >>> fit["DNA/Lp"].fixed = True
     >>> fit["DNA/St"].fixed = True
     >>>
-    >>> fit["protein/Lp"].value = .7
-    >>> fit["protein/Lp"].lower_bound = .6
+    >>> fit["protein/Lp"].value = 0.7
+    >>> fit["protein/Lp"].lower_bound = 0.6
     >>> fit["protein/Lp"].upper_bound = 1.0
-    >>> fit["protein/Lc"].value = .025
+    >>> fit["protein/Lc"].value = 0.025
     >>>
     >>> fit.fit()
     Fit
@@ -611,7 +611,7 @@ Now we have fitted both the data before and after unfolding. The results can be 
     plt.figure()
     fit[model1].plot()
     fit[model2].plot()
-    plt.xlabel("Distance [$\mu$m]")
+    plt.xlabel(r"Distance [$\mu$m]")
     plt.ylabel("Force [pN]")
     plt.show()
 
