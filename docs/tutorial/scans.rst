@@ -183,4 +183,4 @@ The multi-frame confocal scans can also be correlated with a channel :class:`~lu
     multiframe_scan.plot_correlated(multiframe_file.force1x, adjustment=lk.ColorAdjustment([0, 0, 0], [4, 4, 4]))
     plt.show()
 
-Note that you need an interactive backend for this plot to work; instead of running ``%matplotlib inline`` at the top of the notebook, run ``%matplotlib notebook``. If some cells were already executed, you will need to restart the kernel as well.
+Note that you need an interactive backend for this plot to work; instead of running ``%matplotlib inline`` at the top of the notebook, run ``%matplotlib widget``. If some cells were already executed, you will need to restart the kernel as well.

@@ -66,11 +66,10 @@ setup(
     ],
     extras_require={
         "notebook": [
-            # Notebook upper limit is a workaround for issues with IPython not being defined.
-            "notebook>=6.5.7,<7",
+            "notebook>=7",
             "ipywidgets>=7.0.0",
-            "jupyter_client>=7.4.9,<8",  # https://github.com/jupyter/notebook/pull/7305
-            "pyzmq",
+            "jupyter_client>=8",
+            "ipympl>=0.9.3",  # Needed for mpl compatibility (previous vers are only up to mpl 3.7)
         ],
     },
     zip_safe=False,

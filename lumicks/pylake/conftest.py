@@ -98,6 +98,17 @@ def configure_warnings():
         message=".*None into shape arguments as an alias for \\(\\) is.*",
     )
 
+    # This is a warning that gets issued by IPython when calling pytest from a notebook. The backend
+    # handling that used to be handled in IPython was moved to matplotlib. Until the mpl side of
+    # this is out a warning is issued. See:
+    #  - https://github.com/ipython/ipython/issues/14311
+    #  - https://github.com/ipython/ipython/pull/14371
+    warnings.filterwarnings(
+        "ignore",
+        category=DeprecationWarning,
+        message=".*backend2gui is deprecated since IPython.*",
+    )
+
 
 @pytest.fixture(autouse=True)
 def configure_mpl():
