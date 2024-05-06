@@ -4,8 +4,8 @@ import sys
 from setuptools import PEP420PackageFinder, setup
 from setuptools.command.egg_info import manifest_maker
 
-if sys.version_info[:2] < (3, 9):
-    print("Python >= 3.9 is required.")
+if sys.version_info[:2] < (3, 10):
+    print("Python >= 3.10 is required.")
     sys.exit(-1)
 
 
@@ -39,23 +39,23 @@ setup(
     author=info["__author__"],
     author_email=info["__email__"],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Physics",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
     ],
     packages=PEP420PackageFinder.find(include=["lumicks.*"]),
     include_package_data=True,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=[
         "pytest>=3.5",
         "h5py>=3.4, <4",
         "numpy>=1.24, <2",  # 1.24 is needed for dtype in vstack/hstack (Dec 18th, 2022)
         "scipy>=1.9, <2",  # 1.9.0 needed for lazy imports (July 29th, 2022)
-        "matplotlib>=3.5",
+        "matplotlib>=3.8",
         "tifffile>=2022.7.28",
         "tabulate>=0.8.8, <0.9",
         "cachetools>=3.1",
@@ -67,10 +67,10 @@ setup(
     extras_require={
         "notebook": [
             # Notebook upper limit is a workaround for issues with IPython not being defined.
-            "notebook>=4.4.1,<7",
+            "notebook>=6.5.7,<7",
             "ipywidgets>=7.0.0",
-            "jupyter_client<8",  # https://github.com/jupyter/notebook/issues/6748
-            "pyzmq<25",  # https://github.com/jupyter/notebook/issues/6748
+            "jupyter_client>=7.4.9,<8",  # https://github.com/jupyter/notebook/pull/7305
+            "pyzmq",
         ],
     },
     zip_safe=False,

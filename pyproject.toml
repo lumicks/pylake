@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 100
-target-version = ['py39']
+target-version = ['py310']
 exclude = '''
 (
   /(
@@ -20,6 +20,6 @@ exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 100
-py_version=39
+py_version=310
 length_sort_sections = ["stdlib", "thirdparty", "firstparty", "localfolder"]
 lines_between_sections = 1

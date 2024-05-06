@@ -1,7 +1,7 @@
 Installation
 ============
 
-Pylake can be installed on Windows, Linux and Mac and requires Python 3.9 or newer.
+Pylake can be installed on Windows, Linux and Mac and requires Python 3.10 or newer.
 
 .. note::
 
@@ -19,7 +19,7 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
 .. rubric:: Windows
 
-#. Go to the `Anaconda`_ website and download the Python 3.9 (or newer) installer.
+#. Go to the `Anaconda`_ website and download the Python 3.10 (or newer) installer.
 
 #. Run it and accept the default options during the installation.
 
@@ -69,7 +69,7 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 
 .. rubric:: Linux
 
-#. Go to the `Anaconda`_ website and download the Python 3.9 (or newer) installer.
+#. Go to the `Anaconda`_ website and download the Python 3.10 (or newer) installer.
 
 #. Open a terminal window and run::
 
@@ -112,7 +112,7 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 
 .. rubric:: macOS
 
-#. Go to the `Anaconda`_ website and download the Python 3.9 (or newer) installer.
+#. Go to the `Anaconda`_ website and download the Python 3.10 (or newer) installer.
 
 #. Run it and accept the default options during the installation.
 
@@ -147,7 +147,7 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 Installation using pip
 ----------------------
 
-If you're already familiar with Python and have Python >= 3.9 installed, installing Pylake on Windows, Linux or Mac can be done using `pip`, Python's usual package manager::
+If you're already familiar with Python and have Python >= 3.10 installed, installing Pylake on Windows, Linux or Mac can be done using `pip`, Python's usual package manager::
 
     pip install lumicks.pylake
 
