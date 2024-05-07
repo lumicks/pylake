@@ -238,7 +238,11 @@ def test_ref_dict_freezing(compare_to_reference_dict, reference_data, tst):
     compare_to_reference_dict(test_dict)
 
 
-def test_ref_dict_freezing_fail(compare_to_reference_dict):
+def test_ref_dict_freezing_fail(request, compare_to_reference_dict):
+    if request.config.getoption("--update_reference_data"):
+        # Don't rewrite these as they intentionally fail
+        return
+
     with pytest.raises(
         RuntimeError,
         match=re.escape(
