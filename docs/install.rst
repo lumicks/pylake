@@ -320,6 +320,33 @@ Important to note is that packages on `conda` and `pip` are typically *not* comp
 Frequently asked questions
 --------------------------
 
+**Why are the plots in my notebook not interactive?**
+
+Jupyter notebooks support the use of interactive figures.
+To enable interactive plots, you have to invoke the correct `magic commands <https://ipython.readthedocs.io/en/stable/interactive/magics.html>`_ in the notebook.
+When using Jupyter notebook, the following command will switch the `matplotlib` backend from the inline one (which renders images) to the interactive backend::
+
+    %matplotlib widget
+
+.. note::
+
+    Switching plotting backends typically requires you to restart the Jupyter kernel.
+
+**I tried using interactive plots using Jupyter notebook, but get the error `Javascript Error: IPython is not defined`**
+
+Starting from Pylake `1.4.0`, Pylake ships with a more recent version of Jupyter Notebook (`notebook >=7`).
+This newer version requires a different backend when using interactive figures: `%matplotlib notebook` has to be replaced by `%matplotlib widget`.
+Note that switching between interactive backends requires a kernel restart (select kernel -> restart from the menu at the top of the Jupyter Notebook).
+
+The reason for this change is that the backend which handled the interactive figures in `notebook<7` is no longer supported by Jupyter notebooks.
+Moving forward, `ipympl` will be used for interactive figures.
+See also the `matplotlib documentation <https://matplotlib.org/stable/users/explain/figure/interactive.html#jupyter-notebooks-jupyterlab>`_ on this.
+
+**I prefer the old interactive figures**
+
+It is still possible to use the old notebooks by installing `nbclassic` and starting the notebook with `jupyter nbclassic` instead of `jupyter notebook`.
+For more information on this, see the `nbclassic documentation <https://nbclassic.readthedocs.io/en/latest/nbclassic.html>`_.
+
 .. _OpenSSL Error:
 
 **I tried the installation instructions on Windows, but I get a CondaSSLError**
@@ -404,18 +431,6 @@ If this happens, please try the following:
     python %CONDA_PREFIX%\Scripts\pywin32_postinstall.py -install
 
 * Restart the Jupyter Notebook and try again.
-
-
-**Why are the plots in my notebook not interactive?**
-
-To enable interactive plots, you have to invoke the correct `magic commands <https://ipython.readthedocs.io/en/stable/interactive/magics.html>`_
-in the notebook. When using Jupyter notebook, the following command will switch the `matplotlib` backend from the inline
-one (which renders images) to the interactive backend::
-
-    %matplotlib widget
-
-*Note that switching backends typically requires you to restart the Jupyter kernel*. When using JupyterLab, `ipympl` is
-the only backend that provides interactive plots with Pylake.
 
 
 **Conda takes a long time to resolve the environment and then fails. What can I do?**
