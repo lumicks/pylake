@@ -58,6 +58,9 @@ def plot_correlated(
         else channel_slice[frame_timestamps[0][0] : frame_timestamps[-1][-1]]
     )
 
+    if len(processed_channel) < 2:
+        raise ValueError("Channel slice must contain at least two data points.")
+
     if len(processed_channel.timestamps) < len(frame_timestamps):
         warnings.warn("Only subset of time range available for selected channel")
 
@@ -79,12 +82,16 @@ def plot_correlated(
     t, y = processed_channel.seconds, processed_channel.data
 
     # We explicitly append the last frame time to make sure that it still shows up
-    last_dt = np.diff(
-        [
-            frame_range
-            for frame_range in frame_timestamps
-            if frame_range[0] >= channel_slice.start and frame_range[1] <= channel_slice.stop
-        ][-1]
+    last_dt = (
+        np.diff(
+            [
+                frame_range
+                for frame_range in frame_timestamps
+                if frame_range[0] >= channel_slice.start and frame_range[1] <= channel_slice.stop
+            ][-1]
+        )
+        if downsample_to_frames
+        else (processed_channel.timestamps[-1] - processed_channel.timestamps[-2])
     )
     t = np.hstack((t, t[-1] + last_dt * 1e-9))
     y = np.hstack((y, y[-1]))
