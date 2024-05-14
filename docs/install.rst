@@ -320,6 +320,8 @@ Important to note is that packages on `conda` and `pip` are typically *not* comp
 Frequently asked questions
 --------------------------
 
+.. _notebook7:
+
 **Why are the plots in my notebook not interactive?**
 
 Jupyter notebooks support the use of interactive figures.
@@ -334,7 +336,7 @@ When using Jupyter notebook, the following command will switch the `matplotlib` 
 
 **I tried using interactive plots using Jupyter notebook, but get the error `Javascript Error: IPython is not defined`**
 
-Starting from Pylake `1.4.0`, Pylake ships with a more recent version of Jupyter Notebook (`notebook >=7`).
+Starting from Pylake `1.5.0`, Pylake ships with a more recent version of Jupyter Notebook (`notebook >=7`).
 This newer version requires a different backend when using interactive figures: `%matplotlib notebook` has to be replaced by `%matplotlib widget`.
 Note that switching between interactive backends requires a kernel restart (select kernel -> restart from the menu at the top of the Jupyter Notebook).
 

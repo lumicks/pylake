@@ -1,0 +1,54 @@
+Pylake 1.5.0
+============
+
+.. only:: html
+
+Pylake `v1.5.0` has been released with new features and improvements to existing analyses. Here’s some of the highlights:
+
+Plotting with channel data
+--------------------------
+
+Added :meth:`Kymo.plot_with_channels()<lumicks.pylake.kymo.Kymo.plot_with_channels()>` to plot kymograph data along with data from multiple channels.
+
+.. figure:: plot_with_channels.png
+
+    A plot of a kymograph with force data and photon counts where we customized color, labels and down-sampling.
+
+This function allows for fine grained plot customization.
+See :ref:`correlated plotting<kymo_correlation>` for more information.
+
+Improved customization of correlated plots
+------------------------------------------
+
+Added option to disable down-sampling channel data to frame rates when plotting or exporting correlated channel data with scans and images.
+This option is now available in the plotting methods :meth:`ImageStack.plot_correlated()<lumicks.pylake.ImageStack.plot_correlated()>`, :meth:`Scan.plot_correlated()<lumicks.pylake.scan.Scan.plot_correlated()>` and video export methods :meth:`ImageStack.export_video()<lumicks.pylake.ImageStack.export_video()>` and :meth:`Scan.export_video()<lumicks.pylake.scan.Scan.export_video()>`.
+
+.. figure:: less_downsampling.gif
+
+    A correlated movie of a multi-frame scan with a customized level of down-sampling.
+
+Improved returned statistics force calibration
+----------------------------------------------
+
+A bug in the calculation of the goodness of fit in force calibration routine was fixed.
+For more information on this quantity, please see the section on :ref:`goodness of fit<goodness_of_fit>`.
+Note that this bug did not affect force calibration results, only the value of this statistic.
+In addition, the force calibration routine now returns standard errors on the stiffness and displacement sensitivity in the table of fit results.
+
+Updated dependencies
+--------------------
+
+Starting from Pylake `1.5.0`, we have updated some of our dependencies.
+
+If you installed Pylake with jupyter `notebook`, you may have to update uses of `%matplotlib notebook` with `%matplotlib widget` in existing notebooks.
+See the :ref:`FAQ<notebook7>` for more information.
+
+We also dropped support for Python `3.9` in favor of the newer `3.12`.
+
+Other changes
+-------------
+
+In addition, this release contains several other bug-fixes and improvements.
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!
