@@ -206,7 +206,7 @@ But channels can also be sliced::
 
 Note that channels are indexed in time units using numbers with suffixes.
 The possible suffixes are d, h, m, s, ms, us, ns, corresponding to day, hour, minute, second, millisecond, microsecond and nanosecond.
-This indexing only applies to channels slices.
+This indexing only applies to channel slices.
 Once you access the raw data, those are regular arrays which use regular array indexing::
 
     channel_slice = file.force1x['1.5s':'20s']  # Indices in time units for channel data
@@ -332,7 +332,7 @@ The actual markers can be obtained from the dictionary as follows::
     >>> file.markers["Tether: 11"]
     <lumicks.pylake.marker.Marker at 0x1785ccf1990>
 
-We can find the start and stop time with ``.start`` and ``.stop``.
+We can find the start and stop timestamps with ``.start`` and ``.stop``.
 
     >>> print(file.markers["Tether: 11"].start)
     1638534506519544400
@@ -340,7 +340,13 @@ We can find the start and stop time with ``.start`` and ``.stop``.
     >>> print(file.markers["Tether: 11"].stop)
     1638534716503544401
 
-Note that you can slice channel data directly using markers (or any other item that has a ``.start`` and ``.stop`` property)::
+You can slice channels directly using these timestamps:
+
+    >>> marker = file.markers["Tether: 11"]
+    >>> file.force1x[marker.start:marker.stop]
+    <lumicks.pylake.channel.Slice at 0x1785ccf1390>
+
+You can also slice channel data directly using markers (or any other item that has a ``.start`` and ``.stop`` property)::
 
     >>> file.force1x[file.markers["Tether: 11"]]
     <lumicks.pylake.channel.Slice at 0x1785ccf1390>

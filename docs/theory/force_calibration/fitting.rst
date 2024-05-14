@@ -38,6 +38,8 @@ Setting the number of points per block too low would result in a bias from insuf
 use a high number of points per block (:math:`n_b \gg 100`), unless a very low corner frequency precludes this.
 In such cases, it is preferable to increase the measurement time.
 
+.. _goodness_of_fit:
+
 Goodness of fit
 ---------------
 

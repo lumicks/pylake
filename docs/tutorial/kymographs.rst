@@ -235,6 +235,8 @@ and therefore each pixel no longer has an identifiable time. For example, we can
 Additionally, a downsampled kymograph cannot be sliced (same as cropped kymographs mentioned above). Therefore you should
 first slice the kymograph and then downsample.
 
+.. _kymo_correlation:
+
 Correlating with channel data
 -----------------------------
 
