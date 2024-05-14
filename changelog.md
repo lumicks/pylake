@@ -17,11 +17,10 @@
 * Warn when parameter estimates are hitting the fitting bounds when using [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html).
 * Added `err_kappa` and `err_Rd` to force calibration results. These contain error estimates for the calibration constants propagated from the fitting errors.
 
-## v1.4.1 | t.b.d.
-
 #### Bug fixes
 
 * Fixed statistical backing returning an incorrect value.
+* Fixed bug where the `start_frame` parameter was being ignored when exporting a movie with [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video) and [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video). This bug was introduced in Pylake `v1.3.0`.
 
 ## v1.4.0 | 2024-02-28
 

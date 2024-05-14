@@ -113,8 +113,8 @@ def test_correlated_movie_export(tmpdir_factory, test_scans_multiframe, vertical
     scan.export_video(
         channel,
         f"{tmpdir}/{channel}_corr.gif",
-        start_frame=0,
-        stop_frame=0,
+        start_frame=None,
+        stop_frame=None,
         channel_slice=corr_data,
         vertical=vertical,
     )

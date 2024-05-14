@@ -136,9 +136,9 @@ class VideoExport:
         file_name : str
             File name to export to.
         start_frame : int
-            First frame in exported video.
+            First frame in exported video (starts at zero).
         stop_frame : int
-            Last frame in exported video.
+            Stop frame in exported video. Note that this frame is no longer included.
         fps : int
             Frame rate.
         adjustment : lk.ColorAdjustment
@@ -209,8 +209,8 @@ class VideoExport:
         else:
             raise RuntimeError("You need either ffmpeg or pillow installed to export videos.")
 
-        start_frame = start_frame if start_frame else 0
-        stop_frame = stop_frame if stop_frame else self.num_frames
+        start_frame = start_frame if start_frame is not None else 0
+        stop_frame = stop_frame if stop_frame is not None else self.num_frames
 
         shared_args = {"channel": channel, "adjustment": adjustment}
         if channel_slice:
@@ -226,7 +226,7 @@ class VideoExport:
             fig.patch.set_alpha(1.0)  # Circumvents grainy rendering
 
             def plot(frame):
-                set_frame(frame)
+                set_frame(frame + start_frame)
                 artists = []
                 for ax in fig.get_children():
                     artists = ax.get_children()
@@ -244,7 +244,7 @@ class VideoExport:
                 nonlocal image_handle
                 image_handle = self.plot(
                     **shared_args,
-                    frame=frame,
+                    frame=frame + start_frame,
                     image_handle=image_handle,
                     scale_bar=scale_bar,
                     **kwargs,

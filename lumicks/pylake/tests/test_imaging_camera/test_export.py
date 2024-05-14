@@ -102,3 +102,62 @@ def test_stack_movie_export(
             stack.export_video("gray", "dummy.gif")  # Gray is not a color!
 
         stack.close()
+
+
+@pytest.mark.parametrize(
+    "start, stop, ref, correlated",
+    [
+        (None, None, [0, 1], True),
+        (1, None, [1], True),
+        (0, None, [0, 1], True),
+        (0, 2, [0, 1], True),
+        (None, 1, [0], True),
+        (None, None, [0, 1], False),
+        (1, None, [1], False),
+        (0, None, [0, 1], False),
+        (0, 2, [0, 1], False),
+        (None, 1, [0], False),
+    ],
+)
+def test_movie_export_range(
+    monkeypatch, tmpdir_factory, rgb_tiff_file_multi, start, stop, ref, correlated
+):
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    stack = ImageStack(str(rgb_tiff_file_multi))
+
+    dt_stack = stack.frame_timestamp_ranges()[1][0] - stack.frame_timestamp_ranges()[0][0]
+    corr_data = (
+        Slice(
+            Continuous(np.arange(100), stack.start, dt_stack // 2),
+            labels={"title": "title", "y": "y"},
+        )
+        if correlated
+        else None
+    )
+
+    fn = f"{tmpdir}/test.gif"
+
+    with monkeypatch.context() as m:
+        frames = []
+
+        if correlated:
+            # Plot correlated returns a frame setter that export uses to change the frame
+            def faux_set_frame(frame):
+                frames.append(frame)
+
+            def faux_plot_correlated(*_, **__):
+                return faux_set_frame
+
+            m.setattr("lumicks.pylake.image_stack.ImageStack.plot_correlated", faux_plot_correlated)
+        else:
+
+            def faux_plot(*_, frame, **__):
+                frames.append(frame)
+
+            m.setattr("lumicks.pylake.image_stack.ImageStack.plot", faux_plot)
+
+        stack.export_video("red", fn, start_frame=start, stop_frame=stop, channel_slice=corr_data)
+        stack.close()
+
+        # We take the unique frames, since plots are called a few times to "prepare" for rendering
+        np.testing.assert_equal(np.unique(frames), ref)
