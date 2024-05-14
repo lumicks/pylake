@@ -216,11 +216,19 @@ def test_scan_plot_correlated(test_scans_multiframe, frame, vertical, channel, d
 
     # Fetch raw data
     lines = [o for o in axes[1 - image_axis].get_children() if isinstance(o, mpl.lines.Line2D)]
-    _, y = lines[0].get_data()
+    ref_time_vector, y = lines[0].get_data()
 
     ts_ranges = scan.frame_timestamp_ranges()
     if downsample:
         ds = corr_data.downsampled_over(ts_ranges)
-        np.testing.assert_allclose(ds.data, y[:-1])  # Last sample is double because of step plot
+        # Last sample is double because of step plot
+        np.testing.assert_allclose(np.hstack((ds.data, ds.data[-1])), y)
+        # Last frame does _not_ include dead time
+        seconds = (np.asarray(ts_ranges) - ts_ranges[0][0]) / 1e9
+        time_vector = np.hstack((seconds[:, 0], seconds[-1, 1]))
+        np.testing.assert_allclose(time_vector, ref_time_vector)
     else:
-        np.testing.assert_allclose(corr_data[ts_ranges[0][0] : ts_ranges[-1][-1]].data, y[:-1])
+        slc = corr_data[ts_ranges[0][0] : ts_ranges[-1][-1]]
+        np.testing.assert_allclose(np.hstack((slc.data, slc.data[-1])), y)
+        time_vector = np.hstack((slc.seconds, slc.seconds[-1] + slc.seconds[-1] - slc.seconds[-2]))
+        np.testing.assert_allclose(time_vector, ref_time_vector)
