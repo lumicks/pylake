@@ -1205,7 +1205,7 @@ def test_integration_test_to_kymo(
         (tether_start * pixelsize, 10 * pixelsize), (26 * pixelsize, 10 * pixelsize)
     )
     kymo = with_tether.to_kymo(half_window=half_window, reduce=np.sum)
-    lines = track_greedy(kymo, "red", pixel_threshold=3)
+    lines = track_greedy(kymo, "red", pixel_threshold=4)
     np.testing.assert_allclose(
         lines[0].position, [(position - tether_start) * pixelsize] * num_images
     )
