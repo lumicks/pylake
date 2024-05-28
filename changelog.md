@@ -1,32 +1,31 @@
 # Changelog
 
-## v1.5.0 | t.b.d.
+## v1.5.0 | 2024-05-28
 
 #### New features
 
 * Support Python `3.12`, dropped support for `3.9`.
-* Added [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels) for plotting a kymograph with corresponding channel data. For more information, please refer to the [kymograph tutorial](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/kymographs.html#correlating-with-channel-data).
-* Added option to disable downsampling channel data to frame rates with correlated plots ([`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated), [`Scan.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.Scan.html#lumicks.pylake.Scan.plot_correlated)) and exported videos ([`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video), [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.Scan.html#lumicks.pylake.Scan.export_video)) using `downsample_to_frames=False`.
+* Added [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels) for plotting a kymograph with corresponding channel data. For more information, please refer to the [kymograph tutorial](https://lumicks-pylake.readthedocs.io/en/v1.5.0/tutorial/kymographs.html#correlating-with-channel-data).
+* Added option to disable downsampling channel data to frame rates with correlated plots ([`ImageStack.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.plot_correlated), [`Scan.plot_correlated()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.plot_correlated)) and exported videos ([`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video), [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video)) using `downsample_to_frames=False`.
 * Added `err_kappa` and `err_Rd` to force calibration results. These contain error estimates for the calibration constants propagated from the fitting errors.
-* Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
-* Made ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) callable to evaluate the fitted model power spectral density at the specified frequencies.
-* Added `fitted_params` field to ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) for convenience.
-* Allow accessing FdFit model defaults through key access notation (i.e. `model["m/Lc"]`).
+* Added support for loading two-color `TIF` files with [`ImageStack`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack).
+* Made ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) callable to evaluate the fitted model power spectral density at the specified frequencies.
+* Added `fitted_params` field to ([`CalibrationResults`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#calibrationresults)) for convenience.
+* Allow accessing [`Model`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.fitting.model.Model.html) default parameters for a force-distance model by key (i.e. `model["m/Lc"]`).
 
 #### Improvements
 
-* Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes. 
-* Warn when parameter estimates are hitting the fitting bounds when using [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.parameter_trace.html).
-* Added `err_kappa` and `err_Rd` to force calibration results. These contain error estimates for the calibration constants propagated from the fitting errors.
+* Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes. 
+* Warn when parameter estimates are hitting the fitting bounds when using [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.parameter_trace.html).
 
 #### Other changes
 
-* Switch to notebook v7 with `ipympl`. See https://blog.jupyter.org/announcing-jupyter-notebook-7-8d6d66126dcf for more information. Note that this means that you have to have to invoke `%matplotlib widget` in notebooks where you previously used `%matplotlib notebook`.
+* Switch to notebook v7 with `ipympl`. Note that this means that you have to have to invoke `%matplotlib widget` in notebooks where you previously used `%matplotlib notebook`. See the jupyter [notebook 7 announcement](https://blog.jupyter.org/announcing-jupyter-notebook-7-8d6d66126dcf) for more information.
 
 #### Bug fixes
 
 * Fixed statistical backing returning an incorrect value.
-* Fixed bug where the `start_frame` parameter was being ignored when exporting a movie with [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video) and [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video). This bug was introduced in Pylake `v1.3.0`.
+* Fixed bug where the `start_frame` parameter was being ignored when exporting a movie with [`ImageStack.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.ImageStack.html#lumicks.pylake.ImageStack.export_video) and [`Scan.export_video()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.export_video). This bug was introduced in Pylake `v1.3.0`.
 
 ## v1.4.0 | 2024-02-28
 
