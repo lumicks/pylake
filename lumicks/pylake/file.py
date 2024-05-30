@@ -26,8 +26,10 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     filename : str | os.PathLike
         The HDF5 file to open in read-only mode
 
-    rgb_to_detectors : Dict[Color, str]
-        Dictionary that maps RGB colors to a photon detector channel (either photon counts, or photon time tags)
+    rgb_to_detectors : Optional[Dict[str, str]]
+        Dictionary that maps RGB colors to a photon detector channel (either photon counts, or
+        photon time tags). Note that a channel can be left empty by providing the channel name
+        "None". Valid colors are ("Red", "Green", "Blue").
 
     Examples
     --------
@@ -48,13 +50,9 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     def __init__(self, filename, *, rgb_to_detectors=None):
         import h5py
 
-        if rgb_to_detectors is None:
-            rgb_to_detectors = {"Red": "Red", "Green": "Green", "Blue": "Blue"}
-
-        self._rgb_to_detectors = rgb_to_detectors
         super().__init__(h5py.File(filename, "r"), lk_file=self)
         self._check_file_format()
-        self._check_detector_mapping()
+        self._rgb_to_detectors = self._get_detector_mapping(rgb_to_detectors)
 
     def _check_file_format(self):
         if "Bluelake version" not in self.h5.attrs:
@@ -80,21 +78,49 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
             "Point Scan": ("point_scans", PointScan),
         }
 
-    def _check_detector_mapping(self):
-        detectors = set()
-        if "Photon time tags" in self.h5:
-            detectors = set(self.h5["Photon time tags"])
-        elif "Photon count" in self.h5:
-            detectors = set(self.h5["Photon count"])
+    def _get_detector_mapping(self, rgb_to_detectors=None):
+        """Returns the detector mapping to be used.
 
-        # Only check if detector data was exported
-        if not detectors:
-            return
+        Parameters
+        ----------
+        rgb_to_detectors : Optional[Dict[str, str]]
+            Dictionary that maps RGB colors to a photon detector channel (either photon counts, or
+            photon time tags). Note that a channel can be left empty by providing the channel name
+            "None".
+        """
 
-        if not_found := set(self._rgb_to_detectors.values()) - detectors:
-            raise Exception(
-                f"Invalid RGB to detector mapping: {not_found} photon count channel(s) are missing, images cant't be reconstructed. Available detectors: {detectors}"
-            )
+        def check_custom_detector_mapping():
+            for key in rgb_to_detectors.keys():
+                if key not in ("Red", "Green", "Blue"):
+                    raise ValueError(
+                        f'Invalid color mapping ({key}). Valid colors are "Red", "Green" or "Blue"'
+                    )
+
+            detectors = set()
+            if "Photon time tags" in self.h5:
+                detectors = set(self.h5["Photon time tags"])
+            elif "Photon count" in self.h5:
+                detectors = set(self.h5["Photon count"])
+
+            # Only check if detector data was exported
+            if not detectors:
+                return
+
+            # "None" indicates that the user doesn't want to plot data for that particular channel.
+            if not_found := (set(rgb_to_detectors.values()) - {"None"}) - detectors:
+                warnings.warn(
+                    RuntimeWarning(
+                        f"Invalid RGB to detector mapping: {not_found} photon count channel(s) are "
+                        f"missing. Those channels will be blank in images. Available detectors: "
+                        f"{detectors}"
+                    )
+                )
+
+        if rgb_to_detectors:
+            check_custom_detector_mapping()
+            return rgb_to_detectors
+        else:
+            return {"Red": "Red", "Green": "Green", "Blue": "Blue"}
 
     @classmethod
     def from_h5py(cls, h5py_file, *, rgb_to_detectors=None):
@@ -103,10 +129,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         new_file.h5 = h5py_file
         new_file._lk_file = new_file
         new_file._check_file_format()
-        if rgb_to_detectors is None:
-            rgb_to_detectors = {"Red": "Red", "Green": "Green", "Blue": "Blue"}
-        new_file._rgb_to_detectors = rgb_to_detectors
-        new_file._check_detector_mapping()
+        new_file._rgb_to_detectors = new_file._get_detector_mapping(rgb_to_detectors)
         return new_file
 
     @property
