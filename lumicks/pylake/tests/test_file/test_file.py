@@ -471,11 +471,64 @@ def test_h5_cropped_export_confocal(tmpdir_factory):
             )
 
 
-def test_detector_mapping(h5_custom_detectors):
-    f = pylake.File.from_h5py(
+def test_detector_mapping(h5_custom_detectors, h5_two_colors):
+    custom_correct = pylake.File.from_h5py(
         h5_custom_detectors,
         rgb_to_detectors={"Red": "Detector 1", "Green": "Detector 2", "Blue": "Detector 3"},
     )
-    with pytest.raises(Exception):
-        f = pylake.File.from_h5py(h5_custom_detectors, match="Invalid RGB to detector mapping")
-    assert np.any(f.red_photon_count.data)
+    assert custom_correct.red_photon_count.data.size
+    assert custom_correct.green_photon_count.data.size
+    assert custom_correct.blue_photon_count.data.size
+
+    # None of these exist, since this is a custom photon count file
+    with pytest.warns(RuntimeWarning, match="Invalid RGB to detector mapping"):
+        custom_empty = pylake.File.from_h5py(
+            h5_custom_detectors, rgb_to_detectors={"Red": "Red", "Green": "Green", "Blue": "Blue"}
+        )
+        assert not custom_empty.red_photon_count.data.size
+        assert not custom_empty.green_photon_count.data.size
+        assert not custom_empty.blue_photon_count.data.size
+
+    # Green photon count channel doesn't exist, so we issue a warning about this
+    with pytest.warns(RuntimeWarning, match="Invalid RGB to detector mapping"):
+        two_color = pylake.File.from_h5py(
+            h5_two_colors, rgb_to_detectors={"Red": "Red", "Green": "Green", "Blue": "Blue"}
+        )
+        assert two_color.red_photon_count.data.size
+        assert not two_color.green_photon_count.data.size
+        assert two_color.blue_photon_count.data.size
+
+    # Green photon count channel doesn't exist, _but_ we are using defaults, so we do not explicitly
+    # issue a warning (this is the old reference behavior). People may not even want to show
+    # images, so it's weird to bother them with a warning.
+    two_color_default = pylake.File.from_h5py(h5_two_colors)
+    assert two_color_default.red_photon_count.data.size
+    assert not two_color_default.green_photon_count.data.size
+    assert two_color_default.blue_photon_count.data.size
+
+    # Valid mapping
+    double_red = pylake.File.from_h5py(
+        h5_two_colors, rgb_to_detectors={"Red": "Red", "Green": "Red", "Blue": "Blue"}
+    )
+    np.testing.assert_allclose(double_red.green_photon_count.data, two_color.red_photon_count.data)
+    assert double_red.blue_photon_count.data.size
+
+    # Explicitly setting `"None"` doesn't issue a warning
+    no_green = pylake.File.from_h5py(
+        h5_two_colors, rgb_to_detectors={"Red": "Red", "Green": "None", "Blue": "Blue"}
+    )
+    assert no_green.red_photon_count.data.size
+    assert not no_green.green_photon_count.data.size
+    assert no_green.blue_photon_count.data.size
+
+
+@pytest.mark.parametrize(
+    "mapping",
+    [
+        {"red": "Red", "green": "Red", "blue": "Blue"},  # Incorrect capitalization
+        {"Red": "Red", "Magenta": "Red", "Blue": "Blue"},  # Wrong name
+    ],
+)
+def test_detector_mapping_invalid_color(h5_two_colors, mapping):
+    with pytest.raises(ValueError, match="Invalid color mapping"):
+        pylake.File.from_h5py(h5_two_colors, rgb_to_detectors=mapping)

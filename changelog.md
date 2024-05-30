@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.5.1 | t.b.d.
+
+* Fixed bug that prevented loading an `h5` file where only a subset of the photon channels are available. This bug was introduced in Pylake `1.4.0`.
+
 ## v1.5.0 | 2024-05-28
 
 #### New features

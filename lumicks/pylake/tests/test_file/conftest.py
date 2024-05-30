@@ -223,3 +223,18 @@ def h5_custom_detectors(tmpdir_factory, request):
     mock_file.make_continuous_channel("Photon count", "Detector 3", np.int64(20e9), freq, counts)
     mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
     return mock_file.file
+
+
+@pytest.fixture(scope="module", params=[MockDataFile_v2])
+def h5_two_colors(tmpdir_factory, request):
+    mock_class = request.param
+
+    tmpdir = tmpdir_factory.mktemp("pylake")
+    mock_file = mock_class(tmpdir.join("%s.h5" % mock_class.__class__.__name__))
+    mock_file.write_metadata()
+
+    freq = 1e9 / 16
+    mock_file.make_continuous_channel("Photon count", "Red", np.int64(20e9), freq, counts)
+    mock_file.make_continuous_channel("Photon count", "Blue", np.int64(20e9), freq, counts)
+    mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
+    return mock_file.file
