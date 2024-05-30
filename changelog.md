@@ -5,6 +5,7 @@
 #### Bug fixes
 
 * Fixed statistical backing returning an incorrect value.
+* Fixed bug that prevented loading an `h5` file where only a subset of the photon channels are available. This bug was introduced in Pylake `1.4.0`.
 
 ## v1.4.0 | 2024-02-28
 
