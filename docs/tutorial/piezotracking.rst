@@ -36,7 +36,7 @@ Let's load this dataset and perform the distance calibration by invoking::
     no_tether_data = lk.File("test_data/piezo_tracking_no_tether.h5")
 
     distance_calibration = lk.DistanceCalibration(
-        no_tether_data["Trap position"]["1X"], no_tether_data.distance1, degree=2
+        no_tether_data["Trap position"]["1X"], no_tether_data.distance1, degree=1
     )
 
 This class performs a polynomial regression between the trap position and bead tracking distance.
