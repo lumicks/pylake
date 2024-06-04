@@ -5,6 +5,7 @@
 #### New features
 
 * Added parameter `allow_overwrite` to [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi) to allow re-downloading only those files where the checksum does not match.
+* Added force calibration information to channels accessed directly via the square bracket notation (e.g. `file["Force HF"]["Force 1x"].calibration`).
 
 ## v1.5.1 | 2024-06-03
 
