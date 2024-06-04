@@ -47,27 +47,51 @@ class ForceCalibration:
         return _filter_calibration(self._time_field, self._items, start, stop)
 
     @staticmethod
-    def from_field(hdf5, field, time_field="Stop time (ns)") -> "ForceCalibration":
-        """Fetch force calibration data from the HDF5 file"""
+    def from_field(hdf5, force_channel, time_field="Stop time (ns)") -> "ForceCalibration":
+        """Fetch force calibration data from the HDF5 file
+
+        Parameters
+        ----------
+        hdf5 : h5py.File
+            A Bluelake HDF5 file.
+        force_channel : str
+            Calibration field to access (e.g. "Force 1x").
+        time_field : str
+            Attribute which holds the timestamp of the item (e.g. "Stop time (ns)").
+        """
 
         if "Calibration" not in hdf5.keys():
             return ForceCalibration(time_field=time_field, items=[])
 
         items = []
         for calibration_item in hdf5["Calibration"].values():
-            if field in calibration_item:
-                attrs = calibration_item[field].attrs
+            if force_channel in calibration_item:
+                attrs = calibration_item[force_channel].attrs
                 if time_field in attrs.keys():
                     items.append(dict(attrs))
 
         return ForceCalibration(time_field=time_field, items=items)
 
     @staticmethod
-    def from_dataset(hdf5, n, xy, time_field="Stop time (ns)"):
-        """Fetch the force calibration data from the HDF5 file"""
+    def from_dataset(hdf5, n, xy, time_field="Stop time (ns)") -> "ForceCalibration":
+        """Fetch the force calibration data from the HDF5 file
+
+        Parameters
+        ----------
+        hdf5 : h5py.File
+            A Bluelake HDF5 file.
+        n : int
+            Trap index.
+        xy : str
+            Force axis (e.g. "x").
+        time_field : str
+            Attribute which holds the timestamp of the item (e.g. "Stop time (ns)").
+        """
 
         if xy:
-            return ForceCalibration.from_field(hdf5, field=f"Force {n}{xy}", time_field=time_field)
+            return ForceCalibration.from_field(
+                hdf5, force_channel=f"Force {n}{xy}", time_field=time_field
+            )
         else:
             raise NotImplementedError(
                 "Calibration is currently only implemented for single axis data"

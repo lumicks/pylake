@@ -1,6 +1,7 @@
 import warnings
 
 from .channel import channel_class
+from .calibration import ForceCalibration
 
 
 class Group:
@@ -30,7 +31,10 @@ class Group:
         import h5py
 
         thing = self.h5[item]
-        item_type = thing.name.split("/")[1]
+        split_name = thing.name.split("/")
+        item_type = split_name[1]
+        item_name = split_name[-1]
+
         redirect_location, redirect_class = self._lk_file.redirect_list.get(item_type, (None, None))
         if redirect_location and not redirect_class:
             warnings.warn(
@@ -47,6 +51,13 @@ class Group:
                 return redirect_class.from_dataset(thing, self._lk_file)
             else:
                 cls = channel_class(thing)
+
+                if item_type in ("Force HF", "Force LF"):
+                    return cls.from_dataset(
+                        thing,
+                        calibration=ForceCalibration.from_field(self._lk_file.h5, item_name),
+                    )
+
                 return cls.from_dataset(thing)
 
     def __iter__(self):

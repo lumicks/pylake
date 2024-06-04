@@ -41,11 +41,18 @@ def test_calibration(h5_file):
         assert len(f.force1x.calibration) == 0
         assert len(f.downsampled_force1.calibration) == 0
         assert len(f.downsampled_force1x.calibration) == 0
+        assert len(f["Force HF"]["Force 1x"].calibration) == 0
+        assert len(f["Force LF"]["Force 1x"].calibration) == 0
 
     if f.format_version == 2:
         assert len(f.force1x.calibration) == 2
         assert len(f.downsampled_force1.calibration) == 0
         assert len(f.downsampled_force1x.calibration) == 1
+        assert len(f["Force HF"]["Force 1x"].calibration) == 2
+        assert len(f["Force LF"]["Force 1x"].calibration) == 1
+
+        assert f["Force HF"]["Force 1x"].calibration == f.force1x.calibration
+        assert f["Force HF"]["Force 2x"].calibration == f.force2x.calibration
 
 
 def test_marker(h5_file):
