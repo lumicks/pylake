@@ -151,9 +151,21 @@ physical state of the system is hidden or unobservable.
 This description is the most basic implementation of an HMM. For detailed theoretical and practical
 explanations on the use and training of HMMs see the seminal work by Rabiner :cite:`Rabiner1989HMM`.
 
-We can fit an HMM with a single line of code::
+Fit an HMM using the Baum-Welch algorithm::
 
     hmm = lk.HiddenMarkovModel(force["0s":"2s"], n_states=2)
+
+This algorithm estimates the model parameters based on the provided data.
+One of these estimated parameters is the transition matrix which can be extracted as::
+
+    >>> hmm.transition_matrix
+    array([[0.96339315, 0.03660685],
+           [0.08215035, 0.91784965]])
+
+The means for each of the states can be accessed as::
+
+    >>> hmm.means
+    array([ 8.79212579, 10.08962247])
 
 We can get some information about the training process from the :attr:`~lumicks.pylake.HiddenMarkovModel.fit_info`
 property::
@@ -170,7 +182,7 @@ model. First, let's look at the probability distribution of the observed data::
 
 .. image:: figures/population_dynamics/hmm_hist.png
 
-We can also inspect the temporal evolution of the fit::
+Apply the Viterbi algorithm to assign the most probable state to each data point and obtain the temporal evolution of the fit::
 
     plt.figure()
     hmm.plot_path(force["0s":"1s"])
