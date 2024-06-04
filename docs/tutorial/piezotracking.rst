@@ -142,8 +142,9 @@ distance without the tether. :math:`F_{1x}` and :math:`F_{2x}` are the forces me
 
 To do this in Pylake, we set up the piezo distance calibration as follows::
 
-    piezo_calibration = lk.PiezoForceDistance(distance_calibration, baseline_1x, baseline_2x)
+    piezo_calibration = lk.PiezoForceDistance(distance_calibration, baseline_1x, baseline_2x, signs=(1, -1))
 
+where `signs` specifies the sign of force 1x and force 2x respectively. You can determine the signs by viewing the respective force channels; the channel that becomes more negative as force increases requires a `-1` sign.
 We now have all the calibrations we need to do piezo tracking on our experimental data.
 
 Calculating the Fd Curve
