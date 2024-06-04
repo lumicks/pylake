@@ -47,28 +47,28 @@ class ForceCalibration:
         return _filter_calibration(self._time_field, self._items, start, stop)
 
     @staticmethod
-    def from_dataset(hdf5, n, xy, time_field="Stop time (ns)"):
-        """Fetch the force calibration data from the HDF5 file"""
+    def from_field(hdf5, field, time_field="Stop time (ns)") -> "ForceCalibration":
+        """Fetch force calibration data from the HDF5 file"""
 
-        def parse_force_calibration(cdata, force_idx, force_axis) -> list:
-            items = []
-            for v in cdata:
-                attrs = cdata[v][f"Force {force_idx}{force_axis}"].attrs
+        if "Calibration" not in hdf5.keys():
+            return ForceCalibration(time_field=time_field, items=[])
+
+        items = []
+        for calibration_item in hdf5["Calibration"].values():
+            if field in calibration_item:
+                attrs = calibration_item[field].attrs
                 if time_field in attrs.keys():
                     items.append(dict(attrs))
 
-            calibration = ForceCalibration(time_field=time_field, items=items)
+        return ForceCalibration(time_field=time_field, items=items)
 
-            return calibration
+    @staticmethod
+    def from_dataset(hdf5, n, xy, time_field="Stop time (ns)"):
+        """Fetch the force calibration data from the HDF5 file"""
 
-        if "Calibration" in hdf5.keys():
-            if xy:
-                calibration_data = parse_force_calibration(hdf5["Calibration"], n, xy)
-            else:
-                raise NotImplementedError(
-                    "Calibration is currently only implemented for single axis data"
-                )
+        if xy:
+            return ForceCalibration.from_field(hdf5, field=f"Force {n}{xy}", time_field=time_field)
         else:
-            calibration_data = ForceCalibration(time_field=time_field, items=[])
-
-        return calibration_data
+            raise NotImplementedError(
+                "Calibration is currently only implemented for single axis data"
+            )
