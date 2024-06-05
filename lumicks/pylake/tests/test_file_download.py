@@ -27,7 +27,8 @@ def test_download_record_metadata():
 
 
 @pytest.mark.preflight
-def test_download_from_doi(tmpdir_factory, capsys):
+@pytest.mark.parametrize("force_arg", [{"force_download": True}, {"allow_overwrite": True}])
+def test_download_from_doi(tmpdir_factory, capsys, force_arg):
     tmpdir = tmpdir_factory.mktemp("download_testing")
     record = download_record_metadata("4247279")
 
@@ -48,12 +49,12 @@ def test_download_from_doi(tmpdir_factory, capsys):
 
     with pytest.raises(
         RuntimeError,
-        match="Set force_download=True if you wish to overwrite the existing file on disk with the "
-        "version from Zenodo",
+        match="Set allow_overwrite=True if you wish to overwrite the existing file on disk with "
+        "the version from Zenodo",
     ):
         download_from_doi("10.5281/zenodo.4247279", tmpdir, show_progress=False)
 
-    download_from_doi("10.5281/zenodo.4247279", tmpdir, force_download=True, show_progress=False)
+    download_from_doi("10.5281/zenodo.4247279", tmpdir, **force_arg, show_progress=False)
 
     captured = capsys.readouterr()
     assert not captured.out

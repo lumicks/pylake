@@ -79,7 +79,9 @@ def verify_hash(file_name, algorithm, reference_hash, chunk_size=65536):
     return m.hexdigest() == reference_hash
 
 
-def download_from_doi(doi, target_path="", force_download=False, show_progress=True):
+def download_from_doi(
+    doi, target_path="", force_download=False, show_progress=True, allow_overwrite=False
+):
     """Download files from a Zenodo DOI (i.e. 10.5281/zenodo.#######)
 
     Note
@@ -100,6 +102,9 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
         a freshly downloaded copy.
     show_progress : bool
         Show a progress bar while downloading.
+    allow_overwrite : bool
+        Re-download files for which the hash does not match the expected hash from Zenodo. Note that
+        this will overwrite the existing file with a freshly downloaded copy.
 
     Returns
     -------
@@ -122,22 +127,23 @@ def download_from_doi(doi, target_path="", force_download=False, show_progress=T
         file_name, url = file["key"], file["links"]["self"]
         full_path = os.path.join(target_path, file_name)
 
-        # If the file doesn't exist, we can't skip it
-        download = not os.path.exists(full_path)
+        # If the file doesn't exist or we are forcing to download all, we can't skip it
+        download = not os.path.exists(full_path) or force_download
 
-        # If a file with the requested filename exists but does not match the data from Zenodo,
-        # throw an error.
+        # Handle the case where a file with the requested filename exists, we are not forcing
+        # all files to download, but the file we have does not match the checksum from Zenodo.
         hash_algorithm, checksum = file["checksum"].split(":")
         if not download and not verify_hash(full_path, hash_algorithm, checksum):
-            if not force_download:
+            if allow_overwrite:
+                download = True
+            else:
                 raise RuntimeError(
-                    f"File {file_name} does not match file from Zenodo. Set force_download=True "
+                    f"File {file_name} does not match file from Zenodo. Set allow_overwrite=True "
                     f"if you wish to overwrite the existing file on disk with the version from "
                     f"Zenodo."
                 )
 
-        # Only download what we don't have yet.
-        if download or force_download:
+        if download:
             download_file(url, target_path, file_name, show_progress)
             if not verify_hash(full_path, hash_algorithm, checksum):
                 raise RuntimeError("Download failed. Invalid checksum after download.")

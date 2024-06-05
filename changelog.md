@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.0 | t.b.d.
+
+#### New features
+
+* Added parameter `allow_overwrite` to [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi) to allow re-downloading only those files where the checksum does not match.
+
 ## v1.5.1 | 2024-06-03
 
 * Fixed bug that prevented loading an `h5` file where only a subset of the photon channels are available. This bug was introduced in Pylake `1.4.0`.
