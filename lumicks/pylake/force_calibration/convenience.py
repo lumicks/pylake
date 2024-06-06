@@ -32,6 +32,7 @@ def calibrate_force(
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
+    discrete_model=False,
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
@@ -104,6 +105,8 @@ def calibrate_force(
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
         Fix diode relaxation factor to particular value.
+    discrete_model : bool
+        Take into account model discretization (only needed for high blocking)
 
     Raises
     ------
@@ -232,5 +235,8 @@ def calibrate_force(
         num_points_per_block,
         excluded_ranges=excluded_ranges,
     )
+
+    if discrete_model:
+        model = model._discretize_model(ps.frequency_bin_width)
 
     return fit_power_spectrum(ps, model)

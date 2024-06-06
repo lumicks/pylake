@@ -18,6 +18,7 @@ from .detail.power_models import (
     g_diode,
     alias_spectrum,
     motion_blur_peak,
+    discretize_spectrum,
     motion_blur_spectrum,
     sphere_friction_coefficient,
     passive_power_spectrum_model,
@@ -511,6 +512,21 @@ class PassiveCalibrationModel:
 
     def __call__(self, f, fc, diffusion_constant, *filter_params) -> np.ndarray:
         return self._calculate_power_spectral_density(f, fc, diffusion_constant, *filter_params)
+
+    def _discretize_model(self, frequency_bin_size):
+        """Include effects of motion blur into the model
+
+        Parameters
+        ----------
+        frequency_bin_size : float
+            Frequency bin width
+        """
+        new_model = copy(self)
+        new_model._calculate_power_spectral_density = discretize_spectrum(
+            new_model._calculate_power_spectral_density, frequency_bin_size
+        )
+
+        return new_model
 
     def _motion_blur(self, acquisition_time):
         """Include effects of motion blur into the model

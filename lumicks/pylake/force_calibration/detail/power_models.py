@@ -171,6 +171,18 @@ def theoretical_driving_power_lorentzian(fc, driving_frequency, driving_amplitud
     return driving_amplitude**2 / (2 * (1 + (fc / driving_frequency) ** 2))
 
 
+def discretize_spectrum(psd, bin_width):
+    from scipy.integrate import quad_vec
+
+    def discretized(freq, *args, **kwargs):
+        def model(f):
+            return psd(freq + f, *args, **kwargs)
+
+        return quad_vec(model, -bin_width / 2, bin_width / 2, epsrel=1e-4)[0] / bin_width
+
+    return discretized
+
+
 def motion_blur_peak(peak, driving_frequency, acquisition_time):
     """Take into account motion blur on the driving peak.
 
