@@ -1,0 +1,22 @@
+{
+  "test": "passive_item",
+  "parametrization": {},
+  "result": {
+    "num_points_per_block": 2000,
+    "sample_rate": 78125.0,
+    "excluded_ranges": [
+      [
+        100.0,
+        500.0
+      ],
+      [
+        1000.0,
+        2000.0
+      ]
+    ],
+    "fit_range": [
+      100.0,
+      23000.0
+    ]
+  }
+}

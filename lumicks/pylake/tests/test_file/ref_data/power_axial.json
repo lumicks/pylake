@@ -1,0 +1,13 @@
+{
+  "test": "axial_fast_sensor",
+  "parametrization": {},
+  "result": {
+    "num_points_per_block": 2000,
+    "sample_rate": 78125.0,
+    "excluded_ranges": [],
+    "fit_range": [
+      10.0,
+      7000.0
+    ]
+  }
+}
