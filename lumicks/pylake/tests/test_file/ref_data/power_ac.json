@@ -1,0 +1,22 @@
+{
+  "test": "active_item_fixed_diode",
+  "parametrization": {},
+  "result": {
+    "num_points_per_block": 200,
+    "sample_rate": 78125.0,
+    "excluded_ranges": [
+      [
+        12.0,
+        22.0
+      ],
+      [
+        205.0,
+        265.0
+      ]
+    ],
+    "fit_range": [
+      100.0,
+      23000.0
+    ]
+  }
+}

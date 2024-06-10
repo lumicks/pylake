@@ -1,0 +1,18 @@
+{
+  "test": "passive_item",
+  "parametrization": {},
+  "result": {
+    "bead_diameter": 1.0,
+    "rho_bead": 1100.0,
+    "rho_sample": 1000.0,
+    "viscosity": 0.00089,
+    "temperature": 25.0,
+    "distance_to_surface": 1.0,
+    "fixed_alpha": 0.45,
+    "fixed_diode": 10000.0,
+    "sample_rate": 78125.0,
+    "fast_sensor": false,
+    "axial": false,
+    "hydrodynamically_correct": true
+  }
+}

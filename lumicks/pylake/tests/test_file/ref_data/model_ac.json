@@ -1,0 +1,16 @@
+{
+  "test": "active_item_fixed_diode",
+  "parametrization": {},
+  "result": {
+    "bead_diameter": 2.1,
+    "rho_bead": 1060.0,
+    "rho_sample": 997.0,
+    "viscosity": 0.00089,
+    "temperature": 23.0,
+    "driving_frequency_guess": 17.0,
+    "sample_rate": 78125.0,
+    "fast_sensor": false,
+    "axial": false,
+    "hydrodynamically_correct": true
+  }
+}

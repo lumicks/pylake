@@ -1,0 +1,15 @@
+{
+  "test": "axial_fast_sensor",
+  "parametrization": {},
+  "result": {
+    "bead_diameter": 1.0,
+    "viscosity": 0.00089,
+    "temperature": 25.0,
+    "distance_to_surface": 0.6,
+    "drag": 8.666798296149962e-09,
+    "sample_rate": 78125.0,
+    "fast_sensor": true,
+    "axial": true,
+    "hydrodynamically_correct": false
+  }
+}

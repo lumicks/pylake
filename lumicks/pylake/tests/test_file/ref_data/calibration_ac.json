@@ -1,0 +1,32 @@
+{
+  "test": "active_item_fixed_diode",
+  "parametrization": {},
+  "result": {
+    "num_points_per_block": 200,
+    "sample_rate": 78125.0,
+    "excluded_ranges": [
+      [
+        12.0,
+        22.0
+      ],
+      [
+        205.0,
+        265.0
+      ]
+    ],
+    "fit_range": [
+      100.0,
+      23000.0
+    ],
+    "bead_diameter": 2.1,
+    "rho_bead": 1060.0,
+    "rho_sample": 997.0,
+    "viscosity": 0.00089,
+    "temperature": 23.0,
+    "driving_frequency_guess": 17.0,
+    "fast_sensor": false,
+    "axial": false,
+    "hydrodynamically_correct": true,
+    "active_calibration": true
+  }
+}
