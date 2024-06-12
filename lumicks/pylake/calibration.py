@@ -1,71 +1,131 @@
+from collections import UserDict
 import re
 
 CALIBRATION_PARAM_MAPPING = {
-    "bead_diameter": ("Bead diameter (um)", None),
-    "rho_bead": ("Bead density (Kg/m3)", None),
-    "rho_sample": ("Fluid density (Kg/m3)", None),
-    "axial": ("Axial calibration", False),
-    "hydrodynamically_correct": ("Hydrodynamic correction enabled", False),
-    "viscosity": ("Viscosity (Pa*s)", None),
-    "temperature": ("Temperature (C)", None),
-    "driving_frequency_guess": ("Driving data frequency (Hz)", None),
-    "distance_to_surface": ("Bead center height (um)", None),
+    "bead_diameter": "Bead diameter (um)",
+    "rho_bead": "Bead density (Kg/m3)",
+    "rho_sample": "Fluid density (Kg/m3)",
+    "viscosity": "Viscosity (Pa*s)",
+    "temperature": "Temperature (C)",
+    "driving_frequency_guess": "Driving data frequency (Hz)",
+    "distance_to_surface": "Bead center height (um)",
     # Fixed diode parameters (only available when diode was fixed)
-    "fixed_alpha": ("Diode alpha", None),
-    "fixed_diode": ("Diode frequency (Hz)", None),
+    "fixed_alpha": "Diode alpha",
+    "fixed_diode": "Diode frequency (Hz)",
     # Only available for axial with active
-    "drag": ("gamma_ex_lateral", None),
-}
-
-POWER_SPECTRUM_MAPPING = {
-    "num_points_per_block": ("Points per block", None),
-    "sample_rate": ("Sample rate (Hz)", None),
+    "drag": "gamma_ex_lateral",
 }
 
 
-def read_from_bl_dict(bl_dict, mapping):
-    return {
-        key_param: bl_dict.get(key_bl, default) for key_param, (key_bl, default) in mapping.items()
-    }
+def _read_from_bl_dict(bl_dict, mapping):
+    return {key_param: bl_dict.get(key_bl) for key_param, key_bl in mapping.items()}
 
 
-def extract_used_params(calibration_item, omit_defaults=True):
-    exclusion_range_indices = [
-        int(match[0])
-        for key in calibration_item.keys()
-        if (match := re.findall(r"Exclusion range ([\d+]) \(min\.\) \(Hz\)", key))
-    ]
-    power_spectrum_params = read_from_bl_dict(calibration_item, POWER_SPECTRUM_MAPPING) | {
-        "excluded_ranges": [
+class ForceCalibrationItem(UserDict):
+    def _verify_full(self):
+        if (kind := self.data.get("Kind", "Unknown")) != "Full calibration":
+            raise ValueError(
+                "These parameters are only available for a full calibration. Instead, this is a "
+                f"calibration item where the following operation was applied: {kind}."
+            )
+
+    def power_spectrum_params(self):
+        self._verify_full()
+
+        return {
+            "num_points_per_block": self.num_points_per_block,
+            "sample_rate": self.sample_rate,
+            "excluded_ranges": self.excluded_ranges,
+            "fit_range": self.fit_range,
+        }
+
+    def model_params(self):
+        self._verify_full()
+        model_params = _read_from_bl_dict(self.data, CALIBRATION_PARAM_MAPPING)
+        model_params["fast_sensor"] = self.fast_sensor
+        model_params["axial"] = bool(self.data.get("Axial calibration"))
+        model_params["hydrodynamically_correct"] = bool(
+            self.data.get("Hydrodynamic correction enabled")
+        )
+        return model_params
+
+    @property
+    def calibration_params(self):
+        model_params = self.model_params()
+        model_params["active_calibration"] = self.active_calibration
+
+        def check_defined(pair):
+            return pair[1] is not None
+
+        return dict(filter(check_defined, (self.power_spectrum_params() | model_params).items()))
+
+    @property
+    def excluded_ranges(self):
+        self._verify_full()
+
+        exclusion_range_indices = [
+            int(match[0])
+            for key in self.data.keys()
+            if (match := re.findall(r"Exclusion range ([\d+]) \(min\.\) \(Hz\)", key))
+        ]
+        return [
             (
-                calibration_item[f"Exclusion range {exclusion_idx} (min.) (Hz)"],
-                calibration_item[f"Exclusion range {exclusion_idx} (max.) (Hz)"],
+                self.data[f"Exclusion range {exclusion_idx} (min.) (Hz)"],
+                self.data[f"Exclusion range {exclusion_idx} (max.) (Hz)"],
             )
             for exclusion_idx in sorted(exclusion_range_indices)
-        ],
-        "fit_range": (
-            calibration_item["Fit range (min.) (Hz)"],
-            calibration_item["Fit range (max.) (Hz)"],
-        ),
-    }
+        ]
 
-    # If a driving frequency exists, it must have been an active calibration procedure
-    calibration_params = read_from_bl_dict(calibration_item, CALIBRATION_PARAM_MAPPING)
-    calibration_params["active_calibration"] = bool(
-        calibration_item.get("driving_frequency (Hz)", False)
-    )
+    @property
+    def fit_range(self):
+        self._verify_full()
 
-    # If it is not a fixed diode or free diode, it's a fast sensor
-    diode_fields = ("Diode frequency (Hz)", "f_diode (Hz)")
-    calibration_params["fast_sensor"] = not any(f in calibration_item.keys() for f in diode_fields)
+        return (
+            self.data["Fit range (min.) (Hz)"],
+            self.data["Fit range (max.) (Hz)"],
+        )
 
-    for key in ("axial", "hydrodynamically_correct"):
-        calibration_params[key] = bool(calibration_params[key])
+    @property
+    def active_calibration(self):
+        return self.data.get("driving_frequency (Hz)") is not None
 
-    def check_defined(pair):
-        return pair[1] is not None
+    @property
+    def fast_sensor(self):
+        # If it is not a fixed diode or free diode, it's a fast sensor
+        diode_fields = ("Diode frequency (Hz)", "f_diode (Hz)")
+        return not any(f in self.data.keys() for f in diode_fields)
 
-    return dict(filter(check_defined, (power_spectrum_params | calibration_params).items()))
+    @property
+    def num_points_per_block(self):
+        """Number of points per block used for spectral down-sampling"""
+        return self.data.get("Points per block")
+
+    @property
+    def start(self):
+        return self.data.get("Start time (ns)")
+
+    @property
+    def stop(self):
+        return self.data.get("Stop time (ns)")
+
+    @property
+    def sample_rate(self):
+        return self.data.get("Sample rate (Hz)")
+
+    @property
+    def stiffness(self):
+        """Stiffness in pN/nm"""
+        return self.data.get("kappa (pN/nm)")
+
+    @property
+    def force_sensitivity(self):
+        """Force sensitivity in pN/V"""
+        return self.data.get("Rf (pN/V)")
+
+    @property
+    def displacement_sensitivity(self):
+        """Displacement sensitivity in um/V"""
+        return self.data.get("Rd (um/V)")
 
 
 def _filter_calibration(time_field, items, start, stop):
@@ -138,7 +198,7 @@ class ForceCalibration:
             if force_channel in calibration_item:
                 attrs = calibration_item[force_channel].attrs
                 if time_field in attrs.keys():
-                    items.append(dict(attrs))
+                    items.append(ForceCalibrationItem(attrs))
 
         return ForceCalibration(time_field=time_field, items=items)
 
