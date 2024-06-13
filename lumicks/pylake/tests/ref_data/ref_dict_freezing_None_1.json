@@ -1,0 +1,8 @@
+{
+  "test": "ref_dict_freezing_fail",
+  "parametrization": {},
+  "result": {
+    "a": 5,
+    "b": 3
+  }
+}

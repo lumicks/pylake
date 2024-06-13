@@ -305,12 +305,20 @@ def compare_to_reference_dict(reference_data):
                 return f"{key}: missing vs {ref_dict[key]} (reference only)", False
             elif key not in ref_dict:
                 return f"{key}: {test_dict[key]} vs missing (test only)", False
-            elif not np.allclose(
-                (test_value := test_dict[key]), (ref_value := ref_dict[key]), rtol=rtol, atol=atol
-            ):
-                return f"{key}: {test_value} vs {ref_value} (difference)", False
             else:
-                return f"{key}: {test_value} vs {ref_value} (match)", True
+                match (test_value := test_dict[key], ref_value := ref_dict[key]):
+                    case (None, None):
+                        return f"{key}: None vs None (match)", True
+                    case (None, ref_value):
+                        return f"{key}: None vs {ref_value} (difference)", False
+                    case (test_value, None):
+                        return f"{key}: {test_value} vs None (difference)", False
+                    case (test_value, ref_value) if np.allclose(
+                        test_value, ref_value, rtol=rtol, atol=atol
+                    ):
+                        return f"{key}: {test_value} vs {ref_value} (match)", True
+                    case _:
+                        return f"{key}: {test_value} vs {ref_value} (difference)", False
 
         ref_data = reference_data(data, test_name=test_name, file_name=file_name, json=True)
         all_keys = (ref_data | data).keys()

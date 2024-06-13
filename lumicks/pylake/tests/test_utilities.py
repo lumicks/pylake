@@ -232,9 +232,10 @@ def test_freezing(reference_data, tst):
 
 @pytest.mark.parametrize("tst", [1, 2])
 def test_ref_dict_freezing(compare_to_reference_dict, reference_data, tst):
-    ref_dict = {"a": 5, "b": np.pi if tst == 1 else 1e-12}
+    ref_dict = {"a": 5, "b": np.pi if tst == 1 else 1e-12, "c": None}
     test_dict = reference_data(ref_dict, test_name="dict", json=True)
-    np.testing.assert_allclose(list(test_dict.values()), list(ref_dict.values()))
+    np.testing.assert_allclose(list(test_dict.values())[:-1], list(ref_dict.values())[:-1])
+    assert list(test_dict.values())[-1] is None
     compare_to_reference_dict(test_dict)
 
 
@@ -272,6 +273,26 @@ def test_ref_dict_freezing_fail(request, compare_to_reference_dict):
         ),
     ):
         compare_to_reference_dict({"a": 5, "b": 3}, file_name="ref_dict_freezing_2")
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Differences with reference data detected.\n"
+            "a: None vs 5 (difference)\n"
+            "b: 3 vs 3 (match)"
+        ),
+    ):
+        compare_to_reference_dict({"a": None, "b": 3}, file_name="ref_dict_freezing_None_1")
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Differences with reference data detected.\n"
+            "a: 5 vs 5 (match)\n"
+            "b: 5 vs None (difference)"
+        ),
+    ):
+        compare_to_reference_dict({"a": 5, "b": 5}, file_name="ref_dict_freezing_None_2")
 
 
 def test_cache_method():
