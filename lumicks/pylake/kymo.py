@@ -426,6 +426,7 @@ class Kymo(ConfocalImage):
         labels=None,
         colors=None,
         scale_bar=None,
+        titles=None,
         **kwargs,
     ):
         """Plot kymo with channel data.
@@ -450,6 +451,9 @@ class Kymo(ConfocalImage):
             Forwarded to color argument of :func:`matplotlib.pyplot.plot()`.
         scale_bar : lk.ScaleBar, optional
             Scale bar to add to the kymograph.
+        titles : str | List[str]
+            List of custom titles for each subplot. Note that this requires providing a title for
+            each subplot, including the kymograph.
         **kwargs
             Forwarded to :meth:`Slice.plot() <lumicks.pylake.channel.Slice.plot()>`.
 
@@ -480,11 +484,11 @@ class Kymo(ConfocalImage):
             """This function forces a specific aspect ratio, can be useful when aligning figures"""
             axis.set_aspect(ar * np.abs(np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim()))[0])
 
-        def check_length(items, item_type):
-            if len(items) != len(channels):
+        def check_length(items, item_type, which, expected_length):
+            if len(items) != expected_length:
                 raise ValueError(
                     f"When a list of {item_type} is provided, it needs to have the same length as "
-                    f"the number of channels provided. Expected {len(channels)}, got: "
+                    f"the number of {which}. Expected {expected_length}, got: "
                     f"{len(items)}."
                 )
 
@@ -501,11 +505,15 @@ class Kymo(ConfocalImage):
 
         if labels:
             labels = [labels] if isinstance(labels, str) else labels
-            check_length(labels, "labels")
+            check_length(labels, "labels", "channels provided", len(channels))
 
         if colors:
             colors = [colors] if is_color_like(colors) else colors
-            check_length(colors, "colors")
+            check_length(colors, "colors", "channels provided", len(channels))
+
+        if titles:
+            titles = [titles] if isinstance(titles, str) else titles
+            check_length(titles, "titles", "subplots", len(channels) + 1)
 
         _, axes = plt.subplots(len(channels) + 1, 1, sharex="all")
 
@@ -539,6 +547,10 @@ class Kymo(ConfocalImage):
 
         for ax in axes:
             set_aspect_ratio(ax, aspect_ratio)
+
+        if titles:
+            for ax, title in zip(axes, titles):
+                ax.set_title(title)
 
         for ax in axes[:-1]:
             ax.set_xlabel(None)

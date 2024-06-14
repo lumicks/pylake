@@ -280,7 +280,7 @@ We achieved this by passing `np.sum` to the `reduce` parameter of :func:`~lumick
 This results in summing the photon counts rather than taking their average.
 The argument `title_vertical=True` places the channel names along the y-axis instead of the axis title allowing a slightly more compact plot.
 
-Note that the plot can be further customized by specifying custom `labels`, `colors` and a `scale_bar`::
+Note that the plot can be further customized by specifying custom `labels`, `titles`, `colors` and a `scale_bar`::
 
     kymo.plot_with_channels(
         [
@@ -294,6 +294,7 @@ Note that the plot can be further customized by specifying custom `labels`, `col
         scale_bar=lk.ScaleBar(10.0, 5.0),
         colors=[[1.0, 0.2, 0.5], "green"],
         labels=["My force", "My photons"],
+        titles=["", "Step-wise forces", "Line-averaged photons"],
     )
 
 .. image:: ./figures/kymographs/kymo_plot_with_channels_customized.png
