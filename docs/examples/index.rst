@@ -20,3 +20,4 @@ For all of the examples, it is assumed that the following lines precede any othe
     twlc_fitting/twlc_fitting
     reca_fitting/reca_fitting
     cas9_kymotracking/cas9_kymotracking
+    hairpin_fitting/hairpin_unfolding
