@@ -1,0 +1,291 @@
+
+Hairpin unfolding
+=================
+
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
+.. _hairpin_fitting:
+
+Analyzing fd curve with hairpin unfolding event
+-----------------------------------------------
+
+In this notebook we will analyze a force-extension curve of a construct with two DNA handles with a DNA hairpin in between. The hairpin unfolds as the force on the construct is increased.
+
+First, we will compute the high frequency distance, also called :ref:`piezo distance <piezo_tracking>`. Then, we will use the Worm-Like Chain (WLC) to extract the contour length of the unfolded hairpin.
+
+Download the hairpin data
+-------------------------
+
+The hairpin data are stored on Zenodo, a general-purpose open-access repository developed under the European OpenAIRE program and operated by CERN.
+We can download the date directly from Zenodo using the function :func:`~lumicks.pylake.download_from_doi`.
+The data will be stored in the folder called `"test_data"`::
+
+    filenames = lk.download_from_doi("10.5281/zenodo.12087894", "test_data")
+
+Plot the fd curve
+-----------------
+
+Before starting the analysis on the high frequency data, let's look at fd curve based on the low frequency force, and the low frequency distance::
+
+    file = lk.File("test_data/FDCURV~2.H5")
+    _, fd = file.fdcurves.popitem()
+    plt.figure()
+    fd.plot_scatter()
+
+
+.. image:: fdcurve.png
+
+The fd curve has an unfolding event around 9 pN. 
+
+Next, we fit the video tracking to the mirror position data. The resulting fit can be used to compute the trap-to-trap distance from the (high-frequency) mirror 1 position data.
+
+Mirror position-to-Distance Calibration
+---------------------------------------
+
+First, select the data for the mirror-to-distance calibration.::
+
+    cal_data = lk.File("test_data/FDCURV~4.H5")  # load data file with calibration"
+    plt.figure()
+    cal_data["Distance"]["Distance 1"].plot()
+    plt.ylabel(r"Distance ($\mu$m)")
+
+.. image:: distance.png
+
+As you can see, the data becomes nonlinear for distance smaller than 1.5 micron. 
+The ideal range for calibration is at a similar distance as used for the fd curve, but not so small that the distance becomes nonlinear. 
+Therefore, we will choose the interval 30-40 seconds for calibration::
+
+    time_min = "30s"
+    time_max = "40s"
+    distance_calibration = lk.DistanceCalibration(
+        cal_data["Trap position"]["1X"][time_min:time_max], cal_data.distance1[time_min:time_max], degree=1
+    )
+
+In this example, we fit a polynomial function with `degree=1`, which is a linear function. 
+Plot the result of the fit::
+
+    plt.figure()
+    plt.title("Mirror 1 to Distance calibration")
+    distance_calibration.plot()
+
+.. image:: calibration.png
+
+Force Baseline Calibration
+--------------------------
+
+Load and plot the baseline data::
+
+    baseline_data = lk.File("test_data/FDCURV~1.H5")
+
+    baseline_1x_data = baseline_data["Force LF"]["Force 1x"]
+    baseline_2x_data = baseline_data["Force LF"]["Force 2x"]
+    distance = baseline_data["Distance"]["Distance 1"]
+
+    plt.figure()
+    plt.plot(distance.data, baseline_1x_data.data, label = "Baseline 1x")
+    plt.plot(distance.data, baseline_2x_data.data, label = "Baseline 2x")
+    plt.legend()
+    plt.ylabel("Force (pN)")
+    plt.xlabel(r"Distance ($\mu$m)")
+
+.. image:: baselines.png
+
+If the force was not reset before recording the baseline, it is best to subtract it before fitting. Below, we average the force at large distance to estimate the distance offset::
+
+    tmin_offset = "0s"
+    tmax_offset = "1s"
+
+    baseline_1x_data_hf = baseline_data["Force HF"]["Force 1x"]
+    baseline_2x_data_hf = baseline_data["Force HF"]["Force 2x"]
+
+    f1_offset = np.mean(baseline_1x_data_hf[tmin_offset:tmax_offset].data)
+    f2_offset = np.mean(baseline_2x_data_hf[tmin_offset:tmax_offset].data)
+
+    baseline_1x_no_offset = baseline_1x_data_hf - f1_offset
+    baseline_2x_no_offset = baseline_2x_data_hf - f2_offset
+
+Fit the baselines using a 7th degree polynomial function::
+
+    baseline_1x = lk.ForceBaseLine.polynomial_baseline(
+    baseline_data["Trap position"]["1X"], baseline_1x_no_offset, degree=7, downsampling_factor=500
+    )
+    baseline_2x = lk.ForceBaseLine.polynomial_baseline(
+    baseline_data["Trap position"]["1X"], baseline_2x_no_offset, degree=7, downsampling_factor=500
+    )
+
+Fit the result of the fit::
+
+    plt.figure()
+    baseline_1x.plot(label="baseline f1x")
+    baseline_2x.plot(label="baseline f2x")
+    plt.ylabel("Force (pN)")
+    plt.legend()
+
+.. image:: baselinefit.png
+
+Compute the piezo distance
+--------------------------
+
+Now that we have determined the distance calibration and fitted the baseline, the piezo distance can be computed::
+
+    piezo_calibration = lk.PiezoForceDistance(distance_calibration, baseline_1x, baseline_2x, signs=(-1,1)) 
+
+Choose an fd curve to compute the Piezo distance for::
+
+    fd_data = lk.File("test_data/FDCURV~3.H5")
+
+    tether_length, corrected_force_1x, corrected_force_2x = piezo_calibration.force_distance(
+    fd_data["Trap position"]["1X"], fd_data.force1x, fd_data.force2x, downsampling_factor=500
+    )
+    force_data = corrected_force_2x
+
+Plot the result. To check that the computation of the Piezo Distance was succesful, we compare it to fd curve recorded with the camera tracking distance, which should be similar::
+
+    plt.figure()
+    plt.scatter(tether_length.data, force_data.data, s=1, label = "Piezo Distance")
+    fd_data.fdcurves["FRETHP_bp9_Fd1_try2_rv"].plot_scatter(label = "fd curve")
+    plt.legend()
+    plt.xlabel(r"Distance ($\mu$m)")
+    plt.ylabel("Force [pN]")
+
+.. image:: piezodistance.png
+
+Fit the data
+------------
+
+Next, we extract the contour length of the unfolded hairpin by fitting the data before and after the unfolding event.
+
+
+Data Selection
+^^^^^^^^^^^^^^
+
+First, select data before and after the unfolding event::
+
+    def extract_fd_range(force, distance, dist_min, dist_max):
+        """Extracts forces and distances for a particular distance range"""
+        dist_data = distance.data
+        mask = (dist_data < dist_max) & (dist_data > dist_min)
+        return force.data[mask], dist_data[mask]
+
+    # Extract folded data (1.45 to 1.67 um)
+    force_back_folded, distance_back_folded = extract_fd_range(
+        force_data, tether_length, 1.45, 1.67
+    )
+    # Extract unfolded data (1.68 to 1.8 um)
+    force_back_unfolded, distance_back_unfolded = extract_fd_range(
+        force_data, tether_length, 1.68, 1.8
+    )
+
+Plot the selected data::
+
+    plt.figure()
+    plt.scatter(distance_back_folded, force_back_folded,s=2,alpha=0.2,label="Selection folded")
+    plt.scatter(distance_back_unfolded, force_back_unfolded,s=2,alpha=0.2,label="Selection unfolded")
+    plt.legend()
+    plt.ylabel("Force (pN)")
+    plt.xlabel(r"Distance ($\mu$m)")
+
+.. image:: selected_data.png
+
+Define the models
+^^^^^^^^^^^^^^^^^
+
+Define the model for the DNA with folded hairpin::
+
+    dna_handles_force = lk.ewlc_odijk_force("dna_handles")
+
+The model for DNA and the unfolded hairpin is composed by summing the model for the DNA handles and the model for the hairpin with distance as the dependent parameter::
+
+    dna_handles_and_hairpin_distance = lk.ewlc_odijk_distance("dna_handles") + lk.efjc_distance("dna_ss_hairpin")
+
+Invert the model for DNA and hairpin such that force becomes the dependent parameter::
+
+    dna_handles_and_hairpin_force = dna_handles_and_hairpin_distance.invert(interpolate=True, independent_min=0, independent_max=90)
+
+Add the models to the fit::
+
+    fit = lk.FdFit(dna_handles_force, dna_handles_and_hairpin_force)
+
+
+Fit the data
+^^^^^^^^^^^^
+
+For fitting, we can either fit all the data at once by adding all the selected data to the fit. Another option is incremental fitting, where the DNA handles are fitted first. 
+The fitted parameters for the DNA handles can then be used as an estimate for fitting the unfolding event. Below, we use incremental fitting.
+
+First, we add data for the DNA handles only::
+
+    fit[dna_handles_force].add_data("DNA handles",force_back_folded,distance_back_folded)
+
+Set parameter bounds and first guess for the parameters::
+
+    fit["dna_handles/Lp"].lower_bound = 30  # in nanometers
+    fit["dna_handles/Lp"].upper_bound = 70  # in nanometers
+    fit["dna_handles/Lp"].value = 50
+    fit["dna_handles/Lc"].value = 1.7
+    fit["dna_handles/St"].value = 1500
+
+Fit the data before unfolding::
+
+    fit.fit()
+
+Plot the result of the fit::
+
+    plt.figure()
+    fit[dna_handles_force].plot()
+    plt.xlabel(r"Distance ($\mu$m)")
+    plt.ylabel("Force (pN)")
+
+.. image:: fit_handles.png
+
+Now, add the data after the unfolding event::
+
+    fit[dna_handles_and_hairpin_force].add_data("DNA handles + unfolded hairpin",force_back_unfolded,distance_back_unfolded)
+
+This time all the selected data are fitted and the values for the DNA handles from the first part of the fit are used as initial guess.
+Sometimes, when fitting many unfolding events, the fit does not converge well when all data are fitted at once. If that happens, you can fix parameters from the first fit, for example by setting
+`fit["dna_handles/Lc"].fixed = True`. For this particular data set it is not necessary to fix parameters and we only provide initial guesses and parameter bounds for the hairpin::
+
+    fit["dna_ss_hairpin/Lp"].lower_bound = 0.5  # in nanometers
+    fit["dna_ss_hairpin/Lp"].value = 1.5  # in nanometers
+    fit["dna_ss_hairpin/Lp"].upper_bound = 2.0  # in nanometers
+
+    fit["dna_ss_hairpin/Lc"].value = 0.02  # in microns
+    fit["dna_ss_hairpin/Lc"].lower_bound = 0.001  # in microns
+
+    fit["dna_ss_hairpin/St"].value = 500  # in pN
+    fit["dna_ss_hairpin/St"].upper_bound = 2000  # in pN
+
+Fit all the data and plot the result::
+
+   >>> fit.fit()
+   >>> print(fit.params)
+   Name                  Value       Unit      Fitted   Lower bound    Upper bound
+   --------------      ------------ --------  -------  -------------  -------------
+   dna_handles/Lp        32.822     [nm]        True    10              100
+   dna_handles/Lc         1.76077   [micron]    True     0.00034        inf
+   dna_handles/St       917.796     [pN]        True     1              inf
+   kT                     4.11      [pN*nm]     False    3.77           8
+   dna_ss_hairpin/Lp      0.85182   [nm]        True     0.5            2
+   dna_ss_hairpin/Lc      0.0205269 [micron]    True     0.001          inf
+   dna_ss_hairpin/St   2000         [pN]        True     1              2000
+
+
+
+Plot the result::
+
+    plt.figure()
+    fit[dna_handles_force].plot()
+    fit[dna_handles_and_hairpin_force].plot()
+    plt.xlabel(r"Distance ($\mu$m)")
+    plt.ylabel("Force (pN)")
+    plt.title(f"Fitted hairpin length is {fit["dna_ss_hairpin/Lc"].value*1000:0.1f} nm")
+
+.. image:: fit_all.png
+
+The expected contour length for the hairpin was 17-20 nm and the fitted length is 20.5 nm. 
+
+The next step is to study the confidence intervals and quality of the fit, for example using the :ref:`likelihood profile <ple_confidence_intervals>`.
+The fit can be further improved by fitting multiple data sets at once, :ref:`Global fitting <global_fit>`.
