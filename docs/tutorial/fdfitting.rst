@@ -73,6 +73,8 @@ We can simulate the model by passing a dictionary with parameters values::
 
 .. image:: figures/fdfitting/fdfitting_ewlc.png
 
+.. _model_composition:
+
 Model composition and inversion
 -------------------------------
 
@@ -458,6 +460,8 @@ The force offset may vary between the datasets. Below distance and force data of
 
 The syntax `f"DNA/f_offset_{i}"` is parsed into `DNA/f_offset_0`, `DNA/f_offset_1` ... etc. For more information on
 how this works, read up on Python f-Strings.
+
+.. _global_fit:
 
 Global fits versus single fits
 ******************************

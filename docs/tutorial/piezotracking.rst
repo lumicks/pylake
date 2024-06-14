@@ -3,6 +3,8 @@
     number of different scenarios. The API can still be subject to change *without any prior deprecation notice*! If you use this
     functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
+.. _piezo_tracking:
+
 Piezo Tracking
 ==============
 
