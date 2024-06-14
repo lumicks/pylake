@@ -86,6 +86,7 @@ def test_plotting_with_channels(kymo_h5_file):
             force_over_kymolines,
             color_channel="red",
             labels="single",
+            titles=["kymo_title", "plot_title"],
             colors=[0, 0, 1],
             scale_bar=lk.ScaleBar(5.0, 5.0),
         )
@@ -95,6 +96,7 @@ def test_plotting_with_channels(kymo_h5_file):
             [force_over_kymolines, force_over_kymolines],
             color_channel="red",
             labels=["f2x", "f2x"],
+            titles=["kymo_title", "plot1", "plot2"],
             colors=["red", [1.0, 0.0, 0.1]],
         )
 
@@ -126,9 +128,9 @@ def test_plotting_labels(kymo_h5_file):
     f = lk.File.from_h5py(kymo_h5_file)
     kymo = f.kymos["tester"]
 
-    def check_axes(labels, titles):
+    def check_axes(labels, titles, first=1):
         axes = plt.gcf().get_axes()
-        for label, title, ax in zip(labels, titles, axes[1:]):
+        for label, title, ax in zip(labels, titles, axes[first:]):
             assert ax.get_title() == title
             assert ax.get_ylabel() == label
 
@@ -151,6 +153,9 @@ def test_plotting_labels(kymo_h5_file):
 
     kymo.plot_with_channels([f.force2x, f["Photon count"]["Red"]], color_channel="red")
     check_axes(["Force (pN)", "y"], ["Force HF/Force 2x", "Photon count/Red"])
+
+    kymo.plot_with_channels(f.force2x, color_channel="red", titles=["hello", "this is force"])
+    check_axes([r"position (μm)", "Force (pN)"], ["hello", "this is force"], first=0)
 
 
 def test_plotting_with_channels_bad_args(kymo_h5_file):
