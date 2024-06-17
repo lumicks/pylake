@@ -121,6 +121,9 @@ def test_good_fit_integration(
     np.testing.assert_allclose(
         ps_calibration["chi_squared_per_deg"].value, 0, atol=1e-9
     )  # Noise free
+    np.testing.assert_equal(ps_calibration.stiffness, ps_calibration["kappa"].value)
+    np.testing.assert_equal(ps_calibration.displacement_sensitivity, ps_calibration["Rd"].value)
+    np.testing.assert_equal(ps_calibration.force_sensitivity, ps_calibration["Rf"].value)
 
     if loss_function == "gaussian":
         compare_to_reference_dict(

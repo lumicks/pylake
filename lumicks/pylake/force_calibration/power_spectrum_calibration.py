@@ -148,6 +148,21 @@ class CalibrationResults:
     def __str__(self) -> str:
         return self._print_data()
 
+    @property
+    def stiffness(self):
+        """Stiffness in pN/nm"""
+        return self.results["kappa"].value
+
+    @property
+    def force_sensitivity(self):
+        """Force sensitivity in pN/V"""
+        return self.results["Rf"].value
+
+    @property
+    def displacement_sensitivity(self):
+        """Displacement sensitivity in um/V"""
+        return self.results["Rd"].value
+
 
 def calculate_power_spectrum(
     data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=None
