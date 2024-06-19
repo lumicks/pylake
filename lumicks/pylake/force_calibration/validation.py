@@ -16,7 +16,7 @@ def check_hydro_enabled(calibration):
 
         if criterion > 1.5:
             if not calibration.model.hydrodynamically_correct:
-                raise RuntimeError(
+                return (
                     "Using the hydrodynamically correct model will lead to more accurate force "
                     "calibrations. It is generally recommended for bead radii > 1.5 microns as "
                     "long as you are not calibrating closer than 1.5 times the bead radius from "
@@ -34,14 +34,14 @@ def check_corner_frequency(calibration):
     """
     fc = calibration.results["fc"].value
     if fc < (freq_resolution := calibration.ps_data.frequency_bin_width):
-        raise RuntimeError(
+        return (
             f"Corner frequency ({fc:.0f} Hz) is below the spectral frequency resolution "
             f"({freq_resolution:.0f} Hz). Consider increasing the acquisition duration or reducing "
             "the number of points per block."
         )
 
     if fc < (min_freq := calibration.ps_data.frequency[0]):
-        raise RuntimeError(
+        return (
             f"Estimated corner frequency ({fc:.0f} Hz) is below lowest frequency in the power "
             f"spectrum ({min_freq:.0f} Hz). Consider lowering the minimum fit range."
         )
@@ -79,7 +79,7 @@ def check_blocking_error(calibration, blocking_threshold):
         return error
 
     if (blocking_error := np.max(calculate_model_blocking_error())) > blocking_threshold:
-        raise RuntimeError(
+        return (
             "Maximum spectral error exceeds threshold."
             f"Spectral error: {blocking_error:.3f} > {blocking_threshold:.3f}."
             "This likely means blocking was applied too aggressively. Low corner frequencies "
@@ -108,7 +108,7 @@ def check_calibration_factor_precision(calibration, factor=0.2):
             calibration.results[f"err_{parameter}"].value
             > factor * calibration.results[parameter].value
         ):
-            raise RuntimeError(
+            return (
                 f"More than 20% error in the {description}. There is high uncertainty in the "
                 "calibration factors."
             )
@@ -136,7 +136,7 @@ def check_diode_identifiability(calibration, alpha):
     if "err_f_diode" in calibration.results:
         fc_width = stats.norm.ppf(1 - alpha / 2, scale=calibration.results["err_fc"].value)
         if fc - fc_width <= calibration.results["f_diode"].value <= fc + fc_width:
-            raise RuntimeError(
+            return (
                 "Warning, the estimate for the parasitic filtering frequency falls within the "
                 "confidence interval for the corner frequency. This means that the corner "
                 "frequency may be too high to be reliably estimated. Lower the laser power or "
@@ -161,7 +161,7 @@ def check_backing(calibration, desired_backing):
         test fires, there's a 1% chance that we erroneously produced an error.
     """
     if (backing := calibration.results["backing"].value) < desired_backing:
-        raise RuntimeError(
+        return (
             f"Statistical backing is low ({backing:.3e} < {desired_backing:.3e}). It is "
             "possible that the fit of the thermal calibration spectrum is bad. Verify that "
             "your fit does not show a residual trend with `result.plot_spectrum_residual()`."
@@ -186,9 +186,15 @@ def validate_results(calibration, alpha=0.1, desired_backing=1e-12, blocking_thr
     blocking_threshold : float
         How many percent can a single spectral point be off when comparing blocked vs non-blocked.
     """
-    check_hydro_enabled(calibration)
-    check_corner_frequency(calibration)
-    check_diode_identifiability(calibration, alpha)
-    check_blocking_error(calibration, blocking_threshold)
-    check_calibration_factor_precision(calibration)
-    check_backing(calibration, desired_backing)
+    tests = [
+        (check_hydro_enabled, {}),
+        (check_corner_frequency, {}),
+        (check_diode_identifiability, {"alpha": alpha}),
+        (check_blocking_error, {"blocking_threshold": blocking_threshold}),
+        (check_calibration_factor_precision, {}),
+        (check_backing, {"desired_backing": desired_backing}),
+    ]
+
+    for test, params in tests:
+        if result := test(calibration, **params):
+            return result

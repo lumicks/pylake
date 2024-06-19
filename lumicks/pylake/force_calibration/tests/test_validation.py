@@ -1,4 +1,3 @@
-import re
 from typing import Union, Optional
 from dataclasses import dataclass
 
@@ -56,7 +55,7 @@ def test_diode_issue():
         "err_f_diode": MockParameter("corner frequency std err", 1261.42, "Hz"),
     }
     cal = MockCalibration(results=results)
-    check_diode_identifiability(cal, 0.1)
+    assert not check_diode_identifiability(cal, 0.1)
 
     # Fine calibration (stiffness = 0.2, fc << f_diode)
     results = {
@@ -66,7 +65,7 @@ def test_diode_issue():
         "err_f_diode": MockParameter("corner frequency std err", 11850.8, "Hz"),
     }
     cal = MockCalibration(results=results)
-    check_diode_identifiability(cal, 0.1)
+    assert not check_diode_identifiability(cal, 0.1)
 
     # Problematic calibration (stiffness = 1.2)
     results = {
@@ -75,13 +74,12 @@ def test_diode_issue():
         "f_diode": MockParameter("corner frequency std err", 13538.5, "Hz"),
         "err_f_diode": MockParameter("corner frequency std err", 1280.43, "Hz"),
     }
-    with pytest.raises(
-        RuntimeError,
-        match="estimate for the parasitic filtering frequency falls within the confidence interval "
-        "for the corner frequency",
-    ):
-        cal = MockCalibration(results=results)
-        check_diode_identifiability(cal, 0.1)
+    cal = MockCalibration(results=results)
+    warning = check_diode_identifiability(cal, 0.1)
+    assert (
+        "estimate for the parasitic filtering frequency falls within the confidence interval "
+        "for the corner frequency"
+    ) in warning
 
 
 def test_blocking_issue():
@@ -96,14 +94,14 @@ def test_blocking_issue():
 
     # The error in stiffness is expected to be proportional to 1/fc and the number of points per
     # block. We first test the over-blocked case (> 5% stiffness error).
-    with pytest.raises(RuntimeError, match="Maximum spectral error exceeds threshold"):
-        check_blocking_error(gen_calibration(fc=200, num_points_per_block=2000), 3)
+    warning = check_blocking_error(gen_calibration(fc=200, num_points_per_block=2000), 3)
+    assert "Maximum spectral error exceeds threshold" in warning
 
     # Fine
-    check_blocking_error(gen_calibration(fc=200, num_points_per_block=500), 3)
+    assert not check_blocking_error(gen_calibration(fc=200, num_points_per_block=500), 3)
 
     # Also fine
-    check_blocking_error(gen_calibration(fc=1000, num_points_per_block=2000), 3)
+    assert not check_blocking_error(gen_calibration(fc=1000, num_points_per_block=2000), 3)
 
 
 def test_hydro():
@@ -120,11 +118,17 @@ def test_hydro():
         return MockCalibration(params=params, model=model)
 
     # Small beads are fine either way
-    check_hydro_enabled(generate_calibration(bead_diameter=1.0, distance=None, hydro=False))
-    check_hydro_enabled(generate_calibration(bead_diameter=1.0, distance=None, hydro=True))
+    assert not check_hydro_enabled(
+        generate_calibration(bead_diameter=1.0, distance=None, hydro=False)
+    )
+    assert not check_hydro_enabled(
+        generate_calibration(bead_diameter=1.0, distance=None, hydro=True)
+    )
 
     # Very close to the surface, we shouldn't flag since we don't support hydro so close
-    check_hydro_enabled(generate_calibration(bead_diameter=4.0, distance=0.75 * 4.0, hydro=False))
+    assert not check_hydro_enabled(
+        generate_calibration(bead_diameter=4.0, distance=0.75 * 4.0, hydro=False)
+    )
 
     # In bulk and reasonably far from the surface, we should flag that we can do better if
     # hydro is off!
@@ -132,13 +136,13 @@ def test_hydro():
     for current_distance in (None, 0.750001 * diameter):
         # With hydro we should be silent
         shared_pars = {"bead_diameter": diameter, "distance": current_distance}
-        check_hydro_enabled(generate_calibration(**shared_pars, hydro=True))
+        assert not check_hydro_enabled(generate_calibration(**shared_pars, hydro=True))
 
-        with pytest.raises(
-            RuntimeError,
-            match="the hydrodynamically correct model will lead to more accurate force calibrations",
-        ):
-            check_hydro_enabled(generate_calibration(**shared_pars, hydro=False))
+        warning = check_hydro_enabled(generate_calibration(**shared_pars, hydro=False))
+        assert (
+            "the hydrodynamically correct model will lead to more accurate force calibrations"
+            in warning
+        )
 
 
 def test_corner_frequency_too_low():
@@ -151,36 +155,26 @@ def test_corner_frequency_too_low():
             ps_data=MockPowerSpectrum(freq, freq, num_points_per_block=num_points_per_block),
         )
 
-    check_corner_frequency(gen_calibration(250, 200, 100))
+    assert not check_corner_frequency(gen_calibration(250, 200, 100))
 
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(
-            "Estimated corner frequency (150 Hz) is below lowest frequency in the power spectrum "
-            "(200 Hz)"
-        ),
-    ):
-        check_corner_frequency(gen_calibration(150, 200, 100))
+    warning = check_corner_frequency(gen_calibration(150, 200, 100))
+    assert (
+        "Estimated corner frequency (150 Hz) is below lowest frequency in the power spectrum "
+        "(200 Hz)"
+    ) in warning
 
-    check_corner_frequency(gen_calibration(200, 200, 2000))
+    assert not check_corner_frequency(gen_calibration(200, 200, 2000))
 
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(
-            "Corner frequency (200 Hz) is below the spectral frequency resolution (200 Hz)."
-        ),
-    ):
-        check_corner_frequency(gen_calibration(200, 200, 2001))
+    warning = check_corner_frequency(gen_calibration(200, 200, 2001))
+    assert "Corner frequency (200 Hz) is below the spectral frequency resolution" in warning
 
 
 def test_goodness_of_fit_check():
     cal = MockCalibration(results={"backing": MockParameter("statistical backing", 1e-6, "%")})
-    check_backing(cal, 0.99e-6)
+    assert not check_backing(cal, 0.99e-6)
 
-    with pytest.raises(
-        RuntimeError, match=re.escape("Statistical backing is low (1.000e-06 < 1.010e-06)")
-    ):
-        check_backing(cal, 1.01e-6)
+    warning = check_backing(cal, 1.01e-6)
+    assert "Statistical backing is low (1.000e-06 < 1.010e-06)" in warning
 
 
 @pytest.mark.parametrize(
@@ -202,8 +196,8 @@ def test_high_uncertainty(fc_factor, rd_factor, kappa_factor, message):
         "err_kappa": MockParameter("Stiffness std err", kappa_factor * kappa, "um/V"),
     }
 
-    with pytest.raises(RuntimeError, match=message):
-        check_calibration_factor_precision(MockCalibration(results=results))
+    warning = check_calibration_factor_precision(MockCalibration(results=results))
+    assert message in warning
 
 
 def test_good_calibration():
@@ -237,4 +231,7 @@ def test_good_calibration():
         results=results,
     )
 
-    validate_results(cal, alpha=0.1, desired_backing=1, blocking_threshold=1)
+    assert not validate_results(cal, alpha=0.1, desired_backing=1, blocking_threshold=1)
+
+    warning = validate_results(cal, alpha=0.1, desired_backing=50, blocking_threshold=1)
+    assert "Statistical backing is low (4.444e+01 < 5.000e+01)" in warning

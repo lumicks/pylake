@@ -50,23 +50,23 @@ def test_hydro_problem():
         dist = {"distance_to_surface": distance}
 
         # With hydro we should be silent
-        _ = lk.calibrate_force(volts, **(model_pars | dist))
+        assert not check_hydro_enabled(lk.calibrate_force(volts, **(model_pars | dist)))
 
-        with pytest.raises(
-            RuntimeError,
-            match="the hydrodynamically correct model will lead to more accurate force calibrations",
-        ):
-            # Without we should issue an error
-            fit = lk.calibrate_force(volts, **(model_pars | no_hydro | dist))
-            check_hydro_enabled(fit)
+        # Without we should issue an error
+        fit = lk.calibrate_force(volts, **(model_pars | no_hydro | dist))
+        warning = check_hydro_enabled(fit)
+        assert (
+            "the hydrodynamically correct model will lead to more accurate force calibrations"
+            in warning
+        )
 
     # Close to the surface, we shouldn't report it, since we don't support hydro there.
     fit = lk.calibrate_force(volts, **(model_pars | {"distance_to_surface": 0.75 * diameter}))
-    check_hydro_enabled(fit)
+    assert not check_hydro_enabled(fit)
 
     # Small beads we shouldn't report it, since hydro is not that relevant
     fit = lk.calibrate_force(volts, **(model_pars | {"bead_diameter": 1}))
-    check_hydro_enabled(fit)
+    assert not check_hydro_enabled(fit)
 
 
 @pytest.mark.slow
@@ -77,24 +77,21 @@ def test_diode_problem():
 
     # Should be ok, since fc << f_diode
     fit = lk.calibrate_force(volts_ok, sample_rate=78125, num_points_per_block=350, **model_pars)
-    check_diode_identifiability(fit, 0.1)
+    assert not check_diode_identifiability(fit, 0.1)
 
     # Should be also be ok, since fc << f_diode, despite f_diode having huge confidence intervals
     volts_ok, _, model_pars = simulate_test_data(stiffness=0.2, diode=(0.52, 40000))
     fit = lk.calibrate_force(volts_ok, sample_rate=78125, num_points_per_block=350, **model_pars)
-    check_diode_identifiability(fit, 0.1)
+    assert not check_diode_identifiability(fit, 0.1)
 
-    with pytest.raises(
-        RuntimeError,
-        match="estimate for the parasitic filtering frequency falls within the confidence interval "
-        "for the corner frequency",
-    ):
-        # High stiffness to provoke the diode problem
-        volts_bad, _, model_pars = simulate_test_data(stiffness=1.2)
-        fit = lk.calibrate_force(
-            volts_bad, sample_rate=78125, num_points_per_block=350, **model_pars
-        )
-        check_diode_identifiability(fit, 0.1)
+    # High stiffness to provoke the diode problem
+    volts_bad, _, model_pars = simulate_test_data(stiffness=1.2)
+    fit = lk.calibrate_force(volts_bad, sample_rate=78125, num_points_per_block=350, **model_pars)
+    warning = check_diode_identifiability(fit, 0.1)
+    assert (
+        "estimate for the parasitic filtering frequency falls within the confidence interval "
+        "for the corner frequency"
+    ) in warning
 
 
 @pytest.mark.slow
@@ -104,11 +101,11 @@ def test_fc_issues():
     volts, _, model_pars = simulate_test_data(stiffness=0.02)
     pars = model_pars | {"sample_rate": 78125, "num_points_per_block": 350}
 
-    _ = lk.calibrate_force(volts, **pars, fit_range=(200, 23000))
+    assert not check_corner_frequency(lk.calibrate_force(volts, **pars, fit_range=(200, 23000)))
 
-    with pytest.raises(RuntimeError, match="Consider lowering the minimum fit range"):
-        fit = lk.calibrate_force(volts, **pars, fit_range=(400, 23000))
-        check_corner_frequency(fit)
+    fit = lk.calibrate_force(volts, **pars, fit_range=(400, 23000))
+    warning = check_corner_frequency(fit)
+    assert "Consider lowering the minimum fit range" in warning
 
 
 @pytest.mark.slow
@@ -118,17 +115,14 @@ def test_backing_issues():
     volts, _, model_pars = simulate_test_data(stiffness=0.2)
     pars = model_pars | {"sample_rate": 78125, "num_points_per_block": 350}
 
-    fit = lk.calibrate_force(volts, **pars)
-    check_backing(fit, 1e-6)
+    assert not check_backing(lk.calibrate_force(volts, **pars), 1e-6)
 
     # corrupt the data with a noise spike
     volts += 4e-4 * np.sin(2.0 * np.pi * 13154 * np.arange(0.0, 10.0, 1.0 / 78125))
 
-    with pytest.raises(
-        RuntimeError, match="It is possible that the fit of the thermal calibration spectrum is bad"
-    ):
-        fit = lk.calibrate_force(volts, **pars, fit_range=(400, 23000))
-        check_backing(fit, 1e-6)
+    fit = lk.calibrate_force(volts, **pars, fit_range=(400, 23000))
+    warning = check_backing(fit, 1e-6)
+    assert "It is possible that the fit of the thermal calibration spectrum is bad" in warning
 
 
 @pytest.mark.slow
@@ -156,5 +150,5 @@ def test_fc_inaccuracy():
     pars = model_pars | {"sample_rate": 78125, "num_points_per_block": 350}
 
     fit = lk.calibrate_force(volts, **pars)
-    with pytest.raises(RuntimeError, match="More than 20% error in the corner frequency"):
-        check_calibration_factor_precision(fit)
+    warning = check_calibration_factor_precision(fit)
+    assert "More than 20% error in the corner frequency" in warning
