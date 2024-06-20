@@ -15,7 +15,7 @@ def check_hydro_enabled(calibration):
             criterion = distance.value / (diameter / 2)
 
         if criterion > 1.5:
-            if not calibration.model.hydrodynamically_correct:
+            if not calibration.model.hydrodynamically_correct and not calibration.model.axial:
                 return (
                     "Using the hydrodynamically correct model will lead to more accurate force "
                     "calibrations. It is generally recommended for bead radii > 1.5 microns as "
@@ -109,8 +109,8 @@ def check_calibration_factor_precision(calibration, factor=0.2):
             > factor * calibration.results[parameter].value
         ):
             return (
-                f"More than 20% error in the {description}. There is high uncertainty in the "
-                "calibration factors."
+                f"More than {factor:.0%} error in the {description}. There is high uncertainty in "
+                "the calibration factors."
             )
 
 

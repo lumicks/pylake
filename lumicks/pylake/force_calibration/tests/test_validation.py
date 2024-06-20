@@ -105,7 +105,7 @@ def test_blocking_issue():
 
 
 def test_hydro():
-    def generate_calibration(bead_diameter, distance, hydro):
+    def generate_calibration(bead_diameter, distance, hydro, axial=False):
         params = {
             "Distance to surface": MockParameter("distance to surface", distance, "um"),
             "Bead diameter": MockParameter("bead diameter", bead_diameter, "um"),
@@ -114,6 +114,7 @@ def test_hydro():
             bead_diameter=bead_diameter,
             distance_to_surface=distance,
             hydrodynamically_correct=hydro,
+            axial=axial,
         )
         return MockCalibration(params=params, model=model)
 
@@ -128,6 +129,11 @@ def test_hydro():
     # Very close to the surface, we shouldn't flag since we don't support hydro so close
     assert not check_hydro_enabled(
         generate_calibration(bead_diameter=4.0, distance=0.75 * 4.0, hydro=False)
+    )
+
+    # We don't support hydro for axial at the moment, so don't flag it
+    assert not check_hydro_enabled(
+        generate_calibration(bead_diameter=4.0, hydro=False, distance=None, axial=True)
     )
 
     # In bulk and reasonably far from the surface, we should flag that we can do better if
@@ -178,14 +184,15 @@ def test_goodness_of_fit_check():
 
 
 @pytest.mark.parametrize(
-    "fc_factor, rd_factor, kappa_factor, message",
+    "fc_factor, rd_factor, kappa_factor, factor, message",
     [
-        (0.21, 0.19, 0.19, "More than 20% error in the corner frequency"),
-        (0.19, 0.21, 0.19, "More than 20% error in the displacement sensitivity"),
-        (0.19, 0.19, 0.21, "More than 20% error in the stiffness"),
+        (0.21, 0.19, 0.19, 0.2, "More than 20% error in the corner frequency"),
+        (0.19, 0.21, 0.19, 0.2, "More than 20% error in the displacement sensitivity"),
+        (0.19, 0.19, 0.21, 0.2, "More than 20% error in the stiffness"),
+        (0.14, 0.14, 0.16, 0.15, "More than 15% error in the stiffness"),
     ],
 )
-def test_high_uncertainty(fc_factor, rd_factor, kappa_factor, message):
+def test_high_uncertainty(fc_factor, rd_factor, kappa_factor, factor, message):
     fc, rd, kappa = 7622.98, 0.647278, 1.04987
     results = {
         "fc": MockParameter("corner frequency", fc, "Hz"),
@@ -196,7 +203,7 @@ def test_high_uncertainty(fc_factor, rd_factor, kappa_factor, message):
         "err_kappa": MockParameter("Stiffness std err", kappa_factor * kappa, "um/V"),
     }
 
-    warning = check_calibration_factor_precision(MockCalibration(results=results))
+    warning = check_calibration_factor_precision(MockCalibration(results=results), factor=factor)
     assert message in warning
 
 
