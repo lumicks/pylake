@@ -2,6 +2,8 @@ import re
 from functools import wraps
 from collections import UserDict
 
+from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationPropertiesMixin
+
 
 def _read_from_bl_dict(bl_dict):
     """Returns a dictionary of calibration parameters from a calibration dictionary exported from
@@ -33,7 +35,7 @@ def _read_from_bl_dict(bl_dict):
     }
 
 
-class ForceCalibrationItem(UserDict):
+class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     @staticmethod
     def _verify_full(method):
         @wraps(method)
@@ -47,6 +49,36 @@ class ForceCalibrationItem(UserDict):
             return method(self, *args, **kwargs)
 
         return wrapper
+
+    def _get_parameter(self, _, bluelake_key):
+        """Grab a parameter"""
+        if bluelake_key in self:
+            return self[bluelake_key]
+
+    @property
+    def _fitted_diode(self):
+        """Diode parameters were fitted"""
+        return "f_diode (Hz)" in self or "alpha" in self
+
+    @property
+    def _sensor_type(self):
+        if self.fast_sensor:
+            return "fast_sensor"
+
+        if "f_diode (Hz)" in self.data:
+            return "standard sensor (fitted)"
+        elif "Diode frequency (Hz)" in self.data:
+            return "characterized standard sensor"
+        else:
+            return "unknown sensor"
+
+    @property
+    def kind(self):
+        kind = self.data.get("Kind", "Unknown")
+        if kind == "Full calibration":
+            return "Active calibration" if self.active_calibration else "Passive calibration"
+        else:
+            return kind
 
     @_verify_full
     def power_spectrum_params(self):
@@ -78,6 +110,12 @@ class ForceCalibrationItem(UserDict):
             "excluded_ranges": self.excluded_ranges,
             "fit_range": self.fit_range,
         }
+
+    def __getitem__(self, item):
+        try:
+            return super().__getitem__(item)
+        except KeyError:
+            return getattr(self, item)
 
     @_verify_full
     def _model_params(self):
@@ -119,6 +157,10 @@ class ForceCalibrationItem(UserDict):
             less_blocking_params = calibration_params | {"num_points_per_block": 200}
             less_blocking = lk.calibrate_force(calib_slice.data, **less_blocking_params)
             less_blocking.plot()
+
+            # Recalibrate the force channels
+            rf_ratio = less_blocking.force_sensitivity / previous_calibration.force_sensitivity
+            recalibrated_force1x = f.force1x * rf_ratio
         """
         return (
             self.power_spectrum_params()
@@ -127,12 +169,8 @@ class ForceCalibrationItem(UserDict):
         )
 
     @property
-    @_verify_full
-    def excluded_ranges(self):
-        """Returns the frequency exclusion ranges
-
-        When fitting power spectra, specific frequency intervals of the spectrum can be ignored to
-        exclude noise peaks. This attribute returns a list of these intervals in Hertz."""
+    def _excluded_ranges(self):
+        """Returns the frequency exclusion ranges."""
         exclusion_range_indices = [
             int(match[0])
             for key in self.data.keys()
@@ -147,38 +185,51 @@ class ForceCalibrationItem(UserDict):
         ]
 
     @property
-    @_verify_full
-    def fit_range(self):
+    def _fit_range(self):
         """Returns the spectral fit range used for the calibration"""
-        return (
-            self.data["Fit range (min.) (Hz)"],
-            self.data["Fit range (max.) (Hz)"],
-        )
+        if "Fit range (min.) (Hz)" in self.data:
+            return (
+                self.data["Fit range (min.) (Hz)"],
+                self.data["Fit range (max.) (Hz)"],
+            )
 
     @property
-    @_verify_full
     def sample_rate(self):
         """Returns the data sample rate"""
-        return self.data.get("Sample rate (Hz)")
+        if "Sample rate (Hz)" in self.data:
+            return int(self.data["Sample rate (Hz)"])
 
     @property
-    @_verify_full
+    def number_of_samples(self):
+        """Number of fitted samples (-)."""
+        return self.data.get("Number of samples")
+
+    @property
     def active_calibration(self):
-        """Returns whether it was an active calibration or not"""
+        """Returns whether it was an active calibration or not
+
+        Calibrations based on active calibration are less sensitive to assumptions about the
+        bead diameter, viscosity, distance of the bead to the flow cell surface and temperature.
+        During active calibration, the trap or nano-stage is oscillated sinusoidally. These
+        oscillations result in a driving peak in the force spectrum. Using power spectral analysis,
+        the force can then be calibrated without prior knowledge of the drag coefficient.
+
+        While this results in improved accuracy, it may lead to an increase in the variability of
+        results.
+
+        .. note::
+
+            When active calibration is performed using two beads, correction factors must be
+            computed which account for the reduced flow field that forms around the beads due to
+            the presence of a second bead.
+        """
         return self.data.get("driving_frequency (Hz)") is not None
 
     @property
-    @_verify_full
-    def fast_sensor(self):
-        """Returns whether it was a fast sensor or not"""
-        # If it is not a fixed diode or free diode, it's a fast sensor
-        return not any(f in self.data.keys() for f in ("Diode frequency (Hz)", "f_diode (Hz)"))
-
-    @property
-    @_verify_full
     def num_points_per_block(self):
         """Number of points per block used for spectral down-sampling"""
-        return int(self.data["Points per block"])  # BL returns float which API doesn't accept
+        if "Points per block" in self.data:
+            return int(self.data["Points per block"])  # BL returns float which API doesn't accept
 
     @property
     def start(self):
@@ -204,21 +255,6 @@ class ForceCalibrationItem(UserDict):
     @property
     def stop(self):
         return self.data.get("Stop time (ns)")
-
-    @property
-    def stiffness(self):
-        """Stiffness in pN/nm"""
-        return self.data.get("kappa (pN/nm)")
-
-    @property
-    def force_sensitivity(self):
-        """Force sensitivity in pN/V"""
-        return self.data.get("Response (pN/V)")
-
-    @property
-    def displacement_sensitivity(self):
-        """Displacement sensitivity in um/V"""
-        return self.data.get("Rd (um/V)")
 
 
 def _filter_calibration(time_field, items, start, stop):

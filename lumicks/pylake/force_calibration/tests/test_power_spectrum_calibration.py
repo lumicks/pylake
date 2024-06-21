@@ -111,6 +111,13 @@ def test_good_fit_integration(
     np.testing.assert_allclose(ps_calibration["alpha"].value, alpha, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["f_diode"].value, f_diode, rtol=1e-4)
 
+    np.testing.assert_allclose(ps_calibration["fc"].value, ps_calibration.corner_frequency)
+    np.testing.assert_allclose(ps_calibration["D"].value, ps_calibration.diffusion_constant_volts)
+    np.testing.assert_allclose(
+        ps_calibration["D"].value * ps_calibration["Rd"].value * ps_calibration["Rd"].value,
+        ps_calibration.diffusion_constant,
+    )
+
     gamma = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
     boltzmann_temperature = sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K")
@@ -124,6 +131,7 @@ def test_good_fit_integration(
     np.testing.assert_equal(ps_calibration.stiffness, ps_calibration["kappa"].value)
     np.testing.assert_equal(ps_calibration.displacement_sensitivity, ps_calibration["Rd"].value)
     np.testing.assert_equal(ps_calibration.force_sensitivity, ps_calibration["Rf"].value)
+    assert not ps_calibration.measured_drag_coefficient
 
     if loss_function == "gaussian":
         compare_to_reference_dict(
@@ -300,36 +308,38 @@ def test_calibration_results_params():
 
 def test_repr(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
+
     assert str(ps_calibration) == dedent(
         """\
-        Name                 Description                                               Value
-        -------------------  --------------------------------------------------------  -----------
-        Bead diameter        Bead diameter (um)                                        4.4
-        Viscosity            Liquid viscosity (Pa*s)                                   0.001002
-        Temperature          Liquid temperature (C)                                    20
-        Distance to surface  Distance from bead center to surface (um)
-        Max iterations       Maximum number of function evaluations                    10000
-        Fit tolerance        Fitting tolerance                                         1e-07
-        Points per block     Number of points per block                                100
-        Sample rate          Sample rate (Hz)                                          78125
-        Bias correction      Perform bias correction thermal fit                       0
-        Loss function        Loss function used during minimization                    gaussian
-        Rd                   Distance response (um/V)                                  7.25366
-        kappa                Trap stiffness (pN/nm)                                    0.171495
-        Rf                   Force response (pN/V)                                     1243.97
-        gamma_0              Theoretical bulk drag coefficient (kg/s)                  4.1552e-08
-        err_kappa            Stiffness Std Err (pN/V)                                  0.00841414
-        err_Rd               Distance response Std Err (um/V)                          0.125966
-        fc                   Corner frequency (Hz)                                     656.872
-        D                    Diffusion constant (V^2/s)                                0.00185126
-        err_fc               Corner frequency Std Err (Hz)                             32.2284
-        err_D                Diffusion constant Std Err (V^2/s)                        6.42974e-05
-        f_diode              Diode low-pass filtering roll-off frequency (Hz)          7936.51
-        alpha                Diode 'relaxation factor'                                 0.500609
-        err_f_diode          Diode low-pass filtering roll-off frequency Std Err (Hz)  561.715
-        err_alpha            Diode 'relaxation factor' Std Err                         0.0131406
-        chi_squared_per_deg  Chi squared per degree of freedom                         1.06378
-        backing              Statistical backing (%)                                   30.5705"""
+        Name                      Description                                               Value
+        ------------------------  --------------------------------------------------------  -----------
+        Bead diameter             Bead diameter (um)                                        4.4
+        Viscosity                 Liquid viscosity (Pa*s)                                   0.001002
+        Temperature               Liquid temperature (C)                                    20
+        Distance to surface       Distance from bead center to surface (um)
+        Hydrodynamically correct  Hydrodynamically correct model used (-)                   0
+        Max iterations            Maximum number of function evaluations                    10000
+        Fit tolerance             Fitting tolerance                                         1e-07
+        Points per block          Number of points per block                                100
+        Sample rate               Sample rate (Hz)                                          78125
+        Bias correction           Perform bias correction thermal fit                       0
+        Loss function             Loss function used during minimization                    gaussian
+        Rd                        Distance response (um/V)                                  7.25366
+        kappa                     Trap stiffness (pN/nm)                                    0.171495
+        Rf                        Force response (pN/V)                                     1243.97
+        gamma_0                   Theoretical bulk drag coefficient (kg/s)                  4.1552e-08
+        err_kappa                 Stiffness Std Err (pN/V)                                  0.00841414
+        err_Rd                    Distance response Std Err (um/V)                          0.125966
+        fc                        Corner frequency (Hz)                                     656.872
+        D                         Diffusion constant (V^2/s)                                0.00185126
+        err_fc                    Corner frequency Std Err (Hz)                             32.2284
+        err_D                     Diffusion constant Std Err (V^2/s)                        6.42974e-05
+        f_diode                   Diode low-pass filtering roll-off frequency (Hz)          7936.51
+        alpha                     Diode 'relaxation factor'                                 0.500609
+        err_f_diode               Diode low-pass filtering roll-off frequency Std Err (Hz)  561.715
+        err_alpha                 Diode 'relaxation factor' Std Err                         0.0131406
+        chi_squared_per_deg       Chi squared per degree of freedom                         1.06378
+        backing                   Statistical backing (%)                                   30.5705"""
     )
 
 
