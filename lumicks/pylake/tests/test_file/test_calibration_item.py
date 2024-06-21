@@ -138,6 +138,7 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     assert item.fit_range == (100.0, 23000.0)
     assert item.num_points_per_block == 2000
     assert item.sample_rate == 78125
+    assert item.number_of_samples == 781250
     assert not item.active_calibration
     assert not item.fast_sensor
     assert item.start is 1696171376701856700
@@ -145,6 +146,28 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     assert item.stiffness is ref_passive_fixed_diode_with_height["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_passive_fixed_diode_with_height["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_passive_fixed_diode_with_height["Rd (um/V)"]
+
+    assert item.corner_frequency == item["fc (Hz)"]
+    assert item.diffusion_constant_volts == item["D (V^2/s)"]
+    assert item.diffusion_constant == item["D (V^2/s)"] * item.displacement_sensitivity**2
+
+    assert item.bead_diameter == item["Bead diameter (um)"]
+    assert item.temperature == item["Temperature (C)"]
+    assert item.viscosity == item["Viscosity (Pa*s)"]
+    assert item.rho_bead == item["Bead density (Kg/m3)"]
+    assert item.rho_sample == item["Fluid density (Kg/m3)"]
+    assert item.distance_to_surface == item["Bead center height (um)"]
+    assert item.backing == item["backing (%)"]
+    assert item.chi_squared_per_degree == item["chi_squared_per_deg"]
+    assert item.hydrodynamically_correct
+    assert item.diode_frequency == ref_passive_fixed_diode_with_height["Diode frequency (Hz)"]
+    assert item.diode_relaxation_factor == ref_passive_fixed_diode_with_height["Diode alpha"]
+    assert not item.fitted_diode
+    assert not item.fast_sensor
+    assert item.corner_frequency_std_err == ref_passive_fixed_diode_with_height["err_fc (Hz)"]
+    assert item.diffusion_volts_std_err == ref_passive_fixed_diode_with_height["err_D (V^2/s)"]
+    assert not item.diode_frequency_std_err
+    assert not item.diode_relaxation_factor_std_err
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power")
     compare_to_reference_dict(item._model_params(), test_name="model")
@@ -170,6 +193,21 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert item.force_sensitivity is ref_active["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_active["Rd (um/V)"]
 
+    assert item.rho_bead == item["Bead density (Kg/m3)"]
+    assert item.hydrodynamically_correct
+    assert not item.distance_to_surface  # Bulk measurement
+    assert item.diode_frequency == ref_active["f_diode (Hz)"]
+    assert item.diode_relaxation_factor == ref_active["alpha"]
+    assert item.fitted_diode
+    assert item.diode_frequency_std_err == ref_active["err_f_diode (Hz)"]
+    assert item.diode_relaxation_factor_std_err == ref_active["err_alpha"]
+    assert item.driving_frequency_guess == ref_active["Driving data frequency (Hz)"]
+    assert item.driving_frequency == ref_active["driving_frequency (Hz)"]
+    assert item.driving_amplitude == ref_active["driving_amplitude (um)"]
+    assert not item.transferred_lateral_drag_coefficient
+    assert item.measured_drag_coefficient == ref_active["gamma_ex (kg/s)"]
+    assert item.theoretical_bulk_drag == ref_active["gamma_0 (kg/s)"]
+
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power_ac")
     compare_to_reference_dict(item._model_params(), test_name="model_ac")
     compare_to_reference_dict(item.calibration_params(), test_name="calibration_ac")
@@ -187,6 +225,14 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     assert item.stiffness is ref_axial["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_axial["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_axial["Rd (um/V)"]
+
+    assert not item.rho_bead
+    assert not item.rho_bead
+    assert not item.hydrodynamically_correct
+    assert not item.diode_frequency
+    assert not item.diode_relaxation_factor
+    assert not item.fitted_diode
+    assert item.transferred_lateral_drag_coefficient is ref_axial["gamma_ex_lateral (kg/s)"]
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power_axial")
     compare_to_reference_dict(item._model_params(), test_name="model_axial")
@@ -212,20 +258,6 @@ def test_non_full():
     assert item.force_sensitivity is 1.0
     assert item.start is 1714391268938540100
     assert item.stop is 1714391268938540200
-
-    # To be on the safe side, we only allow extracting these fields for a full calibration.
-    for field in (
-        "fit_range",
-        "num_points_per_block",
-        "sample_rate",
-        "excluded_ranges",
-        "fast_sensor",
-        "active_calibration",
-    ):
-        with pytest.raises(
-            ValueError, match="These parameters are only available for a full calibration"
-        ):
-            getattr(item, field)
 
     for func in ("calibration_params", "power_spectrum_params"):
         with pytest.raises(

@@ -106,3 +106,6 @@ def test_axial_calibration(reference_models, hydro):
         axial_fit["gamma_ex_lateral"].description
         == "Bulk drag coefficient from lateral calibration"
     )
+    np.testing.assert_allclose(
+        axial_fit.transferred_lateral_drag_coefficient, axial_fit["gamma_ex_lateral"].value
+    )

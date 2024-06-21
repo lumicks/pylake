@@ -587,6 +587,9 @@ class PassiveCalibrationModel:
             "Distance to surface": CalibrationParameter(
                 "Distance from bead center to surface", self.distance_to_surface, "um"
             ),
+            "Hydrodynamically correct": CalibrationParameter(
+                "Hydrodynamically correct model used", self.hydrodynamically_correct, "-"
+            ),
             **hydrodynamic_parameters,
         }
 
