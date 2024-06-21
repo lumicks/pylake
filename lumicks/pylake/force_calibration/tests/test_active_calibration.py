@@ -82,6 +82,11 @@ def test_integration_active_calibration(
         rtol=1e-9,
     )
     np.testing.assert_allclose(fit["gamma_ex"].value, drag_coeff_calc * 1e12, rtol=1e-9)
+    np.testing.assert_allclose(fit.measured_drag_coefficient, fit["gamma_ex"].value)
+    np.testing.assert_allclose(fit.driving_frequency_guess, fit.model.driving_frequency_guess)
+    np.testing.assert_allclose(fit.driving_amplitude, fit["driving_amplitude"].value)
+    np.testing.assert_allclose(fit.driving_frequency, fit["driving_frequency"].value)
+    np.testing.assert_allclose(fit.driving_power, fit["driving_power"].value)
     np.testing.assert_allclose(
         fit["local_drag_coefficient"].value, drag_coeff_calc * 1e12, rtol=1e-9
     )
