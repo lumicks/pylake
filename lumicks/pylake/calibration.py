@@ -1,6 +1,66 @@
 import re
+from copy import copy
+from tabulate import tabulate
 from functools import wraps
 from collections import UserDict
+
+
+BL_PARAM_DESCRIPTIONS = {
+    # Core calibration inputs
+    "Bead diameter (um)": "Bead diameter (um)",
+    "Temperature (C)": "Temperature (C)",
+    "Viscosity (Pa*s)": "Viscosity (Pa*s)",
+    # Sensor parameters
+    "Diode alpha": "Characterized diode relaxation factor (-)",
+    "Diode frequency (Hz)": "Characterized diode low-pass filtering roll-off frequency (Hz)",
+    # Height calibration
+    "Bead center height (um)": "Distance between bead center and surface (um)",
+    # Hydrodynamic parameters
+    "Hydrodynamic correction enabled": "Used hydrodynamically correct model to fit",
+    "Bead density (Kg/m3)": "Bead density (kg/m3)",
+    "Fluid density (Kg/m3)": "Fluid density (kg/m3)",
+    # Active calibration parameters
+    "Driving data frequency (Hz)": "Desired driving frequency (Hz)",
+    "gamma_ex_lateral (kg/s)": "Bulk drag coefficient estimated from lateral active calibration",
+    # Fitting parameters
+    "Fit tolerance": "Tolerance when fitting power spectrum",
+    "Max iterations": "Maximum number of iterations when fitting power spectrum",
+    # Acquisition parameters
+    "Sample rate (Hz)": "Sample rate (Hz)",
+    "Number of samples": "Number of fitted samples",
+    "Start time (ns)": "Start time of acquisition period (nanoseconds)",
+    "Stop time (ns)": "Stop time of acquisition period (nanoseconds)",
+}
+
+BL_RESULT_DESCRIPTIONS = {
+    # Core parameters
+    "kappa (pN/nm)": "Trap stiffness (pN/nm)",
+    "Rd (um/V)": "Displacement sensitivity (um/V)",
+    "Rf (pN/V)": "Force sensitivity (pN/V)",
+    # Core parameters active
+    "gamma_ex (kg/s)": "Measured bulk drag coefficient (kg/s)",
+    # Fitting parameters
+    "fc (Hz)": "Corner frequency (Hz)",
+    "D (V^2/s)": "Diffusion constant (V^2/s)",
+    # Sensor parameters
+    "alpha": "Fitted relaxation factor of parasitic diode filtering",
+    "f_diode (Hz)": "Fitted corner frequency of parasitic diode filtering (Hz)",
+    # Active calibration diagnostics
+    "driving_amplitude (um)": "Measured driving amplitude based on nanostage position (um)",
+    "driving_frequency (Hz)": "Measured driving frequency based on nanostage position (Hz)",
+    "driving_power (V^2)": "Driving power at the position detector (V^2)",
+    # Theoretical drag coefficient
+    "gamma_0 (kg/s)": "Calculated bulk drag coefficient based on viscosity and diameter (kg/s)",
+    # Statistical diagnostics
+    "chi_squared_per_deg": "Chi squared per degree",
+    "backing (%)": "Statistical backing / goodness of fit (%)",
+    "err_fc (Hz)": "Corner frequency (Hz)",
+    "err_D (V^2/s)": "Diffusion constant std err (V^2/s)",
+    "err_alpha": "Relaxation factor of parasitic filtering std err",
+    "err_f_diode (Hz)": "Fitted corner frequency of parasitic diode filtering std err (Hz)",
+    # Force offset
+    "Offset (pN)": "Force offset (pN)",
+}
 
 
 def _read_from_bl_dict(bl_dict):
@@ -48,6 +108,26 @@ class ForceCalibrationItem(UserDict):
 
         return wrapper
 
+    @property
+    def _sensor_type(self):
+        if self.fast_sensor:
+            return "fast_sensor"
+
+        if "f_diode (Hz)" in self.data:
+            return "slow sensor (fitted)"
+        elif "Diode frequency (Hz)" in self.data:
+            return "characterized slow sensor"
+        else:
+            return ""
+
+    @property
+    def kind(self):
+        kind = self.data.get("Kind", "Unknown")
+        if kind == "Full calibration":
+            return "Active calibration" if self.active_calibration else "Passive calibration"
+        else:
+            return kind
+
     @_verify_full
     def power_spectrum_params(self):
         """Returns parameters with which the power spectrum was calculated
@@ -78,6 +158,12 @@ class ForceCalibrationItem(UserDict):
             "excluded_ranges": self.excluded_ranges,
             "fit_range": self.fit_range,
         }
+
+    def __getitem__(self, item):
+        try:
+            return super().__getitem__(item)
+        except KeyError:
+            return getattr(self, item)
 
     @_verify_full
     def _model_params(self):
@@ -159,7 +245,7 @@ class ForceCalibrationItem(UserDict):
     @_verify_full
     def sample_rate(self):
         """Returns the data sample rate"""
-        return self.data.get("Sample rate (Hz)")
+        return int(self.data.get("Sample rate (Hz)"))
 
     @property
     @_verify_full
@@ -179,6 +265,60 @@ class ForceCalibrationItem(UserDict):
     def num_points_per_block(self):
         """Number of points per block used for spectral down-sampling"""
         return int(self.data["Points per block"])  # BL returns float which API doesn't accept
+
+    def _print_properties(self, tablefmt="text"):
+        return tabulate(
+            (
+                ("kind", "Type of calibration", self.kind),
+                ("stiffness", "Trap stiffness (pN/nm)", f"{self.stiffness:.4f}"),
+                (
+                    "displacement_sensitivity",
+                    "Displacement sensitivity (um/V)",
+                    f"{self.displacement_sensitivity:.4f}",
+                ),
+                ("force_sensitivity", "Force sensitivity (pN/V)", f"{self.force_sensitivity:.4f}"),
+                ("fit_range", "Fitted spectral range (Hz)", str(self.fit_range)),
+                ("excluded_ranges", "Excluded frequency ranges (Hz)", self.excluded_ranges),
+                (
+                    "num_points_per_block",
+                    "Spectral down-sampling factor",
+                    self.num_points_per_block,
+                ),
+                ("sample_rate", "Detector acquisition rate", self.sample_rate),
+            ),
+            tablefmt=tablefmt,
+            headers=("Property", "Description", "Value"),
+        )
+
+    def _print_dict(self, tablefmt):
+        table = []
+        remaining = copy(self.data)
+        for key, description in (BL_PARAM_DESCRIPTIONS | BL_RESULT_DESCRIPTIONS).items():
+            if key in self.data:
+                table.append((key, description, remaining.pop(key)))
+
+        for key, value in remaining.items():
+            table.append((key, "", value))
+
+        return tabulate(table, headers=["Key", "Description", "Value"], tablefmt=tablefmt)
+
+    def _print_data(self, tablefmt="text"):
+        def generate_table(entries):
+            return [
+                [
+                    key,
+                    f"{param.description}{f' ({param.unit})' if param.unit else ''}",
+                    param.value
+                    if isinstance(param.value, str)
+                    else ("" if param.value is None else f"{param.value:.6g}"),
+                ]
+                for key, param in entries.items()
+            ]
+
+        return self._print_properties(tablefmt) + self._print_dict(tablefmt)
+
+    def _repr_html_(self):
+        return self._print_data(tablefmt="html")
 
     @property
     def start(self):

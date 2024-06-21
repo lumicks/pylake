@@ -163,6 +163,15 @@ class CalibrationResults:
         """Displacement sensitivity in um/V"""
         return self.results["Rd"].value
 
+    @property
+    def kind(self):
+        """Type of calibration performed"""
+        return (
+            "Active calibration"
+            if self.model.__class__.__name__ == "ActiveCalibrationModel"
+            else "Passive calibration"
+        )
+
 
 def calculate_power_spectrum(
     data, sample_rate, fit_range=(1e2, 23e3), num_points_per_block=2000, excluded_ranges=None
