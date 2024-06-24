@@ -111,6 +111,13 @@ def test_good_fit_integration(
     np.testing.assert_allclose(ps_calibration["alpha"].value, alpha, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["f_diode"].value, f_diode, rtol=1e-4)
 
+    np.testing.assert_allclose(ps_calibration["fc"].value, ps_calibration.corner_frequency)
+    np.testing.assert_allclose(ps_calibration["D"].value, ps_calibration.diffusion_constant_volts)
+    np.testing.assert_allclose(
+        ps_calibration["D"].value * ps_calibration["Rd"].value * ps_calibration["Rd"].value,
+        ps_calibration.diffusion_constant
+    )
+
     gamma = sphere_friction_coefficient(viscosity, bead_diameter * 1e-6)
     kappa_true = 2.0 * np.pi * gamma * corner_frequency * 1e3
     boltzmann_temperature = sp.constants.k * sp.constants.convert_temperature(temperature, "C", "K")
@@ -124,6 +131,7 @@ def test_good_fit_integration(
     np.testing.assert_equal(ps_calibration.stiffness, ps_calibration["kappa"].value)
     np.testing.assert_equal(ps_calibration.displacement_sensitivity, ps_calibration["Rd"].value)
     np.testing.assert_equal(ps_calibration.force_sensitivity, ps_calibration["Rf"].value)
+    assert not ps_calibration.measured_drag_coefficient
 
     if loss_function == "gaussian":
         compare_to_reference_dict(

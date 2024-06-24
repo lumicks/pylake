@@ -357,6 +357,13 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
     for key, value in expected_results.items():
         np.testing.assert_allclose(fit.results[key].value, value, err_msg=key)
 
+    assert fit.sample_rate == 78125
+    assert fit.number_of_samples == 781250
+    assert fit.bead_diameter == expected_params["Bead diameter"]
+    assert fit.temperature == expected_params["Temperature"]
+    assert fit.viscosity == expected_params["Viscosity"]
+    assert fit.distance_to_surface == expected_params["Distance to surface"]
+
 
 def test_integration_active_calibration_hydrodynamics_bulk(integration_test_parameters):
     shared_pars, simulation_pars = integration_test_parameters
@@ -549,3 +556,11 @@ def test_near_surface_consistency():
             np.testing.assert_allclose(fc_bulk, 3070.33, rtol=2e-2)
             for param, ref_value in parameters_of_interest.items():
                 np.testing.assert_allclose(fit[param].value, ref_value, rtol=2e-2)
+
+            np.testing.assert_allclose(fit.hydrodynamically_correct, hydrodynamic_model)
+            if hydrodynamic_model:
+                assert fit.rho_bead == shared_pars["rho_bead"]
+                assert fit.rho_sample == shared_pars["rho_sample"]
+            else:
+                assert not fit.rho_bead
+                assert not fit.rho_sample

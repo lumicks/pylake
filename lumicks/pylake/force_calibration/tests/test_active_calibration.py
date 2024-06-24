@@ -82,6 +82,7 @@ def test_integration_active_calibration(
         rtol=1e-9,
     )
     np.testing.assert_allclose(fit["gamma_ex"].value, drag_coeff_calc * 1e12, rtol=1e-9)
+    assert fit.measured_drag_coefficient == fit["gamma_ex"].value
     np.testing.assert_allclose(
         fit["local_drag_coefficient"].value, drag_coeff_calc * 1e12, rtol=1e-9
     )

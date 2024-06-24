@@ -40,6 +40,10 @@ def test_fit_fixed_pars(reference_models):
         np.testing.assert_allclose(fit.results["D"].value, 1.14632, 1e-6)
         assert "f_diode" not in fit.results
         assert "alpha" not in fit.results
+        assert not fit.fitted_diode
+        assert fit.fast_sensor
+        assert not fit.diode_frequency
+        assert not fit.diode_relaxation_factor
 
 
 def test_underfit_fast_sensor(reference_models):
@@ -80,6 +84,12 @@ def test_fixed_f_diode(model_params, fixed_params, free_params, reference_models
             np.testing.assert_allclose(fit.params[key].value, value, 1e-6)
         for key in fixed_params.keys():
             assert key not in fit.results
+
+        # Verify properties
+        assert fit.fitted_diode == ("alpha" in free_params or "f_diode" in free_params)
+        assert not fit.fast_sensor
+        np.testing.assert_allclose(fit.diode_frequency, 14000, rtol=1e-6)
+        np.testing.assert_allclose(fit.diode_relaxation_factor, 0.4, rtol=1e-6)
 
         # Fix to the wrong value (this should mess up the fit)
         bad_params = deepcopy(model_params)
