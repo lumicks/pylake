@@ -146,6 +146,16 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     assert item.force_sensitivity is ref_passive_fixed_diode_with_height["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_passive_fixed_diode_with_height["Rd (um/V)"]
 
+    assert item.bead_diameter == item["Bead diameter (um)"]
+    assert item.temperature == item["Temperature (C)"]
+    assert item.viscosity == item["Viscosity (Pa*s)"]
+    assert item.rho_bead == item["Bead density (Kg/m3)"]
+    assert item.hydrodynamically_correct
+    assert item.diode_frequency == ref_passive_fixed_diode_with_height["Diode frequency (Hz)"]
+    assert item.diode_relaxation_factor == ref_passive_fixed_diode_with_height["Diode alpha"]
+    assert not item.fitted_diode
+    assert not item.fast_sensor
+
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power")
     compare_to_reference_dict(item._model_params(), test_name="model")
     compare_to_reference_dict(item.calibration_params(), test_name="calibration")
@@ -170,6 +180,13 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert item.force_sensitivity is ref_active["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_active["Rd (um/V)"]
 
+    assert item.rho_bead == item["Bead density (Kg/m3)"]
+    assert item.hydrodynamically_correct
+    assert item.diode_frequency == ref_active["f_diode (Hz)"]
+    assert item.diode_relaxation_factor == ref_active["alpha"]
+    assert item.fitted_diode
+    assert not item.fast_sensor
+
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power_ac")
     compare_to_reference_dict(item._model_params(), test_name="model_ac")
     compare_to_reference_dict(item.calibration_params(), test_name="calibration_ac")
@@ -187,6 +204,14 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     assert item.stiffness is ref_axial["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_axial["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_axial["Rd (um/V)"]
+
+    assert not item.rho_bead
+    assert not item.rho_bead
+    assert not item.hydrodynamically_correct
+    assert not item.diode_frequency
+    assert not item.diode_relaxation_factor
+    assert not item.fitted_diode
+    assert item.fast_sensor
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power_axial")
     compare_to_reference_dict(item._model_params(), test_name="model_axial")

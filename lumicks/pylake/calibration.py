@@ -1,5 +1,6 @@
 import re
 from copy import copy
+from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationPropertiesMixin
 from tabulate import tabulate
 from functools import wraps
 from collections import UserDict
@@ -93,7 +94,10 @@ def _read_from_bl_dict(bl_dict):
     }
 
 
-class ForceCalibrationItem(UserDict):
+class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @staticmethod
     def _verify_full(method):
         @wraps(method)
@@ -107,6 +111,21 @@ class ForceCalibrationItem(UserDict):
             return method(self, *args, **kwargs)
 
         return wrapper
+
+    def _get_parameter(self, _, bluelake_key):
+        """Grab a parameter"""
+        if bluelake_key in self:
+            return self[bluelake_key]
+
+    @property
+    def hydrodynamically_correct(self):
+        """Fitted spectrum with the hydrodynamically correct model."""
+        return self["Hydrodynamic correction enabled"]
+
+    @property
+    def fitted_diode(self):
+        """Returns whether the diode parameters were fitted"""
+        return "f_diode (Hz)" in self or "alpha" in self
 
     @property
     def _sensor_type(self):
@@ -346,19 +365,9 @@ class ForceCalibrationItem(UserDict):
         return self.data.get("Stop time (ns)")
 
     @property
-    def stiffness(self):
-        """Stiffness in pN/nm"""
-        return self.data.get("kappa (pN/nm)")
-
-    @property
     def force_sensitivity(self):
         """Force sensitivity in pN/V"""
         return self.data.get("Response (pN/V)")
-
-    @property
-    def displacement_sensitivity(self):
-        """Displacement sensitivity in um/V"""
-        return self.data.get("Rd (um/V)")
 
 
 def _filter_calibration(time_field, items, start, stop):

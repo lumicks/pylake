@@ -44,7 +44,187 @@ from lumicks.pylake.force_calibration.detail.power_models import (
 CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value", "unit"])
 
 
-class CalibrationResults:
+class CalibrationPropertiesMixin:
+    def _get_parameter(self, pylake_key, bluelake_key):
+        raise NotImplementedError
+
+    @property
+    def stiffness(self):
+        """Stiffness in pN/nm"""
+        return self._get_parameter("kappa", "kappa (pN/nm)")
+
+    @property
+    def force_sensitivity(self):
+        """Force sensitivity in pN/V"""
+        return self._get_parameter("Rf", "Response (pN/V)")
+
+    @property
+    def displacement_sensitivity(self):
+        """Displacement sensitivity in um/V"""
+        return self._get_parameter("Rd", "Rd (um/V)")
+
+    @property
+    def measured_drag_coefficient(self):
+        """Measured bulk drag coefficient (kg/s)
+
+        .. note::
+
+            This parameter is only available when using active calibration.
+
+            For surface calibrations where the distance to the surface was provided, this
+            represents the bulk value as the model is used to calculate it back to what the
+            drag would have been in bulk.
+        """
+        return self._get_parameter("gamma_ex", "gamma_ex (kg/s)")
+
+    @property
+    def corner_frequency(self):
+        """Estimated corner frequency (Hz)
+
+        .. note::
+
+            When the hydrodynamically correct model is used and a height is provided, this returns
+            the value in bulk. When this model is used, the height dependence due to the change in
+            drag coefficient is captured by the model. In this case, any remaining
+            height-dependent variation is due to optical aberrations.
+
+            When using the simpler model or when not providing the height, the estimated corner
+            frequency will depend on the distance to the surface resulting in a lower corner
+            frequency near the surface.
+        """
+        return self._get_parameter("fc", "fc (Hz)")
+
+    @property
+    def diffusion_constant_volts(self):
+        """Estimated uncalibrated diffusion constant (V^2/s)
+
+        .. note::
+
+            When the hydrodynamically correct model is used and a height is provided, this returns
+            the value in bulk. When this model is used, the height dependence due to the change in
+            drag coefficient is captured by the model.
+
+            When using the simpler model or when not providing the height, the estimated diffusion
+            constant will depend on the distance to the surface resulting in a lower diffusion
+            constant near the surface.
+        """
+        return self._get_parameter("D", "D (V^2/s)")
+
+    @property
+    def diffusion_constant(self):
+        """Estimated calibrated diffusion constant (um^2/s)
+
+        .. note::
+
+            When the hydrodynamically correct model is used and a height is provided, this returns
+            the value in bulk. When this model is used, the height dependence due to the change in
+            drag coefficient is captured by the model.
+
+            When using the simpler model or when not providing the height, the estimated diffusion
+            constant will depend on the distance to the surface resulting in a lower diffusion
+            constant near the surface.
+        """
+        return self._get_parameter("D", "D (V^2/Hz)") * self._get_parameter("Rd", "Rd (um/V)") ** 2
+
+    @property
+    def diode_relaxation_factor(self):
+        """Diode relaxation factor (-)
+
+        The measured voltage (and thus the shape of the power spectrum) is determined by the
+        Brownian motion of the bead within the trap as well as the response of the PSD to the
+        incident light.
+
+        For "fast" sensors, this second contribution is negligible at the frequencies typically
+        fitted, while "slow" sensors exhibit a characteristic filtering where the PSD becomes less
+        sensitive to changes in signal at high frequencies. This filtering effect is characterized
+        by a constant that reflects the fraction of light that is transmitted instantaneously (the
+        diode relaxation factor) and a corner frequency (diode_frequency).
+
+        A relaxation factor of 1.0 results in no filtering. This property will return `None` for
+        fast sensors (where the diode model is not taken into account).
+
+        .. note::
+
+            Some systems have characterized diodes. In these systems, this is not a fitted but
+            fixed value. Please refer to the property `fitted_diode` to determine whether the diode
+            frequency was fixed (pre-characterized) or fitted.
+        """
+        if alpha := self._get_parameter("alpha", "alpha"):
+            return alpha  # Fitted diode
+
+        return self._get_parameter("alpha", "Diode alpha")
+
+    @property
+    def diode_frequency(self):
+        """Diode filtering frequency (Hz).
+
+        The measured voltage (and thus the shape of the power spectrum) is determined by the
+        Brownian motion of the bead within the trap as well as the response of the PSD to the
+        incident light.
+
+        For "fast" sensors, this second contribution is negligible at the frequencies typically
+        fitted, while "slow" sensors exhibit a characteristic filtering where the PSD becomes less
+        sensitive to changes in signal at high frequencies. This filtering effect is characterized
+        by a constant that reflects the fraction of light that is transmitted instantaneously (the
+        diode relaxation factor) and a corner frequency (diode_frequency).
+
+        .. note::
+
+            Some systems have characterized diodes. In these systems, this is not a fitted but
+            fixed value. Please refer to the property `fitted_diode` to determine whether the diode
+            frequency was fixed (pre-characterized) or fitted.
+        """
+        if f_diode := self._get_parameter("f_diode", "f_diode (Hz)"):
+            return f_diode
+
+        return self._get_parameter("Diode frequency", "Diode frequency (Hz)")  # Fixed diode
+
+    @property
+    def fast_sensor(self):
+        """Returns whether this was a fast sensor"""
+        return not self.diode_frequency
+
+    @property
+    def bead_diameter(self):
+        """Bead diameter (microns)"""
+        return self._get_parameter("Bead diameter", "Bead diameter (um)")
+
+    @property
+    def viscosity(self):
+        """Viscosity of the medium (Pa*s)"""
+        return self._get_parameter("Viscosity", "Viscosity (Pa*s)")
+
+    @property
+    def temperature(self):
+        """Temperature (C)"""
+        return self._get_parameter("Temperature", "Temperature (C)")
+
+    @property
+    def distance_to_surface(self):
+        """Distance from bead center to surface (um)"""
+        return self._get_parameter("distance_to_surface", "Bead center height (um)")
+
+    @property
+    def rho_sample(self):
+        """Density of the medium (kg/m**3).
+
+        .. note::
+
+            This parameter only affects hydrodynamically correct fits."""
+        if "Sample density" in self:
+            return self._get_parameter("Sample density", "Fluid density (Kg/m3)")
+
+    @property
+    def rho_bead(self):
+        """Density of the bead (kg/m**3).
+
+        .. note::
+
+            This parameter only affects hydrodynamically correct fits."""
+        return self._get_parameter("Bead density", "Bead density (Kg/m3)")
+
+
+class CalibrationResults(CalibrationPropertiesMixin):
     """Power spectrum calibration results.
 
     Attributes
@@ -92,6 +272,40 @@ class CalibrationResults:
 
     def __getitem__(self, item):
         return self.params[item] if item in self.params else self.results[item]
+
+    def _get_parameter(self, pylake_key, _):
+        """Grab a parameter"""
+        if pylake_key in self:
+            return self[pylake_key].value
+
+    @property
+    def kind(self):
+        """Type of calibration performed"""
+        return (
+            "Active calibration"
+            if self.model.__class__.__name__ == "ActiveCalibrationModel"
+            else "Passive calibration"
+        )
+
+    @property
+    def fitted_diode(self):
+        """Returns whether the diode parameter was fitted"""
+        return "f_diode" in self.results or "alpha" in self.results
+
+    @property
+    def sample_rate(self):
+        """Acquisition sample rate (Hz)."""
+        return self.ps_data.sample_rate
+
+    @property
+    def number_of_samples(self):
+        """Number of fitted samples (-)."""
+        return self.ps_data.total_sampled_used
+
+    @property
+    def hydrodynamically_correct(self):
+        """Fitted spectrum with the hydrodynamically correct model."""
+        return self.model.hydrodynamically_correct
 
     def plot(self):
         """Plot the fitted spectrum"""
@@ -147,208 +361,6 @@ class CalibrationResults:
 
     def __str__(self) -> str:
         return self._print_data()
-
-    @property
-    def stiffness(self):
-        """Stiffness in pN/nm"""
-        return self.results["kappa"].value
-
-    @property
-    def force_sensitivity(self):
-        """Force sensitivity in pN/V"""
-        return self.results["Rf"].value
-
-    @property
-    def displacement_sensitivity(self):
-        """Displacement sensitivity in um/V"""
-        return self.results["Rd"].value
-
-    @property
-    def measured_drag_coefficient(self):
-        """Measured bulk drag coefficient (kg/s)
-
-        .. note::
-
-            This parameter is only available when using active calibration.
-
-            For surface calibrations where the distance to the surface was provided, this
-            represents the bulk value as the model is used to calculate it back to what the
-            drag would have been in bulk.
-        """
-        if self.results.get("gamma_ex"):
-            return self.results["gamma_ex"].value
-
-    @property
-    def corner_frequency(self):
-        """Estimated corner frequency (Hz)
-
-        .. note::
-
-            When the hydrodynamically correct model is used and a height is provided, this returns
-            the value in bulk. When this model is used, the height dependence due to the change in
-            drag coefficient is captured by the model. In this case, any remaining
-            height-dependent variation is due to optical aberrations.
-
-            When using the simpler model or when not providing the height, the estimated corner
-            frequency will depend on the distance to the surface resulting in a lower corner
-            frequency near the surface.
-        """
-        return self.results["fc"].value
-
-    @property
-    def diffusion_constant_volts(self):
-        """Estimated uncalibrated diffusion constant (V^2/s)
-
-        .. note::
-
-            When the hydrodynamically correct model is used and a height is provided, this returns
-            the value in bulk. When this model is used, the height dependence due to the change in
-            drag coefficient is captured by the model.
-
-            When using the simpler model or when not providing the height, the estimated diffusion
-            constant will depend on the distance to the surface resulting in a lower diffusion
-            constant near the surface.
-        """
-        return self.results["D"].value
-
-    @property
-    def diffusion_constant(self):
-        """Estimated calibrated diffusion constant (um^2/s)
-
-        .. note::
-
-            When the hydrodynamically correct model is used and a height is provided, this returns
-            the value in bulk. When this model is used, the height dependence due to the change in
-            drag coefficient is captured by the model.
-
-            When using the simpler model or when not providing the height, the estimated diffusion
-            constant will depend on the distance to the surface resulting in a lower diffusion
-            constant near the surface.
-        """
-        return self.results["D"].value * self.results["Rd"].value ** 2
-
-    @property
-    def diode_relaxation_factor(self):
-        """Diode relaxation factor (-)
-
-        The measured voltage (and thus the shape of the power spectrum) is determined by the
-        Brownian motion of the bead within the trap as well as the response of the PSD to the
-        incident light.
-
-        For "fast" sensors, this second contribution is negligible at the frequencies typically
-        fitted, while "slow" sensors exhibit a characteristic filtering where the PSD becomes less
-        sensitive to changes in signal at high frequencies. This filtering effect is characterized
-        by a constant that reflects the fraction of light that is transmitted instantaneously (the
-        diode relaxation factor) and a corner frequency (diode_frequency).
-
-        A relaxation factor of 1.0 results in no filtering. This property will return `None` for
-        fast sensors (where the diode model is not taken into account).
-
-        .. note::
-
-            Some systems have characterized diodes. In these systems, this is not a fitted but
-            fixed value. Please refer to the property `fitted_diode` to determine whether the diode
-            frequency was fixed (pre-characterized) or fitted.
-        """
-        if "alpha" in self:
-            return self["alpha"].value
-
-    @property
-    def diode_frequency(self):
-        """Diode filtering frequency (Hz).
-
-        The measured voltage (and thus the shape of the power spectrum) is determined by the
-        Brownian motion of the bead within the trap as well as the response of the PSD to the
-        incident light.
-
-        For "fast" sensors, this second contribution is negligible at the frequencies typically
-        fitted, while "slow" sensors exhibit a characteristic filtering where the PSD becomes less
-        sensitive to changes in signal at high frequencies. This filtering effect is characterized
-        by a constant that reflects the fraction of light that is transmitted instantaneously (the
-        diode relaxation factor) and a corner frequency (diode_frequency).
-
-        .. note::
-
-            Some systems have characterized diodes. In these systems, this is not a fitted but
-            fixed value. Please refer to the property `fitted_diode` to determine whether the diode
-            frequency was fixed (pre-characterized) or fitted.
-        """
-        if "f_diode" in self:
-            return self["f_diode"].value
-
-    @property
-    def fitted_diode(self):
-        """Returns whether the diode parameter was fitted"""
-        return "f_diode" in self.results or "alpha" in self.results
-
-    @property
-    def fast_sensor(self):
-        """Returns whether this was a fast sensor"""
-        return "f_diode" not in self
-
-    @property
-    def kind(self):
-        """Type of calibration performed"""
-        return (
-            "Active calibration"
-            if self.model.__class__.__name__ == "ActiveCalibrationModel"
-            else "Passive calibration"
-        )
-
-    @property
-    def bead_diameter(self):
-        """Bead diameter (microns)"""
-        return self.model.bead_diameter
-
-    @property
-    def viscosity(self):
-        """Viscosity of the medium (Pa*s)"""
-        return self.model.viscosity
-
-    @property
-    def temperature(self):
-        """Temperature (C)"""
-        return self.model.temperature
-
-    @property
-    def distance_to_surface(self):
-        """Distance from bead center to surface (um)"""
-        return self.model.distance_to_surface
-
-    @property
-    def rho_sample(self):
-        """Density of the medium (kg/m**3).
-
-        .. note::
-
-            This parameter only affects hydrodynamically correct fits."""
-        if self.hydrodynamically_correct:
-            return self.model.rho_sample
-
-    @property
-    def rho_bead(self):
-        """Density of the bead (kg/m**3).
-
-        .. note::
-
-            This parameter only affects hydrodynamically correct fits."""
-        if self.hydrodynamically_correct:
-            return self.model.rho_bead
-
-    @property
-    def hydrodynamically_correct(self):
-        """Fitted spectrum with the hydrodynamically correct model."""
-        return self.model.hydrodynamically_correct
-
-    @property
-    def sample_rate(self):
-        """Acquisition sample rate (Hz)."""
-        return self.ps_data.sample_rate
-
-    @property
-    def number_of_samples(self):
-        """Number of fitted samples (-)."""
-        return self.ps_data.total_sampled_used
 
 
 def calculate_power_spectrum(
