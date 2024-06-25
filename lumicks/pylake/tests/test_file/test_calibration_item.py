@@ -138,6 +138,7 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     assert item.fit_range == (100.0, 23000.0)
     assert item.num_points_per_block == 2000
     assert item.sample_rate == 78125
+    assert item.number_of_samples == 781250
     assert not item.active_calibration
     assert not item.fast_sensor
     assert item.start is 1696171376701856700
@@ -154,6 +155,8 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     assert item.temperature == item["Temperature (C)"]
     assert item.viscosity == item["Viscosity (Pa*s)"]
     assert item.rho_bead == item["Bead density (Kg/m3)"]
+    assert item.rho_sample == item["Fluid density (Kg/m3)"]
+    assert item.distance_to_surface == item["Bead center height (um)"]
     assert item.hydrodynamically_correct
     assert item.diode_frequency == ref_passive_fixed_diode_with_height["Diode frequency (Hz)"]
     assert item.diode_relaxation_factor == ref_passive_fixed_diode_with_height["Diode alpha"]
@@ -186,6 +189,7 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
 
     assert item.rho_bead == item["Bead density (Kg/m3)"]
     assert item.hydrodynamically_correct
+    assert not item.distance_to_surface  # Bulk measurement
     assert item.diode_frequency == ref_active["f_diode (Hz)"]
     assert item.diode_relaxation_factor == ref_active["alpha"]
     assert item.fitted_diode

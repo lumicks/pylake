@@ -211,8 +211,7 @@ class CalibrationPropertiesMixin:
         .. note::
 
             This parameter only affects hydrodynamically correct fits."""
-        if "Sample density" in self:
-            return self._get_parameter("Sample density", "Fluid density (Kg/m3)")
+        return self._get_parameter("Sample density", "Fluid density (Kg/m3)")
 
     @property
     def rho_bead(self):

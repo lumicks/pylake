@@ -268,6 +268,12 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
 
     @property
     @_verify_full
+    def number_of_samples(self):
+        """Number of fitted samples (-)."""
+        return self.data.get("Number of samples")
+
+    @property
+    @_verify_full
     def active_calibration(self):
         """Returns whether it was an active calibration or not"""
         return self.data.get("driving_frequency (Hz)") is not None
