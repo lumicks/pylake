@@ -146,6 +146,10 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     assert item.force_sensitivity is ref_passive_fixed_diode_with_height["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_passive_fixed_diode_with_height["Rd (um/V)"]
 
+    assert item.corner_frequency == item["fc (Hz)"]
+    assert item.diffusion_constant_volts == item["D (V^2/s)"]
+    assert item.diffusion_constant == item["D (V^2/s)"] * item.displacement_sensitivity ** 2
+
     assert item.bead_diameter == item["Bead diameter (um)"]
     assert item.temperature == item["Temperature (C)"]
     assert item.viscosity == item["Viscosity (Pa*s)"]

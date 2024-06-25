@@ -124,7 +124,7 @@ class CalibrationPropertiesMixin:
             constant will depend on the distance to the surface resulting in a lower diffusion
             constant near the surface.
         """
-        return self._get_parameter("D", "D (V^2/Hz)") * self._get_parameter("Rd", "Rd (um/V)") ** 2
+        return self.diffusion_constant_volts * self.displacement_sensitivity**2
 
     @property
     def diode_relaxation_factor(self):
