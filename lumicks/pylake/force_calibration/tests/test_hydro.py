@@ -357,6 +357,9 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
     for key, value in expected_results.items():
         np.testing.assert_allclose(fit.results[key].value, value, err_msg=key)
 
+    assert fit._fit_range == (1e2, 23e3)
+    assert fit._excluded_ranges == []
+
 
 def test_integration_active_calibration_hydrodynamics_bulk(integration_test_parameters):
     shared_pars, simulation_pars = integration_test_parameters
@@ -371,7 +374,9 @@ def test_integration_active_calibration_hydrodynamics_bulk(integration_test_para
         sample_rate=simulation_pars["sample_rate"],
         driving_frequency_guess=33,
     )
-    power_spectrum = calculate_power_spectrum(volts, simulation_pars["sample_rate"])
+    power_spectrum = calculate_power_spectrum(
+        volts, simulation_pars["sample_rate"], excluded_ranges=[(20, 40)]
+    )
     fit = fit_power_spectrum(power_spectrum, model, bias_correction=False)
 
     expected_params = {
@@ -411,6 +416,8 @@ def test_integration_active_calibration_hydrodynamics_bulk(integration_test_para
 
     for key, value in expected_results.items():
         np.testing.assert_allclose(fit.results[key].value, value, err_msg=key)
+
+    assert fit._excluded_ranges == [(20, 40)]
 
 
 def test_distance_to_surface_input(integration_test_parameters):

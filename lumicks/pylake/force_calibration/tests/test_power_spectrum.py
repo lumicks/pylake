@@ -208,6 +208,7 @@ def test_windowing_negative_duration():
 def test_in_range(frequency, num_data, sample_rate, num_blocks, f_min, f_max):
     data = np.sin(2.0 * np.pi * frequency / sample_rate * np.arange(num_data))
     power_spectrum = PowerSpectrum(data, sample_rate)
+    assert power_spectrum._fit_range == (0, sample_rate / 2)
 
     power_subset = power_spectrum.in_range(f_min, f_max)
     assert id(power_subset) != id(power_spectrum)
@@ -220,6 +221,21 @@ def test_in_range(frequency, num_data, sample_rate, num_blocks, f_min, f_max):
     np.testing.assert_allclose(power_subset.power, power_spectrum.power[mask], atol=1e-16)
     np.testing.assert_allclose(power_spectrum.total_duration, power_subset.total_duration)
     np.testing.assert_allclose(power_spectrum.sample_rate, power_subset.sample_rate)
+    assert power_subset._fit_range == (f_min, min(sample_rate / 2, f_max))
+
+
+def test_in_range_twice():
+    sample_rate, num_data = 2000, 1000
+    data = np.sin(2.0 * np.pi * 10 / sample_rate * np.arange(num_data))
+    power_spectrum = PowerSpectrum(data, sample_rate)
+    assert power_spectrum._fit_range == (0, sample_rate / 2)
+    assert power_spectrum.frequency[-1] == power_spectrum._fit_range[-1]
+    subset = power_spectrum.in_range(100, 500)
+    assert subset._fit_range == (100, 500)
+    subset2 = subset.in_range(50, 800)
+    assert subset2._fit_range == (100, 500)
+    subset3 = subset2.in_range(200, 300)
+    assert subset3._fit_range == (200, 300)
 
 
 def test_plot():
@@ -263,6 +279,13 @@ def test_exclusions(exclusion_ranges, result_frequency, result_power):
     excluded_range = ps._exclude_range(exclusion_ranges)
     np.testing.assert_allclose(excluded_range.frequency, result_frequency)
     np.testing.assert_allclose(excluded_range.power, result_power)
+    np.testing.assert_allclose(excluded_range._excluded_ranges, exclusion_ranges)
+
+    ex2 = excluded_range._exclude_range([(10, 50)])
+    both = exclusion_ranges + [(10, 50)]
+    np.testing.assert_allclose(ex2._excluded_ranges, both)
+
+    np.testing.assert_allclose(ex2.power, ps._exclude_range(ex2._excluded_ranges).power)
 
 
 def test_identify_peaks_args():
