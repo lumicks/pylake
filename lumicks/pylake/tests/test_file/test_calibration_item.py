@@ -1,6 +1,6 @@
 import pytest
 
-from lumicks.pylake.calibration import ForceCalibrationItem
+from lumicks.pylake.calibration import ForceCalibration, ForceCalibrationItem
 from lumicks.pylake.force_calibration.convenience import calibrate_force
 from lumicks.pylake.force_calibration.power_spectrum_calibration import calculate_power_spectrum
 
@@ -132,7 +132,7 @@ ref_axial = {
 }
 
 
-def test_passive_item(compare_to_reference_dict, calibration_data):
+def test_passive_item(compare_to_reference_dict, reference_data, calibration_data):
     item = ForceCalibrationItem(ref_passive_fixed_diode_with_height)
     assert item.excluded_ranges == [(100.0, 500.0), (1000.0, 2000.0)]
     assert item.fit_range == (100.0, 23000.0)
@@ -177,6 +177,7 @@ def test_passive_item(compare_to_reference_dict, calibration_data):
     dummy_voltage, _ = calibration_data
     calculate_power_spectrum(dummy_voltage, **item.power_spectrum_params())
     calibrate_force(dummy_voltage, **item.calibration_params())
+    assert str(item)
 
 
 def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
@@ -216,6 +217,7 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     dummy_voltage, nano = calibration_data
     calculate_power_spectrum(dummy_voltage, **item.power_spectrum_params())
     calibrate_force(dummy_voltage, driving_data=nano, **item.calibration_params())
+    assert str(item)
 
 
 def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
@@ -242,6 +244,7 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     dummy_voltage, _ = calibration_data
     calculate_power_spectrum(dummy_voltage, **item.power_spectrum_params())
     calibrate_force(dummy_voltage, **item.calibration_params())
+    assert str(item)
 
 
 def test_non_full():
@@ -264,3 +267,52 @@ def test_non_full():
             ValueError, match="These parameters are only available for a full calibration"
         ):
             getattr(item, func)()
+
+    assert str(item)
+
+
+def test_force_calibration_handling():
+    def timestamp(time):
+        return 1714391268938540100 + int(1e9) * time
+
+    def create_item(t_start, t_stop, **kwargs):
+        return ForceCalibrationItem(
+            {
+                "Kind": "Discard all calibration data",
+                "Start time (ns)": timestamp(t_start),
+                "Stop time (ns)": timestamp(t_stop),
+                "Response (pN/V)": 1.0,
+            }
+            | kwargs
+        )
+
+    fcs = [create_item(1, 11), create_item(11, 12), create_item(15, 25)]
+    fcs2 = [
+        create_item(1, 11),
+        create_item(11, 12),
+        create_item(15, 25),
+    ]
+    items = ForceCalibration("Stop time (ns)", fcs)
+    same_items = ForceCalibration("Stop time (ns)", fcs2)
+    different_item = ForceCalibration("Stop time (ns)", fcs2[:-1] + [create_item(15, 25, extra=5)])
+    shorter_list = ForceCalibration("Stop time (ns)", fcs[:-1])
+
+    assert len(items) == 3
+    assert items == same_items
+
+    # Check whether ranged slicing works
+    assert items[:-1] == shorter_list
+    assert isinstance(items[:-1], ForceCalibration)
+
+    assert items[0] == items._src[0]
+    assert items[1] == items._src[1]
+    assert items[-1] == items._src[-1]
+
+    assert items != different_item
+    assert items != shorter_list
+    assert shorter_list != items
+
+    for it, fc in zip(items, fcs):
+        assert it == fc
+
+    assert list(items) == items._src
