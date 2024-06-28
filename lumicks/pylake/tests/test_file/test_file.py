@@ -75,6 +75,23 @@ def test_redirect_list(h5_file):
         assert f["Point Scan"]["PointScan1"].start == np.int64(20e9)
 
 
+def test_calibration_str(h5_file):
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        print("")
+        print(str(f.force1x.calibration))
+        assert str(f.force1x.calibration) == dedent(
+            (
+                """\
+                  Index  Kind                 Stiffness (pN/nm)    Force sens. (pN/V)    Disp. sens. (µm/V)    Hydro    Surface
+                -------  -------------------  -------------------  --------------------  --------------------  -------  ---------
+                      0  Unknown              N/A                  N/A                   N/A                   False    False
+                      1  Reset offset         1.05                 504.43                4.57                  False    True
+                      2  Passive calibration  1.05                 504.43                4.57                  False    False"""
+            )
+        )
+
+
 def test_repr_and_str(h5_file):
     f = pylake.File.from_h5py(h5_file)
 

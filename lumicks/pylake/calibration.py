@@ -2,6 +2,8 @@ import re
 from functools import wraps
 from collections import UserDict
 
+from tabulate import tabulate
+
 from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationPropertiesMixin
 
 
@@ -266,21 +268,51 @@ def _filter_calibration(time_field, items, start, stop):
 class ForceCalibration:
     """Calibration handling
 
-    Parameters
-    ----------
-    A source of calibration data
+    Examples
+    --------
+    ::
 
-    Parameters
-    ----------
-    time_field : string
-        name of the field used for time
-    items : list
-        list of dictionaries containing raw calibration attribute data
+        import lumicks.pylake as lk
+
+        f = lk.File("passive_calibration.h5")
+        print(f.force1x.calibration)  # Show force calibration items available
+
+        calibration = f.force1x.calibration[1]  # Grab a calibration item for force 1x
     """
 
     def __init__(self, time_field, items):
+        """Calibration item
+
+        Parameters
+        ----------
+        time_field : string
+            name of the field used for time
+        items : list[ForceCalibrationItem]
+            list of force calibration items
+        """
         self._time_field = time_field
-        self._items = items
+        self._src = items
+
+    def _with_src(self, _src):
+        return ForceCalibration(self._time_field, _src)
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return self._with_src(self._src[item])
+
+        return self._src[item]
+
+    def __len__(self):
+        return len(self._src)
+
+    def __iter__(self):
+        return iter(self._src)
+
+    def __eq__(self, other):
+        if not self._src or not other._src:
+            return False
+
+        return self._src == other._src
 
     def filter_calibration(self, start, stop):
         """Filter calibration based on time stamp range
@@ -291,7 +323,10 @@ class ForceCalibration:
             time stamp at start [ns]
         stop  : int
             time stamp at stop [ns]"""
-        return _filter_calibration(self._time_field, self._items, start, stop)
+        return ForceCalibration(
+            self._time_field,
+            _filter_calibration(self._time_field, self._src, start, stop),
+        )
 
     @staticmethod
     def from_field(hdf5, force_channel, time_field="Stop time (ns)") -> "ForceCalibration":
@@ -318,6 +353,38 @@ class ForceCalibration:
                     items.append(ForceCalibrationItem(attrs))
 
         return ForceCalibration(time_field=time_field, items=items)
+
+    def print_summary(self, tablefmt):
+        return tabulate(
+            (
+                (
+                    idx,
+                    item.kind,
+                    f"{item.stiffness:.2f}" if item.stiffness else "N/A",
+                    f"{item.force_sensitivity:.2f}" if item.force_sensitivity else "N/A",
+                    f"{item.displacement_sensitivity:.2f}" if item.force_sensitivity else "N/A",
+                    item.hydrodynamically_correct,
+                    item.distance_to_surface is not None,
+                )
+                for idx, item in enumerate(self._src)
+            ),
+            tablefmt=tablefmt,
+            headers=(
+                "Index",
+                "Kind",
+                "Stiffness (pN/nm)",
+                "Force sens. (pN/V)",
+                "Disp. sens. (µm/V)",
+                "Hydro",
+                "Surface",
+            ),
+        )
+
+    def _repr_html_(self):
+        return self.print_summary(tablefmt="html")
+
+    def __str__(self):
+        return self.print_summary(tablefmt="text")
 
     @staticmethod
     def from_dataset(hdf5, n, xy, time_field="Stop time (ns)") -> "ForceCalibration":

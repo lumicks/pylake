@@ -42,19 +42,35 @@ def h5_file(tmpdir_factory, request):
             "Photon Time Tags", "Red", np.arange(10, 100, step=10, dtype=np.int64)
         )
 
-        calibration_time_field = "Stop time (ns)"
-        mock_file.make_calibration_data("1", "Force 1x", {calibration_time_field: 0})
-        mock_file.make_calibration_data("2", "Force 1x", {calibration_time_field: 1})
-        mock_file.make_calibration_data("3", "Force 1x", {calibration_time_field: 10})
-        mock_file.make_calibration_data("4", "Force 1x", {calibration_time_field: 100})
-        mock_file.make_calibration_data("1", "Force 1y", {calibration_time_field: 0})
-        mock_file.make_calibration_data("2", "Force 1y", {calibration_time_field: 1})
-        mock_file.make_calibration_data("3", "Force 1y", {calibration_time_field: 10})
-        mock_file.make_calibration_data("4", "Force 1y", {calibration_time_field: 100})
-        mock_file.make_calibration_data("1", "Force 1z", {calibration_time_field: 0})
-        mock_file.make_calibration_data("2", "Force 1z", {calibration_time_field: 1})
-        mock_file.make_calibration_data("3", "Force 1z", {calibration_time_field: 10})
-        mock_file.make_calibration_data("4", "Force 1z", {calibration_time_field: 100})
+        def generate_attributes(stop_time, custom_fields=None):
+            return {
+                "Kind": "Full calibration",
+                "Start time (ns)": stop_time - 5,
+                "Stop time (ns)": stop_time,
+                "kappa (pN/nm)": 1.05,
+                "Response (pN/V)": 504.43,
+                "Rd (um/V)": 4.57,
+            } | (custom_fields if custom_fields else {})
+
+        mock_file.make_calibration_data(
+            "1", "Force 1x", {"Start time (ns)": -1, "Stop time (ns)": 0}
+        )
+        mock_file.make_calibration_data(
+            "2", "Force 1x", generate_attributes(1, {"Bead center height (um)": 5})
+        )
+        mock_file.make_calibration_data(
+            "2", "Force 1x", generate_attributes(3, {"Kind": "Reset offset"})
+        )
+        mock_file.make_calibration_data("3", "Force 1x", generate_attributes(10))
+        mock_file.make_calibration_data("4", "Force 1x", generate_attributes(100))
+        mock_file.make_calibration_data("1", "Force 1y", generate_attributes(0))
+        mock_file.make_calibration_data("2", "Force 1y", generate_attributes(1))
+        mock_file.make_calibration_data("3", "Force 1y", generate_attributes(10))
+        mock_file.make_calibration_data("4", "Force 1y", generate_attributes(100))
+        mock_file.make_calibration_data("1", "Force 1z", generate_attributes(0))
+        mock_file.make_calibration_data("2", "Force 1z", generate_attributes(1))
+        mock_file.make_calibration_data("3", "Force 1z", generate_attributes(10))
+        mock_file.make_calibration_data("4", "Force 1z", generate_attributes(100))
 
         mock_file.make_marker("test_marker", {"Start time (ns)": 100, "Stop time (ns)": 200})
         mock_file.make_marker("test_marker2", {"Start time (ns)": 200, "Stop time (ns)": 300})
@@ -88,10 +104,10 @@ def h5_file(tmpdir_factory, request):
         force_data = np.hstack((np.ones(37) * 30, np.ones(33) * 10))
         force_start = np.int64(ds.attrs["Start time (ns)"] - (freq * 5))  # before infowave
         mock_file.make_continuous_channel("Force HF", "Force 2x", force_start, freq, force_data)
-        mock_file.make_calibration_data("1", "Force 2x", {calibration_time_field: 0})
-        mock_file.make_calibration_data("2", "Force 2x", {calibration_time_field: 1})
-        mock_file.make_calibration_data("3", "Force 2x", {calibration_time_field: 10})
-        mock_file.make_calibration_data("4", "Force 2x", {calibration_time_field: 100})
+        mock_file.make_calibration_data("1", "Force 2x", generate_attributes(0))
+        mock_file.make_calibration_data("2", "Force 2x", generate_attributes(1))
+        mock_file.make_calibration_data("3", "Force 2x", generate_attributes(10))
+        mock_file.make_calibration_data("4", "Force 2x", generate_attributes(100))
 
         # Single frame image
         json = generate_scan_json(

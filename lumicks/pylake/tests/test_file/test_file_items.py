@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from lumicks import pylake
+from lumicks.pylake.calibration import ForceCalibration
 
 from ..data.mock_json import force_feedback_dict
 
@@ -32,9 +33,9 @@ def test_channels(h5_file):
 def test_calibration(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
-    assert type(f.force1x.calibration) is list
-    assert type(f.downsampled_force1.calibration) is list
-    assert type(f.downsampled_force1x.calibration) is list
+    assert type(f.force1x.calibration) is ForceCalibration or list
+    assert type(f.downsampled_force1.calibration) is ForceCalibration or list
+    assert type(f.downsampled_force1x.calibration) is ForceCalibration or list
 
     if f.format_version == 1:
         # v1 version doesn't include calibration data field
@@ -45,10 +46,10 @@ def test_calibration(h5_file):
         assert len(f["Force LF"]["Force 1x"].calibration) == 0
 
     if f.format_version == 2:
-        assert len(f.force1x.calibration) == 2
+        assert len(f.force1x.calibration) == 3
         assert len(f.downsampled_force1.calibration) == 0
         assert len(f.downsampled_force1x.calibration) == 1
-        assert len(f["Force HF"]["Force 1x"].calibration) == 2
+        assert len(f["Force HF"]["Force 1x"].calibration) == 3
         assert len(f["Force LF"]["Force 1x"].calibration) == 1
 
         assert f["Force HF"]["Force 1x"].calibration == f.force1x.calibration
