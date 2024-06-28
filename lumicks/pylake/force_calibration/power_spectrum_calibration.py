@@ -93,6 +93,16 @@ class CalibrationResults:
     def __getitem__(self, item):
         return self.params[item] if item in self.params else self.results[item]
 
+    @property
+    def _fit_range(self):
+        """Fitted range"""
+        return self.ps_data._fit_range
+
+    @property
+    def _excluded_ranges(self):
+        """Frequency exclusion ranges"""
+        return self.ps_data._excluded_ranges
+
     def plot(self):
         """Plot the fitted spectrum"""
         import matplotlib.pyplot as plt

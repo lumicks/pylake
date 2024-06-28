@@ -52,6 +52,8 @@ class PowerSpectrum:
             )
 
         self.unit = unit
+        self._excluded_ranges = []
+
         data = data - np.mean(data)
 
         # Calculate power spectrum for slices of data.
@@ -74,6 +76,7 @@ class PowerSpectrum:
         self.frequency = np.fft.rfftfreq(num_points_per_window, 1.0 / sample_rate)
         scaling_factor = (2.0 / sample_rate) / num_points_per_window
         self.power = scaling_factor * squared_fft
+        self._fit_range = (self.frequency.min(), self.frequency.max())
 
         # Store a variance for temporally blocked power spectra
         self._variance = (
@@ -122,6 +125,7 @@ class PowerSpectrum:
 
         ps.frequency = ps.frequency[indices]
         ps.power = ps.power[indices]
+        ps._excluded_ranges = self._excluded_ranges + excluded_ranges
 
         if self._variance is not None:
             ps._variance = ps._variance[indices]
@@ -233,6 +237,11 @@ class PowerSpectrum:
         mask = (self.frequency > frequency_min) & (self.frequency <= frequency_max)
         ir.frequency = self.frequency[mask]
         ir.power = self.power[mask]
+
+        ir._fit_range = (
+            max(self._fit_range[0], frequency_min),
+            min(self._fit_range[1], frequency_max),
+        )
 
         if self._variance is not None:
             ir._variance = self._variance[mask]
