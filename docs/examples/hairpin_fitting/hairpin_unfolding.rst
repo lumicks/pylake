@@ -8,8 +8,8 @@ Hairpin unfolding
 
 .. _hairpin_fitting:
 
-Analyzing fd curve with hairpin unfolding event
------------------------------------------------
+Force-extension curve with hairpin unfolding event
+--------------------------------------------------
 
 In this notebook we will analyze a force-extension curve of a construct with two DNA handles with a DNA hairpin in between. The hairpin unfolds as the force on the construct is increased.
 
@@ -37,9 +37,9 @@ Before starting the analysis on the high frequency data, let's look at fd curve 
 
 .. image:: fdcurve.png
 
-The fd curve has an unfolding event around 9 pN. 
+The fd curve has an unfolding event around 9 pN. We will fit the data before and after the unfolding event to determine the contour length of the hairpin.
 
-Next, we fit the video tracking to the mirror position data. The resulting fit can be used to compute the trap-to-trap distance from the (high-frequency) mirror 1 position data.
+First, we fit the video tracking to the mirror position data. The resulting fit can be used to compute the trap-to-trap distance from the (high-frequency) mirror 1 position data.
 
 Mirror position-to-Distance Calibration
 ---------------------------------------
