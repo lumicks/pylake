@@ -125,6 +125,17 @@ Fit the result of the fit::
 
 .. image:: baselinefit.png
 
+The quality of the fit can be visualized by plotting the residuals. 
+When the `degree`` of the fitted polynomial is too low, the residuals will be large and not flat. When the degree is too high, the baseline fit above will give a warning that the fit may be poorly conditioned::
+
+    plt.figure()
+    baseline_1x.plot_residual(label="baseline f1x")
+    baseline_2x.plot_residual(label="baseline f2x")
+    plt.legend(loc='lower right')
+    plt.show()
+
+.. image:: residuals.png
+
 Compute the piezo distance
 --------------------------
 
