@@ -92,7 +92,23 @@ Load and plot the baseline data::
 
 .. image:: baselines.png
 
-If the force was not reset before recording the baseline, it is best to subtract it before fitting. Below, we average the force at large distance to estimate the distance offset::
+If the force was not reset before recording the baseline, it is best to subtract it before fitting. 
+The force offset can be determined by measuring the force when the traps are far and no force is applied, which corresponds to the first seconds in the plot below::
+
+    plt.figure()
+    plt.subplot(2,1,1)
+    baseline_1x_data.plot(label = "Baseline 1x")
+    baseline_2x_data.plot(label = "Baseline 2x")
+    plt.legend()
+    plt.ylabel("Force (pN)")
+    plt.subplot(2,1,2)
+    distance.plot()
+    plt.ylabel(r"Distance ($\mu$m)")
+    plt.tight_layout()
+
+.. image:: baseline_vs_time.png
+
+Below, we average the force at large distance to estimate the distance offset::
 
     tmin_offset = "0s"
     tmax_offset = "1s"
