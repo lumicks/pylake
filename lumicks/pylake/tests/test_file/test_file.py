@@ -83,11 +83,11 @@ def test_calibration_str(h5_file):
         assert str(f.force1x.calibration) == dedent(
             (
                 """\
-                  Index  Kind                 Stiffness (pN/nm)    Force sens. (pN/V)    Disp. sens. (µm/V)    Hydro    Surface
-                -------  -------------------  -------------------  --------------------  --------------------  -------  ---------
-                      0  Unknown              N/A                  N/A                   N/A                   False    False
-                      1  Reset offset         1.05                 504.43                4.57                  False    True
-                      2  Passive calibration  1.05                 504.43                4.57                  False    False"""
+                  Index  Kind                 Stiffness (pN/nm)    Force sens. (pN/V)    Disp. sens. (µm/V)    Hydro    Surface    Data?
+                -------  -------------------  -------------------  --------------------  --------------------  -------  ---------  -------
+                      0  Unknown              N/A                  N/A                   N/A                   False    False      False
+                      1  Reset offset         1.05                 504.43                4.57                  False    True       False
+                      2  Passive calibration  1.05                 504.43                4.57                  False    False      True"""
             )
         )
 
