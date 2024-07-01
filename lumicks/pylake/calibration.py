@@ -5,36 +5,6 @@ from collections import UserDict
 from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationPropertiesMixin
 
 
-def _read_from_bl_dict(bl_dict):
-    """Returns a dictionary of calibration parameters from a calibration dictionary exported from
-    Bluelake where the keys respond to parameter names used in Pylake.
-
-    Parameters
-    ----------
-    bl_dict : dict[str, float]
-        Raw dictionary coming from a calibration item.
-    """
-
-    mapping = {
-        "bead_diameter": "Bead diameter (um)",
-        "rho_bead": "Bead density (Kg/m3)",
-        "rho_sample": "Fluid density (Kg/m3)",
-        "viscosity": "Viscosity (Pa*s)",
-        "temperature": "Temperature (C)",
-        "driving_frequency_guess": "Driving data frequency (Hz)",
-        "distance_to_surface": "Bead center height (um)",
-        # Fixed diode parameters (only available when diode was fixed)
-        "fixed_alpha": "Diode alpha",
-        "fixed_diode": "Diode frequency (Hz)",
-        # Only available for axial with active
-        "drag": "gamma_ex_lateral (kg/s)",
-    }
-
-    return {
-        key_param: bl_dict[key_bl] for key_param, key_bl in mapping.items() if key_bl in bl_dict
-    }
-
-
 class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     @staticmethod
     def _verify_full(method):
@@ -122,12 +92,27 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         """Returns parameters with which to create an active or passive calibration model"""
 
         # TODO: Model needs to support fixed_diode and fixed_alpha, keep API private until finalized
-        return _read_from_bl_dict(self.data) | {
+        params = {
+            "bead_diameter": self.bead_diameter,
+            "rho_bead": self.rho_bead,
+            "rho_sample": self.rho_sample,
+            "viscosity": self.viscosity,
+            "temperature": self.temperature,
+            "driving_frequency_guess": self.driving_frequency_guess,
+            "distance_to_surface": self.distance_to_surface,
+            # Fixed diode parameters (only available when diode was fixed)
+            "fixed_alpha": self.diode_relaxation_factor if not self.fitted_diode else None,
+            "fixed_diode": self.diode_frequency if not self.fitted_diode else None,
+            # Only available for axial with active
+            "drag": self.transferred_lateral_drag_coefficient,
+            # Other properties
             "sample_rate": self.sample_rate,
             "fast_sensor": self.fast_sensor,
             "axial": bool(self.data.get("Axial calibration")),
-            "hydrodynamically_correct": bool(self.data.get("Hydrodynamic correction enabled")),
+            "hydrodynamically_correct": self.hydrodynamically_correct,
         }
+
+        return {key: value for key, value in params.items() if value is not None}
 
     @_verify_full
     def calibration_params(self):
