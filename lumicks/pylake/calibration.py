@@ -280,7 +280,7 @@ class ForceCalibration:
         calibration = f.force1x.calibration[1]  # Grab a calibration item for force 1x
     """
 
-    def __init__(self, time_field, items):
+    def __init__(self, time_field, items, slice_start=None, slice_stop=None):
         """Calibration item
 
         Parameters
@@ -289,9 +289,13 @@ class ForceCalibration:
             name of the field used for time
         items : list[ForceCalibrationItem]
             list of force calibration items
+        slice_start, slice_stop : int
+            Start and stop index of the slice associated with these items
         """
         self._time_field = time_field
         self._src = items
+        self._slice_start = slice_start
+        self._slice_stop = slice_stop
 
     def _with_src(self, _src):
         return ForceCalibration(self._time_field, _src)
@@ -326,6 +330,8 @@ class ForceCalibration:
         return ForceCalibration(
             self._time_field,
             _filter_calibration(self._time_field, self._src, start, stop),
+            start,
+            stop,
         )
 
     @staticmethod
@@ -365,6 +371,12 @@ class ForceCalibration:
                     f"{item.displacement_sensitivity:.2f}" if item.force_sensitivity else "N/A",
                     item.hydrodynamically_correct,
                     item.distance_to_surface is not None,
+                    bool(
+                        self._slice_start
+                        and (item.start >= self._slice_start)
+                        and self._slice_stop
+                        and (item.stop <= self._slice_stop)
+                    ),
                 )
                 for idx, item in enumerate(self._src)
             ),
@@ -377,6 +389,7 @@ class ForceCalibration:
                 "Disp. sens. (µm/V)",
                 "Hydro",
                 "Surface",
+                "Data?",
             ),
         )
 
