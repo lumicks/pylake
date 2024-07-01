@@ -18,7 +18,7 @@ First, we will compute the high frequency distance, also called :ref:`piezo dist
 Download the hairpin data
 -------------------------
 
-The hairpin data are stored on Zenodo, a general-purpose open-access repository developed under the European OpenAIRE program and operated by CERN.
+The hairpin data are stored on zenodo.org.
 We can download the date directly from Zenodo using the function :func:`~lumicks.pylake.download_from_doi`.
 The data will be stored in the folder called `"test_data"`::
 
