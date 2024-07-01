@@ -192,11 +192,12 @@ Plot the selected data::
 Define the models
 ^^^^^^^^^^^^^^^^^
 
-Define the model for the DNA with folded hairpin::
+For fitting the DNA handles with folded hairpin, the extensible WormLike chain _[1] is used to fit, which is valid up to 30 pN.::
 
     dna_handles_force = lk.ewlc_odijk_force("dna_handles")
 
-The model for DNA and the unfolded hairpin is composed by summing the model for the DNA handles and the model for the hairpin with distance as the dependent parameter::
+The model for DNA and the unfolded hairpin is composed by summing the model for the DNA handles and the model for the hairpin with distance as the dependent parameter. For the unfolded hairpin, we choose the 
+extensible freely jointed chain _[2]::
 
     dna_handles_and_hairpin_distance = lk.ewlc_odijk_distance("dna_handles") + lk.efjc_distance("dna_ss_hairpin")
 
@@ -272,6 +273,10 @@ Fit all the data and plot the result::
    dna_ss_hairpin/Lc      0.0205269 [micron]    True     0.001          inf
    dna_ss_hairpin/St   2000         [pN]        True     1              2000
 
+As can be seen from the table, most fitted parameters converge and have values in the expected range. However, the stretch modulus of the hairpin hits the upper bound of 2000 pN, indicating that this parameter did not converge.
+When observing that a parameter does not converge, it is important to go back to the fit and see how it can be improved. In this case, increasing the upper bound for `dna_ss_hairpin/St` does not visually change the fit and does not result in convergence;
+the stretch modulus of DNA and the hairpin cannot be optimized at the same time. A solution would be to use the freely jointed chain, instead of the extensible freely jointed chain to fit the unfolded hairpin, which is equivalent to setting
+a very large value for `dna_ss_hairpin/St`. 
 
 
 Plot the result::
@@ -281,7 +286,8 @@ Plot the result::
     fit[dna_handles_and_hairpin_force].plot()
     plt.xlabel(r"Distance ($\mu$m)")
     plt.ylabel("Force (pN)")
-    plt.title(f"Fitted hairpin length is {fit["dna_ss_hairpin/Lc"].value*1000:0.1f} nm")
+    Lc_hairpin = fit["dna_ss_hairpin/Lc"].value*1000
+    plt.title(f"Fitted hairpin length is {Lc_hairpin:0.1f} nm")
 
 .. image:: fit_all.png
 
@@ -289,3 +295,7 @@ The expected contour length for the hairpin was 17-20 nm and the fitted length i
 
 The next step is to study the confidence intervals and quality of the fit, for example using the :ref:`likelihood profile <ple_confidence_intervals>`.
 The fit can be further improved by fitting multiple data sets at once, :ref:`Global fitting <global_fit>`.
+
+
+.. [1] T. Odijk, Stiff Chains and Filaments under Tension, Macromolecules 28, 7016-7018 (1995).
+.. [2] S. B. Smith, Y. Cui, C. Bustamante, Overstretching B-DNA: The Elastic Response of Individual Double-Stranded and Single-Stranded DNA Molecules, Science 271, 795-799 (1996).
