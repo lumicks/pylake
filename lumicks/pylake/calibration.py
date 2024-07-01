@@ -87,6 +87,9 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         except KeyError:
             return getattr(self, item)
 
+    def __repr__(self):
+        return self._repr_properties
+
     @_verify_full
     def _model_params(self):
         """Returns parameters with which to create an active or passive calibration model"""
