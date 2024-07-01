@@ -275,7 +275,7 @@ Fit all the data and plot the result::
 
 As can be seen from the table, most fitted parameters converge and have values in the expected range. However, the stretch modulus of the hairpin hits the upper bound of 2000 pN, indicating that this parameter did not converge.
 When observing that a parameter does not converge, it is important to go back to the fit and see how it can be improved. In this case, increasing the upper bound for `dna_ss_hairpin/St` does not visually change the fit and does not result in convergence;
-the stretch modulus of DNA and the hairpin cannot be optimized at the same time. A solution would be to use the freely jointed chain, instead of the extensible freely jointed chain to fit the unfolded hairpin, which is equivalent to setting
+the stretch modulus of the DNA handles and the hairpin cannot be optimized at the same time. A solution would be to use the freely jointed chain, instead of the extensible freely jointed chain to fit the unfolded hairpin, which is equivalent to setting
 a very large value for `dna_ss_hairpin/St`. 
 
 
