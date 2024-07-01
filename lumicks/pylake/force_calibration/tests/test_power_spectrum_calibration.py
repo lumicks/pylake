@@ -311,35 +311,34 @@ def test_repr(reference_calibration_result):
 
     assert str(ps_calibration) == dedent(
         """\
-        Name                      Description                                               Value
-        ------------------------  --------------------------------------------------------  -----------
-        Bead diameter             Bead diameter (um)                                        4.4
-        Viscosity                 Liquid viscosity (Pa*s)                                   0.001002
-        Temperature               Liquid temperature (C)                                    20
-        Distance to surface       Distance from bead center to surface (um)
-        Hydrodynamically correct  Hydrodynamically correct model used (-)                   0
-        Max iterations            Maximum number of function evaluations                    10000
-        Fit tolerance             Fitting tolerance                                         1e-07
-        Points per block          Number of points per block                                100
-        Sample rate               Sample rate (Hz)                                          78125
-        Bias correction           Perform bias correction thermal fit                       0
-        Loss function             Loss function used during minimization                    gaussian
-        Rd                        Distance response (um/V)                                  7.25366
-        kappa                     Trap stiffness (pN/nm)                                    0.171495
-        Rf                        Force response (pN/V)                                     1243.97
-        gamma_0                   Theoretical bulk drag coefficient (kg/s)                  4.1552e-08
-        err_kappa                 Stiffness Std Err (pN/V)                                  0.00841414
-        err_Rd                    Distance response Std Err (um/V)                          0.125966
-        fc                        Corner frequency (Hz)                                     656.872
-        D                         Diffusion constant (V^2/s)                                0.00185126
-        err_fc                    Corner frequency Std Err (Hz)                             32.2284
-        err_D                     Diffusion constant Std Err (V^2/s)                        6.42974e-05
-        f_diode                   Diode low-pass filtering roll-off frequency (Hz)          7936.51
-        alpha                     Diode 'relaxation factor'                                 0.500609
-        err_f_diode               Diode low-pass filtering roll-off frequency Std Err (Hz)  561.715
-        err_alpha                 Diode 'relaxation factor' Std Err                         0.0131406
-        chi_squared_per_deg       Chi squared per degree of freedom                         1.06378
-        backing                   Statistical backing (%)                                   30.5705"""
+        Property                          Description                                         Value
+        --------------------------------  --------------------------------------------------  ----------------
+        stiffness                         Trap stiffness (pN/nm)                                  0.1715
+        displacement_sensitivity          Displacement sensitivity (µm/V)                         7.2537
+        force_sensitivity                 Force sensitivity (pN/V)                             1244
+        diffusion_constant                Fitted diffusion constant (µm²/s)                       0.097405
+        corner_frequency                  Estimated corner frequency (Hz)                       656.87
+        diffusion_constant_volts          Fitted diffusion constant (V²/s)                        0.0018513
+        diode_relaxation_factor           Diode relaxation factor (-)                             0.50061
+        diode_frequency                   Diode filtering frequency (Hz).                      7936.5
+        theoretical_bulk_drag             Expected bulk drag coefficient (kg/s)                   4.1552e-08
+        backing                           Statistical backing (%)                                30.57
+        chi_squared_per_degree            Chi squared per degree of freedom                       1.0638
+        stiffness_std_err                 Stiffness error (pN/nm)                                 0.0084141
+        displacement_sensitivity_std_err  Displacement sensitivity std error (µm/V)               0.12597
+        corner_frequency_std_err          Corner frequency std error (Hz)                        32.228
+        diffusion_volts_std_err           Diffusion constant std error (V²/s)                     6.4297e-05
+        diode_relaxation_factor_std_err   Relaxation factor std error (-)                         0.013141
+        diode_frequency_std_err           Diode frequency std error (-)                         561.72
+        bead_diameter                     Bead diameter (microns)                                 4.4
+        temperature                       Temperature (C)                                        20
+        viscosity                         Viscosity of the medium (Pa s)                          0.001002
+        fitted_diode                      Diode parameters were fitted                         True
+        hydrodynamically_correct          Hydrodynamically correct model.                     False
+        fit_range                         Spectral frequency range used for calibration (Hz)  (100.0, 23000.0)
+        excluded_ranges                   Frequency exclusion ranges (Hz)                     []
+        sample_rate                       Acquisition sample rate (Hz).                       78125
+        number_of_samples                 Number of fitted samples (-).                       39063"""
     )
 
 

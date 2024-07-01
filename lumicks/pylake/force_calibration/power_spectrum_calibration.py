@@ -33,7 +33,7 @@ from collections import namedtuple
 
 import numpy as np
 import scipy
-from tabulate import tabulate
+import tabulate
 
 from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.detail.power_models import (
@@ -41,12 +41,127 @@ from lumicks.pylake.force_calibration.detail.power_models import (
     fit_analytical_lorentzian,
 )
 
+tabulate.PRESERVE_WHITESPACE = True
+
 CalibrationParameter = namedtuple("CalibrationParameter", ["description", "value", "unit"])
 
 
 class CalibrationPropertiesMixin:
     def _get_parameter(self, pylake_key, bluelake_key):
         raise NotImplementedError
+
+    @property
+    def _parameters(self):
+        """Properties that signify input parameters"""
+        diode_params = (
+            [
+                "diode_relaxation_factor",
+                "diode_frequency",
+            ]
+            if not self.fitted_diode
+            else []
+        )
+
+        return [
+            # Core calibration inputs
+            "bead_diameter",
+            "temperature",
+            "viscosity",
+            # Sensor parameters
+            "fitted_diode",
+            *diode_params,
+            # Height calibration
+            "distance_to_surface",
+            # Active calibration parameters
+            "driving_frequency_guess",
+            "transferred_lateral_drag_coefficient",
+            # Hydrodynamic parameters
+            "hydrodynamically_correct",
+            "rho_bead",
+            "rho_sample",
+            # Acquisition parameters
+            "fit_range",
+            "excluded_ranges",
+            "sample_rate",
+            "number_of_samples",
+        ]  # omitted: fit_tolerance, max_iterations
+
+    @property
+    def _results(self):
+        """Properties that signify results"""
+        diode_results = (
+            [
+                "diode_relaxation_factor",
+                "diode_frequency",
+            ]
+            if self.fitted_diode
+            else []
+        )
+
+        return [
+            # Core parameters
+            "stiffness",
+            "displacement_sensitivity",
+            "force_sensitivity",
+            "diffusion_constant",
+            # Core parameters active
+            "measured_drag_coefficient",
+            # Fitting parameters
+            "corner_frequency",
+            "diffusion_constant_volts",
+            *diode_results,
+            # Active calibration diagnostics
+            "driving_amplitude",
+            "driving_frequency",
+            "driving_power",
+            # Theoretical drag coefficient
+            "theoretical_bulk_drag",
+            # Statistical diagnostics
+            "backing",
+            "chi_squared_per_degree",
+            "stiffness_std_err",
+            "displacement_sensitivity_std_err",
+            "corner_frequency_std_err",
+            "diffusion_volts_std_err",
+            "diode_relaxation_factor_std_err",
+            "diode_frequency_std_err",
+            # Force offset
+            "offset",
+        ]
+
+    def _print_properties(self, tablefmt="text"):
+        def parse_prop(v):
+            # Some of the fields are string-typed. As a result, the automatic floating point
+            # formatting in tabulate fails which results in excessively long values.
+            if np.isscalar(v):
+                if isinstance(v, bool):
+                    return " True" if v else "False"
+
+                value = f"{v:.5g}"
+                # Format value to 5 significant figures aligned at the decimal.
+                return " " * (5 - (value + ".").find(".")) + value
+            else:
+                return str(v)
+
+        return tabulate.tabulate(
+            (
+                (
+                    prop,
+                    getattr(CalibrationPropertiesMixin, prop).__doc__.split("\n")[0],
+                    parse_prop(getattr(self, prop)),
+                )
+                for prop in self._results + self._parameters
+                if getattr(self, prop) is not None
+            ),
+            tablefmt=tablefmt,
+            headers=("Property", "Description", "Value"),
+        )
+
+    def _repr_html_(self):
+        return self._print_properties(tablefmt="html")
+
+    def __str__(self) -> str:
+        return self._print_properties()
 
     @property
     def stiffness(self):
@@ -516,6 +631,13 @@ class CalibrationResults(CalibrationPropertiesMixin):
     def __getitem__(self, item):
         return self.params[item] if item in self.params else self.results[item]
 
+    def __repr__(self):
+        """Returns properties in a dataclass-style formatting"""
+        properties = ", ".join(
+            (f"{prop}={getattr(self, prop)}" for prop in self._results + self._parameters)
+        )
+        return f"{self.__class__.__name__}({properties})"
+
     @property
     def _fit_range(self):
         """Fitted range"""
@@ -584,31 +706,6 @@ class CalibrationResults(CalibrationPropertiesMixin):
         plt.axhline(1.0 - theoretical_std, color="k", linestyle="--")
         plt.ylabel("Data / Fit [-]")
         plt.xlabel("Frequency [Hz]")
-
-    def _print_data(self, tablefmt="text"):
-        def generate_table(entries):
-            return [
-                [
-                    key,
-                    f"{param.description}{f' ({param.unit})' if param.unit else ''}",
-                    param.value
-                    if isinstance(param.value, str)
-                    else ("" if param.value is None else f"{param.value:.6g}"),
-                ]
-                for key, param in entries.items()
-            ]
-
-        return tabulate(
-            generate_table(self.params) + generate_table(self.results),
-            ["Name", "Description", "Value"],
-            tablefmt=tablefmt,
-        )
-
-    def _repr_html_(self):
-        return self._print_data(tablefmt="html")
-
-    def __str__(self) -> str:
-        return self._print_data()
 
 
 def calculate_power_spectrum(
