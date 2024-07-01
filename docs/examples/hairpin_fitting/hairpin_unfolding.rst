@@ -13,7 +13,7 @@ Analyzing fd curve with hairpin unfolding event
 
 In this notebook we will analyze a force-extension curve of a construct with two DNA handles with a DNA hairpin in between. The hairpin unfolds as the force on the construct is increased.
 
-First, we will compute the high frequency distance, also called :ref:`piezo distance <piezo_tracking>`. Then, we will use the Worm-Like Chain (WLC) to extract the contour length of the unfolded hairpin.
+First, we will compute the high frequency distance, also called :ref:`piezo distance <piezo_tracking>`. Then, we will use the Worm-Like Chain (WLC) and Extensibly Freely Jointed Chain (EFJC) to extract the contour length of the unfolded hairpin.
 
 Download the hairpin data
 -------------------------
@@ -203,12 +203,12 @@ Plot the selected data::
 Define the models
 ^^^^^^^^^^^^^^^^^
 
-For fitting the DNA handles with folded hairpin, the extensible WormLike chain _[1] is used to fit, which is valid up to 30 pN.::
+For fitting the DNA handles with folded hairpin, the extensible Worm-Like Chain [1]_ is used to fit, which is valid up to 30 pN.::
 
     dna_handles_force = lk.ewlc_odijk_force("dna_handles")
 
 The model for DNA and the unfolded hairpin is composed by summing the model for the DNA handles and the model for the hairpin with distance as the dependent parameter. For the unfolded hairpin, we choose the 
-extensible freely jointed chain _[2]::
+Extensible Freely Jointed Chain [2]_, which is a variation on the Freely Jointed Chain model including the stretch modulus, to account for stretching at high forces::
 
     dna_handles_and_hairpin_distance = lk.ewlc_odijk_distance("dna_handles") + lk.efjc_distance("dna_ss_hairpin")
 
