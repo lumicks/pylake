@@ -49,6 +49,7 @@ ref_passive_fixed_diode_with_height = {
     "gamma_0 (kg/s)": 8.388052385084746e-09,
     "kappa (pN/nm)": 0.2421057076519628,
     "Bead center height (um)": 1.0,
+    "Timestamp (ns)": 1696171386701856700,
 }
 
 
@@ -168,6 +169,7 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert item.diffusion_volts_std_err == ref_passive_fixed_diode_with_height["err_D (V^2/s)"]
     assert not item.diode_frequency_std_err
     assert not item.diode_relaxation_factor_std_err
+    assert item.applied_at is 1696171386701856700
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power")
     compare_to_reference_dict(item._model_params(), test_name="model")
