@@ -2,6 +2,8 @@ import re
 from functools import wraps
 from collections import UserDict
 
+import datetime
+
 from tabulate import tabulate
 
 from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationPropertiesMixin
@@ -53,7 +55,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     def kind(self):
         kind = self.data.get("Kind", "Unknown")
         if kind == "Full calibration":
-            return "Active calibration" if self.active_calibration else "Passive calibration"
+            return "Active" if self.active_calibration else "Passive"
         else:
             return kind
 
@@ -372,6 +374,9 @@ class ForceCalibration:
             (
                 (
                     idx,
+                    datetime.datetime.fromtimestamp(int(item.applied_at / 1e9))
+                    if item.applied_at
+                    else "-",
                     item.kind,
                     f"{item.stiffness:.2f}" if item.stiffness else "N/A",
                     f"{item.force_sensitivity:.2f}" if item.force_sensitivity else "N/A",
@@ -389,7 +394,8 @@ class ForceCalibration:
             ),
             tablefmt=tablefmt,
             headers=(
-                "Index",
+                "Idx",
+                "Applied at",
                 "Kind",
                 "Stiffness (pN/nm)",
                 "Force sens. (pN/V)",
