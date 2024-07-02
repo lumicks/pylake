@@ -28,6 +28,11 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             return self[bluelake_key]
 
     @property
+    def applied_at(self):
+        """Time the calibration was applied in nanoseconds since epoch"""
+        return self.data.get("Timestamp (ns)")
+
+    @property
     def _fitted_diode(self):
         """Diode parameters were fitted"""
         return "f_diode (Hz)" in self or "alpha" in self
@@ -354,8 +359,10 @@ class ForceCalibration:
         items = []
         for calibration_item in hdf5["Calibration"].values():
             if force_channel in calibration_item:
-                attrs = calibration_item[force_channel].attrs
+                attrs = dict(calibration_item[force_channel].attrs)
                 if time_field in attrs.keys():
+                    # Copy the timestamp at which the calibration was applied into the item
+                    attrs["Timestamp (ns)"] = calibration_item.attrs.get("Timestamp (ns)")
                     items.append(ForceCalibrationItem(attrs))
 
         return ForceCalibration(time_field=time_field, items=items)
