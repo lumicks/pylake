@@ -53,7 +53,7 @@ class MockDataFile_v2(MockDataFile_v1):
     def get_file_format_version(self):
         return 2
 
-    def make_calibration_data(self, calibration_idx, group, attributes):
+    def make_calibration_data(self, calibration_idx, group, attributes, application_timestamp=None):
         if "Calibration" not in self.file:
             self.file.create_group("Calibration")
 
@@ -64,6 +64,9 @@ class MockDataFile_v2(MockDataFile_v1):
         # e.g. Force 1x, Force 1y ... etc
         if group not in self.file["Calibration"][calibration_idx]:
             self.file["Calibration"][calibration_idx].create_group(group)
+            self.file["Calibration"][calibration_idx].attrs["Timestamp (ns)"] = (
+                application_timestamp if application_timestamp else attributes["Stop time (ns)"]
+            )
 
         # Attributes
         field = self.file["Calibration"][calibration_idx][group]
