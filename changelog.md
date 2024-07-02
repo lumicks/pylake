@@ -9,7 +9,8 @@
 * Calibration results and parameters are now accessible via properties which are listed when items are printed. See [calibration results](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html) and [calibration item](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html) API documentation for more information.
 * Added `applied_at` property to a [calibration item](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html) obtained from a force slice. This property returns the timestamp in nanoseconds at which the force calibration was applied.
 * Added improved printing of calibration items under `channel.calibration` providing a more convenient overview of the items associated with a `Slice`.
-* Added parameter `titles` to customize title of each subplot in `[`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
+* Added improved printing of calibrations performed with `Pylake`.
+* Added parameter `titles` to customize title of each subplot in [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
 
 ## v1.5.1 | 2024-06-03
 

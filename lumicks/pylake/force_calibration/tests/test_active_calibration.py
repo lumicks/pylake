@@ -97,6 +97,9 @@ def test_integration_active_calibration(
     np.testing.assert_allclose(fit["Viscosity"].value, viscosity)
     np.testing.assert_allclose(fit["num_windows"].value, 5)
 
+    assert fit.active_calibration
+    assert fit.kind == "Active"
+
     np.testing.assert_allclose(
         fit["driving_amplitude"].value, driving_sinusoid[0] * 1e-3, rtol=1e-5
     )
