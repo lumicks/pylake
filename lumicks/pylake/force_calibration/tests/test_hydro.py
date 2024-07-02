@@ -296,8 +296,8 @@ def test_integration_active_calibration_hydrodynamics(integration_test_parameter
         "gamma_ex": 1.0989730336350438e-08,
         "fc": 1504.4416105821158,
         "D": 1.0090151317063,
-        "err_fc": 13.075876724291339,
-        "err_D": 0.0066021439072302835,
+        "err_fc": 13.07587683414075,
+        "err_D": 0.006602144086869695,
         "f_diode": 14675.638696737586,
         "alpha": 0.41651098052983593,
         "err_f_diode": 352.2917702189488,
@@ -341,14 +341,16 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
         "gamma_0": 1.0678273429551705e-08,
         "fc": 1504.4416105821158,
         "D": 1.0090151317063,
-        "err_fc": 13.075876724291339,
-        "err_D": 0.0066021439072302835,
-        "f_diode": 14675.638696737586,
-        "alpha": 0.41651098052983593,
-        "err_f_diode": 352.2917702189488,
-        "err_alpha": 0.014231238753589254,
-        "chi_squared_per_deg": 0.8659867914094764,
-        "backing": 84.05224555962526,
+        "err_fc": 13.07587683414075,
+        "err_D": 0.006602144086869695,
+        "f_diode": 14675.638661373578,
+        "alpha": 0.41651098187204494,
+        "err_f_diode": 352.29177580773245,
+        "err_alpha": 0.01423123867381031,
+        "chi_squared_per_deg": 0.865986791409454,
+        "err_kappa": 0.0008773072670791971,
+        "err_Rd": 0.002022166972962138,
+        "backing": 84.05224555961875,
     }
 
     for key, value in expected_params.items():
@@ -357,8 +359,27 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
     for key, value in expected_results.items():
         np.testing.assert_allclose(fit.results[key].value, value, err_msg=key)
 
-    assert fit._fit_range == (1e2, 23e3)
-    assert fit._excluded_ranges == []
+    assert fit.sample_rate == 78125
+    assert fit.number_of_samples == 781250
+    np.testing.assert_allclose(fit.backing, expected_results["backing"])
+    np.testing.assert_allclose(fit.chi_squared_per_degree, expected_results["chi_squared_per_deg"])
+    np.testing.assert_allclose(fit.bead_diameter, expected_params["Bead diameter"])
+    np.testing.assert_allclose(fit.temperature, expected_params["Temperature"])
+    np.testing.assert_allclose(fit.viscosity, expected_params["Viscosity"])
+    np.testing.assert_allclose(fit.distance_to_surface, expected_params["Distance to surface"])
+    np.testing.assert_allclose(fit.diode_frequency, expected_results["f_diode"])
+    np.testing.assert_allclose(fit.diode_relaxation_factor, expected_results["alpha"])
+    np.testing.assert_allclose(fit.corner_frequency_std_err, expected_results["err_fc"])
+    np.testing.assert_allclose(fit.diffusion_volts_std_err, expected_results["err_D"])
+    np.testing.assert_allclose(fit.diode_frequency_std_err, expected_results["err_f_diode"])
+    np.testing.assert_allclose(fit.diode_relaxation_factor_std_err, expected_results["err_alpha"])
+    np.testing.assert_allclose(fit.stiffness_std_err, expected_results["err_kappa"])
+    np.testing.assert_allclose(fit.displacement_sensitivity_std_err, expected_results["err_Rd"])
+    assert not fit.measured_drag_coefficient
+    np.testing.assert_allclose(fit.theoretical_bulk_drag, expected_results["gamma_0"])
+    assert not fit.transferred_lateral_drag_coefficient  # Only relevant for axial
+    assert fit.fit_range == (100, 23000)
+    assert fit.excluded_ranges == []
 
 
 def test_integration_active_calibration_hydrodynamics_bulk(integration_test_parameters):
@@ -417,7 +438,7 @@ def test_integration_active_calibration_hydrodynamics_bulk(integration_test_para
     for key, value in expected_results.items():
         np.testing.assert_allclose(fit.results[key].value, value, err_msg=key)
 
-    assert fit._excluded_ranges == [(20, 40)]
+    assert fit.excluded_ranges == [(20, 40)]
 
 
 def test_distance_to_surface_input(integration_test_parameters):
@@ -556,3 +577,11 @@ def test_near_surface_consistency():
             np.testing.assert_allclose(fc_bulk, 3070.33, rtol=2e-2)
             for param, ref_value in parameters_of_interest.items():
                 np.testing.assert_allclose(fit[param].value, ref_value, rtol=2e-2)
+
+            np.testing.assert_allclose(fit.hydrodynamically_correct, hydrodynamic_model)
+            if hydrodynamic_model:
+                assert fit.rho_bead == shared_pars["rho_bead"]
+                assert fit.rho_sample == shared_pars["rho_sample"]
+            else:
+                assert not fit.rho_bead
+                assert not fit.rho_sample
