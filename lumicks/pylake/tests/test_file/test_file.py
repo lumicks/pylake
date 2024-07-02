@@ -75,21 +75,35 @@ def test_redirect_list(h5_file):
         assert f["Point Scan"]["PointScan1"].start == np.int64(20e9)
 
 
-def test_calibration_str(h5_file):
+def test_calibration_str(h5_file, monkeypatch):
+    # Representation of time is timezone and locale dependent, hence we monkeypatch it
+    class FakeDateTime:
+        @classmethod
+        def fromtimestamp(cls, timestamp, *args, **kwargs):
+            """Inject a timezone"""
+            return FakeDateTime()
+
+        def strftime(self, str_format):
+            return str_format
+
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
-        print("")
-        print(str(f.force1x.calibration))
-        assert str(f.force1x.calibration) == dedent(
-            (
-                """\
-                  Index  Kind                 Stiffness (pN/nm)    Force sens. (pN/V)    Disp. sens. (µm/V)    Hydro    Surface    Data?
-                -------  -------------------  -------------------  --------------------  --------------------  -------  ---------  -------
-                      0  Unknown              N/A                  N/A                   N/A                   False    False      False
-                      1  Reset offset         1.05                 504.43                4.57                  False    True       False
-                      2  Passive calibration  1.05                 504.43                4.57                  False    False      True"""
+        with monkeypatch.context() as m:
+            m.setattr(
+                "lumicks.pylake.calibration.datetime.datetime",
+                FakeDateTime,
             )
-        )
+
+            assert str(f.force1x.calibration) == dedent(
+                (
+                    """\
+                      #  Applied at    Kind          Stiffness (pN/nm)    Force sens. (pN/V)    Disp. sens. (µm/V)    Hydro    Surface    Data?
+                    ---  ------------  ------------  -------------------  --------------------  --------------------  -------  ---------  -------
+                      0  -             Unknown       N/A                  N/A                   N/A                   False    False      False
+                      1  %x %X         Reset offset  1.05                 504.43                4.57                  False    True       False
+                      2  %x %X         Passive       1.05                 504.43                4.57                  False    False      True"""
+                )
+            )
 
 
 def test_repr_and_str(h5_file):

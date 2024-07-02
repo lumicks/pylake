@@ -1,4 +1,5 @@
 import re
+import datetime
 from functools import wraps
 from collections import UserDict
 
@@ -48,14 +49,6 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             return "characterized standard sensor"
         else:
             return "unknown sensor"
-
-    @property
-    def kind(self):
-        kind = self.data.get("Kind", "Unknown")
-        if kind == "Full calibration":
-            return "Active calibration" if self.active_calibration else "Passive calibration"
-        else:
-            return kind
 
     @_verify_full
     def power_spectrum_params(self):
@@ -198,27 +191,6 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     def number_of_samples(self):
         """Number of fitted samples (-)."""
         return self.data.get("Number of samples")
-
-    @property
-    def active_calibration(self):
-        """Returns whether it was an active calibration or not
-
-        Calibrations based on active calibration are less sensitive to assumptions about the
-        bead diameter, viscosity, distance of the bead to the flow cell surface and temperature.
-        During active calibration, the trap or nano-stage is oscillated sinusoidally. These
-        oscillations result in a driving peak in the force spectrum. Using power spectral analysis,
-        the force can then be calibrated without prior knowledge of the drag coefficient.
-
-        While this results in improved accuracy, it may lead to an increase in the variability of
-        results.
-
-        .. note::
-
-            When active calibration is performed using two beads, correction factors must be
-            computed which account for the reduced flow field that forms around the beads due to
-            the presence of a second bead.
-        """
-        return self.data.get("driving_frequency (Hz)") is not None
 
     @property
     def num_points_per_block(self):
@@ -367,11 +339,15 @@ class ForceCalibration:
 
         return ForceCalibration(time_field=time_field, items=items)
 
-    def print_summary(self, tablefmt):
+    def _print_summary(self, tablefmt):
+        def format_timestamp(timestamp):
+            return datetime.datetime.fromtimestamp(int(timestamp)).strftime("%x %X")
+
         return tabulate(
             (
                 (
                     idx,
+                    format_timestamp(item.applied_at / 1e9) if item.applied_at else "-",
                     item.kind,
                     f"{item.stiffness:.2f}" if item.stiffness else "N/A",
                     f"{item.force_sensitivity:.2f}" if item.force_sensitivity else "N/A",
@@ -389,7 +365,8 @@ class ForceCalibration:
             ),
             tablefmt=tablefmt,
             headers=(
-                "Index",
+                "#",
+                "Applied at",
                 "Kind",
                 "Stiffness (pN/nm)",
                 "Force sens. (pN/V)",
@@ -401,10 +378,10 @@ class ForceCalibration:
         )
 
     def _repr_html_(self):
-        return self.print_summary(tablefmt="html")
+        return self._print_summary(tablefmt="html")
 
     def __str__(self):
-        return self.print_summary(tablefmt="text")
+        return self._print_summary(tablefmt="text")
 
     @staticmethod
     def from_dataset(hdf5, n, xy, time_field="Stop time (ns)") -> "ForceCalibration":

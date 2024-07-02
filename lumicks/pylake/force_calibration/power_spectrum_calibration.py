@@ -581,6 +581,35 @@ class CalibrationPropertiesMixin:
         """Force offset (pN)"""
         return self._get_parameter("NA", "Offset")
 
+    @property
+    def active_calibration(self):
+        """Returns whether it was an active calibration or not
+
+        Calibrations based on active calibration are less sensitive to assumptions about the
+        bead diameter, viscosity, distance of the bead to the flow cell surface and temperature.
+        During active calibration, the trap or nano-stage is oscillated sinusoidally. These
+        oscillations result in a driving peak in the force spectrum. Using power spectral analysis,
+        the force can then be calibrated without prior knowledge of the drag coefficient.
+
+        While this results in improved accuracy, it may lead to an increase in the variability of
+        results.
+
+        .. note::
+
+            When active calibration is performed using two beads, correction factors must be
+            computed which account for the reduced flow field that forms around the beads due to
+            the presence of a second bead.
+        """
+        return self.driving_frequency is not None
+
+    @property
+    def kind(self):
+        kind = self._get_parameter("Kind", "Kind")
+        if kind == "Full calibration":
+            return "Active" if self.active_calibration else "Passive"
+        else:
+            return kind if kind is not None else "Unknown"
+
 
 class CalibrationResults(CalibrationPropertiesMixin):
     """Power spectrum calibration results.
@@ -652,15 +681,6 @@ class CalibrationResults(CalibrationPropertiesMixin):
         """Grab a parameter"""
         if pylake_key in self:
             return self[pylake_key].value
-
-    @property
-    def kind(self):
-        """Type of calibration performed"""
-        return (
-            "active calibration"
-            if self.model.__class__.__name__ == "ActiveCalibrationModel"
-            else "passive calibration"
-        )
 
     @property
     def _fitted_diode(self):
@@ -1006,6 +1026,7 @@ def fit_power_spectrum(
                 "Chi squared per degree of freedom", chi_squared_per_deg, ""
             ),
             "backing": CalibrationParameter("Statistical backing", backing, "%"),
+            "Kind": CalibrationParameter("Calibration type", "Full calibration", "-"),
         },
         params={
             **model.calibration_parameters(),

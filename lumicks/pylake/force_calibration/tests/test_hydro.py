@@ -380,6 +380,8 @@ def test_integration_passive_calibration_hydrodynamics(integration_test_paramete
     assert not fit.transferred_lateral_drag_coefficient  # Only relevant for axial
     assert fit.fit_range == (100, 23000)
     assert fit.excluded_ranges == []
+    assert not fit.active_calibration
+    assert fit.kind == "Passive"
 
 
 def test_integration_active_calibration_hydrodynamics_bulk(integration_test_parameters):
