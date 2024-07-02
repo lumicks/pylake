@@ -34,6 +34,25 @@ def kymo_integration_test_data():
 
 
 @pytest.fixture
+def kymo_integration_tracks(kymo_integration_test_data):
+    track_coordinates = [
+        (np.arange(10, 20), np.full(10, 11)),
+        (np.arange(15, 25), np.full(10, 21.51)),
+    ]
+
+    tracks = KymoTrackGroup(
+        [
+            KymoTrack(
+                np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red", 0.1
+            )
+            for time_idx, position_idx in track_coordinates
+        ]
+    )
+
+    return tracks
+
+
+@pytest.fixture
 def kymo_pixel_calibrations():
     image = raw_test_data()
     background = np.random.uniform(1, 10, size=image.size).reshape(image.shape)
