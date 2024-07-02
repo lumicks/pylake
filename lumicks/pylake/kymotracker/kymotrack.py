@@ -163,6 +163,40 @@ def export_kymotrackgroup_to_csv(
     np.savetxt(filename, data, fmt=fmt, header=header, delimiter=delimiter)
 
 
+def _check_summing_mismatch(track, sampling_width):
+    """Checks calling sample_from_image on a loaded track reproduces the same result as is in the
+    file."""
+    wrong_kymo_warning = (
+        "Photon counts do not match the photon counts found in the file. It is "
+        "possible that the loaded kymo or channel doesn't match the one used to "
+        "create this file."
+    )
+    try:
+        if not np.allclose(
+            track.sample_from_image((sampling_width - 1) // 2, correct_origin=True),
+            track.photon_counts,
+        ):
+            if np.allclose(
+                track.sample_from_image((sampling_width - 1) // 2, correct_origin=False),
+                track.photon_counts,
+            ):
+                return RuntimeWarning(
+                    "Photon counts do not match the photon counts found in the file. Prior to "
+                    "Pylake v1.1.0, the method `sample_from_image` had a bug that assumed the "
+                    "origin of a pixel to be at the edge rather than the center of the pixel. "
+                    "Consequently, the sampled window could be off by one pixel. This file was "
+                    "likely created using the incorrect origin. "
+                    "Note that Pylake loaded the counts found in the file as is, so if the "
+                    "used summing window was very small, there may be a bias in the counts."
+                    "To recreate these counts without bias invoke:"
+                    f"`track.sample_from_image({(sampling_width - 1) // 2}, correct_origin=True)`"
+                )
+            else:
+                return RuntimeWarning(wrong_kymo_warning)
+    except IndexError:
+        return RuntimeWarning(wrong_kymo_warning)
+
+
 def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
     """Import a KymoTrackGroup from a csv file.
 
@@ -210,9 +244,13 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
                 stacklevel=2,
             )
 
-    def create_track(time, coord, min_length=None):
+    def create_track(time, coord, min_length=None, counts=None):
         if min_length is not None:
             min_length = float(np.unique(min_length).squeeze())
+
+        if counts is not None:
+            coord = CentroidLocalizationModel(coord * kymo.pixelsize_um, counts)
+
         return KymoTrack(time.astype(int), coord, kymo, channel, min_length)
 
     if csv_version == 3:
@@ -232,11 +270,34 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
     else:
         min_duration_field = "minimum observable duration (seconds)"
 
-    if min_duration_field in data:
-        mandatory_fields.append(min_duration_field)
+    count_field = [key for key in data.keys() if "counts" in key]
+    sampling_width = None
+    if count_field:
+        count_field = count_field[0]
+        if match := re.findall(r"over (\d*) pixels", count_field):
+            sampling_width = int(match[0])
 
-    data = [data[f] for f in mandatory_fields]
-    return KymoTrackGroup([create_track(*track_data) for track_data in zip(*data)])
+    tracks = []
+    resampling_mismatch = None
+    for track_idx in range(len(data[mandatory_fields[0]])):
+        tracks.append(
+            create_track(
+                time=data[mandatory_fields[0]][track_idx],
+                coord=data[mandatory_fields[1]][track_idx],
+                min_length=data[min_duration_field][track_idx]
+                if min_duration_field in data
+                else None,
+                counts=data[count_field][track_idx] if count_field else None,
+            )
+        )
+
+        if sampling_width is not None:
+            resampling_mismatch = _check_summing_mismatch(tracks[-1], sampling_width)
+
+    if resampling_mismatch:
+        warnings.warn(resampling_mismatch, stacklevel=2)
+
+    return KymoTrackGroup(tracks)
 
 
 class KymoTrack:
