@@ -125,7 +125,7 @@ class PowerSpectrum:
 
         ps.frequency = ps.frequency[indices]
         ps.power = ps.power[indices]
-        ps._excluded_ranges = self._excluded_ranges + excluded_ranges
+        ps._excluded_ranges = self._excluded_ranges + list(excluded_ranges)
 
         if self._variance is not None:
             ps._variance = ps._variance[indices]
