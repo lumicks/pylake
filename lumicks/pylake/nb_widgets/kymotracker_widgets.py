@@ -418,13 +418,17 @@ class KymoWidget:
         import matplotlib.pyplot as plt
         from IPython.display import display
 
-        if not max([backend in plt.get_backend() for backend in ("nbAgg", "ipympl")]):
+        if not max(
+            # Note: Some, but not all versions of matplotlib lower the backend names. Hence, we
+            # always lower them to be on the safe side.
+            [backend in plt.get_backend().lower() for backend in ("nbagg", "ipympl", "widget")]
+        ):
             raise RuntimeError(
                 (
                     "Please enable an interactive matplotlib backend for this plot to work. In "
                     "jupyter notebook or lab you can do this by invoking either "
-                    "%matplotlib widget. Please note that you may have to restart the notebook "
-                    "kernel for this to work."
+                    "%matplotlib widget or %matplotlib ipympl. Please note that you may have to "
+                    "restart the notebook kernel for this to work."
                 )
             )
 
