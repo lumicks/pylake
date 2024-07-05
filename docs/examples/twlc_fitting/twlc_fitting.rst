@@ -13,9 +13,13 @@ In this notebook, we analyze force extension data of DNA over its full range of 
 stress (0 - 60 pN). The twistable worm-like chain model (tWLC) takes twisting deformations on the DNA double helix into
 account. Here we will use this model to describe the mechanical response of DNA at such high forces.
 
+Download the files with :func:`~lumicks.pylake.download_from_doi()`::
+
+    lk.download_from_doi("10.5281/zenodo.12668419", "data")
+
 Let's load and plot the data first::
 
-    file = lk.File("twlc_data//20200430-163932 FD Curve FD_1_control_forw.h5")
+    file = lk.File("data/twlc_data.h5")
     fd_curve = file.fdcurves["FD_1_control_forw"]
     fd_curve.plot_scatter()
 
@@ -38,7 +42,7 @@ chain model and then use those estimates as initial guesses to fit the tWLC mode
 Depending on your experiments, small offsets can be present in the data. For instance, the bead diameter may vary
 slightly from experiment to experiment, or the force may have experienced some drift. We incorporate an offset in
 both distance and force to compensate for small offsets that may exist in the data. Let's set up the Odijk worm-like
-chain model and create the fit::
+chain model using the function :func:`~lumicks.pylake.ewlc_odijk_force()` and create the fit::
 
     m_odijk = lk.ewlc_odijk_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_odijk = lk.FdFit(m_odijk)
@@ -55,14 +59,14 @@ We only wish to use the forces below 30, so we filter the data according to this
     distance = distance[mask]
     force = force[mask]
 
-Now we are ready to add this data to the fit, but first, we must constrain the distance offset to help the fitting,
+Now we are ready to add this data to the fit using :meth:`~lumicks.pylake.FdFit.add_data()`, but first, we must constrain the distance offset to help the fitting,
 as this provides a lot of additional freedom in the model::
 
     fit_odijk.add_data("Inverted Odijk", force, distance)
     fit_odijk["DNA/d_offset"].upper_bound = 0.01
     fit_odijk["DNA/d_offset"].lower_bound = -0.01
 
-And fit the model::
+And :meth:`~lumicks.pylake.FdFit.fit()` the model::
 
     >>> fit_odijk.fit()
 
@@ -87,10 +91,10 @@ And fit the model::
 Set up the twistable worm like chain model
 ------------------------------------------
 
-By default, the :func:`~lumicks.pylake.twlc_distance()` model provided with pylake outputs the distance as a function of force. However, we
-typically want to fit force as a function of distance. To achieve this, we can invert the model using its `invert`
-function at the cost of slowing down the fit. Alternatively, we have a faster way of achieving this in pylake, by
-using the dedicated :func:`~lumicks.pylake.twlc_force()` model::
+By default, the :func:`~lumicks.pylake.twlc_distance()` model provided with pylake outputs the distance as a function of force.
+However, we typically want to fit force as a function of distance.
+To achieve this, we can invert the model using its :meth:`~lumicks.pylake.fitting.model.Model.invert()` function at the cost of slowing down the fit.
+Alternatively, we have a faster way of achieving this in pylake, by using the dedicated :func:`~lumicks.pylake.twlc_force()` model::
 
     m_dna = lk.twlc_force("DNA").subtract_independent_offset() + lk.force_offset("DNA")
     fit_twlc = lk.FdFit(m_dna)
@@ -147,7 +151,7 @@ why we choose to enable verbose output::
 Plotting the results
 --------------------
 
-After fitting we can plot our results and print our parameters by invoking `fit.plot()` and `fit.params` respectively::
+After fitting we can plot our results and print our parameters by invoking :meth:`~lumicks.pylake.FdFit.plot()` and :attr:`~lumicks.pylake.FdFit.params` respectively::
 
     fit_twlc.plot()
     plt.xlabel("Distance [$\\mu$m]")
@@ -174,5 +178,3 @@ We can also show the parameters::
     DNA/f_offset     0.0295708   [pN]        True              -0.1            0.1
 
 These seem to agree well with what’s typically found for dsDNA.
-
-
