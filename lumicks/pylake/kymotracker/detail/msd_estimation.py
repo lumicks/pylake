@@ -611,7 +611,7 @@ def estimate_diffusion_constant_simple(
     to_time = 1.0 / (2.0 * time_step)
     return DiffusionEstimate(
         value=slope * to_time,
-        std_err=np.sqrt(var_slope) * to_time,
+        std_err=np.sqrt(np.abs(var_slope)) * to_time,
         num_lags=max_lag,
         num_points=len(coordinate),
         localization_variance=intercept / 2.0,
