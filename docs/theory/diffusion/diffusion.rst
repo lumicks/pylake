@@ -393,7 +393,7 @@ Let's plot the two extremes in terms of SNR::
     plt.hist(results["cve"][-1], 30, label="cve", alpha=0.7)
     plt.title(f"SNR = {snrs[-1]}")
     plt.ylabel("Probability density")
-    plt.xlabel("Diffusion constant [$\mu$m/s]")
+    plt.xlabel(r"Diffusion constant [$\mu$m/s]")
     plt.xlim([-20, 20])
     plt.tight_layout()
 
@@ -423,7 +423,7 @@ The following function can be used to convert the results we have into such a pl
         plt.plot(x, ub, color=color, marker="", label="_nolegend_")
         plt.fill_between(x, lb, ub, color=color, alpha=0.1)
         plt.xscale("log")
-        plt.ylabel("$\hat{D}$/D [-]")
+        plt.ylabel(r"$\hat{D}$/D [-]")
         plt.xlabel("SNR [-]")
         plt.xlim([min(x), max(x)])
         plt.axhline(1.0, color="k", linestyle="--")
