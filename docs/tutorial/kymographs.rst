@@ -229,8 +229,8 @@ Note however, that not all functionalities are present anymore when downsampling
 This is because the downsampling occurs over non-contiguous sections of time (across multiple scan lines)
 and therefore each pixel no longer has an identifiable time. For example, we can no longer access the per pixel timestamps::
 
-    # this cell will raise a `NotImplementedError`
-    kymo_ds.timestamps
+    # the following line would raise a `NotImplementedError`
+    # kymo_ds.timestamps
 
 Additionally, a downsampled kymograph cannot be sliced (same as cropped kymographs mentioned above). Therefore you should
 first slice the kymograph and then downsample.
