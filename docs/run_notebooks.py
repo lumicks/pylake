@@ -6,6 +6,7 @@ import pathlib
 import argparse
 import warnings
 import traceback
+from shutil import copyfile
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 
 import matplotlib as mpl
@@ -87,17 +88,21 @@ def process_notebook(notebook, report, nb_test_dir):
     return report
 
 
-def run_notebooks(include_list, reset_cache):
+def run_notebooks(include_list, reset_cache, only_copy):
     """Run all notebooks
 
     Parameters
     ----------
     include_list : List[str]
+        Override which notebooks to run.
+    reset_cache : bool
+        Wipe the cache of which notebooks have already been run.
+    only_copy : bool
+        Only copy the notebooks to the notebook testing folder, but don't run them.
     """
     exclude_list = [
         "nbwidgets",  # Exclude the notebook widgets since those require interaction
         "cas9_kymotracking",
-        "checkpoints",  # Don't want any checkpoint files in here
     ]
     base_dir = pathlib.Path(__file__).parent.parent.resolve()
     nb_test_dir = base_dir / "nb_test"
@@ -136,11 +141,16 @@ def run_notebooks(include_list, reset_cache):
 
     try:
         for root, _, files in os.walk(notebook_folder):
-            root = pathlib.Path(root)
-            notebooks = [f for f in files if pathlib.Path(f).suffix == ".ipynb"]
+            notebooks = [
+                f for f in files if pathlib.Path(f).suffix == ".ipynb" and "checkpoint" not in f
+            ]
 
             for nb_file in notebooks:
-                notebook = root / nb_file
+                notebook = pathlib.Path(root) / nb_file
+
+                if only_copy:
+                    copyfile(notebook, base_dir / nb_test_dir / notebook.name)
+                    continue
 
                 excluded = any(ex in str(notebook) for ex in exclude_list)
                 included = not include_list or any(inc in str(notebook) for inc in include_list)
@@ -179,10 +189,19 @@ def parse_arguments():
         const=True,
         help="Reset list of processed notebooks before starting",
     )
+    parser.add_argument(
+        "-c",
+        "--copy",
+        default=False,
+        required=False,
+        nargs="?",
+        const=True,
+        help="Copy the notebooks to the test folder, but do not run them",
+    )
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     options = parse_arguments()
-    run_notebooks(options.notebooks, options.reset)
+    run_notebooks(options.notebooks, options.reset, options.copy)
