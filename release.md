@@ -19,6 +19,8 @@ Within the Pylake repo dir:
   - `git diff v<previous_release_version_number> setup.py` to check changed dependencies.
   - Check availability of package versions on [anaconda](https://anaconda.org/) in the channel `anaconda` and `conda-forge`.
 - Run `pytest` with `pytest --runpreflight --runslow ./lumicks/pylake` and verify that all tests pass (none may be skipped).
+- Build the docs (see `docs/readme.md`) and verify that they build without warnings.
+- Run the notebook testing script with `python docs/run_notebooks.py --reset`. The reset flag removes the cached results. If a notebook runs into an error, you fix it, rebuild the docs and then you can rerun the script without `--reset` to run only those that failed previously.
 - Push to origin, create a PR targeting the `release/X.Y` branch, wait until all checks have passed and merge.
 
 ## Releasing
