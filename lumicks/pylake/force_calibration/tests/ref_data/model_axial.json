@@ -2,21 +2,14 @@
   "test": "axial_fast_sensor",
   "parametrization": {},
   "result": {
-    "num_points_per_block": 2000,
-    "sample_rate": 78125.0,
-    "excluded_ranges": [],
-    "fit_range": [
-      10.0,
-      7000.0
-    ],
     "bead_diameter": 1.0,
     "viscosity": 0.00089,
     "temperature": 25.0,
     "distance_to_surface": 0.6,
     "drag": 8.666798296149962e-09,
+    "sample_rate": 78125,
     "fast_sensor": true,
     "axial": true,
-    "hydrodynamically_correct": false,
-    "active_calibration": false
+    "hydrodynamically_correct": false
   }
 }

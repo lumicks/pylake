@@ -11,7 +11,7 @@ from .marker import Marker
 from .channel import Slice, TimeTags, Continuous, TimeSeries
 from .fdcurve import FdCurve
 from .point_scan import PointScan
-from .calibration import ForceCalibration
+from .calibration import ForceCalibrationList
 from .detail.mixin import Force, PhotonCounts, DownsampledFD, PhotonTimeTags, BaselineCorrectedForce
 from .detail.h5_helper import write_h5
 
@@ -239,7 +239,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         """Return a Slice of force measurements, including calibration
         Note: direct access to HDF dataset does not include calibration data"""
         force_group = self.h5["Force HF"][f"Force {n}{xyz}"]
-        calibration_data = ForceCalibration.from_dataset(self.h5, n, xyz)
+        calibration_data = ForceCalibrationList.from_dataset(self.h5, n, xyz)
 
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 
@@ -250,7 +250,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
 
         def make(channel):
             if xyz:
-                calibration_data = ForceCalibration.from_dataset(self.h5, n, xyz)
+                calibration_data = ForceCalibrationList.from_dataset(self.h5, n, xyz)
                 return TimeSeries.from_dataset(group[channel], "Force (pN)", calibration_data)
             else:
                 return TimeSeries.from_dataset(group[channel], "Force (pN)")
@@ -277,7 +277,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         correction applied. Only the x-component has correction available.
         Note: direct access to HDF dataset does not include calibration data"""
         force_group = self.h5["Force HF"][f"Corrected Force {n}{xyz}"]
-        calibration_data = ForceCalibration.from_dataset(self.h5, n, xyz)
+        calibration_data = ForceCalibrationList.from_dataset(self.h5, n, xyz)
 
         return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
 

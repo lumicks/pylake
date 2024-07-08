@@ -3,7 +3,7 @@
   "parametrization": {},
   "result": {
     "num_points_per_block": 2000,
-    "sample_rate": 78125.0,
+    "sample_rate": 78125,
     "excluded_ranges": [
       [
         100.0,
