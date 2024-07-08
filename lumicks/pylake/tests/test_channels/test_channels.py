@@ -7,7 +7,7 @@ import pytest
 import matplotlib as mpl
 
 from lumicks.pylake import channel
-from lumicks.pylake.calibration import ForceCalibration
+from lumicks.pylake.calibration import ForceCalibrationList
 
 
 def with_offset(t, start_time=1592916040906356300):
@@ -16,7 +16,7 @@ def with_offset(t, start_time=1592916040906356300):
 
 def test_calibration_timeseries_channels():
     time_field = "Stop time (ns)"
-    mock_calibration = ForceCalibration(
+    mock_calibration = ForceCalibrationList(
         time_field=time_field,
         items=[
             {"Calibration Data": 50, time_field: 50},
@@ -70,7 +70,7 @@ def test_calibration_timeseries_channels():
 
 def test_calibration_continuous_channels():
     time_field = "Stop time (ns)"
-    mock_calibration = ForceCalibration(
+    mock_calibration = ForceCalibrationList(
         time_field=time_field,
         items=[
             {"Calibration Data": 50, time_field: 50},
@@ -261,7 +261,9 @@ def test_timeseries_indexing():
 
 def test_timeseries_mask():
     """Test masking operation"""
-    calibration = ForceCalibration("Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}])
+    calibration = ForceCalibrationList(
+        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
+    )
     s = channel.Slice(
         channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]),
         calibration=calibration,
@@ -337,7 +339,9 @@ def test_continuous_indexing():
 
 def test_continuous_mask():
     """Test masking operation"""
-    calibration = ForceCalibration("Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}])
+    calibration = ForceCalibrationList(
+        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
+    )
     s = channel.Slice(
         channel.Continuous([14, 15, 16, 17], 4, 1),
         calibration=calibration,

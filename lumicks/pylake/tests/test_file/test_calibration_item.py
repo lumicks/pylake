@@ -1,6 +1,7 @@
 import pytest
 
-from lumicks.pylake.calibration import ForceCalibration, ForceCalibrationItem
+from lumicks.pylake.calibration import ForceCalibrationList
+from lumicks.pylake.calibration_item import ForceCalibrationItem
 from lumicks.pylake.force_calibration.convenience import calibrate_force
 from lumicks.pylake.force_calibration.power_spectrum_calibration import calculate_power_spectrum
 
@@ -294,17 +295,19 @@ def test_force_calibration_handling():
         create_item(11, 12),
         create_item(15, 25),
     ]
-    items = ForceCalibration("Stop time (ns)", fcs)
-    same_items = ForceCalibration("Stop time (ns)", fcs2)
-    different_item = ForceCalibration("Stop time (ns)", fcs2[:-1] + [create_item(15, 25, extra=5)])
-    shorter_list = ForceCalibration("Stop time (ns)", fcs[:-1])
+    items = ForceCalibrationList("Stop time (ns)", fcs)
+    same_items = ForceCalibrationList("Stop time (ns)", fcs2)
+    different_item = ForceCalibrationList(
+        "Stop time (ns)", fcs2[:-1] + [create_item(15, 25, extra=5)]
+    )
+    shorter_list = ForceCalibrationList("Stop time (ns)", fcs[:-1])
 
     assert len(items) == 3
     assert items == same_items
 
     # Check whether ranged slicing works
     assert items[:-1] == shorter_list
-    assert isinstance(items[:-1], ForceCalibration)
+    assert isinstance(items[:-1], ForceCalibrationList)
 
     assert items[0] == items._src[0]
     assert items[1] == items._src[1]

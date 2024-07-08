@@ -1,7 +1,7 @@
 import warnings
 
 from .channel import channel_class
-from .calibration import ForceCalibration
+from .calibration import ForceCalibrationList
 
 
 class Group:
@@ -55,7 +55,7 @@ class Group:
                 if item_type in ("Force HF", "Force LF"):
                     return cls.from_dataset(
                         thing,
-                        calibration=ForceCalibration.from_field(self._lk_file.h5, item_name),
+                        calibration=ForceCalibrationList.from_field(self._lk_file.h5, item_name),
                     )
 
                 return cls.from_dataset(thing)
