@@ -103,3 +103,12 @@ def active_calibration_surface_data():
     }
 
     return shared_pars, sim_pars, active_pars
+
+
+@pytest.fixture()
+def calibration_data():
+    np.random.seed(1337)
+    num_samples = 100000
+    dummy_voltage = np.random.normal(size=num_samples)
+    dummy_nano = np.sin(2.0 * np.pi * 17 * np.arange(num_samples) / 78125)
+    return dummy_voltage, dummy_nano

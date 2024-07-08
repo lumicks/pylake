@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
-from lumicks.pylake.calibration import ForceCalibration
+from lumicks.pylake.calibration import ForceCalibrationList
 from lumicks.pylake.fitting.models import ewlc_odijk_force
 
 
@@ -105,7 +105,7 @@ def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
     # Add our baseline force (assumption is that the baseline force leads to a real displacement)
     force_pn = wlc_force + baseline(trap_position.data)
 
-    calibration = ForceCalibration(
+    calibration = ForceCalibrationList(
         "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": stiffness}]
     )
 

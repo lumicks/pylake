@@ -8,7 +8,7 @@
     "viscosity": 0.00089,
     "temperature": 23.0,
     "driving_frequency_guess": 17.0,
-    "sample_rate": 78125.0,
+    "sample_rate": 78125,
     "fast_sensor": false,
     "axial": false,
     "hydrodynamically_correct": true
