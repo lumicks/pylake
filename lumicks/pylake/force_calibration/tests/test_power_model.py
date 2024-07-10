@@ -50,14 +50,14 @@ def test_spectrum_parameter_scaling(reference_models):
 @pytest.mark.parametrize(
     "corner_frequency,diffusion_constant,num_samples,sigma_fc,sigma_diffusion",
     [
-        [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
-        [1500, 1.2e-9, 50000, 28.054469036154266, 1.5342555193009045e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1500, 1.2e-9, 10000, 28.068761746382837, 1.5365711725327977e-11],
-        [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
-        [1000, 1e-9, 30000, 21.113382377506746, 1.1763968470146817e-11],
+        [1000, 1e-9, 30000, 21.255492602472234, 1.1778290972794654e-11],
+        [1500, 1.2e-9, 50000, 28.18419978206862, 1.536264614183137e-11],
+        [1500, 1.2e-9, 10000, 28.184199782068603, 1.5362646141831333e-11],
+        [1500, 1.2e-9, 10000, 28.184199782068603, 1.5362646141831333e-11],
+        [1500, 1.2e-9, 10000, 28.184199782068603, 1.5362646141831333e-11],
+        [1500, 1.2e-9, 10000, 28.184199782068603, 1.5362646141831333e-11],
+        [1000, 1e-9, 30000, 21.255492602472234, 1.1778290972794654e-11],
+        [1000, 1e-9, 30000, 21.255492602472234, 1.1778290972794654e-11],
     ],
 )
 def test_fit_analytic(
@@ -69,12 +69,11 @@ def test_fit_analytic(
     data = np.fft.irfft(np.sqrt(np.abs(power_spectrum) * 0.5), norm="forward")
 
     num_points_per_block = 20
-    fit_range = (0, 15000)
-    ps = PowerSpectrum(data, sample_rate=len(data))
-    ps = ps.in_range(*fit_range)
+    ps = PowerSpectrum.from_data(data, sample_rate=len(data))
+    ps = ps.in_range(1e1, 1e4)
     ps = ps.downsampled_by(num_points_per_block)
 
-    fit = fit_analytical_lorentzian(ps.in_range(1e1, 1e4))
+    fit = fit_analytical_lorentzian(ps)
 
     np.testing.assert_allclose(fit.fc, corner_frequency, rtol=1e-5)
     np.testing.assert_allclose(fit.D, diffusion_constant, rtol=1e-5, atol=0)
