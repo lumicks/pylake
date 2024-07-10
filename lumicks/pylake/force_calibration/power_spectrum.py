@@ -1,4 +1,5 @@
 import warnings
+import deprecated
 from copy import copy
 from typing import List, Tuple
 
@@ -22,7 +23,64 @@ class PowerSpectrum:
         The total duration of the original data. [seconds]
     """
 
-    def __init__(self, data, sample_rate, unit="V", window_seconds=None):
+    def __init__(
+        self,
+        frequency,
+        power,
+        sample_rate,
+        total_duration,
+        unit="V",
+        downsampling_factor=1,
+        window_factor=1,
+        total_samples_used=None,
+        excluded_ranges=None,
+        variance=None,
+    ):
+        """Power spectrum
+
+        frequency : array_like
+            Frequency axis
+        power : array_like
+            Power spectral values
+        sample_rate : int
+            Sample rate
+        total_duration : float
+            Total measurement duration
+        unit : str
+            Unit of the spectrum
+        total_samples_used : int
+            Total samples used to compute FFT
+        """
+        self.frequency = np.asarray(frequency)
+        self.power = np.asarray(power)
+        self.sample_rate = sample_rate
+        self.total_duration = total_duration
+
+        self.unit = unit
+        self.total_samples_used = total_samples_used
+
+        self._window_factor = window_factor
+        self._downsampling_factor = downsampling_factor
+        self._fit_range = (
+            np.nextafter(frequency.min(), -np.inf),
+            np.nextafter(frequency.max(), np.inf),
+        )
+        self._excluded_ranges = [] if excluded_ranges is None else excluded_ranges
+        self._variance = variance
+        self._raw = None
+
+    @property
+    def num_points_per_block(self) -> int:
+        return self._window_factor * self._downsampling_factor
+
+    @deprecated.deprecated(
+        version="1.5.1", reason="This property has been replaced by total_samples_used."
+    )
+    def total_sampled_used(self) -> int:
+        return self.total_samples_used
+
+    @staticmethod
+    def from_data(data, sample_rate, unit="V", window_seconds=None):
         """Power spectrum
 
         Parameters
@@ -51,12 +109,9 @@ class PowerSpectrum:
                 f"shape {data.shape}."
             )
 
-        self.unit = unit
-        self._excluded_ranges = []
-
         data = data - np.mean(data)
 
-        # Calculate power spectrum for slices of data.
+        # Calculate power spectrum for chunks of data.
         num_points_per_window = (
             int(np.round(window_seconds * sample_rate)) if window_seconds else len(data)
         )
@@ -72,37 +127,39 @@ class PowerSpectrum:
         ]
 
         squared_fft = np.mean(squared_fft_chunks, axis=0)
-
-        self.frequency = np.fft.rfftfreq(num_points_per_window, 1.0 / sample_rate)
         scaling_factor = (2.0 / sample_rate) / num_points_per_window
-        self.power = scaling_factor * squared_fft
-        self._fit_range = (self.frequency.min(), self.frequency.max())
+        frequency = np.fft.rfftfreq(num_points_per_window, 1.0 / sample_rate)
 
-        # Store a variance for temporally blocked power spectra
-        self._variance = (
-            scaling_factor**2 * np.var(squared_fft_chunks, axis=0)
-            if len(squared_fft_chunks) > 1
-            else None
+        return PowerSpectrum(
+            frequency=frequency,
+            power=scaling_factor * squared_fft,
+            sample_rate=sample_rate,
+            total_duration=data.size / sample_rate,
+            unit=unit,
+            window_factor=len(squared_fft_chunks),
+            downsampling_factor=1,
+            total_samples_used=num_points_per_window * (len(data) // num_points_per_window),
+            excluded_ranges=[],
+            variance=(
+                scaling_factor**2 * np.var(squared_fft_chunks, axis=0)
+                if len(squared_fft_chunks) > 1
+                else None
+            ),
         )
 
-        # Store metadata
-        self.sample_rate = sample_rate
-        self.total_duration = data.size / sample_rate
-        self.num_points_per_block = len(squared_fft_chunks)
-        self.total_sampled_used = num_points_per_window * self.num_points_per_block
-
     @property
-    def frequency_bin_width(self):
+    def frequency_bin_width(self) -> float:
         """Returns the frequency bin width of the spectrum"""
-        return self.sample_rate / self.total_sampled_used * self.num_points_per_block
+        return self.sample_rate / self.total_samples_used * self.num_points_per_block
 
-    def downsampled_by(self, factor, reduce=np.mean) -> "PowerSpectrum":
+    def downsampled_by(self, factor) -> "PowerSpectrum":
         """Returns a spectrum downsampled by a given factor."""
         ba = copy(self)
-        ba.frequency = downsample(self.frequency, factor, reduce)
-        ba.power = downsample(self.power, factor, reduce)
-        ba.num_points_per_block = self.num_points_per_block * factor
+        ba.frequency = downsample(self.frequency, factor, np.mean)
+        ba.power = downsample(self.power, factor, np.mean)
+        ba._downsampling_factor = ba._downsampling_factor * factor
         ba._variance = None  # Not supported
+        ba._raw = self
 
         return ba
 
@@ -115,6 +172,9 @@ class PowerSpectrum:
         ----------
         excluded_ranges : list of tuple of float
             List of ranges to exclude specified as a list of (frequency_min, frequency_max)."""
+        if self._downsampling_factor != 1:
+            raise RuntimeError("Exclusion ranges should always be applied before downsampling.")
+
         if not excluded_ranges:
             return copy(self)
 
@@ -179,6 +239,8 @@ class PowerSpectrum:
             Raises a ValueError when the peak_cutoff is smaller than baseline and when baseline is
             less than zero
         """
+        if self.num_points_per_block != 1:
+            raise RuntimeError("Exclusion ranges should always be applied before downsampling.")
 
         def grab_contiguous_ranges(mask):
             # We cap the entire spectrum to make sure that we can handle spectra that begin
@@ -278,7 +340,7 @@ class PowerSpectrum:
 
         ps = copy(self)
         ps.power = power
-        ps.num_points_per_block = num_points_per_block
+        ps._downsampling_factor = num_points_per_block / self._window_factor  # Yuck
         ps._variance = variance
 
         return ps
