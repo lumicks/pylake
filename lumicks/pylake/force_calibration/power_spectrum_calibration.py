@@ -553,7 +553,7 @@ class CalibrationResults(CalibrationPropertiesMixin):
     @property
     def number_of_samples(self):
         """Number of fitted samples (-)."""
-        return self.ps_data.total_sampled_used
+        return self.ps_data.total_samples_used
 
     def plot(self):
         """Plot the fitted spectrum"""
@@ -644,7 +644,7 @@ def calculate_power_spectrum(
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
 
-    power_spectrum = PowerSpectrum(data, sample_rate)
+    power_spectrum = PowerSpectrum.from_data(data, sample_rate)
     power_spectrum = power_spectrum.in_range(*fit_range)._exclude_range(excluded_ranges)
     power_spectrum = power_spectrum.downsampled_by(num_points_per_block)
 
@@ -881,9 +881,7 @@ def fit_power_spectrum(
     backing = scipy.stats.chi2.sf(chi_squared, n_degrees_of_freedom) * 100
 
     # Fitted power spectrum values.
-    ps_model = power_spectrum.with_spectrum(
-        model(power_spectrum.frequency, *solution_params), power_spectrum.num_points_per_block
-    )
+    ps_model = power_spectrum.with_spectrum(model(power_spectrum.frequency, *solution_params))
 
     # When using theoretical weights for fitting, ref [5] mentions that the found value for D will
     # be biased by a factor (n+1)/n. Multiplying by n/(n+1) compensates for this.
