@@ -182,14 +182,14 @@ def test_no_data_in_range():
     model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0004)
 
     # Here the range slices off all the data and we are left with an empty spectrum
-    power_spectrum = psc.PowerSpectrum(np.arange(100), sample_rate=100).in_range(47, 100)
+    power_spectrum = psc.PowerSpectrum.from_data(np.arange(100), sample_rate=100).in_range(47, 100)
 
     with pytest.raises(RuntimeError):
         psc.fit_power_spectrum(power_spectrum, model=model)
 
     # Check whether a failure to get a sufficient number of points in the analytical fit is
     # detected.
-    power_spectrum = psc.PowerSpectrum(np.arange(100), sample_rate=1e-3)
+    power_spectrum = psc.PowerSpectrum.from_data(np.arange(100), sample_rate=1e-3)
 
     with pytest.raises(RuntimeError):
         psc.fit_power_spectrum(power_spectrum, model=model)
@@ -214,9 +214,7 @@ def test_bad_fit(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     bad_spectrum = reference_spectrum.power.copy()
     bad_spectrum[30:31] = reference_spectrum.power[10]  # Chop!
-    bad_spectrum = reference_spectrum.with_spectrum(
-        bad_spectrum, num_points_per_block=reference_spectrum.num_points_per_block
-    )
+    bad_spectrum = reference_spectrum.with_spectrum(bad_spectrum)
     bad_calibration = psc.fit_power_spectrum(
         power_spectrum=bad_spectrum, model=model, loss_function="gaussian"
     )
@@ -258,8 +256,8 @@ def test_actual_spectrum(reference_calibration_result):
         np.testing.assert_allclose(ps_calibration[name].value, **expected_result)
         np.testing.assert_allclose(ps_calibration.params[name].value, **expected_result)
 
-    # Test whether the model contains the number of points per block that were used to fit it
-    np.testing.assert_allclose(ps_calibration.ps_model.num_points_per_block, 100)
+    # The model was not averaged
+    np.testing.assert_allclose(ps_calibration.ps_model.num_points_per_block, 1)
     np.testing.assert_allclose(ps_calibration.ps_data.num_points_per_block, 100)
 
 
