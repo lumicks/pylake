@@ -54,7 +54,14 @@ def test_calibration(h5_file):
 
         assert f["Force HF"]["Force 1x"].calibration == f.force1x.calibration
         assert f["Force HF"]["Force 2x"].calibration == f.force2x.calibration
+        assert f.force1x.calibration[0].applied_at == 1
+        assert f.force1x.calibration[1].applied_at == 3
         assert f.force1x.calibration[2].applied_at == 10
+        assert f.force1y.calibration[0].applied_at == 1
+        assert f.force1y.calibration[1].applied_at == 3
+        assert f.force1y.calibration[2].applied_at == 8
+        assert f.force1y.calibration[3].applied_at == 10
+        assert f.force2x.calibration[0].applied_at == 100
 
 
 def test_marker(h5_file):

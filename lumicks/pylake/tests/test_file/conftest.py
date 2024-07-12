@@ -58,19 +58,23 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data(
             "2", "Force 1x", generate_attributes(1, {"Bead center height (um)": 5})
         )
-        mock_file.make_calibration_data(
-            "2", "Force 1x", generate_attributes(3, {"Kind": "Reset offset"})
-        )
-        mock_file.make_calibration_data("3", "Force 1x", generate_attributes(10))
-        mock_file.make_calibration_data("4", "Force 1x", generate_attributes(100))
+        reset_attrs = generate_attributes(3, {"Kind": "Discard all calibration data"})
+        del reset_attrs["Rd (um/V)"]  # A real reset item does not have a displacement sensitivity
+        del reset_attrs["kappa (pN/nm)"]  # A real reset item does not have a stiffness
+        mock_file.make_calibration_data("3", "Force 1x", reset_attrs)
+        mock_file.make_calibration_data("4", "Force 1x", generate_attributes(10))
+        mock_file.make_calibration_data("5", "Force 1x", generate_attributes(100))
         mock_file.make_calibration_data("1", "Force 1y", generate_attributes(0))
         mock_file.make_calibration_data("2", "Force 1y", generate_attributes(1))
-        mock_file.make_calibration_data("3", "Force 1y", generate_attributes(10))
-        mock_file.make_calibration_data("4", "Force 1y", generate_attributes(100))
+        mock_file.make_calibration_data("3", "Force 1y", reset_attrs)
+        mock_file.make_calibration_data("3b", "Force 1y", generate_attributes(8))
+        mock_file.make_calibration_data("4", "Force 1y", generate_attributes(10))
+        mock_file.make_calibration_data("5", "Force 1y", generate_attributes(100))
         mock_file.make_calibration_data("1", "Force 1z", generate_attributes(0))
         mock_file.make_calibration_data("2", "Force 1z", generate_attributes(1))
-        mock_file.make_calibration_data("3", "Force 1z", generate_attributes(10))
-        mock_file.make_calibration_data("4", "Force 1z", generate_attributes(100))
+        mock_file.make_calibration_data("3", "Force 1z", reset_attrs)
+        mock_file.make_calibration_data("4", "Force 1z", generate_attributes(10))
+        mock_file.make_calibration_data("5", "Force 1z", generate_attributes(100))
 
         mock_file.make_marker("test_marker", {"Start time (ns)": 100, "Stop time (ns)": 200})
         mock_file.make_marker("test_marker2", {"Start time (ns)": 200, "Stop time (ns)": 300})
@@ -106,8 +110,9 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_continuous_channel("Force HF", "Force 2x", force_start, freq, force_data)
         mock_file.make_calibration_data("1", "Force 2x", generate_attributes(0))
         mock_file.make_calibration_data("2", "Force 2x", generate_attributes(1))
-        mock_file.make_calibration_data("3", "Force 2x", generate_attributes(10))
-        mock_file.make_calibration_data("4", "Force 2x", generate_attributes(100))
+        mock_file.make_calibration_data("3", "Force 2x", reset_attrs)
+        mock_file.make_calibration_data("4", "Force 2x", generate_attributes(10))
+        mock_file.make_calibration_data("5", "Force 2x", generate_attributes(100))
 
         # Single frame image
         json = generate_scan_json(
