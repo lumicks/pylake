@@ -247,10 +247,14 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     dummy_voltage, _ = calibration_data
     calculate_power_spectrum(dummy_voltage, **item.power_spectrum_params())
     calibrate_force(dummy_voltage, **item.calibration_params())
-    assert str(item)
+
+    compare_to_reference_dict(
+        {"str": str(item), "repr": repr(item), "repr_html": item._repr_html_()},
+        test_name="text_representations_passive",
+    )
 
 
-def test_non_full():
+def test_non_full(compare_to_reference_dict):
     item = ForceCalibrationItem(
         {
             "Kind": "Discard all calibration data",
@@ -271,7 +275,10 @@ def test_non_full():
         ):
             getattr(item, func)()
 
-    assert str(item)
+    compare_to_reference_dict(
+        {"str": str(item), "repr": repr(item), "repr_html": item._repr_html_()},
+        test_name="text_representations_empty",
+    )
 
 
 def test_force_calibration_handling():

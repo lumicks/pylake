@@ -97,11 +97,11 @@ def test_calibration_str(h5_file, monkeypatch):
             assert str(f.force1x.calibration) == dedent(
                 (
                     """\
-                      #  Applied at    Kind          Stiffness (pN/nm)    Force sens. (pN/V)    Disp. sens. (µm/V)    Hydro    Surface    Data?
-                    ---  ------------  ------------  -------------------  --------------------  --------------------  -------  ---------  -------
-                      0  -             Unknown       N/A                  N/A                   N/A                   False    False      False
-                      1  %x %X         Reset offset  1.05                 504.43                4.57                  False    True       False
-                      2  %x %X         Passive       1.05                 504.43                4.57                  False    False      True"""
+                      #  Applied at    Kind                          Stiffness (pN/nm)      Force sens. (pN/V)  Disp. sens. (µm/V)    Hydro    Surface    Data?
+                    ---  ------------  ----------------------------  -------------------  --------------------  --------------------  -------  ---------  -------
+                      0  %x %X         Passive                       1.05                               504.43  4.57                  False    True       False
+                      1  %x %X         Discard all calibration data  N/A                                504.43  N/A                   False    False      False
+                      2  %x %X         Passive                       1.05                               504.43  4.57                  False    False      True"""
                 )
             )
 
