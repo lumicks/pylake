@@ -87,7 +87,11 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             return getattr(self, item)
 
     def __repr__(self):
-        return self._repr_properties
+        """Returns properties in a dataclass-style formatting"""
+        properties = ", ".join(
+            (f"{prop}={str(getattr(self, prop))}" for prop in self._results + self._parameters)
+        )
+        return f"{self.__class__.__name__}({properties})"
 
     @_verify_full
     def _model_params(self):

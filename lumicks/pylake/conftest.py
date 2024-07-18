@@ -313,6 +313,11 @@ def compare_to_reference_dict(reference_data):
                         return f"{key}: None vs {ref_value} (difference)", False
                     case (test_value, None):
                         return f"{key}: {test_value} vs None (difference)", False
+                    case (test_value, ref_value) if isinstance(test_value, str):
+                        if ref_value == test_value:
+                            return f"{key}: {test_value} vs {ref_value} (match)", True
+                        else:
+                            return f"{key}: {test_value} vs {ref_value} (difference)", False
                     case (test_value, ref_value) if np.allclose(
                         test_value, ref_value, rtol=rtol, atol=atol
                     ):

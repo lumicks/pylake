@@ -1,8 +1,8 @@
 import pytest
 
 from lumicks.pylake.calibration import ForceCalibrationList
-from lumicks.pylake.force_calibration.calibration_item import ForceCalibrationItem
 from lumicks.pylake.force_calibration.convenience import calibrate_force
+from lumicks.pylake.force_calibration.calibration_item import ForceCalibrationItem
 from lumicks.pylake.force_calibration.power_spectrum_calibration import calculate_power_spectrum
 
 ref_passive_fixed_diode_with_height = {
@@ -180,7 +180,10 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     dummy_voltage, _ = calibration_data
     calculate_power_spectrum(dummy_voltage, **item.power_spectrum_params())
     calibrate_force(dummy_voltage, **item.calibration_params())
-    assert str(item)
+    compare_to_reference_dict(
+        {"str": str(item), "repr": repr(item), "repr_html": item._repr_html_()},
+        test_name="text_representations_passive",
+    )
 
 
 def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
@@ -250,7 +253,7 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     assert str(item)
 
 
-def test_non_full():
+def test_non_full(compare_to_reference_dict):
     item = ForceCalibrationItem(
         {
             "Kind": "Discard all calibration data",
@@ -271,7 +274,10 @@ def test_non_full():
         ):
             getattr(item, func)()
 
-    assert str(item)
+    compare_to_reference_dict(
+        {"str": str(item), "repr": repr(item), "repr_html": item._repr_html_()},
+        test_name="text_representations_empty",
+    )
 
 
 def test_force_calibration_handling():
