@@ -21,4 +21,5 @@ For all of the examples, it is assumed that the following lines precede any othe
     reca_fitting/reca_fitting
     cas9_kymotracking/cas9_kymotracking
     hairpin_fitting/hairpin_unfolding
+    droplet_fusion/droplet_fusion
     bead_coupling/coupling
