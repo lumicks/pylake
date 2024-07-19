@@ -1,3 +1,58 @@
+[build-system]
+requires = ["setuptools<69.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumicks.pylake"
+dynamic = ["version"]
+requires-python = ">= 3.10"
+authors = [
+    {name = "Lumicks B.V."},
+    {email = "devteam@lumicks.com"},
+]
+readme = {file="README.md", content-type = "text/markdown"}
+license = {file = "license.md"}
+keywords = ["optical tweezers", "kymographs", "data analysis", "lumicks"]
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "pytest>=3.5",
+    "h5py>=3.4, <4",
+    "numpy>=1.24, <2",  # 1.24 is needed for dtype in vstack/hstack (Dec 18th, 2022)
+    "scipy>=1.9, <2",  # 1.9.0 needed for lazy imports (July 29th, 2022)
+    "matplotlib>=3.8",
+    "tifffile>=2022.7.28",
+    "tabulate>=0.8.8, <0.9",
+    "cachetools>=3.1",
+    "deprecated>=1.2.8",
+    "scikit-learn>=0.18.0",
+    "scikit-image>=0.17.2",
+    "tqdm>=4.27.0",  # 4.27.0 introduced tqdm.auto which auto-selects notebook or console
+]
+description = "Bluelake data analysis tools"
+
+[project.urls]
+Homepage = "https://github.com/lumicks/pylake"
+Documentation = "https://lumicks-pylake.readthedocs.io/en/stable/"
+Source = "https://github.com/lumicks/pylake"
+
+[project.optional-dependencies]
+notebook = [
+    "notebook>=7",
+    "ipywidgets>=7.0.0",
+    "jupyter_client>=8",
+    "ipympl>=0.9.3",  # Needed for mpl compatibility (previous vers are only up to mpl 3.7)
+]
+
 [tool.black]
 line-length = 100
 target-version = ['py310']
@@ -20,6 +75,23 @@ exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 100
-py_version=310
+py_version = 310
 length_sort_sections = ["stdlib", "thirdparty", "firstparty", "localfolder"]
 lines_between_sections = 1
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+addopts = "--doctest-modules --ignore=setup.py --ignore=docs/conf.py"
+norecursedirs = ".* *.egg build docs/*"
+filterwarnings = "error"
+
+[tool.setuptools.dynamic]
+version = {attr = "lumicks.pylake.__about__.__version__"}
+
+[tool.setuptools.packages.find]
+# Select the package(s) and data files to be included in the distribution.
+# See https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#custom-discovery
+# Data files to be included (excluded) need to be selected in the file `MANIFEST.in`. Data files to
+# be included in the wheel, need to be placed within the folder or a subfolder of the package(s) of
+# the distribution.
+include = ["lumicks*"]
