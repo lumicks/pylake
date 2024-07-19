@@ -59,3 +59,17 @@ Code and documentation contributions will generally proceed through a Pull Reque
 - Please set up your editor to follow PEP8 (remove trailing white space, no tabs, etc.). Use [black](https://github.com/psf/black) to format your code.
 - All public functions and classes require an informative docstring. Document these using the [numpydoc](https://numpydoc.readthedocs.io/en/latest/format.html) style.
 - Features should ideally be grouped by category in their own folder, with implementational details in a sub-folder named `detail`. Tests for each specific category should be placed in a sub-folder `tests`.
+
+### Installing pre-commit hooks
+
+To help with formatting and code-style consider installing the pre-commit hooks.
+These will check the formatting whenever you commit.
+Install `pre-commit` with:
+
+    pip install pre-commit
+
+Next, set up the hook with::
+
+    pre-commit install
+
+That's all there is to it.
