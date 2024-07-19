@@ -13,7 +13,7 @@ Within the Pylake repo dir:
   - Update the date of the new release.
   - Review the changelog entries. Make sure everything is clear and informative for users.
   - Consider grouping some related entries if it makes sense.
-- Bump the version number in `./lumicks/pylake/__about__.py`.
+- Bump the version number in `./pyproject.toml`.
 - Commit changes with message "release: release Pylake v<X.YY.Z>".
 - Check whether any dependencies of Pylake have changed and check if required packages do exist on anaconda:
   - `git diff v<previous_release_version_number> setup.py` to check changed dependencies.
