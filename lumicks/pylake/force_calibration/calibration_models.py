@@ -866,9 +866,9 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
                 bead_radius=self.bead_diameter * 1e-6 / 2.0,  # um diameter -> m radius
                 rho_sample=self.rho_sample,
                 rho_bead=self.rho_bead,
-                distance_to_surface=None
-                if self.distance_to_surface is None
-                else self.distance_to_surface * 1e-6,  # um => m
+                distance_to_surface=(
+                    None if self.distance_to_surface is None else self.distance_to_surface * 1e-6
+                ),  # um => m
             )
         else:
             self._theoretical_driving_power_model = partial(

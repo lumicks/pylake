@@ -59,8 +59,8 @@ class ImageStackAxes(Axes):
         self.channel = channel
         self.current_frame = frame
         self.num_frames = self._current_image.num_frames
-        self.make_title = (
-            lambda: make_image_title(self._current_image, self.current_frame, show_name=False)
+        self.make_title = lambda: (
+            make_image_title(self._current_image, self.current_frame, show_name=False)
             if show_title
             else (lambda: "")
         )

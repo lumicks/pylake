@@ -198,13 +198,17 @@ def test_csv_version(version, read_with_version):
     )
 
     testfile = Path(__file__).parent / f"./data/tracks_v{version}.csv"
-    with pytest.warns(
-        RuntimeWarning,
-        match=(
-            "This CSV file is from a version in which the minimum observable track duration "
-            "was incorrectly rounded to an integer."
-        ),
-    ) if version == 3 else contextlib.nullcontext():
+    with (
+        pytest.warns(
+            RuntimeWarning,
+            match=(
+                "This CSV file is from a version in which the minimum observable track duration "
+                "was incorrectly rounded to an integer."
+            ),
+        )
+        if version == 3
+        else contextlib.nullcontext()
+    ):
         imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
 
     data, pylake_version, csv_version = _read_txt(testfile, ";")
@@ -228,7 +232,7 @@ def test_bad_csv(filename, blank_kymo):
 
 def test_min_obs_csv_regression(tmpdir_factory, blank_kymo):
     """This tests a regression where saving a freshly imported older file does not function"""
-    testfile = Path(__file__).parent / f"./data/tracks_v0.csv"
+    testfile = Path(__file__).parent / "./data/tracks_v0.csv"
     imported_tracks = import_kymotrackgroup_from_csv(testfile, blank_kymo, "red", delimiter=";")
     out_file = f"{tmpdir_factory.mktemp('pylake')}/no_min_lengths.csv"
 

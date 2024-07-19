@@ -31,8 +31,10 @@ def test_bead_cropping_allow_negative_beads(filename, ref_edges, ref_edges_no_ne
     # because the fluorescence typically tails out wide.
     np.testing.assert_equal(edges, ref_edges)
 
-    with nullcontext() if ref_edges_no_negative else pytest.raises(
-        RuntimeError, match="Did not find two beads"
+    with (
+        nullcontext()
+        if ref_edges_no_negative
+        else pytest.raises(RuntimeError, match="Did not find two beads")
     ):
         edges = find_beads_brightness(
             np.atleast_2d(data["green"]).T,
@@ -50,7 +52,7 @@ def test_bead_cropping_failure():
 
 
 def test_plotting():
-    data = np.load(pathlib.Path(__file__).parent / "data" / f"kymo_sum0.npz")
+    data = np.load(pathlib.Path(__file__).parent / "data" / "kymo_sum0.npz")
     for allow_negative in (False, True):
         edges = find_beads_brightness(
             np.atleast_2d(data["green"]).T,

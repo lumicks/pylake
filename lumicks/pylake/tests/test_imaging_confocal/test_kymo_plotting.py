@@ -290,10 +290,14 @@ def test_plotting_with_histograms(test_kymo):
 
     for px_per_bin in range(1, ref.image.shape[0] + 1):
         ref_counts, ref_bin_widths, msg = process_binning(px_per_bin, "position")
-        with pytest.warns(
-            UserWarning,
-            match=msg,
-        ) if msg else nullcontext():
+        with (
+            pytest.warns(
+                UserWarning,
+                match=msg,
+            )
+            if msg
+            else nullcontext()
+        ):
             kymo.plot_with_position_histogram(color_channel="red", pixels_per_bin=px_per_bin)
             counts, bin_widths = get_hist_data("position")
 

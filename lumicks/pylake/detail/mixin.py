@@ -1,4 +1,5 @@
 """Mixin class which add properties for predefined channels"""
+
 from ..channel import Slice, empty_slice
 
 
