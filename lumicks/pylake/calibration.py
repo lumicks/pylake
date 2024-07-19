@@ -132,9 +132,11 @@ class ForceCalibrationList:
                     item.kind,
                     f"{item.stiffness:.2f}" if item.stiffness else "N/A",
                     f"{item.force_sensitivity:.2f}" if item.force_sensitivity else "N/A",
-                    f"{item.displacement_sensitivity:.2f}"
-                    if item.displacement_sensitivity
-                    else "N/A",
+                    (
+                        f"{item.displacement_sensitivity:.2f}"
+                        if item.displacement_sensitivity
+                        else "N/A"
+                    ),
                     item.hydrodynamically_correct,
                     item.distance_to_surface is not None,
                     bool(

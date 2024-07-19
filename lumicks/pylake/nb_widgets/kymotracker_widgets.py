@@ -760,9 +760,11 @@ class KymoWidgetGreedy(KymoWidget):
         def threshold_slider_callback(change):
             self._set_label(
                 "warning",
-                ""
-                if change["new"] > min_threshold
-                else f"Tracking with threshold of {change['new']} may be slow.",
+                (
+                    ""
+                    if change["new"] > min_threshold
+                    else f"Tracking with threshold of {change['new']} may be slow."
+                ),
             )
 
         threshold_slider.observe(

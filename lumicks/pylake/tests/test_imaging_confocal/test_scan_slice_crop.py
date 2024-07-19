@@ -255,22 +255,22 @@ def test_scan_slicing_by_time(test_scan_slicing):
     wiggle = 0.01
 
     # start of frame 2, until frame 2 signal stop
-    assert isinstance(multi_frame[f"{rng[2, 0]}s":f"{rng[2, 1]}s"], EmptyScan)
+    assert isinstance(multi_frame[f"{rng[2, 0]}s" :f"{rng[2, 1]}s"], EmptyScan)
 
     # start of frame 2, just over frame 2 signal stop
-    sliced = multi_frame[f"{rng[2, 0]}s":f"{rng[2, 1] + wiggle}s"]
+    sliced = multi_frame[f"{rng[2, 0]}s" :f"{rng[2, 1] + wiggle}s"]
     np.testing.assert_equal(sliced.get_image("rgb"), ref.image[2])
 
     # start of frame 2, until frame 3 signal stop
-    sliced = multi_frame[f"{rng[2, 0]}s":f"{rng[3, 1]}s"]
+    sliced = multi_frame[f"{rng[2, 0]}s" :f"{rng[3, 1]}s"]
     np.testing.assert_equal(sliced.get_image("rgb"), ref.image[2])
 
     # start of frame 2, just over frame 3 signal stop
-    sliced = multi_frame[f"{rng[2, 0]}s":f"{rng[3, 1] + wiggle}s"]
+    sliced = multi_frame[f"{rng[2, 0]}s" :f"{rng[3, 1] + wiggle}s"]
     np.testing.assert_equal(sliced.get_image("rgb"), ref.image[2:4])
 
     # start of frame 2, until start of frame 4
-    sliced = multi_frame[f"{rng[2, 0]}s":f"{rng[4, 0]}s"]
+    sliced = multi_frame[f"{rng[2, 0]}s" :f"{rng[4, 0]}s"]
     np.testing.assert_equal(sliced.get_image("rgb"), ref.image[2:4])
 
     # from start of frame 2
@@ -332,15 +332,15 @@ def test_scan_slicing_by_time_iterative(test_scan_slicing):
     wiggle = 0.01
 
     # first slice frame 2 through 5 (inclusive)
-    first_slice = multi_frame[f"{rng[2, 0]}s":f"{rng[5, 1] + wiggle}s"]
+    first_slice = multi_frame[f"{rng[2, 0]}s" :f"{rng[5, 1] + wiggle}s"]
     ref_sliced = ref.image[2:6]
 
     # start of frame 1, just over frame 3 signal stop
-    sliced = first_slice[f"{rng[1, 0]}s":f"{rng[3, 1] + wiggle}s"]
+    sliced = first_slice[f"{rng[1, 0]}s" :f"{rng[3, 1] + wiggle}s"]
     np.testing.assert_equal(sliced.get_image("rgb"), ref_sliced[1:4])
 
     # start of frame 1, until frame 3 signal stop
-    sliced = first_slice[f"{rng[1, 0]}s":f"{rng[3, 1]}s"]
+    sliced = first_slice[f"{rng[1, 0]}s" :f"{rng[3, 1]}s"]
     np.testing.assert_equal(sliced.get_image("rgb"), ref_sliced[1:3])
 
     # from start of frame 1

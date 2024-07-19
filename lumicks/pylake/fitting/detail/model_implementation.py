@@ -889,16 +889,8 @@ def ewlc_marko_siggia_force_jac(d, Lp, Lc, St, kT=4.11):
     denom1 = Lc**3 * (Lp * St + kT) ** 2
     denom2 = Lc * (Lp**2 * St**2 + 2.0 * Lp * St * kT + kT**2)
     dkT = d * kT
-    dc_dLc = (
-        St**3 * dkT * (1.5 * Lc**2 - 4.5 * Lc * d + 3.0 * d**2) / (Lc**4 * (Lp * St + kT))
-    )
-    dc_dSt = (
-        -(St**2)
-        * dkT
-        * (2 * Lp * St + 3 * kT)
-        * (1.5 * Lc**2 - 2.25 * Lc * d + d**2)
-        / denom1
-    )
+    dc_dLc = St**3 * dkT * (1.5 * Lc**2 - 4.5 * Lc * d + 3.0 * d**2) / (Lc**4 * (Lp * St + kT))
+    dc_dSt = -(St**2) * dkT * (2 * Lp * St + 3 * kT) * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / denom1
     dc_dLp = St**4 * dkT * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / denom1
     dc_dkT = -Lp * St**4 * d * (1.5 * Lc**2 - 2.25 * Lc * d + d**2) / denom1
     db_dLc = (
@@ -1287,9 +1279,7 @@ def ewlc_marko_siggia_distance_derivative(f, Lp, Lc, St, kT=4.11):
         )
         / (St**3 * kT)
     )
-    db_df = (
-        Lc**2 * (4 * f * Lp * St + 6 * f * kT + 2 * Lp * St**2 + 4.5 * St * kT) / (St**2 * kT)
-    )
+    db_df = Lc**2 * (4 * f * Lp * St + 6 * f * kT + 2 * Lp * St**2 + 4.5 * St * kT) / (St**2 * kT)
     da_df = -Lc * Lp / kT - 3 * Lc / St
 
     return total_dy_da * da_df + total_dy_db * db_df + total_dy_dc * dc_df

@@ -31,6 +31,7 @@ class PopulationFitInfo:
     log_likelihood: float
         log of the maximized value of the likelihood function of the fitted data
     """
+
     converged: bool
     n_iter: int
     bic: float

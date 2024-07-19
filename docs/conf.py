@@ -256,7 +256,7 @@ latex_elements = {
     # 'pointsize': '10pt',
     # Additional stuff for the LaTeX preamble.
     "preamble": r"\definecolor{VerbatimBorderColor}{rgb}{1,1,1}"
-    r"\usepackage{etoolbox}\patchcmd{\thebibliography}{\section*{\refname}}{}{}{}"
+    r"\usepackage{etoolbox}\patchcmd{\thebibliography}{\section*{\refname}}{}{}{}",
     # Latex figure (float) alignment
     # 'figure_align': 'htbp',
 }

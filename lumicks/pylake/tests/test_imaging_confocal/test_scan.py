@@ -29,9 +29,11 @@ def test_scan_attrs(test_scans, test_scans_multiframe):
 
         np.testing.assert_equal(
             scan.frame_timestamp_ranges(include_dead_time=True),
-            ref.timestamps.timestamp_ranges  # For the single frame case, there is no dead time
-            if scan.num_frames == 1
-            else ref.timestamps.timestamp_ranges_deadtime,
+            (
+                ref.timestamps.timestamp_ranges  # For the single frame case, there is no dead time
+                if scan.num_frames == 1
+                else ref.timestamps.timestamp_ranges_deadtime
+            ),
         )
         np.testing.assert_equal(scan.frame_timestamp_ranges(), ref.timestamps.timestamp_ranges)
 

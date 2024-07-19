@@ -1,5 +1,3 @@
-import pathlib
-
 import numpy as np
 import pytest
 
@@ -39,43 +37,43 @@ def test_kymo_slicing(test_kymo):
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :, 0])
 
     num_lines = 2
-    sliced = kymo["0s":f"{num_lines * line_time}s"]
+    sliced = kymo["0s" :f"{num_lines * line_time}s"]
     assert sliced.get_image("red").shape == (ref_pixels, num_lines)
     assert sliced.shape == (ref_pixels, num_lines, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :num_lines, 0])
 
-    sliced = kymo["0s":f"-{line_time * 0.6}s"]
+    sliced = kymo["0s" :f"-{line_time * 0.6}s"]
     assert sliced.get_image("red").shape == (ref_pixels, ref_lines - 1)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :-1, 0])
 
-    sliced = kymo["0s":f"-{2 * line_time}s"]
+    sliced = kymo["0s" :f"-{2 * line_time}s"]
     assert sliced.get_image("red").shape == (ref_pixels, ref_lines - 2)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, : (ref_lines - 2), 0])
 
     # get a sliver of the next frame
     # stop needs to be > halfway the deadtime between lines
-    sliced = kymo["0s":f"-{2 * line_time - deadtime_slice_offset}s"]
+    sliced = kymo["0s" :f"-{2 * line_time - deadtime_slice_offset}s"]
     assert sliced.get_image("red").shape == (ref_pixels, ref_lines - 1)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :-1, 0])
 
     # Two full frames
-    sliced = kymo["0s":f"{2 * line_time}s"]
+    sliced = kymo["0s" :f"{2 * line_time}s"]
     assert sliced.get_image("red").shape == (ref_pixels, 2)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :2, 0])
 
     # Two full frames plus a bit
-    sliced = kymo["0s":f"{2 * scan_time + 2 * dead_time + deadtime_slice_offset}s"]
+    sliced = kymo["0s" :f"{2 * scan_time + 2 * dead_time + deadtime_slice_offset}s"]
     assert sliced.get_image("red").shape == (ref_pixels, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :3, 0])
 
     # slice from deadtime before first line until deadtime after first line
-    sliced = kymo[f"{scan_time + dead_time / 2}s":f"{2 * line_time - dead_time / 2}s"]
+    sliced = kymo[f"{scan_time + dead_time / 2}s" :f"{2 * line_time - dead_time / 2}s"]
     assert sliced.get_image("red").shape == (ref_pixels, 1)
     assert sliced.shape == (ref_pixels, 1, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, 1:2, 0])
 
     # slice over entire kymo
-    sliced = kymo["0s":f"{line_time * (ref.metadata.lines_per_frame + 1)}s"]
+    sliced = kymo["0s" :f"{line_time * (ref.metadata.lines_per_frame + 1)}s"]
     assert sliced.get_image("red").shape == (ref_pixels, ref_lines)
     assert sliced.shape == (ref_pixels, ref_lines, 3)
     np.testing.assert_allclose(sliced.get_image("red").data, ref.image[:, :, 0])
@@ -245,7 +243,7 @@ def test_kymo_slice_crop(cropping_kymo):
     dead_time = (ref.timestamps.dt * ref.infowave.line_padding * 2) * 1e-9
     line_time = scan_time + dead_time
 
-    sliced_cropped = kymo[f"{line_time}s":f"{5 * line_time}s"].crop_by_distance(
+    sliced_cropped = kymo[f"{line_time}s" :f"{5 * line_time}s"].crop_by_distance(
         2 * px_size, 4 * px_size
     )
     np.testing.assert_equal(sliced_cropped.timestamps, ref.timestamps.data[2:4, 1:5])

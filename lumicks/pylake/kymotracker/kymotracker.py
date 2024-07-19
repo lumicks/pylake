@@ -189,9 +189,11 @@ def track_greedy(
         bias_correction=bias_correction,
         filter_width=filter_width / kymograph.pixelsize_um[0] if filter_width is not None else 0.5,
         adjacency_half_width=half_width_pixels if adjacency_filter else None,
-        rect=_to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds)
-        if rect
-        else None,
+        rect=(
+            _to_pixel_rect(rect, kymograph.pixelsize[0], kymograph.line_time_seconds)
+            if rect
+            else None
+        ),
     )
 
     if not peaks:
@@ -389,9 +391,11 @@ def filter_tracks(tracks, minimum_length=1, *, minimum_duration=0):
             track._with_minimum_time(
                 max(
                     # We can't unfilter tracks.
-                    track._minimum_observable_duration
-                    if track._minimum_observable_duration is not None
-                    else 0,
+                    (
+                        track._minimum_observable_duration
+                        if track._minimum_observable_duration is not None
+                        else 0
+                    ),
                     minimum_observable_time(track, minimum_length, minimum_duration),
                 )
             )
