@@ -849,6 +849,14 @@ class Empty:
     def timestamps(self) -> npt.ArrayLike:
         return np.empty(0)
 
+    @property
+    def start(self):
+        return None
+
+    @property
+    def stop(self):
+        return None
+
 
 empty_slice = Slice(Empty())
 
