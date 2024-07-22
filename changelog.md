@@ -2,6 +2,10 @@
 
 ## v1.5.2 | t.b.d.
 
+#### Improvements
+
+* Added a fallback which allows loading scans or kymographs that have truncated photon count channels.
+
 #### Bug fixes
 
 * Fixed bug that prevented opening the kymotracking widget when using it with the `widget` backend on `matplotlib >= 3.9.0`.
