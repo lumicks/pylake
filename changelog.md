@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.2 | t.b.d.
+
+* Added a fallback which allows loading scans or kymographs that have truncated photon count channels.
+
 ## v1.4.1 | 2024-07-23
 
 #### Bug fixes

@@ -1,6 +1,7 @@
 .vscode/
 .idea/
 
+nb_test/
 build/
 dist/
 venv/

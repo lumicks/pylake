@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pytest
 
@@ -127,6 +129,41 @@ def test_partial_pixel_kymo():
     np.testing.assert_equal(kymo.timestamps[-2, -1], 0)
     np.testing.assert_equal(kymo.get_image("red")[-1, -1], 0)
     np.testing.assert_equal(kymo.get_image("red")[-2, -1], 0)
+
+
+@pytest.mark.parametrize("samples_from_end, pixels_from_end", [(1, 1), (47, 1), (48, 2)])
+def test_unequal_size(samples_from_end, pixels_from_end):
+    """This function checks whether the handling for kymographs with differences between the length
+    of the infowave and photon counts get reconstructed correctly."""
+    dt = int(1e9 / 78125)
+    np.random.seed(15451345)
+    kymo = generate_kymo(
+        "Mock",
+        (np.random.rand(5, 5) * 100).astype(int),
+        pixel_size_nm=100,
+        start=1536582124217030400,
+        dt=dt,
+        samples_per_pixel=47,
+        line_padding=0,
+    )
+
+    # we need to make a copy of the kymo to make sure the original doesn't get cached
+    kymo_copy = copy.copy(kymo)
+    ref_img = copy.copy(kymo_copy.get_image("red"))
+    ref_ts = copy.copy(kymo_copy.timestamps)
+
+    # Make the photon counts shorter than the info-wave (reproduce truncated output).
+    ch = kymo.file.red_photon_count
+    kymo.file.red_photon_count._src = ch[: ch.timestamps[-samples_from_end]]._src
+
+    with pytest.warns(RuntimeWarning, match="Kymo is truncated"):
+        kymo_truncated = kymo.get_image("red")
+        timestamps_truncated = kymo.timestamps
+
+    ref_img[-pixels_from_end:, -1] = 0
+    ref_ts[-pixels_from_end:, -1] = 0
+    np.testing.assert_equal(kymo_truncated, ref_img)
+    np.testing.assert_equal(timestamps_truncated, ref_ts)
 
 
 @pytest.mark.parametrize(
