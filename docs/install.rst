@@ -29,7 +29,7 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
     .. code-block:: python
 
-        conda create -n pylake conda>=23.7.2
+        conda create -n pylake
 
 #. The environment can then be activated::
 
@@ -362,15 +362,8 @@ The full error message is::
 
     Exception: HTTPSConnectionPool(host='conda.anaconda.org', port=443): Max retries exceeded with url: /conda-forge/win-64/current_repodata.json (Caused by SSLError("Can't connect to HTTPS URL because the SSL module is not available."))
 
-This issue has been solved upstream by conda. Make sure you install a new enough version::
-
-    conda create -n pylake conda>=23.7.2
-
-And then follow the rest of the installation instructions.
-If you already have an environment named pylake, you can remove this environment, before creating it again. Another option is to create an environment with a different name, eg::
-
-    conda create -n pylake2 conda>=23.7.2
-    conda activate pylake2
+This issue has been solved upstream by conda.
+The best option is to reinstall `conda` and then follow the rest of the installation instructions.
 
 **I tried the installation instructions, but I cannot import Pylake inside a Jupyter notebook**
 
