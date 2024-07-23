@@ -12,6 +12,8 @@ from lumicks.pylake.kymotracker.kymotracker import track_greedy, _to_half_kernel
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
+from ..detail.utilities import find_stack_level
+
 
 class KymoWidget:
     def __init__(
@@ -343,7 +345,8 @@ class KymoWidget:
                     "when opening the kymotracking widget. The old (incorrect) behavior is "
                     "maintained until the next major release to ensure backward compatibility. "
                     "To silence this warning use `correct_origin=False`."
-                )
+                ),
+                stacklevel=find_stack_level(),
             )
             self._set_label(
                 "warning",
