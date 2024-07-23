@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.4.1 | t.b.d.
+## v1.4.1 | 2024-07-23
 
 #### Bug fixes
 
