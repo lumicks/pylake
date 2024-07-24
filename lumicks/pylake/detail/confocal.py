@@ -40,11 +40,37 @@ def timestamp_mean(a, axis=None):
     return minimum + _int_mean(a - minimum, a.size if axis is None else a.shape[axis], axis)
 
 
-def _default_image_factory(self: "ConfocalImage", color):
+def _get_confocal_data(self: "ConfocalImage", color):
     channel = getattr(self, f"{color}_photon_count")
+    infowave = self.infowave
+
+    # Early out for an empty channel
+    if not channel:
+        return channel, infowave
+
+    if infowave.stop and channel.stop and len(infowave.data) != len(channel.data):
+        if channel.stop < infowave.stop:
+            warnings.warn(
+                RuntimeWarning(
+                    f"Warning: {self.__class__.__name__} is truncated. Photon count data ends "
+                    f"{(infowave.stop - channel.stop) / 1e9:.2g} seconds before the end of the "
+                    "info wave (which encodes how the data should be read)."
+                )
+            )
+
+        return (
+            channel[: min(infowave.stop, channel.stop)],
+            infowave[: min(infowave.stop, channel.stop)],
+        )
+    else:
+        return channel, infowave
+
+
+def _default_image_factory(self: "ConfocalImage", color):
+    channel, infowave = _get_confocal_data(self, color)
     raw_image = reconstruct_image_sum(
-        channel.data.astype(float) if channel else np.zeros(self.infowave.data.size),
-        self.infowave.data,
+        channel.data.astype(float) if channel else np.zeros(infowave.data.size),
+        infowave.data,
         self._reconstruction_shape,
     )
     return self._to_spatial(raw_image)
@@ -53,14 +79,15 @@ def _default_image_factory(self: "ConfocalImage", color):
 def _default_timestamp_factory(self: "ConfocalImage", reduce=timestamp_mean):
     # Uses the timestamps from the first non-zero-sized photon channel
     for color in ("red", "green", "blue"):
-        channel_data = getattr(self, f"{color}_photon_count").timestamps
+        channel_data, infowave = _get_confocal_data(self, color)
+        channel_data = channel_data.timestamps
         if len(channel_data) != 0:
             break
     else:
         raise RuntimeError("Can't get pixel timestamps if there are no pixels")
 
     raw_image = reconstruct_image(
-        channel_data, self.infowave.data, self._reconstruction_shape, reduce=reduce
+        channel_data, infowave.data, self._reconstruction_shape, reduce=reduce
     )
     return self._to_spatial(raw_image)
 

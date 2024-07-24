@@ -1,7 +1,6 @@
 import io
 import re
 import inspect
-import contextlib
 from copy import copy
 from pathlib import Path
 
@@ -96,8 +95,9 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
         assert len([key for key in data.keys() if "counts" in key]) == 0
     else:
         count_field = [key for key in data.keys() if "counts" in key][0]
-        for track1, cnt in zip(tracks, data[count_field]):
+        for track1, imported_track, cnt in zip(tracks, imported_tracks, data[count_field]):
             np.testing.assert_allclose([sampling_outcome] * len(track1.coordinate_idx), cnt)
+            np.testing.assert_allclose(imported_track.photon_counts, cnt)
 
 
 def test_export_sources(tmpdir_factory):
@@ -128,7 +128,7 @@ def test_export_sources(tmpdir_factory):
     [[";", 0, True], [",", 0, True], [";", 1, True], [";", None, True]],
 )
 def test_roundtrip_without_file(
-    delimiter, sampling_width, correct_origin, kymo_integration_test_data
+    delimiter, sampling_width, correct_origin, kymo_integration_test_data, kymo_integration_tracks
 ):
     # Validate that this also works when providing a string handle (this is the API LV uses).
 
@@ -137,43 +137,67 @@ def test_roundtrip_without_file(
 
     # This helps us ensure that if we get additional arguments to this function, we don't forget to
     # add them to the parametrization here.
-    assert set(get_args(KymoTrackGroup.save)[2:]) == set(get_args(test_roundtrip_without_file)[:-1])
-
-    track_coordinates = [
-        ((1, 2, 3), (2, 3, 4)),
-        ((2, 3, 4), (3, 4, 5)),
-        ((3, 4, 5), (4, 5, 6)),
-        ((4, 5, 6), (5, 6, 7)),
-    ]
-
-    tracks = KymoTrackGroup(
-        [
-            KymoTrack(
-                np.array(time_idx), np.array(position_idx), kymo_integration_test_data, "red", 0.1
-            )
-            for time_idx, position_idx in track_coordinates
-        ]
-    )
+    assert set(get_args(KymoTrackGroup.save)[2:]) == set(get_args(test_roundtrip_without_file)[:-2])
 
     with io.StringIO() as s:
-        tracks.save(
+        kymo_integration_tracks.save(
             s, delimiter=delimiter, sampling_width=sampling_width, correct_origin=correct_origin
         )
         string_representation = s.getvalue()
 
     with io.StringIO(string_representation) as s:
         read_tracks = import_kymotrackgroup_from_csv(
-            s, kymo_integration_test_data, "green", delimiter=delimiter
+            s, kymo_integration_test_data, "red", delimiter=delimiter
         )
 
-    compare_kymotrack_group(tracks, read_tracks)
+    compare_kymotrack_group(kymo_integration_tracks, read_tracks)
+
+
+def test_photon_count_validation(kymo_integration_test_data, kymo_integration_tracks):
+    with io.StringIO() as s:
+        kymo_integration_tracks.save(s, sampling_width=0, correct_origin=False)
+        biased_tracks = s.getvalue()
+
+    with io.StringIO() as s:
+        kymo_integration_tracks.save(s, sampling_width=0, correct_origin=True)
+        good_tracks = s.getvalue()
+
+    with pytest.warns(
+        RuntimeWarning,
+        match="origin of a pixel to be at the edge rather than the center of the pixel",
+    ):
+        _ = import_kymotrackgroup_from_csv(
+            io.StringIO(biased_tracks), kymo_integration_test_data, "red"
+        )
+
+    # We can also fail by having the wrong kymo
+    with pytest.warns(
+        RuntimeWarning,
+        match="loaded kymo or channel doesn't match the one used to create this file",
+    ):
+        _ = import_kymotrackgroup_from_csv(
+            io.StringIO(good_tracks), kymo_integration_test_data, "green"
+        )
+
+    # Or by having the wrong one where it actually completely fails to sample. This tests whether
+    # the exception inside import_kymotrackgroup_from_csv is correctly caught and handled
+    with pytest.warns(
+        RuntimeWarning,
+        match="loaded kymo or channel doesn't match the one used to create this file",
+    ):
+        _ = import_kymotrackgroup_from_csv(
+            io.StringIO(good_tracks), kymo_integration_test_data[:"1s"], "red"
+        )
+
+    # Control for good tracks
+    import_kymotrackgroup_from_csv(io.StringIO(good_tracks), kymo_integration_test_data, "red")
 
 
 @pytest.mark.parametrize(
     "version, read_with_version",
     [[0, False], [1, False], [2, True], [3, True], [4, True]],
 )
-def test_csv_version(version, read_with_version):
+def test_csv_version(version, read_with_version, recwarn):
     # Test that header is parsed properly on CSV import
     # Version 2 has 2 header lines, <2 only has 1 header line
 
@@ -198,18 +222,15 @@ def test_csv_version(version, read_with_version):
     )
 
     testfile = Path(__file__).parent / f"./data/tracks_v{version}.csv"
-    with (
-        pytest.warns(
-            RuntimeWarning,
-            match=(
-                "This CSV file is from a version in which the minimum observable track duration "
-                "was incorrectly rounded to an integer."
-            ),
-        )
-        if version == 3
-        else contextlib.nullcontext()
-    ):
-        imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
+    imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
+
+    match version:
+        case 3:
+            assert "minimum observable track duration" in str(recwarn[0].message)
+        case 4:
+            assert "loaded kymo or channel doesn't match the one used to create this file" in str(
+                recwarn[0].message
+            )
 
     data, pylake_version, csv_version = _read_txt(testfile, ";")
 
@@ -233,7 +254,12 @@ def test_bad_csv(filename, blank_kymo):
 def test_min_obs_csv_regression(tmpdir_factory, blank_kymo):
     """This tests a regression where saving a freshly imported older file does not function"""
     testfile = Path(__file__).parent / "./data/tracks_v0.csv"
-    imported_tracks = import_kymotrackgroup_from_csv(testfile, blank_kymo, "red", delimiter=";")
+    with pytest.warns(
+        RuntimeWarning,
+        match="loaded kymo or channel doesn't match the one used to create this file",
+    ):
+        imported_tracks = import_kymotrackgroup_from_csv(testfile, blank_kymo, "red", delimiter=";")
+
     out_file = f"{tmpdir_factory.mktemp('pylake')}/no_min_lengths.csv"
 
     err_msg = "Loaded tracks have no minimum length metadata defined"

@@ -12,6 +12,17 @@
 * Added improved printing of calibrations performed with `Pylake`.
 * Added parameter `titles` to customize title of each subplot in [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
 
+## v1.5.2 | 2024-07-24
+
+#### Improvements
+
+* Added a fallback which allows loading scans or kymographs that have truncated photon count channels.
+
+#### Bug fixes
+
+* Fixed bug that prevented opening the kymotracking widget when using it with the `widget` backend on `matplotlib >= 3.9.0`.
+* Fixed bug where photon counts were not being loaded from a csv file generated with the kymotracker.
+
 ## v1.5.1 | 2024-06-03
 
 * Fixed bug that prevented loading an `h5` file where only a subset of the photon channels are available. This bug was introduced in Pylake `1.4.0`.
@@ -31,7 +42,7 @@
 
 #### Improvements
 
-* Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes. 
+* Added error message when parameters are passed to [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.parameter_trace.html) that do not have the required attributes.
 * Warn when parameter estimates are hitting the fitting bounds when using [`lk.parameter_trace()`](https://lumicks-pylake.readthedocs.io/en/v1.5.0/_api/lumicks.pylake.parameter_trace.html).
 
 #### Other changes
