@@ -106,12 +106,13 @@ def run_notebooks(include_list, reset_cache, only_copy):
     ]
     base_dir = pathlib.Path(__file__).parent.parent.resolve()
     nb_test_dir = base_dir / "nb_test"
+    nb_source_folder_name = "nbexport"
     os.makedirs(nb_test_dir, exist_ok=True)
 
     report_file = nb_test_dir / "test_report.txt"
 
     print(f"Output folder: {nb_test_dir}")
-    notebook_folder = base_dir / "build" / "html" / "nbexport"
+    notebook_folder = base_dir / "build" / "html" / nb_source_folder_name
 
     if not notebook_folder.exists():
         raise FileNotFoundError(
@@ -147,19 +148,21 @@ def run_notebooks(include_list, reset_cache, only_copy):
 
             for nb_file in notebooks:
                 notebook = pathlib.Path(root) / nb_file
+                start_point = notebook.parts.index(nb_source_folder_name)
+                notebook_name = "-".join(notebook.parts[start_point + 1 :])
 
                 if only_copy:
-                    copyfile(notebook, base_dir / nb_test_dir / notebook.name)
+                    copyfile(notebook, base_dir / nb_test_dir / notebook_name)
                     continue
 
                 excluded = any(ex in str(notebook) for ex in exclude_list)
                 included = not include_list or any(inc in str(notebook) for inc in include_list)
 
-                report = data[nb_file] if nb_file in data else {}
+                report = data[notebook_name] if notebook_name in data else {}
                 if not excluded and included:
                     process_notebook(notebook, report, nb_test_dir)
 
-                data[nb_file] = report
+                data[notebook_name] = report
     finally:
         with open(report_file, "w") as f:
             json.dump(data, f, indent=4)
