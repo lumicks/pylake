@@ -70,3 +70,53 @@ def show_image(
     adjustment._update_limits(image_handle, image, channel)
 
     return image_handle
+
+
+def _annotate(start_time, annotation, annotation_direction, stop_time, **kwargs):
+    """Annotate a region or time point with some text
+
+    Parameters
+    ----------
+    start_time : float
+        Start time in seconds
+    annotation : str | None
+        String to annotate with
+    annotation_direction : "horizontal" | "vertical" | None
+        Which direction to show the text when annotating.
+    stop_time : float
+        Stop time in seconds
+    **kwargs :
+        Arguments forwarded to `matplotlib.text`.
+    """
+
+    import matplotlib.pyplot as plt
+
+    ax = plt.gca()
+    annotation_args = {
+        "va": "top",
+        "y": 0.98,
+        "s": annotation,
+        "transform": ax.get_xaxis_transform(),
+    } | kwargs
+    if not annotation_direction:
+        annotation_direction = "horizontal" if stop_time else "vertical"
+
+    match annotation_direction:
+        case "horizontal":
+            ax.text(
+                ((start_time + stop_time) / 2 if stop_time else start_time),
+                ha="center",
+                rotation=0,
+                **annotation_args,
+            )
+        case "vertical":
+            if stop_time:
+                # Prefer using the stop time, as that puts the text _inside_ the shaded area
+                ax.text(stop_time, ha="right", rotation=90, **annotation_args)
+            else:
+                ax.text(start_time, ha="right", rotation=90, **annotation_args)
+        case _:
+            raise RuntimeError(
+                'Invalid value passed for annotation_direction. Expected "horizontal" or '
+                f'"vertical", got {annotation_direction}.'
+            )

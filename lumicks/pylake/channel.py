@@ -6,6 +6,7 @@ from typing import Union
 import numpy as np
 import numpy.typing as npt
 
+from .detail.plotting import _annotate
 from .detail.timeindex import to_timestamp
 from .detail.utilities import downsample
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
@@ -503,6 +504,129 @@ class Slice:
         plt.xlabel(self.labels.get("x", "Time") + " (s)")
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
+
+    def highlight_time_range(
+        self,
+        item,
+        *,
+        color=None,
+        annotation=None,
+        annotation_direction=None,
+        label=None,
+        start=None,
+        alpha=0.15,
+        font_color=None,
+    ):
+        """Highlight some points or regions in a plot.
+
+        Parameters
+        ----------
+        item : Marker | tuple(int, int) | int
+            Time point or range to highlight. Can be an item with a start and stop property such
+            as a `Marker` or `CalibrationItem`, a tuple of timestamps, a single timestamp or a
+            string in time format (e.g. "5s" for 5 seconds).
+        color : str | None
+            Color to use for drawing elements. Should be a matplotlib compatible color.
+        annotation : str | None
+            Annotation text
+        annotation_direction : "horizontal" | "vertical" | None
+            Direction of annotation text
+        label : str | None
+            Label to use in legend entry if a legend is plotted
+        start : int | None
+            Plot with respect to a different "zero" timestamp.
+        alpha : float
+            Opacity of highlighted time range
+        font_color : str | None
+            Annotation text color. Defaults to `color` if available, otherwise black.
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            f = lk.File("data.h5")
+
+            plt.figure()
+            slc = ["Distance"]["Distance 1"]
+            slc.plot()
+
+            # Draws the time region spanned by marker 1
+            slc.highlight_time_range(f.markers["1"])
+
+            # Draws an annotation at the 1-second mark
+            slc.highlight_time_range("1s", annotation="first second")
+
+            # Draws a highlighted region from 1 to 3 seconds and marks it with the text "region"
+            slc.highlight_time_range(("1s", "3s"), annotation="region")
+
+            # Draws a highlighted region from 4 to 5 seconds, marks it, but forces text vertically
+            slc.highlight_time_range(("1s", "3s"), annotation="region", annotation_direction="vertical")
+
+
+            plt.figure()
+            f.force1x.plot()
+
+            item = f.force1x.calibration[1]
+
+            # Fills the region between calibration_item.start and calibration_item.stop with
+            # color "C2"
+            f.force1x.highlight_time_range(item, annotation="calibration 1", color="C2")
+
+            # Draws a line with annotation at the time the calibration was applied.
+            f.force1x.highlight_time_range(item.applied_at, annotation="calibration 1 applied")
+        """
+        import matplotlib.pyplot as plt
+
+        def to_seconds(timestamp):
+            start_ts = self.start if start is None else start
+
+            if isinstance(timestamp, str):
+                timestamp = to_timestamp(timestamp, start_ts, self.stop)
+
+            return (timestamp - start_ts) / 1e9
+
+        def get_time_range(time_item):
+            try:
+                return to_seconds(time_item.start), to_seconds(time_item.stop)  # Marker-like item?
+            except AttributeError:
+                pass
+
+            # Have to process single items separately, since otherwise strings might end up getting
+            # indexed in the last case. Note that single entry numpy arrays return false
+            # for np.isscalar, hence the check with ndim instead.
+            if np.ndim(time_item) == 0:
+                try:
+                    return to_seconds(time_item), None
+                except TypeError:
+                    raise TypeError(
+                        "Provided item must be either timestamp, two timestamps or an item with a "
+                        f"start and stop property, got {time_item} instead."
+                    )
+
+            try:
+                return to_seconds(time_item[0]), to_seconds(time_item[1])
+            except (TypeError, IndexError):
+                raise TypeError(
+                    "Provided item must be either timestamp, two timestamps or an item with a "
+                    f"start and stop property, got {time_item} instead."
+                )
+
+        start_time, stop_time = get_time_range(item)
+        if annotation:
+            _annotate(
+                start_time,
+                annotation,
+                annotation_direction,
+                stop_time,
+                color=font_color if font_color else color,
+            )
+
+        plt.axvline(start_time, label=label if not stop_time else "_", color=color)
+        if stop_time:
+            plt.axvline(stop_time, color=color)
+            plt.axvspan(start_time, stop_time, label="_", alpha=alpha, color=color)
 
     def range_selector(self, show=True, **kwargs) -> SliceRangeSelectorWidget:
         """Show a range selector widget
