@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.3 | t.b.d.
+
+#### Bug fixes
+
+* Fixed a bug where an inverted force-distance [`Model`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.fitting.model.Model.html) would raise when called with a scalar value. Now it just returns the expected value.
+
 ## v1.5.2 | 2024-07-24
 
 #### Improvements

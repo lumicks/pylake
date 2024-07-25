@@ -161,10 +161,25 @@ class Model:
             Values for the independent parameter
         params : Params | Dict[float | Parameter]
             Model parameters
+
+        Raises
+        ------
+        ValueError
+            if values for the independent variable are provided that are not a scalar or one
+            dimensional array or list.
+        KeyError
+            if some model parameters required for simulation are missing from the supplied
+            params dictionary.
         """
         independent = np.asarray(independent, dtype=np.float64)
-        missing_parameters = set(self.parameter_names) - set(params.keys())
-        if missing_parameters:
+
+        if independent.ndim > 1:
+            raise TypeError(
+                "Only 0- or 1-dimensional arrays are supported for the independent variable, "
+                f"got {independent.ndim}"
+            )
+
+        if missing_parameters := set(self.parameter_names) - set(params.keys()):
             raise KeyError(
                 f"The following missing parameters must be specified to simulate the "
                 f"model: {missing_parameters}."
