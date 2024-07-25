@@ -42,7 +42,10 @@ def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
         return single_estimate.x[0]
 
     def manual_inversion(distances, initial_guess):
-        """Invert the dependent and independent variable for a list"""
+        """Invert the dependent and independent variable"""
+        if distances.ndim == 0:
+            return fit_single(distances, initial_guess)
+
         return np.array([fit_single(distance, initial_guess) for distance in distances])
 
     return manual_inversion, fit_single
