@@ -1,4 +1,5 @@
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 
 import h5py
@@ -788,9 +789,104 @@ def test_channel_plot():
     testLine(np.arange(0, 230, 10) - 100 + 5, d)
 
 
+@pytest.mark.parametrize(
+    "item, ref_lines, annotation, rotation, kwargs",
+    [
+        (with_offset(2e4), [[2e-5, 2e-5]], None, 0, {}),
+        (np.array(with_offset(2e4)), [[2e-5, 2e-5]], None, 0, {}),
+        ((with_offset(2e4)), [[2e-5, 2e-5]], None, 0, {}),
+        ((with_offset(2e4), with_offset(5e4)), [[2e-5, 2e-5], [5e-5, 5e-5]], None, 0, {}),
+        (np.array([with_offset(2e4), with_offset(5e4)]), [[2e-5, 2e-5], [5e-5, 5e-5]], None, 0, {}),
+        (
+            namedtuple("Marker", "start stop")(with_offset(2e4), with_offset(5e4)),
+            [[2e-5, 2e-5], [5e-5, 5e-5]],
+            None,
+            0,
+            {},
+        ),
+        (with_offset(2e4), [[2e-5, 2e-5]], "mark", 90, {}),
+        (with_offset(2e4), [[2e-5, 2e-5]], "mark", 90, {"color": "r"}),
+        (with_offset(2e4), [[2e-5, 2e-5]], "mark", 90, {"color": "C1"}),
+        (with_offset(2e4), [[2e-5, 2e-5]], "mark", 0, {"annotation_direction": "horizontal"}),
+        ((with_offset(2e4), with_offset(5e4)), [[2e-5, 2e-5], [5e-5, 5e-5]], "me", 0, {}),
+        ((with_offset(2e4), with_offset(5e4)), [[2e-5, 2e-5], [5e-5, 5e-5]], "me", 0, {"alpha": 1}),
+        (
+            (with_offset(1e4), with_offset(5e4)),
+            [[1e-5, 1e-5], [5e-5, 5e-5]],
+            "me",
+            0,
+            {"color": "r"},
+        ),
+        (
+            (with_offset(2e4), with_offset(5e4)),
+            [[2e-5, 2e-5], [5e-5, 5e-5]],
+            "me",
+            90,
+            {"annotation_direction": "vertical"},
+        ),
+        ("1s", [[1, 1]], None, 0, {}),
+        (("2s", "3s"), [[2, 2], [3, 3]], None, 0, {}),
+        (("1ms", "2ms"), [[1e-3, 1e-3], [2e-3, 2e-3]], None, 0, {}),
+    ],
+)
+def test_channel_time_indicators_lines(item, ref_lines, annotation, rotation, kwargs):
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    def equal(x, y):
+        return len(x) == len(y) and np.allclose(x, y)
+
+    slc = channel.Slice(channel.Continuous(np.arange(50), with_offset(0), int(10e9)))
+
+    slc.plot()
+    slc.highlight_time_range(item, annotation=annotation, **kwargs)
+    assert len(plt.gca().get_lines()) == len(ref_lines) + 1
+    for ref_line in ref_lines:
+        assert any(c for c in plt.gca().get_lines() if equal(c.get_xdata(), ref_line))
+
+    if annotation:
+        text_fields = [
+            text_field
+            for text_field in plt.gca().get_children()
+            if isinstance(text_field, matplotlib.text.Text) and text_field.get_text() == annotation
+        ]
+        assert text_fields
+        np.testing.assert_allclose(text_fields[0].get_rotation(), rotation)
+
+    plt.close("all")
+
+
+def test_annotation_bad_item():
+    slc = channel.Slice(channel.Continuous(np.arange(50), with_offset(0), int(10e9)))
+    slc.plot()
+    with pytest.raises(RuntimeError, match="Invalid time string '1'"):
+        slc.highlight_time_range("1")
+
+    with pytest.raises(RuntimeError, match="Invalid time string '2'"):
+        slc.highlight_time_range(("1s", "2"))
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            r"Provided item must be either timestamp, two timestamps or an item with a start and "
+            r"stop property, got ('1s',) instead."
+        ),
+    ):
+        slc.highlight_time_range(("1s",))
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            r"Provided item must be either timestamp, two timestamps or an item with a start and "
+            r"stop property, got [] instead."
+        ),
+    ):
+        slc.highlight_time_range([])
+
+
 def test_regression_lazy_loading(channel_h5_file):
     ch = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
-    assert type(ch._src._src_data) == h5py.Dataset
+    assert isinstance(ch._src._src_data, h5py.Dataset)
 
 
 @pytest.mark.parametrize(

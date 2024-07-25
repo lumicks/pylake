@@ -133,6 +133,8 @@ Plotting the data can be done as follows::
     plt.savefig("force1x.png")
     plt.show()
 
+.. image:: figures/file/first_plot.png
+
 You can also access the raw data directly::
 
     f1x_data = file.force1x.data
@@ -141,6 +143,8 @@ You can also access the raw data directly::
     plt.figure()
     plt.plot(f1x_timestamps, f1x_data)
     plt.show()
+
+.. image:: figures/file/timestamp_axis.png
 
 The `timestamps` attribute returns the measurement time in nanoseconds since epoch (January 1st 1970, midnight UTC/GMT). Note that since these values are typically very large, they cannot be converted to floating point without losing precision::
 
@@ -157,6 +161,7 @@ The relative time values in seconds can also be accessed directly::
     plt.plot(f1x_seconds, f1x_data)
     plt.show()
 
+.. image:: figures/file/manual_seconds.png
 
 A full list of available channels can be found on the :class:`~lumicks.pylake.File` reference page.
 
@@ -171,6 +176,8 @@ By default, entire channels are returned from a file::
     everything.plot()
     plt.show()
 
+.. image:: figures/file/full_range.png
+
 But channels can also be sliced::
 
     # Get the data between 1 and 1.5 seconds and use the plot function in Pylake
@@ -179,6 +186,8 @@ But channels can also be sliced::
     plt.figure()
     part.plot()
     plt.show()
+
+.. image:: figures/file/slice.png
 
 ::
 
@@ -189,6 +198,8 @@ But channels can also be sliced::
     plt.figure()
     plt.plot(f1x_timestamps, f1x_data)
     plt.show()
+
+.. image:: figures/file/slice_ts.png
 
 ::
 
@@ -221,6 +232,8 @@ Plotting is typically performed with the origin of the plot set to the timestamp
     first_slice.plot()
     second_slice.plot(start=first_slice.start)  # we want to use the start of first_slice as time point "zero"
     plt.show()
+
+.. image:: figures/file/start_time.png
 
 Boolean array indexing
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -300,6 +313,8 @@ channel is sampled. For this purpose you can use `downsampled_like`::
     hf_downsampled.plot()
     plt.show()
 
+.. image:: figures/file/downsampling.png
+
 Generally, it is not possible to reconstruct the first 1-2 timepoints of the reference low frequency channel from the high frequency
 channel input. Therefore, this method returns the downsampled channel and a copy of the reference channel that is cropped such that
 both channels have exactly the same timestamps.
@@ -318,6 +333,30 @@ The actual values can be obtained from the list as follows, where the index refe
     0.0
 
 If we slice a force channel, we only obtain the calibrations relevant for the selected region.
+
+Highlighting
+------------
+
+Let's say something interesting happens in our data and we would like to mark a particular time region.
+We can use the function :meth:`~lumicks.pylake.channel.Slice.highlight_time_range` for this.
+We can highlight a range using the same syntax as slicing::
+
+    force = file.force1x
+    force.plot()
+    force.highlight_time_range(("50s", "85s"), annotation="region 2")
+
+.. image:: figures/file/highlight_region.png
+
+or just mark individual points::
+
+    force = file.force1x
+    force.plot()
+    force.highlight_time_range("50s", annotation="start 1", color="C0")
+    force.highlight_time_range("90s", annotation="start 2", color="C1")
+
+.. image:: figures/file/highlight_points.png
+
+You can even pass timeline items such as markers, but more on that in the next section.
 
 Markers
 -------
@@ -350,6 +389,13 @@ You can also slice channel data directly using markers (or any other item that h
 
     >>> file.force1x[file.markers["Tether: 11"]]
     <lumicks.pylake.channel.Slice at 0x1785ccf1390>
+
+You can visualize the region of these markers superimposed on the channel data::
+
+    file.force1x.plot()
+    file.force1x.highlight_time_range(file.markers["Tether: 11"], annotation="marker")
+
+.. image:: figures/file/marker_range.png
 
 Exporting h5 files
 ------------------
