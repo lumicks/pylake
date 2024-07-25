@@ -504,6 +504,144 @@ class Slice:
         plt.ylabel(self.labels.get("y", "y"))
         plt.title(self.labels.get("title", "title"))
 
+    @staticmethod
+    def _annotate(start_time, annotation, annotation_direction, stop_time, color):
+        """Annotate a region or time point with some text
+
+        Parameters
+        ----------
+        start_time : float
+            Start time in seconds
+        annotation : str | None
+            String to annotate with
+        annotation_direction : "horizontal" | "vertical" | None
+            Which direction to show the text when annotating.
+        stop_time : float
+            Stop time in seconds
+        color : matplotlib.color | None
+            Matplotlib color
+        """
+
+        import matplotlib.pyplot as plt
+
+        ax = plt.gca()
+        annotation_args = {
+            "va": "top",
+            "y": 0.98,
+            "s": annotation,
+            "transform": ax.get_xaxis_transform(),
+            "color": color,
+        }
+        if not annotation_direction:
+            annotation_direction = "horizontal" if stop_time else "vertical"
+
+        match annotation_direction:
+            case "horizontal":
+                ax.text(
+                    ((start_time + stop_time) / 2 if stop_time else start_time),
+                    ha="center",
+                    rotation=0,
+                    **annotation_args,
+                )
+            case "vertical":
+                if stop_time:
+                    # Prefer using the stop time, as that puts the text _inside_ the shaded area
+                    ax.text(stop_time, ha="right", rotation=90, **annotation_args)
+                else:
+                    ax.text(start_time, ha="right", rotation=90, **annotation_args)
+            case _:
+                raise RuntimeError(
+                    'Invalid value passed for annotation_direction. Expected "horizontal" or '
+                    f'"vertical", got {annotation_direction}.'
+                )
+
+    def highlight_time_range(
+        self,
+        item,
+        annotation=None,
+        annotation_direction=None,
+        color=None,
+        label=None,
+        start=None,
+        alpha=0.5,
+        **kwargs,
+    ):
+        """Highlight some points or regions in a plot.
+
+        Parameters
+        ----------
+        item : Marker | tuple(int, int) | int
+            An item with a start and stop property such as a `Marker` or `CalibrationItem`, a
+            tuple of timestamps or a single timestamp.
+        annotation : str | None
+            String to annotate with
+        annotation_direction : "horizontal" | "vertical" | None
+            Which direction to show the text when annotating.
+        color : matplotlib.color | None
+            Matplotlib color
+        label : str | None
+            Label to use in legend entry if a legend is plotted
+        start : int | None
+            Plot with respect to a different "zero" timestamp.
+        alpha : float
+            Opacity (0 is transparent, 1.0 is opaque). Default: 0.5.
+        **kwargs :
+            Arguments forwarded to `matplotlib.axvline` and `matplotlib.axvspan`.
+
+        Examples
+        --------
+        ::
+
+            from lumicks import pylake
+
+            f = lk.File("data.h5")
+
+            plt.figure()
+            f["Distance"]["Distance 1"].plot()
+
+            # Draws the time region spanned by marker 1
+            f.force1x.highlight_time_range(f.markers["1"])
+
+
+            plt.figure()
+            f.force1x.plot()
+
+            item = f.force1x.calibration[1]
+
+            # Fills the region between calibration_item.start and calibration_item.stop
+            f.force1x.highlight_time_range(item, annotation="calibration 1")
+
+            # Draws a line with annotation at the time the calibration was applied.
+            f.force1x.highlight_time_range(item.applied_at, annotation="calibration 1 applied")
+        """
+        import matplotlib.pyplot as plt
+
+        def to_seconds(timestamp):
+            start_ts = self.start if start is None else start
+            return (timestamp - start_ts) / 1e9
+
+        def get_time_range(time_item):
+            if hasattr(time_item, "start") and hasattr(time_item, "stop"):
+                return to_seconds(time_item.start), to_seconds(time_item.stop)
+            elif np.isscalar(time_item):
+                return to_seconds(time_item), None
+            elif len(time_item) == 2:
+                return to_seconds(time_item[0]), to_seconds(time_item[1])
+            else:
+                raise ValueError(
+                    "Provided item must be either timestamp, two timestamps or an item with a "
+                    f"start and stop property, got {time_item} instead."
+                )
+
+        start_time, stop_time = get_time_range(item)
+        if annotation:
+            self._annotate(start_time, annotation, annotation_direction, stop_time, color)
+
+        plt.axvline(start_time, label=label if not stop_time else "_", color=color, **kwargs)
+        if stop_time:
+            plt.axvline(stop_time, **kwargs)
+            plt.axvspan(start_time, stop_time, label="_", alpha=alpha, color=color, **kwargs)
+
     def range_selector(self, show=True, **kwargs) -> SliceRangeSelectorWidget:
         """Show a range selector widget
 
