@@ -53,7 +53,7 @@ def read_report(filename):
         return {}
 
 
-def process_notebook(notebook, report, nb_test_dir):
+def process_notebook(notebook, report, nb_test_dir, force_run):
     """Process a single notebook and return a report on it
 
     Parameters
@@ -64,10 +64,12 @@ def process_notebook(notebook, report, nb_test_dir):
         Dictionary with notebook results
     nb_test_dir : pathlib.Path
         Path to the testing directory.
+    force_run : bool
+        Force this one to re-run.
     """
     finished_success = report.get("result", "") == "success"
 
-    if finished_success:
+    if finished_success and not force_run:
         print(f"Skipping notebook: {notebook} (already successful)")
     else:
         print(f"Testing notebook: {notebook}")
@@ -156,11 +158,12 @@ def run_notebooks(include_list, reset_cache, only_copy):
                     continue
 
                 excluded = any(ex in str(notebook) for ex in exclude_list)
-                included = not include_list or any(inc in str(notebook) for inc in include_list)
+                force_included = any(inc in str(notebook) for inc in include_list)
+                included = not include_list or force_included
 
                 report = data[notebook_name] if notebook_name in data else {}
                 if not excluded and included:
-                    process_notebook(notebook, report, nb_test_dir)
+                    process_notebook(notebook, report, nb_test_dir, force_included)
 
                 data[notebook_name] = report
     finally:
