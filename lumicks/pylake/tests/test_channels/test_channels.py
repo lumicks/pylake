@@ -822,6 +822,9 @@ def test_channel_plot():
             90,
             {"annotation_direction": "vertical"},
         ),
+        ("1s", [[1, 1]], None, 0, {}),
+        (("2s", "3s"), [[2, 2], [3, 3]], None, 0, {}),
+        (("1ms", "2ms"), [[1e-3, 1e-3], [2e-3, 2e-3]], None, 0, {}),
     ],
 )
 def test_channel_time_indicators_lines(item, ref_lines, annotation, rotation, kwargs):

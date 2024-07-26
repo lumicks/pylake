@@ -570,9 +570,10 @@ class Slice:
 
         Parameters
         ----------
-        item : Marker | tuple(int, int) | int
+        item : Marker | tuple(int, int) | int | str
             An item with a start and stop property such as a `Marker` or `CalibrationItem`, a
-            tuple of timestamps or a single timestamp.
+            tuple of timestamps, a single timestamp or a string in time format (e.g. "5s" for
+            5 seconds).
         annotation : str | None
             String to annotate with
         annotation_direction : "horizontal" | "vertical" | None
@@ -597,10 +598,20 @@ class Slice:
             f = lk.File("data.h5")
 
             plt.figure()
-            f["Distance"]["Distance 1"].plot()
+            slc = ["Distance"]["Distance 1"]
+            slc.plot()
 
             # Draws the time region spanned by marker 1
-            f.force1x.highlight_time_range(f.markers["1"])
+            slc.highlight_time_range(f.markers["1"])
+
+            # Draws an annotation at the 1-second mark
+            slc.highlight_time_range("1s", annotation="first second")
+
+            # Draws a highlighted region from 1 to 3 seconds and marks it with the text "region"
+            slc.highlight_time_range(("1s", "3s"), annotation="region")
+
+            # Draws a highlighted region from 4 to 5 seconds, marks it, but forces text vertically
+            slc.highlight_time_range(("1s", "3s"), annotation="region", annotation_direction="vertical")
 
 
             plt.figure()
@@ -618,6 +629,10 @@ class Slice:
 
         def to_seconds(timestamp):
             start_ts = self.start if start is None else start
+
+            if isinstance(timestamp, str):
+                timestamp = to_timestamp(timestamp, start_ts, self.stop)
+
             return (timestamp - start_ts) / 1e9
 
         def get_time_range(time_item):
