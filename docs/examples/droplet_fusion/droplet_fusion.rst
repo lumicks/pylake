@@ -31,7 +31,7 @@ Relaxation time of fusion event
 First, plot the force signal using Pylake. 
 Since the assumptions underlying force calibration are not met during the fusion event, the absolute value of the force is not reliable, and we label the y-axis as 'laser signal'::
 
-    f = lk.File(filenames[0])
+    f = lk.File("test_data/Droplet_fusion_data.h5")
     plt.figure()
     f["Force HF"]["Force 2x"].plot()  
     plt.ylabel("Laser signal (a.u.)")
