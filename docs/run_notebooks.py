@@ -2,6 +2,7 @@ import io
 import os
 import json
 import time
+import hashlib
 import pathlib
 import argparse
 import warnings
@@ -23,17 +24,14 @@ def with_cwd(directory):
         os.chdir(old_directory)
 
 
-def execute_notebook(nb_test_dir, filename):
+def execute_notebook(nb_test_dir, json_nb):
     os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
-
-    with open(filename) as fp:
-        nb = json.load(fp)
 
     mpl.use("agg")  # Use a non-interactive backend
 
     with with_cwd(nb_test_dir):
         notebook_state = {}
-        for cell in nb["cells"]:
+        for cell in json_nb["cells"]:
             if cell["cell_type"] == "code":
                 source = "".join(line for line in cell["source"] if not line.startswith("%"))
                 with redirect_stdout(io.StringIO()) as _, redirect_stderr(io.StringIO()) as _:
@@ -69,6 +67,19 @@ def process_notebook(notebook, report, nb_test_dir, force_run):
     """
     finished_success = report.get("result", "") == "success"
 
+    # Notebooks have a bunch of fields that change every render, but are irrelevant to the
+    # content. Only hash the source fields to check whether they need to be rerun.
+    with open(notebook) as fp:
+        nb_json = json.load(fp)
+        md5_hash = hashlib.md5()
+        for cell in nb_json["cells"]:
+            md5_hash.update(str(cell["source"]).encode("utf-8"))
+
+    checksum = md5_hash.hexdigest()
+
+    if report.get("checksum", "") != checksum:
+        finished_success = False
+
     if finished_success and not force_run:
         print(f"Skipping notebook: {notebook} (already successful)")
     else:
@@ -76,8 +87,9 @@ def process_notebook(notebook, report, nb_test_dir, force_run):
 
         try:
             tic = time.time()
-            execute_notebook(nb_test_dir, notebook)
+            execute_notebook(nb_test_dir, nb_json)
             report["time"] = f"{time.time() - tic:.2f}"
+            report["checksum"] = checksum
         except Exception as e:
             print("\nAn exception was raised:\n")
             print(f"   {e}\n")
