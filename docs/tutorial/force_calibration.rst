@@ -102,6 +102,15 @@ This method returns a :class:`~lumicks.pylake.force_calibration.power_spectrum_c
 
 The rest of this tutorial illustrates the various steps involved when performing such a calibration.
 
+.. mermaid::
+
+    flowchart TD
+        A[Calibration]
+        A --> B{Surface proximity}
+        B -->|Very close| D[Hydro off + height]
+        B -->|Intermediate| E[Hydro on + height]
+        B -->|Deep in bulk| F[<a href='https://lumicks-pylake.readthedocs.io/en/highlight/tutorial/file.html#highlighting'>link</a> on]
+
 Obtaining the power spectrum
 ----------------------------
 

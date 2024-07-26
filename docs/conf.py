@@ -49,6 +49,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
+    "sphinxcontrib.mermaid",
     "sphinxcontrib.bibtex",
     "sphinx.ext.napoleon",
     "matplotlib.sphinxext.plot_directive",
