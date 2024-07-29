@@ -444,6 +444,13 @@ To correct a force trace, simply divide it by the correction factor::
 
     This coupling model neglects effects from the surface. It is intended for measurements performed at the center of the flowcell.
 
+.. note::
+
+    The model implemented here only supports beads that are aligned in the same plane.
+    It does not take a mismatch in the `z`-position of the beads into account.
+    In reality, the position in the focus depends on the bead radius and may be different for the two beads if they slightly differ in size :cite:`alinezhad2018enhancement` (Fig. 3).
+    At short bead-to-bead distances, such a mismatch would make the coupling less pronounced than the model predicts.
+
 Fast Sensors
 ------------
 
