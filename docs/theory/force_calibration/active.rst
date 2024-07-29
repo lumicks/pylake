@@ -116,9 +116,26 @@ Streamlines for some bead configurations are shown below (simulated using FEniCS
   :nbattach:
 
 As a result, the bead moves less than expected for a given stage motion.
-Since the displacement sensitivity (microns/V) is given by the ratio of the expected bead displacement (in microns) to detected displacement (in Volts) and we detected less displacement than expected (lower voltage amplitude), we obtain an artificially higher displacement sensitivity than expected.
-To correctly take this into account, we need to take into account what happens to the fluid around the beads.
 
+Since the displacement sensitivity (microns/V) is given by the ratio of the expected bead displacement (in microns) to detected displacement (in Volts) and we detected less displacement than expected (lower voltage amplitude), we obtain an artificially higher displacement sensitivity than expected.
+
+If we define a factor :math:`c` by which the velocity is reduced, we obtain the following relations for correcting for this reduced flow field:
+
+.. math::
+
+    \begin{align}
+    R_{d, corrected} & = c R_d\\
+    R_{f, corrected} & = \frac{1}{c} R_f\\
+    \kappa_{corrected} & = \frac{1}{c^2}\kappa
+    \end{align}
+
+Where :math:`R_d` is the displacement sensitivity, :math:`R_f` is the force sensitivity and :math:`\kappa` is the stiffness.
+As shown in the plot below, failing to account for this effect can result in substantial calibration error.
+
+.. image:: figures/errors.png
+  :nbattach:
+
+To calculate the desired correction factor :math:`c`, we need to determine what happens to the fluid around the beads.
 Considering the fluid velocity and viscosity, we can conclude that we typically operate in the regime where viscous effects are dominant (creeping flow).
 This can be checked by calculating the Reynolds number for the flow.
 Filling in the maximal velocity we expect during the oscillation, we find the following expression.
