@@ -5,6 +5,25 @@ from tabulate import tabulate
 
 
 class Parameter:
+    """A single model parameter, usually part of a :class:`Params` dictionary.
+
+    Examples
+    --------
+    ::
+
+        import lumicks.pylake as lk
+        fit = lk.FdFit(lk.ewlc_odijk_distance("my_model"))
+
+        print(fit.params)  # Prints the model parameters
+        parameter = fit["my_model/Lc"] = 5  # parameter is of the type `Parameter` here.
+
+        # You can extract and/or modify fitting bounds
+        lower_bound = parameter.lower_bound
+
+        # Or read out the fitting error after the model has been fitted.
+        print(f"fitting error Lc: {parameter.stderr}")
+    """
+
     __slots__ = [
         "value",
         "lower_bound",
@@ -43,13 +62,44 @@ class Parameter:
             Unit of the parameter
         """
         self.value = value
+        """Parameter value."""
+
         self.lower_bound = lower_bound
+        """Lower bound used when fitting."""
+
         self.upper_bound = upper_bound
+        """Upper bound used when fitting."""
+
         self.fixed = fixed
+        """Parameter is held fixed during fitting."""
+
         self.shared = shared
+        """Parameter is shared between all sub-models.
+
+        Some parameters are not expected to be different between sub-models.
+        """
+
         self.unit = unit
+        """Unit of this parameter."""
+
         self.profile = None
+        """Profile likelihood result.
+
+        Profile likelihood estimates confidence intervals for the model parameters. These
+        confidence intervals can be used to assess whether a parameter can reliably be estimated
+        from the data. See also: :meth:`~lumicks.pylake.FdFit.profile_likelihood()`.
+        """
+
         self.stderr = None
+        """Standard error of this parameter.
+
+        Standard errors are calculated after fitting the model. These asymptotic errors are based
+        on the fitted parameter values and model sensitivities.
+
+        .. note::
+
+            These errors may be inaccurate in the presence of model non-identifiability. See
+            also: :meth:`~lumicks.pylake.FdFit.profile_likelihood()`."""
 
     def __float__(self):
         return float(self.value)
@@ -89,8 +139,7 @@ class Parameter:
 
 
 class Params:
-    """
-    Model parameters.
+    """A dictionary of :class:`Parameter`.
 
     Examples
     --------
@@ -100,8 +149,8 @@ class Params:
         fit = lk.FdFit(lk.ewlc_odijk_distance("my_model"))
 
         print(fit.params)  # Prints the model parameters
-        fit["test_parameter"].value = 5  # Set parameter test_parameter to 5
-        fit["fix_me"].fixed = True  # Fix parameter fix_me (do not fit)
+        fit["my_model/Lc"].value = 5  # Set parameter my_model/Lc to 5
+        fit["my_model/Lc"].fixed = True  # Fix parameter my_model/Lc (do not fit)
 
         # Copy parameters from another Parameters into this one.
         parameters.update_params(other_parameters)
