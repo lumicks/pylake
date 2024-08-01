@@ -2,6 +2,7 @@ import os
 import timeit
 import tempfile
 import contextlib
+from copy import copy
 
 import numpy as np
 
@@ -41,14 +42,15 @@ def _generate_kymo_for_tracking(duration, line_count, samples_per_pixel=1):
 def _generate_blank_kymo_data(samples=1000000):
     """This is a different function since generating a junk data kymo is significantly faster than
     generating one with sensible image content."""
-    from lumicks.pylake.tests.data.mock_confocal import MockConfocalFile
+    from lumicks.pylake.tests.data.mock_confocal import mock_confocal_from_arrays
 
     counts = np.ones(samples)
     infowave = np.ones(samples)
     infowave[::2] = 0
     infowave[::10] = 2
 
-    return MockConfocalFile.from_streams(
+    return mock_confocal_from_arrays(
+        "kymo",
         start=0,
         dt=int(1e9),
         axes=[0],
@@ -86,8 +88,8 @@ class _KymoImage(_Benchmark):
     loops = 60
 
     def context(self):
-        confocal_file, metadata, stop = _generate_blank_kymo_data()
-        yield lambda: lk.kymo.Kymo("big_kymo", confocal_file, 0, stop, metadata).get_image("red")
+        kymo = _generate_blank_kymo_data()
+        yield lambda: copy(kymo).get_image("red")  # Copy to not use the cache!
 
 
 class _KymoTimestamps(_Benchmark):
@@ -95,8 +97,8 @@ class _KymoTimestamps(_Benchmark):
     loops = 45
 
     def context(self):
-        confocal_file, metadata, stop = _generate_blank_kymo_data()
-        yield lambda: lk.kymo.Kymo("big_kymo", confocal_file, 0, stop, metadata).timestamps
+        kymo = _generate_blank_kymo_data()
+        yield lambda: copy(kymo).timestamps  # Copy to not use the cache!
 
 
 class _Tracking(_Benchmark):

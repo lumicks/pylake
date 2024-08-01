@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy import typing as npt
 
+from lumicks.pylake.channel import Slice, empty_slice
+
 from .image import reconstruct_image, reconstruct_image_sum
 from .mixin import PhotonCounts, ExcitationLaserPower
 from .plotting import parse_color_channel
@@ -157,7 +159,9 @@ class ScanMetaData:
 
     @classmethod
     def from_json(cls, json_string):
-        json_dict = json.loads(json_string)["value0"]
+        json_dict = json.loads(json_string)
+        if "value0" in json_dict:
+            json_dict = json_dict["value0"]
 
         axes = [
             ScanAxis(ax["axis"], ax["num of pixels"], ax["pixel size (nm)"] / 1000)
@@ -167,6 +171,28 @@ class ScanMetaData:
         return cls(axes, json_dict["scan volume"]["center point (um)"], json_dict["scan count"])
 
 
+class ConfocalFileProxy:
+    """Class with the minimal requirements to reconstruct confocal scans from photon streams"""
+
+    def __init__(
+        self,
+        infowave: Slice,
+        red_channel: Slice = empty_slice,
+        green_channel: Slice = empty_slice,
+        blue_channel: Slice = empty_slice,
+    ):
+        self.infowave = infowave
+        self.red_photon_count = red_channel
+        self.green_photon_count = green_channel
+        self.blue_photon_count = blue_channel
+
+    def __getitem__(self, key):
+        if key == "Info wave":
+            return {"Info wave": self.infowave}
+        else:
+            raise KeyError(f"Key {key} not found.")
+
+
 class BaseScan(PhotonCounts, ExcitationLaserPower):
     """Base class for confocal scans
 
@@ -174,7 +200,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
     ----------
     name : str
         confocal scan name
-    file : lumicks.pylake.File
+    file : lumicks.pylake.File | lumicks.pylake.ConfocalFileProxy
         Parent file. Contains the channel data.
     start : int
         Start point in the relevant info wave.

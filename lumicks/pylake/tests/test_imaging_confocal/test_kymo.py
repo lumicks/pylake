@@ -5,9 +5,9 @@ import pytest
 
 from lumicks.pylake.kymo import Kymo, _default_line_time_factory
 from lumicks.pylake.channel import Slice, Continuous
-from lumicks.pylake.detail.confocal import ScanMetaData
+from lumicks.pylake.detail.confocal import ScanMetaData, ConfocalFileProxy
 
-from ..data.mock_confocal import MockConfocalFile, generate_kymo, generate_scan_json
+from ..data.mock_confocal import generate_kymo, generate_scan_json
 
 
 def test_kymo_properties(test_kymo):
@@ -211,7 +211,7 @@ def test_partial_pixel():
         infowave = Slice(Continuous(np.array(infowave_data), 0, int(1e9)))
         json_string = generate_scan_json([{"axis": 1, "num of pixels": 2, "pixel size (nm)": 1}])
         metadata = ScanMetaData.from_json(json_string)
-        confocal_file = MockConfocalFile(infowave, None, None, None)
+        confocal_file = ConfocalFileProxy(infowave, None, None, None)
         return Kymo("test", confocal_file, 0, int(6e9), metadata)
 
     kymo = kymo_with_wave([1, 1, 1, 1])

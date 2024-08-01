@@ -71,7 +71,7 @@ class Kymo(ConfocalImage):
     ----------
     name : str
         Kymograph name
-    file : lumicks.pylake.File
+    file : lumicks.pylake.File | lumicks.pylake.detail.confocal.ConfocalFileProxy
         Parent file. Contains the channel data.
     start : int
         Start point in the relevant info wave.
