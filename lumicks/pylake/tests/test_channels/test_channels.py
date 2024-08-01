@@ -7,6 +7,7 @@ import pytest
 import matplotlib as mpl
 
 from lumicks.pylake import channel
+from lumicks.pylake.lowlevel import make_continuous_slice
 from lumicks.pylake.calibration import ForceCalibrationList
 
 
@@ -65,7 +66,7 @@ def test_calibration_timeseries_channels():
     # This slices off everything
     nested_slice = nested_slice[120:]
     assert len(nested_slice.calibration) == 0
-    assert type(nested_slice.calibration) is list
+    assert isinstance(nested_slice.calibration, list)
 
 
 def test_calibration_continuous_channels():
@@ -790,7 +791,7 @@ def test_channel_plot():
 
 def test_regression_lazy_loading(channel_h5_file):
     ch = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
-    assert type(ch._src._src_data) == h5py.Dataset
+    assert isinstance(ch._src._src_data, h5py.Dataset)
 
 
 @pytest.mark.parametrize(
@@ -885,3 +886,23 @@ def test_slice_by_invalid_object():
 
     with pytest.raises(TypeError, match=invalid_range):
         s[BadType(0)]
+
+
+def test_low_level_construction():
+    start = 1388534400000000000
+    with pytest.raises(ValueError, match="Starting timestamp must be larger than"):
+        _ = make_continuous_slice(np.array([1, 2, 3]), start - 1, int(1e9 / 78125))
+
+    data = np.arange(200)
+    slc = make_continuous_slice(data, start, int(1e9 / 78125))
+    assert slc.start == start
+    assert slc._timesteps == int(1e9 / 78125)
+    assert slc.sample_rate == 78125
+    assert slc.labels["y"] == "y"
+    assert slc.labels["title"] == ""
+    np.testing.assert_equal(slc.data, data)
+    assert isinstance(slc._src, channel.Continuous)
+
+    slc = make_continuous_slice(data, start, int(1e9 / 78125), name="hi", y_label="there")
+    assert slc.labels["title"] == "hi"
+    assert slc.labels["y"] == "there"
