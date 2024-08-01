@@ -80,7 +80,7 @@ class ColorAdjustment:
             image[:, :, missing_channel_index] = 0
 
         if not self.mode:
-            return image / np.max(image)
+            return image / maximum if (maximum := image.max()) else image
         elif self.mode == "absolute":
             minimum, maximum = self.minimum, self.maximum
         else:
@@ -93,7 +93,7 @@ class ColorAdjustment:
             minimum, maximum = bounds.T
 
         denominator = maximum - minimum
-        denominator[denominator == 0] = 1.0  # prevent div by zero
+        denominator[denominator == 0] = 1.0  # don't scale components with a range of zero
         return np.clip((image - minimum) / denominator, 0.0, 1.0) ** self.gamma
 
     def _update_limits(self, image_handle, image, channel):

@@ -5,6 +5,7 @@
 #### Bug fixes
 
 * Fixed a bug where an inverted force-distance [`Model`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.fitting.model.Model.html) would raise when called with a scalar value. Now it just returns the expected value.
+* Fixed a bug that would lead to a division by zero warning when performing no color adjustment on a `Scan` or `Kymo` with zero photon counts.
 
 ## v1.5.2 | 2024-07-24
 
