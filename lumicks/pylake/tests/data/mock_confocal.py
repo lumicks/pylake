@@ -7,10 +7,15 @@ import numpy as np
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
 from lumicks.pylake.channel import Slice, Continuous, empty_slice
+from lumicks.pylake.lowlevel import create_confocal_object
+from lumicks.pylake.point_scan import PointScan
 from lumicks.pylake.detail.image import InfowaveCode
-from lumicks.pylake.detail.confocal import ScanMetaData, ConfocalImage
+from lumicks.pylake.detail.confocal import ConfocalImage
 
 from .mock_json import mock_json
+
+_default_start = int(20e9)
+_default_dt = int(62.5e6)
 
 
 def generate_scan_json(axes):
@@ -121,28 +126,19 @@ def generate_image_data(image_data, samples_per_pixel, line_padding, multi_color
 
 
 class MockConfocalFile:
-    def __init__(self, infowave, red_channel=None, green_channel=None, blue_channel=None):
-        self.infowave = infowave
-        self.red_photon_count = red_channel if red_channel is not None else empty_slice
-        self.green_photon_count = green_channel if green_channel is not None else empty_slice
-        self.blue_photon_count = blue_channel if blue_channel is not None else empty_slice
-
-    def __getitem__(self, key):
-        if key == "Info wave":
-            return {"Info wave": self.infowave}
-
     @staticmethod
     def from_image(
-        image,
-        pixel_sizes_nm,
-        axes=None,
-        start=int(20e9),
-        dt=int(62.5e6),
-        samples_per_pixel=5,
-        line_padding=3,
-        multi_color=False,
-    ):
-        """Generate a mock file that can be read by Kymo or Scan"""
+        name: str,
+        image: np.ndarray,
+        pixel_sizes_nm: list,
+        axes: list | None = None,
+        start: int = _default_start,
+        dt: int = _default_dt,
+        samples_per_pixel: int = 5,
+        line_padding: int = 3,
+        multi_color: bool = False,
+    ) -> Kymo | Scan | PointScan:
+        """Generates a Kymo, Scan or PointScan depending on the number of axes"""
         axes = [0, 1] if axes is None else axes
 
         if len(axes) == 2 and axes[0] < axes[1]:
@@ -168,27 +164,28 @@ class MockConfocalFile:
             ]
         )
 
-        return (
-            MockConfocalFile(
-                Slice(Continuous(infowave, start=start, dt=dt)),
-                *(Slice(Continuous(channel, start=start, dt=dt)) for channel in photon_counts),
-            ),
-            ScanMetaData.from_json(json_string),
-            start + len(infowave) * dt,
+        return create_confocal_object(
+            name,
+            Slice(Continuous(infowave, start=start, dt=dt)),
+            json_string,
+            *(Slice(Continuous(channel, start=start, dt=dt)) for channel in photon_counts),
         )
 
     @staticmethod
     def from_streams(
-        start,
-        dt,
-        axes,
-        num_pixels,
-        pixel_sizes_nm,
-        infowave,
-        red_photon_counts=None,
-        blue_photon_counts=None,
-        green_photon_counts=None,
-    ):
+        name: str,
+        start: int,
+        dt: int,
+        axes: list,
+        num_pixels: list,
+        pixel_sizes_nm: list,
+        infowave: Slice,
+        red_photon_counts: Slice | None = None,
+        blue_photon_counts: Slice | None = None,
+        green_photon_counts: Slice | None = None,
+    ) -> Kymo | Scan | PointScan:
+        """Generates a Kymo, Scan or PointScan depending on the number of axes"""
+
         def make_slice(data):
             if data is None:
                 return empty_slice
@@ -209,15 +206,13 @@ class MockConfocalFile:
                 ]
             )
 
-        return (
-            MockConfocalFile(
-                infowave=make_slice(infowave),
-                red_channel=make_slice(red_photon_counts),
-                blue_channel=make_slice(blue_photon_counts),
-                green_channel=make_slice(green_photon_counts),
-            ),
-            ScanMetaData.from_json(json_string),
-            start + len(infowave) * dt,
+        return create_confocal_object(
+            name,
+            infowave=make_slice(infowave),
+            red_channel=make_slice(red_photon_counts),
+            blue_channel=make_slice(blue_photon_counts),
+            green_channel=make_slice(green_photon_counts),
+            json_metadata=json_string,
         )
 
 
@@ -225,15 +220,14 @@ def generate_kymo(
     name,
     image,
     pixel_size_nm=10.0,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
 ):
     """Generate a kymo based on provided image data"""
     return _generate_confocal(
         name,
-        Kymo,
         image,
         multi_color=image.ndim > 2,
         pixel_sizes_nm=[pixel_size_nm],
@@ -255,8 +249,8 @@ def generate_scan(
     image,
     pixel_sizes_nm,
     axes=None,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
     multi_color=False,
@@ -264,7 +258,6 @@ def generate_scan(
     """Generate a scan based on provided image data"""
     return _generate_confocal(
         name,
-        Scan,
         image,
         multi_color=multi_color,
         pixel_sizes_nm=pixel_sizes_nm,
@@ -278,7 +271,6 @@ def generate_scan(
 
 def _generate_confocal(
     name,
-    confocal_class,
     image,
     multi_color,
     pixel_sizes_nm,
@@ -292,7 +284,8 @@ def _generate_confocal(
     start = np.int64(start)
     dt = np.int64(dt)
 
-    confocal_file, metadata, stop = MockConfocalFile.from_image(
+    return MockConfocalFile.from_image(
+        name,
         image,
         pixel_sizes_nm=pixel_sizes_nm,
         axes=axes,
@@ -303,15 +296,13 @@ def _generate_confocal(
         multi_color=multi_color,
     )
 
-    return confocal_class(name, confocal_file, start, stop, metadata)
-
 
 def generate_kymo_with_ref(
     name,
     image,
     pixel_size_nm=10.0,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
 ):
@@ -337,8 +328,8 @@ def generate_scan_with_ref(
     image,
     pixel_sizes_nm,
     axes=None,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
     multi_color=False,
