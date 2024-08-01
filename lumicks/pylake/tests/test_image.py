@@ -107,17 +107,18 @@ def test_partial_pixel_image_reconstruction():
 
 
 @pytest.mark.parametrize(
-    "minimum, maximum, ref_minimum, ref_maximum",
+    "data, minimum, maximum, ref_minimum, ref_maximum",
     [
-        (1.0, 5.0, [1.0, 1.0, 1.0], [5.0, 5.0, 5.0]),
-        ([1.0, 2.0, 3.0], [3.0, 4.0, 5.0], [1.0, 2.0, 3.0], [3.0, 4.0, 5.0]),
-        ([1.0], [3.0, 4.0, 5.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0]),
-        ([1.0, 2.0, 3.0], [5.0], [1.0, 2.0, 3.0], [5.0, 5.0, 5.0]),
-        ([1.0, 2.0, 3.0], 5.0, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0]),
+        (np.zeros(10), 1.0, 5.0, [1.0, 1.0, 1.0], [5.0, 5.0, 5.0]),
+        (np.arange(10), 1.0, 5.0, [1.0, 1.0, 1.0], [5.0, 5.0, 5.0]),
+        (np.arange(10), [1.0, 2.0, 3.0], [3.0, 4.0, 5.0], [1.0, 2.0, 3.0], [3.0, 4.0, 5.0]),
+        (np.arange(10), [1.0], [3.0, 4.0, 5.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0]),
+        (np.arange(10), [1.0, 2.0, 3.0], [5.0], [1.0, 2.0, 3.0], [5.0, 5.0, 5.0]),
+        (np.arange(10), [1.0, 2.0, 3.0], 5.0, [1.0, 2.0, 3.0], [5.0, 5.0, 5.0]),
     ],
 )
-def test_absolute_ranges(minimum, maximum, ref_minimum, ref_maximum):
-    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+def test_absolute_ranges(data, minimum, maximum, ref_minimum, ref_maximum):
+    ref_img = np.array([np.reshape(data, (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
 
     ca = ColorAdjustment(minimum, maximum, mode="absolute")
     np.testing.assert_allclose(ca.minimum, ref_minimum)
@@ -154,18 +155,25 @@ def test_gamma(minimum, maximum, gamma, ref_minimum, ref_maximum, ref_gamma):
 
 
 @pytest.mark.parametrize(
-    "minimum, maximum, ref_minimum, ref_maximum",
+    "data, minimum, maximum, ref_minimum, ref_maximum",
     [
-        (25.0, 75.0, [25.0, 25.0, 25.0], [75.0, 75.0, 75.0]),
-        ([25.0, 35.0, 45.0], [75.0, 85.0, 95.0], [25.0, 35.0, 45.0], [75.0, 85.0, 95.0]),
-        ([25.0], [55.0, 65.0, 75.0], [25.0, 25.0, 25.0], [55.0, 65.0, 75.0]),
-        ([25.0, 35.0, 45.0], [5.0], [25.0, 35.0, 45.0], [5.0, 5.0, 5.0]),
-        ([25.0, 35.0, 45.0], 5.0, [25.0, 35.0, 45.0], [5.0, 5.0, 5.0]),
-        (1.0, [3.0, 4.0, 5.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0]),
+        (np.zeros(10), 25.0, 75.0, [25.0, 25.0, 25.0], [75.0, 75.0, 75.0]),
+        (np.arange(10), 25.0, 75.0, [25.0, 25.0, 25.0], [75.0, 75.0, 75.0]),
+        (
+            np.arange(10),
+            [25.0, 35.0, 45.0],
+            [75.0, 85.0, 95.0],
+            [25.0, 35.0, 45.0],
+            [75.0, 85.0, 95.0],
+        ),
+        (np.arange(10), [25.0], [55.0, 65.0, 75.0], [25.0, 25.0, 25.0], [55.0, 65.0, 75.0]),
+        (np.arange(10), [25.0, 35.0, 45.0], [5.0], [25.0, 35.0, 45.0], [5.0, 5.0, 5.0]),
+        (np.arange(10), [25.0, 35.0, 45.0], 5.0, [25.0, 35.0, 45.0], [5.0, 5.0, 5.0]),
+        (np.arange(10), 1.0, [3.0, 4.0, 5.0], [1.0, 1.0, 1.0], [3.0, 4.0, 5.0]),
     ],
 )
-def test_percentile_ranges(minimum, maximum, ref_minimum, ref_maximum):
-    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+def test_percentile_ranges(data, minimum, maximum, ref_minimum, ref_maximum):
+    ref_img = np.array([np.reshape(data, (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
 
     ca = ColorAdjustment(minimum, maximum, mode="percentile")
     np.testing.assert_allclose(ca.minimum, ref_minimum)
@@ -178,9 +186,11 @@ def test_percentile_ranges(minimum, maximum, ref_minimum, ref_maximum):
         ]
     )
     minimum, maximum = bounds.T
+    difference = maximum - minimum
+    difference[difference == 0] = 1  # Prevent div by zero
 
     np.testing.assert_allclose(
-        ca._get_data_rgb(ref_img), np.clip((ref_img - minimum) / (maximum - minimum), 0, 1)
+        ca._get_data_rgb(ref_img), np.clip((ref_img - minimum) / difference, 0, 1)
     )
 
 
@@ -192,11 +202,13 @@ def test_invalid_range():
         ColorAdjustment(1.0, 1.0, mode="spaghetti")
 
 
-def test_no_adjust():
-    ref_img = np.array([np.reshape(np.arange(10), (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
+@pytest.mark.parametrize("data", [np.zeros(10), np.arange(10)])
+def test_no_adjust(data):
+    ref_img = np.array([np.reshape(data, (2, 5)) for _ in np.arange(3)]).swapaxes(0, 2)
 
     ca = ColorAdjustment.nothing()
-    np.testing.assert_allclose(ca._get_data_rgb(ref_img), ref_img / ref_img.max())
+    normalizer = np.clip(ref_img.max(), 1.0, np.inf)
+    np.testing.assert_allclose(ca._get_data_rgb(ref_img), ref_img / normalizer)
 
 
 @pytest.mark.parametrize(
