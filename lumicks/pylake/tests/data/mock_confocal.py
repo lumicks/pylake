@@ -3,14 +3,20 @@ from numbers import Integral
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from lumicks.pylake.kymo import Kymo
 from lumicks.pylake.scan import Scan
 from lumicks.pylake.channel import Slice, Continuous, empty_slice
+from lumicks.pylake.low_level import create_confocal_object
+from lumicks.pylake.point_scan import PointScan
 from lumicks.pylake.detail.image import InfowaveCode
-from lumicks.pylake.detail.confocal import ScanMetaData, ConfocalImage
+from lumicks.pylake.detail.confocal import ConfocalImage
 
 from .mock_json import mock_json
+
+_default_start = int(20e9)
+_default_dt = int(62.5e6)
 
 
 def generate_scan_json(axes):
@@ -120,41 +126,74 @@ def generate_image_data(image_data, samples_per_pixel, line_padding, multi_color
     )
 
 
-class MockConfocalFile:
-    def __init__(self, infowave, red_channel=None, green_channel=None, blue_channel=None):
-        self.infowave = infowave
-        self.red_photon_count = red_channel if red_channel is not None else empty_slice
-        self.green_photon_count = green_channel if green_channel is not None else empty_slice
-        self.blue_photon_count = blue_channel if blue_channel is not None else empty_slice
+def mock_confocal_from_image(
+    name: str,
+    image: np.ndarray,
+    pixel_sizes_nm: list,
+    axes: list | None = None,
+    start: int = _default_start,
+    dt: int = _default_dt,
+    samples_per_pixel: int = 5,
+    line_padding: int = 3,
+    multi_color: bool = False,
+) -> Kymo | Scan | PointScan:
+    """Generates a Kymo, Scan or PointScan depending on the number of axes"""
+    axes = [0, 1] if axes is None else axes
 
-    def __getitem__(self, key):
-        if key == "Info wave":
-            return {"Info wave": self.infowave}
+    if len(axes) == 2 and axes[0] < axes[1]:
+        # The fast axis of the physical scannning process has the lower physical axis number
+        # (e.g. x) and comes before the slow axis with the greater physical axis number (e.g. y
+        # or z). The convention of indexing numpy arrays is to have the slow indexed y axis
+        # before the fast indexed x axis. Therefore, flip the axes to ensure correct indexing
+        # order when creating the infowave:
+        image = image.swapaxes(-1 - multi_color, -2 - multi_color)
+    infowave, photon_counts = generate_image_data(
+        image, samples_per_pixel, line_padding, multi_color=multi_color
+    )
+    json_string = generate_scan_json(
+        [
+            {
+                "axis": axis,
+                "num of pixels": num_pixels,
+                "pixel size (nm)": pixel_size,
+            }
+            for pixel_size, axis, num_pixels in zip(
+                pixel_sizes_nm, axes, image.shape[-2 - multi_color : image.ndim - multi_color]
+            )
+        ]
+    )
 
-    @staticmethod
-    def from_image(
-        image,
-        pixel_sizes_nm,
-        axes=None,
-        start=int(20e9),
-        dt=int(62.5e6),
-        samples_per_pixel=5,
-        line_padding=3,
-        multi_color=False,
-    ):
-        """Generate a mock file that can be read by Kymo or Scan"""
-        axes = [0, 1] if axes is None else axes
+    return create_confocal_object(
+        name,
+        Slice(Continuous(infowave, start=start, dt=dt)),
+        json_string,
+        *(Slice(Continuous(channel, start=start, dt=dt)) for channel in photon_counts),
+    )
 
-        if len(axes) == 2 and axes[0] < axes[1]:
-            # The fast axis of the physical scannning process has the lower physical axis number
-            # (e.g. x) and comes before the slow axis with the greater physical axis number (e.g. y
-            # or z). The convention of indexing numpy arrays is to have the slow indexed y axis
-            # before the fast indexed x axis. Therefore, flip the axes to ensure correct indexing
-            # order when creating the infowave:
-            image = image.swapaxes(-1 - multi_color, -2 - multi_color)
-        infowave, photon_counts = generate_image_data(
-            image, samples_per_pixel, line_padding, multi_color=multi_color
-        )
+
+def mock_confocal_from_arrays(
+    name: str,
+    start: int,
+    dt: int,
+    axes: list,
+    num_pixels: list,
+    pixel_sizes_nm: list,
+    infowave: ArrayLike,
+    red_photon_counts: ArrayLike | None = None,
+    blue_photon_counts: ArrayLike | None = None,
+    green_photon_counts: ArrayLike | None = None,
+) -> Kymo | Scan | PointScan:
+    """Generates a Kymo, Scan or PointScan depending on the number of axes"""
+
+    def make_slice(data):
+        if data is None:
+            return empty_slice
+        else:
+            return Slice(Continuous(np.asarray(data), start, dt))
+
+    if axes == [] and num_pixels == [] and pixel_sizes_nm == []:
+        json_string = generate_scan_json([])
+    else:
         json_string = generate_scan_json(
             [
                 {
@@ -162,78 +201,32 @@ class MockConfocalFile:
                     "num of pixels": num_pixels,
                     "pixel size (nm)": pixel_size,
                 }
-                for pixel_size, axis, num_pixels in zip(
-                    pixel_sizes_nm, axes, image.shape[-2 - multi_color : image.ndim - multi_color]
-                )
+                for (axis, pixel_size, num_pixels) in zip(axes, pixel_sizes_nm, num_pixels)
             ]
         )
 
-        return (
-            MockConfocalFile(
-                Slice(Continuous(infowave, start=start, dt=dt)),
-                *(Slice(Continuous(channel, start=start, dt=dt)) for channel in photon_counts),
-            ),
-            ScanMetaData.from_json(json_string),
-            start + len(infowave) * dt,
-        )
-
-    @staticmethod
-    def from_streams(
-        start,
-        dt,
-        axes,
-        num_pixels,
-        pixel_sizes_nm,
-        infowave,
-        red_photon_counts=None,
-        blue_photon_counts=None,
-        green_photon_counts=None,
-    ):
-        def make_slice(data):
-            if data is None:
-                return empty_slice
-            else:
-                return Slice(Continuous(data, start, dt))
-
-        if axes == [] and num_pixels == [] and pixel_sizes_nm == []:
-            json_string = generate_scan_json([])
-        else:
-            json_string = generate_scan_json(
-                [
-                    {
-                        "axis": axis,
-                        "num of pixels": num_pixels,
-                        "pixel size (nm)": pixel_size,
-                    }
-                    for (axis, pixel_size, num_pixels) in zip(axes, pixel_sizes_nm, num_pixels)
-                ]
-            )
-
-        return (
-            MockConfocalFile(
-                infowave=make_slice(infowave),
-                red_channel=make_slice(red_photon_counts),
-                blue_channel=make_slice(blue_photon_counts),
-                green_channel=make_slice(green_photon_counts),
-            ),
-            ScanMetaData.from_json(json_string),
-            start + len(infowave) * dt,
-        )
+    return create_confocal_object(
+        name,
+        infowave=make_slice(infowave),
+        red_channel=make_slice(red_photon_counts),
+        blue_channel=make_slice(blue_photon_counts),
+        green_channel=make_slice(green_photon_counts),
+        json_metadata=json_string,
+    )
 
 
 def generate_kymo(
     name,
     image,
     pixel_size_nm=10.0,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
 ):
     """Generate a kymo based on provided image data"""
     return _generate_confocal(
         name,
-        Kymo,
         image,
         multi_color=image.ndim > 2,
         pixel_sizes_nm=[pixel_size_nm],
@@ -255,8 +248,8 @@ def generate_scan(
     image,
     pixel_sizes_nm,
     axes=None,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
     multi_color=False,
@@ -264,7 +257,6 @@ def generate_scan(
     """Generate a scan based on provided image data"""
     return _generate_confocal(
         name,
-        Scan,
         image,
         multi_color=multi_color,
         pixel_sizes_nm=pixel_sizes_nm,
@@ -278,7 +270,6 @@ def generate_scan(
 
 def _generate_confocal(
     name,
-    confocal_class,
     image,
     multi_color,
     pixel_sizes_nm,
@@ -292,7 +283,8 @@ def _generate_confocal(
     start = np.int64(start)
     dt = np.int64(dt)
 
-    confocal_file, metadata, stop = MockConfocalFile.from_image(
+    return mock_confocal_from_image(
+        name,
         image,
         pixel_sizes_nm=pixel_sizes_nm,
         axes=axes,
@@ -303,15 +295,13 @@ def _generate_confocal(
         multi_color=multi_color,
     )
 
-    return confocal_class(name, confocal_file, start, stop, metadata)
-
 
 def generate_kymo_with_ref(
     name,
     image,
     pixel_size_nm=10.0,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
 ):
@@ -337,8 +327,8 @@ def generate_scan_with_ref(
     image,
     pixel_sizes_nm,
     axes=None,
-    start=int(20e9),
-    dt=int(62.5e6),
+    start=_default_start,
+    dt=_default_dt,
     samples_per_pixel=5,
     line_padding=3,
     multi_color=False,
@@ -451,7 +441,7 @@ def generate_timestamps(
     scan=False,
     x_axis_fast=True,
 ):
-    """Calculate reference timestamps of a kymo or scan created with `MockConfocal.from_image()`
+    """Calculate reference timestamps of a kymo or scan created with `mock_confocal_from_image()`
 
     Parameters
     ----------

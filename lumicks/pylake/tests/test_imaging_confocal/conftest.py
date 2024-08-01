@@ -6,15 +6,14 @@ import pytest
 
 from lumicks.pylake.kymo import _kymo_from_array
 from lumicks.pylake.channel import Slice, Continuous
-from lumicks.pylake.point_scan import PointScan
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 
 from ..data.mock_file import MockDataFile_v2
 from ..data.mock_confocal import (
-    MockConfocalFile,
     generate_scan_json,
     generate_kymo_with_ref,
     generate_scan_with_ref,
+    mock_confocal_from_arrays,
 )
 
 start = np.int64(20e9)
@@ -233,7 +232,8 @@ def test_point_scan():
     n_samples = 90
     data = {c: np.random.poisson(15, n_samples) for c in ("red", "green", "blue")}
 
-    mock_file, metadata, stop = MockConfocalFile.from_streams(
+    point_scan = mock_confocal_from_arrays(
+        "PointScan1",
         start,
         dt,
         [],
@@ -244,7 +244,6 @@ def test_point_scan():
         green_photon_counts=data["green"],
         blue_photon_counts=data["blue"],
     )
-    point_scan = PointScan("PointScan1", mock_file, start, stop, metadata)
 
     reference = {
         "data": data,
