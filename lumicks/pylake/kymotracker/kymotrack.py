@@ -3,6 +3,7 @@ import pathlib
 import itertools
 from copy import copy
 
+from ..channel import Slice, empty_slice
 from ..__about__ import __version__
 from ..detail.utilities import replace_key_aliases
 from .detail.peakfinding import _sum_track_signal
@@ -592,7 +593,22 @@ class KymoTrack:
         return criterion(np.logical_and(time_match, position_match))
 
     def interpolate(self):
-        """Interpolate KymoTrack to whole pixel values"""
+        """Linearly Interpolates :class:`KymoTrack` to include all time points between the start
+        and end time of the track.
+
+        By default, the kymotracker returns tracks that only include points where the sigal
+        is above a detection thresholds. Consequently, the returned track may miss particular
+        time points where the signal dropped below a certain level. This function interpolates
+        the :class:`KymoTrack` such that *all* intermediate time points are present.
+
+        .. note::
+
+            This function *only* linearly interpolates and does not attempt to estimate where the
+            peak signal intensity is located for those interpolated points. If this is desired
+            instead please use a refinement method such as
+            :func:`~lumicks.pylake.refine_tracks_centroid()` or
+            :func:`~lumicks.pylake.refine_tracks_gaussian()`.
+        """
         interpolated_time = np.arange(int(np.min(self.time_idx)), int(np.max(self.time_idx)) + 1, 1)
         interpolated_coord = np.interp(interpolated_time, self.time_idx, self.coordinate_idx)
         return self._with_coordinates(interpolated_time, interpolated_coord)
@@ -620,6 +636,34 @@ class KymoTrack:
             raise ValueError("Invalid split point. This split would result in an empty track")
 
         return before, after
+
+    def sample_from_channel(self, channel_slice, include_dead_time=True) -> Slice:
+        """Sample channel data using the time points corresponding to this track
+
+        For each time point in the track, sample the channel data corresponding to that kymograph
+        scan line.
+
+        .. note::
+
+            Tracks may skip kymograph frames when the signal drops below a certain level. If you
+            intend to sample every time point on the track, remember to interpolate the track
+            first using :meth:`KymoTrack.interpolate()`
+
+        Parameters
+        ----------
+        channel_slice : Slice
+            Sample from this channel data.
+        include_dead_time : bool
+            Include the time that the mirror returns to its start position after each kymograph
+            line.
+        """
+        ts_ranges = self._kymo.line_timestamp_ranges(include_dead_time=include_dead_time)
+        try:
+            return channel_slice.downsampled_over(
+                [ts_ranges[time_idx] for time_idx in self.time_idx]
+            )
+        except ValueError:
+            return empty_slice
 
     def sample_from_image(self, num_pixels, reduce=np.sum, *, correct_origin=None):
         """Sample from image using coordinates from this KymoTrack.

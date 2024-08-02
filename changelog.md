@@ -11,6 +11,7 @@
 * Added improved printing of calibration items under `channel.calibration` providing a more convenient overview of the items associated with a `Slice`.
 * Added improved printing of calibrations performed with `Pylake`.
 * Added parameter `titles` to customize title of each subplot in [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
+* Added [`KymoTrack.sample_from_channel()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_channel) to downsample channel data to the time points of a kymotrack.
 
 ## v1.5.2 | 2024-07-24
 
