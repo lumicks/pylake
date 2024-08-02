@@ -50,15 +50,26 @@ class Group:
             if redirect_location and redirect_class:
                 return redirect_class.from_dataset(thing, self._lk_file)
             else:
-                cls = channel_class(thing)
+                if thing.name in self._lk_file._item_cache:
+                    return self._lk_file._item_cache[thing.name]
 
-                if item_type in ("Force HF", "Force LF"):
-                    return cls.from_dataset(
+                # This cache is used to store items obtained from `__getitem__`. The reason for
+                # this caching mechanism is that for large files, it can be prohibitively
+                # expensive to retrieve them from the file repeatedly. Many pylake functions
+                # become unacceptably slow if you pass them something obtained from this structure
+                # directly.
+                cls = channel_class(thing)
+                item = (
+                    cls.from_dataset(
                         thing,
                         calibration=ForceCalibrationList.from_field(self._lk_file.h5, item_name),
                     )
+                    if item_type in ("Force HF", "Force LF")
+                    else cls.from_dataset(thing)
+                )
 
-                return cls.from_dataset(thing)
+                self._lk_file._item_cache[thing.name] = item
+                return item
 
     def __iter__(self):
         return self.h5.__iter__()

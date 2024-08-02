@@ -54,6 +54,12 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         self._check_file_format()
         self._rgb_to_detectors = self._get_detector_mapping(rgb_to_detectors)
 
+        # This cache is used to store items obtained from `__getitem__`. The reason for this cache
+        # is that for large files, it can be prohibitively expensive to retrieve them from the
+        # file repeatedly. Many pylake functions become unacceptably slow if you pass them
+        # something obtained from this structure directly.
+        self._item_cache = {}
+
     def _check_file_format(self):
         if "Bluelake version" not in self.h5.attrs:
             raise Exception("Invalid HDF5 file: no Bluelake version tag found")
@@ -130,6 +136,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         new_file._lk_file = new_file
         new_file._check_file_format()
         new_file._rgb_to_detectors = new_file._get_detector_mapping(rgb_to_detectors)
+        new_file._item_cache = None
         return new_file
 
     @property
