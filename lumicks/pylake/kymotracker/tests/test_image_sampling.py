@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 
 from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
@@ -114,3 +116,53 @@ def test_origin_warning_sample_from_image():
         ),
     ):
         tracks[0].sample_from_image(0)
+
+
+@pytest.mark.parametrize(
+    "time_idx, ref_dead_included, ref_dead_excluded, ref_reduce_max",
+    [
+        ([0, 1, 2], [14.5, 24.5, 34.5], [12.5, 22.5, 32.5], [15.0, 25.0, 35.0]),
+        ([0, 2], [14.5, 34.5], [12.5, 32.5], [15.0, 35.0]),
+        ([], [], [], []),
+    ],
+)
+def test_sample_from_channel(time_idx, ref_dead_included, ref_dead_excluded, ref_reduce_max):
+    img = np.zeros((5, 5))
+    kymo = _kymo_from_array(
+        img,
+        "r",
+        line_time_seconds=1.0,
+        exposure_time_seconds=0.6,
+        start=_FIRST_TIMESTAMP + int(1e9),
+    )
+
+    data = Slice(Continuous(np.arange(100), start=_FIRST_TIMESTAMP, dt=int(1e8)))  # 10 Hz
+    kymotrack = KymoTrack(time_idx, time_idx, kymo, "red", 0)
+
+    sampled = kymotrack.sample_from_channel(data)
+    np.testing.assert_allclose(sampled.data, ref_dead_included)
+
+    sampled = kymotrack.sample_from_channel(data, include_dead_time=False)
+    np.testing.assert_allclose(sampled.data, ref_dead_excluded)
+
+    sampled = kymotrack.sample_from_channel(data, include_dead_time=False, reduce=np.max)
+    np.testing.assert_allclose(sampled.data, ref_reduce_max)
+
+
+def test_sample_from_channel_out_of_bounds():
+    kymo = _kymo_from_array(np.zeros((5, 5)), "r", line_time_seconds=1.0)
+    data = Slice(Continuous(np.arange(100), start=0, dt=int(1e8)))
+    kymotrack = KymoTrack([0, 6], [0, 6], kymo, "red", 0)
+
+    with pytest.raises(IndexError):
+        kymotrack.sample_from_channel(data, include_dead_time=False)
+
+
+def test_sample_from_channel_no_overlap():
+    img = np.zeros((5, 5))
+    kymo = _kymo_from_array(img, "r", start=_FIRST_TIMESTAMP, line_time_seconds=int(1e8))
+    data = Slice(Continuous(np.arange(100), start=kymo.stop + 100, dt=int(1e8)))
+    kymotrack = KymoTrack([0, 1, 2], [0, 1, 2], kymo, "red", 0)
+
+    with pytest.raises(RuntimeError, match="No overlap"):
+        _ = kymotrack.sample_from_channel(data)
