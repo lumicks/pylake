@@ -397,6 +397,32 @@ Here `num_pixels` is the number of pixels to sum on either side of the track.
 .. note::
     For tracks obtained from tracking or :func:`~lumicks.pylake.refine_tracks_centroid`, the photon counts found in the attribute :attr:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.photon_counts` are computed by :func:`~lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_image` using `num_pixels=np.ceil(track_width / pixelsize) // 2` where `track_width` is the track width used for tracking or refinement.
 
+Averaging channel data over tracks
+----------------------------------
+
+It is also possible to average channel data over the track using :meth:`~lumicks.pylake.kymotracker.Kymotrack.sample_from_channel()`.
+For example, let's find out what the force was during a particular track::
+
+    force_slice = file.force1x
+    track_force = longest_track.sample_from_channel(force_slice, include_dead_time=True)
+
+When you call this function with a :class:`~lumicks.pylake.Slice`, it returns another :class:`~lumicks.pylake.Slice` with the downsampled channel data.
+For every point on the track, the corresponding kymograph scan line is looked up and the channel data is averaged over the entire duration of that scan line.
+The parameter `include_dead_time` specifies whether the dead time (the time it takes the mirror to return to its initial position after each scan line) should be included in this average.
+For tracks which have not been refined (see :ref:`localization_refinement`) the result from this function may skip some scan lines entirely.
+
+We can plot these slices just like any other.
+Plotting this slice, we can see that the protein detaches shortly after the force drops::
+
+    plt.figure()
+    force_slice.plot(label="force (whole file)")
+    track_force.plot(start=force_slice.start, marker=".", label="force (longest track)")
+    plt.legend(loc="upper left")
+
+.. image:: figures/kymotracking/sample_from_channel.png
+
+We plotted the track here putting the time zero at the start time of the entire force plot by passing its `start` time.
+
 Plotting binding histograms
 ---------------------------
 
