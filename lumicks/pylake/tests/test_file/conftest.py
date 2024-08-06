@@ -15,9 +15,9 @@ counts = np.uint32([2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 8, 0,
                     0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 8, 0])
 
 infowave = np.uint8([1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
-                        0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
-                        1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
-                        0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2])
+                     0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2,
+                     1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 0, 2,
+                     0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 0, 2])
 # fmt: on
 
 
@@ -259,3 +259,15 @@ def h5_two_colors(tmpdir_factory, request):
     mock_file.make_continuous_channel("Photon count", "Blue", np.int64(20e9), freq, counts)
     mock_file.make_continuous_channel("Info wave", "Info wave", np.int64(20e9), freq, infowave)
     return mock_file.file
+
+
+@pytest.fixture(autouse=True, scope="module", params=[False, True])
+def cache_setting(request):
+    from lumicks.pylake.detail import caching
+
+    old_value = caching.global_cache
+    try:
+        caching.set_cache_enabled(request.param)
+        yield
+    finally:
+        caching.set_cache_enabled(old_value)
