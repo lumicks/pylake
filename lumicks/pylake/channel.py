@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numbers
 from typing import Union
+from weakref import WeakValueDictionary
 
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +10,33 @@ import numpy.typing as npt
 from .detail.timeindex import to_timestamp
 from .detail.utilities import downsample
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
+
+_array_cache = WeakValueDictionary()
+
+
+class LazyCache:
+    def __init__(self, file, path, dset):
+        """A lazy globally cached wrapper around an object that is convertible to a numpy array"""
+        self._location = (file, path)
+        self._dset = dset
+
+    def __len__(self):
+        return len(self._dset)
+
+    @staticmethod
+    def from_h5py_dset(dset):
+        return LazyCache(dset.file.filename, dset.name, dset)
+
+    def __array__(self):
+        global _array_cache
+        exists = self._location not in _array_cache and _array_cache[self._location]() is not None
+
+        if not exists:
+            arr = np.asarray(self._dset)
+            _array_cache[self._location] = arr
+            _array_cache[self._location].flags.writeable = False
+
+        return arr
 
 
 class Slice:
@@ -550,7 +578,6 @@ class Continuous:
 
     def __init__(self, data, start, dt):
         self._src_data = data
-        self._cached_data = None
         self.start = start
         self.stop = start + len(data) * dt
         self.dt = dt  # ns
@@ -571,7 +598,7 @@ class Continuous:
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])  # ns
         return Slice(
-            Continuous(dset, start, dt),
+            Continuous(LazyCache.from_h5py_dset(dset), start, dt),
             labels={"title": dset.name.strip("/"), "y": y_label},
             calibration=calibration,
         )
@@ -597,9 +624,7 @@ class Continuous:
 
     @property
     def data(self) -> npt.ArrayLike:
-        if self._cached_data is None:
-            self._cached_data = np.asarray(self._src_data)
-        return self._cached_data
+        return np.asarray(self._src_data)  # Reads from cache if it exists
 
     @property
     def timestamps(self) -> npt.ArrayLike:
