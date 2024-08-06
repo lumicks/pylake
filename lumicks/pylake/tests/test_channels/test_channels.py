@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import matplotlib as mpl
 
+import lumicks.pylake.channel
 from lumicks.pylake import channel
 from lumicks.pylake.low_level import make_continuous_slice
 from lumicks.pylake.calibration import ForceCalibrationList
@@ -893,7 +894,10 @@ def test_annotation_bad_item():
 
 def test_regression_lazy_loading(channel_h5_file):
     ch = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
-    assert isinstance(ch._src._src_data, h5py.Dataset)
+    if lumicks.pylake.channel.global_cache:
+        assert isinstance(ch._src._src_data._dset, h5py.Dataset)
+    else:
+        assert isinstance(ch._src._src_data, h5py.Dataset)
 
 
 @pytest.mark.parametrize(
