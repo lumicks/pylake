@@ -26,13 +26,13 @@ classifiers=[
 ]
 dependencies = [
     "pytest>=3.5",
-    "h5py>=3.4, <4",
+    "h5py>=3.8, <4",  # Minimum bound needed for using __array__ on Dataset.fields()
     "numpy>=1.24",  # 1.24 is needed for dtype in vstack/hstack (Dec 18th, 2022)
     "scipy>=1.9, <2",  # 1.9.0 needed for lazy imports (July 29th, 2022)
     "matplotlib>=3.8",
     "tifffile>=2022.7.28",
     "tabulate>=0.8.8, <0.9",
-    "cachetools>=3.1",
+    "cachetools>=5.0.0",
     "deprecated>=1.2.8",
     "scikit-learn>=0.18.0",
     "scikit-image>=0.17.2",

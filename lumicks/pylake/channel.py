@@ -6,6 +6,7 @@ from typing import Union
 import numpy as np
 import numpy.typing as npt
 
+from .detail import caching
 from .detail.plotting import _annotate
 from .detail.timeindex import to_seconds, to_timestamp
 from .detail.utilities import downsample, convert_to_scalar
@@ -681,7 +682,7 @@ class Slice:
         return SliceRangeSelectorWidget(self, show=show, **kwargs)
 
 
-class Continuous:
+class Continuous(caching.LazyCacheMixin):
     """A source of continuous data for a timeline slice
 
     Parameters
@@ -695,8 +696,8 @@ class Continuous:
     """
 
     def __init__(self, data, start, dt):
+        super().__init__()
         self._src_data = data
-        self._cached_data = None
         self.start = start
         self.stop = start + len(data) * dt
         self.dt = dt  # ns
@@ -717,7 +718,7 @@ class Continuous:
         start = dset.attrs["Start time (ns)"]
         dt = int(1e9 / dset.attrs["Sample rate (Hz)"])  # ns
         return Slice(
-            Continuous(dset, start, dt),
+            Continuous(caching.from_h5py(dset), start, dt),
             labels={"title": dset.name.strip("/"), "y": y_label},
             calibration=calibration,
         )
@@ -743,9 +744,7 @@ class Continuous:
 
     @property
     def data(self) -> npt.ArrayLike:
-        if self._cached_data is None:
-            self._cached_data = np.asarray(self._src_data)
-        return self._cached_data
+        return self.read_lazy_cache("data", self._src_data)
 
     @property
     def timestamps(self) -> npt.ArrayLike:
@@ -779,7 +778,7 @@ class Continuous:
         )
 
 
-class TimeSeries:
+class TimeSeries(caching.LazyCacheMixin):
     """A source of time series data for a timeline slice
 
     Parameters
@@ -802,10 +801,9 @@ class TimeSeries:
                 f"({len(timestamps)})."
             )
 
+        super().__init__()
         self._src_data = data
-        self._cached_data = None
         self._src_timestamps = timestamps
-        self._cached_timestamps = None
 
     def __len__(self):
         return len(self._src_data)
@@ -820,32 +818,8 @@ class TimeSeries:
 
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None) -> Slice:
-        class LazyLoadedCompoundField:
-            """Wrapper to enable lazy loading of HDF5 compound datasets
-
-            Notes
-            -----
-            We only need to support the methods `__array__()` and `__len__()`, as we only access
-            `LazyLoadedCompoundField` via the properties `TimeSeries.data`, `timestamps` and the
-            method `__len__()`.
-
-            `LazyLoadCompoundField` might be replaced with `dset.fields(fieldname)` if and when the
-            returned `FieldsWrapper` object provides an `__array__()` method itself"""
-
-            def __init__(self, dset, fieldname):
-                self._dset = dset
-                self._fieldname = fieldname
-
-            def __array__(self):
-                """Get the data of the field as an array"""
-                return self._dset[self._fieldname]
-
-            def __len__(self):
-                """Get the length of the underlying dataset"""
-                return len(self._dset)
-
-        data = LazyLoadedCompoundField(dset, "Value")
-        timestamps = LazyLoadedCompoundField(dset, "Timestamp")
+        data = caching.from_h5py(dset, field="Value")
+        timestamps = caching.from_h5py(dset, field="Timestamp")
         return Slice(
             TimeSeries(data, timestamps),
             labels={"title": dset.name.strip("/"), "y": y_label},
@@ -874,15 +848,11 @@ class TimeSeries:
 
     @property
     def data(self) -> npt.ArrayLike:
-        if self._cached_data is None:
-            self._cached_data = np.asarray(self._src_data)
-        return self._cached_data
+        return self.read_lazy_cache("data", self._src_data)
 
     @property
     def timestamps(self) -> npt.ArrayLike:
-        if self._cached_timestamps is None:
-            self._cached_timestamps = np.asarray(self._src_timestamps)
-        return self._cached_timestamps
+        return self.read_lazy_cache("timestamps", self._src_timestamps)
 
     @property
     def start(self):
@@ -917,7 +887,7 @@ class TimeSeries:
         raise NotImplementedError("Downsampling is currently not available for time series data")
 
 
-class TimeTags:
+class TimeTags(caching.LazyCacheMixin):
     """A source of time tag data for a timeline slice
 
     Parameters
@@ -931,12 +901,31 @@ class TimeTags:
     """
 
     def __init__(self, data, start=None, stop=None):
-        self.data = np.asarray(data, dtype=np.int64)
-        self.start = start if start is not None else (self.data[0] if self.data.size > 0 else 0)
-        self.stop = stop if stop is not None else (self.data[-1] + 1 if self.data.size > 0 else 0)
+        super().__init__()
+        self._src_data = data
+        self._start = start
+        self._stop = stop
 
     def __len__(self):
         return self.data.size
+
+    @property
+    def start(self):
+        return (
+            self._start if self._start is not None else (self.data[0] if self.data.size > 0 else 0)
+        )
+
+    @property
+    def stop(self):
+        return (
+            self._stop
+            if self._stop is not None
+            else (self.data[-1] + 1 if self.data.size > 0 else 0)
+        )
+
+    @property
+    def data(self):
+        return self.read_lazy_cache("data", self._src_data)
 
     def _with_data(self, data):
         raise NotImplementedError("Time tags do not currently support this operation")
@@ -946,7 +935,10 @@ class TimeTags:
 
     @staticmethod
     def from_dataset(dset, y_label="y"):
-        return Slice(TimeTags(dset))
+        return Slice(
+            TimeTags(caching.from_h5py(dset)),
+            labels={"title": dset.name.strip("/"), "y": y_label},
+        )
 
     def to_dataset(self, parent, name, **kwargs):
         """Save this to an h5 dataset
