@@ -790,7 +790,7 @@ def test_channel_plot():
 
 def test_regression_lazy_loading(channel_h5_file):
     ch = channel.Continuous.from_dataset(channel_h5_file["Force HF"]["Force 1x"])
-    assert type(ch._src._src_data) == h5py.Dataset
+    assert isinstance(ch._src._src_data._dset, h5py.Dataset)
 
 
 @pytest.mark.parametrize(
