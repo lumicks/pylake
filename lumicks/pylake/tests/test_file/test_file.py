@@ -131,6 +131,16 @@ def test_repr_and_str(h5_file):
             - File format version: 2
             - GUID: invalid
 
+            Confocal diagnostics:
+              Excitation Laser Blue:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 0
+              Excitation Laser Green:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+              Excitation Laser Red:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 4
             Force HF:
               Force 1x:
               - Data type: float64
