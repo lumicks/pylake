@@ -3,6 +3,7 @@
 ## v1.4.2 | t.b.d.
 
 * Added a fallback which allows loading scans or kymographs that have truncated photon count channels.
+* Fixed a bug resulting in an exception when trying to read the excitation powers from a confocal object using Kymo.red_power, Kymo.green_power, Kymo.blue_power, Kymo.sted_power.
 
 ## v1.4.1 | 2024-07-23
 
