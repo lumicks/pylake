@@ -107,6 +107,13 @@ def test_kymos(h5_file):
             np.transpose([[2, 0, 0, 0, 2], [0, 0, 0, 0, 0], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]]),
         )
 
+        np.testing.assert_allclose(kymo.red_power.timestamps, [np.int64(15e9), np.int64(20e9)])
+        np.testing.assert_allclose(kymo.red_power.data, [10, 15])
+        np.testing.assert_allclose(kymo.green_power.timestamps, [np.int64(20e9)])
+        np.testing.assert_allclose(kymo.green_power.data, [15])
+        np.testing.assert_allclose(kymo.blue_power.timestamps, [])
+        np.testing.assert_allclose(kymo.blue_power.data, [])
+
 
 def test_notes(h5_file):
     f = pylake.File.from_h5py(h5_file)
