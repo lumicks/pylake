@@ -30,11 +30,18 @@ class LazyCache:
         return hash(self._location)
 
     @staticmethod
-    def from_h5py_dset(dset):
+    def from_h5py_dset(dset, field=None):
         location = f"{dset.file.filename}{dset.name}"
+        if field:
+            location = f"{location}.{field}"
+            dset = dset.fields(field)
         return LazyCache(location, dset)
 
     def read_array(self):
+        # Note, we deliberately do _not_ allow additional arguments to asarray since we would
+        # have to hash those with and unless necessary, they would unnecessarily increase the
+        # cache (because of sometimes defensively adding an explicit type). It's better to raise
+        # in this case and end up at this comment.
         arr = np.asarray(self._dset)
         arr.flags.writeable = False
         return arr
@@ -689,9 +696,7 @@ class TimeSeries:
             )
 
         self._src_data = data
-        self._cached_data = None
         self._src_timestamps = timestamps
-        self._cached_timestamps = None
 
     def __len__(self):
         return len(self._src_data)
@@ -706,32 +711,8 @@ class TimeSeries:
 
     @staticmethod
     def from_dataset(dset, y_label="y", calibration=None) -> Slice:
-        class LazyLoadedCompoundField:
-            """Wrapper to enable lazy loading of HDF5 compound datasets
-
-            Notes
-            -----
-            We only need to support the methods `__array__()` and `__len__()`, as we only access
-            `LazyLoadedCompoundField` via the properties `TimeSeries.data`, `timestamps` and the
-            method `__len__()`.
-
-            `LazyLoadCompoundField` might be replaced with `dset.fields(fieldname)` if and when the
-            returned `FieldsWrapper` object provides an `__array__()` method itself"""
-
-            def __init__(self, dset, fieldname):
-                self._dset = dset
-                self._fieldname = fieldname
-
-            def __array__(self):
-                """Get the data of the field as an array"""
-                return self._dset[self._fieldname]
-
-            def __len__(self):
-                """Get the length of the underlying dataset"""
-                return len(self._dset)
-
-        data = LazyLoadedCompoundField(dset, "Value")
-        timestamps = LazyLoadedCompoundField(dset, "Timestamp")
+        data = LazyCache.from_h5py_dset(dset, field="Value")
+        timestamps = LazyCache.from_h5py_dset(dset, field="Timestamp")
         return Slice(
             TimeSeries(data, timestamps),
             labels={"title": dset.name.strip("/"), "y": y_label},
@@ -760,15 +741,11 @@ class TimeSeries:
 
     @property
     def data(self) -> npt.ArrayLike:
-        if self._cached_data is None:
-            self._cached_data = np.asarray(self._src_data)
-        return self._cached_data
+        return np.asarray(self._src_data)
 
     @property
     def timestamps(self) -> npt.ArrayLike:
-        if self._cached_timestamps is None:
-            self._cached_timestamps = np.asarray(self._src_timestamps)
-        return self._cached_timestamps
+        return np.asarray(self._src_timestamps)
 
     @property
     def start(self):
@@ -817,12 +794,16 @@ class TimeTags:
     """
 
     def __init__(self, data, start=None, stop=None):
-        self.data = np.asarray(data, dtype=np.int64)
+        self._src_data = data
         self.start = start if start is not None else (self.data[0] if self.data.size > 0 else 0)
         self.stop = stop if stop is not None else (self.data[-1] + 1 if self.data.size > 0 else 0)
 
     def __len__(self):
         return self.data.size
+
+    @property
+    def data(self):
+        return np.asarray(self._src_data)
 
     def _with_data(self, data):
         raise NotImplementedError("Time tags do not currently support this operation")
@@ -832,7 +813,10 @@ class TimeTags:
 
     @staticmethod
     def from_dataset(dset, y_label="y"):
-        return Slice(TimeTags(dset))
+        return Slice(
+            TimeTags(LazyCache.from_h5py_dset(dset)),
+            labels={"title": dset.name.strip("/"), "y": y_label},
+        )
 
     def to_dataset(self, parent, name, **kwargs):
         """Save this to an h5 dataset
