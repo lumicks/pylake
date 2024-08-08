@@ -152,6 +152,7 @@ class VideoExport:
         channel_slice=None,
         vertical=True,
         downsample_to_frames=True,
+        remove_axes=False,
         **kwargs,
     ):
         """Export a video
@@ -162,22 +163,24 @@ class VideoExport:
             Color channel(s) to use "red", "green", "blue" or "rgb".
         file_name : str
             File name to export to.
-        start_frame : int
+        start_frame : int, optional
             First frame in exported video (starts at zero).
-        stop_frame : int
+        stop_frame : int, optional
             Stop frame in exported video. Note that this frame is no longer included.
         fps : int
             Frame rate.
         adjustment : lk.ColorAdjustment
             Color adjustments to apply to the output image.
-        scale_bar : lk.ScaleBar
+        scale_bar : lk.ScaleBar, optional
             Scale bar to add to the figure.
         channel_slice : lk.Slice, optional
             When specified, we export a video correlated to channel data
-        vertical : bool, optional
+        vertical : bool
             Render with the plots vertically aligned (default: True).
-        downsample_to_frames : bool, optional
+        downsample_to_frames : bool
             Downsample the channel data over frame timestamp ranges (default: True).
+        remove_axes : bool
+            Remove axes from export.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.imshow`.
 
@@ -266,6 +269,13 @@ class VideoExport:
             fig = plt.figure()
             fig.patch.set_alpha(1.0)  # Circumvents grainy rendering
             image_handle = None
+            ax = plt.gca()
+
+            if remove_axes:
+                # remove axes and whitespace around frame images
+                width = (height := 2.5) * self.size_um[0] / self.size_um[1]
+                fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
+                fig.set_size_inches(width, height)
 
             def plot(frame):
                 nonlocal image_handle
@@ -276,6 +286,11 @@ class VideoExport:
                     scale_bar=scale_bar,
                     **kwargs,
                 )
+
+                if remove_axes:
+                    ax.set_title("")
+                    ax.set_axis_off()
+
                 return plt.gca().get_children()
 
         # Don't store the FuncAnimation in a variable as this leads to mpl attempting to remove
