@@ -2,6 +2,7 @@ import os
 import timeit
 import tempfile
 import contextlib
+from copy import copy
 
 import numpy as np
 
@@ -49,6 +50,7 @@ def _generate_blank_kymo_data(samples=1000000):
     infowave[::10] = 2
 
     return MockConfocalFile.from_streams(
+        "kymo",
         start=0,
         dt=int(1e9),
         axes=[0],
@@ -86,8 +88,8 @@ class _KymoImage(_Benchmark):
     loops = 60
 
     def context(self):
-        confocal_file, metadata, stop = _generate_blank_kymo_data()
-        yield lambda: lk.kymo.Kymo("big_kymo", confocal_file, 0, stop, metadata).get_image("red")
+        kymo = _generate_blank_kymo_data()
+        yield lambda: copy(kymo).get_image("red")  # Copy to not use the cache!
 
 
 class _KymoTimestamps(_Benchmark):
@@ -95,8 +97,8 @@ class _KymoTimestamps(_Benchmark):
     loops = 45
 
     def context(self):
-        confocal_file, metadata, stop = _generate_blank_kymo_data()
-        yield lambda: lk.kymo.Kymo("big_kymo", confocal_file, 0, stop, metadata).timestamps
+        kymo = _generate_blank_kymo_data()
+        yield lambda: copy(kymo).timestamps  # Copy to not use the cache!
 
 
 class _Tracking(_Benchmark):

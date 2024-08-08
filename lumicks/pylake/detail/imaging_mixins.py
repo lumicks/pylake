@@ -9,7 +9,7 @@ from .plotting import parse_color_channel
 from .timeindex import to_timestamp
 from ..adjustments import no_adjustment
 
-_FIRST_TIMESTAMP = 1388534400
+_FIRST_TIMESTAMP = 1388534400000000000
 
 
 class TiffExport:
