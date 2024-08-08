@@ -159,10 +159,10 @@ In literature, passive calibration is often referred to as thermal calibration.
 It involves fitting a physical model to the power spectrum obtained in the previous step.
 This physical model relies on a number of parameters that have to be specified in order to get the correct calibration factors.
 
-The most important of these is the bead diameter (in microns).
+The most important parameters are the bead diameter (in microns) and viscosity.
 Let's use the bead diameter found in the calibration performed in Bluelake.
 
-You can optionally also provide a viscosity (in Pa/s) and temperature (in degrees Celsius).
+Note that the viscosity of water strongly depends on :ref:`temperature<temperature_theory>`.
 To find the viscosity of water at a particular temperature, Pylake uses :func:`~lumicks.pylake.viscosity_of_water` which implements the model presented in :cite:`huber2009new`.
 When omitted, this function will automatically be used to look up the viscosity of water for that particular temperature
 
@@ -263,8 +263,8 @@ Axial force calibration can be performed by specifying `axial=True`::
 
     force_model = lk.PassiveCalibrationModel(bead_diameter, distance_to_surface=5, axial=True)
 
-Active calibration
-------------------
+Active calibration with a single bead
+-------------------------------------
 
 Active calibration has a few benefits.
 When performing passive calibration, we base our calculations on a theoretical drag coefficient which depends on parameters that are only known with limited precision:
@@ -399,6 +399,57 @@ However, if we do not provide the height above the surface, we can see that the 
     When fitting with the hydrodynamically correct model, the `distance_to_surface` parameter impacts the expected shape of the power spectrum.
     Consequently, when this model is selected, this parameter affects both passive and active calibration.
     For more information on this see the :doc:`theory section on force calibration</theory/force_calibration/force_calibration>` section.
+
+.. _bead_bead_tutorial:
+
+Active calibration with two beads far away from the surface
+-----------------------------------------------------------
+
+.. warning::
+
+    The implementation of the coupling correction models is still alpha functionality.
+    While usable, this has not yet been tested in a large number of different scenarios.
+    The API can still be subject to change *without any prior deprecation notice*!
+    If you use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
+
+When performing active calibration with two beads, we get a lower fluid velocity around the beads than we would with a single bead.
+This leads to a smaller voltage readout than expected and therefore a higher displacement sensitivity (microns per volt).
+Failing to take this into account results in a bias.
+Pylake offers a function to calculate a correction factor to account for the lower velocity around the bead.
+
+.. note::
+
+    For more information on how these factors are derived, please refer to the :ref:`theory<bead_bead_theory>` section on this topic.
+
+Appropriate correction factors for oscillation in x can be calculated as follows::
+
+    factor = lk.coupling_correction_2d(dx=5.0, dy=0, bead_diameter=bead_diameter, is_y_oscillation=False)
+
+Here `dx` and `dy` represent the horizontal and vertical distance between the beads.
+Note that these refer to *center to center distances* (unlike the distance channel in Bluelake, which represents the bead surface to surface distance).
+Note that all three parameters have to be specified in the same spatial unit (meters or micron).
+The final parameter `is_y_oscillation` indicates whether the stage was oscillated in the y-direction.
+
+The obtained correction factor can be used to correct the calibration factors::
+
+    Rd_corrected = factor * calibration["Rd"].value
+    Rf_corrected = calibration["Rf"].value / factor
+    stiffness_corrected = calibration["kappa"].value / factor**2
+
+To correct a force trace, simply divide it by the correction factor::
+
+    corrected_force1x = f.force1x / factor
+
+.. note::
+
+    This coupling model neglects effects from the surface. It is intended for measurements performed at the center of the flowcell.
+
+.. note::
+
+    The model implemented here only supports beads that are aligned in the same plane.
+    It does not take a mismatch in the `z`-position of the beads into account.
+    In reality, the position in the focus depends on the bead radius and may be different for the two beads if they slightly differ in size :cite:`alinezhad2018enhancement` (Fig. 3).
+    At short bead-to-bead distances, such a mismatch would make the coupling less pronounced than the model predicts.
 
 Fast Sensors
 ------------
