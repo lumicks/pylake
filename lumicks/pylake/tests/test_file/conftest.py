@@ -70,6 +70,31 @@ def h5_file(tmpdir_factory, request):
 
         json_kymo = generate_scan_json([{"axis": 0, "num of pixels": 5, "pixel size (nm)": 10.0}])
 
+        # Points before and during the kymograph item
+        mock_file.make_timeseries_channel(
+            "Confocal diagnostics",
+            "Excitation Laser Red",
+            [
+                (np.int64(10e9), 5),
+                (np.int64(15e9), 10),
+                (np.int64(20e9), 15),
+                (np.int64(25e9), 20),
+            ],
+        )
+
+        # Only points during
+        mock_file.make_timeseries_channel(
+            "Confocal diagnostics",
+            "Excitation Laser Green",
+            [
+                (np.int64(20e9), 15),
+                (np.int64(25e9), 20),
+            ],
+        )
+
+        # Empty
+        mock_file.make_timeseries_channel("Confocal diagnostics", "Excitation Laser Blue", [])
+
         # Generate lines at 1 Hz
         freq = 1e9 / 16
         mock_file.make_continuous_channel("Photon count", "Red", np.int64(20e9), freq, counts)

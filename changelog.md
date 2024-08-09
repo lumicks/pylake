@@ -6,6 +6,7 @@
 
 * Fixed a bug where an inverted force-distance [`Model`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.fitting.model.Model.html) would raise when called with a scalar value. Now it just returns the expected value.
 * Fixed a bug that would lead to a division by zero warning when performing no color adjustment on a `Scan` or `Kymo` with zero photon counts.
+* Fixed a bug resulting in an exception when trying to read the excitation powers from a confocal object using [`Kymo.red_power`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.red_power),  [`Kymo.green_power`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.green_power), [`Kymo.blue_power`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.blue_power),  [`Kymo.sted_power`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.sted_power).
 
 ## v1.5.2 | 2024-07-24
 
