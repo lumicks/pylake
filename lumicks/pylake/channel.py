@@ -2,29 +2,34 @@ from __future__ import annotations
 
 import numbers
 from typing import Union
-from functools import lru_cache
 
 import numpy as np
 import numpy.typing as npt
+from cachetools import LRUCache, cached
 
 from .detail.timeindex import to_timestamp
 from .detail.utilities import downsample
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
 
 
-@lru_cache(maxsize=100)
+@cached(LRUCache(maxsize=1 << 30, getsizeof=lambda x: x.nbytes), info=True)  # 1 GB of cache
 def _get_array(cache_object):
     return cache_object.read_array()
 
 
 class LazyCache:
-    def __init__(self, location, dset):
+    def __init__(self, location, dset, nbytes):
         """A lazy globally cached wrapper around an object that is convertible to a numpy array"""
         self._location = location
         self._dset = dset
+        self._nbytes = nbytes
 
     def __len__(self):
         return len(self._dset)
+
+    @property
+    def nbytes(self):
+        return self._nbytes
 
     def __hash__(self):
         return hash(self._location)
@@ -35,7 +40,11 @@ class LazyCache:
         if field:
             location = f"{location}.{field}"
             dset = dset.fields(field)
-        return LazyCache(location, dset)
+            item_size = dset.read_dtype.itemsize
+        else:
+            item_size = dset.dtype.itemsize
+
+        return LazyCache(location, dset, nbytes=item_size * len(dset))
 
     def read_array(self):
         # Note, we deliberately do _not_ allow additional arguments to asarray since we would

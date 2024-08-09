@@ -15,6 +15,7 @@ def test_global_cache_continuous(h5_file):
     # These should point to the same data
     assert id(f1x1.data) == id(f1x2.data)
     assert _get_array.cache_info().hits == 1
+    assert _get_array.cache_info().currsize == 40
 
     with pytest.raises(ValueError, match="assignment destination is read-only"):
         f1x1.data[5:100] = 3
@@ -33,8 +34,10 @@ def test_global_cache_timeseries(h5_file):
     # These should point to the same data
     assert id(f1x1.data) == id(f1x2.data)
     assert _get_array.cache_info().hits == 1
+    assert _get_array.cache_info().currsize == 16
     assert id(f1x1.timestamps) == id(f1x2.timestamps)
     assert _get_array.cache_info().hits == 2
+    assert _get_array.cache_info().currsize == 32
 
     with pytest.raises(ValueError, match="assignment destination is read-only"):
         f1x1.data[5:100] = 3
@@ -53,6 +56,7 @@ def test_global_cache_timetags(h5_file):
         # These should point to the same data
         assert id(tags1.data) == id(tags2.data)
         assert _get_array.cache_info().hits == 1
+        assert _get_array.cache_info().currsize == 72
 
         with pytest.raises(ValueError, match="assignment destination is read-only"):
             tags1.data[5:100] = 3
