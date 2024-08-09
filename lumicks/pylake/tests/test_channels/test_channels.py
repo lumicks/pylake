@@ -793,8 +793,10 @@ def test_channel_plot():
     "item, ref_lines, annotation, rotation, kwargs",
     [
         (with_offset(2e4), [[2e-5, 2e-5]], None, 0, {}),
+        (np.array(with_offset(2e4)), [[2e-5, 2e-5]], None, 0, {}),
         ((with_offset(2e4)), [[2e-5, 2e-5]], None, 0, {}),
         ((with_offset(2e4), with_offset(5e4)), [[2e-5, 2e-5], [5e-5, 5e-5]], None, 0, {}),
+        (np.array([with_offset(2e4), with_offset(5e4)]), [[2e-5, 2e-5], [5e-5, 5e-5]], None, 0, {}),
         (
             namedtuple("Marker", "start stop")(with_offset(2e4), with_offset(5e4)),
             [[2e-5, 2e-5], [5e-5, 5e-5]],
@@ -852,6 +854,34 @@ def test_channel_time_indicators_lines(item, ref_lines, annotation, rotation, kw
         np.testing.assert_allclose(text_fields[0].get_rotation(), rotation)
 
     plt.close("all")
+
+
+def test_annotation_bad_item():
+    slc = channel.Slice(channel.Continuous(np.arange(50), with_offset(0), int(10e9)))
+    slc.plot()
+    with pytest.raises(RuntimeError, match="Invalid time string '1'"):
+        slc.highlight_time_range("1")
+
+    with pytest.raises(RuntimeError, match="Invalid time string '2'"):
+        slc.highlight_time_range(("1s", "2"))
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            r"Provided item must be either timestamp, two timestamps or an item with a start and "
+            r"stop property, got ('1s',) instead."
+        ),
+    ):
+        slc.highlight_time_range(("1s",))
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            r"Provided item must be either timestamp, two timestamps or an item with a start and "
+            r"stop property, got [] instead."
+        ),
+    ):
+        slc.highlight_time_range([])
 
 
 def test_regression_lazy_loading(channel_h5_file):

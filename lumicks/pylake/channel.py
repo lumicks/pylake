@@ -636,14 +636,27 @@ class Slice:
             return (timestamp - start_ts) / 1e9
 
         def get_time_range(time_item):
-            if hasattr(time_item, "start") and hasattr(time_item, "stop"):
-                return to_seconds(time_item.start), to_seconds(time_item.stop)
-            elif np.isscalar(time_item):
-                return to_seconds(time_item), None
-            elif len(time_item) == 2:
+            try:
+                return to_seconds(time_item.start), to_seconds(time_item.stop)  # Marker-like item?
+            except AttributeError:
+                pass
+
+            # Have to process single items separately, since otherwise strings might end up getting
+            # indexed in the last case. Note that single entry numpy arrays return false
+            # for np.isscalar, hence the check with ndim instead.
+            if np.ndim(time_item) == 0:
+                try:
+                    return to_seconds(time_item), None
+                except TypeError:
+                    raise TypeError(
+                        "Provided item must be either timestamp, two timestamps or an item with a "
+                        f"start and stop property, got {time_item} instead."
+                    )
+
+            try:
                 return to_seconds(time_item[0]), to_seconds(time_item[1])
-            else:
-                raise ValueError(
+            except (TypeError, IndexError):
+                raise TypeError(
                     "Provided item must be either timestamp, two timestamps or an item with a "
                     f"start and stop property, got {time_item} instead."
                 )
