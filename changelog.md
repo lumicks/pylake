@@ -4,6 +4,7 @@
 
 #### New features
 
+* Added option to highlight a region on a time plot using [`Slice.highlight_time_range()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.highlight_time_range). For more information see the [`tutorial`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/file.html#highlight-time-range).
 * Added parameter `allow_overwrite` to [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi) to allow re-downloading only those files where the checksum does not match.
 * Added force calibration information to channels accessed directly via the square bracket notation (e.g. `file["Force HF"]["Force 1x"].calibration`).
 * Calibration results and parameters are now accessible via properties which are listed when items are printed. See [calibration results](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html) and [calibration item](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html) API documentation for more information.
