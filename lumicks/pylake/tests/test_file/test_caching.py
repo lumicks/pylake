@@ -47,9 +47,8 @@ def test_global_cache_timetags(h5_file):
     if pylake.File.from_h5py(h5_file).format_version == 2:
         _get_array.cache_clear()
         tags1 = pylake.File.from_h5py(h5_file)["Photon Time Tags"]["Red"]
-        assert _get_array.cache_info().hits == 3  # start and stop pull the data every time
         tags2 = pylake.File.from_h5py(h5_file)["Photon Time Tags"]["Red"]
-        assert _get_array.cache_info().hits == 6
+        assert _get_array.cache_info().hits == 0
 
         # These should point to the same data
         assert id(tags1.data) == id(tags2.data)

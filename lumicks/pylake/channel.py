@@ -795,11 +795,25 @@ class TimeTags:
 
     def __init__(self, data, start=None, stop=None):
         self._src_data = data
-        self.start = start if start is not None else (self.data[0] if self.data.size > 0 else 0)
-        self.stop = stop if stop is not None else (self.data[-1] + 1 if self.data.size > 0 else 0)
+        self._start = start
+        self._stop = stop
 
     def __len__(self):
         return self.data.size
+
+    @property
+    def start(self):
+        return (
+            self._start if self._start is not None else (self.data[0] if self.data.size > 0 else 0)
+        )
+
+    @property
+    def stop(self):
+        return (
+            self._stop
+            if self._stop is not None
+            else (self.data[-1] + 1 if self.data.size > 0 else 0)
+        )
 
     @property
     def data(self):
