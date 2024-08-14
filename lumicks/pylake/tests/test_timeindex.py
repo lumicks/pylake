@@ -1,8 +1,9 @@
 import re
 
+import numpy as np
 import pytest
 
-from lumicks.pylake.detail.timeindex import Timeindex, regex, regex_template
+from lumicks.pylake.detail.timeindex import Timeindex, regex, to_seconds, regex_template
 
 
 def test_regex_template():
@@ -65,3 +66,20 @@ def test_timeindex():
 
     with pytest.raises(TypeError):
         Timeindex(1)
+
+
+@pytest.mark.parametrize(
+    "time, ref",
+    (
+        ("1s", 1.0),
+        ("1ms", 0.001),
+        ("0.1s", 0.1),
+        ("2s", 2.0),
+        ("-1s", 9.0),
+        (1718968411999124820, 1.0),
+        (1718968412499124820, 1.5),
+        (1718968412999124820, 2.0),
+    ),
+)
+def test_to_seconds(time, ref):
+    np.testing.assert_allclose(to_seconds(time, 1718968410999124820, 1718968420999124820), ref)

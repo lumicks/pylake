@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from .detail.plotting import _annotate
-from .detail.timeindex import to_timestamp
+from .detail.timeindex import to_seconds, to_timestamp
 from .detail.utilities import downsample
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
 
@@ -579,17 +579,12 @@ class Slice:
         """
         import matplotlib.pyplot as plt
 
-        def to_seconds(timestamp):
-            start_ts = self.start if start is None else start
-
-            if isinstance(timestamp, str):
-                timestamp = to_timestamp(timestamp, start_ts, self.stop)
-
-            return (timestamp - start_ts) / 1e9
+        def to_sec(timestamp):
+            return to_seconds(timestamp, self.start if start is None else start, self.stop)
 
         def get_time_range(time_item):
             try:
-                return to_seconds(time_item.start), to_seconds(time_item.stop)  # Marker-like item?
+                return to_sec(time_item.start), to_sec(time_item.stop)  # Marker-like item?
             except AttributeError:
                 pass
 
@@ -598,7 +593,7 @@ class Slice:
             # for np.isscalar, hence the check with ndim instead.
             if np.ndim(time_item) == 0:
                 try:
-                    return to_seconds(time_item), None
+                    return to_sec(time_item), None
                 except TypeError:
                     raise TypeError(
                         "Provided item must be either timestamp, two timestamps or an item with a "
@@ -606,7 +601,7 @@ class Slice:
                     )
 
             try:
-                return to_seconds(time_item[0]), to_seconds(time_item[1])
+                return to_sec(time_item[0]), to_sec(time_item[1])
             except (TypeError, IndexError):
                 raise TypeError(
                     "Provided item must be either timestamp, two timestamps or an item with a "

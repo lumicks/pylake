@@ -77,3 +77,19 @@ def to_timestamp(value, first, after_last):
             return after_last + idx
     except TypeError:
         return value
+
+
+def to_seconds(timestamp, first, after_last):
+    """Convert `value` from either a timestamp or time string to a time in seconds.
+
+    Parameters
+    ----------
+    timestamp : int | str
+        Timestamp or time string
+    first, after_last : int
+        Nanosecond timestamps of the first and past-the-end elements of a range
+    """
+    if isinstance(timestamp, str):
+        timestamp = to_timestamp(timestamp, first, after_last)
+
+    return (timestamp - first) / 1e9
