@@ -253,6 +253,31 @@ def test_dwelltime_profiles(exponential_data, exp_name, reference_bounds, reinte
         profiles.get_interval("amplitude", 0, 0.001)
 
 
+@pytest.mark.parametrize(
+    # fmt:off
+    "exp_name, n_components, ref_std_errs",
+    [
+        ("dataset_2exp", 1, [np.nan, 0.117634]),  # Amplitude is not fitted!
+        ("dataset_2exp", 2, [0.072455, 0.072456, 0.212814, 0.449388]),
+        ("dataset_2exp_discrete", 2, [0.068027, 0.068027, 0.21403 , 0.350355]),
+        ("dataset_2exp_discrete", 3, [0.097556, 0.380667, 0.395212, 0.252004, 1.229997, 4.500617]),
+        ("dataset_2exp_discrete", 4, [9.755185e-02, 4.999662e-05, 3.788707e-01, 3.934488e-01, 2.520029e-01, 1.889606e+00, 1.227551e+00, 4.489603e+00]),
+    ]
+)
+def test_std_errs(exponential_data, exp_name, n_components, ref_std_errs):
+    dataset = exponential_data[exp_name]
+
+    fit = DwelltimeModel(
+        dataset["data"],
+        n_components=n_components,
+        **dataset["parameters"].observation_limits,
+        discretization_timestep=dataset["parameters"].dt,
+    )
+    np.testing.assert_allclose(fit._std_errs, ref_std_errs, rtol=1e-4)
+    np.testing.assert_allclose(fit._err_amplitudes, ref_std_errs[:n_components], rtol=1e-4)
+    np.testing.assert_allclose(fit._err_lifetimes, ref_std_errs[n_components:], rtol=1e-4)
+
+
 @pytest.mark.parametrize("n_components", [2, 1])
 def test_dwelltime_profile_plots(n_components):
     """Verify that the threshold moves appropriately"""
@@ -400,7 +425,7 @@ def test_invalid_bootstrap(exponential_data):
 def test_integration_dwelltime_fixing_parameters(exponential_data):
     dataset = exponential_data["dataset_2exp"]
     initial_params = np.array([0.2, 0.2, 0.5, 0.5])
-    pars, log_likelihood = _exponential_mle_optimize(
+    pars, log_likelihood, std_errs = _exponential_mle_optimize(
         2,
         dataset["data"],
         **dataset["parameters"].observation_limits,
@@ -408,6 +433,7 @@ def test_integration_dwelltime_fixing_parameters(exponential_data):
         fixed_param_mask=[False, True, False, True],
     )
     np.testing.assert_allclose(pars, [0.8, 0.2, 4.27753, 0.5], rtol=1e-4)
+    np.testing.assert_allclose(std_errs, [np.nan, np.nan, 0.15625, np.nan], rtol=1e-4)
 
 
 @pytest.mark.parametrize(
@@ -443,38 +469,38 @@ def test_discrete_dwelltimes(exponential_data, dataset, n_components, ref_discre
 
 
 @pytest.mark.parametrize(
-    "n_components,params,fixed_param_mask,ref_fitted,ref_const_fun,free_amplitudes,ref_par",
+    "n_components,params,fixed_param_mask,ref_fitted,ref_const_fun,free_amplitudes,ref_par,ref_amp",
     [
         # fmt:off
         # 2 components, fix one amplitude => everything fixed in the end
         [
             2, np.array([0.3, 0.4, 0.3, 0.3]), [True, False, False, False],
-            [False, False, True, True], None, 0, [0.3, 0.7, 0.3, 0.3],
+            [False, False, True, True], None, 0, [0.3, 0.7, 0.3, 0.3], 0,
         ],
         # 2 components, fix both amplitudes
         [
             2, np.array([0.3, 0.7, 0.3, 0.3]), [True, True, False, False],
-            [False, False, True, True], 0, 0, [0.3, 0.7, 0.3, 0.3]
+            [False, False, True, True], 0, 0, [0.3, 0.7, 0.3, 0.3], 0,
         ],
         # 2 components, free amplitudes
         [
             2, np.array([0.3, 0.7, 0.3, 0.3]), [False, False, True, False],
-            [True, True, False, True], 0.75, 2, [0.3, 0.7, 0.3, 0.3],
+            [True, True, False, True], 0.75, 2, [0.3, 0.7, 0.3, 0.3], 2,
         ],
         # 3 components, fix one amplitude => End up with two free ones
         [
             3, np.array([0.3, 0.4, 0.2, 0.3, 0.3, 0.3]), [True, False, False, False, False, False],
-            [False, True, True, True, True, True], 1.6 / 3, 2, [0.3, 0.4, 0.2, 0.3, 0.3, 0.3],
+            [False, True, True, True, True, True], 1.6 / 3, 2, [0.3, 0.4, 0.2, 0.3, 0.3, 0.3], 2,
         ],
         # 3 components, fix two amplitudes => Amplitudes are now fully determined
         [
             3, np.array([0.3, 0.4, 0.2, 0.3, 0.3, 0.3]), [True, True, False, False, False, False],
-            [False, False, False, True, True, True], 0, 0, [0.3, 0.4, 0.3, 0.3, 0.3, 0.3],
+            [False, False, False, True, True, True], 0, 0, [0.3, 0.4, 0.3, 0.3, 0.3, 0.3], 0,
         ],
         # 1 component, no amplitudes required
         [
             1, np.array([0.3, 0.5]), [False, False],
-            [False, True], None, 0, [1.0, 0.5],
+            [False, True], None, 0, [1.0, 0.5], 0,
         ],
         # fmt:on
     ],
@@ -487,11 +513,13 @@ def test_parameter_fixing(
     ref_const_fun,
     free_amplitudes,
     ref_par,
+    ref_amp,
 ):
     old_params = np.copy(params)
-    fitted_param_mask, constraints, out_params = _handle_amplitude_constraint(
+    fitted_param_mask, constraints, out_params, free_amplitudes = _handle_amplitude_constraint(
         n_components, params, np.array(fixed_param_mask)
     )
+    assert free_amplitudes == ref_amp
 
     # Verify that we didn't modify the input
     np.testing.assert_allclose(params, old_params)
@@ -641,8 +669,11 @@ def test_dwelltime_exponential_no_free_params(monkeypatch):
                 fixed_param_mask=fixed_params,
             )
 
-        x, cost = quick_fit([False, True])  # Amplitude is 1 -> Problem fully determined -> No fit
+        x, cost, std_err = quick_fit(
+            [False, True]
+        )  # Amplitude is 1 -> Problem fully determined -> No fit
         np.testing.assert_allclose(x, np.array([1.0, 2.0]))
+        np.testing.assert_equal(std_err, [np.nan, np.nan])  # no uncertainty estimates
 
         with pytest.raises(StopIteration):
             quick_fit([True, False])  # Lifetime unknown -> Need to fit
