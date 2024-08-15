@@ -99,8 +99,10 @@ class DwelltimeProfiles:
         )
         parameters = Params(
             **{
-                key: Parameter(param, lower_bound=lb, upper_bound=ub)
-                for key, param, (lb, ub) in zip(keys, dwelltime_model._parameters, bounds)
+                key: Parameter(param, lower_bound=lb, upper_bound=ub, stderr=std_err)
+                for key, param, (lb, ub), std_err in zip(
+                    keys, dwelltime_model._parameters, bounds, dwelltime_model._std_errs
+                )
             }
         )
 
@@ -195,7 +197,7 @@ class DwelltimeProfiles:
         """Number of components in the model."""
         return self.model.n_components
 
-    def plot(self, alpha=None):
+    def plot(self, alpha=None, *, with_stderr=False, **kwargs):
         """Plot the profile likelihoods for the parameters of a model.
 
         Confidence interval is indicated by the region where the profile crosses the chi squared
@@ -207,16 +209,26 @@ class DwelltimeProfiles:
             Significance level. Confidence intervals are calculated as 100 * (1 - alpha)%. The
             default value of `None` results in using the significance level applied when
             profiling (default: 0.05).
+        with_stderr : bool
+            Also show bounds based on standard errors.
         """
         import matplotlib.pyplot as plt
 
+        std_errs = self.model._std_errs[~np.isnan(self.model._std_errs)]
         if self.n_components == 1:
-            next(iter(self.profiles.values())).plot(significance_level=alpha)
+            next(iter(self.profiles.values())).plot(
+                significance_level=alpha,
+                std_err=std_errs[0] if with_stderr else None,
+            )
         else:
             plot_idx = np.reshape(np.arange(1, len(self.profiles) + 1), (-1, 2)).T.flatten()
-            for idx, profile in zip(plot_idx, self.profiles.values()):
+            for par_idx, (idx, profile) in enumerate(zip(plot_idx, self.profiles.values())):
                 plt.subplot(self.n_components, 2, idx)
-                profile.plot(significance_level=alpha)
+                profile.plot(
+                    significance_level=alpha,
+                    std_err=std_errs[par_idx] if with_stderr else None,
+                    **kwargs,
+                )
 
 
 @dataclass(frozen=True)
