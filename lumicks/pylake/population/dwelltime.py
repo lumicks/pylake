@@ -8,6 +8,7 @@ from deprecated.sphinx import deprecated
 
 from lumicks.pylake.fitting.parameters import Params, Parameter
 from lumicks.pylake.fitting.profile_likelihood import ProfileLikelihood1D
+from lumicks.pylake.fitting.detail.derivative_manipulation import numerical_jacobian
 
 
 @dataclass(frozen=True)
@@ -341,7 +342,7 @@ class DwelltimeBootstrap:
             )
             sample, min_obs, max_obs = to_resample[choices, :].T
 
-            result, _ = _exponential_mle_optimize(
+            result, _, _ = _exponential_mle_optimize(
                 optimized.n_components,
                 sample,
                 min_obs,
@@ -584,7 +585,7 @@ class DwelltimeModel:
             if value is not None
         }
 
-        self._parameters, self._log_likelihood = _exponential_mle_optimize(
+        self._parameters, self._log_likelihood, self._std_errs = _exponential_mle_optimize(
             n_components,
             dwelltimes,
             min_observation_time,
@@ -627,6 +628,34 @@ class DwelltimeModel:
     def lifetimes(self):
         """Lifetime parameter (in time units) of each model component."""
         return self._parameters[self.n_components :]
+
+    @property
+    def _err_amplitudes(self):
+        """Asymptotic standard error estimate on the model amplitudes.
+
+        Returns an asymptotic standard error on the amplitude parameters. These error estimates
+        are only reliable for estimates where a lot of data is available and the model does
+        not suffer from identifiability issues. To verify that these conditions are met, please
+        use either :meth:`DwelltimeModel.profile_likelihood()` method or
+        :meth:`DwelltimeModel.calculate_bootstrap()`.
+
+        Note that `np.nan` will be returned in case the parameter was either not estimated or no
+        error could be obtained."""
+        return self._std_errs[: self.n_components]
+
+    @property
+    def _err_lifetimes(self):
+        """Asymptotic standard error estimate on the model lifetimes.
+
+        Returns an asymptotic standard error on the amplitude parameters. These error estimates
+        are only reliable for estimates where a lot of data is available and the model does
+        not suffer from identifiability issues. To verify that these conditions are met, please
+        use either :meth:`DwelltimeModel.profile_likelihood()` method or
+        :meth:`DwelltimeModel.calculate_bootstrap()`.
+
+        Note that `np.nan` will be returned in case the parameter was either not estimated or no
+        error could be obtained."""
+        return self._std_errs[self.n_components :]
 
     @property
     def rate_constants(self):
@@ -1218,7 +1247,7 @@ def _handle_amplitude_constraint(
         else ()
     )
 
-    return fitted_param_mask, constraints, params
+    return fitted_param_mask, constraints, params, num_free_amps
 
 
 def _exponential_mle_bounds(n_components, min_observation_time, max_observation_time):
@@ -1232,6 +1261,24 @@ def _exponential_mle_bounds(n_components, min_observation_time, max_observation_
             for _ in range(n_components)
         ],
     )
+
+
+def _calculate_std_errs(jac_fun, constraints, num_free_amps, current_params, fitted_param_mask):
+    hessian_approx = numerical_jacobian(jac_fun, current_params[fitted_param_mask], dx=1e-6)
+
+    if constraints:
+        from scipy.linalg import null_space
+
+        # When we have a constraint, we should enforce it. We do this by projecting the Hessian
+        # onto the null space of the constraint and inverting it there. This null space only
+        # includes directions in which the constraint does not change (i.e. is fulfilled).
+        constraint = np.zeros((1, hessian_approx.shape[0]))
+        constraint[0, :num_free_amps] = -1
+        n = null_space(constraint)
+
+        return np.sqrt(np.diag(np.abs(n @ np.linalg.pinv(n.T @ hessian_approx @ n) @ n.T)))
+
+    return np.sqrt(np.diag(np.abs(np.linalg.pinv(hessian_approx))))
 
 
 def _exponential_mle_optimize(
@@ -1300,7 +1347,7 @@ def _exponential_mle_optimize(
 
     bounds = _exponential_mle_bounds(n_components, min_observation_time, max_observation_time)
 
-    fitted_param_mask, constraints, initial_guess = _handle_amplitude_constraint(
+    fitted_param_mask, constraints, initial_guess, num_free_amps = _handle_amplitude_constraint(
         n_components, initial_guess, fixed_param_mask
     )
 
@@ -1318,10 +1365,11 @@ def _exponential_mle_optimize(
         )
 
     def jac_fun(params):
-        current_params[fitted_param_mask] = params
+        jac_params = current_params.copy()
+        jac_params[fitted_param_mask] = params
 
         gradient = _exponential_mixture_log_likelihood_jacobian(
-            current_params,
+            jac_params,
             t=t,
             t_min=min_observation_time,
             t_max=max_observation_time,
@@ -1332,7 +1380,7 @@ def _exponential_mle_optimize(
 
     # Nothing to fit, return!
     if np.sum(fitted_param_mask) == 0:
-        return initial_guess, -cost_fun([])
+        return initial_guess, -cost_fun([]), np.full(initial_guess.shape, np.nan)
 
     # SLSQP is overly cautious when it comes to warning about bounds. The bound violations are
     # typically on the order of 1-2 ULP for a float32 and do not matter for our problem. Initially
@@ -1355,7 +1403,14 @@ def _exponential_mle_optimize(
 
     # output parameters as [amplitudes, lifetimes], -log_likelihood
     current_params[fitted_param_mask] = result.x
-    return current_params, -result.fun
+
+    std_errs = np.full(current_params.shape, np.nan)
+    if use_jacobian:
+        std_errs[fitted_param_mask] = _calculate_std_errs(
+            jac_fun, constraints, num_free_amps, current_params, fitted_param_mask
+        )
+
+    return current_params, -result.fun, std_errs
 
 
 def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells):

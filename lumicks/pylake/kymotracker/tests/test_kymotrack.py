@@ -173,7 +173,7 @@ def test_kymotrackgroup_remove(blank_kymo, remove, remaining):
     tracks = KymoTrackGroup(src_tracks)
     for track in remove:
         tracks.remove(src_tracks[track])
-    for track, should_be_present in zip(src_tracks, remaining):
+    for track in src_tracks:
         if remaining:
             assert track in tracks
         else:
@@ -300,9 +300,10 @@ def test_kymotrack_merge():
     time_idx = ([1, 2, 3, 4, 5], [6, 7, 8], [6, 7, 8], [1, 2, 3])
     pos_idx = ([1, 1, 1, 3, 3], [4, 4, 4], [9, 9, 9], [10, 10, 10])
 
-    make_tracks = lambda: KymoTrackGroup(
-        [KymoTrack(t, p, kymo, "green", 0) for t, p in zip(time_idx, pos_idx)]
-    )
+    def make_tracks():
+        return KymoTrackGroup(
+            [KymoTrack(t, p, kymo, "green", 0) for t, p in zip(time_idx, pos_idx)]
+        )
 
     # connect first two
     tracks = make_tracks()
@@ -873,6 +874,7 @@ def test_fit_binding_times_nonzero(blank_kymo, blank_kymo_track_args):
         np.testing.assert_equal(dwelltime_model.dwelltimes, [4, 4, 4, 4])
         np.testing.assert_equal(dwelltime_model._observation_limits[0], 4)
         np.testing.assert_allclose(dwelltime_model.lifetimes[0], [0.4])
+        np.testing.assert_allclose(dwelltime_model._err_lifetimes[0], 0.199994, rtol=1e-5)
 
 
 def test_fit_binding_times_empty():
@@ -1174,10 +1176,11 @@ def test_kymotrack_group_diffusion_filter():
 
     good_tracks = KymoTrackGroup([track for j, track in enumerate(tracks) if j in (0, 3, 4)])
 
-    warning_string = lambda n_discarded: (
-        f"{n_discarded} tracks were shorter than the specified min_length "
-        "and discarded from the analysis."
-    )
+    def warning_string(n_discarded):
+        return (
+            f"{n_discarded} tracks were shorter than the specified min_length and discarded "
+            f"from the analysis."
+        )
 
     # test algorithms with default min_length
     with pytest.warns(RuntimeWarning, match=warning_string(3)):
