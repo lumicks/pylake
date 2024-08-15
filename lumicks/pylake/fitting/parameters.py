@@ -43,6 +43,7 @@ class Parameter:
         fixed=False,
         shared=False,
         unit=None,
+        stderr=None,
     ):
         """Model parameter
 
@@ -90,7 +91,7 @@ class Parameter:
         from the data. See also: :meth:`~lumicks.pylake.FdFit.profile_likelihood()`.
         """
 
-        self.stderr = None
+        self.stderr = stderr
         """Standard error of this parameter.
 
         Standard errors are calculated after fitting the model. These asymptotic errors are based

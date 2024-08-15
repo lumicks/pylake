@@ -639,7 +639,7 @@ class ProfileLikelihood1D:
     def p(self):
         return self.parameters[:, self.profile_info.profiled_parameter_index]
 
-    def plot(self, *, significance_level=None, **kwargs):
+    def plot(self, *, significance_level=None, std_err=None, **kwargs):
         """Plot profile likelihood
 
         Parameters
@@ -647,8 +647,18 @@ class ProfileLikelihood1D:
         significance_level : float, optional
             Desired significance level  (resulting in a 100 * (1 - alpha)% confidence interval) to
             plot. Default is the significance level specified when the profile was generated.
+        std_err : float | None
+            If provided, also make a quadratic plot based on a standard error.
         """
         import matplotlib.pyplot as plt
+
+        if std_err:
+            x = np.arange(-3 * std_err, 3 * std_err, 0.1 * std_err)
+            plt.plot(
+                self.p[np.argmin(self.chi2)] + x,
+                self.profile_info.minimum_chi2 + x**2 / (2 * std_err**2),
+                "k--",
+            )
 
         dash_length = 5
         plt.plot(self.p, self.chi2, **kwargs)
