@@ -404,7 +404,11 @@ def fit_power_spectrum(
         power_spectrum.power,
         power_spectrum.num_points_per_block,
         initial_params=np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values]),
-        lower_bounds=np.array([0.0, 0.0, *model._filter.lower_bounds()]),
+        # The lower bound on the diffusion constant is needed to ensure that the robust
+        # fitter does not encounter a singularity when the diffusion constant goes to zero.
+        # Sometimes this can momentarily occur during the fitting procedure (during numerical
+        # differentiation).
+        lower_bounds=np.array([0.0, 1e-80, *model._filter.lower_bounds()]),
         upper_bounds=np.array(
             [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
         ),
