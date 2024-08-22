@@ -7,6 +7,7 @@ import scipy as sp
 import pytest
 
 from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
+from lumicks.pylake.force_calibration.power_spectrum import PowerSpectrum
 from lumicks.pylake.force_calibration.calibration_models import (
     NoFilter,
     PassiveCalibrationModel,
@@ -58,6 +59,30 @@ def test_input_validation_power_spectrum_calibration():
 def test_calibration_result():
     with pytest.raises(TypeError):
         psc.CalibrationResults(invalid=5)
+
+
+def test_robust_warning():
+    # fmt:off
+    frequency = [
+        1204.923, 3204.795, 5204.667, 7204.538, 9204.411, 11204.283,
+        13204.155, 15204.027, 17203.899, 19341.362, 21523.622,
+    ]
+
+    power = [
+        1.84129e-04, 1.43886e-05, 7.34803e-06, 7.23357e-06, 6.01199e-06,
+        5.71373e-06, 6.20084e-06, 5.16348e-06, 5.61539e-06, 4.88627e-06, 5.21241e-06,
+    ]
+    # fmt:on
+
+    ps = PowerSpectrum(np.arange(len(frequency)), 78125)
+    ps.frequency, ps.power = np.array(frequency), np.asarray(power)
+
+    psc.fit_power_spectrum(
+        ps,
+        PassiveCalibrationModel(1.0),
+        bias_correction=False,
+        loss_function="lorentzian",
+    )
 
 
 @pytest.mark.parametrize(
