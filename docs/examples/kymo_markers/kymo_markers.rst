@@ -203,4 +203,4 @@ Further quantify target binding [1]_
 - Track binding events using the Kymotracker, bin them, and determine which % is on/off target
 - Compare the duration of binding on- vs off-target
 
-.. [1] M. D. Newton, DNA stretching induces Cas9 off-target activity, NSMB, 7016-7018 (2019).
+.. [1] M. D. Newton, DNA stretching induces Cas9 off-target activity, NSMB, 7016-7018 (2019)
