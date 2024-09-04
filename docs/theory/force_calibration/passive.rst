@@ -33,7 +33,7 @@ To convert the parameters obtained from this spectral fit to a trap stiffness, t
 
     \kappa = 2 \pi \gamma_0 f_c \tag{$\mathrm{N/m}$}
 
-Here :math:`\kappa` then represents the estimated trap stiffness.
+where :math:`\kappa` is the estimated trap stiffness.
 
 We can calibrate the position by considering the diffusion of the bead:
 
@@ -76,7 +76,7 @@ It is especially the latter that results in large calibration errors when mis-sp
 
     \begin{align}
     \kappa = 2 \pi \gamma(T) f_c &\propto& \eta(T)\\
-    R_d = \sqrt{\frac{kT}{\gamma(T)D_{volts}}} &\propto& \sqrt{T / \eta(T)}\\
+    R_d = \sqrt{\frac{kT}{\gamma(T)D_\mathrm{volts}}} &\propto& \sqrt{T / \eta(T)}\\
     R_f = R_d \kappa &\propto& \sqrt{T \eta(T)}
     \end{align}
 

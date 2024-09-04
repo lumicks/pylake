@@ -1,3 +1,5 @@
+.. _active_calibration_theory:
+
 Active Calibration
 ------------------
 
@@ -124,9 +126,9 @@ If we define a factor :math:`c` by which the velocity is reduced, we obtain the 
 .. math::
 
     \begin{align}
-    R_{d, corrected} & = c R_d\\
-    R_{f, corrected} & = \frac{1}{c} R_f\\
-    \kappa_{corrected} & = \frac{1}{c^2}\kappa
+    R_{d\mathrm{, corrected}} & = c R_d\\
+    R_{f\mathrm{, corrected}} & = \frac{1}{c} R_f\\
+    \kappa_\mathrm{corrected} & = \frac{1}{c^2}\kappa
     \end{align}
 
 Where :math:`R_d` is the displacement sensitivity, :math:`R_f` is the force sensitivity and :math:`\kappa` is the stiffness.
@@ -144,7 +146,9 @@ Filling in the maximal velocity we expect during the oscillation, we find the fo
 
     Re = \frac{\rho u L}{\eta} = 2 \pi f A d \frac{\rho}{\eta}
 
-Here :math:`\rho` refers to the fluid density, :math:`u` the characteristic velocity, :math:`L` the characteristic length scale, :math:`\eta` the viscosity, :math:`f` the oscillation frequency, :math:`A` the oscillation amplitude and :math:`d` the bead diameter.
+Here :math:`\rho` refers to the fluid density, :math:`u` the characteristic velocity, :math:`L` the
+characteristic length scale, :math:`\eta` the viscosity, :math:`f` the oscillation frequency, :math:`A`
+the oscillation amplitude and :math:`d` the bead diameter.
 For microfluidic flow, this value is typically much smaller than `1`.
 
 In this limit, the Navier-Stokes equation describing fluid flow reduces to the following expressions:
@@ -158,32 +162,41 @@ In this limit, the Navier-Stokes equation describing fluid flow reduces to the f
 
 Here :math:`\eta` is the viscosity, :math:`p` is the pressure and :math:`v` is the fluid velocity.
 Creeping flow is far removed from every day intuition as it equilibrates instantaneously.
-The advantage of this is that for sufficiently low frequencies, the correction factor can be based on the correction factor one would obtain for a steady state constant flow.
+The advantage of this is that for sufficiently low frequencies, the correction factor can be based on
+the correction factor one would obtain for a steady state constant flow.
 
 For two beads aligned in the flow direction, we can use the analytical solution presented in :cite:`stimson1926motion`.
-This model uses symmetry considerations to solve the creeping flow problem for two solid spheres moving at a constant velocity parallel to their line of centers.
+This model uses symmetry considerations to solve the creeping flow problem for two solid spheres moving
+at a constant velocity parallel to their line of centers.
 We denote the correction factor obtained from this model as :math:`c_{\|}`.
-This correction factor is given by the ratio of the drag coefficient by the drag coefficient one would expected from a single bead in creeping flow (:math:`3 \pi \eta d v`).
-For beads aligned perpendicular to the flow direction, we use a model from :cite:`goldman1966slow`, which we denote as :math:`c_{\perp}`.
+This correction factor is given by the ratio of the drag coefficient by the drag coefficient one would
+expect from a single bead in creeping flow (:math:`3 \pi \eta d v`).
+For beads aligned perpendicular to the flow direction, we use a model from :cite:`goldman1966slow`,
+which we denote as :math:`c_{\perp}`.
 
-From the derivations in these papers, it follows that the correction factors obtained depend on the bead diameter(s) :math:`d` and distance between the beads :math:`l`.
+From the derivations in these papers, it follows that the correction factors obtained depend on the
+bead diameter(s) :math:`d` and distance between the beads :math:`l`.
 For equally sized beads, this dependency is a function of the ratio of the distance between the beads over the bead diameter.
 
-Considering the linearity of the equations that describe creeping flow :cite:`goldman1966slow`, we can combine the two analytical solutions by decomposing the incoming velocity (in the direction :math:`\vec{e}_{osc}`) into a velocity perpendicular to the bead-to-bead axis :math:`\vec{e}_{\perp}` and a velocity component aligned with the bead-to-bead axis :math:`\vec{e}_{\|}`.
+Considering the linearity of the equations that describe creeping flow :cite:`goldman1966slow`, we can
+combine the two analytical solutions by decomposing the incoming velocity (in the direction :math:`\vec{e}_{osc}`)
+into a velocity perpendicular to the bead-to-bead axis :math:`\vec{e}_{\perp}` and a velocity component
+aligned with the bead-to-bead axis :math:`\vec{e}_{\|}`.
 
 .. math::
 
     \begin{align}
-    v_{\|} & = (\vec{e}_{\|} \cdot\vec{e}_{osc}) c_{\|}\\
-    v_{\perp} & = (\vec{e}_{\perp} \cdot \vec{e}_{osc})  c_{\perp}
+    v_{\|} & = (\vec{e}_{\|} \cdot\vec{e}_\mathrm{osc}) c_{\|}\\
+    v_{\perp} & = (\vec{e}_{\perp} \cdot \vec{e}_\mathrm{osc})  c_{\perp}
     \end{align}
 
-This provides us with contributions for each of those axes, but we still need to project this back to the oscillation axis (since this is where we measure our amplitude).
+This provides us with contributions for each of those axes, but we still need to project this back
+to the oscillation axis (since this is where we measure our amplitude).
 We can calculate our desired hydrodynamic correction factor as:
 
 .. math::
 
-    c_{total} = v_{\|} (\vec{e}_{\|} \cdot \vec{e}_{osc}) + v_{\perp} (\vec{e}_{\perp} \cdot \vec{e}_{osc})
+    c_\mathrm{total} = v_{\|} (\vec{e}_{\|} \cdot \vec{e}_\mathrm{osc}) + v_{\perp} (\vec{e}_{\perp} \cdot \vec{e}_\mathrm{osc})
 
 The response of this combined model for equally sized beads can be calculated as follows::
 
@@ -199,5 +212,6 @@ The response of this combined model for equally sized beads can be calculated as
 
 .. image:: figures/correction_factor.png
 
-Here, when providing only a horizontal distance recovers the Stimson model :cite:`stimson1926motion`, while a vertical displacement recovers the Goldman model :cite:`goldman1966slow`.
+Here, when providing only a horizontal distance recovers the Stimson model :cite:`stimson1926motion`,
+while a vertical displacement recovers the Goldman model :cite:`goldman1966slow`.
 To find out more about how to use these correction factors, please refer to the :ref:`tutorial<bead_bead_tutorial>`.
