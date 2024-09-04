@@ -13,3 +13,18 @@ Bead-bead coupling correction
 When performing active calibration with two beads coupling effects can bias the estimated calibration parameters (force and displacement sensitivity, and the stiffness).
 In Pylake 1.6.0, we include a model to account for bead-bead coupling between two beads in bulk.
 See :ref:`theory<bead_bead_theory>` and :ref:`tutorial<bead_bead_tutorial>` and the :doc:`example</examples/bead_coupling/coupling>` for more information.
+
+Force calibration
+-----------------
+
+We have introduced easier access to force calibration parameters and results.
+
+.. figure:: focal_listing.png
+
+Extracting the force calibration parameters required to reproduce the Bluelake calibration can now be done with a single command named :meth:`~lumicks.pylake.calibration.ForceCalibrationItem.calibration_params()`.
+
+Similarly, the active calibration peak as well as the exclusion ranges can now be plotted with a single line of code.
+
+.. figure:: focal_plot.png
+
+The force calibration documentation has also been improved. See :ref:`tutorial<force_calibration_tutorial>` and :ref:`theory<force_calibration_theory>` for more information.
