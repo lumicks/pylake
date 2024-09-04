@@ -1,3 +1,5 @@
+.. _active_calibration_theory:
+
 Active Calibration
 ------------------
 

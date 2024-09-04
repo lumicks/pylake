@@ -8,9 +8,8 @@ Introduction
 Why is force calibration necessary?
 -----------------------------------
 
-Optical tweezers typically measure forces and displacements by detecting deflections of a trapping
-laser by a trapped bead. These deflections are measured at the back focal plane of the beam using
-position sensitive detectors (PSDs).
+Optical tweezers typically measure forces and displacements by detecting deflections of a trapping laser by a trapped bead.
+These deflections are measured at the back focal plane of the beam using position sensitive detectors (PSDs).
 
 .. image:: figures/back_focal.png
   :nbattach:
@@ -30,15 +29,46 @@ and
 
 Where :math:`V` is the position-dependent voltage signal from the PSD and :math:`R_d` and :math:`R_f`
 are the displacement and force sensitivity proportionality constants, respectively.
-Force calibration refers to computing these conversion factors.
+
+Force calibration refers to computing the calibration factors needed to convert from raw voltages to actual forces and displacements.
+The values we wish to calculate are:
+
+- Trap stiffness :math:`\kappa`, which reflects how strongly a bead is held by a trap.
+- Force response :math:`R_d`, the proportionality constant between voltage and force.
+- Distance response :math:`R_f`, the proportionality constant between voltage and distance.
 
 Several methods exist to calibrate optical traps based on sensor signals.
 In this section, we will provide an overview of the physical background of power spectral calibration.
 
-Why does the power spectrum look the way it does?
--------------------------------------------------
+How can we calibrate?
+---------------------
 
-Consider a small bead freely diffusing in a medium (no optical trapping taking place).
+Consider a small bead suspended in fluid (no optical trapping taking place).
+This bead moves around due to the random collisions of molecules against the bead.
+This unimpeded movement is called free diffusion.
+If there is no optical trap keeping it in place, the bead slowly drifts off from its starting position.
+
+Now we introduce the optical trap.
+The trap pulls the bead back to the laser focus.
+The strength of this pull depends on how far the bead is from the focus (like a spring).
+
+.. image:: figures/sim_trap_opt.gif
+  :nbattach:
+
+This effectively limits the amplitude of motion away from the focus.
+Consider again the frequency spectrum of diffusion.
+What we saw was that the vertical axis is proportional to amplitude squared (or loosely speaking travelled distance).
+We can now intuitively understand why the trap limits this amplitude and why this manifests itself as sharp reduction of amplitudes above a certain threshold.
+
+Important takeaways
+-------------------
+
+- The spectrum of bead motion in a trap can be characterized by a diffusion constant and corner frequency.
+- At low frequencies the trapping force dominates, limiting the amplitudes, while at high frequencies the drag on the bead does.
+
+Mathematical background
+-----------------------
+
 Neglecting hydrodynamic and inertial effects (more on this later), we obtain the following equation of motion:
 
 .. math::

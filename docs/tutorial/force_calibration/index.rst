@@ -7,10 +7,9 @@ Find out about force calibration
     :caption: Contents
     :maxdepth: 1
 
+    calibration_items
     force_calibration
-    diode
-    fitting
-    passive
-    hyco
-    surface
-    active
+    diode_model
+    active_calibration
+    low_level_api
+    robust_fitting
