@@ -451,6 +451,8 @@ def test_channel(channel_h5_file):
     np.testing.assert_equal(force.start, 1)
     np.testing.assert_equal(force.stop, 41 + 10)
     np.testing.assert_equal(force.sample_rate, 1e9 / int(1e9 / dset.attrs["Sample rate (Hz)"]))
+    assert id(force.data) == id(np.asarray(force.data))
+    np.testing.assert_equal(np.mean(force), np.mean(force.data))
 
     downsampled = channel.TimeSeries.from_dataset(channel_h5_file["Force LF"]["Force 1x"])
     np.testing.assert_equal(len(downsampled), 2)
@@ -459,6 +461,8 @@ def test_channel(channel_h5_file):
     np.testing.assert_equal(downsampled.start, 1)
     np.testing.assert_equal(downsampled.stop, 2 + 1)
     np.testing.assert_equal(downsampled.sample_rate, 1e9 / 1)
+    assert id(downsampled.data) == id(np.asarray(downsampled.data))
+    np.testing.assert_equal(np.mean(downsampled), np.mean(downsampled.data))
 
     variable = channel.TimeSeries.from_dataset(channel_h5_file["Force LF variable"]["Force 1x"])
     np.testing.assert_equal(len(variable), 3)
@@ -473,6 +477,8 @@ def test_channel(channel_h5_file):
         np.testing.assert_equal(len(timetags), 9)
         assert np.all(np.equal(timetags.data, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
         assert np.all(np.equal(timetags.timestamps, [10, 20, 30, 40, 50, 60, 70, 80, 90]))
+        assert id(timetags.data) == id(np.asarray(timetags.data))
+        np.testing.assert_equal(np.mean(timetags), np.mean(timetags.data))
 
 
 def test_downsampling():
