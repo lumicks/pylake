@@ -170,6 +170,9 @@ class Slice:
             labels=self._generate_labels(other, "*", self, keep_unit=False),
         )
 
+    def __array__(self, *args, **kwargs):
+        return np.asarray(self.data, *args, **kwargs)
+
     @property
     def start(self):
         """Starting timestamp of this time series in nanoseconds"""
