@@ -41,6 +41,7 @@ Force calibration
     ActiveCalibrationModel
     force_calibration.power_spectrum.PowerSpectrum
     force_calibration.power_spectrum_calibration.CalibrationResults
+    force_calibration.calibration_models.DiodeCalibrationModel
 
     :template: function.rst
 
