@@ -2,6 +2,7 @@ import re
 from functools import wraps
 from collections import UserDict
 
+from lumicks.pylake.force_calibration.calibration_models import DiodeCalibrationModel
 from lumicks.pylake.force_calibration.detail.calibration_properties import (
     CalibrationPropertiesMixin,
 )
@@ -36,6 +37,46 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     def _fitted_diode(self):
         """Diode parameters were fitted"""
         return "f_diode (Hz)" in self or "alpha" in self
+
+    @property
+    def diode_calibration(self) -> DiodeCalibrationModel | None:
+        """Diode calibration model
+
+        The detector used to measure forces has a limited bandwidth. This bandwidth is typically
+        characterized by two parameters, a diode frequency and relaxation factor (which gives the
+        fraction of light that is instantaneously transmitted).
+
+        Some force detection diodes have been pre-calibrated in the factory. For these sensors,
+        this property will return a model that will allow you to calculate the diode parameters
+        at a particular trap sum power.
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            f = lk.File("passive_calibration.h5")
+            item = f.force1x.calibration[0]  # Grab a calibration item for force 1x
+            diode_model = item.diode_calibration  # Grab diode model
+            diode_parameters = diode_model(item.trap_power)  # Grab diode parameters
+
+            # Verify that the calibration parameters at this trap power are the same as we found
+            # in the item in the first place.
+            assert diode_parameters["fixed_diode"] == item.diode_frequency
+            assert diode_parameters["fixed_alpha"] == item.diode_relaxation_factor
+        """
+        try:
+            return DiodeCalibrationModel.from_calibration_dict(self.data)
+        except ValueError:
+            return None  # No diode calibration present
+
+    @property
+    def trap_power(self):
+        """Average trap sum power in volts during calibration
+
+        Note that this property is only available for full calibrations with calibrated diodes."""
+        return self.data.get("Trap sum power (V)")
 
     @property
     def _sensor_type(self):

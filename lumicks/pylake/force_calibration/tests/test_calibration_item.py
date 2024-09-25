@@ -1,3 +1,5 @@
+import pickle
+
 import pytest
 
 from lumicks.pylake.calibration import ForceCalibrationList
@@ -143,8 +145,8 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert item.number_of_samples == 781250
     assert not item.active_calibration
     assert not item.fast_sensor
-    assert item.start is 1696171376701856700
-    assert item.stop is 1696171386701856700
+    assert item.start == 1696171376701856700
+    assert item.stop == 1696171386701856700
     assert item.stiffness is ref_passive_fixed_diode_with_height["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_passive_fixed_diode_with_height["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_passive_fixed_diode_with_height["Rd (um/V)"]
@@ -170,7 +172,7 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert item.diffusion_volts_std_err == ref_passive_fixed_diode_with_height["err_D (V^2/s)"]
     assert not item.diode_frequency_std_err
     assert not item.diode_relaxation_factor_std_err
-    assert item.applied_at is 1696171386701856700
+    assert item.applied_at == 1696171386701856700
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power")
     compare_to_reference_dict(item._model_params(), test_name="model")
@@ -194,8 +196,8 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert item.sample_rate == 78125
     assert item.active_calibration  # It is an active item!
     assert not item.fast_sensor
-    assert item.start is 1713785826919398000
-    assert item.stop is 1713785836900152600
+    assert item.start == 1713785826919398000
+    assert item.stop == 1713785836900152600
     assert item.stiffness is ref_active["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_active["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_active["Rd (um/V)"]
@@ -264,9 +266,9 @@ def test_non_full(compare_to_reference_dict):
     )
     assert not item.stiffness
     assert not item.displacement_sensitivity
-    assert item.force_sensitivity is 1.0
-    assert item.start is 1714391268938540100
-    assert item.stop is 1714391268938540200
+    assert item.force_sensitivity == 1.0
+    assert item.start == 1714391268938540100
+    assert item.stop == 1714391268938540200
 
     for func in ("calibration_params", "power_spectrum_params"):
         with pytest.raises(
@@ -327,3 +329,39 @@ def test_force_calibration_handling():
         assert it == fc
 
     assert list(items) == items._src
+
+
+def test_item_pickle():
+    pickled_str = pickle.dumps(ForceCalibrationItem(ref_passive_fixed_diode_with_height))
+    loaded_object = pickle.loads(pickled_str)
+    assert loaded_object == ForceCalibrationItem(ref_passive_fixed_diode_with_height)
+
+
+@pytest.mark.parametrize(
+    "trap_power, reference_values",
+    [
+        (0, {"fixed_alpha": 0.45, "fixed_diode": 10000.0}),
+        (1000000, {"fixed_alpha": 0.5, "fixed_diode": 14000.0}),
+        (1.0, {"fixed_alpha": 0.48160602794142787, "fixed_diode": 12853.980812559239}),
+        ([0.5, 1.5], {"fixed_alpha": 0.48160602794142787, "fixed_diode": 12853.980812559239}),
+    ],
+)
+def test_diode_model(trap_power, reference_values):
+    item = ForceCalibrationItem(ref_passive_fixed_diode_with_height)
+    diode_calibration = item.diode_calibration
+    assert item.trap_power == ref_passive_fixed_diode_with_height["Trap sum power (V)"]
+    assert diode_calibration(trap_power) == reference_values
+    assert diode_calibration._params == {
+        "delta_f_diode": ref_passive_fixed_diode_with_height["Diode frequency delta"],
+        "rate_f_diode": ref_passive_fixed_diode_with_height["Diode frequency rate"],
+        "max_f_diode": ref_passive_fixed_diode_with_height["Diode frequency max"],
+        "delta_alpha": ref_passive_fixed_diode_with_height["Diode alpha delta"],
+        "rate_alpha": ref_passive_fixed_diode_with_height["Diode alpha rate"],
+        "max_alpha": ref_passive_fixed_diode_with_height["Diode alpha max"],
+    }
+
+
+def test_no_diode_model():
+    item = ForceCalibrationItem(ref_active)
+    assert item.trap_power is None
+    assert item.diode_calibration is None

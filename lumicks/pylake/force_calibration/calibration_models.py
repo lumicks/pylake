@@ -1,7 +1,7 @@
 from copy import copy
 from typing import Callable
 from functools import partial
-from dataclasses import dataclass
+from dataclasses import field, dataclass
 
 import numpy as np
 
@@ -74,6 +74,48 @@ def diode_params_from_voltage(
         max_alpha - delta_alpha * np.exp(-rate_alpha * voltage),
         voltage,
     )
+
+
+@dataclass
+class DiodeCalibrationModel:
+    """Diode calibration model
+
+    This model takes a trap voltage and returns the diode parameters at that voltage. These
+    parameters can be passed directly to :func:`~lumicks.pylake.calibrate_force`.
+    """
+
+    _model_fun: Callable = field(repr=False)
+    _params: dict = field(repr=False)
+
+    @staticmethod
+    def from_calibration_dict(calibration_dict):
+        try:
+            params = {
+                "delta_f_diode": calibration_dict["Diode frequency delta"],
+                "rate_f_diode": calibration_dict["Diode frequency rate"],
+                "max_f_diode": calibration_dict["Diode frequency max"],
+                "delta_alpha": calibration_dict["Diode alpha delta"],
+                "rate_alpha": calibration_dict["Diode alpha rate"],
+                "max_alpha": calibration_dict["Diode alpha max"],
+            }
+        except KeyError:
+            raise ValueError("No diode calibration present in the dictionary.")
+
+        def diode_fun(trap_voltage, params):
+            f_diode, alpha, _ = diode_params_from_voltage(trap_voltage, **params)
+            return {"fixed_diode": f_diode, "fixed_alpha": alpha}
+
+        return DiodeCalibrationModel(diode_fun, params)
+
+    def __call__(self, trap_voltage):
+        """Function to look up the diode parameters at a given trap power.
+
+        Parameters
+        ----------
+        trap_voltage : array_like
+            Array of trap voltages [V].
+        """
+        return self._model_fun(trap_voltage, self._params)
 
 
 def density_of_water(temperature, molarity, pressure=0.101325):
