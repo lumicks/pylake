@@ -7,6 +7,46 @@ import numpy as np
 from lumicks.pylake.detail.utilities import downsample
 
 
+def discontiguous_plot_data(frequency, power, excluded_ranges):
+    """Determine which points were plotted over a gap, and return the data to plot them
+
+    Frequency exclusion ranges are applied prior to down-sampling. Because of this, a data point
+    can end up in the gap induced by an excluded range. This function returns data where the
+    gaps are explicitly shown (by inserting `np.nan` on either side of the gap) and a list of
+    points that were averaged over the gap (and therefore end up inside the gap region).
+
+    Parameters
+    ----------
+    frequency : np.ndarray
+        Frequency axis
+    power : np.ndarray
+        Power spectral density values
+    excluded_ranges : list of tuples of float
+        Ranges that should be excluded from the plot
+
+    Returns
+    -------
+    frequency : np.ndarray
+        Frequency axis with nan insertions around "breaks" in the plot
+    power : np.ndarray
+        Power spectral densities with nan insertions around "breaks" in the plot
+    freq_gap : np.ndarray
+        Frequency values for the points that were averaged over a gap
+    power_gap : np.ndarray
+        Power spectral densities for the points that were averaged over a gap
+    """
+    breaks = [e[1] for e in excluded_ranges]
+    break_idx = np.searchsorted(frequency, breaks, "left")
+
+    nan_insertion_points = np.hstack((break_idx, break_idx - 1))
+    return (
+        np.insert(frequency, nan_insertion_points, np.nan),
+        np.insert(power, nan_insertion_points, np.nan),
+        frequency[break_idx - 1],
+        power[break_idx - 1],
+    )
+
+
 class PowerSpectrum:
     """Power spectrum data for a time series.
 
@@ -414,17 +454,39 @@ class PowerSpectrum:
             variance=variance,
         )
 
-    def plot(self, **kwargs):
+    def plot(self, *, show_excluded=False, **kwargs):
         """Plot power spectrum
 
         Parameters
         ----------
+        show_excluded : bool
+            Show ranges that were excluded from fitting.
         **kwargs
             Forwarded to :func:`matplotlib.pyplot.plot`.
         """
         import matplotlib.pyplot as plt
 
-        plt.plot(self.frequency, self.power, **kwargs)
+        if show_excluded:
+            if self._downsampling_factor > 1:
+                plt.plot(self.unfiltered_frequency, self.unfiltered_power, label="_")
+
+            for freq_min, freq_max in self._excluded_ranges:
+                plt.axvspan(freq_min, freq_max, alpha=0.1)
+                # It is important to draw both span and line, since cuts can be so narrow that the
+                # span alone doesn't show up.
+                plt.axvline(freq_min, alpha=0.1)
+                plt.axvline(freq_max, alpha=0.1)
+
+        # Inserting a np.nan for every excluded range, makes sure the plot has "breaks". It is
+        # preferable over using separate plots as this won't increment the color cycle.
+        frequency, power, freq_gap, power_gap = discontiguous_plot_data(
+            self.frequency, self.power, self._excluded_ranges
+        )
+
+        lines = plt.plot(frequency, power, **kwargs)
+        # Plot dots for points that were the result of averaging over a gap
+        plt.plot(freq_gap, power_gap, linestyle="", marker=".", color=lines[0].get_color())
+
         plt.xlabel("Frequency [Hz]")
         plt.ylabel(f"Power [${self.unit}^2/Hz$]")
         plt.xscale("log")
