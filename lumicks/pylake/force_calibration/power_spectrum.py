@@ -61,7 +61,7 @@ class PowerSpectrum:
 
         self.total_samples_used = total_samples_used
         self._raw_variance = variance
-        self._src_num_points_per_block = num_points_per_block
+        self._num_points_per_block = num_points_per_block
 
         self._downsampling_factor = 1
         self._fit_range = (
@@ -72,7 +72,7 @@ class PowerSpectrum:
 
     @property
     def num_points_per_block(self) -> int:
-        return self._src_num_points_per_block * self._downsampling_factor
+        return self._num_points_per_block * self._downsampling_factor
 
     @staticmethod
     def from_data(data, sample_rate, unit="V", window_seconds=None) -> "PowerSpectrum":
@@ -149,7 +149,7 @@ class PowerSpectrum:
         """Returns the frequency bin width of the spectrum"""
         return self.sample_rate / self.total_samples_used * self.num_points_per_block
 
-    def _apply_transforms(self, data, with_exclusions=True) -> np.ndarray:
+    def _apply_transforms(self, data, with_exclusions=True, downsample_data=True) -> np.ndarray:
         """Apply transformations to the raw spectral data
 
         Prior to plotting, specific sections of the spectrum are typically excluded and the data
@@ -162,11 +162,17 @@ class PowerSpectrum:
         with_exclusions : np.ndarray
             Whether to apply the frequency exclusion ranges (these carve out noise peaks and
             the active calibration peak).
+        downsample_data : bool
+            Should the data be down-sampled?
         """
         fit_range = (self._frequency > self._fit_range[0]) & (self._frequency <= self._fit_range[1])
 
         if not with_exclusions:
-            return downsample(data[fit_range], self._downsampling_factor, np.mean)
+            return (
+                downsample(data[fit_range], self._downsampling_factor, np.mean)
+                if downsample_data
+                else data[fit_range]
+            )
 
         exclusion_mask = np.logical_and.reduce(
             [
@@ -175,7 +181,9 @@ class PowerSpectrum:
             ]
         )
 
-        return downsample(data[exclusion_mask & fit_range], self._downsampling_factor, np.mean)
+        data = data[exclusion_mask & fit_range]
+
+        return downsample(data, self._downsampling_factor, np.mean) if downsample_data else data
 
     @property
     def frequency(self) -> np.ndarray:
@@ -311,7 +319,7 @@ class PowerSpectrum:
             ranges[:, 1] -= 1
             return ranges
 
-        if self.num_points_per_block != 1:
+        if self._num_points_per_block != 1:
             raise ValueError(
                 "identify_peaks only works if the power spectrum is not blocked / averaged"
             )
@@ -322,8 +330,11 @@ class PowerSpectrum:
         if baseline < 0:
             raise ValueError("baseline cannot be negative")
 
+        power = self._apply_transforms(self._power, downsample_data=False)
+        frequency = self._apply_transforms(self._frequency, downsample_data=False)
+
         # Normalize the spectrum
-        flattened_spectrum = self._power / model_fun(self._frequency)
+        flattened_spectrum = power / model_fun(frequency)
 
         baseline_mask = (flattened_spectrum >= baseline).astype("int")
         peak_mask = (flattened_spectrum > peak_cutoff).astype("int")
@@ -350,8 +361,8 @@ class PowerSpectrum:
         # Only report unique ones
         exclusion_ranges = baseline_ranges[np.unique(exclusion_baseline_indices)]
         # Convert the indices to frequencies
-        df = self.frequency[1] - self.frequency[0]
-        return_val = [(self.frequency[x[0]], self.frequency[x[1]] + df) for x in exclusion_ranges]
+        df = frequency[1] - frequency[0]
+        return_val = [(frequency[x[0]], frequency[x[1]] + df) for x in exclusion_ranges]
         return return_val
 
     def in_range(self, frequency_min, frequency_max) -> "PowerSpectrum":
