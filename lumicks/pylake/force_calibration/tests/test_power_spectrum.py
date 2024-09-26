@@ -323,11 +323,24 @@ def test_identify_peaks_args():
     with pytest.raises(ValueError, match="peak_cutoff must be greater than baseline value"):
         power_spectrum.identify_peaks(lambda f: np.ones_like(f), baseline=10.0, peak_cutoff=9.0)
 
+    # Identify_peaks falls back to the high frequency spectrum when available, so it's okay to
+    # downsample it.
+    downsampled = power_spectrum.downsampled_by(2)
+    downsampled.identify_peaks(lambda f: np.ones_like(f))
+
+    # When windowing or obtaining spectra through pre-blocked means, we cannot use this method.
     with pytest.raises(
         ValueError,
         match="identify_peaks only works if the power spectrum is not blocked / averaged",
     ):
-        power_spectrum.downsampled_by(2).identify_peaks(lambda f: np.ones_like(f))
+        hf_not_available = PowerSpectrum(
+            downsampled.frequency,
+            downsampled.power,
+            sample_rate=78125,
+            total_duration=1,
+            num_points_per_block=2,
+        )
+        hf_not_available.identify_peaks(lambda f: np.ones_like(f))
 
 
 @pytest.mark.parametrize(
@@ -352,3 +365,7 @@ def test_identify_peaks(power, result_frequency):
     power_spectrum = PowerSpectrum(np.arange(10), power, sample_rate=78125, total_duration=1.0)
 
     assert power_spectrum.identify_peaks(lambda f: np.ones_like(f)) == result_frequency
+
+    # When "only" down-sampling, we should still have access to the original data
+    downsampled = power_spectrum.downsampled_by(2)
+    assert downsampled.identify_peaks(lambda f: np.ones_like(f)) == result_frequency
