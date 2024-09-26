@@ -266,6 +266,16 @@ def test_actual_spectrum(reference_calibration_result):
 def test_result_plot(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     ps_calibration.plot()
+    ps_calibration.plot(show_excluded=True)
+
+
+def test_result_plot_active_fail(reference_calibration_result):
+    ps_calibration, model, reference_spectrum = reference_calibration_result
+    with pytest.raises(
+        ValueError,
+        match="Requested to plot an active calibration peak while this is not an active calibration",
+    ):
+        ps_calibration.plot(show_active_peak=True)
 
 
 def test_result_plot_residual(reference_calibration_result):

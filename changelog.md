@@ -15,6 +15,8 @@
 * Added parameter `titles` to customize title of each subplot in [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
 * Added [`KymoTrack.sample_from_channel()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_channel) to downsample channel data to the time points of a kymotrack.
 * Added support for file names with spaces in [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi).
+* Show the ranges that were excluded from a power spectrum or calibration fit by passing `show_excluded=True` to [`PowerSpectrum.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.plot) or [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot).
+* Plot the active calibration peak for a calibration result using `show_active_peak=True` with [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot).
 
 #### Improvements
 
