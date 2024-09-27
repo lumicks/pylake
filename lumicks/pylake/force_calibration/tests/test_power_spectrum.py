@@ -263,6 +263,12 @@ def test_plot():
     ps.plot()
 
 
+def test_show_excluded():
+    ps = PowerSpectrum.from_data(np.sin(2.0 * np.pi * 100 / 78125 * np.arange(100)), 78125)
+    ps_excl = ps._exclude_range([(500, 1000)])
+    ps_excl.plot(show_excluded=True)
+
+
 def test_replace_spectrum():
     power_spectrum = PowerSpectrum.from_data(np.arange(10), 5)
     replaced = power_spectrum.with_spectrum(np.arange(6))
