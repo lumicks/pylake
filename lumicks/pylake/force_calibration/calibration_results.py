@@ -91,12 +91,27 @@ class CalibrationResults(CalibrationPropertiesMixin):
         """Number of fitted samples (-)."""
         return self.ps_data.total_sampled_used
 
-    def plot(self):
-        """Plot the fitted spectrum"""
+    def plot(self, show_excluded=False, show_active_peak=False):
+        """Plot the fitted spectrum
+
+        Parameters
+        ----------
+        show_excluded : bool
+            Show fitting regions excluded from the fit
+        show_active_peak : bool
+            Show active calibration peak when available
+        """
         import matplotlib.pyplot as plt
 
-        self.ps_data.plot(label="Data")
+        if show_active_peak and not hasattr(self.model, "output_power"):
+            raise ValueError("This is not an active calibration")
+
+        self.ps_data.plot(label="Data", show_excluded=show_excluded)
         self.ps_model.plot(label="Model")
+
+        if show_active_peak:
+            self.model.output_power.ps.plot(label="Active peak")
+
         plt.legend()
 
     def plot_spectrum_residual(self):

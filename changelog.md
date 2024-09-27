@@ -18,6 +18,7 @@
 * Added [`KymoTrack.sample_from_channel()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_channel) to downsample channel data to the time points of a kymotrack.
 * Added support for file names with spaces in [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi).
 * Allow showing the ranges that were excluded from a power spectrum by passing `show_excluded=True` to [`PowerSpectrum.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.plot).
+* Allow plotting the ranges that were excluded from fitting and the active calibration peak when plotting a calibration result using `show_excluded=True` and `show_active_peak=True` in [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot).
 
 ## v1.5.3 | 2024-10-29
 
