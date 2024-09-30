@@ -5,7 +5,7 @@
 #### New features
 
 * Added [`PowerSpectrum.compress()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.compress#) to discard high frequency spectral data for a downsampled spectrum to conserve memory.
-* Added [`lk.touchdown()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.touchdown.html#lumicks.pylake.touchdown) to find the height above the surface using the axial force signal.
+* Added [`lk.touchdown()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.touchdown.html#lumicks.pylake.touchdown) to find the height above the surface using the axial force signal and added a theory notebook demonstrating the effects of a nearby surface on calibration.
 
 #### Improvements
 
