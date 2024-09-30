@@ -22,5 +22,6 @@ For all of the examples, it is assumed that the following lines precede any othe
     cas9_kymotracking/cas9_kymotracking
     hairpin_fitting/hairpin_unfolding
     droplet_fusion/droplet_fusion
+    surface_calibration/surface_calibration.rst
     bead_coupling/coupling
     binding_lifetime/binding_lifetime
