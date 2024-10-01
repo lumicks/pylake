@@ -24,6 +24,7 @@ from .fitting.parameter_trace import parameter_trace
 from .kymotracker.kymotracker import *
 from .piezo_tracking.baseline import *
 from .nb_widgets.range_selector import FdRangeSelector, FdDistanceRangeSelector
+from .force_calibration.touchdown import touchdown
 from .force_calibration.convenience import calibrate_force
 from .piezo_tracking.piezo_tracking import *
 from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
