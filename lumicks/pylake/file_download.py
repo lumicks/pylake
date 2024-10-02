@@ -2,7 +2,7 @@ import os
 import json
 import hashlib
 import urllib.error
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin, urlparse
 from urllib.request import urlopen
 
 from tqdm.auto import tqdm
@@ -10,9 +10,34 @@ from tqdm.auto import tqdm
 __all__ = ["download_from_doi"]
 
 
+def strip_control_characters(url_str) -> str:
+    """Strips control characters from a URL
+
+    Parameters
+    ----------
+    url_str : str
+        URL to encode
+
+    Raises
+    ------
+    ValueError
+        if the URL does not contain a scheme (e.g. https) or net location
+    """
+    url = urlparse(url_str)
+
+    if not url.scheme or not url.netloc:
+        raise ValueError(f"Invalid URL provided: {url}")
+
+    base_url = url.scheme + "://" + url.netloc + quote(url.path)
+    return base_url + "?" + quote(url.query) if url.query else base_url
+
+
 def get_url_from_doi(doi):
     """Obtains a Zenodo record from the DOI (e.g. 10.5281/zenodo.#)"""
     url = doi if doi.startswith("http") else urljoin("https://doi.org/", doi)
+
+    url = strip_control_characters(url)
+
     try:
         with urlopen(url) as response:
             return response.url
@@ -23,7 +48,8 @@ def get_url_from_doi(doi):
 def download_record_metadata(record_number):
     """Download specific Zenodo record metadata"""
     zenodo_url = "https://zenodo.org/api/records/"
-    with urlopen(urljoin(zenodo_url, str(record_number))) as response:
+
+    with urlopen(strip_control_characters(urljoin(zenodo_url, str(record_number)))) as response:
         if response.status == 200:
             return json.loads(response.read())
         else:
@@ -46,6 +72,8 @@ def download_file(url, target_path, download_path, show_progress=True, block_siz
     block_size : int
         Block size to use when downloading
     """
+    url = strip_control_characters(url)
+
     with urlopen(url) as response:
         size_bytes = int(response.headers.get("Content-Length", 0))
 

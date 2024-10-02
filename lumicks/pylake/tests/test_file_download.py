@@ -5,7 +5,35 @@ from lumicks.pylake.file_download import (
     get_url_from_doi,
     download_from_doi,
     download_record_metadata,
+    strip_control_characters,
 )
+
+
+@pytest.mark.parametrize(
+    "url, url_ref",
+    [
+        ("https://zenodo.org/api/records/13880274", "https://zenodo.org/api/records/13880274"),
+        ("https://zenodo.org/api/records/test?yes", "https://zenodo.org/api/records/test?yes"),
+        ("https://zenodo.org/api/test?yes no", "https://zenodo.org/api/test?yes%20no"),
+        ("https://zenodo.org/api/test?yes>no", "https://zenodo.org/api/test?yes%3Eno"),
+        (
+            "https://zenodo.org/space bar/test?yes>no",
+            "https://zenodo.org/space%20bar/test?yes%3Eno",
+        ),
+        (
+            "https://zenodo.org/api/records/13880274/files/20220203-165412 Marker 0.85_NotOscillate.h5/content",
+            "https://zenodo.org/api/records/13880274/files/20220203-165412%20Marker%200.85_NotOscillate.h5/content",
+        ),
+    ],
+)
+def test_strip_control_characters_url(url, url_ref):
+    assert strip_control_characters(url) == url_ref
+
+
+@pytest.mark.parametrize("invalid_url", ["https:://", "zenodo.org"])
+def test_invalid_url(invalid_url):
+    with pytest.raises(ValueError, match="Invalid URL provided"):
+        strip_control_characters(invalid_url)
 
 
 @pytest.mark.preflight
