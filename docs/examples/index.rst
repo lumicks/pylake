@@ -23,3 +23,4 @@ For all of the examples, it is assumed that the following lines precede any othe
     hairpin_fitting/hairpin_unfolding
     droplet_fusion/droplet_fusion
     bead_coupling/coupling
+    kymo_markers/kymo_markers
