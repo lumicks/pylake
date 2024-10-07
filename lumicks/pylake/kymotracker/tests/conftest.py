@@ -55,7 +55,8 @@ def kymo_integration_tracks(kymo_integration_test_data):
 @pytest.fixture
 def kymo_pixel_calibrations():
     image = raw_test_data()
-    background = np.random.uniform(1, 10, size=image.size).reshape(image.shape)
+    rng = np.random.default_rng(533017)
+    background = rng.uniform(1, 10, size=image.size).reshape(image.shape).astype(int)
 
     kymo_um = generate_kymo(
         "test",

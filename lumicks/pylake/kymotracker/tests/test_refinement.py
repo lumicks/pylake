@@ -244,13 +244,14 @@ def test_no_swap_gaussian_refinement():
     swapping Gaussians around (making the localization jump between tracks), we enforce that
     they stay within limits dictated by their order."""
 
+    rng = np.random.default_rng(31415)
+
     def gen_gaussians(locs):
         x = np.arange(0, 20, 1)
-        return np.random.poisson(
+        return rng.poisson(
             200 * np.sum(np.vstack([scipy.stats.norm.pdf(x, loc=loc) for loc in locs]), axis=0) + 10
         )
 
-    np.random.seed(31415)
     locations = (5, 9, 12, 16)
     kymo = _kymo_from_array(
         np.vstack((gen_gaussians(locations[:-1]), gen_gaussians(locations))).T,

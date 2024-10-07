@@ -8,7 +8,7 @@ from lumicks.pylake.kymotracker.kymotrack import *
 
 @pytest.fixture(scope="module")
 def kymos():
-    image = np.random.poisson(10, size=(10, 10, 3))
+    image = np.random.default_rng(1337).poisson(10, size=(10, 10, 3))
 
     def make_kymo(line_time_seconds, pixel_size_um):
         return _kymo_from_array(

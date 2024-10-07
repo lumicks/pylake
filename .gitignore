@@ -6,6 +6,7 @@ dist/
 venv/
 docs/changelog.md
 docs/_api/
+nb_test/
 
 __pycache__/
 *.py[cod]
