@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup
+from lumicks.pylake.kymotracker.colocalization import classify_track
 from lumicks.pylake.kymotracker.detail.track_proximity import (
     BoundingBox,
     tracks_close,
@@ -55,6 +56,41 @@ def test_bbox_construction_test(
     assert bbox.coord_min == ref_box[2]
     assert bbox.coord_max == ref_box[3]
     assert bbox._valid == is_valid
+
+
+@pytest.mark.parametrize(
+    "red_idx, blue_idx, classification",
+    [
+        # Blue starts first
+        ([5, 13], [2, 10], 3),
+        ([5, 12], [2, 10], 4),
+        ([5, 10], [2, 10], 4),
+        ([5, 8], [2, 10], 4),
+        ([5, 7], [2, 10], 5),
+        # Starts at the same time
+        ([0, 13], [2, 10], 6),
+        ([2, 13], [2, 10], 6),
+        ([4, 13], [2, 10], 6),
+        ([5, 13], [2, 10], 3),  # Out of the time window for "same time"
+        ([2, 8], [2, 10], 7),
+        ([2, 10], [2, 10], 7),
+        ([2, 12], [2, 12], 7),
+        ([2, 7], [2, 10], 8),
+        # Red starts first
+        ([2, 13], [5, 10], 9),
+        ([2, 12], [5, 10], 10),
+        ([2, 10], [5, 10], 10),
+        ([2, 8], [5, 10], 10),
+        ([2, 7], [5, 10], 11),
+    ],
+)
+def test_track_colocalization_classifier(blank_kymo, red_idx, blue_idx, classification):
+    red = KymoTrack(red_idx, [1, 1], blank_kymo, 0, 0)
+    blue = KymoTrack(blue_idx, [1, 1], blank_kymo, 0, 0)
+
+    assert (
+        result := classify_track(red, blue, 2)
+    ) == classification, f"expected {classification}, got {result}"
 
 
 @pytest.mark.parametrize(
