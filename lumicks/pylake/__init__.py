@@ -1,5 +1,6 @@
 from . import simulation
 from .file import *
+from .channel import set_cache_enabled
 from .scalebar import ScaleBar
 from .__about__ import (
     __doc__,
