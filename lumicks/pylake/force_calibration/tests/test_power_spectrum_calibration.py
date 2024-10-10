@@ -182,14 +182,14 @@ def test_no_data_in_range():
     model = PassiveCalibrationModel(1, temperature=20, viscosity=0.0004)
 
     # Here the range slices off all the data and we are left with an empty spectrum
-    power_spectrum = psc.PowerSpectrum(np.arange(100), sample_rate=100).in_range(47, 100)
+    power_spectrum = psc.PowerSpectrum.from_data(np.arange(100), sample_rate=100).in_range(47, 100)
 
     with pytest.raises(RuntimeError):
         psc.fit_power_spectrum(power_spectrum, model=model)
 
     # Check whether a failure to get a sufficient number of points in the analytical fit is
     # detected.
-    power_spectrum = psc.PowerSpectrum(np.arange(100), sample_rate=1e-3)
+    power_spectrum = psc.PowerSpectrum.from_data(np.arange(100), sample_rate=1e-3)
 
     with pytest.raises(RuntimeError):
         psc.fit_power_spectrum(power_spectrum, model=model)
@@ -268,7 +268,7 @@ def test_result_plot(reference_calibration_result):
     ps_calibration.plot()
 
 
-def test_result_plot(reference_calibration_result):
+def test_result_plot_residual(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     ps_calibration.plot_spectrum_residual()
 

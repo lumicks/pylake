@@ -77,7 +77,7 @@ def calculate_power_spectrum(
     if not isinstance(data, np.ndarray) or (data.ndim != 1):
         raise TypeError('Argument "data" must be a numpy vector')
 
-    power_spectrum = PowerSpectrum(data, sample_rate)
+    power_spectrum = PowerSpectrum.from_data(data, sample_rate)
     power_spectrum = power_spectrum.in_range(*fit_range)._exclude_range(excluded_ranges)
     power_spectrum = power_spectrum.downsampled_by(num_points_per_block)
 
