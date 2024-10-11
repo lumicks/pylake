@@ -174,6 +174,18 @@ class CalibrationPropertiesMixin:
         return self._get_parameter("Rd", "Rd (um/V)")
 
     @property
+    def local_drag_coefficient(self):
+        """Measured local drag coefficient (kg/s)
+
+        .. note::
+
+            This parameter is only available when using active calibration.
+            Represents the drag at the height the calibration was performed. For the value corrected
+            back to bulk, see :attr:`measured_drag_coefficient`.
+        """
+        return self._get_parameter("local_drag_coefficient", "local_drag_coefficient (kg/s)")
+
+    @property
     def measured_drag_coefficient(self):
         """Measured bulk drag coefficient (kg/s)
 

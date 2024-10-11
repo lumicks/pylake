@@ -1,5 +1,4 @@
 import numpy as np
-import scipy
 import pytest
 
 from lumicks.pylake.force_calibration.calibration_models import ActiveCalibrationModel
@@ -90,6 +89,7 @@ def test_integration_active_calibration(
     np.testing.assert_allclose(
         fit["local_drag_coefficient"].value, drag_coeff_calc * 1e12, rtol=1e-9
     )
+    np.testing.assert_allclose(fit.local_drag_coefficient, drag_coeff_calc * 1e12, rtol=1e-9)
 
     np.testing.assert_allclose(fit["Bead diameter"].value, bead_diameter)
     np.testing.assert_allclose(fit["Driving frequency (guess)"].value, driving_frequency_guess)
@@ -188,10 +188,13 @@ def test_faxen_correction_active(active_calibration_surface_data):
     # gamma_0 and gamma_ex should be the same, since gamma_ex is corrected to be "in bulk".
     np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
     np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.1271667835127709e-08)
+    local_drag = 1.1271667835127709e-08 * faxen_factor(
+        shared_pars["distance_to_surface"], shared_pars["bead_diameter"] / 2
+    )
+    np.testing.assert_allclose(fit.results["local_drag_coefficient"].value, local_drag)
     np.testing.assert_allclose(
-        fit.results["local_drag_coefficient"].value,
-        1.1271667835127709e-08
-        * faxen_factor(shared_pars["distance_to_surface"], shared_pars["bead_diameter"] / 2),
+        fit.local_drag_coefficient,
+        local_drag,
     )
 
     # Disabling Faxen's correction on the drag makes the estimates *much* worse
