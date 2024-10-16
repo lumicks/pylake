@@ -1,5 +1,7 @@
+import sys
+
 import numpy as np
-from cachetools import LRUCache, cached
+from cachetools import LRUCache, keys, cached, cachedmethod
 
 global_cache = False
 
@@ -59,3 +61,55 @@ class LazyCache:
 
     def __array__(self):
         return _get_array(self)
+
+
+_method_cache = LRUCache(maxsize=1 << 30, getsizeof=lambda x: sys.getsizeof(x))  # 1 GB of cache
+
+
+def method_cache(name):
+    """A small convenience decorator to incorporate some really basic instance method memoization
+
+    Note: When used on properties, this one should be included _after_ the @property decorator.
+    Data will be stored in the `_cache` variable of the instance.
+
+    Parameters
+    ----------
+    name : str
+        Name of the instance method to memo-ize. Suggestion: the instance method name.
+
+    Examples
+    --------
+    ::
+
+        class Test:
+            def __init__(self):
+                self._cache = {}
+                ...
+
+            @property
+            @method_cache("example_property")
+            def example_property(self):
+                return 10
+
+            @method_cache("example_method")
+            def example_method(self, arguments):
+                return 5
+
+
+        test = Test()
+        test.example_property
+        test.example_method("hi")
+        test._cache
+        # test._cache will now show {('example_property',): 10, ('example_method', 'hi'): 5}
+    """
+
+    # cachetools>=5.0.0 passes self as first argument. We don't want to bump the reference count
+    # by including a reference to the object we're about to store the cache into, so we explicitly
+    # drop the first argument. Note that for the default key, they do the same in the package, but
+    # we can't use the default key, since it doesn't hash in the method name.
+    def key(self, *args, **kwargs):
+        return keys.hashkey(self._location, name, *args, **kwargs)
+
+    return cachedmethod(
+        lambda self: _method_cache if global_cache and self._location else self._cache, key=key
+    )
