@@ -2,60 +2,6 @@ import math
 import contextlib
 
 import numpy as np
-import cachetools
-
-
-def method_cache(name):
-    """A small convenience decorator to incorporate some really basic instance method memoization
-
-    Note: When used on properties, this one should be included _after_ the @property decorator.
-    Data will be stored in the `_cache` variable of the instance.
-
-    Parameters
-    ----------
-    name : str
-        Name of the instance method to memo-ize. Suggestion: the instance method name.
-
-    Examples
-    --------
-    ::
-
-        class Test:
-            def __init__(self):
-                self._cache = {}
-                ...
-
-            @property
-            @method_cache("example_property")
-            def example_property(self):
-                return 10
-
-            @method_cache("example_method")
-            def example_method(self, arguments):
-                return 5
-
-
-        test = Test()
-        test.example_property
-        test.example_method("hi")
-        test._cache
-        # test._cache will now show {('example_property',): 10, ('example_method', 'hi'): 5}
-    """
-    if int(cachetools.__version__.split(".")[0]) < 5:
-
-        def key(*args, **kwargs):
-            return cachetools.keys.hashkey(name, *args, **kwargs)
-
-    else:
-        # cachetools>=5.0.0 started passing self as first argument. We don't want to bump the
-        # reference count by including a reference to the object we're about to store the cache
-        # into, so we explicitly drop the first argument. Note that for the default key, they
-        # do the same in the package, but we can't use the default key, since it doesn't hash
-        # in the method name.
-        def key(_, *args, **kwargs):
-            return cachetools.keys.hashkey(name, *args, **kwargs)
-
-    return cachetools.cachedmethod(lambda self: self._cache, key=key)
 
 
 def use_docstring_from(copy_func):

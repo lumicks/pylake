@@ -13,10 +13,10 @@ from .detail.image import (
     seek_timestamp_next_line,
     first_pixel_sample_indices,
 )
+from .detail.caching import method_cache
 from .detail.confocal import ScanAxis, ScanMetaData, ConfocalImage
 from .detail.plotting import get_axes, show_image
 from .detail.timeindex import to_timestamp
-from .detail.utilities import method_cache
 from .detail.bead_cropping import find_beads_template, find_beads_brightness
 
 
@@ -83,10 +83,22 @@ class Kymo(ConfocalImage):
         Coordinate position offset with respect to the original raw data.
     calibration : PositionCalibration
         Class defining calibration from microns to desired position units.
+    location : str | None
+        Path of the Kymo.
     """
 
-    def __init__(self, name, file, start, stop, metadata, position_offset=0, calibration=None):
-        super().__init__(name, file, start, stop, metadata)
+    def __init__(
+        self,
+        name,
+        file,
+        start,
+        stop,
+        metadata,
+        location=None,
+        position_offset=0,
+        calibration=None,
+    ):
+        super().__init__(name, file, start, stop, metadata, location)
         self._line_time_factory = _default_line_time_factory
         self._line_timestamp_ranges_factory = _default_line_timestamp_ranges_factory
         self._position_offset = position_offset

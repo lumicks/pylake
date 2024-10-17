@@ -10,8 +10,9 @@ from lumicks.pylake.channel import Slice, empty_slice
 
 from .image import reconstruct_image, reconstruct_image_sum
 from .mixin import PhotonCounts, ExcitationLaserPower
+from .caching import method_cache
 from .plotting import parse_color_channel
-from .utilities import method_cache, could_sum_overflow
+from .utilities import could_sum_overflow
 from ..adjustments import no_adjustment
 from .imaging_mixins import TiffExport
 
@@ -208,9 +209,11 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         End point in the relevant info wave.
     metadata : ScanMetaData
         Metadata.
+    location : str | None
+        Path of the confocal object.
     """
 
-    def __init__(self, name, file, start, stop, metadata):
+    def __init__(self, name, file, start, stop, metadata, location):
         self.start = start
         self.stop = stop
         self.name = name
@@ -220,6 +223,7 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         self._timestamp_factory = _default_timestamp_factory
         self._pixelsize_factory = _default_pixelsize_factory
         self._pixelcount_factory = _default_pixelcount_factory
+        self._location = location
         self._cache = {}
 
     def _has_default_factories(self):
@@ -243,12 +247,13 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
         start = h5py_dset.attrs["Start time (ns)"]
         stop = h5py_dset.attrs["Stop time (ns)"]
         name = h5py_dset.name.split("/")[-1]
+        location = file.h5.filename + h5py_dset.name
         try:
             metadata = ScanMetaData.from_json(h5py_dset[()])
         except KeyError:
             raise KeyError(f"{cls.__name__} '{name}' is missing metadata and cannot be loaded")
 
-        return cls(name, file, start, stop, metadata)
+        return cls(name, file, start, stop, metadata, location)
 
     @property
     def file(self):
@@ -269,6 +274,9 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
             start=self.start,
             stop=self.stop,
             metadata=self._metadata,
+            # If it has no location, it will be cached only locally. This is safer than implicitly
+            # caching it under the same location as the parent.
+            location=None,
         )
 
         # Preserve custom factories
