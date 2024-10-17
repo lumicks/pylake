@@ -29,7 +29,7 @@ The easiest way to install Python and SciPy is with `Anaconda`_, a free scientif
 
     .. code-block:: python
 
-        conda create -n pylake
+        conda create -n pylake "python<3.13"
 
 #. The environment can then be activated::
 
@@ -78,7 +78,7 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 
 #. Using the terminal, we will create a new environment for Pylake named pylake by invoking the following command::
 
-    conda create -n pylake
+    conda create -n pylake "python<3.13"
 
 #. The environment can then be activated::
 
@@ -112,7 +112,7 @@ This concludes the Pylake installation procedure. Check out the :doc:`Tutorial <
 
 #. Open `Terminal`. First, we will create a new environment for Pylake named pylake by invoking the following command::
 
-    conda create -n pylake
+    conda create -n pylake "python<3.13"
 
 #. The environment can then be activated by invoking the following::
 
@@ -296,7 +296,7 @@ In China, the installation instructions as presented above can be slow. The foll
 First, follow the first 3 steps of the installation instructions at the top of this page.
 Next, create a new environment::
 
-    conda create -n pylake conda=23.7.2
+    conda create -n pylake "python<3.13"
 
 Activate the environment as follows::
 
@@ -309,7 +309,7 @@ Install pip in the activated environment by invoking::
 
 Then install Pylake and Jupyter Notebook as follows::
 
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake[notebook]
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple "lumicks.pylake[notebook]"
 
 Next, you can start Jupyter Notebook by typing::
 
