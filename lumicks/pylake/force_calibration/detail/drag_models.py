@@ -14,7 +14,7 @@ def faxen_factor(distance_to_surface_m, radius_m):
 
     Parameters
     ----------
-    distance_to_surface_m : float
+    distance_to_surface_m : array_like | float
         Distance from the center of the bead to the surface [m]
     radius_m : float
         Radius of the bead [m]
@@ -31,7 +31,7 @@ def faxen_factor(distance_to_surface_m, radius_m):
 
 
 def brenner_axial(distance_to_surface_m, radius_m):
-    """Brenner factor for lateral drag coefficient.
+    """Brenner factor for axial drag coefficient.
 
     This factor provides a correction to the drag force for a nearby wall.
 
@@ -41,7 +41,7 @@ def brenner_axial(distance_to_surface_m, radius_m):
 
     Parameters
     ----------
-    distance_to_surface_m : float
+    distance_to_surface_m : array_like | float
         Distance from the center of the bead to the surface [m]
     radius_m : float
         Radius of the bead [m]
