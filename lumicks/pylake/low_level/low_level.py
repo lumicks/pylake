@@ -32,7 +32,9 @@ def create_confocal_object(
     metadata = ScanMetaData.from_json(json_metadata)
     file = ConfocalFileProxy(infowave, red_channel, green_channel, blue_channel)
     confocal_cls = {0: PointScan, 1: Kymo, 2: Scan}
-    return confocal_cls[metadata.num_axes](name, file, infowave.start, infowave.stop, metadata)
+    return confocal_cls[metadata.num_axes](
+        name, file, infowave.start, infowave.stop, metadata, location=None
+    )
 
 
 def make_continuous_slice(data, start, dt, y_label="y", name="") -> Slice:

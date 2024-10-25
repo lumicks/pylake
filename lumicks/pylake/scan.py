@@ -5,9 +5,9 @@ import numpy as np
 
 from .adjustments import colormaps, no_adjustment
 from .detail.image import make_image_title, reconstruct_num_frames, first_pixel_sample_indices
+from .detail.caching import method_cache
 from .detail.confocal import ConfocalImage
 from .detail.plotting import get_axes, show_image
-from .detail.utilities import method_cache
 from .detail.imaging_mixins import FrameIndex, VideoExport
 
 
@@ -26,10 +26,12 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         End point in the relevant info wave.
     metadata : ScanMetaData
         Metadata.
+    location : str | None
+        Path of the Scan.
     """
 
-    def __init__(self, name, file, start, stop, metadata):
-        super().__init__(name, file, start, stop, metadata)
+    def __init__(self, name, file, start, stop, metadata, location=None):
+        super().__init__(name, file, start, stop, metadata, location)
         if self._metadata.num_axes == 1:
             raise RuntimeError("1D scans are not supported")
         if self._metadata.num_axes > 2:
