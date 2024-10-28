@@ -11,12 +11,16 @@
 * Added force calibration information to channels accessed directly via the square bracket notation (e.g. `file["Force HF"]["Force 1x"].calibration`).
 * Calibration results and parameters are now accessible via properties which are listed when items are printed. See [calibration results](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html) and [calibration item](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html) API documentation for more information.
 * Added `applied_at` property to a [calibration item](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html) obtained from a force slice. This property returns the timestamp in nanoseconds at which the force calibration was applied.
-* Added improved printing of calibration items under `channel.calibration` providing a more convenient overview of the items associated with a `Slice`.
-* Added improved printing of calibrations performed with `Pylake`.
 * Added property `diode_calibration` to access diode calibration model, and `trap_power` to access the used trap power in [calibration item](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html).
 * Added parameter `titles` to customize title of each subplot in [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
 * Added [`KymoTrack.sample_from_channel()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_channel) to downsample channel data to the time points of a kymotrack.
 * Added support for file names with spaces in [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi).
+
+#### Improvements
+
+* Added improved printing of calibration items under `channel.calibration` providing a more convenient overview of the items associated with a `Slice`.
+* Added improved printing of calibrations performed with `Pylake`.
+* Improved error message that includes the name of the model when trying to access a model that was not added in an [`FdFit`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.FdFit.html) using angular brackets.
 
 ## v1.5.3 | 2024-10-29
 

@@ -67,7 +67,12 @@ class Fit:
 
     def __getitem__(self, item):
         if isinstance(item, Model):
-            return self.datasets[item.uuid]
+            try:
+                return self.datasets[item.uuid]
+            except KeyError:
+                raise KeyError(
+                    f"Model with name {item.name} not found in fit. Did you forget to add it?"
+                ) from None
         elif len(self.datasets) == 1 and item in front(self.datasets.values()).names:
             return self.params[front(self.datasets.values()).data[item]]
         else:
