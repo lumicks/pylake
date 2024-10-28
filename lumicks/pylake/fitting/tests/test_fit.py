@@ -454,6 +454,17 @@ def test_no_free_parameters():
         fit.fit()
 
 
+def test_forgot_to_add_items():
+    m = ewlc_odijk_force("DNA")
+    m2 = ewlc_odijk_force("DNA_with_handles")
+    fit = FdFit(m)
+    with pytest.raises(
+        KeyError,
+        match=r"Model with name DNA_with_handles not found in fit. Did you forget to add it?",
+    ):
+        fit[m2]
+
+
 def test_parameter_access():
     m = ewlc_odijk_force("DNA")
     fit = FdFit(m)
