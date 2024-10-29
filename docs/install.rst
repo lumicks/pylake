@@ -296,7 +296,7 @@ In China, the installation instructions as presented above can be slow. The foll
 First, follow the first 3 steps of the installation instructions at the top of this page.
 Next, create a new environment::
 
-    conda create -n pylake conda=23.7.2
+    conda create -n pylake
 
 Activate the environment as follows::
 
@@ -309,7 +309,7 @@ Install pip in the activated environment by invoking::
 
 Then install Pylake and Jupyter Notebook as follows::
 
-    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple lumicks.pylake[notebook]
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple "lumicks.pylake[notebook]"
 
 Next, you can start Jupyter Notebook by typing::
 

@@ -79,7 +79,7 @@ Next we'll decalibrate the force data back to the original voltage measured by t
 
     def decalibrate(force_slice):
         offset = force_slice.calibration[0]["Offset (pN)"]
-        response = force_slice.calibration[0]["Rf (pN/V)"]
+        response = force_slice.calibration[0]["Response (pN/V)"]
         return (force_slice - offset) / response
 
     volts = decalibrate(force_slice)

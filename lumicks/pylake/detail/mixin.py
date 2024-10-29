@@ -206,22 +206,29 @@ class ExcitationLaserPower:
 
     def _get_laser_power(self, name):
         power_data = self.file["Confocal diagnostics"][f"Excitation Laser {name}"]
-        # fetch the timestamp of the last datapoint before the beginning of the item
-        start_time = power_data[: self.start].timestamps[-1]
+
+        # fetch the timestamp of the last datapoint before the beginning of this item
+        start_time = (
+            before_item.timestamps[-1] if (before_item := power_data[: self.start]) else self.start
+        )
         return power_data[start_time : self.stop]
 
     @property
     def red_power(self) -> Slice:
+        """Red excitation laser power"""
         return _try_get_or_empty(self._get_laser_power, "Red")
 
     @property
     def green_power(self) -> Slice:
+        """Green excitation laser power"""
         return _try_get_or_empty(self._get_laser_power, "Green")
 
     @property
     def blue_power(self) -> Slice:
+        """Blue excitation laser power"""
         return _try_get_or_empty(self._get_laser_power, "Blue")
 
     @property
     def sted_power(self) -> Slice:
+        """STED laser power"""
         return _try_get_or_empty(self._get_laser_power, "Sted")

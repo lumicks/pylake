@@ -45,11 +45,11 @@ def test_groups(h5_file):
     if f.format_version == 1:
         assert str(f["Force HF"]) == "{'Force 1x', 'Force 1y', 'Force 1z'}"
 
-        for x in range(0, 2):
+        for _ in range(0, 2):
             t = [name for name in f]
             assert set(t) == set(f)
 
-        for x in range(0, 2):
+        for _ in range(0, 2):
             t = [name for name in f["Force HF"]]
             assert set(t) == set(["Force 1x", "Force 1y", "Force 1z"])
 
@@ -162,6 +162,16 @@ def test_repr_and_str(h5_file):
             - File format version: 2
             - GUID: invalid
 
+            Confocal diagnostics:
+              Excitation Laser Blue:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 0
+              Excitation Laser Green:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 2
+              Excitation Laser Red:
+              - Data type: [('Timestamp', '<i8'), ('Value', '<f8')]
+              - Size: 4
             Force HF:
               Force 1x:
               - Data type: float64
@@ -244,8 +254,8 @@ def test_repr_and_str(h5_file):
 
 
 def test_invalid_file_format(h5_file_invalid_version):
-    with pytest.raises(Exception):
-        f = pylake.File.from_h5py(h5_file_invalid_version)
+    with pytest.raises(Exception, match="Unsupported Bluelake file format version 254"):
+        _ = pylake.File.from_h5py(h5_file_invalid_version)
 
 
 def test_missing_metadata(h5_file_missing_meta):
@@ -382,7 +392,7 @@ def test_h5_cropped_export_channels(tmpdir_factory, save_h5):
 
     mock_class = MockDataFile_v2
     tmpdir = tmpdir_factory.mktemp("pylake")
-    mock_file = mock_class(tmpdir.join(f"channels_to_crop.h5"))
+    mock_file = mock_class(tmpdir.join("channels_to_crop.h5"))
     mock_file.write_metadata()
     mock_file.make_continuous_channel("Force HF", "Force 1x", start, dt, np.arange(10.0))
     for ix, t in enumerate(calibration_points):
@@ -399,7 +409,7 @@ def test_h5_cropped_export_channels(tmpdir_factory, save_h5):
         return pylake.File(target_file)
 
     ref_tags = np.arange(start, start + 10 * dt, dt, dtype=np.int64)
-    for ix, (crop, result, ref_tags, ref_calib) in enumerate(
+    for ix, (crop, result, tags, ref_calib) in enumerate(
         (
             ((start + 5 * dt, start + 100 * dt), np.arange(5.0, 10.0), ref_tags[5:10], [2]),
             ((start + 5 * dt, start + 8 * dt), np.arange(5.0, 8.0), ref_tags[5:8], [2]),
@@ -415,10 +425,10 @@ def test_h5_cropped_export_channels(tmpdir_factory, save_h5):
             for c, c_ref in zip(f.force1x.calibration, ref_calib):
                 assert c["s"] == str(c_ref)
 
-            np.testing.assert_allclose(f.force1x.timestamps, ref_tags)
+            np.testing.assert_allclose(f.force1x.timestamps, tags)
             np.testing.assert_allclose(f["Low Freq"]["Yes"].data, result)
-            np.testing.assert_allclose(f["Low Freq"]["Yes"].timestamps, ref_tags)
-            np.testing.assert_allclose(f["TimeTags"]["They Exist?"].timestamps, ref_tags)
+            np.testing.assert_allclose(f["Low Freq"]["Yes"].timestamps, tags)
+            np.testing.assert_allclose(f["TimeTags"]["They Exist?"].timestamps, tags)
         else:
             # Channels will not be there if they are sliced off
             assert not f.force1x
@@ -448,7 +458,7 @@ def test_h5_cropped_export_confocal(tmpdir_factory):
     stop = start + len(infowave) * dt
     mock_class = MockDataFile_v2
     tmpdir = tmpdir_factory.mktemp("pylake")
-    mock_file = mock_class(tmpdir.join(f"channels_to_crop.h5"))
+    mock_file = mock_class(tmpdir.join("channels_to_crop.h5"))
     mock_file.write_metadata()
     mock_file.make_continuous_channel("Photon count", "Red", start, dt, photon_counts)
     mock_file.make_continuous_channel("Photon count", "Green", start, dt, photon_counts)

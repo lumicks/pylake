@@ -1656,7 +1656,7 @@ class KymoTrackGroup:
                     ]
                 )
             )
-            if np.all(min_observation_time) is None:
+            if None in np.asarray(min_observation_time):
                 raise RuntimeError(
                     "Minimum observation time unavailable in KymoTrackGroup (tracking was "
                     "performed prior to version `1.2.0`). The minimum observable time will be "

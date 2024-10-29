@@ -181,8 +181,8 @@ def _fit_power_spectra(
         solution_params_scaled = np.abs(minimize_result.x)
         solution_params = scaled_model.scale_params(solution_params_scaled)
 
-        # Return NaN for perr, as scipy.optimize.minimize does not return the covariance matrix
-        perr = np.NaN * np.ones_like(solution_params)
+        # Return nan for perr, as scipy.optimize.minimize does not return the covariance matrix
+        perr = np.nan * np.ones_like(solution_params)
 
     chi_squared = np.sum(((1 / model(frequencies, *solution_params) - 1 / powers) / sigma) ** 2)
 

@@ -18,6 +18,18 @@
 * Added [`KymoTrack.sample_from_channel()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_channel) to downsample channel data to the time points of a kymotrack.
 * Added support for file names with spaces in [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi).
 
+## v1.5.3 | 2024-10-29
+
+#### Bug fixes
+
+* Fixed a bug where an inverted force-distance [`Model`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.fitting.model.Model.html) would raise when called with a scalar value. Now it just returns the expected value.
+* Fixed a bug that would lead to a division by zero warning when performing no color adjustment on a [`Scan`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.scan.Scan.html) or [`Kymo`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.kymo.Kymo.html) with zero photon counts.
+* Fixed a bug resulting in an exception when trying to read the excitation powers from a confocal object using [`Kymo.red_power`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.red_power),  [`Kymo.green_power`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.green_power), [`Kymo.blue_power`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.blue_power),  [`Kymo.sted_power`](https://lumicks-pylake.readthedocs.io/en/v1.5.3/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.sted_power).
+
+#### Other changes
+
+* Added support for python `3.13`. Removed upper bound on `numpy` version.
+
 ## v1.5.2 | 2024-07-24
 
 #### Improvements

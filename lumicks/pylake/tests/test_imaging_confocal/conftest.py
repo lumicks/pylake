@@ -25,7 +25,7 @@ channel_map = {"r": 0, "g": 1, "b": 2}
 @pytest.fixture(scope="module")
 def test_kymo():
     # RGB Kymo with infowave as expected from BL
-    image = np.random.poisson(5, size=(5, 10, 3))
+    image = np.random.default_rng(42).poisson(5, size=(5, 10, 3))
 
     kymo, ref = generate_kymo_with_ref(
         "tester",
@@ -42,7 +42,7 @@ def test_kymo():
 
 @pytest.fixture(scope="module")
 def truncated_kymo():
-    image = np.random.poisson(5, size=(5, 4, 3))
+    image = np.random.default_rng(42).poisson(5, size=(5, 4, 3))
 
     kymo, ref = generate_kymo_with_ref(
         "truncated",
@@ -230,7 +230,8 @@ def kymo_h5_file(tmpdir_factory, test_kymo):
 @pytest.fixture(scope="module")
 def test_point_scan():
     n_samples = 90
-    data = {c: np.random.poisson(15, n_samples) for c in ("red", "green", "blue")}
+    rng = np.random.default_rng(42)
+    data = {c: rng.poisson(15, n_samples) for c in ("red", "green", "blue")}
 
     point_scan = mock_confocal_from_arrays(
         "PointScan1",
@@ -257,7 +258,7 @@ def test_point_scan():
 
 @pytest.fixture(scope="module")
 def test_scans():
-    image = np.random.poisson(5, size=(4, 5, 3))
+    image = np.random.default_rng(42).poisson(5, size=(4, 5, 3))
     return {
         (name := f"fast {axes[0]} slow {axes[1]}"): generate_scan_with_ref(
             name,
@@ -276,7 +277,7 @@ def test_scans():
 
 @pytest.fixture(scope="module")
 def test_scans_multiframe():
-    image = np.random.poisson(5, size=(10, 4, 5, 3))
+    image = np.random.default_rng(42).poisson(5, size=(10, 4, 5, 3))
     return {
         (name := f"fast {axes[0]} slow {axes[1]} multiframe"): generate_scan_with_ref(
             name,
@@ -296,9 +297,10 @@ def test_scans_multiframe():
 @pytest.fixture(scope="module")
 def test_scan_missing_channels():
     empty = Slice(Continuous([], start=start, dt=dt))
+    rng = np.random.default_rng(42)
 
     def make_data(*missing_channels):
-        image = np.random.poisson(5, size=(4, 5, 3))
+        image = rng.poisson(5, size=(4, 5, 3))
         for channel in missing_channels:
             image[:, :, channel_map[channel[0]]] = 0
 
@@ -324,7 +326,7 @@ def test_scan_missing_channels():
 
 @pytest.fixture(scope="module")
 def test_scan_truncated():
-    image = np.random.poisson(5, size=(2, 4, 5, 3))
+    image = np.random.default_rng(42).poisson(5, size=(2, 4, 5, 3))
     scan, ref = generate_scan_with_ref(
         "truncated",
         image,
@@ -342,7 +344,7 @@ def test_scan_truncated():
 
 @pytest.fixture(scope="module")
 def test_scan_sted_bug():
-    image = np.random.poisson(5, size=(2, 4, 5, 3))
+    image = np.random.default_rng(42).poisson(5, size=(2, 4, 5, 3))
     scan, ref = generate_scan_with_ref(
         "sted bug",
         image,
@@ -369,7 +371,7 @@ def test_scan_slicing():
 
     scan, ref = generate_scan_with_ref(
         "slicing",
-        np.random.poisson(5, size=(10, 2, 2, 3)),
+        np.random.default_rng(42).poisson(5, size=(10, 2, 2, 3)),
         pixel_sizes_nm=[50, 50],
         axes=[1, 0],
         start=start - line_padding * dt,
