@@ -75,25 +75,10 @@ def test_redirect_list(h5_file):
         assert f["Point Scan"]["PointScan1"].start == np.int64(20e9)
 
 
-def test_calibration_str(h5_file, monkeypatch):
-    # Representation of time is timezone and locale dependent, hence we monkeypatch it
-    class FakeDateTime:
-        @classmethod
-        def fromtimestamp(cls, timestamp, *args, **kwargs):
-            """Inject a timezone"""
-            return FakeDateTime()
-
-        def strftime(self, str_format):
-            return str_format
-
+def test_calibration_str(h5_file, mock_datetime):
     f = pylake.File.from_h5py(h5_file)
     if f.format_version == 2:
-        with monkeypatch.context() as m:
-            m.setattr(
-                "lumicks.pylake.calibration.datetime.datetime",
-                FakeDateTime,
-            )
-
+        with mock_datetime("lumicks.pylake.calibration.datetime.datetime"):
             assert str(f.force1x.calibration) == dedent(
                 (
                     """\

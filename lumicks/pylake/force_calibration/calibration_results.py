@@ -52,9 +52,13 @@ class CalibrationResults(CalibrationPropertiesMixin):
 
     def _with_timestamp(self, applied_timestamp):
         """Return a copy of this item with a timestamp of when it was applied"""
+        from lumicks.pylake.force_calibration.power_spectrum_calibration import CalibrationParameter
+
         item = copy.copy(self)
         item.params = copy.deepcopy(self.params)
-        item.params["Timestamp (ns)"] = applied_timestamp
+        item.params["Timestamp"] = CalibrationParameter(
+            "Timestamp when item was applied", applied_timestamp, "nanoseconds"
+        )
         return item
 
     def __contains__(self, key):
