@@ -5,13 +5,13 @@ from tabulate import tabulate
 from lumicks.pylake.force_calibration.calibration_item import ForceCalibrationItem
 
 
-def _filter_calibration(time_field, items, start, stop):
+def _filter_calibration(items, start, stop):
     """filter calibration data based on time stamp range [ns]"""
     if len(items) == 0:
         return []
 
     def timestamp(x):
-        return x[time_field]
+        return x.stop if x.stop else x.applied_at  # Pylake items do not have a start and stop (yet)
 
     items = sorted(items, key=timestamp)
 
@@ -38,25 +38,22 @@ class ForceCalibrationList:
         calibration = f.force1x.calibration[1]  # Grab a calibration item for force 1x
     """
 
-    def __init__(self, time_field, items, slice_start=None, slice_stop=None):
+    def __init__(self, items, slice_start=None, slice_stop=None):
         """Calibration item
 
         Parameters
         ----------
-        time_field : string
-            name of the field used for time
         items : list[ForceCalibrationItem]
             list of force calibration items
         slice_start, slice_stop : int
             Start and stop index of the slice associated with these items
         """
-        self._time_field = time_field
         self._src = items
         self._slice_start = slice_start
         self._slice_stop = slice_stop
 
     def _with_src(self, _src):
-        return ForceCalibrationList(self._time_field, _src)
+        return ForceCalibrationList(_src)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -86,14 +83,13 @@ class ForceCalibrationList:
         stop  : int
             time stamp at stop [ns]"""
         return ForceCalibrationList(
-            self._time_field,
-            _filter_calibration(self._time_field, self._src, start, stop),
+            _filter_calibration(self._src, start, stop),
             start,
             stop,
         )
 
     @staticmethod
-    def from_field(hdf5, force_channel, time_field="Stop time (ns)") -> "ForceCalibrationList":
+    def from_field(hdf5, force_channel) -> "ForceCalibrationList":
         """Fetch force calibration data from the HDF5 file
 
         Parameters
@@ -102,23 +98,25 @@ class ForceCalibrationList:
             A Bluelake HDF5 file.
         force_channel : str
             Calibration field to access (e.g. "Force 1x").
-        time_field : str
-            Attribute which holds the timestamp of the item (e.g. "Stop time (ns)").
         """
 
         if "Calibration" not in hdf5.keys():
-            return ForceCalibrationList(time_field=time_field, items=[])
+            return ForceCalibrationList(items=[])
 
         items = []
         for calibration_item in hdf5["Calibration"].values():
             if force_channel in calibration_item:
                 attrs = dict(calibration_item[force_channel].attrs)
-                if time_field in attrs.keys():
-                    # Copy the timestamp at which the calibration was applied into the item
-                    attrs["Timestamp (ns)"] = calibration_item.attrs.get("Timestamp (ns)")
-                    items.append(ForceCalibrationItem(attrs))
 
-        return ForceCalibrationList(time_field=time_field, items=items)
+                # Copy the timestamp at which the calibration was applied into the item
+                attrs["Timestamp (ns)"] = calibration_item.attrs.get("Timestamp (ns)")
+                items.append(ForceCalibrationItem(attrs))
+
+        return ForceCalibrationList._from_items(items)
+
+    @staticmethod
+    def _from_items(items: list[ForceCalibrationItem]):
+        return ForceCalibrationList(items=items)
 
     def _print_summary(self, tablefmt):
         def format_timestamp(timestamp):
@@ -139,11 +137,15 @@ class ForceCalibrationList:
                     ),
                     item.hydrodynamically_correct,
                     item.distance_to_surface is not None,
-                    bool(
-                        self._slice_start
-                        and (item.start >= self._slice_start)
-                        and self._slice_stop
-                        and (item.stop <= self._slice_stop)
+                    (
+                        bool(
+                            self._slice_start
+                            and (item.start >= self._slice_start)
+                            and self._slice_stop
+                            and (item.stop <= self._slice_stop)
+                        )
+                        if item.start and item.stop
+                        else False
                     ),
                 )
                 for idx, item in enumerate(self._src)
@@ -169,7 +171,7 @@ class ForceCalibrationList:
         return self._print_summary(tablefmt="text")
 
     @staticmethod
-    def from_dataset(hdf5, n, xy, time_field="Stop time (ns)") -> "ForceCalibrationList":
+    def from_dataset(hdf5, n, xy) -> "ForceCalibrationList":
         """Fetch the force calibration data from the HDF5 file
 
         Parameters
@@ -180,14 +182,10 @@ class ForceCalibrationList:
             Trap index.
         xy : str
             Force axis (e.g. "x").
-        time_field : str
-            Attribute which holds the timestamp of the item (e.g. "Stop time (ns)").
         """
 
         if xy:
-            return ForceCalibrationList.from_field(
-                hdf5, force_channel=f"Force {n}{xy}", time_field=time_field
-            )
+            return ForceCalibrationList.from_field(hdf5, force_channel=f"Force {n}{xy}")
         else:
             raise NotImplementedError(
                 "Calibration is currently only implemented for single axis data"
