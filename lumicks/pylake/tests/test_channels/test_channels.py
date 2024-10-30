@@ -9,7 +9,7 @@ import matplotlib as mpl
 
 from lumicks.pylake import channel
 from lumicks.pylake.low_level import make_continuous_slice
-from lumicks.pylake.calibration import ForceCalibrationList
+from lumicks.pylake.calibration import ForceCalibrationItem, ForceCalibrationList
 
 
 def with_offset(t, start_time=1592916040906356300):
@@ -18,16 +18,15 @@ def with_offset(t, start_time=1592916040906356300):
 
 def test_calibration_timeseries_channels():
     time_field = "Stop time (ns)"
-    mock_calibration = ForceCalibrationList(
-        time_field=time_field,
+    mock_calibration = ForceCalibrationList._from_items(
         items=[
-            {"Calibration Data": 50, time_field: 50},
-            {"Calibration Data": 20, time_field: 20},
-            {"Calibration Data": 30, time_field: 30},
-            {"Calibration Data": 40, time_field: 40},
-            {"Calibration Data": 80, time_field: 80},
-            {"Calibration Data": 90, time_field: 90},
-            {"Calibration Data": 120, time_field: 120},
+            ForceCalibrationItem({"Calibration Data": 50, time_field: 50}),
+            ForceCalibrationItem({"Calibration Data": 20, time_field: 20}),
+            ForceCalibrationItem({"Calibration Data": 30, time_field: 30}),
+            ForceCalibrationItem({"Calibration Data": 40, time_field: 40}),
+            ForceCalibrationItem({"Calibration Data": 80, time_field: 80}),
+            ForceCalibrationItem({"Calibration Data": 90, time_field: 90}),
+            ForceCalibrationItem({"Calibration Data": 120, time_field: 120}),
         ],
     )
 
@@ -72,16 +71,15 @@ def test_calibration_timeseries_channels():
 
 def test_calibration_continuous_channels():
     time_field = "Stop time (ns)"
-    mock_calibration = ForceCalibrationList(
-        time_field=time_field,
+    mock_calibration = ForceCalibrationList._from_items(
         items=[
-            {"Calibration Data": 50, time_field: 50},
-            {"Calibration Data": 20, time_field: 20},
-            {"Calibration Data": 30, time_field: 30},
-            {"Calibration Data": 40, time_field: 40},
-            {"Calibration Data": 80, time_field: 80},
-            {"Calibration Data": 90, time_field: 90},
-            {"Calibration Data": 120, time_field: 120},
+            ForceCalibrationItem({"Calibration Data": 50, time_field: 50}),
+            ForceCalibrationItem({"Calibration Data": 20, time_field: 20}),
+            ForceCalibrationItem({"Calibration Data": 30, time_field: 30}),
+            ForceCalibrationItem({"Calibration Data": 40, time_field: 40}),
+            ForceCalibrationItem({"Calibration Data": 80, time_field: 80}),
+            ForceCalibrationItem({"Calibration Data": 90, time_field: 90}),
+            ForceCalibrationItem({"Calibration Data": 120, time_field: 120}),
         ],
     )
 
@@ -263,8 +261,8 @@ def test_timeseries_indexing():
 
 def test_timeseries_mask():
     """Test masking operation"""
-    calibration = ForceCalibrationList(
-        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
+    calibration = ForceCalibrationList._from_items(
+        [ForceCalibrationItem({"Stop time (ns)": 1, "kappa (pN/nm)": 0.45})]
     )
     s = channel.Slice(
         channel.TimeSeries([14, 15, 16, 17], [4, 5, 6, 7]),
@@ -341,8 +339,8 @@ def test_continuous_indexing():
 
 def test_continuous_mask():
     """Test masking operation"""
-    calibration = ForceCalibrationList(
-        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": 0.45}]
+    calibration = ForceCalibrationList._from_items(
+        [ForceCalibrationItem({"Stop time (ns)": 1, "kappa (pN/nm)": 0.45})]
     )
     s = channel.Slice(
         channel.Continuous([14, 15, 16, 17], 4, 1),

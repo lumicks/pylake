@@ -29,11 +29,6 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             return self[bluelake_key]
 
     @property
-    def applied_at(self):
-        """Time the calibration was applied in nanoseconds since epoch"""
-        return self.data.get("Timestamp (ns)")
-
-    @property
     def _fitted_diode(self):
         """Diode parameters were fitted"""
         return "f_diode (Hz)" in self or "alpha" in self
@@ -241,28 +236,3 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         """Number of points per block used for spectral down-sampling"""
         if "Points per block" in self.data:
             return int(self.data["Points per block"])  # BL returns float which API doesn't accept
-
-    @property
-    def start(self):
-        """Starting timestamp of this calibration
-
-        Examples
-        --------
-        ::
-
-            import lumicks.pylake as lk
-
-            f = lk.File("file.h5")
-            item = f.force1x.calibration[1]  # Grab a calibration item for force 1x
-
-            # Slice the data corresponding to this item
-            calibration_data = f.force1x[item.start : item.stop]
-
-            # or alternatively:
-            calibration_data = f.force1x[item]
-        """
-        return self.data.get("Start time (ns)")
-
-    @property
-    def stop(self):
-        return self.data.get("Stop time (ns)")

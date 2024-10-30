@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from lumicks.pylake.channel import Slice, Continuous, TimeSeries
-from lumicks.pylake.calibration import ForceCalibrationList
+from lumicks.pylake.calibration import ForceCalibrationItem, ForceCalibrationList
 from lumicks.pylake.fitting.models import ewlc_odijk_force
 
 
@@ -77,13 +77,13 @@ def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
     If we assume that the baseline force leads to a real displacement, then our function for the
     trap position becomes implicit, since the displacement depends on the baseline which in turn
     depends on the trap position:
-    
+
         trap_trap_distance = tether_length + 2 * bead_radius + 2 * displacement_um
-    
+
         And displacement_um is given by (wlc_force + baseline(trap_position)) / stiffness
 
     So we solve the following to obtain the trap position:
-    
+
         displacement = 2 * (wlc_force + baseline(trap_position)) / stiffness
         0 = tether_length + 2 * bead_radius + displacement - (trap_position - trap2_ref)
     """
@@ -95,8 +95,10 @@ def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
 
         def implicit_trap_position_equation(x):
             trap_trap_dist = x - trap2_ref
-            displacement = 2 * (force + baseline(x)) / stiffness_um
-            return (tether_dist + 2 * bead_radius + displacement - trap_trap_dist) ** 2
+            displacement = 2 * (force + baseline(x)) / stiffness_um  # noqa: B023
+            return (
+                tether_dist + 2 * bead_radius + displacement - trap_trap_dist  # noqa: B023
+            ) ** 2
 
         trap_position.append(minimize_scalar(implicit_trap_position_equation, [12.95, 13.35]).x)
 
@@ -105,8 +107,8 @@ def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
     # Add our baseline force (assumption is that the baseline force leads to a real displacement)
     force_pn = wlc_force + baseline(trap_position.data)
 
-    calibration = ForceCalibrationList(
-        "Stop time (ns)", [{"Stop time (ns)": 1, "kappa (pN/nm)": stiffness}]
+    calibration = ForceCalibrationList._from_items(
+        [ForceCalibrationItem({"Stop time (ns)": 1, "kappa (pN/nm)": stiffness})]
     )
 
     force_1x = Slice(Continuous(force_pn, 0, dt), calibration=calibration)
