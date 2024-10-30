@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.6.1 | t.b.d.
+## v1.7.0 | t.b.d.
 
 #### New features
 

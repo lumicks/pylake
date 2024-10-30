@@ -1,4 +1,5 @@
 import re
+import textwrap
 from collections import namedtuple
 from dataclasses import dataclass
 
@@ -10,6 +11,7 @@ import matplotlib as mpl
 from lumicks.pylake import channel
 from lumicks.pylake.low_level import make_continuous_slice
 from lumicks.pylake.calibration import ForceCalibrationItem, ForceCalibrationList
+from lumicks.pylake.force_calibration import power_spectrum_calibration as psc
 
 
 def with_offset(t, start_time=1592916040906356300):
@@ -1006,3 +1008,89 @@ def test_low_level_construction():
     slc = make_continuous_slice(data, start, int(1e9 / 78125), name="hi", y_label="there")
     assert slc.labels["title"] == "hi"
     assert slc.labels["y"] == "there"
+
+
+def test_recalibrate_force_wrong_number_of_calibrations():
+    cc = channel.Slice(
+        channel.Continuous(np.arange(100), int(with_offset(40)), 10),
+        calibration=ForceCalibrationList([]),
+    )
+    with pytest.raises(RuntimeError, match="Slice does not contain any calibration items"):
+        cc.recalibrate_force(None)
+
+
+def make_calibration_item(response, applied_at):
+    return ForceCalibrationItem(
+        {
+            "Calibration Data": 50,
+            "Stop time (ns)": with_offset(50),
+            "Timestamp (ns)": with_offset(applied_at),
+            "Response (pN/V)": response,
+        }
+    )
+
+
+def make_calibration_result(calibration_factor):
+    return psc.CalibrationResults(
+        model=None,
+        ps_model=None,
+        ps_data=None,
+        params={},
+        results={
+            "Rf": psc.CalibrationParameter("Rf", calibration_factor, "val"),
+            "kappa": psc.CalibrationParameter("kappa", 5, "val"),
+        },
+        fitted_params=[],
+    )
+
+
+def test_recalibrate_force(mock_datetime):
+    slc = channel.Slice(
+        channel.Continuous(np.arange(100), with_offset(40), 10),
+        calibration=ForceCalibrationList._from_items([make_calibration_item(10, 40)]),
+    )
+
+    slc_recalibrated = slc.recalibrate_force(make_calibration_result(5))
+    np.testing.assert_allclose(slc.data, np.arange(100))
+    np.testing.assert_allclose(slc_recalibrated.data, np.arange(100) * 0.5)
+    assert slc.calibration[0].force_sensitivity == 10
+    assert slc_recalibrated.calibration[0].force_sensitivity == 5
+
+    with mock_datetime("lumicks.pylake.calibration.datetime.datetime"):
+        assert str(slc_recalibrated.calibration) == textwrap.dedent(
+            """\
+              #  Applied at    Kind       Stiffness (pN/nm)    Force sens. (pN/V)  Disp. sens. (µm/V)    Hydro    Surface    Data?
+            ---  ------------  -------  -------------------  --------------------  --------------------  -------  ---------  -------
+              0  %x %X         Unknown                    5                     5  N/A                   False    False      False"""
+        )
+    slc_recalibrated.calibration._repr_html_()
+
+    slc_recalibrate_twice = slc.recalibrate_force(make_calibration_result(10))
+    np.testing.assert_allclose(slc_recalibrated.data, np.arange(100) * 0.5)
+    np.testing.assert_allclose(slc_recalibrate_twice.data, np.arange(100))
+    assert slc_recalibrated.calibration[0].force_sensitivity == 5
+    assert slc_recalibrate_twice.calibration[0].force_sensitivity == 10
+
+
+@pytest.mark.parametrize(
+    "items, ref_forces",
+    [
+        (((10, 40), (20, 60), (40, 80)), [10, 10, 5, 5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5]),
+        (((10, 40), (40, 60), (40, 80)), [10, 10, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5]),
+        (((10, 40), (20, 60)), [10, 10, 5, 5, 5, 5, 5, 5, 5, 5]),
+        (((10, 40), (20, 61)), [10, 10, 10, 5, 5, 5, 5, 5, 5, 5]),
+        (((10, 40), (20, 50000)), [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]),
+        # If there is no calibration at the start, we cannot meaningfully decalibrate, so we
+        # emit np.nan
+        ([(20, 60)], [np.nan, np.nan, 5, 5, 5, 5, 5, 5, 5, 5]),
+    ],
+)
+def test_recalibrate_force_multi(items, ref_forces):
+    slc = channel.Slice(
+        channel.Continuous(np.full(10, 10), with_offset(40), 10),
+        calibration=ForceCalibrationList._from_items(
+            [make_calibration_item(response, applied_at) for response, applied_at in items]
+        ),
+    )
+    slc_recal = slc.recalibrate_force(make_calibration_result(10))
+    np.testing.assert_equal(slc_recal.data, np.array(ref_forces))
