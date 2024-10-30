@@ -160,11 +160,9 @@ We can also see that the residual now should less systematic deviation::
 
 .. image:: figures/residual_better.png
 
-Now that we have our new calibration item, we can recalibrate a slice of force data.
-To do so, take the slice and multiply it by the ratio of the old and new calibration factors::
+Now that we have our new calibration item, we can recalibrate a slice of force data::
 
-    correction_factor = recalibrated_hyco.force_sensitivity / old_calibration.force_sensitivity
-    recalibrated_force1x = force1x_slice * correction_factor
+    recalibrated_force1x = force1x_slice.recalibrate_force(recalibrated_hyco)
 
     plt.figure()
     force1x_slice.plot()
