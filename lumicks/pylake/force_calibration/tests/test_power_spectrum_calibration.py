@@ -224,6 +224,13 @@ def test_bad_fit(reference_calibration_result):
     assert ps_calibration["backing"].value > bad_calibration["backing"].value
 
 
+def test_applied_at(reference_calibration_result):
+    calibration = reference_calibration_result[0]
+    assert calibration.applied_at is None
+    new_calibration = calibration._with_timestamp(1696171386701856701)
+    assert new_calibration.applied_at == 1696171386701856701
+
+
 def test_actual_spectrum(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
 

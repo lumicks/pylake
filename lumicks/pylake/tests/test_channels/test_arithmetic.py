@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 
 from lumicks.pylake.channel import Slice, TimeTags, Continuous, TimeSeries
-from lumicks.pylake.calibration import ForceCalibrationList
+from lumicks.pylake.calibration import ForceCalibrationItem, ForceCalibrationList
 from lumicks.pylake.detail.value import ValueMixin
 
 start = 1 + int(1e18)
-calibration = ForceCalibrationList(
-    "Stop time (ns)", [{"Stop time (ns)": start, "kappa (pN/nm)": 0.45}]
+calibration = ForceCalibrationList._from_items(
+    [ForceCalibrationItem({"Stop time (ns)": start, "kappa (pN/nm)": 0.45})]
 )
 time_series = np.array([1, 2, 3, 4, 5], dtype=np.int64) + int(1e18)
 slice_continuous_1 = Slice(Continuous([1, 2, 3, 4, 5], start=start, dt=1), calibration=calibration)

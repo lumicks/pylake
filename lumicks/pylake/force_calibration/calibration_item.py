@@ -1,4 +1,5 @@
 import re
+import copy
 from functools import wraps
 from collections import UserDict
 
@@ -27,11 +28,6 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         """Grab a parameter"""
         if bluelake_key in self:
             return self[bluelake_key]
-
-    @property
-    def applied_at(self):
-        """Time the calibration was applied in nanoseconds since epoch"""
-        return self.data.get("Timestamp (ns)")
 
     @property
     def _fitted_diode(self):
@@ -225,6 +221,13 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
                 self.data["Fit range (max.) (Hz)"],
             )
 
+    def _with_timestamp(self, applied_timestamp):
+        """Return a copy of this item with a timestamp of when it was applied"""
+        item = copy.copy(self)
+        item.data = copy.deepcopy(self.data)
+        item.data["Timestamp (ns)"] = applied_timestamp
+        return item
+
     @property
     def sample_rate(self):
         """Returns the data sample rate"""
@@ -241,28 +244,3 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         """Number of points per block used for spectral down-sampling"""
         if "Points per block" in self.data:
             return int(self.data["Points per block"])  # BL returns float which API doesn't accept
-
-    @property
-    def start(self):
-        """Starting timestamp of this calibration
-
-        Examples
-        --------
-        ::
-
-            import lumicks.pylake as lk
-
-            f = lk.File("file.h5")
-            item = f.force1x.calibration[1]  # Grab a calibration item for force 1x
-
-            # Slice the data corresponding to this item
-            calibration_data = f.force1x[item.start : item.stop]
-
-            # or alternatively:
-            calibration_data = f.force1x[item]
-        """
-        return self.data.get("Start time (ns)")
-
-    @property
-    def stop(self):
-        return self.data.get("Stop time (ns)")

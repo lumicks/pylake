@@ -141,7 +141,7 @@ class PiezoTrackingCalibration:
 
         trap_trap_dist = self.trap_calibration(trap_position)
         bead_displacements = 1e-3 * sum(
-            sign * force / force.calibration[0]["kappa (pN/nm)"]
+            sign * force / force.calibration[0].stiffness
             for force, sign in zip((force1, force2), self._signs)
         )
 
