@@ -186,8 +186,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             less_blocking.plot()
 
             # Recalibrate the force channels
-            rf_ratio = less_blocking.force_sensitivity / previous_calibration.force_sensitivity
-            recalibrated_force1x = f.force1x * rf_ratio
+            recalibrated_force1x = f.force1x.recalibrate_force(less_blocking)
         """
         return (
             self.power_spectrum_params()

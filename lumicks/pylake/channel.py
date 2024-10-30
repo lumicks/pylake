@@ -239,6 +239,66 @@ class Slice:
         else:
             return []
 
+    def recalibrate_force(self, calibration):
+        """Recalibrate the data in this slice using a new force calibration item
+
+        Parameters
+        ----------
+        calibration : ForceCalibrationItem
+            The calibration to apply to the data
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            f = lk.File("passive_calibration.h5")
+            calibration = f.force1x.calibration[1]  # Grab a calibration item for force 1x
+
+            # Slice the data corresponding to the calibration we want to reproduce.
+            calib_slice = f.force1x[calibration]
+
+            # De-calibrate to volts using the calibration that was active before this slice.
+            previous_calibration = calib_slice.calibration[0]
+            calib_slice = calib_slice / previous_calibration.force_sensitivity
+
+            calibration_params = previous_calibration.calibration_params()
+            new_calibration = lk.calibrate_force(calib_slice.data, **calibration_params)
+            new_calibration.plot()
+
+            # Make a new calibration, but change the amount of blocking
+            less_blocking_params = calibration_params | {"num_points_per_block": 200}
+            less_blocking = lk.calibrate_force(calib_slice.data, **less_blocking_params)
+            less_blocking.plot()
+
+            # Recalibrate the force channels
+            recalibrated_force1x = f.force1x.recalibrate_force(less_blocking)
+        """
+        from lumicks.pylake.calibration import ForceCalibrationList
+
+        if len(self.calibration) > 1:
+            raise NotImplementedError(
+                "Slice contains multiple calibrations. Recalibration is only implemented for slices"
+                "that do not contain calibration events."
+            )
+
+        if not self.calibration:
+            raise RuntimeError(
+                "Slice does not contain any calibration items. Is this an unprocessed force "
+                "channel?"
+            )
+
+        return Slice(
+            self._src._with_data(
+                self._unpack_other(self)
+                * calibration.force_sensitivity
+                / self.calibration[0].force_sensitivity
+            ),
+            labels=self.labels,
+            calibration=ForceCalibrationList(items=[calibration._with_timestamp(self.start)]),
+        )
+
     @property
     def sample_rate(self) -> Union[float, None]:
         """The data frequency for `Continuous` and `TimeSeries` data sources or `None` if it is not
