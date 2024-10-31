@@ -27,6 +27,12 @@ operators = [
     ["__rtruediv__", False, "/", False],
     ["__rmul__", False, "*", False],
     ["__rpow__", False, "**", False],
+    ["__eq__", False, "==", False],
+    ["__ne__", False, "!=", False],
+    ["__lt__", False, "<", False],
+    ["__le__", False, "<=", False],
+    ["__gt__", False, ">", False],
+    ["__ge__", False, ">=", False],
 ]
 
 
@@ -181,7 +187,7 @@ def test_negation(channel_slice):
 
 def test_negation_timetags_not_implemented():
     with pytest.raises(NotImplementedError):
-        negated_timetags = -timetags
+        _ = -timetags
 
 
 def test_labels_slices():

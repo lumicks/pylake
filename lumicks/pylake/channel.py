@@ -170,6 +170,42 @@ class Slice:
             labels=self._generate_labels(other, "*", self, keep_unit=False),
         )
 
+    def __eq__(self, other):
+        return Slice(
+            self._src._with_data(self.data == self._unpack_other(other)),
+            labels=self._generate_labels(self, "==", other, keep_unit=False),
+        )
+
+    def __lt__(self, other):
+        return Slice(
+            self._src._with_data(self.data < self._unpack_other(other)),
+            labels=self._generate_labels(self, "<", other, keep_unit=False),
+        )
+
+    def __le__(self, other):
+        return Slice(
+            self._src._with_data(self.data <= self._unpack_other(other)),
+            labels=self._generate_labels(self, "<=", other, keep_unit=False),
+        )
+
+    def __gt__(self, other):
+        return Slice(
+            self._src._with_data(self.data > self._unpack_other(other)),
+            labels=self._generate_labels(self, ">", other, keep_unit=False),
+        )
+
+    def __ge__(self, other):
+        return Slice(
+            self._src._with_data(self.data >= self._unpack_other(other)),
+            labels=self._generate_labels(self, ">=", other, keep_unit=False),
+        )
+
+    def __ne__(self, other):
+        return Slice(
+            self._src._with_data(self.data != self._unpack_other(other)),
+            labels=self._generate_labels(self, "!=", other, keep_unit=False),
+        )
+
     def __array__(self, *args, **kwargs):
         return np.asarray(self.data, *args, **kwargs)
 
