@@ -173,6 +173,7 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert not item.diode_frequency_std_err
     assert not item.diode_relaxation_factor_std_err
     assert item.applied_at == 1696171386701856700
+    assert item.offset == ref_active["Offset (pN)"]
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power")
     compare_to_reference_dict(item._model_params(), test_name="model")
@@ -201,6 +202,7 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert item.stiffness is ref_active["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_active["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_active["Rd (um/V)"]
+    assert item.offset == ref_active["Offset (pN)"]
 
     assert item.rho_bead == item["Bead density (Kg/m3)"]
     assert item.hydrodynamically_correct
@@ -235,6 +237,7 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     assert item.stiffness is ref_axial["kappa (pN/nm)"]
     assert item.force_sensitivity is ref_axial["Rf (pN/V)"]
     assert item.displacement_sensitivity is ref_axial["Rd (um/V)"]
+    assert item.offset == ref_axial["Offset (pN)"]
 
     assert not item.rho_bead
     assert not item.rho_bead
@@ -269,6 +272,7 @@ def test_non_full(compare_to_reference_dict):
     assert item.force_sensitivity == 1.0
     assert item.start == 1714391268938540100
     assert item.stop == 1714391268938540200
+    assert item.offset is None
 
     for func in ("calibration_params", "power_spectrum_params"):
         with pytest.raises(

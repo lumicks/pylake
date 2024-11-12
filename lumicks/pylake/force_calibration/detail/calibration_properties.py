@@ -537,7 +537,7 @@ class CalibrationPropertiesMixin:
     @property
     def offset(self):
         """Force offset (pN)"""
-        return self._get_parameter("NA", "Offset")
+        return self._get_parameter("NA", "Offset (pN)")
 
     @property
     def active_calibration(self):
