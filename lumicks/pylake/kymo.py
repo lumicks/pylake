@@ -468,6 +468,7 @@ class Kymo(ConfocalImage):
             h5_file = lk.File("example.h5")
             _, kymo = h5_file.kymos.popitem()
 
+            plt.figure()
             kymo.plot_with_channels(
                 [
                     h5_file.force1x.downsampled_by(100),
@@ -477,6 +478,14 @@ class Kymo(ConfocalImage):
                 adjustment=lk.ColorAdjustment(5, 98, "percentile"),
                 aspect_ratio=0.2,
                 title_vertical=True,
+            )
+
+            plt.figure()
+            kymo.plot_with_channels(
+                h5_file.force1x.downsampled_by(100),
+                "b",
+                adjustment=lk.ColorAdjustment(5, 90, "percentile"),
+                kymo_args={"cmap": lk.colormaps.cyan}  # Plot the blue channel with a cyan colormap
             )
         """
 
