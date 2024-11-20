@@ -687,6 +687,8 @@ Pylake does not offer an ensemble averaged variant of the generalized least squa
     If frames are missing, then this method will raise an exception with the suggestion to refine tracks prior to estimation using :ref:`localization_refinement`.
     If this is not possible, please switch to :ref:`diffusion_cve`.
 
+.. _dwelltime_analysis:
+
 Dwelltime analysis
 ------------------
 
