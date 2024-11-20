@@ -190,6 +190,8 @@ Apply the Viterbi algorithm to assign the most probable state to each data point
 
 .. image:: figures/population_dynamics/hmm_labeled_trace.png
 
+.. _dwell_time_analysis:
+
 Dwell time analysis
 -------------------
 
