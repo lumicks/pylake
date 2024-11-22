@@ -17,6 +17,8 @@
 * Added support for file names with spaces in [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi).
 * Show the ranges that were excluded from a power spectrum or calibration fit by passing `show_excluded=True` to [`PowerSpectrum.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.plot) or [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot).
 * Plot the active calibration peak for a calibration result using `show_active_peak=True` with [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot).
+* Added function to import a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) from a `CSV` file using [`load_tracks`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.load_tracks.html).
+* Added function to load tracks into the kymotracker widget using [`KymoWidgetGreedy.load_tracks()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.KymoWidgetGreedy.html#lumicks.pylake.KymoWidgetGreedy.load_tracks).
 
 #### Improvements
 

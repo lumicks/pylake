@@ -8,12 +8,7 @@ import numpy as np
 import pytest
 
 from lumicks.pylake.kymo import _kymo_from_array
-from lumicks.pylake.kymotracker.kymotrack import (
-    KymoTrack,
-    KymoTrackGroup,
-    _read_txt,
-    import_kymotrackgroup_from_csv,
-)
+from lumicks.pylake.kymotracker.kymotrack import KymoTrack, KymoTrackGroup, _read_txt, load_tracks
 from lumicks.pylake.tests.data.mock_confocal import generate_kymo
 
 
@@ -80,7 +75,7 @@ def test_kymotrackgroup_io(tmpdir_factory, dt, dx, delimiter, sampling_width, sa
     # Test round trip through the API
     testfile = f"{tmpdir_factory.mktemp('pylake')}/test.csv"
     tracks.save(testfile, delimiter, sampling_width, correct_origin=True)
-    imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=delimiter)
+    imported_tracks = load_tracks(testfile, kymo, "red", delimiter=delimiter)
     data, pylake_version, csv_version = _read_txt(testfile, delimiter)
 
     compare_kymotrack_group(tracks, imported_tracks)
@@ -146,9 +141,7 @@ def test_roundtrip_without_file(
         string_representation = s.getvalue()
 
     with io.StringIO(string_representation) as s:
-        read_tracks = import_kymotrackgroup_from_csv(
-            s, kymo_integration_test_data, "red", delimiter=delimiter
-        )
+        read_tracks = load_tracks(s, kymo_integration_test_data, "red", delimiter=delimiter)
 
     compare_kymotrack_group(kymo_integration_tracks, read_tracks)
 
@@ -166,31 +159,22 @@ def test_photon_count_validation(kymo_integration_test_data, kymo_integration_tr
         RuntimeWarning,
         match="origin of a pixel to be at the edge rather than the center of the pixel",
     ):
-        _ = import_kymotrackgroup_from_csv(
-            io.StringIO(biased_tracks), kymo_integration_test_data, "red"
-        )
+        _ = load_tracks(io.StringIO(biased_tracks), kymo_integration_test_data, "red")
 
     # We can also fail by having the wrong kymo
     with pytest.warns(
         RuntimeWarning,
         match="loaded kymo or channel doesn't match the one used to create this file",
     ):
-        _ = import_kymotrackgroup_from_csv(
-            io.StringIO(good_tracks), kymo_integration_test_data, "green"
-        )
+        _ = load_tracks(io.StringIO(good_tracks), kymo_integration_test_data, "green")
 
     # Or by having the wrong one where it actually completely fails to sample. This tests whether
-    # the exception inside import_kymotrackgroup_from_csv is correctly caught and handled
-    with pytest.warns(
-        RuntimeWarning,
-        match="loaded kymo or channel doesn't match the one used to create this file",
-    ):
-        _ = import_kymotrackgroup_from_csv(
-            io.StringIO(good_tracks), kymo_integration_test_data[:"1s"], "red"
-        )
+    # the exception inside load_tracks is correctly caught and handled
+    with pytest.raises(ValueError, match="kymograph is of a different duration or size"):
+        _ = load_tracks(io.StringIO(good_tracks), kymo_integration_test_data[:"1s"], "red")
 
     # Control for good tracks
-    import_kymotrackgroup_from_csv(io.StringIO(good_tracks), kymo_integration_test_data, "red")
+    load_tracks(io.StringIO(good_tracks), kymo_integration_test_data, "red")
 
 
 @pytest.mark.parametrize(
@@ -222,7 +206,7 @@ def test_csv_version(version, read_with_version, recwarn):
     )
 
     testfile = Path(__file__).parent / f"./data/tracks_v{version}.csv"
-    imported_tracks = import_kymotrackgroup_from_csv(testfile, kymo, "red", delimiter=";")
+    imported_tracks = load_tracks(testfile, kymo, "red", delimiter=";")
 
     match version:
         case 3:
@@ -244,11 +228,20 @@ def test_csv_version(version, read_with_version, recwarn):
         np.testing.assert_allclose(track.coordinate_idx, data["coordinate (pixels)"][j])
 
 
-@pytest.mark.parametrize("filename", ["csv_bad_format.csv", "csv_unparseable.csv"])
-def test_bad_csv(filename, blank_kymo):
-    with pytest.raises(IOError, match="Invalid file format!"):
+@pytest.mark.parametrize(
+    "filename, error",
+    [
+        ("csv_bad_format.csv", "Invalid file format. Missing field(s): # track index"),
+        (
+            "csv_unparseable.csv",
+            "Invalid file format: could not convert string '' to float64 at row 0, column 3.",
+        ),
+    ],
+)
+def test_bad_csv(filename, error, blank_kymo):
+    with pytest.raises(ValueError, match=re.escape(error)):
         file = Path(__file__).parent / "data" / filename
-        import_kymotrackgroup_from_csv(file, blank_kymo, "red", delimiter=";")
+        load_tracks(file, blank_kymo, "red", delimiter=";")
 
 
 def test_min_obs_csv_regression(tmpdir_factory, blank_kymo):
@@ -258,7 +251,7 @@ def test_min_obs_csv_regression(tmpdir_factory, blank_kymo):
         RuntimeWarning,
         match="loaded kymo or channel doesn't match the one used to create this file",
     ):
-        imported_tracks = import_kymotrackgroup_from_csv(testfile, blank_kymo, "red", delimiter=";")
+        imported_tracks = load_tracks(testfile, blank_kymo, "red", delimiter=";")
 
     out_file = f"{tmpdir_factory.mktemp('pylake')}/no_min_lengths.csv"
 
@@ -268,4 +261,4 @@ def test_min_obs_csv_regression(tmpdir_factory, blank_kymo):
 
     out_file2 = f"{tmpdir_factory.mktemp('pylake')}/no_min_lengths2.csv"
     with pytest.warns(RuntimeWarning, match=err_msg):
-        import_kymotrackgroup_from_csv(out_file, blank_kymo, "red", delimiter=";").save(out_file2)
+        load_tracks(out_file, blank_kymo, "red", delimiter=";").save(out_file2)
