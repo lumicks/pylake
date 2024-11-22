@@ -191,6 +191,41 @@ def test_refine_from_widget(kymograph, region_select):
     assert len(kymo_widget.tracks) == 1
 
 
+def test_load_from_command(kymograph, region_select, tmpdir_factory):
+    kymo_widget = KymoWidgetGreedy(
+        kymograph, "red", track_width=3, axis_aspect_ratio=1, use_widgets=False, correct_origin=True
+    )
+    kymo_widget._algorithm_parameters["pixel_threshold"].value = 2
+    in_um, in_s = calibrate_to_kymo(kymograph)
+    kymo_widget._track_kymo(*region_select(in_s(5), in_um(12), in_s(20), in_um(13)))
+    testfile = f"{tmpdir_factory.mktemp('pylake')}/kymo.csv"
+    kymo_widget.save_tracks(testfile, sampling_width=2)
+
+    kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
+    assert len(kymo_widget.tracks) == 0
+    kymo_widget.load_tracks(testfile)
+    assert len(kymo_widget.tracks) == 1
+
+    # Definitely a different(ly cropped) kymograph
+    with pytest.raises(ValueError, match="kymograph is of a different duration or size"):
+        kymo_widget = KymoWidgetGreedy(
+            kymograph[:"1.2s"], "red", axis_aspect_ratio=1, use_widgets=False
+        )
+        kymo_widget._algorithm_parameters["pixel_threshold"].value = 2
+        _ = kymo_widget.load_tracks(testfile)
+
+    # Might be a different kymograph, but can't be sure unfortunately
+    with pytest.warns(
+        RuntimeWarning,
+        match=r"Photon counts do not match the photon counts found in the file",
+    ):
+        kymo_widget = KymoWidgetGreedy(
+            kymograph.crop_by_distance(5, 1000), "red", axis_aspect_ratio=1, use_widgets=False
+        )
+        kymo_widget.load_tracks(testfile)
+        assert len(kymo_widget.tracks) == 1
+
+
 def test_stitch(kymograph, mockevent):
     kymo_widget = KymoWidgetGreedy(kymograph, "red", axis_aspect_ratio=1, use_widgets=False)
 
@@ -393,9 +428,9 @@ def test_keyword_args(kymograph):
     "gain,line_time,pixel_size,ref_values",
     (
         # fmt:off
-        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "μm"), "sigma": (2 * 5, 1 * 5, 5 * 5, "μm"), "velocity": (0, -5 * 5/2, 5 * 5/2, "μm/s")}),
-        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "μm"), "sigma": (2 * 5, 1 * 5, 5 * 5, "μm"), "velocity": (0, -5 * 5/2, 5 * 5/2, "μm/s")}),
-        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 4, 3 * 4, 15 * 4, "μm"), "sigma": (2 * 4, 1 * 4, 5 * 4, "μm"), "velocity": (0, -5 * 4/4, 5 * 4/4, "μm/s")}),
+        (1, 2.0, 5.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "μm"), "sigma": (2 * 5, 1 * 5, 5 * 5, "μm"), "velocity": (0, -5 * 5 / 2, 5 * 5 / 2, "μm/s")}),
+        (0, 2.0, 5.0, {"pixel_threshold": (1, 1, 2, None), "track_width": (4 * 5, 3 * 5, 15 * 5, "μm"), "sigma": (2 * 5, 1 * 5, 5 * 5, "μm"), "velocity": (0, -5 * 5 / 2, 5 * 5 / 2, "μm/s")}),
+        (1, 4.0, 4.0, {"pixel_threshold": (97, 1, 99, None), "track_width": (4 * 4, 3 * 4, 15 * 4, "μm"), "sigma": (2 * 4, 1 * 4, 5 * 4, "μm"), "velocity": (0, -5 * 4 / 4, 5 * 4 / 4, "μm/s")}),
         # fmt:on
     ),
 )

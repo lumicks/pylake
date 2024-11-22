@@ -41,8 +41,17 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         file.force1x.plot()
         file.kymos["name"].plot()
 
-        # Open with custom detector mapping
+        # Open file mapping the red photon channel to red and the blue photon channel to green and
+        # blue (making them appear cyan).
+        file = pylake.File("example.h5", rgb_to_detectors={"Red": "Red", "Green": "Blue", "Blue": "Blue"})
+
+        # For some systems, the detectors might be named differently (in the case of custom
+        # detectors).
         file = pylake.File("example.h5", rgb_to_detectors={"Red": "Detector 1", "Green": "Detector 2", "Blue": "Detector 3"})
+
+        # To see which channels are available, inspect which names are available in the group
+        # `Photon count` or `Photon time tags`.
+        print(file["Photon count"])
     """
 
     SUPPORTED_FILE_FORMAT_VERSIONS = [1, 2]

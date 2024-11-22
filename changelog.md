@@ -15,6 +15,8 @@
 * Added parameter `titles` to customize title of each subplot in [`Kymo.plot_with_channels()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymo.Kymo.html#lumicks.pylake.kymo.Kymo.plot_with_channels).
 * Added [`KymoTrack.sample_from_channel()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrack.html#lumicks.pylake.kymotracker.kymotrack.KymoTrack.sample_from_channel) to downsample channel data to the time points of a kymotrack.
 * Added support for file names with spaces in [`lk.download_from_doi()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.download_from_doi.html#lumicks.pylake.download_from_doi).
+* Added function to import a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) from a `CSV` file using [`load_tracks`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.load_tracks.html).
+* Added function to load tracks into the kymotracker widget using [`KymoWidgetGreedy.load_tracks()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.KymoWidgetGreedy.html#lumicks.pylake.KymoWidgetGreedy.load_tracks).
 
 #### Improvements
 

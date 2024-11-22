@@ -111,6 +111,8 @@ Kymotracking
     filter_tracks
     refine_tracks_centroid
     refine_tracks_gaussian
+    load_tracks
+
 
 Notebook widgets
 ----------------

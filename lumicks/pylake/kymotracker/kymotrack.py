@@ -33,6 +33,10 @@ def _read_txt(file, delimiter):
     except TypeError:
         # Direct StringIO
         header_lines = [file.readline(), file.readline()]
+    except UnicodeDecodeError as e:
+        raise ValueError(
+            f"Invalid file format. Expected comma separated text file. Full error message: {e}."
+        ) from None
 
     # from v0.13.0, exported CSV files have an additional header line
     # with the pylake version and CSV version (starting at 2)
@@ -52,8 +56,8 @@ def _read_txt(file, delimiter):
     data = {}
     try:
         raw_data = np.loadtxt(file, delimiter=delimiter, unpack=True)
-    except ValueError:
-        raise IOError("Invalid file format!")
+    except ValueError as e:
+        raise ValueError(f"Invalid file format: {str(e)}") from None
 
     header = header_lines[0].rstrip().split(delimiter)
     track_idx = raw_data[0, :]
@@ -167,50 +171,66 @@ def export_kymotrackgroup_to_csv(
 def _check_summing_mismatch(track, sampling_width):
     """Checks calling sample_from_image on a loaded track reproduces the same result as is in the
     file."""
-    wrong_kymo_warning = (
-        "Photon counts do not match the photon counts found in the file. It is "
-        "possible that the loaded kymo or channel doesn't match the one used to "
-        "create this file."
-    )
     try:
-        if not np.allclose(
+        if np.allclose(
             track.sample_from_image((sampling_width - 1) // 2, correct_origin=True),
             track.photon_counts,
         ):
-            if np.allclose(
-                track.sample_from_image((sampling_width - 1) // 2, correct_origin=False),
-                track.photon_counts,
-            ):
-                return RuntimeWarning(
-                    "Photon counts do not match the photon counts found in the file. Prior to "
-                    "Pylake v1.1.0, the method `sample_from_image` had a bug that assumed the "
-                    "origin of a pixel to be at the edge rather than the center of the pixel. "
-                    "Consequently, the sampled window could be off by one pixel. This file was "
-                    "likely created using the incorrect origin. "
-                    "Note that Pylake loaded the counts found in the file as is, so if the "
-                    "used summing window was very small, there may be a bias in the counts."
-                    "To recreate these counts without bias invoke:"
-                    f"`track.sample_from_image({(sampling_width - 1) // 2}, correct_origin=True)`"
-                )
-            else:
-                return RuntimeWarning(wrong_kymo_warning)
+            return  # We're good
+
+        if np.allclose(
+            track.sample_from_image((sampling_width - 1) // 2, correct_origin=False),
+            track.photon_counts,
+        ):
+            return RuntimeWarning(
+                "Photon counts do not match the photon counts found in the file. Prior to "
+                "Pylake v1.1.0, the method `sample_from_image` had a bug that assumed the "
+                "origin of a pixel to be at the edge rather than the center of the pixel. "
+                "Consequently, the sampled window could be off by one pixel. This file was "
+                "likely created using the incorrect origin. "
+                "Note that Pylake loaded the counts found in the file as is, so if the "
+                "used summing window was very small, there may be a bias in the counts."
+                "To recreate these counts without bias invoke:"
+                f"`track.sample_from_image({(sampling_width - 1) // 2}, correct_origin=True)`"
+            )
+        else:
+            return RuntimeWarning(
+                "Photon counts do not match the photon counts found in the file. It is "
+                "possible that the loaded kymo or channel doesn't match the one used to "
+                "create this file. Note that if you processed (e.g. sliced, cropped, flipped or "
+                "downsampled) the kymograph prior to tracking, you will have to make sure that you "
+                "crop the kymograph you supply to this function in the same way."
+            )
     except IndexError:
-        return RuntimeWarning(wrong_kymo_warning)
+        raise ValueError(
+            "The supplied kymograph is of a different duration or size than the one used to "
+            "compute these tracks. The kymograph does not match the tracks found in the file. Note "
+            "that if you processed (e.g. sliced, cropped or downsampled) the kymograph prior to "
+            "tracking, you will have to make sure that you crop the kymograph you supply to this "
+            "function in the same way."
+        )
 
 
-def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
-    """Import a KymoTrackGroup from a csv file.
+def load_tracks(filename, kymo, channel, delimiter=";"):
+    """Loads a :class:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup` from a csv file.
 
     The file format contains a series of columns as follows:
     track index, time (pixels), coordinate (pixels), time (optional), coordinate (optional),
     sampled_counts (optional), minimum length
+
+    .. note::
+
+        If you processed (e.g. cropping, flipping, downsampling) the kymograph prior to tracking,
+        you will have to make sure that you crop the kymograph you supply to this function in the
+        same way.
 
     Parameters
     ----------
     filename : str | os.PathLike
         filename to import from.
     kymo : Kymo
-        kymograph instance that the CSV data was tracked from.
+        Kymograph that the CSV data was tracked from. This kymograph has to be the one used to
+        create the tracks (this includes any processing). See the note above for more information.
     channel : str
         color channel that was used for tracking.
     delimiter : str
@@ -223,8 +243,27 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
 
     Raises
     ------
-    IOError
+    ValueError
         If the file format is not as expected.
+
+    Examples
+    --------
+    ::
+
+        import lumicks.pylake as lk
+
+        file = lk.File("test_data/kymo.h5")
+        kymo = file.kymos["16"]  # Extract the kymo named 16
+
+        kymo_cropped = kymo.crop_by_distance(10, 25)
+        tracks = lk.track_greedy(kymo_cropped, channel="red", pixel_threshold=5)
+        tracks.save("tracks.csv")
+
+        loaded_tracks = lk.load_tracks("tracks.csv", kymo_cropped, "red")
+
+        # Plot the red channel of the kymograph and tracks together
+        kymo_cropped.plot("red", adjustment=lk.ColorAdjustment(5, 95, "percentile"))
+        loaded_tracks.plot()
     """
 
     # TODO: File format validation could use some improvement
@@ -232,7 +271,9 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
 
     mandatory_fields = ["time (pixels)", "coordinate (pixels)"]
     if not all(field_name in data for field_name in mandatory_fields):
-        raise IOError("Invalid file format!")
+        raise ValueError(
+            f"Invalid file format. Missing field(s): {', '.join(set(data.keys()) - set(mandatory_fields))}"
+        )
 
     # We get a list of time coordinates per track
     for track_time in data["time (pixels)"]:
@@ -292,7 +333,7 @@ def import_kymotrackgroup_from_csv(filename, kymo, channel, delimiter=";"):
             )
         )
 
-        if sampling_width is not None:
+        if sampling_width is not None and not resampling_mismatch:
             resampling_mismatch = _check_summing_mismatch(tracks[-1], sampling_width)
 
     if resampling_mismatch:
@@ -1077,7 +1118,7 @@ class KymoTrackGroup:
     --------
     ::
 
-        from lumicks import pylake
+        import lumicks.pylake as lk
 
         tracks = lk.track_greedy(kymo, channel="red", pixel_threshold=5)
 
@@ -1497,6 +1538,9 @@ class KymoTrackGroup:
         ::
 
             import lumicks.pylake as lk
+
+            file = lk.File("test_data/kymo.h5")
+            kymo = file.kymos["16"]  # Extract the kymo named 16
 
             tracks = lk.track_greedy(kymo, channel="red", pixel_threshold=5)
             refined = lk.refine_tracks_gaussian(tracks, window=10, refine_missing_frames=True, overlap_strategy="multiple")

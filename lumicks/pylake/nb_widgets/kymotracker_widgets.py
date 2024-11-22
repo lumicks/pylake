@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from lumicks.pylake import filter_tracks, refine_tracks_centroid
-from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, import_kymotrackgroup_from_csv
+from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, load_tracks
 from lumicks.pylake.kymotracker.kymotracker import track_greedy, _to_half_kernel_size
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
@@ -361,13 +361,30 @@ class KymoWidget:
 
     def _load_from_ui(self):
         try:
-            self.tracks = import_kymotrackgroup_from_csv(
-                self._output_filename, self._kymo, self._channel
-            )
+            self.tracks = load_tracks(self._output_filename, self._kymo, self._channel)
             self._update_tracks()
             self._set_label("status", f"Loaded {self._output_filename}")
-        except (RuntimeError, IOError) as exception:
+        except (RuntimeError, ValueError, IOError) as exception:
             self._set_label("status", str(exception))
+
+    def load_tracks(self, filename, delimiter=";"):
+        """Loads tracks from a csv file into the widget
+
+        .. note::
+
+            If you processed the kymograph used to create these tracks, you have to ensure that
+            the same processing is applied to the kymograph you load into the widget. See
+            :func:`~lumicks.pylake.load_tracks` for more information.
+
+        Parameters
+        ----------
+        filename : str | os.PathLike
+            filename to import from.
+        delimiter : str
+            The string used to separate columns. Default is ';'.
+        """
+        self.tracks = load_tracks(filename, self._kymo, self._channel, delimiter)
+        self._update_tracks()
 
     def _add_slider(self, name, parameter):
         import ipywidgets
