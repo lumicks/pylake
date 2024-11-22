@@ -20,6 +20,7 @@ from .fitting.fit import FdFit
 from .image_stack import ImageStack, CorrelatedStack
 from .file_download import *
 from .fitting.models import *
+from .kymotracker.kymotrack import load_tracks
 from .fitting.parameter_trace import parameter_trace
 from .kymotracker.kymotracker import *
 from .piezo_tracking.baseline import *

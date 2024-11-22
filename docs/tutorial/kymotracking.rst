@@ -471,8 +471,8 @@ This snippet also demonstrates how we can pass keyword arguments (forwarded to :
 <matplotlib.pyplot.bar()>`) to format the histogram.
 
 
-Exporting kymograph tracks
---------------------------
+Importing and exporting kymograph tracks
+----------------------------------------
 
 We can export the coordinates of the tracks to a `csv` file using the :meth:`~lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.save`
 method with the desired file name::
@@ -483,6 +483,15 @@ We can include photon counts (calculated with :meth:`~lumicks.pylake.kymotracker
 by passing a width in pixels to sum counts over::
 
     tracks.save("tracks_signal.csv", sampling_width=3, correct_origin=True)
+
+We can re-import these tracks into Pylake at a later time using the :func:`~lumicks.pylake.load_tracks()` function::
+
+    tracks = lk.load_tracks("tracks.csv", kymo40, "green")
+
+.. note::
+
+    The `kymo` and `channel` arguments provided must be the same as the ones used to generate the tracks.
+    This includes any processing (e.g. cropping, downsampling, flipping) that was performed on the kymograph.
 
 How the algorithms work
 -----------------------
