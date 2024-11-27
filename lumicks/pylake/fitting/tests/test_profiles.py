@@ -216,7 +216,7 @@ def test_bounded_valid_interval():
     fit["model/a"].value = 1
     fit.fit()
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="Warning: Step size set to minimum step size")
+        warnings.filterwarnings("ignore", message="Step size was set to minimum step size")
         warnings.filterwarnings("ignore", message="Optimization error encountered")
         profile = fit.profile_likelihood("model/a")
 

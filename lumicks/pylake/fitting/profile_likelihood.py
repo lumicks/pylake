@@ -235,10 +235,7 @@ def do_step(
 
         last_step = StepCode.identify_step(new_step_size, current_step_size)
 
-    if current_step_size == step_config.min_abs_step:
-        warn("Warning: Step size set to minimum step size.", RuntimeWarning)
-
-    return current_step_size, p_trial
+    return current_step_size, p_trial, current_step_size == step_config.min_abs_step
 
 
 def scan_dir_optimisation(
@@ -276,11 +273,14 @@ def scan_dir_optimisation(
     p_next = parameter_vector
     chi2_list = []
     parameter_vectors = []
+    minimum_step_warning = False
 
     for step in range(num_steps):
-        current_step_size, p_next = scan_config.step_function(
+        current_step_size, p_next, minimum_step_hit = scan_config.step_function(
             chi2_last, p_next, current_step_size, step_sign
         )
+        minimum_step_warning = minimum_step_warning or minimum_step_hit
+
         try:
             p_next = fit_function(
                 p_next, scan_config.lower_bounds, scan_config.upper_bounds, scan_config.fitted
@@ -314,8 +314,14 @@ def scan_dir_optimisation(
         if chi2_last > scan_config.termination_level:
             break
 
-    return np.array(chi2_list), (
-        np.vstack(parameter_vectors) if parameter_vectors else np.empty((0, parameter_vector.size))
+    return (
+        np.array(chi2_list),
+        (
+            np.vstack(parameter_vectors)
+            if parameter_vectors
+            else np.empty((0, parameter_vector.size))
+        ),
+        minimum_step_warning,
     )
 
 
@@ -547,9 +553,18 @@ class ProfileLikelihood1D:
         chi2_list = self._chi2[field] if field in self._chi2 else [self.profile_info.minimum_chi2]
         chi2_last = chi2_list[-1]
 
-        chi2_new, parameters_new = scan_direction(
+        chi2_new, parameters_new, minimum_step_warning = scan_direction(
             chi2_last, initial_parameters, 1 if forward else -1, num_steps, verbose
         )
+
+        if minimum_step_warning:
+            warn(
+                "Step size was set to minimum step size during step size determination "
+                f"for parameter {self.parameter_name}. Check whether the profile likelihood "
+                "result is smooth. If not, consider reducing the minimum step size; "
+                "otherwise, ignore this warning.",
+                RuntimeWarning,
+            )
 
         self._parameters[field] = np.vstack((parameter_vectors, parameters_new))
         self._chi2[field] = np.hstack((chi2_list, chi2_new))

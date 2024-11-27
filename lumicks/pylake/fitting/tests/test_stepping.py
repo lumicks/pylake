@@ -82,7 +82,7 @@ class FlippingCost:
     ],
 )
 def test_stepper(chi2_function, start_pos, step_sign, target_step_size, target_p_trial):
-    step_size, p_trial = do_step(
+    step_size, p_trial, will_warn = do_step(
         chi2_function=chi2_function,
         step_direction_function=lambda: np.array([1, 1]),
         chi2_last=5,
@@ -94,6 +94,7 @@ def test_stepper(chi2_function, start_pos, step_sign, target_step_size, target_p
 
     assert step_size == target_step_size
     np.testing.assert_allclose(p_trial, target_p_trial)
+    assert not will_warn
 
 
 def test_minimum_step():
@@ -102,17 +103,15 @@ def test_minimum_step():
     # step size to take is 10 (see max_chi2_step_size in the cfg), this will result in the step size
     # shrinking to the minimum step size. In a non-pathological case, a smaller step size would
     # result in a smaller chi2 increase.
-    with pytest.warns(RuntimeWarning, match="Warning: Step size set to minimum step size."):
-        step_size, p_trial = do_step(
-            chi2_function=lambda x: 25,
-            step_direction_function=lambda: np.array([1, 1]),
-            chi2_last=5,
-            parameter_vector=np.array([2, 2]),
-            current_step_size=1,
-            step_sign=1,
-            step_config=cfg,
-        )
-        assert step_size == cfg.min_abs_step
-        np.testing.assert_allclose(
-            p_trial, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step])
-        )
+    step_size, p_trial, will_warn = do_step(
+        chi2_function=lambda x: 25,
+        step_direction_function=lambda: np.array([1, 1]),
+        chi2_last=5,
+        parameter_vector=np.array([2, 2]),
+        current_step_size=1,
+        step_sign=1,
+        step_config=cfg,
+    )
+    assert step_size == cfg.min_abs_step
+    np.testing.assert_allclose(p_trial, np.array([2.0 + cfg.min_abs_step, 2.0 + cfg.min_abs_step]))
+    assert will_warn

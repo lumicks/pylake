@@ -301,6 +301,14 @@ class Fit:
         for the profiled parameter, then fixes that parameter and re-optimizes all the other
         parameters [4]_ [5]_.
 
+        For each profile likelihood point, the profiled parameter is changed such that the fit
+        error goes up by an amount between `min_chi2_step` and `max_chi2_step`. After step size
+        determination, the step is applied and the other parameters are re-optimized.
+
+        To prevent step sizes from becoming too small, a minimal step size can be set. When the
+        step size goes below the minimum step size a warning is issued. When this happens, check
+        to verify that the profile likelihood curve is smooth.
+
         Parameters
         ----------
         parameter_name: str
