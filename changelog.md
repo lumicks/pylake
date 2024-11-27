@@ -25,6 +25,7 @@
 * Added improved printing of calibration items under `channel.calibration` providing a more convenient overview of the items associated with a `Slice`.
 * Added improved printing of calibrations performed with `Pylake`.
 * Improved error message that includes the name of the model when trying to access a model that was not added in an [`FdFit`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.FdFit.html) using angular brackets.
+* Allow customizing the minimum step size during step size determination for [`DwelltimeModel.profile_likelihood()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.profile_likelihood) and choose a more sensible default. Also ensured that the warning only gets emitted at most once per direction.
 
 #### Bug fixes
 

@@ -44,6 +44,8 @@ class DwelltimeProfiles:
         *,
         alpha,
         num_steps,
+        min_step,
+        max_step,
         min_chi2_step,
         max_chi2_step,
         verbose,
@@ -60,6 +62,11 @@ class DwelltimeProfiles:
             Significance level. Confidence intervals are calculated as 100*(1-alpha)%.
         num_steps: integer
             Number of steps to take.
+        min_step : float
+            Minimum step size used in step size determination. Any step size lower will be clamped
+            to this value and a warning will be issued.
+        max_step : float
+            Maximum step size used in step size determination. Any step size larger will be clamped.
         min_chi2_step: float
             Minimal desired step in terms of chi squared change prior to re-optimization. When the
             step results in a fit change smaller than this threshold, the step-size will be
@@ -109,6 +116,8 @@ class DwelltimeProfiles:
                 num_dof=1,
                 min_chi2_step=min_chi2_step,
                 max_chi2_step=max_chi2_step,
+                min_step=min_step,
+                max_step=max_step,
                 confidence_level=1.0 - alpha,
                 bound_tolerance=1e-8,  # Needed because constraint is not always exactly fulfilled
             )
@@ -689,6 +698,8 @@ class DwelltimeModel:
         *,
         alpha=0.05,
         num_steps=150,
+        min_step=1e-7,
+        max_step=1.0,
         min_chi2_step=0.01,
         max_chi2_step=0.1,
         verbose=False,
@@ -699,6 +710,14 @@ class DwelltimeModel:
         confidence intervals. It iteratively performs a step for the profiled parameter, then
         fixes that parameter and re-optimizes all the other parameters [2]_ [3]_.
 
+        For each profile likelihood point, the profiled parameter is changed such that the fit
+        error goes up by an amount between `min_chi2_step` and `max_chi2_step`. After step size
+        determination, the step is applied and the other parameters are re-optimized.
+
+        To prevent step sizes from becoming too small, a minimal step size can be set. When the
+        step size goes below the minimum step size a warning is issued. When this happens, check
+        to verify that the profile likelihood curve is smooth.
+
         Parameters
         ----------
         alpha : float
@@ -706,6 +725,12 @@ class DwelltimeModel:
             default: 0.05
         num_steps: int
             Number of steps to take, default: 150.
+        min_step : float
+            Minimum step size used during step size determination. Any step size lower will be
+            clamped to this value and a warning will be issued. Default: 1e-7.
+        max_step : float
+            Maximum step size used during step size determination. Any step size larger will be
+            clamped to this value. Default: 1.0
         min_chi2_step: float
             Minimal desired step in terms of chi squared change prior to re-optimization. When the
             step results in a fit change smaller than this threshold, the step-size will be
@@ -731,6 +756,8 @@ class DwelltimeModel:
             self,
             alpha=alpha,
             num_steps=num_steps,
+            min_step=min_step,
+            max_step=max_step,
             min_chi2_step=min_chi2_step,
             max_chi2_step=max_chi2_step,
             verbose=verbose,
