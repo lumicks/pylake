@@ -5,6 +5,11 @@ tabulate.PRESERVE_WHITESPACE = True
 
 
 class CalibrationPropertiesMixin:
+    @property
+    def has_data(self):
+        """Returns whether the calibration item has the raw data stored inside the item"""
+        return hasattr(self, "_voltage") and self._voltage is not None
+
     def _get_parameter(self, pylake_key, bluelake_key):
         raise NotImplementedError
 

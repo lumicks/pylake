@@ -2,6 +2,7 @@ import datetime
 
 from tabulate import tabulate
 
+from lumicks.pylake.channel import Slice, Continuous
 from lumicks.pylake.force_calibration.calibration_item import ForceCalibrationItem
 
 
@@ -39,7 +40,7 @@ class ForceCalibrationList:
     """
 
     def __init__(self, items, slice_start=None, slice_stop=None):
-        """Calibration item
+        """List of calibration items
 
         Parameters
         ----------
@@ -100,6 +101,14 @@ class ForceCalibrationList:
             Calibration field to access (e.g. "Force 1x").
         """
 
+        def make_slice(dset, field, y_label, title) -> Slice:
+            """Fetch raw data from the dataset"""
+            if field in dset:
+                return Slice(
+                    Continuous.from_dataset(dset[field]),
+                    labels={"x": "Time (s)", "y": y_label, "title": title},
+                )
+
         if "Calibration" not in hdf5.keys():
             return ForceCalibrationList(items=[])
 
@@ -107,7 +116,25 @@ class ForceCalibrationList:
             items=[
                 ForceCalibrationItem(
                     dict(calibration_item[force_channel].attrs)
-                    | {"Timestamp (ns)": calibration_item.attrs.get("Timestamp (ns)")}
+                    | {"Timestamp (ns)": calibration_item.attrs.get("Timestamp (ns)")},
+                    voltage=make_slice(
+                        calibration_item[force_channel],
+                        "voltage",
+                        "Uncalibrated Force (V)",
+                        f"Uncalibrated {force_channel}",
+                    ),
+                    sum_voltage=make_slice(
+                        calibration_item[force_channel],
+                        "sum_voltage",
+                        "Sum voltage (V)",
+                        f"Sum voltage {force_channel[-2]}",
+                    ),
+                    driving=make_slice(
+                        calibration_item[force_channel],
+                        "driving",
+                        r"Driving data ($\mu$m)",
+                        f"Driving data for axis {force_channel[-1]}",
+                    ),
                 )
                 for calibration_item in hdf5["Calibration"].values()
                 if force_channel in calibration_item
@@ -137,7 +164,8 @@ class ForceCalibrationList:
                     ),
                     item.hydrodynamically_correct,
                     item.distance_to_surface is not None,
-                    (
+                    item.has_data  # Data in the item itself
+                    or (  # Data on the slice
                         bool(
                             self._slice_start
                             and (item.start >= self._slice_start)

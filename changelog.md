@@ -9,6 +9,7 @@
 #### Improvements
 
 * Force `num_points_per_block` to be integer when down-sampling a [`PowerSpectrum`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html).
+* Added [voltage](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html#lumicks.pylake.calibration.ForceCalibrationItem.voltage), [sum_voltage](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html#lumicks.pylake.calibration.ForceCalibrationItem.sum_voltage) and [driving](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html#lumicks.pylake.calibration.ForceCalibrationItem.driving) properties which return raw calibration data. Note that these are only available when the option to export the raw data has explicitly been selected in Bluelake. When unavailable, these properties will return empty slices.
 
 ## v1.6.1 | 2025-01-29
 

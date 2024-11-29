@@ -139,6 +139,7 @@ ref_axial = {
 
 def test_passive_item(compare_to_reference_dict, reference_data, calibration_data):
     item = ForceCalibrationItem(ref_passive_fixed_diode_with_height)
+
     assert item.excluded_ranges == [(100.0, 500.0), (1000.0, 2000.0)]
     assert item.fit_range == (100.0, 23000.0)
     assert item.num_points_per_block == 2000
@@ -177,6 +178,7 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert not item.diode_relaxation_factor_std_err
     assert item.applied_at == 1696171386701856700
     assert item.offset == ref_active["Offset (pN)"]
+    assert not item.has_data
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power")
     compare_to_reference_dict(item._model_params(), test_name="model")
@@ -224,6 +226,7 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert not item.transferred_lateral_drag_coefficient
     assert item.measured_drag_coefficient == ref_active["gamma_ex (kg/s)"]
     assert item.theoretical_bulk_drag == ref_active["gamma_0 (kg/s)"]
+    assert not item.has_data
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power_ac")
     compare_to_reference_dict(item._model_params(), test_name="model_ac")
@@ -252,6 +255,7 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     assert not item.diode_relaxation_factor
     assert not item.fitted_diode
     assert item.transferred_lateral_drag_coefficient is ref_axial["gamma_ex_lateral (kg/s)"]
+    assert not item.has_data
 
     compare_to_reference_dict(item.power_spectrum_params(), test_name="power_axial")
     compare_to_reference_dict(item._model_params(), test_name="model_axial")
@@ -279,6 +283,7 @@ def test_non_full(compare_to_reference_dict):
     assert item.start == 1714391268938540100
     assert item.stop == 1714391268938540200
     assert item.offset is None
+    assert not item.has_data
 
     for func in ("calibration_params", "power_spectrum_params"):
         with pytest.raises(

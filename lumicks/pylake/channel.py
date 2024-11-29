@@ -208,7 +208,7 @@ class Slice:
         return self._src.stop
 
     @property
-    def data(self) -> npt.ArrayLike:
+    def data(self) -> npt.NDArray:
         """The primary values of this channel slice"""
         return self._src.data
 
@@ -800,7 +800,7 @@ class Continuous:
         return dset
 
     @property
-    def data(self) -> npt.ArrayLike:
+    def data(self) -> npt.NDArray:
         if self._cached_data is None:
             self._cached_data = np.asarray(self._src_data)
         return self._cached_data
@@ -931,7 +931,7 @@ class TimeSeries:
         return dset
 
     @property
-    def data(self) -> npt.ArrayLike:
+    def data(self) -> npt.NDArray:
         if self._cached_data is None:
             self._cached_data = np.asarray(self._src_data)
         return self._cached_data
@@ -1046,7 +1046,7 @@ class Empty:
         return 0
 
     @property
-    def data(self) -> npt.ArrayLike:
+    def data(self) -> npt.NDArray:
         return np.empty(0)
 
     @property

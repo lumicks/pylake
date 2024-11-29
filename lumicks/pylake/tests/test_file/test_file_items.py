@@ -62,6 +62,31 @@ def test_calibration(h5_file):
         assert f.force1y.calibration[2].applied_at == 8
         assert f.force1y.calibration[3].applied_at == 10
         assert f.force2x.calibration[0].applied_at == 100
+        assert not f.force1x.calibration[0].has_data
+        assert len(f.force1x.calibration[0].voltage.data) == 0
+        assert len(f.force1x.calibration[0].sum_voltage.data) == 0
+        assert len(f.force1x.calibration[0].driving.data) == 0
+
+        # Verify that one specific calibration has data associated with it
+        idx = 2
+        assert not f.force1x.calibration[idx].has_data
+        np.testing.assert_equal(f.force1y.calibration[idx].sum_voltage.data, np.arange(5.0))
+        assert f.force1y.calibration[idx].sum_voltage.sample_rate == 78125
+        assert f.force1y.calibration[idx].sum_voltage.labels["x"] == "Time (s)"
+        assert f.force1y.calibration[idx].sum_voltage.labels["y"] == "Sum voltage (V)"
+        assert f.force1y.calibration[idx].sum_voltage.labels["title"] == "Sum voltage 1"
+
+        np.testing.assert_equal(f.force1y.calibration[idx].voltage.data, np.arange(15.0))
+        assert f.force1y.calibration[idx].voltage.sample_rate == 78125
+        assert f.force1y.calibration[idx].voltage.labels["x"] == "Time (s)"
+        assert f.force1y.calibration[idx].voltage.labels["y"] == "Uncalibrated Force (V)"
+        assert f.force1y.calibration[idx].voltage.labels["title"] == "Uncalibrated Force 1y"
+
+        np.testing.assert_equal(f.force1y.calibration[idx].driving.data, np.arange(25.0))
+        assert f.force1y.calibration[idx].driving.sample_rate == 78125
+        assert f.force1y.calibration[idx].driving.labels["x"] == "Time (s)"
+        assert f.force1y.calibration[idx].driving.labels["y"] == r"Driving data ($\mu$m)"
+        assert f.force1y.calibration[idx].driving.labels["title"] == "Driving data for axis y"
 
 
 def test_marker(h5_file):
