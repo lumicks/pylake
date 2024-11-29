@@ -3,6 +3,8 @@ import copy
 from functools import wraps
 from collections import UserDict
 
+from lumicks.pylake.channel import empty_slice
+from lumicks.pylake.force_calibration.convenience import calibrate_force
 from lumicks.pylake.force_calibration.calibration_models import DiodeCalibrationModel
 from lumicks.pylake.force_calibration.detail.calibration_properties import (
     CalibrationPropertiesMixin,
@@ -10,6 +12,34 @@ from lumicks.pylake.force_calibration.detail.calibration_properties import (
 
 
 class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
+    def __init__(
+        self,
+        dictionary=None,
+        *,
+        voltage=None,
+        sum_voltage=None,
+        driving=None,
+    ):
+        super().__init__(dictionary)
+        self._voltage = voltage
+        self._sum_voltage = sum_voltage
+        self._driving = driving
+
+    @property
+    def voltage(self):
+        """Uncalibrated voltage reading on the detector"""
+        return self._voltage if self._voltage else empty_slice
+
+    @property
+    def sum_voltage(self):
+        """Uncalibrated sum voltage on the detector"""
+        return self._sum_voltage if self._sum_voltage else empty_slice
+
+    @property
+    def driving(self):
+        """Driving signal used for active calibration"""
+        return self._driving if self._driving else empty_slice
+
     @staticmethod
     def _verify_full(method):
         @wraps(method)

@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from lumicks.pylake.low_level import make_continuous_slice
+from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+
+from .test_calibration_item import ref_active
 from .data.simulate_calibration_data import generate_active_calibration_test_data
 
 
@@ -69,6 +73,35 @@ def mack_parameters():
         "focal_shift": 0.921283446497108,
         "nonlinear_shift": 0.0,
     }
+
+
+@pytest.fixture(scope="session")
+def active_ref_data():
+    np.random.seed(37738006)
+
+    volts, stage = generate_active_calibration_test_data(
+        duration=10,
+        bead_diameter=ref_active["Bead diameter (um)"],
+        viscosity=ref_active["Viscosity (Pa*s)"],
+        temperature=ref_active["Temperature (C)"],
+        stiffness=ref_active["kappa (pN/nm)"],
+        pos_response_um_volt=ref_active["Rd (um/V)"],
+        driving_sinusoid=(
+            ref_active["driving_amplitude (um)"] * 1e3,  # um -> nm
+            ref_active["driving_frequency (Hz)"],
+        ),
+        diode=(ref_active["alpha"], ref_active["f_diode (Hz)"]),
+        hydrodynamically_correct=ref_active["Hydrodynamic correction enabled"],
+        rho_sample=ref_active["Fluid density (Kg/m3)"],
+        rho_bead=ref_active["Bead density (Kg/m3)"],
+        distance_to_surface=ref_active.get("Bead center height (um)"),
+        sample_rate=int(ref_active["Sample rate (Hz)"]),
+    )
+
+    def make_slice(data):
+        return make_continuous_slice(data, _FIRST_TIMESTAMP + int(1e9), int(1e9 / 78125))
+
+    return make_slice(volts), make_slice(stage)
 
 
 @pytest.fixture(scope="session")
