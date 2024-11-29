@@ -67,7 +67,16 @@ def h5_file(tmpdir_factory, request):
         mock_file.make_calibration_data("1", "Force 1y", generate_attributes(0))
         mock_file.make_calibration_data("2", "Force 1y", generate_attributes(1))
         mock_file.make_calibration_data("3", "Force 1y", reset_attrs)
-        mock_file.make_calibration_data("3b", "Force 1y", generate_attributes(8))
+        mock_file.make_calibration_data(
+            "3b",
+            "Force 1y",
+            generate_attributes(8),
+            channels={
+                "sum_voltage": np.arange(5.0),
+                "voltage": np.arange(15.0),
+                "driving": np.arange(25.0),
+            },
+        )
         mock_file.make_calibration_data("4", "Force 1y", generate_attributes(10))
         mock_file.make_calibration_data("5", "Force 1y", generate_attributes(100))
         mock_file.make_calibration_data("1", "Force 1z", generate_attributes(0))
