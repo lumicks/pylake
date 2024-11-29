@@ -2,6 +2,7 @@ import re
 from functools import wraps
 from collections import UserDict
 
+from lumicks.pylake.channel import Slice, Continuous, empty_slice
 from lumicks.pylake.force_calibration.calibration_models import DiodeCalibrationModel
 from lumicks.pylake.force_calibration.detail.calibration_properties import (
     CalibrationPropertiesMixin,
@@ -9,6 +10,59 @@ from lumicks.pylake.force_calibration.detail.calibration_properties import (
 
 
 class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
+    def __init__(
+        self,
+        dictionary=None,
+        *,
+        channel=None,
+        voltage_data=None,
+        sum_voltage_data=None,
+        driving_data=None,
+    ):
+        super().__init__(dictionary)
+
+        def make_slice(data, labels):
+            return Slice(Continuous.from_dataset(data), labels=labels)
+
+        self.voltage = (
+            make_slice(
+                voltage_data,
+                labels={
+                    "x": "Time (s)",
+                    "y": "Uncalibrated Force (V)",
+                    "title": f"Uncalibrated {channel}",
+                },
+            )
+            if voltage_data
+            else empty_slice
+        )
+
+        self.sum_voltage = (
+            make_slice(
+                sum_voltage_data,
+                labels={
+                    "x": "Time (s)",
+                    "y": "Sum voltage (V)",
+                    "title": f"Sum voltage {channel[-2]}",
+                },
+            )
+            if sum_voltage_data
+            else empty_slice
+        )
+
+        self.driving = (
+            make_slice(
+                driving_data,
+                labels={
+                    "x": "Time (s)",
+                    "y": r"Driving data ($\mu$m)",
+                    "title": f"Driving data for axis {channel[-1]}",
+                },
+            )
+            if driving_data
+            else empty_slice
+        )
+
     @staticmethod
     def _verify_full(method):
         @wraps(method)

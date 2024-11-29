@@ -53,7 +53,9 @@ class MockDataFile_v2(MockDataFile_v1):
     def get_file_format_version(self):
         return 2
 
-    def make_calibration_data(self, calibration_idx, group, attributes, application_timestamp=None):
+    def make_calibration_data(
+        self, calibration_idx, group, attributes, application_timestamp=None, channels=None
+    ):
         if "Calibration" not in self.file:
             self.file.create_group("Calibration")
 
@@ -73,14 +75,27 @@ class MockDataFile_v2(MockDataFile_v1):
         for i, v in attributes.items():
             field.attrs[i] = v
 
-    def make_fd(self, fd_name=None, metadata={}, attributes={}):
+        if channels:
+            for name, data in channels.items():
+                self.make_continuous_channel(
+                    group=f"Calibration/{calibration_idx}/{group}",
+                    name=name,
+                    start=attributes["Start time (ns)"],
+                    dt=np.int64(1e9 / 78125),
+                    data=data,
+                )
+
+    def make_fd(self, fd_name=None, metadata=None, attributes=None):
         if "FD Curve" not in self.file:
             self.file.create_group("FD Curve")
 
         if fd_name:
-            dset = self.file["FD Curve"].create_dataset(fd_name, data=metadata)
-            for i, v in attributes.items():
-                dset.attrs[i] = v
+            dset = self.file["FD Curve"].create_dataset(
+                fd_name, data={} if metadata is None else metadata
+            )
+            if attributes:
+                for i, v in attributes.items():
+                    dset.attrs[i] = v
 
     def make_marker(self, marker_name, attributes, payload=None):
         if "Marker" not in self.file:

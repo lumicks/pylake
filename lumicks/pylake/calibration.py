@@ -39,7 +39,7 @@ class ForceCalibrationList:
     """
 
     def __init__(self, items, slice_start=None, slice_stop=None):
-        """Calibration item
+        """List of calibration items
 
         Parameters
         ----------
@@ -106,11 +106,20 @@ class ForceCalibrationList:
         items = []
         for calibration_item in hdf5["Calibration"].values():
             if force_channel in calibration_item:
-                attrs = dict(calibration_item[force_channel].attrs)
+                dset = calibration_item[force_channel]
+                attrs = dict(dset.attrs)
 
                 # Copy the timestamp at which the calibration was applied into the item
                 attrs["Timestamp (ns)"] = calibration_item.attrs.get("Timestamp (ns)")
-                items.append(ForceCalibrationItem(attrs))
+                items.append(
+                    ForceCalibrationItem(
+                        attrs,
+                        channel=force_channel,
+                        voltage_data=dset.get("voltage"),
+                        sum_voltage_data=dset.get("sum_voltage"),
+                        driving_data=dset.get("driving"),
+                    )
+                )
 
         return ForceCalibrationList._from_items(items)
 
@@ -137,7 +146,9 @@ class ForceCalibrationList:
                     ),
                     item.hydrodynamically_correct,
                     item.distance_to_surface is not None,
-                    (
+                    hasattr(item, "voltage")
+                    and bool(item.voltage)  # Data in the item itself
+                    or (  # Data on the slice
                         bool(
                             self._slice_start
                             and (item.start >= self._slice_start)
