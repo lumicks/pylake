@@ -386,7 +386,7 @@ def test_invalid_bootstrap(exponential_data):
         ValueError,
         match=re.escape("Number of parameters should be the same as the number of components (1)"),
     ):
-        DwelltimeBootstrap(fit, np.zeros((3, 1)), np.zeros((3, 1)))
+        DwelltimeBootstrap(fit, np.zeros((3, 1)), np.zeros((3, 1)), np.zeros(3))
 
     with pytest.raises(
         ValueError,
@@ -394,7 +394,7 @@ def test_invalid_bootstrap(exponential_data):
             "Number of amplitude samples (2) should be the same as number of lifetime samples (1)"
         ),
     ):
-        DwelltimeBootstrap(fit, np.zeros((3, 2)), np.zeros((3, 1)))
+        DwelltimeBootstrap(fit, np.zeros((3, 2)), np.zeros((3, 1)), np.zeros(3))
 
 
 def test_integration_dwelltime_fixing_parameters(exponential_data):

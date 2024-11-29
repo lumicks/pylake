@@ -261,6 +261,7 @@ class DwelltimeBootstrap:
     model: "DwelltimeModel"
     amplitude_distributions: np.ndarray = field(repr=False)
     lifetime_distributions: np.ndarray = field(repr=False)
+    log_likelihoods: np.ndarray = field(repr=False)
 
     def __post_init__(self):
         if self.amplitude_distributions.shape[1] != self.lifetime_distributions.shape[1]:
@@ -294,8 +295,13 @@ class DwelltimeBootstrap:
         iterations : int
             number of iterations (random samples) to use for the bootstrap
         """
-        samples = DwelltimeBootstrap._sample(optimized, iterations)
-        return cls(optimized, samples[: optimized.n_components], samples[optimized.n_components :])
+        samples, log_likelihoods = DwelltimeBootstrap._sample(optimized, iterations)
+        return cls(
+            optimized,
+            samples[: optimized.n_components],
+            samples[optimized.n_components :],
+            log_likelihoods,
+        )
 
     def extend(self, iterations):
         """Extend the distribution by additional sampling iterations.
@@ -305,7 +311,7 @@ class DwelltimeBootstrap:
         iterations : int
             number of iterations (random samples) to add to the bootstrap distribution
         """
-        new_samples = DwelltimeBootstrap._sample(self.model, iterations)
+        new_samples, new_log_likelihoods = DwelltimeBootstrap._sample(self.model, iterations)
         n_components = self.model.n_components
         new_amplitudes = new_samples[:n_components]
         new_lifetimes = new_samples[n_components:]
@@ -314,10 +320,11 @@ class DwelltimeBootstrap:
             self.model,
             np.hstack([self.amplitude_distributions, new_amplitudes]),
             np.hstack([self.lifetime_distributions, new_lifetimes]),
+            np.hstack([self.lifetime_distributions, new_log_likelihoods]),
         )
 
     @staticmethod
-    def _sample(optimized, iterations) -> np.ndarray:
+    def _sample(optimized, iterations) -> (np.ndarray, np.ndarray):
         """Calculate bootstrap samples
 
         Parameters
@@ -330,6 +337,7 @@ class DwelltimeBootstrap:
 
         n_data = optimized.dwelltimes.size
         samples = np.empty((optimized._parameters.size, iterations))
+        log_likelihoods = np.empty(iterations)
         for itr in range(iterations):
             # Note: we have per-dwelltime limits, so we need to resample these too. Form an array
             # with dwelltimes, min limits, and max limits as columns
@@ -341,7 +349,7 @@ class DwelltimeBootstrap:
             )
             sample, min_obs, max_obs = to_resample[choices, :].T
 
-            result, _ = _exponential_mle_optimize(
+            result, log_likelihood = _exponential_mle_optimize(
                 optimized.n_components,
                 sample,
                 min_obs,
@@ -352,8 +360,9 @@ class DwelltimeBootstrap:
                 discretization_timestep=optimized._timesteps,
             )
             samples[:, itr] = result
+            log_likelihoods[itr] = log_likelihood
 
-        return samples
+        return samples, log_likelihoods
 
     @property
     def n_samples(self):
@@ -595,7 +604,7 @@ class DwelltimeModel:
         )
         # TODO: remove with deprecation
         self._bootstrap = DwelltimeBootstrap(
-            self, np.empty((n_components, 0)), np.empty((n_components, 0))
+            self, np.empty((n_components, 0)), np.empty((n_components, 0)), np.empty((0))
         )
 
     @property
