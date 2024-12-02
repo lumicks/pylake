@@ -3,6 +3,7 @@ from functools import wraps
 from collections import UserDict
 
 from lumicks.pylake.channel import Slice, Continuous, empty_slice
+from lumicks.pylake.force_calibration.convenience import calibrate_force
 from lumicks.pylake.force_calibration.calibration_models import DiodeCalibrationModel
 from lumicks.pylake.force_calibration.detail.calibration_properties import (
     CalibrationPropertiesMixin,
@@ -182,6 +183,26 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             (f"{prop}={str(getattr(self, prop))}" for prop in self._results + self._parameters)
         )
         return f"{self.__class__.__name__}({properties})"
+
+    def plot(self):
+        if not self.voltage:
+            raise ValueError(
+                "This calibration item does not contain the raw data. If you still have the "
+                "timeline force data, you can de-calibrate that and perform the re-calibration"
+                "manually. See the pylake tutorial on force calibration for more information."
+            )
+
+        self.recalibrate_with().plot()
+
+    def recalibrate_with(self, **params):
+        """Returns a calibration structure with some parameters overridden.
+
+        For a full list of parameters to override, please see
+        :func:`~lumicks.pylake.calibrate_force()`"""
+        active_data = {"driving_data": self.driving.data} if self.active_calibration else {}
+        return calibrate_force(
+            self.voltage.data, **(self.calibration_params() | active_data | params)
+        )
 
     @_verify_full
     def _model_params(self):
