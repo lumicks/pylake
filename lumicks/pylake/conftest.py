@@ -2,6 +2,7 @@ import json
 import hashlib
 import warnings
 import importlib
+import contextlib
 
 import numpy as np
 import pytest
@@ -68,6 +69,27 @@ def report_line():
         atexit.register(report)
 
     return reporter
+
+
+@pytest.fixture()
+def mock_datetime(monkeypatch):
+    class FakeDateTime:
+        @classmethod
+        def fromtimestamp(cls, timestamp, *args, **kwargs):
+            """Inject a timezone"""
+            return FakeDateTime()
+
+        def strftime(self, str_format):
+            return str_format
+
+    @contextlib.contextmanager
+    def fake_datetime(function_location):
+        # Representation of time is timezone and locale dependent, hence we monkeypatch it
+        with monkeypatch.context() as m:
+            m.setattr(function_location, FakeDateTime)
+            yield m
+
+    return fake_datetime
 
 
 @pytest.fixture(autouse=True)
