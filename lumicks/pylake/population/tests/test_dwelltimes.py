@@ -274,8 +274,6 @@ def test_std_errs(exponential_data, exp_name, n_components, ref_std_errs):
         discretization_timestep=dataset["parameters"].dt,
     )
     np.testing.assert_allclose(fit._std_errs, ref_std_errs, rtol=1e-4)
-    np.testing.assert_allclose(fit.err_amplitudes, ref_std_errs[:n_components], rtol=1e-4)
-    np.testing.assert_allclose(fit.err_lifetimes, ref_std_errs[n_components:], rtol=1e-4)
 
 
 @pytest.mark.parametrize("n_components", [2, 1])

@@ -197,7 +197,7 @@ class DwelltimeProfiles:
         """Number of components in the model."""
         return self.model.n_components
 
-    def plot(self, alpha=None, *, with_stderr=False, **kwargs):
+    def plot(self, alpha=None, **kwargs):
         """Plot the profile likelihoods for the parameters of a model.
 
         Confidence interval is indicated by the region where the profile crosses the chi squared
@@ -209,10 +209,10 @@ class DwelltimeProfiles:
             Significance level. Confidence intervals are calculated as 100 * (1 - alpha)%. The
             default value of `None` results in using the significance level applied when
             profiling (default: 0.05).
-        with_stderr : bool
-            Also show bounds based on standard errors.
         """
         import matplotlib.pyplot as plt
+
+        with_stderr = kwargs.pop("with_stderr") if "with_stderr" in kwargs else False
 
         std_errs = self.model._std_errs[~np.isnan(self.model._std_errs)]
         if self.n_components == 1:
@@ -631,34 +631,6 @@ class DwelltimeModel:
     def lifetimes(self):
         """Lifetime parameter (in time units) of each model component."""
         return self._parameters[self.n_components :]
-
-    @property
-    def err_amplitudes(self):
-        """Asymptotic standard error estimate on the model amplitudes.
-
-        Returns an asymptotic standard error on the amplitude parameters. These error estimates
-        are only reliable for estimates where a lot of data is available and the model does
-        not suffer from identifiability issues. To verify that these conditions are met, please
-        use either :meth:`DwelltimeModel.profile_likelihood()` method or
-        :meth:`DwelltimeModel.calculate_bootstrap()`.
-
-        Note that `np.nan` will be returned in case the parameter was either not estimated or no
-        error could be obtained."""
-        return self._std_errs[: self.n_components]
-
-    @property
-    def err_lifetimes(self):
-        """Asymptotic standard error estimate on the model lifetimes.
-
-        Returns an asymptotic standard error on the amplitude parameters. These error estimates
-        are only reliable for estimates where a lot of data is available and the model does
-        not suffer from identifiability issues. To verify that these conditions are met, please
-        use either :meth:`DwelltimeModel.profile_likelihood()` method or
-        :meth:`DwelltimeModel.calculate_bootstrap()`.
-
-        Note that `np.nan` will be returned in case the parameter was either not estimated or no
-        error could be obtained."""
-        return self._std_errs[self.n_components :]
 
     @property
     def rate_constants(self):
