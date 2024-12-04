@@ -16,7 +16,7 @@ We will illustrate this on a small dataset::
     f = lk.File("test_data/noise_floor.h5")
 
 Let's grab a calibration item from the file and check whether it was a full calibration by checking its `kind` property.
-If this return `Active` or `Passive`, it means that it was a full calibration, meaning it will have information about the diode in the calibration item:
+If this returns `"Active"` or `"Passive"`, it means that it was a full calibration, meaning it will have information about the diode in the calibration item:
 
     >>> calibration_item = f.force1x.calibration[0]
     ... calibration_item.kind
@@ -35,19 +35,21 @@ We can extract the diode calibration model as follows:
     ... diode_calibration
     DiodeCalibrationModel()
 
-This is the diode sensor calibration model.
-It describes the relation between trap power and the sensor parameters.
-To use this model, provide it with total trap power for that trap to determine the diode parameters at that power level.
+This model describes the relation between trap power and the sensor parameters.
+To use this model, call it with total trap power to determine the diode parameters at that power level.
 
     >>> diode_params = diode_calibration(f["Diagnostics"]["Trap power 1"])
     ... diode_params
     {'fixed_diode': 14829.480905511606, 'fixed_alpha': 0.4489251910346808}
 
-These parameter values can be used directly in :meth:`~lumicks.pylake.calibrate_force`.
+These parameter values can be used directly with :meth:`~lumicks.pylake.calibrate_force`.
 A convenient way to do this is to grab the calibration parameters of a previous calibration, and only update the diode calibration parameters.
+Below is an example of how to do with a `dict` union using the `|` operator::
 
     >>> params = calibration_item.calibration_params()
-    ... updated_params = params | diode_params  # We overwrite the diode_parameters here
+    ... # replace the 'fixed_diode' and 'fixed_alpha' values in params
+    ... # with the corresponding values from diode_params and return a new dict
+    ... updated_params = params | diode_params
     ... print(updated_params)
     {'num_points_per_block': 200,
      'sample_rate': 100000,
@@ -73,7 +75,7 @@ We can see that this updated the fixed diode parameters.
     If you are calibrating multiple traps with pre-calibrated diodes, you will need to provide
     the correct diode parameters for each trap.
 
-We can calibrate with these parameters directly by unpacking this dictionary into the force calibration function::
+We can calibrate with these parameters directly by unpacking this dictionary into the :meth:`~lumicks.pylake.calibrate_force` function::
 
     volts = f.force1x / f.force1x.calibration[0].force_sensitivity
 
@@ -82,7 +84,8 @@ We can calibrate with these parameters directly by unpacking this dictionary int
 
 .. image:: figures/diode_cal_bad_fit.png
 
-Unfortunately, in this case, we also have a noise floor to contend with, so we should restrict the fitting range as well (for more information about this, see the section on :ref:`noise floors<noise_floor>`).
+Unfortunately, in this case, we also have a noise floor to contend with, so we should restrict the fitting range as well
+(for more information about this, see the section on :ref:`noise floors<noise_floor>`).
 In this case, we restrict the upper bound of the fitting range to approximately four times the corner frequency::
 
     volts = f.force1x / f.force1x.calibration[0].force_sensitivity
@@ -93,20 +96,21 @@ In this case, we restrict the upper bound of the fitting range to approximately 
 
 .. image:: figures/diode_cal_good_fit.png
 
-To judge whether the noise floor has been sufficiently truncated, you can play with the upper limit of the fit range and see if the corner frequency no longer changes.
+To judge whether the noise floor has been sufficiently truncated, you can play with the upper limit
+of the fit range and see if the corner frequency no longer changes.
 
 When to use calibrated diode parameters
 """""""""""""""""""""""""""""""""""""""
 
-Using a calibrated diode is critical when the corner frequency is close or higher than the diode parameters.
+Using a calibrated diode is critical when the corner frequency is close to or higher than the diode frequency.
 When the corner frequency is very high, the estimation of the model parameters can fail *despite the fit looking good*.
-In this case, the corner frequency is low:
+
+In this data, the corner frequency is low, therefore using the diode parameters is not strictly necessary:
 
     >>> calibration.corner_frequency
     531.0129872280306
 
-Therefore, using the diode parameters is not strictly necessary.
-Removing them from the calibration arguments by not providing the parameters `fixed_diode` or `fixed_alpha` results in almost no change in this case::
+Removing `fixed_diode` and `fixed_alpha` from the calibration arguments (by setting them to `None`) results in almost no change in this case::
 
     updated_params = updated_params | {"fixed_alpha": None, "fixed_diode": None, "fit_range": [100, 2300]}
     calibration = lk.calibrate_force(volts.data, **updated_params)
