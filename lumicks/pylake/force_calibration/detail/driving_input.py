@@ -145,7 +145,7 @@ def estimate_driving_input_parameters(
 class DrivenPower:
     def __init__(self, psd_data, sample_rate, driving_frequency, num_windows, freq_window=50.0):
         """This class is used to determine power in the driven peak."""
-        self.ps = PowerSpectrum(
+        self.ps = PowerSpectrum.from_data(
             psd_data, sample_rate, window_seconds=num_windows / driving_frequency
         ).in_range(max(1.0, driving_frequency - freq_window), driving_frequency + freq_window)
 
