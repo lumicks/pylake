@@ -8,7 +8,7 @@ Active calibration
     :nbexport:`Download this page as a Jupyter notebook <self>`
 
 Pylake can be used to (re-)calibrate the force channels using active calibration data.
-In active calibration, we oscillate the stage with a known frequency and amplitude.
+In active calibration, the stage is oscillated with a known frequency and amplitude.
 This introduces an extra peak in the power spectrum which allows the trap to be calibrated in a
 way that :ref:`relies less on the theoretical drag coefficient<active_calibration_theory>`.
 This is particularly useful when the distance to the surface, the bead radius, or the viscosity
@@ -65,7 +65,7 @@ Pylake will find an accurate estimate of the driving frequency based on this ini
 
 We can check the determined driving frequency with::
 
-    >>> active_model.driving_frequency
+    >>> calibration.driving_frequency
     38.15193077664462
 
 Let's have a look to see if this peak indeed appears in our power spectrum.
@@ -83,16 +83,18 @@ The calibration is now complete and we can access the calibration parameters as 
 
 .. note::
 
-    Note that the drag coefficient :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.measured_drag_coefficient` that Pylake returns always corresponds to the drag coefficient extrapolated back to its bulk value.
+    Note that the drag coefficient :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.measured_drag_coefficient`
+    that Pylake returns always corresponds to the drag coefficient extrapolated back to its bulk value.
     This ensures that drag coefficients can be compared and carried over between experiments performed at different heights.
-    The field :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.local_drag_coefficient` contains an estimate of the local drag coefficient (at the provided height).
+    The field :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.local_drag_coefficient` contains an
+    estimate of the local drag coefficient (at the provided height).
 
 Comparing active calibration to passive
 """""""""""""""""""""""""""""""""""""""
 
-Let's compare it to passive calibration::
+Let's compare the active calibration result to passive calibration::
 
-    >>> fit = lk.calibrate_force(
+    >>> passive_fit = lk.calibrate_force(
     ...     volts.data,
     ...     bead_diameter=bead_diameter,
     ...     temperature=25,
@@ -100,22 +102,24 @@ Let's compare it to passive calibration::
     ...     distance_to_surface=distance_to_surface,
     ...     num_points_per_block=200
     ... )
-    >>> print(fit["kappa"].value)
+    >>> print(passive_fit.stiffness)
     0.11763849764570819
 
-These values are quite close.
-In this experiment, we accurately determined the distance to the surface, but in most cases, this surface is only known very approximately.
-If we do not provide the height above the surface, we can see that the passive calibration result suffers much more than the active calibration result (as passive calibration fully relies on a drag coefficient calculated from the physical input parameters)::
+This value is quite close to that obtained with active calibration above.
 
-    >>> fit = lk.calibrate_force(
+In this experiment, we accurately determined the distance to the surface, but in most cases, this surface is only known very approximately.
+If we do not provide the height above the surface, we can see that the passive calibration result suffers
+much more than the active calibration result (as passive calibration fully relies on a drag coefficient
+calculated from the physical input parameters)::
+
+    >>> passive_fit = lk.calibrate_force(
     ...     volts.data,
     ...     bead_diameter=bead_diameter,
     ...     temperature=25,
     ...     sample_rate=volts.sample_rate,
-    ...     distance_to_surface=distance_to_surface,
     ...     num_points_per_block=200
     ... )
-    >>> print(fit["kappa"].value)
+    >>> print(passive_fit.stiffness)
     0.08616565751377737
 
 .. _bead_bead_tutorial:
@@ -130,7 +134,7 @@ Active calibration with two beads far away from the surface
     The API can still be subject to change *without any prior deprecation notice*!
     If you use this functionality keep a close eye on the changelog for any changes that may affect your analysis.
 
-When performing active calibration with two beads, we get a lower fluid velocity around the beads than we would with a single bead.
+When performing active calibration with two beads, there is a lower fluid velocity around the beads than there would be with a single bead.
 This leads to a smaller voltage readout than expected and therefore a higher displacement sensitivity (microns per volt).
 Failing to take this into account results in a bias.
 Pylake offers a function to calculate a correction factor to account for the lower velocity around the bead.
@@ -139,7 +143,7 @@ Pylake offers a function to calculate a correction factor to account for the low
 
     For more information on how these factors are derived, please refer to the :ref:`theory<bead_bead_theory>` section on this topic.
 
-Appropriate correction factors for oscillation in x can be calculated as follows::
+Appropriate correction factors for oscillation in :math:`x` can be calculated as follows::
 
     factor = lk.coupling_correction_2d(dx=5.0, dy=0, bead_diameter=bead_diameter, is_y_oscillation=False)
 
@@ -156,7 +160,7 @@ The obtained correction factor can be used to correct the calibration factors::
 
 To correct a force trace, simply divide it by the correction factor::
 
-    corrected_force1x = f.force1x / factor
+    corrected_force1x = f.force1x / float(factor)
 
 .. note::
 
@@ -166,5 +170,6 @@ To correct a force trace, simply divide it by the correction factor::
 
     The model implemented here only supports beads that are aligned in the same plane.
     It does not take a mismatch in the `z`-position of the beads into account.
-    In reality, the position in the focus depends on the bead radius and may be different for the two beads if they slightly differ in size :cite:`alinezhad2018enhancement` (Fig. 3).
+    In reality, the position in the focus depends on the bead radius and may be different for the two beads if they slightly differ in size
+    (see :cite:`alinezhad2018enhancement` Fig. 3)
     At short bead-to-bead distances, such a mismatch would make the coupling less pronounced than the model predicts.
