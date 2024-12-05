@@ -22,6 +22,10 @@
 * Added improved printing of calibrations performed with `Pylake`.
 * Improved error message that includes the name of the model when trying to access a model that was not added in an [`FdFit`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.FdFit.html) using angular brackets.
 
+#### Bug fixes
+
+* Ensure that operators such as (e.g. `+`, `-`, `/`) work on [`Slice`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html) with all types that are convertible to scalars. Previously these failed with zero dimensional numpy arrays and other convertible objects.
+
 ## v1.5.3 | 2024-10-29
 
 #### Bug fixes

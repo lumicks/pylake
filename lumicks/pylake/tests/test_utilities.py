@@ -5,6 +5,8 @@ import pytest
 import matplotlib as mpl
 from numpy.testing import assert_array_equal
 
+from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.detail.value import ValueMixin
 from lumicks.pylake.detail.confocal import timestamp_mean
 from lumicks.pylake.detail.utilities import *
 from lumicks.pylake.detail.utilities import (
@@ -338,3 +340,50 @@ def test_cache_method():
     assert test.example_method(6) == 6
     assert calls == 3
     assert len(test._cache) == 3
+
+
+class NonConvertible:
+    def __init__(self, value):
+        self.value = value
+
+
+@pytest.mark.parametrize(
+    "test_value, ref",
+    [
+        (
+            Slice(
+                Continuous(np.array([5.0]), int(1e6), 100),
+                labels={"y": "y", "title": "title", "x": "x"},
+            ),
+            5.0,
+        ),
+        (np.array(1.0), 1.0),
+        (np.array(1), 1),
+        (np.array(159291604090635630000), 159291604090635630000),
+        (159291604090635630000, 159291604090635630000),
+        ([1], 1),
+        (np.array([[[1]]]), 1),
+        (np.array([[[1.0]]]), 1.0),
+        (ValueMixin(1.0), 1.0),
+        (ValueMixin(1), 1),
+    ],
+)
+def test_convert_to_scalar_valid(test_value, ref):
+    assert (value := convert_to_scalar(test_value)) == ref
+    assert isinstance(value, type(ref))
+
+
+@pytest.mark.parametrize(
+    "test_value",
+    (
+        Slice(Continuous(np.arange(100), int(1e6), 100), labels={"y": "y", "title": "t", "x": "x"}),
+        "str",
+        [1, 1],  # Not a single scalar
+        ValueMixin(["1.0"]),  # Not a numeric value
+        ValueMixin(["string"]),
+        ValueMixin([1, 1]),  # Not a scalar
+        NonConvertible(1),
+    ),
+)
+def test_convert_to_scalar_invalid(test_value):
+    assert convert_to_scalar(test_value) is None

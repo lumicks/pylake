@@ -1,4 +1,5 @@
 import math
+import numbers
 import contextlib
 
 import numpy as np
@@ -213,3 +214,14 @@ def temp_seed(seed):
         yield
     finally:
         np.random.seed(None)
+
+
+def convert_to_scalar(value):
+    """Converts to a numeric scalar if possible, otherwise returns None"""
+    try:
+        value = np.asarray(value).item()
+    except ValueError:  # Can only convert array of size 1 to Python scalar
+        return None
+
+    if isinstance(value, numbers.Number):
+        return value
