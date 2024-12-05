@@ -1,8 +1,11 @@
+import warnings
+
 import numpy as np
 import pytest
 
 from lumicks.pylake.channel import Slice, TimeTags, Continuous, TimeSeries
 from lumicks.pylake.calibration import ForceCalibrationList
+from lumicks.pylake.detail.value import ValueMixin
 
 start = 1 + int(1e18)
 calibration = ForceCalibrationList(
@@ -64,6 +67,16 @@ def test_operations_slice(slice1, slice2):
     [
         (slice_continuous_1, 2.0),
         (slice_timeseries_1, 2.0),
+        (slice_continuous_1, 0),
+        (slice_timeseries_1, 0),
+        (slice_continuous_1, 0.0),
+        (slice_timeseries_1, 0.0),
+        (slice_continuous_1, np.array(2.0)),
+        (slice_timeseries_1, np.array(2.0)),
+        (slice_continuous_1, np.array(0)),
+        (slice_timeseries_1, np.array(0)),
+        (slice_continuous_1, ValueMixin(2.0)),
+        (slice_timeseries_1, ValueMixin(2.0)),
     ],
 )
 def test_operations_scalar(slice1, scalar):
@@ -85,7 +98,9 @@ def test_operations_scalar(slice1, scalar):
             assert not getattr(current_slice, operation)(scalar_val).calibration
 
     for operator, preserve_calibration, *_ in operators:
-        test_operator(slice1, scalar, operator, preserve_calibration)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="divide by zero encountered in divide")
+            test_operator(slice1, scalar, operator, preserve_calibration)
 
 
 slice_continuous_different_timestamps = Slice(
@@ -181,7 +196,7 @@ def test_negation(channel_slice):
 
 def test_negation_timetags_not_implemented():
     with pytest.raises(NotImplementedError):
-        negated_timetags = -timetags
+        _ = -timetags
 
 
 def test_labels_slices():
