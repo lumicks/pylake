@@ -8,7 +8,7 @@ import numpy.typing as npt
 
 from .detail.plotting import _annotate
 from .detail.timeindex import to_seconds, to_timestamp
-from .detail.utilities import downsample
+from .detail.utilities import downsample, convert_to_scalar
 from .nb_widgets.range_selector import SliceRangeSelectorWidget
 
 
@@ -72,8 +72,29 @@ class Slice:
         return self._with_data_source(self._src._apply_mask(mask))
 
     def _unpack_other(self, other):
-        if np.isscalar(other):
-            return other
+        """Extract raw data from `other`
+
+        Extracts the raw data from the other object for use in an arithmetic operation. If it is
+        convertible to a scalar, this object will be converted to a flat scalar value. If it is a
+        Slice, the function will verify that the timestamps of both slices are the same. If so,
+        the data will be extracted and returned.
+
+        Parameters
+        ----------
+        other : array_like | Slice
+            The object to extract data from.
+
+        Raises
+        ------
+        TypeError
+            If the object is not scalar-like or a slice.
+        NotImplementedError
+            If the object is a TimeTag object.
+        RuntimeError
+            If the timestamps of the two slices are not the same.
+        """
+        if (scalar := convert_to_scalar(other)) is not None:
+            return scalar
 
         if not isinstance(other, Slice):
             raise TypeError("Trying to perform operation with incompatible types.")
@@ -88,7 +109,10 @@ class Slice:
 
     def _generate_labels(self, lhs, operator, rhs, keep_unit):
         def get_label(item, key):
-            return item.labels.get(key, "") if not np.isscalar(item) else str(item)
+            try:
+                return item.labels.get(key, "")
+            except AttributeError:
+                return str(item)  # scalar value case
 
         labels = {"title": f"({get_label(lhs, 'title')} {operator} {get_label(rhs, 'title')})"}
         if keep_unit:
@@ -110,14 +134,14 @@ class Slice:
     def __add__(self, other):
         return Slice(
             self._src._with_data(self.data + self._unpack_other(other)),
-            calibration=self._calibration if np.isscalar(other) else None,
+            calibration=self._calibration if convert_to_scalar(other) is not None else None,
             labels=self._generate_labels(self, "+", other, keep_unit=True),
         )
 
     def __sub__(self, other):
         return Slice(
             self._src._with_data(self.data - self._unpack_other(other)),
-            calibration=self._calibration if np.isscalar(other) else None,
+            calibration=self._calibration if convert_to_scalar(other) is not None else None,
             labels=self._generate_labels(self, "-", other, keep_unit=True),
         )
 
@@ -160,7 +184,7 @@ class Slice:
     def __radd__(self, other):
         return Slice(
             self._src._with_data(self.data + self._unpack_other(other)),
-            calibration=self._calibration if np.isscalar(other) else None,
+            calibration=self._calibration if convert_to_scalar(other) is not None else None,
             labels=self._generate_labels(other, "+", self, keep_unit=True),
         )
 
