@@ -61,7 +61,7 @@ These are the time intervals we associated with the broader, slow movements of t
 If we think about a bead moving due to random collisions, then we can expect that the bead will move
 more in these longer time intervals. This is why in the power spectrum of free diffusion, we see a
 lot more energy concentrated at these low frequencies, while the rapid jiggles at higher frequency
- contribute far less. The amplitude of this power spectrum is related to :math:`D`.
+contribute far less. The amplitude of this power spectrum is related to :math:`D`.
 
 .. image:: figures/sim_trap_opt.gif
   :nbattach:

@@ -23,6 +23,8 @@ difference between the simple Lorentzian model and the hydrodynamically correct 
 .. image:: figures/freq_dependent_drag_zero.png
   :nbattach:
 
+where :math:`l` is the distance between the bead center and the surface and :math:`R` is the bead radius.
+
 In addition, the frequency dependent effects reduce as we approach the surface :cite:`schaffer2007surface`.
 We can see this when we plot the spectrum for two different ratios of `l/R`.
 
@@ -32,7 +34,7 @@ We can see this when we plot the spectrum for two different ratios of `l/R`.
 These two aspects make using the simpler model in combination with a Lorentzian a
 more suitable model for situations where we have to calibrate extremely close to the surface.
 
-As a last note, note that the height-dependence of _axial_ force is different than the
+Lastly, note that the height-dependence of _axial_ force is different than the
 height-dependence of lateral force. For axial force, no hydrodynamically correct theory for the
 power spectrum near the surface exists.
 
@@ -42,7 +44,8 @@ power spectrum near the surface exists.
 Mathematical background
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-**Hydrodynamically correct theory**
+Hydrodynamically correct theory
+"""""""""""""""""""""""""""""""
 
 When approaching the surface, the drag experienced by the bead depends on the distance between the
 bead and the surface of the flow cell. An approximate expression for the frequency dependent drag is
@@ -70,7 +73,8 @@ in calibration :cite:`tolic2006calibration,berg2006power`.
     coefficient returned from the model corresponds to the drag coefficient extrapolated back to its
     bulk value.
 
-**Lorentzian model (lateral)**
+Lorentzian model (lateral)
+""""""""""""""""""""""""""
 
 The hydrodynamically correct model presented in the previous section works well when the bead center
 is at least 1.5 times the radius above the surface. When moving closer than this limit, we fall back
@@ -91,7 +95,8 @@ What we see is that the frequency dependent model used in the previous section r
 up to and including its second order term in :math:`R/l`. It is, however, a lower order model and the
 accuracy decreases rapidly as the distance between the bead and surface become very small.
 
-**Lorentzian model (axial)**
+Lorentzian model (axial)
+""""""""""""""""""""""""
 
 For calibration in the axial direction, no hydrodynamically correct theory exists.
 
