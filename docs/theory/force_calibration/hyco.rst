@@ -11,9 +11,10 @@ While the idealized model of the bead motion is sometimes sufficiently accurate,
 it neglects inertial and hydrodynamical effects of the fluid and bead(s).
 
 The frictional forces applied by the viscous environment to the bead are proportional to the bead's velocity relative to the fluid.
-The idealized model is based on the assumption that the bead's relative velocity is constant.
-There is no dynamical change of the fluid motion around the bead.
-In reality, when the bead moves through the fluid, the frictional force between the bead and the fluid depends on the past motion, since that determines the fluid's current motion.
+The idealized model is based on the assumption that the bead's relative velocity is constant;
+there is no dynamical change of the fluid motion around the bead.
+In reality, when the bead moves through the fluid, the frictional force between the bead and the fluid
+depends on the past motion, since that determines the fluid's current motion.
 For a stochastic process such as Brownian motion, constant motion is not an accurate assumption.
 In addition, the bead and the surrounding fluid have their own mass and inertia, which are also neglected in the idealized model.
 
@@ -33,9 +34,13 @@ sizes and higher trap powers the differences can be substantial.
 Fast sensor measurement
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-When fitting a power spectrum, one may ask the question, so why does the fit look good if the model is bad?
+.. note::
+
+    The following section only applies to instruments which contain fast PSDs.
+
+When fitting a power spectrum, one may ask the question: "Why does the fit look good if the model is bad?"
 The answer to this lies in the model that is used to capture the :ref:`parasitic filtering effect<diode_theory>`.
-When the parameters of this model are estimated, what can happen is that they "hide" the mis-specification of the model.
+When the parameters of this model are estimated, they can "hide" the mis-specification of the model.
 
 Fast detectors have the ability to respond much faster to incoming light resulting in no visible filtering effect in the frequency range we are fitting.
 This means that for a fast detector, we do not need to include such a filtering effect in our model and see the power spectrum for what it really is.
