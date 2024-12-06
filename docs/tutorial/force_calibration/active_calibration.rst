@@ -160,7 +160,7 @@ The obtained correction factor can be used to correct the calibration factors::
 
 To correct a force trace, simply divide it by the correction factor::
 
-    corrected_force1x = f.force1x / float(factor)
+    corrected_force1x = f.force1x / factor
 
 .. note::
 
