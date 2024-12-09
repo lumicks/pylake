@@ -16,7 +16,7 @@ First we need the data in volts as shown in previous tutorials::
     filenames = lk.download_from_doi("10.5281/zenodo.7729823", "test_data")
     f = lk.File("test_data/passive_calibration.h5")
 
-    force_slice = f.force1x
+    force_slice = f.force1x[f.force1x.calibration[1]]
     old_calibration = force_slice.calibration[0]
 
     volts = force_slice / old_calibration.force_sensitivity
@@ -95,7 +95,7 @@ These parameters can be accessed as follows::
 
     >>> print(calibration["kappa"].value)
     >>> print(f.force1x.calibration[1]["kappa (pN/nm)"])
-    0.12872206850762546
+    0.12872206853860946
     0.1287225353482303
 
 .. note::
@@ -127,6 +127,16 @@ Note that when `rho_sample` and `rho_bead` are omitted, values for water and pol
 Active calibration
 """"""""""""""""""
 
+Let's load some active calibration data::
+
+    lk.download_from_doi("10.5281/zenodo.7729823", "test_data")
+    f = lk.File("test_data/near_surface_active_calibration.h5")
+
+    volts = f.force1x / f.force1x.calibration[0].force_sensitivity
+    bead_diameter = f.force1x.calibration[0].bead_diameter
+    distance_to_surface = 1.04 * bead_diameter
+    driving_data = f["Nanostage position"]["X"]
+
 Instead of using the :class:`~lumicks.pylake.PassiveCalibrationModel` presented in the previous section,
 we now use the :class:`~lumicks.pylake.ActiveCalibrationModel`.
 We also need to provide the sample rate at which the data was acquired, and a rough guess for the driving frequency.
@@ -141,4 +151,16 @@ Pylake will find an accurate estimate of the driving frequency based on this ini
         distance_to_surface=distance_to_surface
     )
 
-The rest of the procedure is the same.
+The rest of the procedure is the same::
+
+    power_spectrum = lk.calculate_power_spectrum(
+        volts.data,
+        sample_rate=volts.sample_rate,
+        fit_range=(1e2, 23e3),
+        num_points_per_block=2000,
+    )
+
+    calibration = lk.fit_power_spectrum(power_spectrum, active_model)
+    calibration.plot(show_active_peak=True)
+
+.. image:: figures/active_calibration_lowlevel.png

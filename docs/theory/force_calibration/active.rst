@@ -170,7 +170,7 @@ This model uses symmetry considerations to solve the creeping flow problem for t
 at a constant velocity parallel to their line of centers.
 We denote the correction factor obtained from this model as :math:`c_{\|}`.
 This correction factor is given by the ratio of the drag coefficient by the drag coefficient one would
-expected from a single bead in creeping flow (:math:`3 \pi \eta d v`).
+expect from a single bead in creeping flow (:math:`3 \pi \eta d v`).
 For beads aligned perpendicular to the flow direction, we use a model from :cite:`goldman1966slow`,
 which we denote as :math:`c_{\perp}`.
 

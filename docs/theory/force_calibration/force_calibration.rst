@@ -72,7 +72,7 @@ Because of this, those motions which are larger will experience a strong pull fr
 motion will be limited. This damping of larger motions (at lower frequencies) manifests itself as
 sharp reduction of amplitudes in the power spectrum above a certain threshold.
 This leads to a plateau at low frequencies in the power spectrum of a trapped bead.
-The point approximately at which the power spectrum transitions from a plateau to a downward slope
+The point at which the power spectrum transitions from a plateau to a downward slope
 is known as the **corner frequency** :math:`f_c`.
 
 Important takeaways
