@@ -253,23 +253,22 @@ class Slice:
         """
         from lumicks.pylake.calibration import ForceCalibrationList
 
-        if len(self.calibration) > 1:
-            raise NotImplementedError(
-                "Slice contains multiple calibrations. Recalibration is only implemented for slices"
-                "that do not contain calibration events."
-            )
-
         if not self.calibration:
             raise RuntimeError(
                 "Slice does not contain any calibration items. Is this an unprocessed force "
                 "channel?"
             )
 
+        # Grab sensitivities. If for whatever reason, we don't know part of the calibration, we
+        # can't reasonably recalibrate, so we return NaNs for those time points.
+        timestamps = self.timestamps
+        force_sensitivities = np.full(len(timestamps), np.nan)
+        for c in self.calibration:
+            force_sensitivities[timestamps >= c.applied_at] = c.force_sensitivity
+
         return Slice(
             self._src._with_data(
-                self._unpack_other(self)
-                * calibration.force_sensitivity
-                / self.calibration[0].force_sensitivity
+                self._unpack_other(self) * calibration.force_sensitivity / force_sensitivities
             ),
             labels=self.labels,
             calibration=ForceCalibrationList(items=[calibration._with_timestamp(self.start)]),
