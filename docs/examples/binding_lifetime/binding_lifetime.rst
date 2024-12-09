@@ -91,6 +91,18 @@ Load the tracks into Pylake::
 
 Use the same approach as above to load the tracks from Lakeview, except that the part :func:`Kymo.crop_by_distance() <lumicks.pylake.kymo.Kymo.crop_by_distance>` has to be removed.
 
+The (loaded) tracks can be plotted on top of the original kymograph to visualize the result of the tracking::
+
+    plt.figure()
+    kymo1_selection.plot("g", aspect=5, adjustment=lk.ColorAdjustment(0, 5))
+    tracks1.plot()
+
+.. image:: tracks1.png
+
+Note that two tracks at t=0 were manually removed, because the starting points of these tracks are not visible. This means that we cannot determine the duration of these tracks.
+The length of each track corresponds to the duration of a binding event. As can be seen from the above image, there is a large variation in track lengths. 
+By collecting all these track durations into a 'binding lifetime distribution', we can analyze the binding lifetime in more detail.
+
 Combine tracks
 --------------
 
