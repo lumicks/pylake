@@ -21,7 +21,7 @@ To see what such items look like, let's load the dataset::
     f = lk.File("test_data/passive_calibration.h5")
 
 The force timeline in this file contains a single calibration measurement.
-Note that every force axis (e.g. `1x`, `1y`, `2x`, etc...) has its own calibration.
+Note that every force axis (e.g. `1x`, `1y`, `2x`, etc.) has its own calibration.
 We can see calibrations relevant for a single force channel (in this case `1x`) by inspecting the
 :attr:`~lumicks.pylake.channel.Slice.calibration` attribute for the entire force
 :class:`~lumicks.pylake.channel.Slice`::
@@ -84,7 +84,7 @@ To do this, we divide our data by the force sensitivity that was active at the s
     >>> old_calibration = force1x_slice.calibration[0]
     ... volts1x_slice = force1x_slice / old_calibration.force_sensitivity
 
-The easiest way to extract all of the relevant calibration parameters is to use
+The easiest way to extract all the relevant input parameters for a calibration is to use
 :meth:`~lumicks.pylake.force_calibration.calibration_item.ForceCalibrationItem.calibration_params()`::
 
     >>> calibration_params = f.force1x.calibration[1].calibration_params()
@@ -101,7 +101,9 @@ The easiest way to extract all of the relevant calibration parameters is to use
      'hydrodynamically_correct': False,
      'active_calibration': False}
 
-This returns a dictionary with the parameters determined during the calibration in Bluelake.
+This returns a dictionary with the parameters that were set during the calibration in Bluelake.
+These parameters can be used to reproduce a calibration that was performed in Bluelake
+by passing these to :func:`~lumicks.pylake.calibrate_force`.
 Depending on the type of calibration that was performed, the number of parameters may vary.
 
 .. note::
@@ -157,10 +159,10 @@ Now that we have our new calibration item, we can recalibrate a slice of force d
 To do so, take the slice and multiply it by the ratio of the old and new calibration factors::
 
     correction_factor = recalibrated_hyco.force_sensitivity / old_calibration.force_sensitivity
-    recalibrated_force1x = f.force1x * correction_factor
+    recalibrated_force1x = force1x_slice * correction_factor
 
     plt.figure()
-    f.force1x.plot()
+    force1x_slice.plot()
     recalibrated_force1x.plot()
 
 .. image:: figures/recalibrated_force1x.png

@@ -29,11 +29,11 @@ To find the viscosity of water at a particular temperature, Pylake supplies the 
 When the viscosity parameter is omitted, this function will automatically be used to look up the
 viscosity of water for that particular temperature
 
-The following figure shows the effect of mis-specifying temperature on the accuracy of the calibration.
-The left panel shows the temperature dependence of the viscoscity of water over the expected temperature
-range for a typical experiment. The three right panels show the percent error expected for various
-calibration parameters as a function of specified temperature. The dashed vertical line indicates
-the actual temperature of the experiment (which corresponds to 0% error):
+The following figure shows the effect of mis-specifying temperature on the accuracy of the (passive)
+calibration. The left panel shows the temperature dependence of the viscoscity of water over the
+expected temperature range for a typical experiment. The three right panels show the percent error
+expected for various calibration parameters as a function of specified temperature. The dashed
+vertical line indicates the actual temperature of the experiment (which corresponds to 0% error):
 
 .. image:: figures/temperature_dependence.png
   :nbattach:
@@ -109,14 +109,15 @@ In addition to the model that describes the bead's motion, it is important to ta
 A silicon diode sensor is characterized by two parameters, a "relaxation factor" `alpha` and frequency `f_diode`.
 These parameters can either be estimated along with the other parameters or measured independently.
 
-When the diode frequency is fitted, care must be taken that the corner frequency of the power spectrum `fc` is
+When the diode frequency and relaxation factor are fitted, care must be taken that the corner
+frequency of the power spectrum `fc` is
 :ref:`lower than the estimated diode frequency<high_corner_freq>`.
-You can check whether the frequency was estimated from the calibration
+You can check whether the diode parameters were estimated from the calibration
 data by checking the property :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.fitted_diode`.
 When this property is `True`, it means that the diode parameters were not fixed during the fit.
 This means that you should be careful when calibrating small beads at high laser powers.
 
-If the property returns `False`, it means you use higher powers more safely, but will have
+If the property returns `False`, it means you can use higher powers more safely, but will have
 to make sure the correct diode parameters for that particular laser power are used. For more
 information on how to do this, refer to the :ref:`diode calibration tutorial<diode_tutorial>`.
 

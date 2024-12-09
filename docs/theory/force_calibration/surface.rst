@@ -57,8 +57,9 @@ then given by :cite:`tolic2006calibration`:
     \left(1 - \left((1 - i)/3\right)\sqrt{\frac{f}{f_{\nu}}} + \frac{2}{9}\frac{f}{f_{\nu}}i -
     \frac{4}{3}(1 - e^{-(1-i)(2l-R)/\delta})\right)} \tag{$\mathrm{kg/s}$}
 
-Where :math:`\delta = R \sqrt{\frac{f_{\nu}}{f}}` represents the aforementioned penetration depth,
-:math:`R` corresponds to the bead radius and :math:`l` to the distance from the bead center to the nearest surface.
+Where :math:`\delta = R \sqrt{\frac{f_{\nu}}{f}}` represents the penetration depth,
+:math:`R` corresponds to the bead radius and :math:`l` to the distance from the bead center to the
+nearest surface.
 
 While these models may look daunting, they are all available in Pylake and can be used by simply
 providing a few additional arguments to the :class:`~.PassiveCalibrationModel`. It is recommended to

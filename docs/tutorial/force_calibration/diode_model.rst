@@ -44,7 +44,7 @@ To use this model, call it with total trap power to determine the diode paramete
 
 These parameter values can be used directly with :meth:`~lumicks.pylake.calibrate_force`.
 A convenient way to do this is to grab the calibration parameters of a previous calibration, and only update the diode calibration parameters.
-Below is an example of how to do with a `dict` union using the `|` operator::
+Below is an example of how to do this with a `dict` union using the `|` operator::
 
     >>> params = calibration_item.calibration_params()
     ... # replace the 'fixed_diode' and 'fixed_alpha' values in params
