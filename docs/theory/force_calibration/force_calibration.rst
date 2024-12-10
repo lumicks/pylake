@@ -8,9 +8,8 @@ Introduction
 Why is force calibration necessary?
 -----------------------------------
 
-Optical tweezers typically measure forces and displacements by detecting deflections of a trapping
-laser by a trapped bead. These deflections are measured at the back focal plane of the beam using
-position sensitive detectors (PSDs).
+Optical tweezers typically measure forces and displacements by detecting deflections of a trapping laser by a trapped bead.
+These deflections are measured at the back focal plane of the beam using position sensitive detectors (PSDs).
 
 .. image:: figures/back_focal.png
   :nbattach:
@@ -30,29 +29,75 @@ and
 
 Where :math:`V` is the position-dependent voltage signal from the PSD and :math:`R_d` and :math:`R_f`
 are the displacement and force sensitivity proportionality constants, respectively.
-Force calibration refers to computing these conversion factors.
+
+Force calibration refers to computing the calibration factors needed to convert from raw voltages to
+actual forces and displacements. The values we wish to calculate are:
+
+- Trap stiffness :math:`\kappa`, which reflects how strongly a bead is held by a trap.
+- Force response :math:`R_f`, the proportionality constant between voltage and force.
+- Distance response :math:`R_d`, the proportionality constant between voltage and distance.
 
 Several methods exist to calibrate optical traps based on sensor signals.
 In this section, we will provide an overview of the physical background of power spectral calibration.
 
-Why does the power spectrum look the way it does?
--------------------------------------------------
+How can we calibrate?
+---------------------
 
-Consider a small bead freely diffusing in a medium (no optical trapping taking place).
+We will start by building some intuition about the physical processes.
+Consider a small bead suspended in fluid (no optical trapping taking place).
+This bead moves around due to the random collisions of molecules against the bead.
+If we observe this motion over time, then we can see that it is a lot like the bead is taking aimless steps.
+This unimpeded movement is often called free diffusion or Brownian motion.
+How quickly the bead moves from the original position is characterized by a **diffusion constant** :math:`D`.
+When we look at the motion of the bead over longer time periods, then each random step contributes
+only a little to the overall movement. Because these steps are random, they don't perfectly cancel
+out in the short term, and lead to a gradual drift. If there is no optical trap keeping the bead in
+place, then the bead slowly drifts off from its starting position.
+
+One way to analyze this motion is to make a power spectrum plot of the bead's position.
+This plot shows how much motion there is at different frequencies of movement.
+Lower frequencies correspond to longer time intervals.
+These are the time intervals we associated with the broader, slow movements of the bead.
+If we think about a bead moving due to random collisions, then we can expect that the bead will move
+more in these longer time intervals. This is why in the power spectrum of free diffusion, we see a
+lot more energy concentrated at these low frequencies, while the rapid jiggles at higher frequency
+contribute far less. The amplitude of this power spectrum is related to :math:`D`.
+
+.. image:: figures/sim_trap_opt.gif
+  :nbattach:
+
+Now we introduce the optical trap, which pulls the bead back to the laser focus.
+The strength of this pull depends on how far the bead is from the focus, like a spring.
+Because of this, those motions which are larger will experience a strong pull from the trap and the
+motion will be limited. This damping of larger motions (at lower frequencies) manifests itself as
+sharp reduction of amplitudes in the power spectrum above a certain threshold.
+This leads to a plateau at low frequencies in the power spectrum of a trapped bead.
+The point at which the power spectrum transitions from a plateau to a downward slope
+is known as the **corner frequency** :math:`f_c`.
+
+Important takeaways
+-------------------
+
+- The spectrum of bead motion in a trap can be characterized by a diffusion constant and corner frequency.
+- At low frequencies, the trapping force dominates and limits the amplitudes, while at high frequencies the drag on the bead does.
+
+Mathematical background
+-----------------------
+
 Neglecting hydrodynamic and inertial effects (more on this later), we obtain the following equation of motion:
 
 .. math::
 
-    \dot{x} = \frac{1}{\gamma} F_{thermal}(t)
+    \dot{x} = \frac{1}{\gamma} F_\mathrm{thermal}(t)
 
 where :math:`x` is the time-dependent position of the bead, :math:`\dot{x}` is the first derivative
-with respect to time, :math:`\gamma`  is the drag coefficient and :math:`F_{thermal}(t)` is the thermal
+with respect to time, :math:`\gamma`  is the drag coefficient and :math:`F_\mathrm{thermal}(t)` is the thermal
 force driving the diffusion. This thermal force is assumed to have the statistical properties of
 uncorrelated white noise:
 
 .. math::
 
-    F_{thermal}(t) = \sqrt{2 \gamma k_B T} \xi(t)
+    F_\mathrm{thermal}(t) = \sqrt{2 \gamma k_B T} \xi(t)
 
 where :math:`k_B` is the Boltzmann constant, :math:`T` is the absolute temperature, and
 :math:`\xi(t)` is normalized white noise.
