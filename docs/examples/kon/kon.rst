@@ -11,15 +11,15 @@ Rate of binding
 Determine the rate of binding from a kymograph
 ----------------------------------------------
 
-In this Notebook, we will determine the binding time of a fluorescently labeled protein binding to DNA. The binding time is relates to the effective on rate of protein as binding time = 1/:math:`k_{on}`*[P] 
+In this Notebook, we will determine the binding time of a fluorescently labeled protein binding to DNA. The binding time is relates to the effective on rate of protein as binding time = 1/:math:`k_{on}*[P]`  
 The binding rate :math:`k_{on}` relates tho the dissociation constant as.
 
 .. math::
 
     K_{off} = \frac{k_{off}}{k_{on}}
 
-For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}`. 
-We will determine the binding time and refer to the inverse of the binding time, ':math:`k_{on}`*[P]', as the *effective binding rate*.
+For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}` . 
+We will determine the binding time and refer to the inverse of the binding time, :math:`k_{on}*[P]` , as the *effective binding rate*.
 
 To determine the effective binding rate, we look at a protein binding to a target site. We track the binding events, and then determine the time intervals *between* the binding events:
 
@@ -120,11 +120,11 @@ Check how many intervals we have in total::
 Determine kon
 -------------
 
-Binding times are typically exponentially distributed. The distribution can be expressed in terms of the rate, :math:`k_{on}`, or in terms of the binding lifetime, :math:`\tau`:
+Binding times are typically exponentially distributed. The distribution can be expressed in terms of the effective on-rate, :math:`k_{on}`, or in terms of the binding lifetime, :math:`\tau_{on}`:
 
 .. math::
 
-    P(t) = k_{on}e^{-k_{on}t} = \frac{1}{\tau} e^{-t/\tau}
+    P(t) = k_{on}e^{-k_{on}t} = \frac{1}{\tau_{on}} e^{-t/\tau_{on}}
 
 Pylake has build-in function to fit an exponential ditribution::
 
@@ -153,4 +153,5 @@ Conclusion and Outlook
 
 The binding time is 32 seconds with a 95% confidence interval of (21,46).
 
-If you would like to compute the dissociation constant and compare to bulk experiments, the concentration has to be determined.
+Compare value between experiments with the same protein concentration in the flow cell.
+If you would like to compute the dissociation constant and compare to bulk experiments, the concentration has to be determined. 
