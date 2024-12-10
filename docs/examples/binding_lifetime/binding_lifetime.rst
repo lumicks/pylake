@@ -49,6 +49,8 @@ Load and plot the second kymograph::
 
 .. image:: kymo2.png
 
+.. _tracking:
+
 Track the binding events
 ------------------------
 
