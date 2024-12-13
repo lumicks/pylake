@@ -19,6 +19,7 @@
 * Plot the active calibration peak for a calibration result using `show_active_peak=True` with [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot).
 * Added function to import a [`KymoTrackGroup`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.kymotracker.kymotrack.KymoTrackGroup.html) from a `CSV` file using [`load_tracks`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.load_tracks.html).
 * Added function to load tracks into the kymotracker widget using [`KymoWidgetGreedy.load_tracks()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.KymoWidgetGreedy.html#lumicks.pylake.KymoWidgetGreedy.load_tracks).
+* Added [`lk.touchdown()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.touchdown.html#lumicks.pylake.touchdown) to find the height above the surface using the axial force signal and added an example notebook demonstrating surface calibration.
 
 #### Improvements
 
