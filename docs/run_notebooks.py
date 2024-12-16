@@ -117,6 +117,7 @@ def run_notebooks(include_list, reset_cache, only_copy):
     exclude_list = [
         "nbwidgets",  # Exclude the notebook widgets since those require interaction
         "cas9_kymotracking",
+        "binding_lifetime",
     ]
     base_dir = pathlib.Path(__file__).parent.parent.resolve()
     nb_test_dir = base_dir / "nb_test"

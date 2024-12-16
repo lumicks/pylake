@@ -3,6 +3,10 @@
 Active Calibration
 ------------------
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 For certain applications, passive force calibration, as described above, is not sufficiently accurate.
 Using active calibration, the accuracy of the calibration can be improved.
 The reason for this is that active calibration uses fewer assumptions than passive calibration.
