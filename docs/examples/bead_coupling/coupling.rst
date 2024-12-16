@@ -293,17 +293,10 @@ Next, we define a function that calibrates all axes with both passive and active
 
 `calculate_calibrations` now returns the distances between the beads and all the calibration factors obtained with passive and active calibration.
 
-    >>> calculate_calibrations(lk.File(calibration_data[0][0]), bead_diameter=2.1, temperature=25)
-    {'dx': 22.107661709308474,
-     'dy': -0.07111526715106109,
-     'passive': {'1x': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d024aaa0>,
-      '2x': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d06df130>,
-      '1y': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d0297010>,
-      '2y': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d04992d0>},
-     'active': {'1x': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d056fe80>,
-      '2x': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d053b370>,
-      '1y': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d04992a0>,
-      '2y': <lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults at 0x2d049cfd0>}}
+    >>> single_distance_result = calculate_calibrations(lk.File(calibration_data[0][0]), bead_diameter=2.1, temperature=25)
+    ... single_distance_result["passive"]["1x"]
+
+.. image:: single_result.png
 
 Let's calculate calibration factors for all the data in this dataset.
 Note that this cell may take a while to execute as it is performing `240` calibrations::
@@ -347,7 +340,7 @@ Now that we have those results, let's define some functions to conveniently extr
 We can now show the effect of coupling on active calibration in practice using the analyzed data::
 
     parameters = {
-        "Rd": "Displacement sensitivity [$\mu$m/V]",
+        "Rd": r"Displacement sensitivity [$\mu$m/V]",
         "Rf": "Force sensitivity [pN/V]",
         "kappa": "Stiffness [pN/nm]",
     }
@@ -358,7 +351,7 @@ We can now show the effect of coupling on active calibration in practice using t
         dx, dy = extract_distances(experiment[0])
         plt.plot(dx, extract_parameter(experiment[0], "active", "2x", param), ".", label="active")
         plt.plot(dx, extract_parameter(experiment[0], "passive", "2x", param), "x", label="passive")
-        plt.xlabel("Bead-Bead Distance [$\mu$m]")
+        plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
         plt.ylabel(param_description)
 
     plt.tight_layout()
@@ -405,7 +398,7 @@ To show how well this model fits the data, we can plot it alongside the ratio of
                 plt.plot(dx, ac / pc, f"C{trap}.")
                 plt.plot(dx_c, 1 / c, "k--")
                 plt.axvline(bead_diameter, color="lightgray", linestyle="--")
-                plt.xlabel("Bead-Bead Distance [$\mu$m]")
+                plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
                 plt.ylabel("$R_{d, ac} / R_{d, passive}$")
                 plt.title(f"Displacement sensitivity ratio {axis} AC/PC")
 
@@ -415,7 +408,7 @@ To show how well this model fits the data, we can plot it alongside the ratio of
                 plt.plot(dx, ac / pc, f"C{trap}.")
                 plt.plot(dx_c, c, "k--")
                 plt.axvline(bead_diameter, color="lightgray", linestyle="--")
-                plt.xlabel("Bead-Bead Distance [$\mu$m]")
+                plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
                 plt.ylabel("$R_{f, ac} / R_{f, passive}$")
                 plt.title(f"Force sensitivity ratio {axis} AC/PC")
 
@@ -425,8 +418,8 @@ To show how well this model fits the data, we can plot it alongside the ratio of
                 plt.plot(dx, ac / pc, f"C{trap}.", label=f"{trap}{axis}")
                 plt.plot(dx_c, c**2, "k--")
                 plt.axvline(bead_diameter, color="lightgray", linestyle="--")
-                plt.xlabel("Bead-Bead Distance [$\mu$m]")
-                plt.ylabel("$\kappa_{ac} / \kappa_{passive}$")
+                plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
+                plt.ylabel(r"$\kappa_{ac} / \kappa_{passive}$")
                 plt.title(f"Stiffness sensitivity ratio {axis} AC/PC")
 
                 plt.tight_layout()
@@ -461,7 +454,7 @@ Some remaining variability is expected as the bead radius (which is subject to v
                 pc = extract_parameter(exp, "passive", f"{trap}{axis}", "Rd")
                 plt.plot(dx, ac * c / pc, f"C{trap}.")
                 plt.axvline(bead_diameter, color="lightgray", linestyle="--")
-                plt.xlabel("Bead-Bead Distance [$\mu$m]")
+                plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
                 plt.ylabel("$R_{d, ac} / R_{d, passive}$")
                 plt.title(f"Displacement sensitivity ratio {axis} AC/PC")
 
@@ -470,7 +463,7 @@ Some remaining variability is expected as the bead radius (which is subject to v
                 pc = extract_parameter(exp, "passive", f"{trap}{axis}", "Rf")
                 plt.plot(dx, ac / c / pc, f"C{trap}.")
                 plt.axvline(bead_diameter, color="lightgray", linestyle="--")
-                plt.xlabel("Bead-Bead Distance [$\mu$m]")
+                plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
                 plt.ylabel("$R_{f, ac} / R_{f, passive}$")
                 plt.title(f"Force sensitivity ratio {axis} AC/PC")
 
@@ -479,8 +472,8 @@ Some remaining variability is expected as the bead radius (which is subject to v
                 pc = extract_parameter(exp, "passive", f"{trap}{axis}", "kappa")
                 plt.plot(dx, ac / c**2 / pc, f"C{trap}.", label=f"{trap}{axis}")
                 plt.axvline(bead_diameter, color="lightgray", linestyle="--")
-                plt.xlabel("Bead-Bead Distance [$\mu$m]")
-                plt.ylabel("$\kappa_{ac} / \kappa_{passive}$")
+                plt.xlabel(r"Bead-Bead Distance [$\mu$m]")
+                plt.ylabel(r"$\kappa_{ac} / \kappa_{passive}$")
                 plt.title(f"Stiffness sensitivity ratio {axis} AC/PC")
 
                 plt.tight_layout()

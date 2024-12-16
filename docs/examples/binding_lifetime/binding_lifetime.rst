@@ -11,7 +11,7 @@ Binding lifetime analysis
 Determine the binding lifetime from a kymograph
 -----------------------------------------------
 
-In this Notebook, we will determine the binding lifetime of a fluorescently labeled protein binding to DNA. The binding lifetime is also referred to as the binding duration 
+In this Notebook, we will determine the binding lifetime of a fluorescently labeled protein binding to DNA. The binding lifetime is also referred to as the binding duration
 and relates to the off rate as :math:`k_{off}` = 1/binding lifetime.
 
 First, we will track the binding events. Then we collect the binding durations and use maximum likelihood fitting to fit an exponential function to the data.
@@ -33,7 +33,7 @@ Load the first file and plot the kymograph::
 
     file1 = lk.File("test_data/kymo1.h5")
     _, kymo1 = file1.kymos.popitem()
-    
+
     plt.figure()
     kymo1.plot("g", aspect = 5, adjustment=lk.ColorAdjustment([0], [5]))
 
@@ -43,7 +43,7 @@ Load and plot the second kymograph::
 
     file2 = lk.File("test_data/kymo2.h5")
     _, kymo2 = file2.kymos.popitem()
-    
+
     plt.figure()
     kymo2.plot("g", aspect = 5, adjustment=lk.ColorAdjustment([0], [5]))
 
@@ -100,7 +100,7 @@ The (loaded) tracks can be plotted on top of the original kymograph to visualize
 .. image:: tracks1.png
 
 Note that two tracks at t=0 were manually removed, because the starting points of these tracks are not visible. This means that we cannot determine the duration of these tracks.
-The length of each track corresponds to the duration of a binding event. As can be seen from the above image, there is a large variation in track lengths. 
+The length of each track corresponds to the duration of a binding event. As can be seen from the above image, there is a large variation in track lengths.
 By collecting all these track durations into a 'binding lifetime distribution', we can analyze the binding lifetime in more detail.
 
 Combine tracks
@@ -139,14 +139,14 @@ Fit a single exponential to the dwell times and plot the result::
 The fitted lifetime :math:`\tau = 4` seconds.
 
 The parameter `n_components` indicates the number of exponential time scales in the fit, as further explained below.
-The parameters `observed_minimum` and `discrete_model` are further explained in :ref:`dwelltime_analysis`. 
+The parameters `observed_minimum` and `discrete_model` are further explained in :ref:`dwelltime_analysis`.
 
 Double exponential fit
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Sometimes, the distribution can best be fit by multiple exponential time scales. 
-These exponential time scales reveal something about the underlying mechanism of binding. 
-For example, the protein of interest binds with higher affinity to the target site, while it binds more transiently to off-target sites. 
+Sometimes, the distribution can best be fit by multiple exponential time scales.
+These exponential time scales reveal something about the underlying mechanism of binding.
+For example, the protein of interest binds with higher affinity to the target site, while it binds more transiently to off-target sites.
 Such behavior has been observed for various proteins such as Cas9 [1]_.
 
 In binding lifetime analysis, it is therefore important to test which number of exponentials optimally fits the data.
@@ -167,10 +167,10 @@ Fit a double exponential distribution to the binding lifetimes by setting `n_com
 .. _double_exponential_fit:
 .. image:: double_exponential_fit.png
 
-The component :math:`a_1=0.94` with lifetime :math:`\tau_1 = 3.2` seconds, while component :math:`a_2=0.06` with lifetime :math:`\tau_2 = 24` seconds.
+The component :math:`a_1=0.94` with lifetime :math:`\tau_1 = 3` seconds, while component :math:`a_2=0.059` with lifetime :math:`\tau_2 = 18` seconds.
 
 Next we have to select which is the optimal model: 1 or 2 exponential time scales.
-There are various methods for model selection. We will discuss 3 of them below. 
+There are various methods for model selection. We will discuss 3 of them below.
 
 Confidence intervals and model comparison
 -----------------------------------------
@@ -190,7 +190,7 @@ The :ref:`pop_confidence_intervals`, can be used to judge how precisely we can e
 .. image:: profile1.png
 
 The parameter to be fitted is given on the x-axis of the plots and the optimal value is where the curve is at its minimum.
-The lower the :math:`\chi^2` value at the minimum, the better the fit. 
+The lower the :math:`\chi^2` value at the minimum, the better the fit.
 The point where the profile crosses the dashed horizontal line is an indication for the 95% confidence interval.
 
 The profile likelihood for the single exponent looks parabolic and is almost symmetric, which indicates that the estimate of the lifetime is precise.
@@ -206,7 +206,7 @@ The likelihood profile for the double exponential fit::
 
 .. image:: profile2.png
 
-For the double exopnential fit, the profiles look more skewed. The values of :math:`\chi^2` at the minimum are lower, which indicates a better fit. 
+For the double exopnential fit, the profiles look more skewed. The values of :math:`\chi^2` at the minimum are lower, which indicates a better fit.
 However, the binding lifetime labeled 'lifetime 1' never crosses the horizontal line, which indicates that it does not really have an upper bound; this parameter can not be optimized for this data set.
 When looking at the likelihood profiles, the single exponential fit is optimal.
 
@@ -216,7 +216,7 @@ Bootstrapping
 Bootstrapping can be used to select the most suitable model and is a good method for determining the confidence intervals for the fitted parameters.
 During bootstrapping, a random sample is taken from the original dataset and fitted. The fitted parameters are gathered in the bootstrapping distribution.
 In the example below, we perform 10000 iterations, which means that 10000 times we take a sample from the data and fit the sample with a single exponential distribution.
-The resulting 10000 binding lifetimes are plotted in the histogram. 
+The resulting 10000 binding lifetimes are plotted in the histogram.
 
 Compute and plot the bootstrapping the distribution for the single exponential fit. This will take a while...::
 
@@ -239,7 +239,7 @@ Compute and plot the bootstrapping the distribution for the double exponential f
 
 .. image:: bootstrap2.png
 
-The bootstrapping distribution for the double exponential fit is sometimes bimodal and the component :math:`a_2` has a peak close to zero. 
+The bootstrapping distribution for the double exponential fit is sometimes bimodal and the component :math:`a_2` has a peak close to zero.
 This indicates that for many of the bootstrap samples, the fraction associated with the second lifetime was really small and that the parameters of this second lifetime cannot be estimated reliably from the data.
 
 According to the bootstrapping distributions, the single exponential fit is better suitable for the data.
@@ -247,7 +247,7 @@ According to the bootstrapping distributions, the single exponential fit is bett
 Bayesian Information Criterion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Typically adding more parameters (components) to a model, will make the fit better. However, having too many parameters can lead to overfitting. 
+Typically adding more parameters (components) to a model, will make the fit better. However, having too many parameters can lead to overfitting.
 The Bayesian information Criterion (BIC) quantifies the quality of the fit by looking at the value of the likelihood function and penalizes the addition of parameters.
 
 The BIC for the single and double exponential fit are respectively given by::
@@ -267,20 +267,20 @@ We fitted a single exponential and double exponential to the distribution of bin
 The likelihood profile and bootstrapping indicated that when using a two-component model, we cannot reliably estimate the second lifetime nor the fraction of events that have this lifetime associated with them.
 The BIC indicated that a double exponential is more suitable, but the difference between the small and large model is not very large.
 
-Looking at Figure with the :ref:`double exponential fit <double_exponential_fit>`, there are only a few data points larger than 20 seconds that support the second exponential time scale. 
+Looking at Figure with the :ref:`double exponential fit <double_exponential_fit>`, there are only a few data points larger than 20 seconds that support the second exponential time scale.
 Therefore, the data set is likely too small to support a second exponential time scale. (Fitting two exponentials without overfitting, typically requires a few hundred data points.)
 
-With the current dataset, we conclude that the most suitable model is a single exponential as it gives us the most precise estimates. The fitted lifetime is :math:`\tau = 4` seconds with a 95% confidence interval of (3,5.2) seconds as determined by bootstrapping. 
+With the current dataset, we conclude that the most suitable model is a single exponential as it gives us the most precise estimates. The fitted lifetime is :math:`\tau = 4` seconds with a 95% confidence interval of (3,5.2) seconds as determined by bootstrapping.
 However, given that we do see a hint that there may be a second lifetime involved, it would be worthwhile to gather more data in this case.
 
 Splitting tracks by position
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When the target sites of the protein are known, the binding lifetimes can also be split by position and analyzed separately [1]_.
-For example, to select all tracks from `kymo1_selection` that have an average position larger than 8 micron, type:: 
-    
+For example, to select all tracks from `kymo1_selection` that have an average position larger than 8 micron, type::
+
     track_selection = tracks1[[np.mean(track.position) > 8 for track in tracks1]]
-    
+
 Similarly, we can have a two-sided interval. For example, tracks with a position between 5.5 and 6.2 micron can be obtained by::
 
     track_selection = tracks1[[5.5 < np.mean(track.position) < 6.2 for track in tracks1]]

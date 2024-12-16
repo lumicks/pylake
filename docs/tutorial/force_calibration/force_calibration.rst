@@ -141,6 +141,7 @@ Below is an example of a bad fit due to a noise floor.
 Note how the spectrum flattens out at high frequencies and the model is unable to capture this.
 
 .. image:: figures/bad_fit_noise_floor.png
+  :nbattach:
 
 **As a rule of thumb, an upper bound of approximately four times the corner frequency is usually a safe margin.**
 The fitting bounds can be specified by providing a `fit_range` to any of the calibration functions.

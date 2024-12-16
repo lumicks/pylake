@@ -103,7 +103,7 @@ Let's compare the active calibration result to passive calibration::
     ...     num_points_per_block=200
     ... )
     >>> print(passive_fit.stiffness)
-    0.11763849764570819
+    0.11751264110743381
 
 This value is quite close to that obtained with active calibration above.
 
@@ -120,7 +120,7 @@ calculated from the physical input parameters)::
     ...     num_points_per_block=200
     ... )
     >>> print(passive_fit.stiffness)
-    0.08616565751377737
+    0.0860734724588009
 
 .. _bead_bead_tutorial:
 
