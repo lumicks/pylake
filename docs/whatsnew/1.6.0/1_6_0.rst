@@ -5,14 +5,24 @@ Pylake 1.6.0
 
 Here is a sneak preview of features that will likely be in Pylake `v1.6.0`.
 
+New example notebooks
+---------------------
+
+Three new notebooks were added to the documentation, with examples of full analysis workflows:
+:doc:`Binding lifetime analysis</examples/binding_lifetime/binding_lifetime>`,
+:doc:`hairpin fitting</examples/hairpin_fitting/hairpin_unfolding>` and
+:doc:`phase separation</examples/droplet_fusion/droplet_fusion>`.
+
+.. figure:: new_examples.png
+
 Bead-bead coupling correction
 -----------------------------
-
-.. figure:: correction_factor_whatsnew.png
 
 When performing active calibration with two beads coupling effects can bias the estimated calibration parameters (force and displacement sensitivity, and the stiffness).
 In Pylake 1.6.0, we include a model to account for bead-bead coupling between two beads in bulk.
 See :ref:`theory<bead_bead_theory>` and :ref:`tutorial<bead_bead_tutorial>` and the :doc:`example</examples/bead_coupling/coupling>` for more information.
+
+.. figure:: correction_factor_whatsnew.png
 
 Force calibration
 -----------------
