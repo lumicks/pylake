@@ -1,6 +1,10 @@
 Passive calibration
 -------------------
 
+.. only:: html
+
+    :nbexport:`Download this page as a Jupyter notebook <self>`
+
 Passive calibration is also often referred to as thermal calibration and involves calibration without
 moving the trap or stage. In passive calibration, the Brownian motion of the bead in the trap is
 analyzed in order to find calibration factors for both the positional detection as well as the force.
