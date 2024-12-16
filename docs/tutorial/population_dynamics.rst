@@ -171,7 +171,7 @@ We can get some information about the training process from the :attr:`~lumicks.
 property::
 
     >>> print(hmm.fit_info)
-    HmmFitInfo(converged=True, n_iter=5, bic=1589.2881620885353, aic=1550.067858853102, log_likelihood=-768.033929426551)
+    PopulationFitInfo(converged=True, n_iter=5, bic=1589.2881620885353, aic=1550.067858853102, log_likelihood=-768.033929426551)
 
 Just as with the GMM we trained earlier, we can visually inspect the quality of the fitted
 model. First, let's look at the probability distribution of the observed data::
