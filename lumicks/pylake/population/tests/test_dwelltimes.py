@@ -5,6 +5,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 from lumicks.pylake import DwelltimeModel
+from lumicks.pylake.detail.utilities import temp_seed
 from lumicks.pylake.population.dwelltime import (
     DwelltimeBootstrap,
     _exponential_mle_optimize,
@@ -255,16 +256,17 @@ def test_dwelltime_profiles(exponential_data, exp_name, reference_bounds, reinte
 
 @pytest.mark.parametrize(
     # fmt:off
-    "exp_name, n_components, ref_std_errs",
+    "exp_name, n_components, ref_std_errs, tolerance",
     [
-        ("dataset_2exp", 1, [np.nan, 0.117634]),  # Amplitude is not fitted!
-        ("dataset_2exp", 2, [0.072455, 0.072456, 0.212814, 0.449388]),
-        ("dataset_2exp_discrete", 2, [0.068027, 0.068027, 0.21403 , 0.350355]),
-        ("dataset_2exp_discrete", 3, [0.097556, 0.380667, 0.395212, 0.252004, 1.229997, 4.500617]),
-        ("dataset_2exp_discrete", 4, [9.755185e-02, 4.999662e-05, 3.788707e-01, 3.934488e-01, 2.520029e-01, 1.889606e+00, 1.227551e+00, 4.489603e+00]),
+        ("dataset_2exp", 1, [np.nan, 0.117634], 1e-4),  # Amplitude is not fitted!
+        ("dataset_2exp", 2, [0.072451, 0.072451, 0.212818, 0.4493979], 1e-3),
+        ("dataset_2exp_discrete", 2, [0.068016, 0.068016, 0.213995 , 0.350305], 1e-3),
+        # Over-fitted, hence coarse tolerances
+        ("dataset_2exp_discrete", 3, [0.09755, 0.37899, 0.3933, 0.25203, 1.22622, 4.4805], 1e-1),
+        ("dataset_2exp_discrete", 4, [0.097569, 3.5477e-05, 0.37874, 0.393413, 0.25203, 1.5543, 1.2278, 4.48905], 1e-1),
     ]
 )
-def test_std_errs(exponential_data, exp_name, n_components, ref_std_errs):
+def test_std_errs(exponential_data, exp_name, n_components, ref_std_errs, tolerance):
     dataset = exponential_data[exp_name]
 
     fit = DwelltimeModel(
@@ -273,9 +275,9 @@ def test_std_errs(exponential_data, exp_name, n_components, ref_std_errs):
         **dataset["parameters"].observation_limits,
         discretization_timestep=dataset["parameters"].dt,
     )
-    np.testing.assert_allclose(fit._std_errs, ref_std_errs, rtol=1e-4)
-    np.testing.assert_allclose(fit._err_amplitudes, ref_std_errs[:n_components], rtol=1e-4)
-    np.testing.assert_allclose(fit._err_lifetimes, ref_std_errs[n_components:], rtol=1e-4)
+    np.testing.assert_allclose(fit._std_errs, ref_std_errs, rtol=tolerance)
+    np.testing.assert_allclose(fit._err_amplitudes, ref_std_errs[:n_components], rtol=tolerance)
+    np.testing.assert_allclose(fit._err_lifetimes, ref_std_errs[n_components:], rtol=tolerance)
 
 
 @pytest.mark.parametrize("n_components", [2, 1])
@@ -677,3 +679,11 @@ def test_dwelltime_exponential_no_free_params(monkeypatch):
 
         with pytest.raises(StopIteration):
             quick_fit([True, False])  # Lifetime unknown -> Need to fit
+
+
+def test_bad_std_err():
+    """This tests a case where one amplitude is specifically expected to collapse. If not handled
+    appropriately, this will spit out many errors."""
+    with temp_seed(10):
+        dwells = np.hstack((np.random.exponential(1, 10000), 5000))
+        _ = DwelltimeModel(dwells, n_components=2)

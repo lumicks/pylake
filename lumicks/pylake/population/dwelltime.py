@@ -1069,12 +1069,11 @@ def _exponential_mixture_log_likelihood_jacobian(params, t, t_min, t_max, t_step
         components = np.log(norm_factor) + np.log(amplitudes) + -np.log(lifetimes) - t / lifetimes
 
     # The derivative of logsumexp is given by: sum(exp(fi(x)) dfi(x)/dx) / sum(exp(fi(x)))
-    total_denom = np.exp(scipy.special.logsumexp(components, axis=0))
-    sum_components = np.sum(np.exp(components), axis=0)
-    dtotal_damp = (sum_components * dlognorm_damp + np.exp(components) * dlogamp_damp) / total_denom
-    dtotal_dtau = (
-        sum_components * dlognorm_dtau + np.exp(components) * dlogtauterm_dtau
-    ) / total_denom
+    log_sum_exp_components = scipy.special.logsumexp(components, axis=0)
+    normalized_exp_components = np.exp(components - log_sum_exp_components)
+    dtotal_damp = dlognorm_damp + normalized_exp_components * dlogamp_damp
+    dtotal_dtau = dlognorm_dtau + normalized_exp_components * dlogtauterm_dtau
+
     unsummed_gradient = np.vstack((dtotal_damp, dtotal_dtau))
 
     return -np.sum(unsummed_gradient, axis=1)
@@ -1264,6 +1263,8 @@ def _handle_amplitude_constraint(
 
 def _exponential_mle_bounds(n_components, min_observation_time, max_observation_time):
     return (
+        # Note: the standard error computation relies on the lower bound on the amplitude as it
+        # keeps the amplitude from going negative.
         *[(1e-9, 1.0 - 1e-9) for _ in range(n_components)],
         *[
             (
@@ -1276,7 +1277,9 @@ def _exponential_mle_bounds(n_components, min_observation_time, max_observation_
 
 
 def _calculate_std_errs(jac_fun, constraints, num_free_amps, current_params, fitted_param_mask):
-    hessian_approx = numerical_jacobian(jac_fun, current_params[fitted_param_mask], dx=1e-6)
+    # The minimum bound on amplitudes is 1e-9, by making the max step 1e-10, we ensure that
+    # we never go over the bound here
+    hessian_approx = numerical_jacobian(jac_fun, current_params[fitted_param_mask], dx=1e-10)
 
     if constraints:
         from scipy.linalg import null_space
@@ -1418,9 +1421,12 @@ def _exponential_mle_optimize(
 
     std_errs = np.full(current_params.shape, np.nan)
     if use_jacobian:
-        std_errs[fitted_param_mask] = _calculate_std_errs(
-            jac_fun, constraints, num_free_amps, current_params, fitted_param_mask
-        )
+        try:
+            std_errs[fitted_param_mask] = _calculate_std_errs(
+                jac_fun, constraints, num_free_amps, current_params, fitted_param_mask
+            )
+        except np.linalg.linalg.LinAlgError:
+            pass  # We silence these until the standard error API is publicly available
 
     return current_params, -result.fun, std_errs
 

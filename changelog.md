@@ -33,6 +33,7 @@
 * Fixed a bug where bead edge determination could fail with an unhandled exception during background estimation. This raised a `np.linalg.LinAlgError` when determining the background failed rather than the expected `RuntimeError`. In this case, a simple median is used as a fallback option.
 * Fix a bug to ensure that [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html) can also be used with a single state.
 * Fixed bug that prevented opening the force distance widgets when using them with the `widget` backend on `matplotlib >= 3.9.0`.
+* Prevent near `0/0` during fitting when components of a [`DwelltimeModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html) are near zero. Note that these only occurred during the computation of the model derivatives during the fitting procedure and should not impact the model simulation itself.
 
 ## v1.5.3 | 2024-10-29
 
