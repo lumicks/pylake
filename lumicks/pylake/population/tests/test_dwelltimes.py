@@ -5,6 +5,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 from lumicks.pylake import DwelltimeModel
+from lumicks.pylake.detail.utilities import temp_seed
 from lumicks.pylake.population.dwelltime import (
     DwelltimeBootstrap,
     _exponential_mle_optimize,
@@ -677,3 +678,11 @@ def test_dwelltime_exponential_no_free_params(monkeypatch):
 
         with pytest.raises(StopIteration):
             quick_fit([True, False])  # Lifetime unknown -> Need to fit
+
+
+def test_bad_std_err():
+    """This tests a case where one amplitude is specifically expected to collapse. If not handled
+    appropriately, this will spit out many errors."""
+    with temp_seed(10):
+        dwells = np.hstack((np.random.exponential(1, 10000), 5000))
+        _ = DwelltimeModel(dwells, n_components=2)
