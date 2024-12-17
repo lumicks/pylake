@@ -15,8 +15,8 @@ def make_channel(data, labels=None):
 
 def test_gmm(trace_lownoise):
     data, statepath, params = trace_lownoise
-    for data in (data, make_channel(data)):
-        m = GaussianMixtureModel(data, params["n_states"])
+    for d in (data, make_channel(data)):
+        m = GaussianMixtureModel(d, params["n_states"])
         weights = np.array([np.sum(statepath == j) for j in np.arange(params["n_states"])])
         weights = weights / weights.sum()
 
@@ -100,7 +100,7 @@ def test_exit_flag(trace_simple):
 
     with pytest.warns(DeprecationWarning):
         ef = m.exit_flag
-        assert ef["converged"] == True
+        assert ef["converged"]
         assert ef["n_iter"] == 2
         np.testing.assert_allclose(ef["lower_bound"], 0.215335, rtol=1e-5)
 
