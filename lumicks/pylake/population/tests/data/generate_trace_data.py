@@ -58,13 +58,13 @@ if __name__ == "__main__":
     save_path = Path(__file__).parent / "trace_data.npz"
 
     data = {}
-    for n_states in (2, 3, 4):
+    for n_states in (1, 2, 3, 4):
         param = generate_parameters(n_states)
         y, sp = generate_trace(n_states, n_frames=100, seed=123, **param)
 
         data[f"y_{n_states}"] = y
         data[f"sp_{n_states}"] = sp
         for key, val in param.items():
-            data[f"{key}_{n_states}"] = param[key]
+            data[f"{key}_{n_states}"] = val
 
     np.savez(save_path, **data)

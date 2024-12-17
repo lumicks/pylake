@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import numpy as np
 import pytest
 
@@ -19,6 +17,7 @@ def test_hmm(trace_lownoise):
 
     # fmt: off
     ref_transition_matrices = {
+        1: [[1.0]],
         2: [
             [0.9375, 0.0625],
             [0.05882353, 0.94117647],
@@ -37,8 +36,8 @@ def test_hmm(trace_lownoise):
     }
     # fmt: on
 
-    for data in (data, make_channel(data)):
-        model = HiddenMarkovModel(data, n_states)
+    for d in (data, make_channel(data)):
+        model = HiddenMarkovModel(d, n_states)
 
         # test model emission parameters converge to model used to generate test data
         np.testing.assert_allclose(model.means, params["means"], atol=0.032)
@@ -91,17 +90,17 @@ def test_initial_guess(trace_simple):
         ),
     ):
         bad_gmm_guess = GaussianMixtureModel(trace, n_states + 1)
-        model = HiddenMarkovModel(trace, n_states, initial_guess=bad_gmm_guess)
+        _ = HiddenMarkovModel(trace, n_states, initial_guess=bad_gmm_guess)
 
     with pytest.raises(
         ValueError,
         match=(
             "Initial guess must have the same number of states as requested for the current model; "
-            f"expected {n_states} got {n_states+1}."
+            f"expected {n_states} got {n_states + 1}."
         ),
     ):
         bad_hmm_guess = HiddenMarkovModel(trace, n_states + 1)
-        model = HiddenMarkovModel(trace, n_states, initial_guess=bad_hmm_guess)
+        _ = HiddenMarkovModel(trace, n_states, initial_guess=bad_hmm_guess)
 
 
 def test_state_path(trace_simple):
