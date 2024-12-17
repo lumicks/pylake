@@ -307,12 +307,10 @@ def test_force_calibration_handling():
         create_item(11, 12),
         create_item(15, 25),
     ]
-    items = ForceCalibrationList("Stop time (ns)", fcs)
-    same_items = ForceCalibrationList("Stop time (ns)", fcs2)
-    different_item = ForceCalibrationList(
-        "Stop time (ns)", fcs2[:-1] + [create_item(15, 25, extra=5)]
-    )
-    shorter_list = ForceCalibrationList("Stop time (ns)", fcs[:-1])
+    items = ForceCalibrationList(fcs)
+    same_items = ForceCalibrationList(fcs2)
+    different_item = ForceCalibrationList(fcs2[:-1] + [create_item(15, 25, extra=5)])
+    shorter_list = ForceCalibrationList(fcs[:-1])
 
     assert len(items) == 3
     assert items == same_items

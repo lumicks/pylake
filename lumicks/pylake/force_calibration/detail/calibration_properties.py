@@ -579,3 +579,34 @@ class CalibrationPropertiesMixin:
             return "Active" if self.active_calibration else "Passive"
         else:
             return kind if kind is not None else "Unknown"
+
+    @property
+    def applied_at(self):
+        """Time the calibration was applied in nanoseconds since epoch"""
+        return self._get_parameter("Timestamp", "Timestamp (ns)")
+
+    @property
+    def start(self):
+        """Starting timestamp of this calibration
+
+        Examples
+        --------
+        ::
+
+            import lumicks.pylake as lk
+
+            f = lk.File("file.h5")
+            item = f.force1x.calibration[1]  # Grab a calibration item for force 1x
+
+            # Slice the data corresponding to this item
+            calibration_data = f.force1x[item.start : item.stop]
+
+            # or alternatively:
+            calibration_data = f.force1x[item]
+        """
+        return self._get_parameter("Start time", "Start time (ns)")
+
+    @property
+    def stop(self):
+        """Stop time stored in the calibration item"""
+        return self._get_parameter("Stop time", "Stop time (ns)")
