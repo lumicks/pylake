@@ -83,8 +83,8 @@ class GaussianMixtureModel(TimeSeriesMixin):
         idx = np.argsort(model.means_.squeeze())
         self._model = ClassicGmm(
             K=n_states,
-            mu=model.means_.squeeze()[idx],
-            tau=1 / model.covariances_.squeeze()[idx],
+            mu=model.means_.flatten()[idx],
+            tau=1 / model.covariances_.flatten()[idx],
             weights=model.weights_[idx],
         )
 
