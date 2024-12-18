@@ -30,6 +30,7 @@
 #### Bug fixes
 
 * Ensure that operators such as (e.g. `+`, `-`, `/`) work on [`Slice`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html) with all types that are convertible to scalars. Previously these failed with zero dimensional numpy arrays and other convertible objects.
+* Fix a bug to ensure that [`lk.GaussianMixtureModel`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.GaussianMixtureModel.html) can also be used with a single state.
 
 ## v1.5.3 | 2024-10-29
 
