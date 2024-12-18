@@ -1,3 +1,4 @@
+import pathlib
 import warnings
 from typing import Dict
 
@@ -59,7 +60,7 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
     def __init__(self, filename, *, rgb_to_detectors=None):
         import h5py
 
-        super().__init__(h5py.File(filename, "r"), lk_file=self)
+        super().__init__(h5py.File(pathlib.Path(filename).absolute(), "r"), lk_file=self)
         self._check_file_format()
         self._rgb_to_detectors = self._get_detector_mapping(rgb_to_detectors)
 
