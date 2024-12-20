@@ -27,7 +27,7 @@ The binding rate :math:`k_{on}` relates to the dissociation constant as.
     K_{off} = \frac{k_{off}}{k_{on}}
 
 For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}` . 
-We will determine the binding time and refer to the inverse of the binding time, as the *effective binding rate*, :math:`k'_{on} = k_{on}*[P]` .
+We will determine the binding time and refer to the inverse of the binding time, as the *effective binding rate*, :math:`k'_{on} = k_{on}[P]` .
 
 Load and plot the kymographs
 ----------------------------
