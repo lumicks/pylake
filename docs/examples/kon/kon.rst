@@ -20,7 +20,7 @@ We track the binding events, and then determine the time intervals *between* the
 These time intervals tell you how long it takes for a protein to bind to an empy target site.
 
 The binding time, :math:`\tau_{on}` relates to the on rate of protein, :math:`k_{on}`, as :math:`\tau_{on}=1/ (k_{on}*[P])` . 
-The binding rate :math:`k_{on}` relates tho the dissociation constant as.
+The binding rate :math:`k_{on}` relates to the dissociation constant as.
 
 .. math::
 
