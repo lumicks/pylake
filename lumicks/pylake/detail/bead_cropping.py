@@ -5,7 +5,11 @@ def _guess_background(data):
     """Determine background level by determining most prominent mode"""
     import scipy.stats
 
-    kde_estimate = scipy.stats.gaussian_kde(data, 0.02)
+    try:
+        kde_estimate = scipy.stats.gaussian_kde(data, 0.02)
+    except np.linalg.LinAlgError:
+        return np.median(data)  # Use the median count as fallback
+
     interpolated_kde = np.arange(min(data), np.max(data))
     return interpolated_kde[np.argmax(kde_estimate.pdf(interpolated_kde))]
 
