@@ -46,7 +46,11 @@ def test_bead_cropping_allow_negative_beads(filename, ref_edges, ref_edges_no_ne
 
 def test_bead_cropping_failure():
     mock = np.zeros((100, 1))
-    mock[50] = 1  # Standard deviation of the data should not be zero or the KDE estimate fails.
+    # KDE estimation fails if standard deviation of the data is zero; uses median as fallback
+    with pytest.raises(RuntimeError, match="Did not find two beads"):
+        find_beads_brightness(mock, bead_diameter_pixels=1, plot=True)
+
+    mock[50] = 1
     with pytest.raises(RuntimeError, match="Did not find two beads"):
         find_beads_brightness(mock, bead_diameter_pixels=1, plot=True)
 
