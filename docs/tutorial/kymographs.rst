@@ -140,6 +140,50 @@ This returns a new (but flipped) :class:`~lumicks.pylake.kymo.Kymo`::
 
 .. image:: figures/kymographs/kymo_flipped.png
 
+Extracting photon counts
+------------------------
+
+Photon counts can be extracted from the raw image, for example for stoichiometry analysis.
+First, select a region for which the photon counts have to be determined::
+
+    kymo_selection = kymo["88.5s":"93s"].crop_by_distance(21.4, 22.3)
+
+    plt.figure()
+    kymo_selection.plot("rgb", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+
+Get the raw data (photon counts for each pixel) for the selected region::
+
+    selection_green = kymo_selection.get_image(channel="green")
+
+.. image:: figures/kymographs/kymograph_selection.png
+
+If the background has to be subtracted, choose a region without binding events as background::
+
+    background =  kymo["92.1s":"100s"].crop_by_distance(21.4, 22.3)
+    
+    plt.figure()
+    background.plot("rgb", adjustment=lk.ColorAdjustment(0, 98, mode="percentile"))
+
+.. image:: figures/kymographs/background.png
+
+Sum over the vertical axis (along the width of the binding event) to obtain the total photon counts over the selected regions.
+Since every pixel has an average background signal of `background_mean`, we need to sum the background over the same region to obtain the total background::
+
+    summed_photon_counts = np.sum(selection_green, axis=0)
+    background_mean = np.mean(background.get_image(channel="green"))
+    summed_background = background_mean * selection_green.shape[0]
+    time = np.arange(len(summed_photon_counts)) * kymo.line_time_seconds
+
+    plt.figure()
+    plt.plot(time, summed_photon_counts, label = "Binding event")
+    plt.axhline(summed_background, color='k', linestyle='--', label = "background")
+    plt.xlabel("time (s)")
+    plt.ylabel("Photon counts")
+    plt.title("Photon counts along binding event")
+    plt.legend()
+
+.. image:: figures/kymographs/photon_counts.png
+
 Calibrating to base pairs
 -------------------------
 
