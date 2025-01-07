@@ -277,6 +277,11 @@ def touchdown(
         not find the surface.
     analysis_rate : int
         Sampling rate at which the data is analyzed in Hz.
+
+    Raises
+    ------
+    ValueError
+        If there is no data to fit the touchdown curve to.
     """
     nanostage, axial_force = (
         downsample(x, sample_rate // analysis_rate, np.mean) for x in (nanostage, axial_force)
@@ -291,9 +296,12 @@ def touchdown(
     surface_position = piecewise_parameters[0]
 
     mask = nanostage < (surface_position - omit_microns)
+
+    if not np.any(mask):
+        raise ValueError("Insufficient data available to fit touchdown curve")
+
     stage_trimmed, force_trimmed = nanostage[mask], axial_force[mask]
     expected_wavelength = wavelength_nm * 1e-3 / 2 / refractive_index_medium
-
     bounds = np.array([0.7, 1.0001]) / expected_wavelength
     par, simulation = fit_damped_sine_with_polynomial(
         surface_position - stage_trimmed,
