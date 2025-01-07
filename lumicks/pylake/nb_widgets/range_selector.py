@@ -2,6 +2,8 @@ import time
 
 import numpy as np
 
+from lumicks.pylake.nb_widgets.detail.shared import check_widget_backend
+
 
 class BaseRangeSelectorWidget:
     """Base class for range selection widgets.
@@ -270,15 +272,7 @@ class BaseRangeSelector:
                 "F,d selector widget cannot open without a non-empty dictionary containing F,d curves."
             )
 
-        if not any(backend in plt.get_backend() for backend in ("nbAgg", "ipympl")):
-            raise RuntimeError(
-                (
-                    "Please enable an interactive matplotlib backend for this plot to work. In "
-                    "jupyter notebook or lab you can do this by invoking either "
-                    "%matplotlib widget. Please note that you may have to restart the notebook "
-                    "kernel for this to work."
-                )
-            )
+        check_widget_backend()
 
         plt.figure()
         self.axes = plt.axes()
