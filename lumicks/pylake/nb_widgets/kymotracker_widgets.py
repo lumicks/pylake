@@ -10,6 +10,7 @@ from lumicks.pylake import filter_tracks, refine_tracks_centroid
 from lumicks.pylake.kymotracker.kymotrack import KymoTrackGroup, load_tracks
 from lumicks.pylake.kymotracker.kymotracker import track_greedy, _to_half_kernel_size
 from lumicks.pylake.nb_widgets.detail.mouse import MouseDragCallback
+from lumicks.pylake.nb_widgets.detail.shared import check_widget_backend
 from lumicks.pylake.nb_widgets.detail.undostack import UndoStack
 
 
@@ -435,19 +436,7 @@ class KymoWidget:
         import matplotlib.pyplot as plt
         from IPython.display import display
 
-        if not max(
-            # Note: Some, but not all versions of matplotlib lower the backend names. Hence, we
-            # always lower them to be on the safe side.
-            [backend in plt.get_backend().lower() for backend in ("nbagg", "ipympl", "widget")]
-        ):
-            raise RuntimeError(
-                (
-                    "Please enable an interactive matplotlib backend for this plot to work. In "
-                    "jupyter notebook or lab you can do this by invoking either "
-                    "%matplotlib widget or %matplotlib ipympl. Please note that you may have to "
-                    "restart the notebook kernel for this to work."
-                )
-            )
+        check_widget_backend()
 
         self._labels["status"] = ipywidgets.Label(value="")
         self._labels["warning"] = ipywidgets.HTML(value="")
@@ -543,7 +532,7 @@ class KymoWidget:
 
         display(ui)
 
-        if "ipympl" not in plt.get_backend():
+        if not any(backend in plt.get_backend().lower() for backend in ("ipympl", "widget")):
             # Without this, the figure doesn't show up on non ipympl backends
             with output:
                 display(self._fig)
