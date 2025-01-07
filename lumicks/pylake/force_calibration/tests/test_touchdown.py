@@ -148,11 +148,17 @@ def test_exp_sine_fits(decay, amplitude, frequency, phase_shift):
 @pytest.mark.filterwarnings("ignore:Covariance of the parameters could not be estimated")
 @pytest.mark.filterwarnings("ignore:Surface detection failed")
 def test_insufficient_data(mack_parameters):
-    stage_positions, simulation = simulate_touchdown(102.5, 103.5, 0.01, mack_parameters)
+    stage_positions, simulation = simulate_touchdown(102.5, 104, 0.01, mack_parameters)
 
     with pytest.warns(
         RuntimeWarning, match="Insufficient data available to reliably fit touchdown curve"
     ):
+        touchdown_result = touchdown(stage_positions, simulation, 78125)
+        assert touchdown_result.focal_shift is None
+
+    stage_positions, simulation = simulate_touchdown(102.5, 103, 0.01, mack_parameters)
+
+    with pytest.raises(ValueError, match="Insufficient data available to fit touchdown curve"):
         touchdown_result = touchdown(stage_positions, simulation, 78125)
         assert touchdown_result.focal_shift is None
 
