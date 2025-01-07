@@ -28,6 +28,7 @@ The binding rate :math:`k_{on}` relates to the dissociation constant as.
 
 For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}` . 
 We will determine the binding time and refer to the inverse of the binding time, as the *effective binding rate*, :math:`k'_{on} = k_{on}[P]` .
+Further, we assume that the *bleaching time* for the dye is much longer than the binding time, such that we can ignore the effect of bleaching.
 
 Load and plot the kymographs
 ----------------------------
