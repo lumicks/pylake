@@ -56,8 +56,10 @@ frequency :cite:`berg2004power`.
 
 .. math::
 
+    \begin{eqnarray}
     \bar{f} &= \frac{1}{n_b} \sum_{f \in \mathrm{block}} f\\
     \bar{P}_\mathrm{meas} &= \frac{1}{n_b} \sum_{f \in \mathrm{block}} P_\mathrm{meas}(f)
+    \end{eqnarray}
 
 Setting the number of points per block too low results in a bias from insufficient averaging :cite:`berg2004power`.
 Insufficient averaging would result in an overestimation of the force response :math:`R_f` and an
