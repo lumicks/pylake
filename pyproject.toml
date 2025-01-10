@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools<69.3", "wheel"]
+requires = ["setuptools>=69.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,7 +10,7 @@ authors = [
     {name = "Lumicks B.V."},
     {email = "devteam@lumicks.com"},
 ]
-readme = {file="README.md", content-type = "text/markdown"}
+readme = {file="readme.md", content-type = "text/markdown"}
 license = {file = "license.md"}
 keywords = ["optical tweezers", "kymographs", "data analysis", "lumicks"]
 classifiers=[
