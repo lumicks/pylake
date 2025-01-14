@@ -361,7 +361,11 @@ class PowerSpectrum:
 
         if self._num_points_per_block != 1:
             raise ValueError(
-                "identify_peaks only works if the power spectrum is not blocked / averaged"
+                "identify_peaks requires the raw non-averaged data to be available. Power spectra "
+                "that have been obtained either by windowing, or by compressing a blocked power "
+                "spectrum (by invoking `.compress()` on it) cannot be used with this function. For "
+                "the latter case, create the PowerSpectrum object anew with the original data and"
+                "do not call `.compress()` on it."
             )
 
         if peak_cutoff <= baseline:
@@ -452,6 +456,25 @@ class PowerSpectrum:
             num_points_per_block=num_points_per_block,
             total_samples_used=self.total_samples_used,
             variance=variance,
+        )
+
+    def compress(self):
+        """Returns a compressed power spectrum by downsampling the internal data
+
+        By default, when calling `PowerSpectrum.downsampled_by(100)`, the raw data is kept at
+        the full frequency resolution internally. When calling compress, this data is discarded
+        and only the downsampled variant is kept. This saves memory, but doesn't allow calling
+        methods which depend on the data not being downsampled (such as identify_peaks) from being
+        called."""
+        return PowerSpectrum(
+            self.frequency,
+            self.power,
+            self.sample_rate,
+            self.total_duration,
+            self.unit,
+            num_points_per_block=self.num_points_per_block,
+            total_samples_used=self.total_samples_used,
+            variance=self._variance,
         )
 
     def plot(self, *, show_excluded=False, **kwargs):

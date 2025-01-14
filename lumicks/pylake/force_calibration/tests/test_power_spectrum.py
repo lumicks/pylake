@@ -337,7 +337,7 @@ def test_identify_peaks_args():
     # When windowing or obtaining spectra through pre-blocked means, we cannot use this method.
     with pytest.raises(
         ValueError,
-        match="identify_peaks only works if the power spectrum is not blocked / averaged",
+        match="identify_peaks requires the raw non-averaged data to be available",
     ):
         hf_not_available = PowerSpectrum(
             downsampled.frequency,
@@ -375,3 +375,18 @@ def test_identify_peaks(power, result_frequency):
     # When "only" down-sampling, we should still have access to the original data
     downsampled = power_spectrum.downsampled_by(2)
     assert downsampled.identify_peaks(lambda f: np.ones_like(f)) == result_frequency
+
+
+def test_compress():
+    ps = PowerSpectrum(np.arange(500), np.arange(500), 78125, total_duration=5)
+
+    assert ps.num_points_per_block == 1
+    ps_downsampled = ps.downsampled_by(100)
+    assert ps_downsampled.num_points_per_block == 100
+    assert ps_downsampled._num_points_per_block == 1
+
+    compressed = ps_downsampled.compress()
+    assert compressed.num_points_per_block == 100
+    assert compressed._num_points_per_block == 100
+    np.testing.assert_allclose(ps_downsampled.frequency, ps_downsampled.frequency)
+    np.testing.assert_allclose(compressed.power, ps_downsampled.power)
