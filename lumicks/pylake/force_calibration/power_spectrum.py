@@ -264,6 +264,11 @@ class PowerSpectrum:
             (Deprecated) Function to use for down-sampling the data. Only `np.mean` will be
             supported going forward.
         """
+        if int(factor) != factor:
+            raise NotImplementedError("Only integer downsampling factors are supported")
+        else:
+            factor = int(factor)
+
         if reduce != np.mean:
             warnings.warn(
                 DeprecationWarning(
@@ -271,6 +276,7 @@ class PowerSpectrum:
                     "removed in a future version of Pylake"
                 )
             )
+
             return PowerSpectrum(
                 downsample(self.frequency, factor, reduce),
                 downsample(self.power, factor, reduce),

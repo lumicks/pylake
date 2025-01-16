@@ -6,6 +6,10 @@
 
 * Added [`PowerSpectrum.compress()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.compress#) to discard high frequency spectral data for a downsampled spectrum to conserve memory.
 
+#### Improvements
+
+* Force `num_points_per_block` to be integer when down-sampling a [`PowerSpectrum`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html).
+
 ## v1.6.0 | t.b.d.
 
 #### New features

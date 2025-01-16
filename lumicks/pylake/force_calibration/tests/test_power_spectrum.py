@@ -390,3 +390,15 @@ def test_compress():
     assert compressed._num_points_per_block == 100
     np.testing.assert_allclose(ps_downsampled.frequency, ps_downsampled.frequency)
     np.testing.assert_allclose(compressed.power, ps_downsampled.power)
+
+
+def test_integer_num_points_per_block():
+    ps = PowerSpectrum(np.arange(500), np.arange(500), 78125, total_duration=1)
+    ps_ds = ps.downsampled_by(10.0)
+    ps_ds_int = ps.downsampled_by(10)
+    np.testing.assert_allclose(ps_ds.power, ps_ds_int.power)
+
+    with pytest.raises(
+        NotImplementedError, match="Only integer downsampling factors are supported"
+    ):
+        ps.downsampled_by(10.00001)
