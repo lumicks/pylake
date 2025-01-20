@@ -297,6 +297,49 @@ def test_non_full(compare_to_reference_dict):
     )
 
 
+def test_plot_item(active_ref_data):
+    item = ForceCalibrationItem(ref_active)
+    with pytest.raises(ValueError, match="This calibration item does not contain the raw data"):
+        item.plot()
+
+    with pytest.raises(ValueError, match="This calibration item does not contain the raw data"):
+        item.plot_spectrum_residual()
+
+    with pytest.raises(ValueError, match="This calibration item does not contain the raw data"):
+        item.recalibrate_with(hydrodynamically_correct=False)
+
+    voltage, driving = active_ref_data
+
+    item = ForceCalibrationItem(ref_active, voltage=voltage)
+    with pytest.raises(
+        ValueError, match="Active calibration requires the driving_data to be defined"
+    ):
+        item.plot()
+
+    item = ForceCalibrationItem(ref_active, voltage=voltage, driving=driving)
+    item.plot()
+    item.plot_spectrum_residual()
+
+
+def test_recalibrate_item(active_ref_data):
+    voltage, driving = active_ref_data
+    item = ForceCalibrationItem(ref_active, voltage=voltage, driving=driving)
+    np.testing.assert_allclose(item.stiffness, 0.50338, rtol=1e-4)
+
+    same_calibration = item.recalibrate_with()
+    np.testing.assert_allclose(same_calibration.stiffness, 0.521374, rtol=1e-4)
+    assert same_calibration.fitted_diode
+
+    recalibrated = item.recalibrate_with(
+        hydrodynamically_correct=False,
+        fixed_diode=17498.229,
+        fixed_alpha=0.135,
+        distance_to_surface=1.5,
+    )
+    np.testing.assert_allclose(recalibrated.stiffness, 0.498051, rtol=1e-4)
+    assert not recalibrated.fitted_diode
+
+
 def test_force_calibration_handling():
     def timestamp(time):
         return 1714391268938540100 + int(1e9) * time

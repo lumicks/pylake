@@ -103,7 +103,7 @@ class ForceCalibrationList:
 
         def make_slice(dset, field, y_label, title) -> Slice:
             """Fetch raw data from the dataset"""
-            if field in dset:
+            if field in dset and dset[field].size > 0:
                 return Slice(
                     Continuous.from_dataset(dset[field]),
                     labels={"x": "Time (s)", "y": y_label, "title": title},

@@ -28,17 +28,17 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     @property
     def voltage(self):
         """Uncalibrated voltage reading on the detector"""
-        return self._voltage if self._voltage else empty_slice
+        return self._voltage if self._voltage is not None else empty_slice
 
     @property
     def sum_voltage(self):
         """Uncalibrated sum voltage on the detector"""
-        return self._sum_voltage if self._sum_voltage else empty_slice
+        return self._sum_voltage if self._sum_voltage is not None else empty_slice
 
     @property
     def driving(self):
         """Driving signal used for active calibration"""
-        return self._driving if self._driving else empty_slice
+        return self._driving if self._driving is not None else empty_slice
 
     @staticmethod
     def _verify_full(method):
@@ -159,6 +159,43 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             (f"{prop}={str(getattr(self, prop))}" for prop in self._results + self._parameters)
         )
         return f"{self.__class__.__name__}({properties})"
+
+    def _check_has_data(self):
+        if not len(self.voltage):
+            raise ValueError(
+                "This calibration item does not contain the raw data. If you still have the "
+                "timeline force data, you can de-calibrate that and perform the re-calibration"
+                "manually. See the pylake tutorial on force calibration for more information."
+            )
+
+    def plot(self):
+        self._check_has_data()
+        self.recalibrate_with().plot()
+
+    def plot_spectrum_residual(self):
+        """Plot the residuals of the fitted spectrum.
+
+        This diagnostic plot can be used to determine how well the spectrum fits the data. While
+        it cannot be used to diagnose over-fitting (being unable to reliably estimate parameters
+        due to insufficient information in the data), it can be used to diagnose under-fitting (the
+        model not fitting the data adequately).
+
+        In an ideal situation, the residual plot should show a noise band around 1 without any
+        systematic deviations.
+        """
+        self._check_has_data()
+        self.recalibrate_with().plot_spectrum_residual()
+
+    def recalibrate_with(self, **params):
+        """Returns a calibration structure with some parameters overridden.
+
+        For a full list of parameters to override, please see
+        :func:`~lumicks.pylake.calibrate_force()`"""
+        self._check_has_data()
+        active_data = {"driving_data": self.driving.data} if self.active_calibration else {}
+        return calibrate_force(
+            self.voltage.data, **(self.calibration_params() | active_data | params)
+        )
 
     @_verify_full
     def _model_params(self):

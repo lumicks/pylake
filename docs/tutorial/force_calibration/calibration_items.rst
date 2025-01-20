@@ -69,10 +69,77 @@ These parameters are properties and can be extracted as such::
 Redoing a Bluelake calibration
 ------------------------------
 
+Starting from Bluelake `2.7.0`, it is possible to export the raw data used for calibration with the
+calibration item. You can enable this in the settings panel in Bluelake.
+With this feature, recalibrating your data differently becomes a lot easier.
+If you don't have this setting enabled, you can still recalibrate your data, but you will have to
+ensure that you manually export the raw calibration data and slice the appropriate calibration data.
+To find out how to do this, please refer to the section :ref:`Recalibrating using timeline data<recalibrating_manually>`.
+
+.. _recalibrating_simple:
+
+Recalibrating using calibration items with raw data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Let's start by loading our calibration item::
+
+    f = lk.File("test_data/raw_data_in_item.h5")
+    calibration = f.force1x.calibration[0]
+
+We can quickly plot this calibration::
+
+    calibration.plot()
+
+.. image:: figures/in_item_plot.png
+
+If you wish to obtain the raw calibration data, you can simply access the properties :meth:`~lumicks.pylake.force_calibration.calibration_item.ForceCalibrationItem.calibration.voltage` and for active calibration  :meth:`~lumicks.pylake.force_calibration.calibration_item.ForceCalibrationItem.calibration.driving`.
+These return slices you can plot and interact with::
+
+    calibration.voltage.plot()
+
+.. image:: figures/in_item_raw_data.png
+
+We can easily re-perform this calibration by invoking :meth:`~lumicks.pylake.force_calibration.calibration_item.ForceCalibrationItem.recalibrate_with()`.
+Let's see what this spectrum would have looked like with less blocking::
+
+    recalibrated = calibration.recalibrate_with(num_points_per_block=200)
+    recalibrated.plot()
+
+.. image:: figures/in_item_less_blocking.png
+
+Note that any of the calibration parameters can easily be changed this way.
+To investigate the effect of the hydrodynamically correct model for example, we can try turning it off::
+
+    recalibrated_no_hyco = calibration.recalibrate_with(hydrodynamically_correct=False)
+    recalibrated_no_hyco.plot()
+
+.. image:: figures/in_item_no_hyco.png
+
+This clearly fits the data poorly.
+To see what it would do to our timeline data, we can simply recalibrate that by applying the calibration item to :meth:`~lumicks.pylake.channel.Slice.recalibrate_force`::
+
+    recalibrated_force = f.force1x.recalibrate_force(recalibrated_no_hyco)
+
+    f.force1x.plot()
+    recalibrated_force.plot()
+
+.. image:: figures/in_item_no_hyco_trace.png
+
+That's all there is to it.
+
+Recalibrating using timeline data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _recalibrating_manually:
+
 .. important::
     In order to redo a Bluelake calibration, the force data that was used for the calibration has to
     be included in the `.h5` file. *Note that this force data is not exported nor marked by default*;
     it has to be explicitly added to the exported file.
+
+We start by loading the calibration item::
+
+    f = lk.File("test_data/passive_calibration.h5")
 
 We can directly slice the channel by the calibration item we want to reproduce to extract the relevant data::
 
