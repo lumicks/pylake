@@ -89,6 +89,32 @@ def test_calibration(h5_file):
         assert f.force1y.calibration[idx].driving.labels["title"] == "Driving data for axis y"
 
 
+def test_calibration_lazy(monkeypatch, h5_file):
+    import h5py
+
+    f = pylake.File.from_h5py(h5_file)
+    if f.format_version == 2:
+        data_accessed = False
+        h5_array = h5py.Dataset.__array__
+
+        def patched_array(self, *args, **kwargs):
+            nonlocal data_accessed
+            data_accessed = True
+            return h5_array(self, *args, **kwargs)
+
+        with monkeypatch.context() as m:
+            m.setattr("h5py.Dataset.__array__", patched_array)
+
+            assert not f.force1x.calibration[2].has_data
+            assert f.force1y.calibration[2].voltage.sample_rate == 78125
+            assert not data_accessed  # Verify that we didn't read the slice yet
+
+            # Read the data
+            _ = f.force1y.calibration[2].voltage.data
+
+            assert data_accessed
+
+
 def test_marker(h5_file):
     f = pylake.File.from_h5py(h5_file)
 
