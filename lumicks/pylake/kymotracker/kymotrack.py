@@ -290,8 +290,11 @@ def load_tracks(filename, kymo, channel, delimiter=";"):
         if min_length is not None:
             min_length = float(np.unique(min_length).squeeze())
 
-        if counts is not None:
-            coord = CentroidLocalizationModel(coord * kymo.pixelsize_um, counts)
+        coord = (
+            CentroidLocalizationModel(kymo._calibration.from_pixels(coord), counts)
+            if counts is not None
+            else LocalizationModel(kymo._calibration.from_pixels(coord))
+        )
 
         return KymoTrack(time.astype(int), coord, kymo, channel, min_length)
 
@@ -381,7 +384,7 @@ class KymoTrack:
         self._localization = (
             localization
             if isinstance(localization, LocalizationModel)
-            else LocalizationModel(np.array(localization) * self._pixelsize)
+            else LocalizationModel(kymo._calibration.from_pixels(localization))
         )
 
     @property
@@ -458,7 +461,7 @@ class KymoTrack:
         return cls(
             time_idx,
             CentroidLocalizationModel(
-                coordinate_idx * kymo.pixelsize[0],
+                kymo._calibration.from_pixels(coordinate_idx),
                 np.array(
                     _sum_track_signal(
                         kymo.get_image(channel),
@@ -529,7 +532,7 @@ class KymoTrack:
 
         Coordinates are defined w.r.t. pixel centers (i.e. 0, 0 is the center of the first pixel).
         """
-        return self._localization.position / self._kymo.pixelsize[0]
+        return self._kymo._calibration.to_pixels(self.position)
 
     @property
     def seconds(self):
