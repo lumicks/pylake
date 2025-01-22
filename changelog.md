@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.1 | t.b.d.
+
+#### Bug fixes
+
+* Fixed a bug where [`ForceCalibrationItem.force_sensitivity`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibration.ForceCalibrationItem.html#lumicks.pylake.calibration.ForceCalibrationItem.force_sensitivity) would return the signed force response rather than the unsigned force sensitivity of a Bluelake calibration. This can cause issues with the force sign when using ratios of sensitivities obtained from Bluelake or Pylake. Now Pylake and Bluelake items both return the unsigned force sensitivity.
+
 ## v1.6.0 | 2025-01-09
 
 #### New features
