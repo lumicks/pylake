@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from lumicks.pylake.kymo import PositionUnit
+
 
 def test_calibrate_to_kbp(test_kymo):
     kymo, ref = test_kymo
@@ -10,11 +12,11 @@ def test_calibrate_to_kbp(test_kymo):
     kymo_bp = kymo.calibrate_to_kbp(length_kbp)
 
     # test that default calibration is in microns
-    assert kymo._calibration.unit == "um"
+    assert kymo._calibration.unit == PositionUnit.um
     assert kymo._calibration.value == 0.1
 
     # test that calibration is stored as kilobase-pairs
-    assert kymo_bp._calibration.unit == "kbp"
+    assert kymo_bp._calibration.unit == PositionUnit.kbp
     np.testing.assert_allclose(kymo_bp._calibration.value, length_kbp / n_pixels)
 
     # test conversion from microns to calibration units
@@ -100,3 +102,27 @@ def test_flip_kymo(test_kymo, crop):
             kymo_flipped.flip().get_image(channel=channel),
             kymo.get_image(channel=channel),
         )
+
+
+def test_position_unit():
+    assert PositionUnit.um.label == r"μm"
+    assert PositionUnit.kbp.label == "kbp"
+    assert PositionUnit.pixel.label == "pixels"
+
+    assert str(PositionUnit.um) == "um"
+    assert str(PositionUnit.kbp) == "kbp"
+    assert str(PositionUnit.pixel) == "pixel"
+
+    assert {PositionUnit.um, PositionUnit.um, PositionUnit.kbp} == {
+        PositionUnit.um,
+        PositionUnit.kbp,
+    }
+
+
+def test_enum_in_calibration():
+    with pytest.raises(TypeError, match="`unit` must be a PositionUnit instance"):
+        PositionCalibration("kbp", value=0.42)
+
+    c = PositionCalibration(PositionUnit.um, value=0.42)
+    assert c.unit_label == PositionUnit.um.label
+

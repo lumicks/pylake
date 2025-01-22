@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymo import PositionUnit, _kymo_from_array
 
 timestamp_err_msg = (
     "Per-pixel timestamps are not implemented. "
@@ -133,7 +133,7 @@ def test_from_array_no_pixelsize(test_kymo):
 
     assert arr_kymo.pixelsize_um == [None]
     assert arr_kymo.pixelsize == [1.0]
-    assert arr_kymo._calibration.unit == "pixel"
+    assert arr_kymo._calibration.unit == PositionUnit.pixel
 
     assert arr_kymo._metadata.center_point_um == {key: None for key in ("x", "y", "z")}
     assert arr_kymo._metadata.num_frames == 0

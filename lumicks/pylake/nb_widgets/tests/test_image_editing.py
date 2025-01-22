@@ -5,6 +5,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 from lumicks.pylake import ImageStack
+from lumicks.pylake.kymo import PositionUnit
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake.nb_widgets.image_editing import KymoEditorWidget, ImageEditorWidget
 from lumicks.pylake.tests.data.mock_widefield import MockTiffFile, make_alignment_image_data
@@ -116,7 +117,7 @@ def test_kymo_cropping_clicks(kymograph, region_select):
     np.testing.assert_equal(ax.position_limits, (1, 7))
 
     new_kymo = w.kymo
-    assert new_kymo._calibration.unit == "um"
+    assert new_kymo._calibration.unit == PositionUnit.um
     np.testing.assert_equal(new_kymo.get_image("red").shape, (16, 12))
 
     # with calibration
@@ -129,5 +130,5 @@ def test_kymo_cropping_clicks(kymograph, region_select):
     np.testing.assert_equal(ax.position_limits, (1, 7))
 
     new_kymo = w.kymo
-    assert new_kymo._calibration.unit == "kbp"
+    assert new_kymo._calibration.unit == PositionUnit.kbp
     np.testing.assert_equal(new_kymo.get_image("red").shape, (16, 12))

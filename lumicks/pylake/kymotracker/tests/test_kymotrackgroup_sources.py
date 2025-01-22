@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.kymo import PositionUnit, _kymo_from_array
 from lumicks.pylake.kymotracker.kymotrack import *
 
 
@@ -81,7 +81,7 @@ def test_constructor(kymos, coordinates):
     tracks = KymoTrackGroup(raw_tracks)
     assert len(tracks) == 4
     assert tracks._kymos == (kymo,)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
     # construct with duplicate track
     with pytest.raises(
@@ -117,13 +117,13 @@ def test_extend_single_source(kymos, coordinates):
     tracks = tracks1 + raw_tracks[2]
     assert len(tracks) == 3
     assert tracks._kymos == (kymo,)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
     # add group
     tracks = tracks1 + tracks2
     assert len(tracks) == 4
     assert tracks._kymos == (kymo,)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
     # extend with single source, different channels
     with pytest.raises(
@@ -154,18 +154,18 @@ def test_extend_empty(kymos, coordinates):
     tracks = empty + tracks2[0]
     assert len(tracks) == 1
     assert tracks._kymos == (kymo,)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
     # add group
     tracks = empty + tracks2
     assert len(tracks) == 4
     assert tracks._kymos == (kymo,)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
     tracks = tracks2 + empty
     assert len(tracks) == 4
     assert tracks._kymos == (kymo,)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
 
 def test_different_sources_same_attributes(kymos, coordinates):
@@ -190,7 +190,7 @@ def test_different_sources_same_attributes(kymos, coordinates):
     tracks = tracks1[:2] + tracks2[2:]
     assert len(tracks) == 4
     assert tracks._kymos == (kymo1, kymo2)
-    check_attributes(tracks, [10e-4], [0.05], ["um"])
+    check_attributes(tracks, [10e-4], [0.05], [PositionUnit.um])
 
 
 def test_different_sources_different_attributes(kymos, coordinates):
@@ -214,7 +214,7 @@ def test_different_sources_different_attributes(kymos, coordinates):
     tracks = tracks1 + tracks2
     assert len(tracks) == 8
     assert tracks._kymos == (kymos[0], kymos[2])
-    check_attributes(tracks, [10e-4, 10e-3], [0.05], ["um"])
+    check_attributes(tracks, [10e-4, 10e-3], [0.05], [PositionUnit.um])
 
     # different pixel sizes
     tracks1 = make_tracks(kymos[0])
@@ -223,7 +223,7 @@ def test_different_sources_different_attributes(kymos, coordinates):
     tracks = tracks1 + tracks2
     assert len(tracks) == 8
     assert tracks._kymos == (kymos[0], kymos[1])
-    check_attributes(tracks, [10e-4], [0.05, 0.1], ["um"])
+    check_attributes(tracks, [10e-4], [0.05, 0.1], [PositionUnit.um])
 
     # different line times and pixel sizes
     tracks1 = make_tracks(kymos[0])
@@ -232,7 +232,7 @@ def test_different_sources_different_attributes(kymos, coordinates):
     tracks = tracks1 + tracks2
     assert len(tracks) == 8
     assert tracks._kymos == (kymos[0], kymos[-1])
-    check_attributes(tracks, [10e-4, 10e-3], [0.05, 0.1], ["um"])
+    check_attributes(tracks, [10e-4, 10e-3], [0.05, 0.1], [PositionUnit.um])
 
     # extend with different calibrations
     with pytest.raises(
