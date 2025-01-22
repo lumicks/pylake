@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from lumicks.pylake.kymo import PositionUnit
+from lumicks.pylake.kymo import PositionUnit, PositionCalibration
 
 
 def test_calibrate_to_kbp(test_kymo):
@@ -27,6 +27,28 @@ def test_calibrate_to_kbp(test_kymo):
     np.testing.assert_allclose(kymo.pixelsize, ref.metadata.pixelsize_um[0])
     np.testing.assert_allclose(kymo_bp._calibration.value * n_pixels, length_kbp)
     np.testing.assert_allclose(kymo_bp.pixelsize, length_kbp / n_pixels)
+
+    start = 0.12
+    end = 0.33
+    n_pixels_tether = (end - start) / ref.metadata.pixelsize_um[0]
+
+    kymo_bp = kymo.calibrate_to_kbp(length_kbp, start=start, end=end)
+    np.testing.assert_allclose(kymo_bp._calibration.value * n_pixels_tether, length_kbp)
+    np.testing.assert_allclose(kymo_bp.pixelsize, length_kbp / n_pixels_tether)
+
+    with pytest.raises(ValueError, match="end must be larger than start."):
+        kymo.calibrate_to_kbp(length_kbp, start=end, end=start)
+
+    with pytest.raises(RuntimeError, match="kymo is already calibrated in base pairs."):
+        kymo_bp.calibrate_to_kbp(10)
+
+
+@pytest.mark.parametrize("start, end", [(None, 0.33), (0.12, None)])
+def test_calibrate_to_kbp_invalid_range(test_kymo, start, end):
+    with pytest.raises(
+        ValueError, match="Both start and end points of the tether must be supplied."
+    ):
+        test_kymo[0].calibrate_to_kbp(1, start=start, end=end)
 
 
 def check_factory_forwarding(kymo1, kymo2, check_timestamps):
@@ -126,3 +148,18 @@ def test_enum_in_calibration():
     c = PositionCalibration(PositionUnit.um, value=0.42)
     assert c.unit_label == PositionUnit.um.label
 
+
+def test_coordinate_transforms():
+    px_coord = [0, 1.2, 3.14, 85]
+
+    c = PositionCalibration(PositionUnit.kbp, value=0.42)
+    kbp_coord = [0, 0.504, 1.3188, 35.7]
+    transformed = c.from_pixels(px_coord)
+    np.testing.assert_allclose(kbp_coord, transformed)
+    np.testing.assert_allclose(px_coord, c.to_pixels(transformed))
+
+    c = PositionCalibration(PositionUnit.kbp, value=0.42, origin=2.0)
+    kbp_coord = [-0.84, -0.336, 0.4788, 34.86]
+    transformed = c.from_pixels(px_coord)
+    np.testing.assert_allclose(kbp_coord, transformed)
+    np.testing.assert_allclose(px_coord, c.to_pixels(transformed))

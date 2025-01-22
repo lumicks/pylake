@@ -394,8 +394,8 @@ class Kymo(ConfocalImage):
             extent=[
                 -0.5 * self.line_time_seconds,
                 self.duration - 0.5 * self.line_time_seconds,
-                size_calibrated - 0.5 * self.pixelsize[0],
-                -0.5 * self.pixelsize[0],
+                self._calibration.from_pixels(self._num_pixels[0] - 0.5),
+                self._calibration.from_pixels(-0.5),
             ],
             aspect=(image.shape[0] / image.shape[1]) * (self.duration / size_calibrated),
             cmap=colormaps._get_default_colormap(channel),
@@ -998,19 +998,36 @@ class Kymo(ConfocalImage):
 
         return result
 
-    def calibrate_to_kbp(self, length_kbp):
+    def calibrate_to_kbp(self, length_kbp, *, start=None, end=None):
         """Calibrate from microns to other units.
 
         Parameters
         ----------
-        length : float
-            length of the kymo in kilobase pairs
+        length_kbp : float
+            length of the tether in kilobase pairs
+        start: float | None
+            start point of the tether in microns
+        end: float | None
+            end point of the tether in microns
         """
         if self._calibration.unit == PositionUnit.kbp:
             raise RuntimeError("kymo is already calibrated in base pairs.")
 
+        if (start is None) ^ (end is None):
+            raise ValueError("Both start and end points of the tether must be supplied.")
+
+        if start is not None:
+            if end < start:
+                raise ValueError("end must be larger than start.")
+            kbp_per_pixel = length_kbp / (end - start) * self.pixelsize_um[0]
+        else:
+            kbp_per_pixel = length_kbp / self._num_pixels[0]
+        pixel_origin = start / self.pixelsize_um[0] if start is not None else 0.0
+
         result = copy(self)
-        result._calibration = PositionCalibration(PositionUnit.kbp, length_kbp / self._num_pixels[0])
+        result._calibration = PositionCalibration(
+            PositionUnit.kbp, kbp_per_pixel, origin=pixel_origin
+        )
         result._image_factory = self._image_factory
         result._timestamp_factory = self._timestamp_factory
         result._line_time_factory = self._line_time_factory
@@ -1113,6 +1130,13 @@ class PositionCalibration:
         if not isinstance(self.unit, PositionUnit):
             raise TypeError("`unit` must be a PositionUnit instance")
 
+    def from_pixels(self, pixels):
+        """Convert coordinates from pixel values to calibrated values"""
+        return self.value * (np.array(pixels) - self.origin)
+
+    def to_pixels(self, calibrated):
+        """Convert coordinates from calibrated values to pixel values"""
+        return np.array(calibrated) / self.value + self.origin
 
     @property
     def unit_label(self):

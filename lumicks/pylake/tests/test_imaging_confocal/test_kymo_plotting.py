@@ -35,14 +35,69 @@ def test_plotting(test_kymo):
             -(pixel_size / 2),
         ],
     )
-
-    # test original kymo is labeled with microns and
-    # that kymo calibrated with base pairs has appropriate label
     assert plt.gca().get_ylabel() == r"position (μm)"
     plt.close()
 
-    kymo_bp = kymo.calibrate_to_kbp(10.000)
-    kymo_bp.plot(channel="red")
+
+def test_plotting_calibrated(test_kymo):
+    kymo, ref = test_kymo
+    line_time = ref.timestamps.line_time_seconds
+    n_lines = ref.metadata.lines_per_frame
+    n_pixels = ref.metadata.pixels_per_line
+
+    tether_length = 10.000
+    kbp_per_pixel = tether_length / n_pixels
+
+    kymo_bp = kymo.calibrate_to_kbp(tether_length)
+    kymo_bp.plot(channel="red", interpolation="none")
+
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(
+        image.get_extent(),
+        [
+            -0.5 * line_time,
+            (n_lines - 0.5) * line_time,
+            (n_pixels * kbp_per_pixel - (kbp_per_pixel / 2)),
+            -(kbp_per_pixel / 2),
+        ],
+    )
+
+    assert plt.gca().get_ylabel() == "position (kbp)"
+    plt.close()
+
+
+@pytest.mark.parametrize(
+    "start,end,tether_length",
+    (
+        (0.1, 0.3, 10.0),
+        (0.085, 0.321, 10.0),
+        (0.24, 0.38, 5.234),
+        (0.1, 0.52, 10.0),  # end > kymo length
+        (-0.2, 0.3, 10.0),  # start < kymo start
+        (-0.267, 0.583, 15.325),  # both ends outside of image
+    ),
+)
+def test_plotting_calibrated_with_ends(test_kymo, start, end, tether_length):
+    kymo, ref = test_kymo
+    line_time = ref.timestamps.line_time_seconds
+    n_lines = ref.metadata.lines_per_frame
+    n_pixels = ref.metadata.pixels_per_line
+    pixel_size = ref.metadata.pixelsize_um[0]
+
+    n_tether_pixels = (end - start) / pixel_size
+    kbp_per_pixel = tether_length / n_tether_pixels
+    pixels_skipped = start / pixel_size
+    min_extent = -(pixels_skipped + 0.5) * kbp_per_pixel
+    max_extent = min_extent + (n_pixels * kbp_per_pixel)
+
+    kymo_bp = kymo.calibrate_to_kbp(tether_length, start=start, end=end)
+
+    kymo_bp.plot(channel="red", interpolation="none")
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(
+        image.get_extent(),
+        [-0.5 * line_time, (n_lines - 0.5) * line_time, max_extent, min_extent],
+    )
     assert plt.gca().get_ylabel() == "position (kbp)"
     plt.close()
 

@@ -146,6 +146,36 @@ def test_roundtrip_without_file(
     compare_kymotrack_group(kymo_integration_tracks, read_tracks)
 
 
+def test_roundtrip_with_calibration(tmpdir_factory):
+    path = tmpdir_factory.mktemp("pylake")
+    filenames = (f"{path}/tracks_microns.csv", f"{path}/tracks_bp.csv")
+
+    image = np.ones((10, 15, 3))
+    kymo_um = _kymo_from_array(image, "rgb", line_time_seconds=0.1, pixel_size_um=0.050)
+    kymo_bp = kymo_um.calibrate_to_kbp(10.0, start=0.05, end=0.15)
+
+    time_coords = [np.array(x) for x in ([1, 2, 3], [2, 3, 4, 5])]
+    pos_coords = [np.array(x) for x in ([1, 2, 1], [3.2, 4.8, 3.5, 6.9])]
+
+    ref_tracks = [
+        KymoTrackGroup(
+            [KymoTrack(t, x, kymo, "green", 0.1) for t, x in zip(time_coords, pos_coords)]
+        )
+        for kymo in (kymo_um, kymo_bp)
+    ]
+
+    for j, filename in enumerate(filenames):
+        ref_tracks[j].save(filename)
+
+    loaded_tracks = [
+        load_tracks(filename, kymo, "green")
+        for filename, kymo in zip(filenames, (kymo_um, kymo_bp))
+    ]
+
+    for ref, tracks in zip(ref_tracks, loaded_tracks):
+        compare_kymotrack_group(ref, tracks)
+
+
 def test_photon_count_validation(kymo_integration_test_data, kymo_integration_tracks):
     with io.StringIO() as s:
         kymo_integration_tracks.save(s, sampling_width=0, correct_origin=False)
