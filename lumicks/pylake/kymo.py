@@ -1,5 +1,7 @@
 import warnings
 from copy import copy
+from enum import Enum
+from collections import namedtuple
 from dataclasses import dataclass
 
 import numpy as np
@@ -99,7 +101,7 @@ class Kymo(ConfocalImage):
             else (
                 PositionCalibration()
                 if self.pixelsize_um[0] is None
-                else PositionCalibration("um", self.pixelsize_um[0], r"μm")
+                else PositionCalibration(PositionUnit.um, self.pixelsize_um[0])
             )
         )
 
@@ -785,7 +787,7 @@ class Kymo(ConfocalImage):
         RuntimeError
             When the algorithm fails to locate two edges during the bead finding stage.
         """
-        if self._calibration.unit != "um":
+        if self._calibration.unit != PositionUnit.um:
             raise RuntimeError(
                 f"This kymograph is not calibrated in um but in {self._calibration.unit}. "
                 f"Please make sure the kymograph is calibrated to microns before using this "
@@ -1004,11 +1006,11 @@ class Kymo(ConfocalImage):
         length : float
             length of the kymo in kilobase pairs
         """
-        if self._calibration.unit == "kbp":
+        if self._calibration.unit == PositionUnit.kbp:
             raise RuntimeError("kymo is already calibrated in base pairs.")
 
         result = copy(self)
-        result._calibration = PositionCalibration("kbp", length_kbp / self._num_pixels[0], "kbp")
+        result._calibration = PositionCalibration(PositionUnit.kbp, length_kbp / self._num_pixels[0])
         result._image_factory = self._image_factory
         result._timestamp_factory = self._timestamp_factory
         result._line_time_factory = self._line_time_factory
@@ -1082,17 +1084,45 @@ class EmptyKymo(Kymo):
         return False
 
 
+UnitInfo = namedtuple("UnitInfo", ["name", "label"])
+
+
+class PositionUnit(Enum):
+    um = UnitInfo(name="um", label=r"μm")
+    kbp = UnitInfo(name="kbp", label="kbp")
+    pixel = UnitInfo(name="pixel", label="pixels")
+
+    def __str__(self):
+        return self.value.name
+
+    def __hash__(self):
+        return hash(self.value)
+
+    @property
+    def label(self):
+        return self.value.label
+
+
 @dataclass(frozen=True)
 class PositionCalibration:
-    unit: str = "pixel"
+    unit: PositionUnit = PositionUnit.pixel
     value: float = 1.0
-    unit_label: str = "pixels"
+    origin: float = 0.0
+
+    def __post_init__(self):
+        if not isinstance(self.unit, PositionUnit):
+            raise TypeError("`unit` must be a PositionUnit instance")
+
+
+    @property
+    def unit_label(self):
+        return self.unit.label
 
     def downsample(self, factor):
         return (
             self
-            if self.unit == "pixel"
-            else PositionCalibration(self.unit, self.value * factor, self.unit_label)
+            if self.unit == PositionUnit.pixel
+            else PositionCalibration(self.unit, self.value * factor)
         )
 
 

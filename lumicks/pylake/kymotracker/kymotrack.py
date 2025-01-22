@@ -106,7 +106,7 @@ def export_kymotrackgroup_to_csv(
     )
 
     time_units = "seconds"
-    position_units = kymotrack_group._calibration_info["unit"]
+    position_units = kymotrack_group._calibration_info.unit
 
     idx = np.hstack([np.full(len(track), idx) for idx, track in enumerate(kymotrack_group)])
     coords_idx = np.hstack([track.coordinate_idx for track in kymotrack_group])
@@ -1213,7 +1213,7 @@ class KymoTrackGroup:
             if len(pixel_sizes) == 1
             else (
                 "All source kymographs must have the same pixel sizes, "
-                f"got {sorted(pixel_sizes)} {self._calibration_info['unit']}."
+                f"got {sorted(pixel_sizes)} {self._calibration_info.unit}."
             )
         )
 
@@ -1281,7 +1281,7 @@ class KymoTrackGroup:
     def _calibration_info(self):
         try:
             kymo = self._kymos[0]
-            return {"unit": kymo._calibration.unit, "unit_label": kymo._calibration.unit_label}
+            return kymo._calibration
         except IndexError:
             raise RuntimeError("No kymo associated with this empty group (no tracks available)")
 
@@ -1470,7 +1470,7 @@ class KymoTrackGroup:
             track.plot(show_outline=show_outline, show_labels=False, axes=ax, **kwargs)
 
         if show_labels:
-            ax.set_ylabel(f"position ({self._calibration_info['unit_label']})")
+            ax.set_ylabel(f"position ({self._calibration_info.unit_label})")
             ax.set_xlabel("time (s)")
 
     def _tracks_in_frame(self, frame_idx):
@@ -1899,7 +1899,7 @@ class KymoTrackGroup:
         widths = np.diff(edges)
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
-        plt.xlabel(f"Position ({self._calibration_info['unit_label']})")
+        plt.xlabel(f"Position ({self._calibration_info.unit_label})")
 
     def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points, roi=None):
         """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.
@@ -2146,5 +2146,6 @@ class KymoTrackGroup:
             line_msds=track_msds,
             time_step=self._kymos[0].line_time_seconds,
             min_count=min_count,
-            **self._calibration_info,
+            unit=self._calibration_info.unit,
+            unit_label=self._calibration_info.unit_label,
         )

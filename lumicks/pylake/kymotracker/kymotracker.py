@@ -3,6 +3,7 @@ from itertools import chain
 
 import numpy as np
 
+from ..kymo import PositionUnit
 from .kymotrack import KymoTrack, KymoTrackGroup
 from .detail.peakfinding import find_kymograph_peaks, refine_peak_based_on_moment
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
@@ -19,7 +20,11 @@ __all__ = [
 ]
 
 
-_default_track_widths = {"um": 0.35, "kbp": 0.35 / 0.34, "pixel": 4}
+_default_track_widths = {
+    PositionUnit.um: 0.35,
+    PositionUnit.kbp: 0.35 / 0.34,
+    PositionUnit.pixel: 4,
+}
 
 
 def _to_pixel_rect(rect, pixelsize, line_time_seconds):
