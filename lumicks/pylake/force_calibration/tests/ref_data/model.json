@@ -13,6 +13,7 @@
     "sample_rate": 78125,
     "fast_sensor": false,
     "axial": false,
-    "hydrodynamically_correct": true
+    "hydrodynamically_correct": true,
+    "negative_force": false
   }
 }

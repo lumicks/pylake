@@ -82,7 +82,7 @@ To recalibrate data we first have to de-calibrate the data to get back to raw vo
 To do this, we divide our data by the force sensitivity that was active at the start of the slice.
 
     >>> old_calibration = force1x_slice.calibration[0]
-    ... volts1x_slice = force1x_slice / old_calibration.force_sensitivity
+    ... volts1x_slice = force1x_slice / old_calibration.force_response
 
 The easiest way to extract all the relevant input parameters for a calibration is to use
 :meth:`~lumicks.pylake.calibration.calibration_item.ForceCalibrationItem.calibration_params()`::

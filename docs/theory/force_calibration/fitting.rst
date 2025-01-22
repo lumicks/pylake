@@ -102,7 +102,7 @@ In the dataset below, we can see the effect of the noise floor::
     force_channel = f.force1x
     reference_calibration = force_channel.calibration[0]
     pars = {
-        "force_voltage_data": force_channel.data / reference_calibration.force_sensitivity,
+        "force_voltage_data": force_channel.data / reference_calibration.force_response,
         "sample_rate": force_channel.sample_rate,
         "bead_diameter": 4.34,
         "temperature": 25,

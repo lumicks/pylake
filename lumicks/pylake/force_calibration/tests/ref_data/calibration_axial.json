@@ -17,6 +17,7 @@
     "fast_sensor": true,
     "axial": true,
     "hydrodynamically_correct": false,
+    "negative_force": false,
     "active_calibration": false
   }
 }

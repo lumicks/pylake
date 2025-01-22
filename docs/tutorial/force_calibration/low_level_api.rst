@@ -19,7 +19,7 @@ First we need the data in volts as shown in previous tutorials::
     force_slice = f.force1x[f.force1x.calibration[1]]
     old_calibration = force_slice.calibration[0]
 
-    volts = force_slice / old_calibration.force_sensitivity
+    volts = force_slice / old_calibration.force_response
 
 To use the more manual lower-level API, we first need the power spectrum to fit.
 To compute a power spectrum from our data we can invoke :func:`~lumicks.pylake.calculate_power_spectrum()`::
@@ -132,7 +132,7 @@ Let's load some active calibration data::
     lk.download_from_doi("10.5281/zenodo.7729823", "test_data")
     f = lk.File("test_data/near_surface_active_calibration.h5")
 
-    volts = f.force1x / f.force1x.calibration[0].force_sensitivity
+    volts = f.force1x / f.force1x.calibration[0].force_response
     bead_diameter = f.force1x.calibration[0].bead_diameter
     distance_to_surface = 1.04 * bead_diameter
     driving_data = f["Nanostage position"]["X"]

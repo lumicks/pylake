@@ -53,7 +53,7 @@ The following example data acquired on a fast sensor will illustrate why::
     f = lk.File("test_data/fast_measurement_25.h5")
 
     # Decalibrate the force data
-    volts = f.force2y / f.force2y.calibration[0].force_sensitivity
+    volts = f.force2y / f.force2y.calibration[0].force_response
 
     shared_parameters = {
         "force_voltage_data": volts.data,

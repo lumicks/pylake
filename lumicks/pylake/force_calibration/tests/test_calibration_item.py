@@ -272,7 +272,7 @@ def test_non_full(compare_to_reference_dict):
     )
     assert not item.stiffness
     assert not item.displacement_sensitivity
-    assert item.force_sensitivity == 1.0
+    assert item.force_response == 1.0
     assert item.start == 1714391268938540100
     assert item.stop == 1714391268938540200
     assert item.offset is None

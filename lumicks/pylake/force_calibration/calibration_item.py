@@ -153,6 +153,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             "fast_sensor": self.fast_sensor,
             "axial": bool(self.data.get("Axial calibration")),
             "hydrodynamically_correct": self.hydrodynamically_correct,
+            "negative_force": bool(self.force_response < 0),
         }
 
         return {key: value for key, value in params.items() if value is not None}

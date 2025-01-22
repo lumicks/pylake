@@ -1019,13 +1019,14 @@ def test_recalibrate_force_wrong_number_of_calibrations():
         cc.recalibrate_force(None)
 
 
-def make_calibration_item(response, applied_at):
+def make_calibration_item(sensitivity, applied_at):
     return ForceCalibrationItem(
         {
             "Calibration Data": 50,
             "Stop time (ns)": with_offset(50),
             "Timestamp (ns)": with_offset(applied_at),
-            "Response (pN/V)": response,
+            "Response (pN/V)": -sensitivity,
+            "Rf (pN/V)": sensitivity,
         }
     )
 
@@ -1038,6 +1039,7 @@ def make_calibration_result(calibration_factor):
         params={},
         results={
             "Rf": psc.CalibrationParameter("Rf", calibration_factor, "val"),
+            "Response": psc.CalibrationParameter("Response", -calibration_factor, "val"),
             "kappa": psc.CalibrationParameter("kappa", 5, "val"),
         },
         fitted_params=[],
@@ -1054,7 +1056,9 @@ def test_recalibrate_force(mock_datetime):
     np.testing.assert_allclose(slc.data, np.arange(100))
     np.testing.assert_allclose(slc_recalibrated.data, np.arange(100) * 0.5)
     assert slc.calibration[0].force_sensitivity == 10
+    assert slc.calibration[0].force_response == -10
     assert slc_recalibrated.calibration[0].force_sensitivity == 5
+    assert slc_recalibrated.calibration[0].force_response == -5
 
     with mock_datetime("lumicks.pylake.calibration.datetime.datetime"):
         assert str(slc_recalibrated.calibration) == textwrap.dedent(

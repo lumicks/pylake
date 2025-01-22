@@ -77,7 +77,7 @@ We can see that this updated the fixed diode parameters.
 
 We can calibrate with these parameters directly by unpacking this dictionary into the :meth:`~lumicks.pylake.calibrate_force` function::
 
-    volts = f.force1x / f.force1x.calibration[0].force_sensitivity
+    volts = f.force1x / f.force1x.calibration[0].force_response
 
     calibration = lk.calibrate_force(volts.data, **updated_params)
     calibration.plot()
@@ -88,7 +88,7 @@ Unfortunately, in this case, we also have a noise floor to contend with, so we s
 (for more information about this, see the section on :ref:`noise floors<noise_floor>`).
 In this case, we restrict the upper bound of the fitting range to approximately four times the corner frequency::
 
-    volts = f.force1x / f.force1x.calibration[0].force_sensitivity
+    volts = f.force1x / f.force1x.calibration[0].force_response
 
     updated_params = updated_params | {"fit_range": [100, 2300]}
     calibration = lk.calibrate_force(volts.data, **updated_params)

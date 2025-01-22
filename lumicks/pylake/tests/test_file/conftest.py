@@ -49,6 +49,7 @@ def h5_file(tmpdir_factory, request):
                 "Stop time (ns)": stop_time,
                 "kappa (pN/nm)": 1.05,
                 "Response (pN/V)": 504.43,
+                "Rf (pN/V)": 504.43,
                 "Rd (um/V)": 4.57,
             } | (custom_fields if custom_fields else {})
 

@@ -139,13 +139,21 @@ class CalibrationPropertiesMixin:
         """Force sensitivity (pN/V)
 
         The force sensitivity provides the calibration factor for converting sensor readouts from
+        voltages to unsigned forces. It is given by the product of the displacement sensitivity and
+        trap stiffness."""
+        return self._get_parameter("Rf", "Rf (pN/V)")
+
+    @property
+    def force_response(self):
+        """Force response (pN/V)
+
+        The force sensitivity provides the calibration factor for converting sensor readouts from
         voltages to forces. It is given by the product of the displacement sensitivity and
         trap stiffness.
 
         To recalibrate force channels, simply multiply them by the ratio of force sensitivities of
-        the old and new calibration.
-        """
-        return self._get_parameter("Rf", "Response (pN/V)")
+        the old and new calibration."""
+        return self._get_parameter("Response", "Response (pN/V)")
 
     @property
     def displacement_sensitivity(self):

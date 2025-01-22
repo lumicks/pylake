@@ -286,13 +286,13 @@ class Slice:
         # Grab sensitivities. If for whatever reason, we don't know part of the calibration, we
         # can't reasonably recalibrate, so we return NaNs for those time points.
         timestamps = self.timestamps
-        force_sensitivities = np.full(len(timestamps), np.nan)
+        force_responses = np.full(len(timestamps), np.nan)
         for c in self.calibration:
-            force_sensitivities[timestamps >= c.applied_at] = c.force_sensitivity
+            force_responses[timestamps >= c.applied_at] = c.force_response
 
         return Slice(
             self._src._with_data(
-                self._unpack_other(self) * calibration.force_sensitivity / force_sensitivities
+                self._unpack_other(self) * calibration.force_response / force_responses
             ),
             labels=self.labels,
             calibration=ForceCalibrationList(items=[calibration._with_timestamp(self.start)]),

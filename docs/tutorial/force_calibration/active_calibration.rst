@@ -28,7 +28,7 @@ To do this, load a new file::
 
 We decalibrate the force, and extract some relevant parameters::
 
-    volts = f.force1x / f.force1x.calibration[0].force_sensitivity
+    volts = f.force1x / f.force1x.calibration[0].force_response
     bead_diameter = f.force1x.calibration[0].bead_diameter
     # Calibration performed at 1.04 * bead_diameter
     distance_to_surface = 1.04 * bead_diameter

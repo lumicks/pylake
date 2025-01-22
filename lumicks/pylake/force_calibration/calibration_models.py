@@ -514,6 +514,8 @@ class PassiveCalibrationModel:
         rho_bead=1060.0,
         fast_sensor=False,
         axial=False,
+        *,
+        negative_force=False,
     ):
         if bead_diameter < 1e-2:
             raise ValueError(
@@ -537,6 +539,7 @@ class PassiveCalibrationModel:
         self._filter = NoFilter() if fast_sensor else DiodeModel()
         self._drag_fieldname = "gamma_0"
         self._drag_description = "Theoretical bulk drag coefficient"
+        self._negative_force = negative_force
 
         self.axial = axial
         self.hydrodynamically_correct = hydrodynamically_correct
@@ -768,12 +771,17 @@ class PassiveCalibrationModel:
         )
 
         # Force response (Rf) is output in pN/V. Rd [um/V], stiffness [pN/nm]: um -> nm = 1e3
-        force_response = distance_response * kappa * 1e3
+        force_sensitivity = distance_response * kappa * 1e3
 
         return {
             "Rd": CalibrationParameter("Distance response", distance_response, "um/V"),
             "kappa": CalibrationParameter("Trap stiffness", kappa, "pN/nm"),
-            "Rf": CalibrationParameter("Force response", force_response, "pN/V"),
+            "Rf": CalibrationParameter("Force sensitivity", force_sensitivity, "pN/V"),
+            "Response": CalibrationParameter(
+                "Force response",
+                -force_sensitivity if self._negative_force else force_sensitivity,
+                "pN/V",
+            ),
             self._drag_fieldname: CalibrationParameter(
                 self._drag_description, self.drag_coeff, "kg/s"
             ),
@@ -935,6 +943,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         rho_sample=None,
         rho_bead=1060.0,
         fast_sensor=False,
+        *,
+        negative_force=False,
     ):
         super().__init__(
             bead_diameter,
@@ -945,7 +955,8 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             rho_sample,
             rho_bead,
             fast_sensor,
-            False,
+            axial=False,
+            negative_force=negative_force,
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
@@ -1104,12 +1115,17 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             * kappa
         )
 
-        force_response = distance_response * kappa  # N/V
+        force_sensitivity = distance_response * kappa * 1e12  # pN/V
 
         return {
             "Rd": CalibrationParameter("Distance response", distance_response * 1e6, "um/V"),
             "kappa": CalibrationParameter("Trap stiffness", kappa * 1e3, "pN/nm"),
-            "Rf": CalibrationParameter("Force response", force_response * 1e12, "pN/V"),
+            "Rf": CalibrationParameter("Force sensitivity", force_sensitivity, "pN/V"),
+            "Response": CalibrationParameter(
+                "Force response",
+                -force_sensitivity if self._negative_force else force_sensitivity,
+                "pN/V",
+            ),
             self._drag_fieldname: CalibrationParameter(
                 self._drag_description, self.drag_coeff, "kg/s"
             ),

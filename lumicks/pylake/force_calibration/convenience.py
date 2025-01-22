@@ -29,6 +29,7 @@ def calibrate_force(
     num_points_per_block=2000,
     fit_range=(1e2, 23e3),
     excluded_ranges=None,
+    negative_force=False,
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
@@ -100,6 +101,8 @@ def calibrate_force(
         bulk drag coefficient for this (obtained from the field `gamma_ex`). This can be used to
         carry over an estimate of the drag coefficient obtained using an active calibration
         procedure.
+    negative_force : bool
+        Should the force response be negative (resulting in negative forces for this axis)?
     fixed_diode : float, optional
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
@@ -205,6 +208,7 @@ def calibrate_force(
         "hydrodynamically_correct": hydrodynamically_correct,
         "rho_sample": rho_sample,
         "rho_bead": rho_bead,
+        "negative_force": negative_force,
     }
 
     model = (
