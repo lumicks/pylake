@@ -1,5 +1,6 @@
 import pickle
 
+import numpy as np
 import pytest
 
 from lumicks.pylake.calibration import ForceCalibrationList
@@ -148,7 +149,9 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert item.start == 1696171376701856700
     assert item.stop == 1696171386701856700
     assert item.stiffness is ref_passive_fixed_diode_with_height["kappa (pN/nm)"]
-    assert item.force_sensitivity is ref_passive_fixed_diode_with_height["Rf (pN/V)"]
+    np.testing.assert_equal(
+        item.force_sensitivity, ref_passive_fixed_diode_with_height["Rf (pN/V)"]
+    )
     assert item.displacement_sensitivity is ref_passive_fixed_diode_with_height["Rd (um/V)"]
 
     assert item.corner_frequency == item["fc (Hz)"]
@@ -200,7 +203,7 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert item.start == 1713785826919398000
     assert item.stop == 1713785836900152600
     assert item.stiffness is ref_active["kappa (pN/nm)"]
-    assert item.force_sensitivity is ref_active["Rf (pN/V)"]
+    np.testing.assert_equal(item.force_sensitivity, ref_active["Rf (pN/V)"])
     assert item.displacement_sensitivity is ref_active["Rd (um/V)"]
     assert item.offset == ref_active["Offset (pN)"]
 
@@ -235,7 +238,7 @@ def test_axial_fast_sensor(compare_to_reference_dict, calibration_data):
     assert not item.active_calibration
     assert item.fast_sensor
     assert item.stiffness is ref_axial["kappa (pN/nm)"]
-    assert item.force_sensitivity is ref_axial["Rf (pN/V)"]
+    np.testing.assert_equal(item.force_sensitivity, ref_axial["Rf (pN/V)"])
     assert item.displacement_sensitivity is ref_axial["Rd (um/V)"]
     assert item.offset == ref_axial["Offset (pN)"]
 

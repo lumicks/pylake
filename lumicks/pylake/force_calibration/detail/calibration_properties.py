@@ -145,7 +145,9 @@ class CalibrationPropertiesMixin:
         To recalibrate force channels, simply multiply them by the ratio of force sensitivities of
         the old and new calibration.
         """
-        return self._get_parameter("Rf", "Response (pN/V)")
+        # We use the response in the Bluelake case, since it is always available. The force
+        # sensitivity is not available for reset calibration to unity items for instance.
+        return abs(self._get_parameter("Rf", "Response (pN/V)"))
 
     @property
     def displacement_sensitivity(self):
