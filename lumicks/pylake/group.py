@@ -53,9 +53,16 @@ class Group:
                 cls = channel_class(thing)
 
                 if item_type in ("Force HF", "Force LF"):
-                    return cls.from_dataset(
+                    force_slice = cls.from_dataset(
                         thing,
                         calibration=ForceCalibrationList.from_field(self._lk_file.h5, item_name),
+                    )
+                    return cls.from_dataset(
+                        thing,
+                        calibration=ForceCalibrationList.from_field(
+                            self._lk_file.h5, item_name, force_slice
+                        ),
+                        y_label="Force (pN)",
                     )
 
                 return cls.from_dataset(thing)

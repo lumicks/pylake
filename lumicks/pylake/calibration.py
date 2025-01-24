@@ -90,7 +90,7 @@ class ForceCalibrationList:
         )
 
     @staticmethod
-    def from_field(hdf5, force_channel) -> "ForceCalibrationList":
+    def from_field(hdf5, force_channel, force_slice=None) -> "ForceCalibrationList":
         """Fetch force calibration data from the HDF5 file
 
         Parameters
@@ -135,6 +135,7 @@ class ForceCalibrationList:
                         r"Driving data ($\mu$m)",
                         f"Driving data for axis {force_channel[-1]}",
                     ),
+                    force_slice=force_slice,
                 )
                 for calibration_item in hdf5["Calibration"].values()
                 if force_channel in calibration_item

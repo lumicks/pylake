@@ -245,12 +245,8 @@ class File(Group, Force, DownsampledFD, BaselineCorrectedForce, PhotonCounts, Ph
         )
 
     def _get_force(self, n, xyz):
-        """Return a Slice of force measurements, including calibration
-        Note: direct access to HDF dataset does not include calibration data"""
-        force_group = self.h5["Force HF"][f"Force {n}{xyz}"]
-        calibration_data = ForceCalibrationList.from_dataset(self.h5, n, xyz)
-
-        return Continuous.from_dataset(force_group, "Force (pN)", calibration_data)
+        """Return a Slice of force measurements, including calibration"""
+        return self["Force HF"][f"Force {n}{xyz}"]
 
     def _get_downsampled_force(self, n, xyz):
         """Return a Slice of low frequency force measurements, including calibration if applicable

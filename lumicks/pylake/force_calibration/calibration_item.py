@@ -19,16 +19,32 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         voltage=None,
         sum_voltage=None,
         driving=None,
+        force_slice=None,
     ):
         super().__init__(dictionary)
         self._voltage = voltage
         self._sum_voltage = sum_voltage
         self._driving = driving
+        self._force_slice = force_slice
 
     @property
     def voltage(self):
         """Uncalibrated voltage reading on the detector"""
-        return self._voltage if self._voltage is not None else empty_slice
+        if self._voltage is not None:
+            return self._voltage
+        elif (
+            self._force_slice
+            and self._force_slice.start <= self.start
+            and self._force_slice.stop >= self.stop
+        ):
+            force_slice = self._force_slice[self.start : self.stop]
+            if not force_slice.calibration:
+                return empty_slice
+
+            ref_calibration = force_slice.calibration[0]
+            return (force_slice - ref_calibration.offset) / ref_calibration.force_sensitivity
+
+        return empty_slice
 
     @property
     def sum_voltage(self):
