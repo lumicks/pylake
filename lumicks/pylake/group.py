@@ -4,6 +4,36 @@ from .channel import channel_class
 from .calibration import ForceCalibrationList
 
 
+def process_calibrated_channel(cls, item, lk_file, item_name):
+    """Process a calibrated channel
+
+    Parameters
+    ----------
+    cls : TimeTags | TimeSeries | Continuous
+        Channel class
+    item : h5py.Dataset
+        Item to process
+    lk_file : lumicks.pylake.File
+        Pylake file handle
+    item_name : str
+        Name of the channel (e.g. "Force 1x")
+    """
+    force_slice = cls.from_dataset(
+        item,
+        calibration=ForceCalibrationList.from_field(lk_file.h5, item_name),
+    )
+    driving_channel = f"Nanostage position/{item_name[-1].upper()}"
+    driving_slice = lk_file[driving_channel] if driving_channel in lk_file else None
+
+    return cls.from_dataset(
+        item,
+        calibration=ForceCalibrationList.from_field(
+            lk_file.h5, item_name, force_slice, driving_slice
+        ),
+        y_label="Force (pN)",
+    )
+
+
 class Group:
     """A thin wrapper around an HDF5 group with a Bluelake-specific `__getitem__`
 
@@ -53,17 +83,7 @@ class Group:
                 cls = channel_class(thing)
 
                 if item_type in ("Force HF", "Force LF"):
-                    force_slice = cls.from_dataset(
-                        thing,
-                        calibration=ForceCalibrationList.from_field(self._lk_file.h5, item_name),
-                    )
-                    return cls.from_dataset(
-                        thing,
-                        calibration=ForceCalibrationList.from_field(
-                            self._lk_file.h5, item_name, force_slice
-                        ),
-                        y_label="Force (pN)",
-                    )
+                    return process_calibrated_channel(cls, thing, self._lk_file, item_name)
 
                 return cls.from_dataset(thing)
 

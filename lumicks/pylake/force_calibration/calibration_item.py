@@ -20,12 +20,14 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         sum_voltage=None,
         driving=None,
         force_slice=None,
+        driving_slice=None,
     ):
         super().__init__(dictionary)
         self._voltage = voltage
         self._sum_voltage = sum_voltage
         self._driving = driving
         self._force_slice = force_slice
+        self._driving_slice = driving_slice
 
     @property
     def voltage(self):
@@ -54,7 +56,17 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
     @property
     def driving(self):
         """Driving signal used for active calibration"""
-        return self._driving if self._driving is not None else empty_slice
+        if self._driving is not None:
+            return self._driving
+        elif (
+            self.active_calibration
+            and self._driving_slice
+            and self._driving_slice.start <= self.start
+            and self._driving_slice.stop >= self.stop
+        ):
+            return self._driving_slice[self.start : self.stop]
+
+        return empty_slice
 
     @staticmethod
     def _verify_full(method):

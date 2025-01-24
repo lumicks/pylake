@@ -90,7 +90,9 @@ class ForceCalibrationList:
         )
 
     @staticmethod
-    def from_field(hdf5, force_channel, force_slice=None) -> "ForceCalibrationList":
+    def from_field(
+        hdf5, force_channel, force_slice=None, driving_slice=None
+    ) -> "ForceCalibrationList":
         """Fetch force calibration data from the HDF5 file
 
         Parameters
@@ -99,6 +101,10 @@ class ForceCalibrationList:
             A Bluelake HDF5 file.
         force_channel : str
             Calibration field to access (e.g. "Force 1x").
+        force_slice : Slice
+            Slice with force calibration data
+        driving_slice : Slice
+            Slice that has driving input data
         """
 
         def make_slice(dset, field, y_label, title) -> Slice:
