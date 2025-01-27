@@ -1,0 +1,22 @@
+name: "Check Python Packaging"
+description: ""
+runs:
+  using: "composite"
+  steps:
+    - name: Install packaging dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install "setuptools>=69.3" build wheel twine
+      shell: bash
+    - name: Package pylake
+      run: |
+        python -m build
+        python -m twine check --strict dist/*
+      shell: bash
+    - name: Unpack the generated package
+      run: tar -xvzf dist/lumicks_pylake*.tar.gz
+      shell: bash
+    - name: Compare contents with the repo folder
+      run: |
+        diff -r -x __pycache__ lumicks/pylake/ lumicks_pylake-*/lumicks/pylake
+      shell: bash

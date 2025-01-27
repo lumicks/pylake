@@ -43,3 +43,5 @@ jobs:
       run: |
         pip install flake8 flake8-bugbear
         flake8 .
+    - name: Check packaging
+      uses: ./.github/actions/check-python-packaging
