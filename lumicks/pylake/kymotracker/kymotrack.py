@@ -291,7 +291,7 @@ def load_tracks(filename, kymo, channel, delimiter=";"):
             min_length = float(np.unique(min_length).squeeze())
 
         if counts is not None:
-            coord = CentroidLocalizationModel(coord * kymo.pixelsize_um, counts)
+            coord = CentroidLocalizationModel(coord * kymo.pixelsize[0], counts)
 
         return KymoTrack(time.astype(int), coord, kymo, channel, min_length)
 
