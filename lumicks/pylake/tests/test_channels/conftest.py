@@ -31,3 +31,17 @@ def channel_h5_file(tmpdir_factory, request):
         mock_file.make_continuous_channel("Photon count", "Red", np.int64(20e9), freq, counts)
 
     return mock_file.file
+
+
+@pytest.fixture(autouse=True, scope="module", params=[False, True])
+def cache_setting(request):
+    from copy import deepcopy
+
+    from lumicks.pylake.detail.caching import global_cache, set_cache_enabled
+
+    old_value = deepcopy(global_cache)
+    try:
+        set_cache_enabled(request.param)
+        yield
+    finally:
+        set_cache_enabled(old_value)
