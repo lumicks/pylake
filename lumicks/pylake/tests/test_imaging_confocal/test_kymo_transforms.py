@@ -13,19 +13,19 @@ def test_calibrate_to_kbp(test_kymo):
 
     # test that default calibration is in microns
     assert kymo._calibration.unit == PositionUnit.um
-    assert kymo._calibration.value == 0.1
+    assert kymo._calibration.pixelsize == 0.1
 
     # test that calibration is stored as kilobase-pairs
     assert kymo_bp._calibration.unit == PositionUnit.kbp
-    np.testing.assert_allclose(kymo_bp._calibration.value, length_kbp / n_pixels)
+    np.testing.assert_allclose(kymo_bp._calibration.pixelsize, length_kbp / n_pixels)
 
     # test conversion from microns to calibration units
     np.testing.assert_allclose(
-        kymo._calibration.value * n_pixels,
+        kymo._calibration.pixelsize * n_pixels,
         ref.metadata.pixelsize_um[0] * n_pixels,
     )
     np.testing.assert_allclose(kymo.pixelsize, ref.metadata.pixelsize_um[0])
-    np.testing.assert_allclose(kymo_bp._calibration.value * n_pixels, length_kbp)
+    np.testing.assert_allclose(kymo_bp._calibration.pixelsize * n_pixels, length_kbp)
     np.testing.assert_allclose(kymo_bp.pixelsize, length_kbp / n_pixels)
 
     start = 0.12
@@ -33,11 +33,8 @@ def test_calibrate_to_kbp(test_kymo):
     n_pixels_tether = (end - start) / ref.metadata.pixelsize_um[0]
 
     kymo_bp = kymo.calibrate_to_kbp(length_kbp, start=start, end=end)
-    np.testing.assert_allclose(kymo_bp._calibration.value * n_pixels_tether, length_kbp)
+    np.testing.assert_allclose(kymo_bp._calibration.pixelsize * n_pixels_tether, length_kbp)
     np.testing.assert_allclose(kymo_bp.pixelsize, length_kbp / n_pixels_tether)
-
-    with pytest.raises(ValueError, match="end must be larger than start."):
-        kymo.calibrate_to_kbp(length_kbp, start=end, end=start)
 
     with pytest.raises(RuntimeError, match="kymo is already calibrated in base pairs."):
         kymo_bp.calibrate_to_kbp(10)
@@ -87,8 +84,8 @@ def test_calibrate_sliced_cropped(test_kymo):
     np.testing.assert_allclose(kymo_bp.pixelsize[0], cropped_kymo_bp.pixelsize[0])
     # but will change total length
     np.testing.assert_allclose(
-        kymo_bp._calibration.value * n_cropped_pixels,
-        cropped_kymo_bp._calibration.value * cropped_kymo_bp._num_pixels[0],
+        kymo_bp._calibration.pixelsize * n_cropped_pixels,
+        cropped_kymo_bp._calibration.pixelsize * cropped_kymo_bp._num_pixels[0],
     )
 
 
@@ -143,23 +140,31 @@ def test_position_unit():
 
 def test_enum_in_calibration():
     with pytest.raises(TypeError, match="`unit` must be a PositionUnit instance"):
-        PositionCalibration("kbp", value=0.42)
+        PositionCalibration("kbp", scale=0.42)
 
-    c = PositionCalibration(PositionUnit.um, value=0.42)
+    c = PositionCalibration(PositionUnit.um, scale=0.42)
     assert c.unit_label == PositionUnit.um.label
 
 
 def test_coordinate_transforms():
     px_coord = [0, 1.2, 3.14, 85]
 
-    c = PositionCalibration(PositionUnit.kbp, value=0.42)
+    c = PositionCalibration(PositionUnit.kbp, scale=0.42)
     kbp_coord = [0, 0.504, 1.3188, 35.7]
     transformed = c.from_pixels(px_coord)
     np.testing.assert_allclose(kbp_coord, transformed)
     np.testing.assert_allclose(px_coord, c.to_pixels(transformed))
 
-    c = PositionCalibration(PositionUnit.kbp, value=0.42, origin=2.0)
-    kbp_coord = [-0.84, -0.336, 0.4788, 34.86]
+    c = PositionCalibration(PositionUnit.kbp, scale=0.42, origin=2.0)
+    kbp_coord = np.array([-0.84, -0.336, 0.4788, 34.86])
     transformed = c.from_pixels(px_coord)
     np.testing.assert_allclose(kbp_coord, transformed)
     np.testing.assert_allclose(px_coord, c.to_pixels(transformed))
+
+    c_flipped = PositionCalibration(PositionUnit.kbp, scale=-0.42, origin=2.0)
+    transformed = c_flipped.from_pixels(px_coord)
+    np.testing.assert_allclose(-kbp_coord, transformed)
+    np.testing.assert_allclose(px_coord, c_flipped.to_pixels(transformed))
+
+    assert c.scale == -c_flipped.scale
+    assert c.pixelsize == c_flipped.pixelsize

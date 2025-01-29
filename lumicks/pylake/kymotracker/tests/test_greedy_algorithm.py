@@ -171,3 +171,42 @@ def test_default_parameters(kymo_pixel_calibrations):
         with np.testing.assert_raises(AssertionError):
             for ref, track in zip(ref_tracks, tracks):
                 np.testing.assert_allclose(ref.position, track.position)
+
+
+@pytest.mark.parametrize("tether_len,start,end", [(10, 0.18, 0.62), (48.502, 0.03, 0.94)])
+def test_track_calibrated_flipped(tether_len, start, end):
+    """test that tracking a calibrated kymo with tether end < tether start yields the same
+    coordinates as tracking the flipped tether with end > start.
+    """
+
+    image = np.zeros((20, 25))
+
+    # ([time, position], ...)
+    ref_tracks = [
+        ([1, 5], [2, 6], [3, 7]),
+        ([5, 15], [6, 15], [7, 14], [8, 15], [9, 16]),
+    ]
+    for coords in ref_tracks:
+        for t, p in coords:
+            image[p, t] = 10
+
+    kymo = _kymo_from_array(image, "g", line_time_seconds=0.1, pixel_size_um=0.050)
+    kymo_flipped = kymo.flip()
+
+    # start, end = 0.18, 0.62
+    len_um = kymo._calibration.from_pixels(kymo._num_pixels[0] - 1)
+    end_flipped = len_um - end
+    start_flipped = len_um - start
+
+    # tether_len = 10
+    kymo = kymo.calibrate_to_kbp(tether_len, start=start, end=end)
+    kymo_flipped = kymo_flipped.calibrate_to_kbp(tether_len, start=start_flipped, end=end_flipped)
+
+    params = dict(pixel_threshold=5, window=3)
+    tracks = track_greedy(kymo, "green", track_width=3 * kymo._calibration.pixelsize, **params)
+    tracks_flipped = track_greedy(
+        kymo_flipped, "green", track_width=3 * kymo_flipped._calibration.pixelsize, **params
+    )
+
+    for track, track_flipped in zip(tracks, tracks_flipped):
+        np.testing.assert_allclose(track.position, track_flipped.position)
