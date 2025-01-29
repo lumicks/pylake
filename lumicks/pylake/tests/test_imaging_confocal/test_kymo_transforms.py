@@ -36,9 +36,6 @@ def test_calibrate_to_kbp(test_kymo):
     np.testing.assert_allclose(kymo_bp._calibration.value * n_pixels_tether, length_kbp)
     np.testing.assert_allclose(kymo_bp.pixelsize, length_kbp / n_pixels_tether)
 
-    with pytest.raises(ValueError, match="end must be larger than start."):
-        kymo.calibrate_to_kbp(length_kbp, start=end, end=start)
-
     with pytest.raises(RuntimeError, match="kymo is already calibrated in base pairs."):
         kymo_bp.calibrate_to_kbp(10)
 
@@ -163,3 +160,12 @@ def test_coordinate_transforms():
     transformed = c.from_pixels(px_coord)
     np.testing.assert_allclose(kbp_coord, transformed)
     np.testing.assert_allclose(px_coord, c.to_pixels(transformed))
+
+    c_flipped = PositionCalibration("kbp", -0.42, origin=2.0)
+    kbp_coord = -kbp_coord
+    transformed = c_flipped.from_pixels(px_coord)
+    np.testing.assert_allclose(kbp_coord, transformed)
+    np.testing.assert_allclose(px_coord, c_flipped.to_pixels(transformed))
+
+    assert c._value == -c_flipped._value
+    assert c.value == c_flipped.value

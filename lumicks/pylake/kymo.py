@@ -1016,12 +1016,11 @@ class Kymo(ConfocalImage):
         if (start is None) ^ (end is None):
             raise ValueError("Both start and end points of the tether must be supplied.")
 
-        if start is not None:
-            if end < start:
-                raise ValueError("end must be larger than start.")
-            kbp_per_pixel = length_kbp / (end - start) * self.pixelsize_um[0]
-        else:
-            kbp_per_pixel = length_kbp / self._num_pixels[0]
+        kbp_per_pixel = (
+            length_kbp / (end - start) * self.pixelsize_um[0]
+            if start is not None
+            else length_kbp / self._num_pixels[0]
+        )
         pixel_origin = start / self.pixelsize_um[0] if start is not None else 0.0
 
         result = copy(self)
@@ -1123,7 +1122,7 @@ class PositionUnit(Enum):
 @dataclass(frozen=True)
 class PositionCalibration:
     unit: PositionUnit = PositionUnit.pixel
-    value: float = 1.0
+    _value: float = 1.0
     origin: float = 0.0
 
     def __post_init__(self):
@@ -1132,11 +1131,15 @@ class PositionCalibration:
 
     def from_pixels(self, pixels):
         """Convert coordinates from pixel values to calibrated values"""
-        return self.value * (np.array(pixels) - self.origin)
+        return self._value * (np.array(pixels) - self.origin)
 
     def to_pixels(self, calibrated):
         """Convert coordinates from calibrated values to pixel values"""
-        return np.array(calibrated) / self.value + self.origin
+        return np.array(calibrated) / self._value + self.origin
+
+    @property
+    def value(self):
+        return np.abs(self._value)
 
     @property
     def unit_label(self):
@@ -1146,7 +1149,7 @@ class PositionCalibration:
         return (
             self
             if self.unit == PositionUnit.pixel
-            else PositionCalibration(self.unit, self.value * factor)
+            else PositionCalibration(self.unit, self._value * factor)
         )
 
 
