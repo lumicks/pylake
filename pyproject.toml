@@ -8,7 +8,7 @@ dynamic = ["version"]
 requires-python = ">= 3.10"
 authors = [
     {name = "Lumicks B.V."},
-    {email = "devteam@lumicks.com"},
+    {email = "pylake@lumicks.com"},
 ]
 readme = {file="readme.md", content-type = "text/markdown"}
 license = {file = "license.md"}
