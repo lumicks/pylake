@@ -334,7 +334,7 @@ class Kymo(ConfocalImage):
     def pixelsize(self):
         """Returns a `List` of axes dimensions in calibrated units. The length of the
         list corresponds to the number of scan axes."""
-        return [self._calibration.value]
+        return [self._calibration.pixelsize]
 
     def plot(
         self,
@@ -386,7 +386,7 @@ class Kymo(ConfocalImage):
 
         image = self._get_plot_data(channel, adjustment)
 
-        size_calibrated = self._calibration.value * self._num_pixels[0]
+        size_calibrated = self._calibration.pixelsize * self._num_pixels[0]
 
         default_kwargs = dict(
             # With origin set to upper (default) bounds should be given as (0, n, n, 0)
@@ -1122,7 +1122,7 @@ class PositionUnit(Enum):
 @dataclass(frozen=True)
 class PositionCalibration:
     unit: PositionUnit = PositionUnit.pixel
-    _value: float = 1.0
+    factor: float = 1.0
     origin: float = 0.0
 
     def __post_init__(self):
@@ -1131,15 +1131,15 @@ class PositionCalibration:
 
     def from_pixels(self, pixels):
         """Convert coordinates from pixel values to calibrated values"""
-        return self._value * (np.array(pixels) - self.origin)
+        return self.factor * (np.array(pixels) - self.origin)
 
     def to_pixels(self, calibrated):
         """Convert coordinates from calibrated values to pixel values"""
-        return np.array(calibrated) / self._value + self.origin
+        return np.array(calibrated) / self.factor + self.origin
 
     @property
-    def value(self):
-        return np.abs(self._value)
+    def pixelsize(self):
+        return np.abs(self.factor)
 
     @property
     def unit_label(self):
@@ -1149,7 +1149,7 @@ class PositionCalibration:
         return (
             self
             if self.unit == PositionUnit.pixel
-            else PositionCalibration(self.unit, self._value * factor)
+            else PositionCalibration(self.unit, self.factor * factor)
         )
 
 
