@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools<69.3", "wheel"]
+requires = ["setuptools>=69.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,7 +10,7 @@ authors = [
     {name = "Lumicks B.V."},
     {email = "devteam@lumicks.com"},
 ]
-readme = {file="README.md", content-type = "text/markdown"}
+readme = {file="readme.md", content-type = "text/markdown"}
 license = {file = "license.md"}
 keywords = ["optical tweezers", "kymographs", "data analysis", "lumicks"]
 classifiers=[
@@ -25,7 +25,7 @@ classifiers=[
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "pytest>=3.5",
+    "pytest>=7.4",
     "h5py>=3.4, <4",
     "numpy>=1.24",  # 1.24 is needed for dtype in vstack/hstack (Dec 18th, 2022)
     "scipy>=1.9, <2",  # 1.9.0 needed for lazy imports (July 29th, 2022)

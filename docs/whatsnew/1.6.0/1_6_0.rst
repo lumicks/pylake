@@ -3,7 +3,7 @@ Pylake 1.6.0
 
 .. only:: html
 
-Here is a sneak preview of features that will likely be in Pylake `v1.6.0`.
+Here is an overview of features that were released in Pylake `v1.6.0`.
 
 New example notebooks
 ---------------------
