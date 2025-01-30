@@ -5,6 +5,8 @@ from dataclasses import field, dataclass
 import numpy as np
 import numpy.typing as npt
 
+from ...kymo import PositionUnit
+
 
 @dataclass(frozen=True)
 class DiffusionEstimate:
@@ -270,7 +272,7 @@ def calculate_msd(frame_idx, position, max_lag):
 
 
 def calculate_ensemble_msd(
-    line_msds, time_step, unit="au", unit_label="au", min_count=2
+    line_msds, time_step, unit=PositionUnit.au, min_count=2
 ) -> EnsembleMSD:
     """Calculate ensemble MSDs.
 
@@ -305,9 +307,8 @@ def calculate_ensemble_msd(
         variance=variance,
         counts=counts,
         effective_sample_size=effective_sample_size,
-        unit=f"{unit}^2",
         _time_step=time_step,
-        _unit_label=f"{unit_label}²",
+        **unit.as_squared(),
     )
 
 
@@ -507,8 +508,7 @@ def estimate_diffusion_constant_simple(
     time_step,
     max_lag,
     method,
-    unit="au",
-    unit_label="au",
+    unit=PositionUnit.au
 ):
     r"""Estimate diffusion constant
 
@@ -616,8 +616,7 @@ def estimate_diffusion_constant_simple(
         num_points=len(coordinate),
         localization_variance=intercept / 2.0,
         method=method,
-        unit=unit,
-        _unit_label=unit_label,
+        **unit.as_diffusion(),
     )
 
 
@@ -994,7 +993,6 @@ def estimate_diffusion_cve(
     dt,
     blur_constant,
     unit,
-    unit_label,
     localization_var=None,
     var_of_localization_var=None,
 ) -> DiffusionEstimate:
@@ -1034,9 +1032,8 @@ def estimate_diffusion_cve(
         num_points=len(coordinate),
         localization_variance=localization_var,
         method="cve",
-        unit=unit,
-        _unit_label=unit_label,
         variance_of_localization_variance=var_of_localization_var,
+        **unit.as_diffusion()
     )
 
 

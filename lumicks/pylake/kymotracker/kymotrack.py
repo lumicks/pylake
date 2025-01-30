@@ -1039,10 +1039,6 @@ class KymoTrack:
             )
 
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
-        unit_labels = {
-            "unit": f"{self._kymo._calibration.unit}^2 / s",
-            "unit_label": f"{self._kymo._calibration.unit.label}²/s",
-        }
 
         if method == "cve":
             try:
@@ -1068,7 +1064,7 @@ class KymoTrack:
                 frame_idx,
                 positions,
                 self._line_time_seconds,
-                **unit_labels,
+                unit=self._kymo._calibration.unit,
                 blur_constant=blur,
                 localization_var=localization_variance,
                 var_of_localization_var=variance_of_localization_variance,
@@ -1095,7 +1091,7 @@ class KymoTrack:
             self._line_time_seconds,
             max_lag,
             method,
-            **unit_labels,
+            unit=self._kymo._calibration.unit,
         )
 
 
@@ -2150,5 +2146,4 @@ class KymoTrackGroup:
             time_step=self._kymos[0].line_time_seconds,
             min_count=min_count,
             unit=self._calibration.unit,
-            unit_label=self._calibration.unit.label,
         )

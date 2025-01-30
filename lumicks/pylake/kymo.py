@@ -1107,6 +1107,7 @@ class PositionUnit(Enum):
     um = UnitInfo(name="um", label=r"μm")
     kbp = UnitInfo(name="kbp", label="kbp")
     pixel = UnitInfo(name="pixel", label="pixels")
+    au = UnitInfo(name="au", label="au")
 
     def __str__(self):
         return self.value.name
@@ -1117,6 +1118,18 @@ class PositionUnit(Enum):
     @property
     def label(self):
         return self.value.label
+
+    def as_diffusion(self):
+        return {
+            "unit": f"{self}^2 / s",
+            "_unit_label": f"{self.label}²/s",
+        }
+
+    def as_squared(self):
+        return {
+            "unit": f"{self}^2",
+            "_unit_label": f"{self.label}²",
+        }
 
 
 @dataclass(frozen=True)
