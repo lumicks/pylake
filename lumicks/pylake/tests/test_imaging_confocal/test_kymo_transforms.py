@@ -143,7 +143,7 @@ def test_enum_in_calibration():
         PositionCalibration("kbp", scale=0.42)
 
     c = PositionCalibration(PositionUnit.um, scale=0.42)
-    assert c.unit_label == PositionUnit.um.label
+    assert c.unit.label == PositionUnit.um.label
 
 
 def test_coordinate_transforms():

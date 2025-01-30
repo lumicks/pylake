@@ -847,7 +847,7 @@ def _get_default_parameters(kymo, channel):
             r"track. Larger values will result in a wider range in which points are added to a "
             r"track.",
             abridged_name="Search range",
-            display_unit=kymo._calibration.unit_label,
+            display_unit=kymo._calibration.unit.label,
         ),
         "window": KymotrackerParameter(
             "Maximum gap",
@@ -891,7 +891,7 @@ def _get_default_parameters(kymo, channel):
             r"roughly the width of the point spread function. Setting it larger rejects more "
             r"noise, but at the cost of potentially merging tracks that are close together.",
             abridged_name="Spot size",
-            display_unit=kymo._calibration.unit_label,
+            display_unit=kymo._calibration.unit.label,
         ),
         "filter_width": KymotrackerParameter(
             "Width of the Gaussian filter to apply",
@@ -908,7 +908,7 @@ def _get_default_parameters(kymo, channel):
                 r"should be chosen to match the point spread function."
             ),
             abridged_name="Filter width",
-            display_unit=kymo._calibration.unit_label,
+            display_unit=kymo._calibration.unit.label,
         ),
         "adjacency_filter": KymotrackerParameter(
             "Adjacency filter",
@@ -936,7 +936,7 @@ def _get_default_parameters(kymo, channel):
             r"in future scan lines to connect. Points within a certain distance from the expected "
             r"future position are connected.",
             abridged_name="Velocity",
-            display_unit=f"{kymo._calibration.unit_label}/s",
+            display_unit=f"{kymo._calibration.unit.label}/s",
         ),
         "diffusion": KymotrackerParameter(
             "Diffusion",
@@ -948,7 +948,7 @@ def _get_default_parameters(kymo, channel):
             r"When tracking, the algorithm searches for points in future frames to connect. Points "
             r"within a certain distance from the expected future position are connected. The "
             r"diffusion parameter determines how quickly this distance grows over time.",
-            display_unit=f"{kymo._calibration.unit_label}²/s",
+            display_unit=f"{kymo._calibration.unit.label}²/s",
         ),
         "sigma_cutoff": KymotrackerParameter(
             "Sigma cutoff",

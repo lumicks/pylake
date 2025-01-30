@@ -5,6 +5,8 @@ from dataclasses import field, dataclass
 import numpy as np
 import numpy.typing as npt
 
+from ...kymo import PositionUnit
+
 
 @dataclass(frozen=True)
 class DiffusionEstimate:
@@ -269,9 +271,7 @@ def calculate_msd(frame_idx, position, max_lag):
     return frame_lags, msd_estimates
 
 
-def calculate_ensemble_msd(
-    line_msds, time_step, unit="au", unit_label="au", min_count=2
-) -> EnsembleMSD:
+def calculate_ensemble_msd(line_msds, time_step, unit=PositionUnit.au, min_count=2) -> EnsembleMSD:
     """Calculate ensemble MSDs.
 
     Parameters
@@ -305,9 +305,8 @@ def calculate_ensemble_msd(
         variance=variance,
         counts=counts,
         effective_sample_size=effective_sample_size,
-        unit=f"{unit}^2",
         _time_step=time_step,
-        _unit_label=f"{unit_label}²",
+        **unit.get_squared_labels(),
     )
 
 
@@ -502,13 +501,7 @@ def _diffusion_gls(lag_idx, mean_squared_displacements, num_points, tolerance=1e
 
 
 def estimate_diffusion_constant_simple(
-    frame_idx,
-    coordinate,
-    time_step,
-    max_lag,
-    method,
-    unit="au",
-    unit_label="au",
+    frame_idx, coordinate, time_step, max_lag, method, unit=PositionUnit.au
 ):
     r"""Estimate diffusion constant
 
@@ -616,8 +609,7 @@ def estimate_diffusion_constant_simple(
         num_points=len(coordinate),
         localization_variance=intercept / 2.0,
         method=method,
-        unit=unit,
-        _unit_label=unit_label,
+        **unit.get_diffusion_labels(),
     )
 
 
@@ -994,7 +986,6 @@ def estimate_diffusion_cve(
     dt,
     blur_constant,
     unit,
-    unit_label,
     localization_var=None,
     var_of_localization_var=None,
 ) -> DiffusionEstimate:
@@ -1034,9 +1025,8 @@ def estimate_diffusion_cve(
         num_points=len(coordinate),
         localization_variance=localization_var,
         method="cve",
-        unit=unit,
-        _unit_label=unit_label,
         variance_of_localization_variance=var_of_localization_var,
+        **unit.get_diffusion_labels(),
     )
 
 
@@ -1159,7 +1149,6 @@ def ensemble_ols(kymotracks, max_lag):
     time_step = kymotracks._kymos[0].line_time_seconds
     to_time = 1.0 / (2.0 * time_step)
 
-    src_calibration = kymotracks._kymos[0]._calibration
     return DiffusionEstimate(
         value=slope * to_time,
         std_err=np.sqrt(var_slope / np.mean(ensemble_msd.effective_sample_size)) * to_time,
@@ -1167,6 +1156,5 @@ def ensemble_ols(kymotracks, max_lag):
         num_points=sum(len(t) for t in kymotracks),
         localization_variance=intercept / 2.0,
         method="ensemble ols",
-        unit=f"{src_calibration.unit}^2 / s",
-        _unit_label=f"{src_calibration.unit_label}²/s",
+        **kymotracks._calibration.unit.get_diffusion_labels(),
     )
