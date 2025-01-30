@@ -382,7 +382,7 @@ class Kymo(ConfocalImage):
             axes.set_axis_off()
 
         if scale_bar and not image_handle:
-            scale_bar._attach_scale_bar(axes, 60.0, 1.0, "s", self._calibration.unit_label)
+            scale_bar._attach_scale_bar(axes, 60.0, 1.0, "s", self._calibration.unit.label)
 
         image = self._get_plot_data(channel, adjustment)
 
@@ -410,7 +410,7 @@ class Kymo(ConfocalImage):
             **{**default_kwargs, **kwargs},
         )
         axes.set_xlabel("time (s)")
-        axes.set_ylabel(f"position ({self._calibration.unit_label})")
+        axes.set_ylabel(f"position ({self._calibration.unit.label})")
         if show_title:
             axes.set_title(self.name)
 
@@ -1140,10 +1140,6 @@ class PositionCalibration:
     @property
     def pixelsize(self):
         return np.abs(self.factor)
-
-    @property
-    def unit_label(self):
-        return self.unit.label
 
     def downsample(self, factor):
         return (

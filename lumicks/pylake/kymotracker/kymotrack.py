@@ -106,7 +106,7 @@ def export_kymotrackgroup_to_csv(
     )
 
     time_units = "seconds"
-    position_units = kymotrack_group._calibration_info.unit
+    position_units = kymotrack_group._calibration.unit
 
     idx = np.hstack([np.full(len(track), idx) for idx, track in enumerate(kymotrack_group)])
     coords_idx = np.hstack([track.coordinate_idx for track in kymotrack_group])
@@ -610,7 +610,7 @@ class KymoTrack:
             )
 
         plt.plot(*model_fit, **{"color": "C0"} | replace_key_aliases(fit_kwargs or {}, aliases))
-        plt.xlabel(f"Position [{self._kymo._calibration.unit_label}]")
+        plt.xlabel(f"Position [{self._kymo._calibration.unit.label}]")
         plt.ylabel("Photon counts [#]")
 
     def _check_ends_are_defined(self):
@@ -844,7 +844,7 @@ class KymoTrack:
         ax.plot(self.seconds, self.position, path_effects=[pe.Normal()], **kwargs)
 
         if show_labels:
-            ax.set_ylabel(f"position ({self._kymo._calibration.unit_label})")
+            ax.set_ylabel(f"position ({self._kymo._calibration.unit.label})")
             ax.set_xlabel("time (s)")
 
     def msd(self, max_lag=None):
@@ -913,7 +913,7 @@ class KymoTrack:
         lag_time, msd = self.msd(max_lag)
         plt.plot(lag_time, msd, **kwargs)
         plt.xlabel("Lag time [s]")
-        plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit_label}²]")
+        plt.ylabel(f"Mean Squared Displacement [{self._kymo._calibration.unit.label}²]")
 
     def estimate_diffusion(
         self,
@@ -1041,7 +1041,7 @@ class KymoTrack:
         frame_idx, positions = np.array(self.time_idx, dtype=int), np.array(self.position)
         unit_labels = {
             "unit": f"{self._kymo._calibration.unit}^2 / s",
-            "unit_label": f"{self._kymo._calibration.unit_label}²/s",
+            "unit_label": f"{self._kymo._calibration.unit.label}²/s",
         }
 
         if method == "cve":
@@ -1216,7 +1216,7 @@ class KymoTrackGroup:
             if len(pixel_sizes) == 1
             else (
                 "All source kymographs must have the same pixel sizes, "
-                f"got {sorted(pixel_sizes)} {self._calibration_info.unit}."
+                f"got {sorted(pixel_sizes)} {self._calibration.unit}."
             )
         )
 
@@ -1281,7 +1281,7 @@ class KymoTrackGroup:
             raise RuntimeError("No channel associated with this empty group (no tracks available)")
 
     @property
-    def _calibration_info(self):
+    def _calibration(self):
         try:
             kymo = self._kymos[0]
             return kymo._calibration
@@ -1473,7 +1473,7 @@ class KymoTrackGroup:
             track.plot(show_outline=show_outline, show_labels=False, axes=ax, **kwargs)
 
         if show_labels:
-            ax.set_ylabel(f"position ({self._calibration_info.unit_label})")
+            ax.set_ylabel(f"position ({self._calibration.unit.label})")
             ax.set_xlabel("time (s)")
 
     def _tracks_in_frame(self, frame_idx):
@@ -1902,7 +1902,7 @@ class KymoTrackGroup:
         widths = np.diff(edges)
         plt.bar(edges[:-1], counts, width=widths, align="edge", **kwargs)
         plt.ylabel("Counts")
-        plt.xlabel(f"Position ({self._calibration_info.unit_label})")
+        plt.xlabel(f"Position ({self._calibration.unit.label})")
 
     def _histogram_binding_profile(self, n_time_bins, bandwidth, n_position_points, roi=None):
         """Calculate a Kernel Density Estimate (KDE) of binding density along the tether for time bins.
@@ -2149,6 +2149,6 @@ class KymoTrackGroup:
             line_msds=track_msds,
             time_step=self._kymos[0].line_time_seconds,
             min_count=min_count,
-            unit=self._calibration_info.unit,
-            unit_label=self._calibration_info.unit_label,
+            unit=self._calibration.unit,
+            unit_label=self._calibration.unit.label,
         )

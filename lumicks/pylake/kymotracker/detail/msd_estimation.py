@@ -1159,7 +1159,6 @@ def ensemble_ols(kymotracks, max_lag):
     time_step = kymotracks._kymos[0].line_time_seconds
     to_time = 1.0 / (2.0 * time_step)
 
-    src_calibration = kymotracks._kymos[0]._calibration
     return DiffusionEstimate(
         value=slope * to_time,
         std_err=np.sqrt(var_slope / np.mean(ensemble_msd.effective_sample_size)) * to_time,
@@ -1167,6 +1166,6 @@ def ensemble_ols(kymotracks, max_lag):
         num_points=sum(len(t) for t in kymotracks),
         localization_variance=intercept / 2.0,
         method="ensemble ols",
-        unit=f"{src_calibration.unit}^2 / s",
-        _unit_label=f"{src_calibration.unit_label}²/s",
+        unit=f"{kymotracks._calibration.unit}^2 / s",
+        _unit_label=f"{kymotracks._calibration.unit.label}²/s",
     )
