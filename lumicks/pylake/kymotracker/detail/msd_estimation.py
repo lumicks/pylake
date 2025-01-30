@@ -271,9 +271,7 @@ def calculate_msd(frame_idx, position, max_lag):
     return frame_lags, msd_estimates
 
 
-def calculate_ensemble_msd(
-    line_msds, time_step, unit=PositionUnit.au, min_count=2
-) -> EnsembleMSD:
+def calculate_ensemble_msd(line_msds, time_step, unit=PositionUnit.au, min_count=2) -> EnsembleMSD:
     """Calculate ensemble MSDs.
 
     Parameters
@@ -503,12 +501,7 @@ def _diffusion_gls(lag_idx, mean_squared_displacements, num_points, tolerance=1e
 
 
 def estimate_diffusion_constant_simple(
-    frame_idx,
-    coordinate,
-    time_step,
-    max_lag,
-    method,
-    unit=PositionUnit.au
+    frame_idx, coordinate, time_step, max_lag, method, unit=PositionUnit.au
 ):
     r"""Estimate diffusion constant
 
@@ -1033,7 +1026,7 @@ def estimate_diffusion_cve(
         localization_variance=localization_var,
         method="cve",
         variance_of_localization_variance=var_of_localization_var,
-        **unit.as_diffusion()
+        **unit.as_diffusion(),
     )
 
 
