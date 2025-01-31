@@ -25,6 +25,7 @@ from .fitting.parameter_trace import parameter_trace
 from .kymotracker.kymotracker import *
 from .piezo_tracking.baseline import *
 from .nb_widgets.range_selector import FdRangeSelector, FdDistanceRangeSelector
+from .force_calibration.touchdown import touchdown
 from .force_calibration.convenience import calibrate_force
 from .piezo_tracking.piezo_tracking import *
 from .nb_widgets.kymotracker_widgets import KymoWidgetGreedy
@@ -34,6 +35,7 @@ from .force_calibration.calibration_models import (
     density_of_water,
     viscosity_of_water,
     coupling_correction_2d,
+    surface_drag_correction,
 )
 from .force_calibration.power_spectrum_calibration import (
     fit_power_spectrum,

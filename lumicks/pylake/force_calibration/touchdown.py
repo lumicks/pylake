@@ -208,15 +208,23 @@ def fit_damped_sine_with_polynomial(
 
 @dataclass
 class TouchdownResult:
-    surface_position: float
-    focal_shift: float
+    surface_position: float | None
+    """Position where the coverslip surface touches the bead."""
+    focal_shift: float | None
+    """Focal shift of the optical setup."""
     nanostage_position: np.ndarray
+    """Nanostage position in microns."""
     axial_force: np.ndarray
+    """Axial force in pN."""
     surface_fit: np.ndarray
+    """Fit to the surface approach curve."""
     interference_nanostage: np.ndarray
+    """Fit to the interference pattern."""
     interference_force: np.ndarray
+    """Interference pattern."""
 
     def plot(self, legend=True):
+        """Plot the results of the touchdown analysis."""
         import matplotlib.pyplot as plt
 
         plt.plot(self.nanostage_position, self.axial_force, label="Axial force")
@@ -231,10 +239,53 @@ class TouchdownResult:
             self.surface_fit,
             label=f"Piecewise linear fit{'' if self.surface_position else ' (failed)'}",
         )
+        plt.xlabel("Nanostage position (µm)")
+        plt.ylabel("Axial force (pN)")
         if self.surface_position:
-            plt.axvline(self.surface_position, label="Determined surface position")
+            plt.axvline(
+                self.surface_position,
+                label="Determined contact position",
+                color="k",
+                linestyle="--",
+            )
         if legend:
             plt.legend()
+
+    def calculate_height(self, nanostage_position, bead_diameter):
+        r"""Calculates the height above the surface for a nanostage position and bead diameter.
+
+        Note that this returns the distance from the bead center to the surface, which is the
+        distance that you should supply to other force calibration routines.
+
+        Computes the following equation:
+
+        .. math::
+
+            d / 2 - \alpha_{shift} \left(z_{nanostage} - z_{surface}\right)
+
+        Here :math:`d` is the bead diameter, :math:`\alpha_{shift}` is the focal shift factor,
+        :math:`z_{nanostage}` is the nanostage position and :math:`z_{surface}` is the nanostage
+        position at which the bead and flowcell touch (surface-to-surface).
+
+        .. note ::
+
+            This function assumes that the trap z-position has not been changed after the
+            touchdown analysis and does not take into account errors in the estimate of the bead
+            radius.
+
+        Parameters
+        ----------
+        nanostage_position : array_like
+            Nanostage position at which we want to know the height above the surface.
+        bead_diameter : float
+            Bead diameter
+        """
+        if not self.surface_position or not self.focal_shift:
+            raise RuntimeError("Cannot compute height above the surface because the fit failed")
+
+        return 0.5 * bead_diameter + self.focal_shift * (
+            self.surface_position - np.asarray(nanostage_position)
+        )
 
 
 def touchdown(
@@ -301,6 +352,7 @@ def touchdown(
         raise ValueError("Insufficient data available to fit touchdown curve")
 
     stage_trimmed, force_trimmed = nanostage[mask], axial_force[mask]
+    # Wavelength of the modulation pattern
     expected_wavelength = wavelength_nm * 1e-3 / 2 / refractive_index_medium
     bounds = np.array([0.7, 1.0001]) / expected_wavelength
     par, simulation = fit_damped_sine_with_polynomial(
