@@ -998,30 +998,39 @@ class Kymo(ConfocalImage):
 
         return result
 
-    def calibrate_to_kbp(self, length_kbp, *, start=None, end=None):
+    def calibrate_to_kbp(self, length_kbp, *, start=None, end=None, length_um=None):
         """Calibrate from microns to other units.
 
         Parameters
         ----------
         length_kbp : float
-            length of the tether in kilobase pairs
+            Length of the tether in kilobase pairs
         start: float | None
-            start point of the tether in microns
+            Start point of the tether in microns. Must supply either `end` or `length_um`.
         end: float | None
-            end point of the tether in microns
+            End point of the tether in microns. Must also supply `start`.
+        length_um: float | None
+            Length of the tether in microns. Must also supply `start`.
         """
         if self._calibration.unit == PositionUnit.kbp:
             raise RuntimeError("kymo is already calibrated in base pairs.")
 
-        if (start is None) ^ (end is None):
-            raise ValueError("Both start and end points of the tether must be supplied.")
+        if start is None:
+            if end is not None or length_um is not None:
+                raise ValueError("start must be supplied")
+            else:
+                kbp_per_pixel = length_kbp / self._num_pixels[0]
+                pixel_origin = 0.0
+        else:
+            if (end is None) and (length_um is None):
+                raise ValueError("Either end or length_um must be supplied with start.")
+            if (end is not None) and (length_um is not None):
+                raise ValueError("Supply either end or length_um, not both.")
 
-        kbp_per_pixel = (
-            length_kbp / (end - start) * self.pixelsize_um[0]
-            if start is not None
-            else length_kbp / self._num_pixels[0]
-        )
-        pixel_origin = start / self.pixelsize_um[0] if start is not None else 0.0
+            if end is not None:
+                length_um = end - start
+            kbp_per_pixel = length_kbp / length_um * self.pixelsize_um[0]
+            pixel_origin = start / self.pixelsize_um[0]
 
         result = copy(self)
         result._calibration = PositionCalibration(
