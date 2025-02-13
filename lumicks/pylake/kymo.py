@@ -998,7 +998,7 @@ class Kymo(ConfocalImage):
 
         return result
 
-    def calibrate_to_kbp(self, length_kbp, *, start=None, end=None, length_um=None):
+    def calibrate_to_kbp(self, length_kbp, *, start=None, end=None, length_um=None, landmarks=None):
         """Calibrate from microns to other units.
 
         Parameters
@@ -1011,17 +1011,28 @@ class Kymo(ConfocalImage):
             End point of the tether in microns. Must also supply `start`.
         length_um: float | None
             Length of the tether in microns. Must also supply `start`.
+        landmarks: list | None
+            List of (micron, kbp) pairs of known positions. `start` must be `None`.
         """
         if self._calibration.unit == PositionUnit.kbp:
             raise RuntimeError("kymo is already calibrated in base pairs.")
 
         if start is None:
             if end is not None or length_um is not None:
-                raise ValueError("start must be supplied")
+                raise ValueError("Start must be supplied with end or length_um.")
+            elif landmarks is not None:
+                if len(landmarks) < 2:
+                    raise ValueError("At least 2 landmarks must be supplied.")
+                pixels = [self._calibration.to_pixels(landmark[0]) for landmark in landmarks]
+                kbp = [landmark[1] for landmark in landmarks]
+                kbp_per_pixel, intercept = np.polyfit(pixels, kbp, deg=1)
+                pixel_origin = -intercept / kbp_per_pixel
             else:
                 kbp_per_pixel = length_kbp / self._num_pixels[0]
                 pixel_origin = 0.0
         else:
+            if landmarks is not None:
+                raise ValueError("Cannot use landmarks with start.")
             if (end is None) and (length_um is None):
                 raise ValueError("Either end or length_um must be supplied with start.")
             if (end is not None) and (length_um is not None):

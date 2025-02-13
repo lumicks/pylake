@@ -40,12 +40,31 @@ def test_calibrate_to_kbp(test_kymo):
         kymo_bp.calibrate_to_kbp(10)
 
 
-@pytest.mark.parametrize("start, end", [(None, 0.33), (0.12, None)])
-def test_calibrate_to_kbp_invalid_range(test_kymo, start, end):
+def test_calibrate_to_kbp_invalid(test_kymo):
     with pytest.raises(
-        ValueError, match="Both start and end points of the tether must be supplied."
+        ValueError, match="Start must be supplied with end or length_um."
     ):
-        test_kymo[0].calibrate_to_kbp(1, start=start, end=end)
+        test_kymo[0].calibrate_to_kbp(1, start=None, end=0.33)
+    with pytest.raises(
+        ValueError, match="Start must be supplied with end or length_um."
+    ):
+        test_kymo[0].calibrate_to_kbp(1, start=None, length_um=10.0)
+    with pytest.raises(
+        ValueError, match="Either end or length_um must be supplied with start."
+    ):
+        test_kymo[0].calibrate_to_kbp(1, start=0.33, end=None)
+    with pytest.raises(
+        ValueError, match="Either end or length_um must be supplied with start."
+    ):
+        test_kymo[0].calibrate_to_kbp(1, start=0.33, length_um=None)
+    with pytest.raises(
+        ValueError, match="Cannot use landmarks with start."
+    ):
+        test_kymo[0].calibrate_to_kbp(1, start=0.33, landmarks=([1, 2], [3, 4]))
+    with pytest.raises(
+        ValueError, match="At least 2 landmarks must be supplied."
+    ):
+        test_kymo[0].calibrate_to_kbp(1, landmarks=([1, 2], ))
 
 
 def check_factory_forwarding(kymo1, kymo2, check_timestamps):
