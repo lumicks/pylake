@@ -382,7 +382,7 @@ class Kymo(ConfocalImage):
             axes.set_axis_off()
 
         if scale_bar and not image_handle:
-            scale_bar._attach_scale_bar(axes, 60.0, 1.0, "s", self._calibration.unit_label)
+            scale_bar._attach_scale_bar(axes, 60.0, 1.0, "s", self._calibration.unit.label)
 
         image = self._get_plot_data(channel, adjustment)
 
@@ -410,7 +410,7 @@ class Kymo(ConfocalImage):
             **{**default_kwargs, **kwargs},
         )
         axes.set_xlabel("time (s)")
-        axes.set_ylabel(f"position ({self._calibration.unit_label})")
+        axes.set_ylabel(f"position ({self._calibration.unit.label})")
         if show_title:
             axes.set_title(self.name)
 
@@ -1107,6 +1107,7 @@ class PositionUnit(Enum):
     um = UnitInfo(name="um", label=r"μm")
     kbp = UnitInfo(name="kbp", label="kbp")
     pixel = UnitInfo(name="pixel", label="pixels")
+    au = UnitInfo(name="au", label="au")
 
     def __str__(self):
         return self.value.name
@@ -1117,6 +1118,18 @@ class PositionUnit(Enum):
     @property
     def label(self):
         return self.value.label
+
+    def get_diffusion_labels(self) -> dict:
+        return {
+            "unit": f"{self}^2 / s",
+            "_unit_label": f"{self.label}²/s",
+        }
+
+    def get_squared_labels(self) -> dict:
+        return {
+            "unit": f"{self}^2",
+            "_unit_label": f"{self.label}²",
+        }
 
 
 @dataclass(frozen=True)
@@ -1140,10 +1153,6 @@ class PositionCalibration:
     @property
     def pixelsize(self):
         return np.abs(self.scale)
-
-    @property
-    def unit_label(self):
-        return self.unit.label
 
     def downsample(self, factor):
         return (

@@ -3,6 +3,7 @@ import re
 import pytest
 import matplotlib.pyplot as plt
 
+from lumicks.pylake.kymo import PositionUnit
 from lumicks.pylake.detail.utilities import temp_seed
 from lumicks.pylake.simulation.diffusion import _simulate_diffusion_1d
 from lumicks.pylake.kymotracker.detail.msd_estimation import *
@@ -49,9 +50,25 @@ def test_estimate(frame_idx, coordinate, time_step, max_lag, diffusion_const):
         time_step,
         max_lag,
         "ols",
-        "au",
+        PositionUnit.au,
     )
     np.testing.assert_allclose(float(diffusion_est), diffusion_const)
+
+
+def test_bad_unit():
+    frame_idx = np.array([1, 2, 3, 4, 5])
+    coordinate = np.array([-1.0, 1.0, -1.0, -3.0, -5.0])
+    dt = 0.5
+    max_lag = 50
+
+    with pytest.raises(
+        AttributeError, match="'str' object has no attribute 'get_diffusion_labels'"
+    ):
+        estimate_diffusion_constant_simple(frame_idx, coordinate, dt, max_lag, "ols", unit="um")
+    with pytest.raises(
+        AttributeError, match="'str' object has no attribute 'get_diffusion_labels'"
+    ):
+        estimate_diffusion_cve(frame_idx, coordinate, dt, 0, unit="um")
 
 
 def test_maxlag_asserts():
@@ -223,7 +240,7 @@ def test_diffusion_estimate_ols(
     with temp_seed(0):
         trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_constant_simple(
-            np.arange(num_points), trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
+            np.arange(num_points), trace, time_step, max_lag, "ols", PositionUnit.au
         )
 
         np.testing.assert_allclose(float(diffusion_est), diff_est)
@@ -233,8 +250,8 @@ def test_diffusion_estimate_ols(
         np.testing.assert_allclose(diffusion_est.std_err, std_err_est)
         np.testing.assert_allclose(diffusion_est.localization_variance, loc_variance)
         assert diffusion_est.method == "ols"
-        assert diffusion_est.unit == "mu^2/s"
-        assert diffusion_est._unit_label == r"$\mu^2/s$"
+        assert diffusion_est.unit == "au^2 / s"
+        assert diffusion_est._unit_label == "au²/s"
 
 
 @pytest.mark.parametrize(
@@ -268,7 +285,7 @@ def test_regression_ols_with_skipped_frames(
 
         with pytest.warns(RuntimeWarning, match="Your tracks have missing frames"):
             diffusion_est = estimate_diffusion_constant_simple(
-                frame_idx, trace, time_step, max_lag, "ols", "mu^2/s", r"$\mu^2/s$"
+                frame_idx, trace, time_step, max_lag, "ols", PositionUnit.au
             )
 
     np.testing.assert_allclose(float(diffusion_est), diff_est)
@@ -333,7 +350,7 @@ def test_diffusion_estimate_gls(
     with temp_seed(0):
         trace = _simulate_diffusion_1d(diffusion, num_points, time_step, obs_noise)
         diffusion_est = estimate_diffusion_constant_simple(
-            np.arange(num_points), trace, time_step, max_lag, "gls", "mu^2/s", r"$\mu^2/s$"
+            np.arange(num_points), trace, time_step, max_lag, "gls", PositionUnit.au
         )
 
         np.testing.assert_allclose(float(diffusion_est), diff_est)
@@ -343,25 +360,27 @@ def test_diffusion_estimate_gls(
         np.testing.assert_allclose(diffusion_est.std_err, std_err_est)
         np.testing.assert_allclose(diffusion_est.localization_variance, loc_variance)
         assert diffusion_est.method == "gls"
-        assert diffusion_est.unit == "mu^2/s"
-        assert diffusion_est._unit_label == r"$\mu^2/s$"
+        assert diffusion_est.unit == "au^2 / s"
+        assert diffusion_est._unit_label == "au²/s"
 
 
 def test_bad_input():
     with pytest.raises(ValueError, match="Invalid method selected."):
-        estimate_diffusion_constant_simple(np.arange(5), np.arange(5), 1, 2, "glo", "unit")
+        estimate_diffusion_constant_simple(np.arange(5), np.arange(5), 1, 2, "glo", PositionUnit.au)
 
     with pytest.raises(
         ValueError, match="You need at least two lags to estimate a diffusion constant"
     ):
-        estimate_diffusion_constant_simple(np.arange(5), np.arange(5), 1, 1, "gls", "unit")
+        estimate_diffusion_constant_simple(np.arange(5), np.arange(5), 1, 1, "gls", PositionUnit.au)
 
 
 def test_singular_handling():
     with temp_seed(0):
         trace = _simulate_diffusion_1d(0, 30, 3, 0)
         with pytest.warns(RuntimeWarning, match="Covariance matrix is singular"):
-            estimate_diffusion_constant_simple(np.arange(len(trace)), trace, 1, 3, "gls", "unit")
+            estimate_diffusion_constant_simple(
+                np.arange(len(trace)), trace, 1, 3, "gls", PositionUnit.au
+            )
 
 
 @pytest.mark.parametrize(
@@ -474,8 +493,7 @@ def test_estimate_diffusion_cve(
             trace,
             time_step,
             blur_constant,
-            "mu^2/s",
-            r"$\mu^2/s$",
+            PositionUnit.au,
             localization_var,
             var_of_localization_var,
         )
@@ -493,8 +511,8 @@ def test_estimate_diffusion_cve(
         else:
             assert diffusion_est.variance_of_localization_variance is None
         assert diffusion_est.method == "cve"
-        assert diffusion_est.unit == "mu^2/s"
-        assert diffusion_est._unit_label == r"$\mu^2/s$"
+        assert diffusion_est.unit == "au^2 / s"
+        assert diffusion_est._unit_label == "au²/s"
 
 
 @pytest.mark.parametrize(
@@ -646,7 +664,7 @@ def test_ensemble_msd():
     ]
 
     # By default, the single lag rho (5) should be ignored
-    result = calculate_ensemble_msd(track_msds, 1.0, unit="what_a_unit", unit_label="label_ahoy")
+    result = calculate_ensemble_msd(track_msds, 1.0, unit=PositionUnit.um)
     np.testing.assert_allclose(result.lags, frame_diffs)
     np.testing.assert_allclose(result.msd, frame_diffs**2)
     num_means = np.array([3, 3, 3, 2])  # number of means contributing to the estimate
@@ -655,8 +673,8 @@ def test_ensemble_msd():
     # Tracks are equal length, so the effective sample size is just the means that contributed
     np.testing.assert_allclose(result.effective_sample_size, num_means)
     np.testing.assert_allclose(result.sem, np.sqrt(0.02 / ((num_means - 1) * num_means)))
-    assert result.unit == "what_a_unit^2"
-    assert result._unit_label == "label_ahoy²"
+    assert result.unit == "um^2"
+    assert result._unit_label == r"μm²"
 
 
 def test_ensemble_msd_unequal_points():
@@ -676,6 +694,8 @@ def test_ensemble_msd_unequal_points():
     # ESS is less than 2 since we used weighting
     np.testing.assert_allclose(result.effective_sample_size, np.ones(5) * 9 / 5)
     np.testing.assert_allclose(result.sem, np.ones(5) * np.sqrt(5 / 2))
+    assert result.unit == "au^2"
+    assert result._unit_label == "au²"
 
 
 def test_ensemble_msd_little_data():
@@ -686,23 +706,23 @@ def test_ensemble_msd_little_data():
     with pytest.raises(
         ValueError, match="Need more than one average to compute a weighted variance"
     ):
-        calculate_ensemble_msd([trk1, trk1, trk2], 1.0, unit="au", unit_label="au", min_count=0)
+        calculate_ensemble_msd([trk1, trk1, trk2], 1.0, min_count=0)
 
     for msds in ([trk1], []):
         with pytest.raises(
             ValueError, match="You need at least two tracks to compute the ensemble MSD"
         ):
-            calculate_ensemble_msd(msds, 1.0, unit="au", unit_label="au", min_count=0)
+            calculate_ensemble_msd(msds, 1.0, min_count=0)
 
 
 def test_ensemble_msd_plot():
     """Test whether the plot spins up"""
     frame_diffs = np.arange(1, 5, 1)
     trk1 = [frame_diffs, frame_diffs**2, np.arange(len(frame_diffs), 0, -1)]
-    calculate_ensemble_msd([trk1, trk1, trk1], 1.0, unit="au", unit_label="label_unit").plot()
+    calculate_ensemble_msd([trk1, trk1, trk1], 1.0, PositionUnit.kbp).plot()
     axis = plt.gca()
     lines = axis.lines[0]
     np.testing.assert_allclose(lines.get_xdata(), frame_diffs)
     np.testing.assert_allclose(lines.get_ydata(), frame_diffs**2)
     assert axis.xaxis.get_label().get_text() == "Time [s]"
-    assert axis.yaxis.get_label().get_text() == "Squared Displacement [label_unit²]"
+    assert axis.yaxis.get_label().get_text() == "Squared Displacement [kbp²]"
