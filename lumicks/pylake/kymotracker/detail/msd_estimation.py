@@ -1046,6 +1046,11 @@ def ensemble_cve(kymotracks, calculate_localization_var=True):
         If localization variance can be calculated. Must be False if source kymographs
         do not have the same line times or pixel sizes.
 
+    Raises
+    ------
+    ValueError
+        When it is not possible to estimate any diffusion constant from this KymoTrackGroup.
+
     Warns
     -----
     RuntimeWarning
@@ -1060,6 +1065,13 @@ def ensemble_cve(kymotracks, calculate_localization_var=True):
             022726.
     """
     cve_based = kymotracks.estimate_diffusion(method="cve")
+
+    if not cve_based:
+        raise ValueError(
+            "No tracks found that meet the minimum number of frames (3) required to calculate a "
+            "diffusion constant. It is not possible to determine a diffusion constant from this "
+            "group."
+        )
 
     def mean_var(x, count, count_sum):
         # Equation 58 and 57 from Vestergaard et al [14].
