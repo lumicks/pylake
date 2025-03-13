@@ -1125,6 +1125,23 @@ def test_diffusion_cve(
     assert cve_est._unit_label == "μm²/s"
 
 
+@pytest.mark.filterwarnings(
+    "ignore:1 tracks were shorter than the specified min_length and discarded from the analysis"
+)
+def test_ensemble_fail(blank_kymo_track_args):
+    empty_group = KymoTrackGroup([])
+
+    # Track is too short to estimate diffusion constant from
+    k = KymoTrack(np.arange(2), np.arange(2), *blank_kymo_track_args)
+    invalid_group = KymoTrackGroup([k])
+
+    for group in (empty_group, invalid_group):
+        with pytest.raises(
+            ValueError, match="No tracks found that meet the minimum number of frames"
+        ):
+            ensemble_cve(group)
+
+
 def test_diffusion_invalid_loc_variance(blank_kymo, blank_kymo_track_args):
     """In some cases, specifying a localization variance is invalid"""
     track = KymoTrack([1, 2, 3], [1, 2, 3], *blank_kymo_track_args)
