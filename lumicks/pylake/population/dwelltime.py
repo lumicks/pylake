@@ -91,6 +91,7 @@ class DwelltimeProfiles:
                 fixed_param_mask=fixed,
                 use_jacobian=dwelltime_model.use_jacobian,
                 discretization_timestep=dwelltime_model._timesteps,
+                sort=False,
             )
 
         def fit_func(params, lb, ub, fitted):
@@ -381,6 +382,7 @@ class DwelltimeBootstrap:
                 options=optimized._optim_options,
                 use_jacobian=optimized.use_jacobian,
                 discretization_timestep=optimized._timesteps,
+                sort=True,
             )
             samples[:, itr] = result
 
@@ -623,6 +625,7 @@ class DwelltimeModel:
             options=self._optim_options,
             use_jacobian=self.use_jacobian,
             discretization_timestep=discretization_timestep,
+            sort=True,
         )
         # TODO: remove with deprecation
         self._bootstrap = DwelltimeBootstrap(
@@ -1329,6 +1332,7 @@ def _exponential_mle_optimize(
     use_jacobian=True,
     discretization_timestep=None,
     range_rel_tolerance=1e-6,
+    sort=False,
 ):
     """Calculate the maximum likelihood estimate of the model parameters given measured dwelltimes.
 
@@ -1357,6 +1361,8 @@ def _exponential_mle_optimize(
     range_rel_tolerance : float, optional
         Relative tolerance when evaluating whether the dwell times are in the valid range.
         Default: 1e-6.
+    sort : bool
+        Sort by amplitude
 
     Raises
     ------
@@ -1450,7 +1456,17 @@ def _exponential_mle_optimize(
         except np.linalg.linalg.LinAlgError:
             pass  # We silence these until the standard error API is publicly available
 
-    return current_params, -result.fun, std_errs
+    amplitudes = current_params[:n_components]
+    lifetimes = current_params[n_components:]
+    amplitudes_std = std_errs[:n_components]
+    lifetimes_std = std_errs[n_components:]
+    order = np.argsort(-amplitudes) if sort else np.arange(n_components)
+
+    return (
+        np.hstack((amplitudes[order], lifetimes[order])),
+        -result.fun,
+        np.hstack((amplitudes_std[order], lifetimes_std[order])),
+    )
 
 
 def _dwellcounts_from_statepath(statepath, exclude_ambiguous_dwells):

@@ -122,9 +122,9 @@ def test_fit_parameters(exponential_data):
     # double exponential data
     dataset = exponential_data["dataset_2exp"]
     fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits, tol=1e-8)
-    np.testing.assert_allclose(fit.amplitudes, [0.46516346, 0.53483653], rtol=1e-5)
-    np.testing.assert_allclose(fit.lifetimes, [1.50634996, 5.46227291], rtol=1e-5)
-    np.testing.assert_allclose(fit.rate_constants, [1 / 1.50634996, 1 / 5.46227291], rtol=1e-5)
+    np.testing.assert_allclose(fit.amplitudes, [0.53483653, 0.46516346], rtol=1e-5)
+    np.testing.assert_allclose(fit.lifetimes, [5.46227291, 1.50634996], rtol=1e-5)
+    np.testing.assert_allclose(fit.rate_constants, [1 / 5.46227291, 1 / 1.50634996], rtol=1e-5)
 
 
 @pytest.mark.parametrize(
@@ -266,11 +266,11 @@ def test_dwelltime_profiles(exponential_data, exp_name, reference_bounds, reinte
     "exp_name, n_components, ref_std_errs, tolerance",
     [
         ("dataset_2exp", 1, [np.nan, 0.117634], 1e-4),  # Amplitude is not fitted!
-        ("dataset_2exp", 2, [0.072451, 0.072451, 0.212818, 0.4493979], 1e-3),
-        ("dataset_2exp_discrete", 2, [0.068016, 0.068016, 0.213995 , 0.350305], 1e-3),
+        ("dataset_2exp", 2, [0.072451, 0.072451, 0.4493979, 0.212818], 1e-3),
+        ("dataset_2exp_discrete", 2, [0.068016, 0.068016, 0.350305, 0.213995], 1e-3),
         # Over-fitted, hence coarse tolerances
-        ("dataset_2exp_discrete", 3, [0.09755, 0.37899, 0.3933, 0.25203, 1.22622, 4.4805], 1e-1),
-        ("dataset_2exp_discrete", 4, [0.097569, 3.5477e-05, 0.37874, 0.393413, 0.25203, 1.5543, 1.2278, 4.48905], 1e-1),
+        ("dataset_2exp_discrete", 3, [0.37899, 0.09755, 0.3933, 1.22622, 0.25203, 4.4805], 1e-1),
+        ("dataset_2exp_discrete", 4, [0.37874, 0.097569, 0.393413, 3.5477e-05, 1.2278, 0.25203, 4.48905, 1.5543], 1e-1),
     ]
 )
 def test_std_errs(exponential_data, exp_name, n_components, ref_std_errs, tolerance):
@@ -455,10 +455,10 @@ def test_integration_dwelltime_fixing_parameters(exponential_data):
             [1, 1.462961],  # True value: [1, 1.5]
         ),
         (
-            "dataset_2exp_discrete",  # True values: [0.4, 0.6, 1.5, 5]
+            "dataset_2exp_discrete",  # True values: [0.6, 0.4, 5, 1.5]
             2,
-            [0.36318, 0.63682, 1.257651, 4.943089],
-            [0.346897, 0.653103, 1.039719, 4.830995],
+            [0.63682, 0.36318, 4.943089, 1.257651],
+            [0.653103, 0.346897, 4.830995, 1.039719],
         ),
     ],
 )
@@ -471,6 +471,7 @@ def test_discrete_dwelltimes(exponential_data, dataset, n_components, ref_discre
             dataset["data"],
             **dataset["parameters"].observation_limits,
             discretization_timestep=dt,
+            sort=True,
         )
 
     np.testing.assert_allclose(fit_data(dataset["parameters"].dt)[0], ref_discrete, rtol=1e-4)
