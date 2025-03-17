@@ -656,7 +656,7 @@ class ProfileLikelihood1D:
             x = np.arange(-3 * std_err, 3 * std_err, 0.1 * std_err)
             plt.plot(
                 self.p[np.argmin(self.chi2)] + x,
-                self.profile_info.minimum_chi2 + x**2 / (2 * std_err**2),
+                self.profile_info.minimum_chi2 + x**2 / std_err**2,
                 "k--",
             )
 
