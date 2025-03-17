@@ -299,11 +299,11 @@ def test_dwelltime_profile_plots(n_components):
     profiles = fit.profile_likelihood(num_steps=2)  # Keep it short
     plt.close("all")
     profiles.plot()
-    np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 22.415292)
+    np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 40.989126)
 
     plt.close("all")
     profiles.plot(alpha=0.5)
-    np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 19.02877)
+    np.testing.assert_allclose(plt.gca().get_lines()[-1].get_data()[-1][-1], 37.602604)
 
 
 @pytest.mark.filterwarnings("ignore:Values in x were outside bounds")

@@ -133,7 +133,9 @@ class DwelltimeProfiles:
                 # with the parameter we're profiling held to a fixed value to obtain a value for the
                 # chi-squared function at the trial point.
                 fixed_params = [name == param for name in parameters.keys()]
-                return -model_func(params, fixed_params)[1]
+
+                # Need chi-squared values, not log likelihood, hence we multiply by - 2
+                return -2.0 * model_func(params, fixed_params)[1]
 
             profile._extend_profile(trial, fit_func, parameters, num_steps, True, verbose)
             profile._extend_profile(trial, fit_func, parameters, num_steps, False, verbose)
