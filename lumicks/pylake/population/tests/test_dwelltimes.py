@@ -158,6 +158,24 @@ def test_bootstrap_multi(min_obs, max_obs, ref_ci, time_step):
     np.testing.assert_allclose(ci, ref_ci, rtol=1e-5)
 
 
+@pytest.mark.parametrize("num_components", [1, 2])
+def test_bootstrap_parallel(monkeypatch, exponential_data, num_components):
+    import multiprocessing.dummy
+
+    dataset = exponential_data["dataset_2exp"]
+    fit = DwelltimeModel(
+        dataset["data"], num_components, **dataset["parameters"].observation_limits
+    )
+
+    with monkeypatch.context() as m:
+        # Pipe communication doesn't seem to work on GitHub runners for macOS and Windows therefore
+        # we fall back using a multiprocessing.dummy which emulates the pool with threads.
+        m.setattr("lumicks.pylake.dwelltime.Pool", multiprocessing.dummy.Pool)
+
+        bootstrap = fit.calculate_bootstrap(iterations=3, num_processes=2)
+        assert bootstrap.n_samples == 3
+
+
 @pytest.mark.slow
 def test_bootstrap(exponential_data):
     # double exponential data
