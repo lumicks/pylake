@@ -158,6 +158,13 @@ def test_bootstrap_multi(min_obs, max_obs, ref_ci, time_step):
     np.testing.assert_allclose(ci, ref_ci, rtol=1e-5)
 
 
+def test_bootstrap_parallel(exponential_data):
+    dataset = exponential_data["dataset_2exp"]
+    fit = DwelltimeModel(dataset["data"], 2, **dataset["parameters"].observation_limits)
+    bootstrap = fit.calculate_bootstrap(iterations=50, num_processes=5)
+    assert bootstrap.n_samples == 50
+
+
 @pytest.mark.slow
 def test_bootstrap(exponential_data):
     # double exponential data

@@ -292,7 +292,7 @@ class DwelltimeBootstrap:
             )
 
     @classmethod
-    def _from_dwelltime_model(cls, optimized, iterations):
+    def _from_dwelltime_model(cls, optimized, iterations, num_processes=None):
         """Construct bootstrap distributions for parameters from an optimized
         :class:`~lumicks.pylake.DwelltimeModel`.
 
@@ -307,8 +307,26 @@ class DwelltimeBootstrap:
         iterations : int
             number of iterations (random samples) to use for the bootstrap
         """
-        samples = DwelltimeBootstrap._sample(optimized, iterations)
-        return cls(optimized, samples[: optimized.n_components], samples[optimized.n_components :])
+
+        def from_samples(samples):
+            return cls(
+                optimized,
+                samples[: optimized.n_components],
+                samples[optimized.n_components :],
+            )
+
+        if num_processes is None:
+            return from_samples(DwelltimeBootstrap._sample(optimized, iterations))
+
+        from multiprocessing import Pool
+
+        with Pool(num_processes) as p:
+            result = p.starmap(
+                DwelltimeBootstrap._sample,
+                [(optimized, int(iterations / num_processes + 0.5))] * num_processes,
+            )
+
+        return from_samples(np.hstack(result))
 
     def extend(self, iterations):
         """Extend the distribution by additional sampling iterations.
@@ -721,15 +739,19 @@ class DwelltimeModel:
         n = self.dwelltimes.size  # number of observations
         return k * np.log(n) - 2 * self.log_likelihood
 
-    def calculate_bootstrap(self, iterations=500):
+    def calculate_bootstrap(self, iterations=500, num_processes=None):
         """Calculate a bootstrap distribution for the model.
 
         Parameters
         ----------
         iterations : int
             Number of iterations to sample for the distribution.
+        num_processes : int | None
+            Number of processes to use for parallelization. If `None`, no parallelization is used.
         """
-        bootstrap = DwelltimeBootstrap._from_dwelltime_model(self, iterations)
+        bootstrap = DwelltimeBootstrap._from_dwelltime_model(
+            self, iterations, num_processes=num_processes
+        )
         # TODO: remove with deprecation
         self._bootstrap = bootstrap
         return bootstrap
