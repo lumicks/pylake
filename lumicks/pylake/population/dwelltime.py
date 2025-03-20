@@ -544,6 +544,9 @@ class DwelltimeModel:
         argument to :func:`scipy.optimize.minimize(method="SLSQP") <scipy.optimize.minimize()>`.
     use_jacobian : bool
         use Jacobian matrix when optimizing (greatly enhances performance)
+    multi_start : int | None
+        Use multi-start optimization. Starting more fits from random initial guesses has a
+        lower chance of getting a suboptimal local optimum.
 
     Raises
     ------
@@ -556,6 +559,12 @@ class DwelltimeModel:
         this model.
     """
 
+    @dataclass
+    class FitInfo:
+        params: np.ndarray
+        log_likelihood: float
+        std_errs: np.ndarray
+
     def __init__(
         self,
         dwelltimes,
@@ -567,6 +576,7 @@ class DwelltimeModel:
         tol=None,
         max_iter=None,
         use_jacobian=True,
+        multi_start=None,
     ):
         for time, msg in ((min_observation_time, "minimum"), (max_observation_time, "maximum")):
             if not np.isscalar(time) and not (time.size == dwelltimes.size and time.ndim == 1):
@@ -618,15 +628,34 @@ class DwelltimeModel:
             if value is not None
         }
 
-        self._parameters, self._log_likelihood, self._std_errs = _exponential_mle_optimize(
-            n_components,
-            dwelltimes,
-            min_observation_time,
-            max_observation_time,
-            options=self._optim_options,
-            use_jacobian=self.use_jacobian,
-            discretization_timestep=discretization_timestep,
+        if not multi_start:
+            initial_params = [_initial_guess(n_components, dwelltimes)]
+        else:
+            initial_params = _initial_guesses_multistart(n_components, dwelltimes, multi_start)
+
+        self._fits = [
+            DwelltimeModel.FitInfo(
+                *_exponential_mle_optimize(
+                    n_components,
+                    dwelltimes,
+                    min_observation_time,
+                    max_observation_time,
+                    initial_guess=pars,
+                    options=self._optim_options,
+                    use_jacobian=self.use_jacobian,
+                    discretization_timestep=discretization_timestep,
+                )
+            )
+            for pars in initial_params
+        ]
+        best_fit_idx = np.argmax([f.log_likelihood for f in self._fits])
+        best_fit = self._fits[best_fit_idx]
+        self._parameters, self._log_likelihood, self._std_errs = (
+            best_fit.params,
+            best_fit.log_likelihood,
+            best_fit.std_errs,
         )
+
         # TODO: remove with deprecation
         self._bootstrap = DwelltimeBootstrap(
             self, np.empty((n_components, 0)), np.empty((n_components, 0))
@@ -1321,12 +1350,29 @@ def _calculate_std_errs(jac_fun, constraints, num_free_amps, current_params, fit
     return np.sqrt(np.diag(np.abs(np.linalg.pinv(hessian_approx))))
 
 
+def _initial_guess(n_components, times):
+    initial_guess_amplitudes = np.ones(n_components) / n_components
+    fractions = np.arange(1, n_components + 1)
+    initial_guess_lifetimes = np.mean(times) * n_components * fractions / np.sum(fractions)
+    return np.hstack([initial_guess_amplitudes, initial_guess_lifetimes])
+
+
+def _initial_guesses_multistart(n_components, times, n_samples):
+    log_min_time, log_max_time = (np.log(reduce(times)) for reduce in (np.min, np.max))
+    lifetimes = np.exp(
+        (log_max_time - log_min_time) * np.random.rand(n_components, n_samples) + log_min_time
+    )
+    amplitudes = np.random.rand(n_components, n_samples)
+    amplitudes /= np.sum(amplitudes, axis=0)
+    return np.hstack((amplitudes.T, lifetimes.T))
+
+
 def _exponential_mle_optimize(
     n_components,
     t,
     min_observation_time,
     max_observation_time,
-    initial_guess=None,
+    initial_guess,
     options=None,
     fixed_param_mask=None,
     use_jacobian=True,
@@ -1345,7 +1391,7 @@ def _exponential_mle_optimize(
         minimum observation time in seconds
     max_observation_time : float or np.ndarray
         maximum observation time in seconds
-    initial_guess : array_like, optional
+    initial_guess : array_like
         initial guess for the model parameters ordered as
         [amplitude1, amplitude2, ..., lifetime1, lifetime2, ...]
     options : dict, optional
@@ -1378,13 +1424,6 @@ def _exponential_mle_optimize(
             "some data is outside of the bounded region. Please choose"
             "appropriate values for `min_observation_time` and/or `max_observation_time`."
         )
-
-    if initial_guess is None:
-        initial_guess_amplitudes = np.ones(n_components) / n_components
-        fractions = np.arange(1, n_components + 1)
-        initial_guess_lifetimes = np.mean(t) * n_components * fractions / np.sum(fractions)
-        initial_guess = np.hstack([initial_guess_amplitudes, initial_guess_lifetimes])
-
     bounds = _exponential_mle_bounds(n_components, min_observation_time, max_observation_time)
 
     fitted_param_mask, constraints, initial_guess, num_free_amps = _handle_amplitude_constraint(

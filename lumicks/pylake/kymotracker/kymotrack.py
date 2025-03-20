@@ -1739,6 +1739,7 @@ class KymoTrackGroup:
         max_iter=None,
         observed_minimum=None,
         discrete_model=None,
+        multi_start=None,
     ):
         """Fit the distribution of bound dwelltimes to an exponential (mixture) model.
 
@@ -1770,6 +1771,9 @@ class KymoTrackGroup:
             the temporal discretization of the data, specify `discrete_model=True`. Currently, this
             argument is set to `False` by default for backward compatibility, but in the next
             major version of Pylake (`v2.0.0`), it will default to `True`.
+        multi_start : int | None
+            Use multi-start optimization. Starting more fits from random initial guesses has a
+            lower chance of getting a suboptimal local optimum.
         """
         if not len(self):
             raise RuntimeError("No tracks available for analysis")
@@ -1846,6 +1850,7 @@ class KymoTrackGroup:
             tol=tol,
             max_iter=max_iter,
             discretization_timestep=time_step if discrete_model else None,
+            multi_start=multi_start,
         )
 
     def _histogram_binding_events(self, kind, bins=10):

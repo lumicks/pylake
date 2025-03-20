@@ -8,6 +8,7 @@ from lumicks.pylake import DwelltimeModel
 from lumicks.pylake.detail.utilities import temp_seed
 from lumicks.pylake.population.dwelltime import (
     DwelltimeBootstrap,
+    _initial_guess,
     _exponential_mle_optimize,
     _dwellcounts_from_statepath,
     _handle_amplitude_constraint,
@@ -481,6 +482,7 @@ def test_discrete_dwelltimes(exponential_data, dataset, n_components, ref_discre
             n_components,
             dataset["data"],
             **dataset["parameters"].observation_limits,
+            initial_guess=_initial_guess(n_components, dataset["data"]),
             discretization_timestep=dt,
         )
 
