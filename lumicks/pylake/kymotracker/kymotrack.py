@@ -1811,9 +1811,9 @@ class KymoTrackGroup:
             )
             discrete_model = False
 
-        if n_components not in (1, 2):
+        if n_components not in (1, 2, 3):
             raise ValueError(
-                "Only 1- and 2-component exponential distributions are currently supported."
+                "Only 1-, 2- and 3-component exponential distributions are currently supported."
             )
 
         groups, _ = self._tracks_by_kymo()
