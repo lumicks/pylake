@@ -582,15 +582,27 @@ class ImageStack(FrameIndex, TiffExport, VideoExport):
         if self._src._description.pixelsize_um:
             return [self._src._description.pixelsize_um] * 2
 
-    def export_tiff(self, file_name):
+    def export_tiff(self, file_name, *, bigtiff=False):
         """Export a video of a particular scan plot
 
         Parameters
         ----------
         file_name : str
-            The name of the TIFF file where the image will be saved.
+            The name of the TIF file where the image will be saved.
+        bigtiff : bool
+            Set this to True if you expect the TIF file to exceed 4 GB. Note that this option
+            will produce a different type of TIF file that is not compatible with all software.
+            Default: False.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file path is invalid.
+        ValueError
+            If the TIF file will be too large for a regular TIF file (4 GB) and bigtiff is set to
+            False.
         """
-        super().export_tiff(file_name, dtype=None, clip=False)
+        super().export_tiff(file_name, dtype=None, clip=False, bigtiff=bigtiff)
 
     def _tiff_frames(self, iterator=False) -> Union[npt.ArrayLike, Iterator]:
         """Create images for frames of TIFFs used by `export_tiff().`"""

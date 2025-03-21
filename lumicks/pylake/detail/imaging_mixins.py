@@ -13,18 +13,30 @@ _FIRST_TIMESTAMP = 1388534400000000000
 
 
 class TiffExport:
-    def export_tiff(self, filename, *, dtype=None, clip=False):
+    def export_tiff(self, filename, *, dtype=None, clip=False, bigtiff=False):
         """Export frames to a TIFF image
 
         Parameters
         ----------
         filename : str | os.PathLike
-            The name of the TIFF file where the image will be saved.
+            The name of the TIF file where the image will be saved.
         dtype : np.dtype
             The data type of a single color channel in the resulting image.
         clip : bool
             If enabled, the image data will be clipped to fit into the desired `dtype`. This option
             is disabled by default: an error will be raise if the data does not fit.
+        bigtiff : bool
+            Set this to True if you expect the TIF file to exceed 4 GB. Note that this option
+            will produce a different type of TIF file that is not compatible with all software.
+            Default: False.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file path is invalid.
+        ValueError
+            If the TIF file will be too large for a regular TIF file (4 GB) and bigtiff is set to
+            False.
         """
         # If the exported tiff should be cast to `dtype`, get the full image stack to later safely
         # cast it. Otherwise, try to get an iterator, to save memory.
@@ -68,23 +80,38 @@ class TiffExport:
             return (datetime,)
 
         # Save the tiff file page by page
-        with tifffile.TiffWriter(filename) as tif:
-            metadata = self._tiff_image_metadata()
-            exposure_times = (
-                np.atleast_1d(np.diff(np.vstack(frame_exposure_ranges), axis=1).squeeze()) * 1e-6
-            )
-            for frame, timestamp_range, exposure_time in zip(
-                frames, frame_timestamp_ranges, exposure_times
-            ):
-                metadata["Exposure time (ms)"] = exposure_time
-                tif.write(
-                    frame,
-                    contiguous=False,  # write tags on each page
-                    extratags=extratags(timestamp_range),
-                    metadata=None,  # suppress tifffile default ImageDescription tag
-                    description=json.dumps(metadata, indent=4),
-                    **self._tiff_writer_kwargs(),
+        try:
+            with tifffile.TiffWriter(filename, bigtiff=bigtiff) as tif:
+                metadata = self._tiff_image_metadata()
+                exposure_times = (
+                    np.atleast_1d(np.diff(np.vstack(frame_exposure_ranges), axis=1).squeeze())
+                    * 1e-6
                 )
+                for frame, timestamp_range, exposure_time in zip(
+                    frames, frame_timestamp_ranges, exposure_times
+                ):
+                    metadata["Exposure time (ms)"] = exposure_time
+                    tif.write(
+                        frame,
+                        contiguous=False,  # write tags on each page
+                        extratags=extratags(timestamp_range),
+                        metadata=None,  # suppress tifffile default ImageDescription tag
+                        description=json.dumps(metadata, indent=4),
+                        **self._tiff_writer_kwargs(),
+                    )
+        except Exception as e:
+            # This error originates inside the struct package inside tifffile
+            if any(
+                err in str(e)
+                for err in ("format requires 0 <= number <= 4294967295", "argument out of range")
+            ):
+                raise ValueError(
+                    "The TIF file will be too large for a regular TIF file. You can save to "
+                    "a bigTIFF file by setting `bigtiff=True`. Note that this will produce a "
+                    "different type of TIF file that is not compatible with all software."
+                )
+            else:
+                raise e
 
     def _tiff_frames(self, iterator=False) -> Union[npt.ArrayLike, Iterator]:
         """Create frames of TIFFs used by `export_tiff()`."""

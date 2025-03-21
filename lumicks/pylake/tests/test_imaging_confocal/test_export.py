@@ -1,22 +1,33 @@
 import numpy as np
 import pytest
+import tifffile
 
 from lumicks.pylake.channel import Slice, Continuous
 
 
-def test_export_tiff(tmp_path, test_kymo, grab_tiff_tags):
+@pytest.mark.parametrize("bigtiff", (False, True))
+def test_export_tiff_kymo(tmp_path, test_kymo, grab_tiff_tags, bigtiff):
     from os import stat
 
     kymo, _ = test_kymo
-    kymo.export_tiff(tmp_path / "kymo1.tiff")
-    assert stat(tmp_path / "kymo1.tiff").st_size > 0
+    filename = tmp_path / "kymo1.tiff"
+
+    kymo.export_tiff(filename, bigtiff=bigtiff)
+
+    assert stat(filename).st_size > 0
+    with tifffile.TiffFile(filename) as tif:
+        assert tif.is_bigtiff == bigtiff
 
     # Check if tags were properly stored, i.e. test functionality of `_tiff_image_metadata()`,
     # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
     tiff_tags = grab_tiff_tags(tmp_path / "kymo1.tiff")
     assert len(tiff_tags) == 1
-    for tags, timestamp_range in zip(tiff_tags, kymo._tiff_timestamp_ranges()):
-        assert tags["ImageDescription"] == kymo._tiff_image_metadata()
+    for tags, timestamp_range in zip(
+        tiff_tags, kymo._tiff_timestamp_ranges(include_dead_time=True)
+    ):
+        assert tags["ImageDescription"] == kymo._tiff_image_metadata() | {
+            "Exposure time (ms)": 68750.0
+        }
         assert tags["DateTime"] == f"{timestamp_range[0]}:{timestamp_range[1]}"
         assert tags["Software"] == kymo._tiff_writer_kwargs()["software"]
         np.testing.assert_allclose(
@@ -33,14 +44,16 @@ def test_export_tiff(tmp_path, test_kymo, grab_tiff_tags):
 
 
 @pytest.mark.parametrize(
-    "scanname, tiffname",
+    "scanname, tiffname, bigtiff",
     [
-        ("fast Y slow X", "single_frame.tiff"),
-        ("fast Y slow X multiframe", "multi_frame.tiff"),
+        ("fast Y slow X", "single_frame.tiff", False),
+        ("fast Y slow X", "single_frame.tiff", True),
+        ("fast Y slow X multiframe", "multi_frame.tiff", False),
+        ("fast Y slow X multiframe", "multi_frame.tiff", True),
     ],
 )
 def test_export_tiff(
-    scanname, tiffname, tmp_path, test_scans, test_scans_multiframe, grab_tiff_tags
+    scanname, tiffname, tmp_path, test_scans, test_scans_multiframe, grab_tiff_tags, bigtiff
 ):
     from os import stat
 
@@ -48,8 +61,12 @@ def test_export_tiff(
     scan, _ = test_set[scanname]
 
     filename = tmp_path / tiffname
-    scan.export_tiff(filename)
+    scan.export_tiff(filename, bigtiff=bigtiff)
+
     assert stat(filename).st_size > 0
+    with tifffile.TiffFile(filename) as tif:
+        assert tif.is_bigtiff == bigtiff
+
     # Check if tags were properly stored, i.e. test functionality of `_tiff_image_metadata()`,
     # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
     tiff_tags = grab_tiff_tags(filename)
