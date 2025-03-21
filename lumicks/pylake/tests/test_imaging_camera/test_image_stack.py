@@ -1312,7 +1312,10 @@ def test_invalid_order(bg_tiff_file_single):
         ImageStack(bg_tiff_file_single[0])
 
 
-@pytest.mark.parametrize("align_export, align_load", [(False, False), (True, True), (False, True)])
+@pytest.mark.parametrize(
+    "align_export, align_load, bigtiff",
+    [(False, False, False), (True, True, False), (False, True, False), (False, False, True)],
+)
 def test_two_color_write_again(
     tmpdir_factory,
     gb_tiff_file_single,
@@ -1320,12 +1323,13 @@ def test_two_color_write_again(
     bg_tiff_file_single,
     align_export,
     align_load,
+    bigtiff,
 ):
     tmp_dir = tmpdir_factory.mktemp("two_color")
     for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
         im = ImageStack(filename, align=align_export)
         tmp_file = tmp_dir.join(f"export_{filename.basename}")
-        im.export_tiff(tmp_file)
+        im.export_tiff(tmp_file, bigtiff=bigtiff)
 
         # The tiff file we imported data was 2 channels.
         assert im._src._tiff_files[0].pages[0].shape[-1] == 2
@@ -1333,6 +1337,7 @@ def test_two_color_write_again(
 
         # Reload source since we want to be able to test whether we can successfully align
         im_read = ImageStack(tmp_file, align=align_load)
+        assert im_read._src._tiff_files[0]._src.is_bigtiff == bigtiff
         im = ImageStack(filename, align=align_load)
         np.testing.assert_allclose(im_read.get_image(), im.get_image())
 
