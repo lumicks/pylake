@@ -1,5 +1,5 @@
+import io
 import re
-import json
 import weakref
 from pathlib import Path
 
@@ -31,6 +31,44 @@ def test_correlated_stack_deprecation(rgb_tiff_file):
     with pytest.warns(DeprecationWarning):
         cs = CorrelatedStack(str(rgb_tiff_file), align=True)
         cs.close()
+
+
+@pytest.mark.slow
+def test_export_bigtiff():
+    # Unfortunately, we can't use os.devnull, since on Linux it doesn't support tell()
+    class NoopBytesIO(io.BytesIO):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._pos = 0
+
+        def write(self, data):
+            self._pos += len(data)
+
+        def tell(self):
+            return self._pos
+
+    num_frames = 600
+    fake_tiff = ImageStack.from_dataset(
+        TiffStack(
+            [
+                MockTiffFile(
+                    data=[np.ones((10000, 1024), dtype=np.float32)] * num_frames,
+                    times=make_frame_times(num_frames),
+                )
+            ],
+            align_requested=False,
+        ),
+        "my stack",
+        0,
+        num_frames,
+    )
+
+    with pytest.raises(ValueError, match="The TIF file will be too large for a regular TIF file"):
+        with NoopBytesIO() as f:
+            fake_tiff.export_tiff(f, bigtiff=False)
+
+    with NoopBytesIO() as f:
+        fake_tiff.export_tiff(f, bigtiff=True)
 
 
 @pytest.mark.parametrize("shape", [(3, 3), (5, 4, 3)])
@@ -338,7 +376,7 @@ def test_stack_roi():
 
     # negative indices
     with pytest.raises(ValueError):
-        stack_4 = stack_0.with_roi([-5, 4, 1, 2])
+        _ = stack_0.with_roi([-5, 4, 1, 2])
 
     # out of bounds
     stack_5 = stack_0.with_roi([0, 11, 1, 2])
@@ -773,9 +811,9 @@ def test_image_stack_plot_channels_absolute_color_adjustment(rgb_alignment_image
 
     lbs = np.array([10000.0, 20000.0, 5000.0])
     ubs = np.array([30000.0, 40000.0, 50000.0])
-    for channel_idx, (lb, ub, channel) in enumerate(zip(lbs, ubs, ("red", "green", "blue"))):
+    for channel_idx, (lb, ub, chan) in enumerate(zip(lbs, ubs, ("red", "green", "blue"))):
         fig = plt.figure()
-        stack.plot(channel=channel, frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        stack.plot(channel=chan, frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
         np.testing.assert_allclose(image.get_array(), warped_image[:, :, channel_idx])
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
@@ -831,20 +869,20 @@ def test_image_stack_plot_single_channel_percentile_color_adjustment(rgb_alignme
     stack = ImageStack.from_dataset(fake_tiff)
 
     lbs, ubs = np.array([94, 93, 95]), np.array([95, 98, 97])
-    for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
+    for lb, ub, chan in zip(lbs, ubs, ("red", "green", "blue")):
         # Test whether setting RGB values and then sampling one of them works correctly.
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
         # Test whether setting a single color works correctly (should use the same for R G and B).
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -866,20 +904,20 @@ def test_single_channel_image_adjustment(gray_alignment_image_data):
 
     lbs, ubs = np.array([94, 93, 95]), np.array([95, 98, 97])
     lbs_ref, ubs_ref = [*lbs, 94], [*ubs, 95]
-    for lb, ub, channel in zip(lbs_ref, ubs_ref, ("red", "green", "blue", "rgb")):
+    for lb, ub, chan in zip(lbs_ref, ubs_ref, ("red", "green", "blue", "rgb")):
         # Test whether setting RGB values and then sampling one of them works correctly.
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
         # Test whether setting a single color value correctly
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -1015,7 +1053,7 @@ def test_time_ordering_stack(rgb_alignment_image_data):
     t1, t2, t3, t4 = (to_tiff(*rgb_alignment_image_data[1:], t, 1) for t in timestamps)
     stack = TiffStack([t3, t2, t1, t4], align_requested=True)
 
-    for idx, (frame, ts) in enumerate(zip((t1, t2, t3, t4), timestamps)):
+    for idx, (_, ts) in enumerate(zip((t1, t2, t3, t4), timestamps)):
         assert stack.get_frame(idx).start == ts
 
 
@@ -1131,7 +1169,7 @@ def _create_random_stack(img_shape, description):
     )
 
 
-def test_pixel_calibration():
+def test_pixel_calibration_calibrated():
     # Test calibrated
     stack = _create_random_stack((3, 5), {"Pixel calibration (nm/pix)": 500})
     image = stack.plot()
@@ -1312,7 +1350,10 @@ def test_invalid_order(bg_tiff_file_single):
         ImageStack(bg_tiff_file_single[0])
 
 
-@pytest.mark.parametrize("align_export, align_load", [(False, False), (True, True), (False, True)])
+@pytest.mark.parametrize(
+    "align_export, align_load, bigtiff",
+    [(False, False, False), (True, True, False), (False, True, False), (False, False, True)],
+)
 def test_two_color_write_again(
     tmpdir_factory,
     gb_tiff_file_single,
@@ -1320,12 +1361,13 @@ def test_two_color_write_again(
     bg_tiff_file_single,
     align_export,
     align_load,
+    bigtiff,
 ):
     tmp_dir = tmpdir_factory.mktemp("two_color")
-    for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
+    for filename, _ in (gb_tiff_file_single, gb_tiff_file_multi):
         im = ImageStack(filename, align=align_export)
         tmp_file = tmp_dir.join(f"export_{filename.basename}")
-        im.export_tiff(tmp_file)
+        im.export_tiff(tmp_file, bigtiff=bigtiff)
 
         # The tiff file we imported data was 2 channels.
         assert im._src._tiff_files[0].pages[0].shape[-1] == 2
@@ -1333,6 +1375,7 @@ def test_two_color_write_again(
 
         # Reload source since we want to be able to test whether we can successfully align
         im_read = ImageStack(tmp_file, align=align_load)
+        assert im_read._src._tiff_files[0]._src.is_bigtiff == bigtiff
         im = ImageStack(filename, align=align_load)
         np.testing.assert_allclose(im_read.get_image(), im.get_image())
 
