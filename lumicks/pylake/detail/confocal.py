@@ -375,7 +375,7 @@ class ConfocalImage(BaseScan, TiffExport):
 
         return frame_image
 
-    def export_tiff(self, filename, *, dtype=np.float32, clip=False):
+    def export_tiff(self, filename, *, dtype=np.float32, clip=False, bigtiff=False):
         """Save the RGB photon counts to a TIFF image
 
         Parameters
@@ -387,8 +387,20 @@ class ConfocalImage(BaseScan, TiffExport):
         clip : bool
             If enabled, the photon count data will be clipped to fit into the desired `dtype`.
             This option is disabled by default: an error will be raise if the data does not fit.
+        bigtiff : bool
+            Set this to True if you expect the TIF file to exceed 4 GB. Note that this option
+            will produce a different type of TIF file that is not compatible with all software.
+            Default: False.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file path is invalid.
+        ValueError
+            If the TIF file will be too large for a regular TIF file (4 GB) and bigtiff is set to
+            False.
         """
-        super().export_tiff(filename, dtype=dtype, clip=clip)
+        super().export_tiff(filename, dtype=dtype, clip=clip, bigtiff=bigtiff)
 
     def _tiff_frames(self, iterator=False) -> npt.ArrayLike:
         """Create frames of TIFFs used by `export_tiff().`"""
