@@ -22,8 +22,12 @@ def test_export_tiff_kymo(tmp_path, test_kymo, grab_tiff_tags, bigtiff):
     # `_tiff_timestamp_ranges()` and `_tiff_writer_kwargs()`
     tiff_tags = grab_tiff_tags(tmp_path / "kymo1.tiff")
     assert len(tiff_tags) == 1
-    for tags, timestamp_range in zip(tiff_tags, kymo._tiff_timestamp_ranges()):
-        assert tags["ImageDescription"] == kymo._tiff_image_metadata()
+    for tags, timestamp_range in zip(
+        tiff_tags, kymo._tiff_timestamp_ranges(include_dead_time=True)
+    ):
+        assert tags["ImageDescription"] == kymo._tiff_image_metadata() | {
+            "Exposure time (ms)": 68750.0
+        }
         assert tags["DateTime"] == f"{timestamp_range[0]}:{timestamp_range[1]}"
         assert tags["Software"] == kymo._tiff_writer_kwargs()["software"]
         np.testing.assert_allclose(
