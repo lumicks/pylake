@@ -3,6 +3,7 @@ import pytest
 from lumicks.pylake.force_calibration.calibration_models import (
     ActiveCalibrationModel,
     PassiveCalibrationModel,
+    surface_drag_correction,
 )
 from lumicks.pylake.force_calibration.detail.drag_models import *
 from lumicks.pylake.force_calibration.detail.power_models import g_diode
@@ -492,6 +493,11 @@ def test_faxen(bead_radius, result):
     np.testing.assert_allclose(
         faxen_factor(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius), result
     )
+    np.testing.assert_allclose(
+        surface_drag_correction(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius * 2),
+        result,
+        False,
+    )
 
 
 @pytest.mark.parametrize(
@@ -504,6 +510,11 @@ def test_faxen(bead_radius, result):
 def test_brenner(bead_radius, result):
     np.testing.assert_allclose(
         brenner_axial(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius), result
+    )
+    np.testing.assert_allclose(
+        surface_drag_correction(bead_radius + np.arange(40, 250, 80) * 1e-9, bead_radius * 2),
+        result,
+        True,
     )
 
 
