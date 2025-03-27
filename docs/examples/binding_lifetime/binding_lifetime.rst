@@ -206,9 +206,9 @@ The likelihood profile for the double exponential fit::
 
 .. image:: profile2.png
 
-For the double exopnential fit, the profiles look more skewed. The values of :math:`\chi^2` at the minimum are lower, which indicates a better fit.
-However, the binding lifetime labeled 'lifetime 1' never crosses the horizontal line, which indicates that it does not really have an upper bound; this parameter can not be optimized for this data set.
-When looking at the likelihood profiles, the single exponential fit is optimal.
+For the double exponential fit, the profiles look more skewed. The values of :math:`\chi^2` at the minimum are lower, which indicates a better fit.
+When looking at the likelihood profiles, the double exponential fit therefore seems optimal.
+Note however that the lower boundaries of the confidence intervals for `amplitude 1` and `lifetime 1` are almost zero and that the confidence interval for `lifetime 1` is very wide. Gathering more data may help to reduce the confidence intervals and get a better estimate of the components and lifetimes. 
 
 Bootstrapping
 ^^^^^^^^^^^^^
@@ -263,12 +263,13 @@ The BIC value for the double exponential fit is minimal, but the difference is s
 Conclusion and Outlook
 ----------------------
 
-We fitted a single exponential and double exponential to the distribution of binding lifetimes. Then, we used the likelihood profile, bootstrapping and BIC to determine the most suitable model.
-The likelihood profile and bootstrapping indicated that when using a two-component model, we cannot reliably estimate the second lifetime nor the fraction of events that have this lifetime associated with them.
+We fitted a single exponential and double exponential to the distribution of binding lifetimes.
+Then, we used the likelihood profile, bootstrapping and BIC to determine the most suitable model.
+The likelihood profile and bootstrapping indicated that when using a two-component model, the second lifetime has very wide confidence intervals and the fraction of events that have this lifetime associated with them is very small.
 The BIC indicated that a double exponential is more suitable, but the difference between the small and large model is not very large.
 
 Looking at Figure with the :ref:`double exponential fit <double_exponential_fit>`, there are only a few data points larger than 20 seconds that support the second exponential time scale.
-Therefore, the data set is likely too small to support a second exponential time scale. (Fitting two exponentials without overfitting, typically requires a few hundred data points.)
+Therefore, the data set is likely too small to support a second exponential time scale (Fitting two exponentials without overfitting, typically requires a few hundred data points).
 
 With the current dataset, we conclude that the most suitable model is a single exponential as it gives us the most precise estimates. The fitted lifetime is :math:`\tau = 4` seconds with a 95% confidence interval of (3,5.2) seconds as determined by bootstrapping.
 However, given that we do see a hint that there may be a second lifetime involved, it would be worthwhile to gather more data in this case.
