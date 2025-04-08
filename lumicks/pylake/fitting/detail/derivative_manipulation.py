@@ -21,18 +21,50 @@ def numerical_jacobian(fn, parameter_vector, dx=1e-6):
     return finite_difference_jacobian
 
 
-def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
-    """This function generates two functions which allow for inverting models via optimization. These functions are used
-    by functions which require inversion of a model's dependent and independent variable"""
+def inversion_functions(model_function, f_min, f_max, derivative_function, tol, rootfinding):
+    """This function generates two functions which allow for inverting models via optimization.
+    These functions are used by functions which require inversion of a model's dependent and
+    independent variable
+
+    Parameters
+    ----------
+    model_function : callable
+        Callable that returns the dependent value when an independent value is provided.
+    f_min, f_max : float
+        Minimum and maximum value for the independent variable
+    derivative_function : callable
+        Callable that returns the derivative of the model w.r.t. independent variable.
+    tol : float
+        Tolerance
+    rootfinding : bool
+        Use Brent's method for rootfinding before going for full non-linear optimization. This
+        generally works well for monotonic functions.
+    """
+
+    def invert_brent(single_distance, _):
+        """Invert a single independent / dependent data point"""
+        return scipy.optimize.root_scalar(
+            lambda f: model_function(np.array(f)) - single_distance,
+            method="brentq",
+            bracket=(f_min, f_max),
+            rtol=tol,
+            xtol=tol,
+        ).root
 
     def fit_single(single_distance, initial_guess):
         """Invert a single independent / dependent data point"""
+        if rootfinding:
+            try:
+                return invert_brent(single_distance, initial_guess)
+            except ValueError:  # Solution outside f_min and f_max, do least_squares instead
+                pass
+
         jac = derivative_function if derivative_function else "2-point"
         single_estimate = scipy.optimize.least_squares(
             lambda f: model_function(f) - single_distance,
             initial_guess,
             jac=jac,
-            bounds=(f_min, f_max),
+            bounds=(f_min, f_max) if rootfinding else (0, np.inf),
             method="trf",
             ftol=tol,
             xtol=tol,
@@ -51,9 +83,11 @@ def inversion_functions(model_function, f_min, f_max, derivative_function, tol):
     return manual_inversion, fit_single
 
 
-def invert_function(d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8):
-    """This function inverts a function using a least squares optimizer. For models where this is required, this is the
-    most time consuming step.
+def invert_function(
+    d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8, rootfinding=False
+):
+    """This function inverts a function using a least squares optimizer. For models where this is
+    required, this is the most time consuming step.
 
     Parameters
     ----------
@@ -71,16 +105,27 @@ def invert_function(d, initial, f_min, f_max, model_function, derivative_functio
         model derivative with respect to the independent variable (returns an element per data point)
     tol : float
         optimization tolerances
+    rootfinding : bool
+        use rootfinding method (note that in this case, f_min and f_max are used to bracket the
+        search space, but are not enforced as hard constraints).
     """
     manual_inversion, _ = inversion_functions(
-        model_function, f_min, f_max, derivative_function, tol
+        model_function, f_min, f_max, derivative_function, tol, rootfinding
     )
 
     return manual_inversion(d, initial)
 
 
 def invert_function_interpolation(
-    d, initial, f_min, f_max, model_function, derivative_function=None, tol=1e-8, dx=1e-2
+    d,
+    initial,
+    f_min,
+    f_max,
+    model_function,
+    derivative_function=None,
+    tol=1e-8,
+    dx=1e-2,
+    rootfinding=False,
 ):
     """This function inverts a function using interpolation. For models where this is required, this is the most time
     consuming step. Specifying a sensible f_max for this method is crucial.
@@ -103,23 +148,25 @@ def invert_function_interpolation(
         desired step-size of the dependent variable
     tol : float
         optimization tolerances
+    rootfinding : bool
+        use rootfinding method (note that in this case, f_min and f_max are used to bracket the
+        search space, but are not enforced as hard constraints).
     """
     manual_inversion, fit_single = inversion_functions(
-        model_function, f_min, f_max, derivative_function, tol
+        model_function, f_min, f_max, derivative_function, tol, rootfinding
     )
     f_min_data = max([f_min, fit_single(np.min(d), initial)])
     f_max_data = min([f_max, fit_single(np.max(d), initial)])
 
     # Determine the points that lie within the range where it is reasonable to interpolate
     interpolated_idx = np.full(d.shape, False, dtype=bool)
-    f_range = np.arange(f_min_data, f_max_data, dx)
+    f_range = np.arange(f_min_data, f_max_data + dx, dx)
     if len(f_range) > 0:
         d_range = model_function(f_range)
-        d_min = np.min(d_range)
-        d_max = np.max(d_range)
+        d_min, d_max = np.min(d_range), np.max(d_range)
 
         # Interpolate for the points where interpolation is sensible
-        interpolated_idx = np.logical_and(d > d_min, d < d_max)
+        interpolated_idx = np.logical_and(d >= d_min, d <= d_max)
 
     result = np.zeros(d.shape)
     if np.sum(interpolated_idx) > 3 and len(f_range) > 3:
@@ -136,9 +183,9 @@ def invert_function_interpolation(
         result[interpolated_idx] = manual_inversion(d[interpolated_idx], initial)
 
     # Do the manual inversion for the others
-    result[np.logical_not(interpolated_idx)] = manual_inversion(
-        d[np.logical_not(interpolated_idx)], initial
-    )
+    slow_inversions = np.logical_not(interpolated_idx)
+    if np.any(slow_inversions):
+        result[slow_inversions] = manual_inversion(d[slow_inversions], initial)
 
     return result
 
