@@ -154,8 +154,12 @@ class WrappedTiffFile:
     or TiffStack itself is because TiffFiles are shared between instances of these."""
 
     def __init__(self, file, *args, **kwargs):
+        # Ensure _src is always defined, even when tifffile.TiffFile raises an exception. If not,
+        # the automatic cleanup of WrappedTiffFile file results in an additional AttributeError
+        # when attempting to close the file.
+        self._src = None
         self._src = tifffile.TiffFile(file, *args, **kwargs)
-        self._fn = self._src.filename
+        self._fn = self._src.filename if self._src else ""
 
     @property
     def pages(self):

@@ -6,6 +6,7 @@
 
 * Fixed a bug where [`ForceCalibrationItem.force_sensitivity`](https://lumicks-pylake.readthedocs.io/en/v1.6.1/_api/lumicks.pylake.calibration.ForceCalibrationItem.html#lumicks.pylake.calibration.ForceCalibrationItem.force_sensitivity) would return the signed force response rather than the unsigned force sensitivity of a Bluelake calibration. This can cause issues with the force sign when using ratios of sensitivities obtained from Bluelake or Pylake. Now Pylake and Bluelake items both return the unsigned force sensitivity.
 * Fixed a bug where [`lk.load_tracks()`](https://lumicks-pylake.readthedocs.io/en/v1.6.1/_api/lumicks.pylake.load_tracks.html#lumicks.pylake.load_tracks) incorrectly loaded the position coordinates of tracks that had been calibrated to base pairs.
+* Fixed a bug where attempting to load a TIF file with insufficient metadata resulted in an unrelated `AttributeError` when deleting the `ImageStack`.
 
 ## v1.6.0 | 2025-01-09
 

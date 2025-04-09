@@ -56,6 +56,16 @@ def rgb_tiff_file(tiff_dir, rgb_alignment_image_data):
     return mock_filename
 
 
+@pytest.fixture(scope="module")
+def tiff_no_metadata(tiff_dir, rgb_alignment_image_data):
+    mock_filename = tiff_dir.join("rgb_single.tiff")
+    _, warped_image, description, _ = rgb_alignment_image_data
+    write_tiff_file(
+        warped_image, description, metadata=False, n_frames=1, filename=str(mock_filename)
+    )
+    return mock_filename
+
+
 def _create_gb_tiff(
     mock_filename, spot_coordinates, warp_parameters, num_frames, swap_channels=False
 ):
