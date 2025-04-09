@@ -1,3 +1,4 @@
+import io
 import math
 import numbers
 import contextlib
@@ -225,3 +226,9 @@ def convert_to_scalar(value):
 
     if isinstance(value, numbers.Number):
         return value
+
+
+def to_stream(filename):
+    """Open a file, read its binary contents and expose a binary stream"""
+    with open(filename, "rb") as f:
+        return io.BytesIO(f.read())

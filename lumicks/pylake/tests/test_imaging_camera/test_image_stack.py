@@ -1,5 +1,5 @@
+import io
 import re
-import json
 import weakref
 from pathlib import Path
 
@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from lumicks.pylake import ImageStack, CorrelatedStack, channel
 from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.detail.utilities import to_stream
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
@@ -150,8 +151,14 @@ def test_stack_from_dataset():
 
 
 def test_stack_name_from_file(rgb_tiff_file):
-    cs = ImageStack(str(rgb_tiff_file), align=True)
+    cs = ImageStack(rgb_tiff_file, align=True)
     assert cs.name == "rgb_single"
+    cs.close()
+
+
+def test_stack_name_from_stream(rgb_tiff_file):
+    cs = ImageStack(to_stream(rgb_tiff_file), align=True)
+    assert cs.name == "<_io"
     cs.close()
 
 
@@ -338,7 +345,7 @@ def test_stack_roi():
 
     # negative indices
     with pytest.raises(ValueError):
-        stack_4 = stack_0.with_roi([-5, 4, 1, 2])
+        _ = stack_0.with_roi([-5, 4, 1, 2])
 
     # out of bounds
     stack_5 = stack_0.with_roi([0, 11, 1, 2])
@@ -506,10 +513,11 @@ def test_stack_name(monkeypatch):
         assert stack.name == "Multi-file stack"
 
 
-def test_cropping(rgb_tiff_file, gray_tiff_file):
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_cropping(rgb_tiff_file, gray_tiff_file, is_stream):
     for filename in (rgb_tiff_file, gray_tiff_file):
         for align in (True, False):
-            stack = ImageStack(filename, align=True)
+            stack = ImageStack(to_stream(filename) if is_stream else filename, align=True)
             cropped = stack.crop_by_pixels(25, 50, 25, 50)
             np.testing.assert_allclose(
                 cropped._get_frame(0).data,
@@ -524,14 +532,15 @@ def test_cropping(rgb_tiff_file, gray_tiff_file):
             stack.close()
 
 
+@pytest.mark.parametrize("is_stream", [False, True])
 def test_cropping_then_export(
-    rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi
+    rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi, is_stream
 ):
     from os import stat
 
     for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
         savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
-        stack = ImageStack(str(filename))
+        stack = ImageStack(to_stream(filename) if is_stream else filename)
         stack = stack.crop_by_pixels(10, 190, 20, 80)
 
         stack.export_tiff(savename)
@@ -773,9 +782,9 @@ def test_image_stack_plot_channels_absolute_color_adjustment(rgb_alignment_image
 
     lbs = np.array([10000.0, 20000.0, 5000.0])
     ubs = np.array([30000.0, 40000.0, 50000.0])
-    for channel_idx, (lb, ub, channel) in enumerate(zip(lbs, ubs, ("red", "green", "blue"))):
+    for channel_idx, (lb, ub, chan) in enumerate(zip(lbs, ubs, ("red", "green", "blue"))):
         fig = plt.figure()
-        stack.plot(channel=channel, frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        stack.plot(channel=chan, frame=0, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
         np.testing.assert_allclose(image.get_array(), warped_image[:, :, channel_idx])
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
@@ -831,20 +840,20 @@ def test_image_stack_plot_single_channel_percentile_color_adjustment(rgb_alignme
     stack = ImageStack.from_dataset(fake_tiff)
 
     lbs, ubs = np.array([94, 93, 95]), np.array([95, 98, 97])
-    for lb, ub, channel in zip(lbs, ubs, ("red", "green", "blue")):
+    for lb, ub, chan in zip(lbs, ubs, ("red", "green", "blue")):
         # Test whether setting RGB values and then sampling one of them works correctly.
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
         # Test whether setting a single color works correctly (should use the same for R G and B).
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -866,20 +875,20 @@ def test_single_channel_image_adjustment(gray_alignment_image_data):
 
     lbs, ubs = np.array([94, 93, 95]), np.array([95, 98, 97])
     lbs_ref, ubs_ref = [*lbs, 94], [*ubs, 95]
-    for lb, ub, channel in zip(lbs_ref, ubs_ref, ("red", "green", "blue", "rgb")):
+    for lb, ub, chan in zip(lbs_ref, ubs_ref, ("red", "green", "blue", "rgb")):
         # Test whether setting RGB values and then sampling one of them works correctly.
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lbs, ubs, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
         # Test whether setting a single color value correctly
         fig = plt.figure()
-        stack.plot(channel=channel, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
+        stack.plot(channel=chan, adjustment=ColorAdjustment(lb, ub, mode="absolute"))
         image = plt.gca().get_images()[0]
-        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=channel))
+        np.testing.assert_allclose(image.get_array(), stack[0].get_image(channel=chan))
         np.testing.assert_allclose(image.get_clim(), [lb, ub])
         plt.close(fig)
 
@@ -1015,7 +1024,7 @@ def test_time_ordering_stack(rgb_alignment_image_data):
     t1, t2, t3, t4 = (to_tiff(*rgb_alignment_image_data[1:], t, 1) for t in timestamps)
     stack = TiffStack([t3, t2, t1, t4], align_requested=True)
 
-    for idx, (frame, ts) in enumerate(zip((t1, t2, t3, t4), timestamps)):
+    for idx, ts in enumerate(timestamps):
         assert stack.get_frame(idx).start == ts
 
 
@@ -1131,7 +1140,7 @@ def _create_random_stack(img_shape, description):
     )
 
 
-def test_pixel_calibration():
+def test_pixel_calibration_calibrated():
     # Test calibrated
     stack = _create_random_stack((3, 5), {"Pixel calibration (nm/pix)": 500})
     image = stack.plot()
@@ -1276,25 +1285,33 @@ def test_tiffstack_automatic_cleanup(gray_tiff_file_multi):
         im.get_frame(0)
 
 
-def test_imagestack_explicit_close(gray_tiff_file_multi):
-    im = ImageStack(gray_tiff_file_multi)
-    handle = im._src._tiff_files[0]._src.filehandle
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_imagestack_explicit_close(gray_tiff_file_multi, is_stream):
+    im = ImageStack(to_stream(gray_tiff_file_multi) if is_stream else gray_tiff_file_multi)
     derived_im = im.crop_by_pixels(1, 3, 1, 3)
-    assert not handle.closed
-    im.close()
-    assert handle.closed
 
+    if not is_stream:
+        handle = im._src._tiff_files[0]._src.filehandle
+        assert not handle.closed
+
+    im.close()
+
+    if not is_stream:
+        assert handle.closed
+
+    name = "Unnamed binary stream" if is_stream else "gray_multi.tiff"
     for current_stack in (im, derived_im):
         with pytest.raises(
             IOError,
-            match=r"The file handle for this TiffStack \(gray_multi.tiff\) has already been closed.",
+            match=rf"The file handle for this TiffStack \({name}\) has already been closed.",
         ):
             current_stack.get_image("rgb")
 
 
-def test_two_color(gb_tiff_file_single, gb_tiff_file_multi, bg_tiff_file_single):
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_two_color(gb_tiff_file_single, gb_tiff_file_multi, bg_tiff_file_single, is_stream):
     for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
-        im = ImageStack(filename)
+        im = ImageStack(to_stream(filename) if is_stream else filename)
 
         normalization = 1.0 / np.max(np.abs(reference_image))
         np.testing.assert_allclose(
@@ -1322,7 +1339,7 @@ def test_two_color_write_again(
     align_load,
 ):
     tmp_dir = tmpdir_factory.mktemp("two_color")
-    for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
+    for filename, _ in (gb_tiff_file_single, gb_tiff_file_multi):
         im = ImageStack(filename, align=align_export)
         tmp_file = tmp_dir.join(f"export_{filename.basename}")
         im.export_tiff(tmp_file)

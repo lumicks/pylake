@@ -6,15 +6,19 @@ import tifffile
 
 from lumicks.pylake import ImageStack
 from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.detail.utilities import to_stream
 
 
-def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+@pytest.mark.parametrize("is_stream", [True, False])
+def test_export(
+    rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi, is_stream
+):
     from os import stat
 
     filenames = (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi)
     for filename, align in itertools.product(filenames, (True, False)):
         savename = str(filename.new(purebasename=f"out_{filename.purebasename}"))
-        stack = ImageStack(str(filename), align=align)
+        stack = ImageStack(to_stream(filename) if is_stream else filename, align=align)
         stack.export_tiff(savename)
         assert stat(savename).st_size > 0
 
@@ -42,12 +46,15 @@ def test_export(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_fi
         stack.close()
 
 
-def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
+@pytest.mark.parametrize("is_stream", [True, False])
+def test_export_roi(
+    rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi, is_stream
+):
     from os import stat
 
     for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
         savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
-        stack = ImageStack(str(filename))[:, 20:80, 10:190]
+        stack = ImageStack(to_stream(filename) if is_stream else filename)[:, 20:80, 10:190]
 
         stack.export_tiff(savename)
         assert stat(savename).st_size > 0
@@ -59,6 +66,7 @@ def test_export_roi(rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tif
         stack.close()
 
 
+@pytest.mark.parametrize("is_stream", [False, True])
 @pytest.mark.parametrize("vertical, correlated", [(False, False), (False, True), (True, True)])
 def test_stack_movie_export(
     tmpdir_factory,
@@ -68,13 +76,14 @@ def test_stack_movie_export(
     gray_tiff_file_multi,
     vertical,
     correlated,
+    is_stream,
 ):
     from os import stat
 
     tmpdir = tmpdir_factory.mktemp("pylake")
 
     for idx, filename in enumerate((rgb_tiff_file_multi, gray_tiff_file_multi)):
-        stack = ImageStack(str(filename))
+        stack = ImageStack(to_stream(filename) if is_stream else filename)
 
         dt_stack = stack.frame_timestamp_ranges()[1][0] - stack.frame_timestamp_ranges()[0][0]
         corr_data = (
@@ -104,6 +113,7 @@ def test_stack_movie_export(
         stack.close()
 
 
+@pytest.mark.parametrize("is_stream", [False, True])
 @pytest.mark.parametrize(
     "start, stop, ref, correlated",
     [
@@ -120,10 +130,10 @@ def test_stack_movie_export(
     ],
 )
 def test_movie_export_range(
-    monkeypatch, tmpdir_factory, rgb_tiff_file_multi, start, stop, ref, correlated
+    monkeypatch, tmpdir_factory, rgb_tiff_file_multi, start, stop, ref, correlated, is_stream
 ):
     tmpdir = tmpdir_factory.mktemp("pylake")
-    stack = ImageStack(str(rgb_tiff_file_multi))
+    stack = ImageStack(to_stream(rgb_tiff_file_multi) if is_stream else rgb_tiff_file_multi)
 
     dt_stack = stack.frame_timestamp_ranges()[1][0] - stack.frame_timestamp_ranges()[0][0]
     corr_data = (
