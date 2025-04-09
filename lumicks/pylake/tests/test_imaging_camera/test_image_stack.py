@@ -8,6 +8,7 @@ import pytest
 import tifffile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from tifffile import TiffFileError
 
 from lumicks.pylake import ImageStack, CorrelatedStack, channel
 from lumicks.pylake.adjustments import ColorAdjustment
@@ -1362,3 +1363,16 @@ def test_two_color_write_again(
 
         im.close()
         im_read.close()
+
+
+def test_bad_file():
+    """Test that we can handle a bad file."""
+
+    with pytest.raises(TiffFileError, match="not a TIFF file"):
+        _ = ImageStack(io.BytesIO(b"Not a tiff"))
+
+
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_no_metadata(is_stream, tiff_no_metadata):
+    with pytest.raises(RuntimeError, match="The timestamp data was incorrectly formatted"):
+        _ = ImageStack(to_stream(tiff_no_metadata) if is_stream else tiff_no_metadata)
