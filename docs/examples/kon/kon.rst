@@ -11,7 +11,7 @@ Rate of binding
 Determine the rate of binding
 -----------------------------
 
-In this Notebook, we will determine the binding time of a fluorescently labeled protein binding to DNA. 
+In this Notebook, we will determine the time between binding events for a fluorescently labeled protein binding to DNA. 
 The protein binds and unbinds to target sites on DNA and the result is recorded as a kymograph.  
 We track the binding events, and then determine the time intervals *between* the binding events:
 
@@ -19,16 +19,16 @@ We track the binding events, and then determine the time intervals *between* the
 
 These time intervals tell you how long it takes for a protein to bind to an empy target site.
 
-The binding time, :math:`\tau_{on}` relates to the on rate of protein, :math:`k_{on}`, as :math:`\tau_{on}=1/ (k_{on}[P])` . 
+The time between binding events, :math:`\tau_{on}` relates to the on rate of protein, :math:`k_{on}`, as :math:`\tau_{on}=1/ (k_{on}[P])` . 
 The binding rate :math:`k_{on}` relates to the dissociation constant as.
 
 .. math::
 
-    K_{off} = \frac{k_{off}}{k_{on}}
+    K_{D} = \frac{k_{off}}{k_{on}}
 
 For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}` . 
-We will determine the binding time and refer to the inverse of the binding time, as the *effective binding rate*, :math:`k'_{on} = k_{on}[P]` .
-Further, we assume that the *bleaching time* for the dye is much longer than the binding time, such that we can ignore the effect of bleaching.
+We will determine the time between binding events and refer to the inverse of that, as the *effective binding rate*, :math:`k'_{on} = k_{on}[P]` .
+Further, we assume that the *bleaching time* for the dye is much longer than the time between binding, such that we can ignore the effect of bleaching.
 
 Load and plot the kymographs
 ----------------------------
@@ -142,7 +142,7 @@ All the time intervals between binding events are stored in the list `intervals_
 Determine kon
 -------------
 
-Binding times are typically exponentially distributed. The distribution can be expressed in terms of the effective on-rate, :math:`k'_{on}`, or in terms of the binding lifetime, :math:`\tau_{on}`:
+The time intervals between binding are typically exponentially distributed. The distribution can be expressed in terms of the effective on-rate, :math:`k'_{on}`, or in terms of the binding lifetime, :math:`\tau_{on}`:
 
 .. math::
 
@@ -160,7 +160,7 @@ We cannot observe time intervals smaller than the line time, which is accounted 
 
 .. image:: hist_fit.png
 
-The fitted binding time is 35 seconds, which is equivalent to an effective rate :math:`k'_{on} = 1/35 = 0.029 s^{-1}`.
+The fitted average time between binding events is 35 seconds, corresponding to an effective rate :math:`k'_{on} = 1/35 = 0.029 s^{-1}`.
 
 The confidence intervals can be determined using Bootstrapping::
 
@@ -175,9 +175,9 @@ The confidence intervals can be determined using Bootstrapping::
 Conclusion and Outlook
 ----------------------
 
-The binding time is 35 seconds with a 95% confidence interval of (24,50).
+The average time between binding events is 35 seconds with a 95% confidence interval of (24,50).
 
-As mentioned in the introduction, the obtained binding time depends on the protein concentration. 
+As mentioned in the introduction, the obtained time depends on the protein concentration. 
 Since we don't know the protein concentration, this value can only be compared to measurements with the same protein concentration in the flow cell.
 If you would like to compute the dissociation constant and compare to bulk experiments, the concentration has to be determined [1]_. 
 
