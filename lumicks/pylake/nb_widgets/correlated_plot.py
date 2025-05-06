@@ -155,8 +155,6 @@ def plot_correlated(
             fig.canvas.draw()
 
     def select_frame(event):
-        nonlocal poly
-
         if not event.canvas.widgetlock.locked() and event.inaxes == ax_channel:
             time = event.xdata * 1e9 + t0
             for img_idx, (start, stop) in enumerate(frame_change_ranges):

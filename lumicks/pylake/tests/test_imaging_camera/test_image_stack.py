@@ -8,9 +8,11 @@ import pytest
 import tifffile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from tifffile import TiffFileError
 
 from lumicks.pylake import ImageStack, CorrelatedStack, channel
 from lumicks.pylake.adjustments import ColorAdjustment
+from lumicks.pylake.detail.utilities import to_stream
 from lumicks.pylake.detail.widefield import TiffStack
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
 from lumicks.pylake.kymotracker.kymotracker import track_greedy
@@ -188,8 +190,14 @@ def test_stack_from_dataset():
 
 
 def test_stack_name_from_file(rgb_tiff_file):
-    cs = ImageStack(str(rgb_tiff_file), align=True)
+    cs = ImageStack(rgb_tiff_file, align=True)
     assert cs.name == "rgb_single"
+    cs.close()
+
+
+def test_stack_name_from_stream(rgb_tiff_file):
+    cs = ImageStack(to_stream(rgb_tiff_file), align=True)
+    assert cs.name == "<_io"
     cs.close()
 
 
@@ -544,10 +552,11 @@ def test_stack_name(monkeypatch):
         assert stack.name == "Multi-file stack"
 
 
-def test_cropping(rgb_tiff_file, gray_tiff_file):
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_cropping(rgb_tiff_file, gray_tiff_file, is_stream):
     for filename in (rgb_tiff_file, gray_tiff_file):
         for align in (True, False):
-            stack = ImageStack(filename, align=True)
+            stack = ImageStack(to_stream(filename) if is_stream else filename, align=True)
             cropped = stack.crop_by_pixels(25, 50, 25, 50)
             np.testing.assert_allclose(
                 cropped._get_frame(0).data,
@@ -562,14 +571,15 @@ def test_cropping(rgb_tiff_file, gray_tiff_file):
             stack.close()
 
 
+@pytest.mark.parametrize("is_stream", [False, True])
 def test_cropping_then_export(
-    rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi
+    rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi, is_stream
 ):
     from os import stat
 
     for filename in (rgb_tiff_file, rgb_tiff_file_multi, gray_tiff_file, gray_tiff_file_multi):
         savename = str(filename.new(purebasename=f"roi_out_{filename.purebasename}"))
-        stack = ImageStack(str(filename))
+        stack = ImageStack(to_stream(filename) if is_stream else filename)
         stack = stack.crop_by_pixels(10, 190, 20, 80)
 
         stack.export_tiff(savename)
@@ -1053,7 +1063,7 @@ def test_time_ordering_stack(rgb_alignment_image_data):
     t1, t2, t3, t4 = (to_tiff(*rgb_alignment_image_data[1:], t, 1) for t in timestamps)
     stack = TiffStack([t3, t2, t1, t4], align_requested=True)
 
-    for idx, (_, ts) in enumerate(zip((t1, t2, t3, t4), timestamps)):
+    for idx, ts in enumerate(timestamps):
         assert stack.get_frame(idx).start == ts
 
 
@@ -1314,25 +1324,33 @@ def test_tiffstack_automatic_cleanup(gray_tiff_file_multi):
         im.get_frame(0)
 
 
-def test_imagestack_explicit_close(gray_tiff_file_multi):
-    im = ImageStack(gray_tiff_file_multi)
-    handle = im._src._tiff_files[0]._src.filehandle
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_imagestack_explicit_close(gray_tiff_file_multi, is_stream):
+    im = ImageStack(to_stream(gray_tiff_file_multi) if is_stream else gray_tiff_file_multi)
     derived_im = im.crop_by_pixels(1, 3, 1, 3)
-    assert not handle.closed
-    im.close()
-    assert handle.closed
 
+    if not is_stream:
+        handle = im._src._tiff_files[0]._src.filehandle
+        assert not handle.closed
+
+    im.close()
+
+    if not is_stream:
+        assert handle.closed
+
+    name = "Unnamed binary stream" if is_stream else "gray_multi.tiff"
     for current_stack in (im, derived_im):
         with pytest.raises(
             IOError,
-            match=r"The file handle for this TiffStack \(gray_multi.tiff\) has already been closed.",
+            match=rf"The file handle for this TiffStack \({name}\) has already been closed.",
         ):
             current_stack.get_image("rgb")
 
 
-def test_two_color(gb_tiff_file_single, gb_tiff_file_multi, bg_tiff_file_single):
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_two_color(gb_tiff_file_single, gb_tiff_file_multi, bg_tiff_file_single, is_stream):
     for filename, reference_image in (gb_tiff_file_single, gb_tiff_file_multi):
-        im = ImageStack(filename)
+        im = ImageStack(to_stream(filename) if is_stream else filename)
 
         normalization = 1.0 / np.max(np.abs(reference_image))
         np.testing.assert_allclose(
@@ -1388,3 +1406,16 @@ def test_two_color_write_again(
 
         im.close()
         im_read.close()
+
+
+def test_bad_file():
+    """Test that we can handle a bad file."""
+
+    with pytest.raises(TiffFileError, match="not a TIFF file"):
+        _ = ImageStack(io.BytesIO(b"Not a tiff"))
+
+
+@pytest.mark.parametrize("is_stream", [False, True])
+def test_no_metadata(is_stream, tiff_no_metadata):
+    with pytest.raises(RuntimeError, match="The timestamp data was incorrectly formatted"):
+        _ = ImageStack(to_stream(tiff_no_metadata) if is_stream else tiff_no_metadata)

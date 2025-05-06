@@ -14,6 +14,14 @@
 * `KymoTrackGroup.ensemble_diffusion("cve")` now raises a descriptive `ValueError` when invoked on a `KymoTrackGroup` which doesn't have any tracks available which can be used to estimate a diffusion constant.
 * Added option to save TIFFs bigger than 4 GB using `bigtiff=True`.
 
+## v1.6.2 | 2025-05-06
+
+#### Bug fixes
+
+* Fixed a bug where confidence intervals obtained with [`DwelltimeModel.profile_likelihood()`](https://lumicks-pylake.readthedocs.io/en/v1.6.0/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.profile_likelihood) were too wide (overly pessimistic). The bug originated from a factor two difference between the negative log likelihood and chi-squared value. This effect is more pronounced for lower significance levels. Using a significance factor of `0.05` (~2 sigma) would have resulted in an effective significance factor of `0.0056`. `0.32` (~1 sigma) would have resulted in an effective significance level of `0.16` and results for a significance level of `0.5` would have been unchanged. The shape of the profile likelihood curve is unchanged.
+* Fixed a bug where plotting a standard error alongside a profile likelihood plot would have resulted in a curve that is too narrow.
+* Fixed a bug where attempting to load a TIF file with insufficient metadata resulted in an unrelated `AttributeError` when deleting the `ImageStack`.
+
 ## v1.6.1 | 2025-01-29
 
 #### Bug fixes

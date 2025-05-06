@@ -176,7 +176,6 @@ class KymoWidget:
             return np.hstack(nodes).T
 
         def get_nearest(x, y):
-            nonlocal nodes
             ref_position = np.array([x, y])
             squared_dist = np.sum(((ref_position - nodes[:, -2:]) / self._get_scale()) ** 2, 1)
             idx = np.argmin(squared_dist)
@@ -240,7 +239,7 @@ class KymoWidget:
                 return True
 
         def drag_track(event):
-            nonlocal clicked_track_info, plotted_track
+            nonlocal plotted_track
             if plotted_track:
                 plotted_track.remove()
                 plotted_track = None
@@ -254,7 +253,7 @@ class KymoWidget:
             canvas.draw_idle()
 
         def finalize_track(event):
-            nonlocal clicked_track_info, plotted_track
+            nonlocal plotted_track
             if plotted_track:
                 plotted_track.remove()
                 plotted_track = None
