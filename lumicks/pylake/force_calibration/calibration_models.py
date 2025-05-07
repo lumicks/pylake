@@ -222,6 +222,38 @@ def viscosity_of_water(temperature, molarity_nacl=None, pressure=None):
         return _poly((temperature + 273.15) / 300, bi, ai) * 1e-6
 
 
+def surface_drag_correction(distance_to_surface, bead_diameter, axial=False):
+    """Calculate a correction factor for the drag coefficient due to a nearby surface [1]_.
+
+    Parameters
+    ----------
+    distance_to_surface : array_like | float
+        Distance from the center of the bead to the surface
+    bead_diameter : float
+        Bead diameter
+    axial : bool
+        Compute the correction factor for axial drag
+
+    References
+    ----------
+    .. [1] Schäffer, E., Nørrelykke, S. F., & Howard, J. "Surface forces and drag coefficients of
+           microspheres near a plane surface measured with optical tweezers." Langmuir, 23(7), 3654-3665
+           (2007).
+    """
+    distance_to_surface = np.asarray(distance_to_surface)
+
+    if np.any(distance_to_surface <= 0.5 * bead_diameter):
+        raise ValueError(
+            f"Bead is inside the surface. you specified a distance of {distance_to_surface}, while"
+            f"the bead radius is {bead_diameter / 2}"
+        )
+
+    if axial:
+        return brenner_axial(distance_to_surface, bead_diameter / 2)
+    else:
+        return faxen_factor(distance_to_surface, bead_diameter / 2)
+
+
 def coupling_correction_2d(dx, dy, bead_diameter, is_y_oscillation=False, allow_rotation=True):
     """Calculates the coupling correction factor for a 2D problem.
 

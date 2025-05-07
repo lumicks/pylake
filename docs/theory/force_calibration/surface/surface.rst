@@ -1,9 +1,12 @@
-Surface proximity
------------------
+Theory on surface effects
+-------------------------
 
 .. only:: html
 
     :nbexport:`Download this page as a Jupyter notebook <self>`
+
+Description
+^^^^^^^^^^^
 
 .. _surface_models:
 

@@ -42,6 +42,7 @@ Force calibration
     force_calibration.power_spectrum.PowerSpectrum
     force_calibration.power_spectrum_calibration.CalibrationResults
     force_calibration.calibration_models.DiodeCalibrationModel
+    force_calibration.touchdown.TouchdownResult
 
     :template: function.rst
 
@@ -50,6 +51,7 @@ Force calibration
     fit_power_spectrum
     viscosity_of_water
     density_of_water
+    touchdown
     coupling_correction_2d
 
 
