@@ -874,7 +874,7 @@ def test_fit_binding_times_nonzero(blank_kymo, blank_kymo_track_args):
         np.testing.assert_equal(dwelltime_model.dwelltimes, [4, 4, 4, 4])
         np.testing.assert_equal(dwelltime_model._observation_limits[0], 4)
         np.testing.assert_allclose(dwelltime_model.lifetimes[0], [0.4])
-        np.testing.assert_allclose(dwelltime_model._err_lifetimes[0], 0.199994, rtol=1e-5)
+        np.testing.assert_allclose(dwelltime_model.err_lifetimes[0], 0.199994, rtol=1e-5)
 
 
 def test_fit_binding_times_empty():

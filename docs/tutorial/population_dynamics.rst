@@ -278,6 +278,42 @@ These information criteria values weigh the log likelihood against the model com
 model selection. In general, the model with the lowest value is optimal. We can see that both values are lower for the double
 exponential model, but only slightly so it is not strong evidence to choose the more complex model.
 
+.. _pop_std_err:
+
+Standard errors
+^^^^^^^^^^^^^^^
+
+After the optimal model for the data has been selected using the methods above, the reliability of the parameter estimates can be determined.
+Pylake provides several methods to determine both the confidence intervals and the standard errors of the parameters.
+For large datasets, the standard error under `err_amplitudes` and `err_lifetimes` can be used. Note that these are only asymptotically correct:
+
+    >>> dwell_1.err_lifetimes
+    array([0.00039664])
+
+    >>> dwell_2.err_amplitudes
+    array([0.03601527, 0.03601527])
+
+    >>> dwell_2.err_lifetimes
+    array([0.00072262, 0.00063035])
+
+In most cases, what we would actually like to have are confidence intervals.
+If we were to repeat the experiment many times, the true parameter would fall inside the confidence interval a set fraction of the time (confidence level).
+We can convert these asymptotic standard errors into confidence intervals (CI) using the :math:`\chi^2` distribution::
+
+    def to_ci(parameter_value, std_err, confidence_level):
+        import scipy
+
+        chi_squared = scipy.stats.chi2.ppf(confidence_level, 1)
+        d = np.sqrt(chi_squared * std_err ** 2)
+        return [parameter_value - d, parameter_value + d]
+
+For example, to get the 95% confidence interval for dwell time `2`, we could invoke:
+
+    >>> print(to_ci(dwell_2.lifetimes[1], dwell_2.err_lifetimes[1], 0.95))
+    [0.01486646499028639, 0.014945519089580198]
+
+For more rigorous uncertainty analysis, consider the options below.
+
 Confidence intervals from bootstrapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -344,21 +380,26 @@ It can be invoked by calling :meth:`lumicks.pylake.DwelltimeModel.profile_likeli
     profiles = dwell_2.profile_likelihood()
 
     plt.figure()
-    profiles.plot()
+    profiles.plot(with_stderr=True)
     plt.tight_layout()
     plt.show()
 
 .. image:: figures/population_dynamics/pop_ple.png
 
-The intersection points between the blue curve and the dashed lines indicate the confidence interval.
-These can be extracted by using the :meth:`~lumicks.pylake.population.dwelltime.DwelltimeProfiles.get_interval` method from the :class:`~lumicks.pylake.population.dwelltime.DwelltimeProfiles`::
+The intersection points between the blue curve and the dashed horizontal lines indicate the confidence interval.
+Here, we called it with `with_stderr` so we can see how the profiles compare to the asymptotic results (see also :ref:`pop_std_err`) which are shown with dashed lines.
+These can be extracted by using the :meth:`~lumicks.pylake.population.dwelltime.DwelltimeProfiles.get_interval` method from the :class:`~lumicks.pylake.population.dwelltime.DwelltimeProfiles`:
 
-    # Get confidence intervals
-    for component in range(2):
-        interval = profiles.get_interval("amplitude", component)
-        print(f"Amplitude {component}: {interval}")
-        interval = profiles.get_interval("lifetime", component)
-        print(f"Lifetime {component}: {interval}")
+    >>> # Get confidence intervals
+    ... for component in range(2):
+    ...     interval = profiles.get_interval("amplitude", component)
+    ...     print(f"Amplitude {component}: {interval}")
+    ...     interval = profiles.get_interval("lifetime", component)
+    ...     print(f"Lifetime {component}: {interval}")
+    Amplitude 0: (0.05982816424650479, 0.21741436565540087)
+    Lifetime 0: (0.001636984107953483, 0.004916100332753989)
+    Amplitude 1: (0.7825797139037362, 0.9401719367915693)
+    Lifetime 1: (0.013775669029270098, 0.016306865025599655)
 
 If the confidence interval for any of the amplitudes contains zero, then that component contributes very little to the model fit and a model with fewer components should be used.
 

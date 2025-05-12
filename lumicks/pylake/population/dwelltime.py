@@ -209,7 +209,7 @@ class DwelltimeProfiles:
         """Number of components in the model."""
         return self.model.n_components
 
-    def plot(self, alpha=None, **kwargs):
+    def plot(self, alpha=None, with_stderr=False, **kwargs):
         """Plot the profile likelihoods for the parameters of a model.
 
         Confidence interval is indicated by the region where the profile crosses the chi squared
@@ -221,10 +221,10 @@ class DwelltimeProfiles:
             Significance level. Confidence intervals are calculated as 100 * (1 - alpha)%. The
             default value of `None` results in using the significance level applied when
             profiling (default: 0.05).
+        with_stderr : bool, optional
+            Plot with quadratic approximation based on parameter standard errors (default: False)
         """
         import matplotlib.pyplot as plt
-
-        with_stderr = kwargs.pop("with_stderr") if "with_stderr" in kwargs else False
 
         std_errs = self.model._std_errs[~np.isnan(self.model._std_errs)]
         if self.n_components == 1:
@@ -663,7 +663,7 @@ class DwelltimeModel:
         return self._parameters[self.n_components :]
 
     @property
-    def _err_amplitudes(self):
+    def err_amplitudes(self):
         """Asymptotic standard error estimate on the model amplitudes.
 
         Returns an asymptotic standard error on the amplitude parameters. These error estimates
@@ -677,7 +677,7 @@ class DwelltimeModel:
         return self._std_errs[: self.n_components]
 
     @property
-    def _err_lifetimes(self):
+    def err_lifetimes(self):
         """Asymptotic standard error estimate on the model lifetimes.
 
         Returns an asymptotic standard error on the amplitude parameters. These error estimates
