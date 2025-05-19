@@ -1,8 +1,12 @@
+import os
+
 import numpy as np
 import pytest
 
+import lumicks.pylake.force_calibration.power_spectrum_calibration as psc
 from lumicks.pylake.low_level import make_continuous_slice
 from lumicks.pylake.detail.imaging_mixins import _FIRST_TIMESTAMP
+from lumicks.pylake.force_calibration.calibration_models import PassiveCalibrationModel
 
 from .test_calibration_item import ref_active
 from .data.simulate_calibration_data import generate_active_calibration_test_data
@@ -145,3 +149,18 @@ def calibration_data():
     dummy_voltage = np.random.normal(size=num_samples)
     dummy_nano = np.sin(2.0 * np.pi * 17 * np.arange(num_samples) / 78125)
     return dummy_voltage, dummy_nano
+
+
+@pytest.fixture(scope="module")
+def reference_calibration_result():
+    data = np.load(os.path.join(os.path.dirname(__file__), "data/reference_spectrum.npz"))
+    reference_spectrum = data["arr_0"]
+    model = PassiveCalibrationModel(4.4, temperature=20, viscosity=0.001002)
+    reference_spectrum = psc.calculate_power_spectrum(
+        reference_spectrum, sample_rate=78125, num_points_per_block=100, fit_range=(100.0, 23000.0)
+    )
+    ps_calibration = psc.fit_power_spectrum(
+        power_spectrum=reference_spectrum, model=model, bias_correction=False
+    )
+
+    return ps_calibration, model, reference_spectrum

@@ -1,4 +1,3 @@
-import os
 import re
 from textwrap import dedent
 
@@ -110,6 +109,7 @@ def test_good_fit_integration(
     np.testing.assert_allclose(ps_calibration["D"].value, diffusion_constant, rtol=1e-4, atol=0)
     np.testing.assert_allclose(ps_calibration["alpha"].value, alpha, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["f_diode"].value, f_diode, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["Number of iterations"].value, 1, rtol=1e-4)
 
     np.testing.assert_allclose(ps_calibration["fc"].value, ps_calibration.corner_frequency)
     np.testing.assert_allclose(ps_calibration["D"].value, ps_calibration.diffusion_constant_volts)
@@ -193,21 +193,6 @@ def test_no_data_in_range():
 
     with pytest.raises(RuntimeError):
         psc.fit_power_spectrum(power_spectrum, model=model)
-
-
-@pytest.fixture(scope="module")
-def reference_calibration_result():
-    data = np.load(os.path.join(os.path.dirname(__file__), "data/reference_spectrum.npz"))
-    reference_spectrum = data["arr_0"]
-    model = PassiveCalibrationModel(4.4, temperature=20, viscosity=0.001002)
-    reference_spectrum = psc.calculate_power_spectrum(
-        reference_spectrum, sample_rate=78125, num_points_per_block=100, fit_range=(100.0, 23000.0)
-    )
-    ps_calibration = psc.fit_power_spectrum(
-        power_spectrum=reference_spectrum, model=model, bias_correction=False
-    )
-
-    return ps_calibration, model, reference_spectrum
 
 
 def test_bad_fit(reference_calibration_result):
