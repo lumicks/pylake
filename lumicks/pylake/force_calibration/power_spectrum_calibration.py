@@ -29,6 +29,8 @@ References
 """
 
 import math
+import warnings
+import dataclasses
 from collections import namedtuple
 
 import numpy as np
@@ -90,6 +92,17 @@ def lorentzian_loss(p, model: ScaledModel, frequencies, powers, num_points_per_b
     return np.sum(np.log(1 + 0.5 * ((powers - model(frequencies, *p)) / gamma) ** 2))
 
 
+@dataclasses.dataclass
+class CalibrationFitParams:
+    params: np.ndarray  # Optimized parameter vector
+    params_stderr: np.ndarray  # Parameter error estimates
+    chi_squared: float  # Chi-squared value after optimization
+
+    @property
+    def corner_frequency(self) -> float:
+        return float(self.params[0])
+
+
 def _fit_power_spectra(
     model,
     frequencies,
@@ -128,12 +141,8 @@ def _fit_power_spectra(
 
     Returns
     -------
-    solution_params : np.ndarray
-        Optimized parameter vector
-    perr : np.ndarray
-        Parameter error estimates
-    chi_squared : float
-        Chi-squared value after optimization
+    result : CalibrationFitParams
+        Class containing optimized parameter vector, error estimates and chi squared values
     """
     # The actual curve fitting process is driven by a set of fit parameters that are of order unity.
     # This increases the robustness of the fit (see ref. 3). The `ScaledModel` model class takes
@@ -161,11 +170,11 @@ def _fit_power_spectra(
         bounds=(lower_bounds, upper_bounds),
     )
     solution_params_rescaled = np.abs(solution_params_rescaled)
-    perr = np.sqrt(np.diag(pcov))
+    params_stderr = np.sqrt(np.diag(pcov))
 
     # Undo the scaling
     solution_params = scaled_model.scale_params(solution_params_rescaled)
-    perr = scaled_model.scale_params(perr)
+    params_stderr = scaled_model.scale_params(params_stderr)
 
     # Use the least squares method as a starting point for a robust fit
     if loss_function == "lorentzian":
@@ -181,12 +190,96 @@ def _fit_power_spectra(
         solution_params_scaled = np.abs(minimize_result.x)
         solution_params = scaled_model.scale_params(solution_params_scaled)
 
-        # Return nan for perr, as scipy.optimize.minimize does not return the covariance matrix
-        perr = np.nan * np.ones_like(solution_params)
+        # Return nan for standard error, as scipy.optimize.minimize does not return the covariance
+        # matrix
+        params_stderr = np.nan * np.ones_like(solution_params)
 
     chi_squared = np.sum(((1 / model(frequencies, *solution_params) - 1 / powers) / sigma) ** 2)
 
-    return solution_params, perr, chi_squared
+    return CalibrationFitParams(solution_params, params_stderr, chi_squared)
+
+
+def _iterate_fit_range(
+    fit_function,
+    fit,
+    power_spectrum,
+    corner_frequency_factors,
+    max_iterations,
+    rtol,
+):
+    """Iteratively optimize the upper bound of the fit range
+
+    Parameters
+    ----------
+    fit_function : callable
+        Function that takes a power spectral density and performs the fit.
+    fit : CalibrationFitParams
+        Reference fit that was fitted using the full power spectrum.
+    power_spectrum : PowerSpectrum
+        Power spectral density.
+    corner_frequency_factors : tuple of float
+        Relative bounds used when fitting. The fitting range will be determined by:
+        [min(initial_fit_range, corner_frequency_factors[0] * corner_frequency),
+        min(initial_fit_range, corner_frequency_factors[1] * corner_frequency)]
+    max_iterations : int
+        Maximum number of iterations to use.
+    rtol : float
+        Relative tolerance for the change in corner frequency to accept the fit as converged.
+
+    Returns
+    -------
+    fit : CalibrationFitParams
+        Fit parameters after the iterative fitting procedure.
+    fitted_power_spectrum : PowerSpectrum
+        Power spectrum that was used for the final fit
+    num_iter : int
+        Number of iterations that were performed before convergence or reaching the maximum
+        iteration count
+
+    Warns
+    -----
+    RuntimeWarning
+        If the fit did not converge after the maximum number of iterations.
+    """
+    # We keep a list of visited corner frequencies because in some rare cases, the corner frequency
+    # estimation can end up in a cycle. We should detect this and provide an alternate suggestion.
+    corner_frequencies = list()
+    fitted_power_spectrum = power_spectrum
+    proposed_frequency = fit.corner_frequency
+    for num_iter in range(max_iterations):
+        new_bounds = [
+            min(bnd, factor * proposed_frequency)
+            for bnd, factor in zip(power_spectrum._fit_range, corner_frequency_factors)
+        ]
+
+        # In some cases, noise floors can result in a corner frequency estimate that is very low.
+        # We shouldn't allow the estimate we use to establish the fitting range to drop below the
+        # old lower bound that was fitted.
+        new_bounds[1] = max(
+            power_spectrum._fit_range[0] * corner_frequency_factors[1], new_bounds[1]
+        )
+        fitted_power_spectrum = power_spectrum.with_range(*new_bounds)
+        fit_new = fit_function(fitted_power_spectrum)
+
+        if abs(fit.corner_frequency - fit_new.corner_frequency) < rtol * fit_new.corner_frequency:
+            return fit_new, fitted_power_spectrum, num_iter
+        else:
+            if fit_new.corner_frequency in corner_frequencies:
+                # If we have already seen this exact corner frequency before, it doesn't make sense
+                # to try it again. Base the next guess on the average of the last two.
+                proposed_frequency = 0.5 * (corner_frequencies[-1] + fit_new.corner_frequency)
+            else:
+                proposed_frequency = fit_new.corner_frequency
+
+            fit = fit_new
+            corner_frequencies.append(proposed_frequency)
+    else:
+        warnings.warn(
+            f"Fit did not converge after {max_iterations} iterations. Returning last fit.",
+            RuntimeWarning,
+        )
+
+    return fit, fitted_power_spectrum, num_iter
 
 
 def fit_power_spectrum(
@@ -197,6 +290,7 @@ def fit_power_spectrum(
     max_function_evals=10000,
     bias_correction=True,
     loss_function="gaussian",
+    corner_frequency_factor=None,
 ) -> CalibrationResults:
     """Fit a power spectrum.
 
@@ -231,6 +325,11 @@ def fit_power_spectrum(
         number of different scenarios. The API can still be subject to change without any prior
         deprecation notice! If you use this functionality keep a close eye on the changelog for any
         changes that may affect your analysis.
+    corner_frequency_factor : float | None, optional
+        When this parameter is supplied, the power spectrum is truncated at a multiple of the
+        corner frequency. This is useful to avoid fitting the noise floor when the corner frequency
+        is low while also reducing the effect of a potentially biased diode characterisation when
+        the power is very low.
 
     Returns
     -------
@@ -283,6 +382,16 @@ def fit_power_spectrum(
     if bias_correction and loss_function == "lorentzian":
         raise RuntimeError('Bias correction and loss function="lorentzian" are mutually exclusive')
 
+    # Are we fitting a diode
+    if corner_frequency_factor and len(model._filter.lower_bounds()):
+        raise ValueError(
+            "Fitting with adaptive fitting is unreliable when fitting the parasitic filtering "
+            "parameters! The parameters which describe the parasitic filtering by the diode are "
+            "likely inestimable from the data included by the automated fitting ranges which "
+            "would result in unreliable calibration factors and is therefore disallowed! Please "
+            "use either fixed diode parameters or disable automatic fitting ranges."
+        )
+
     # Fit analytical Lorentzian to get initial guesses for the full power spectrum model.
     analytical_power_spectrum = power_spectrum.in_range(*analytical_fit_range)
     if len(analytical_power_spectrum.frequency) < 1:
@@ -293,37 +402,52 @@ def fit_power_spectrum(
         )
     anl_fit_res = fit_analytical_lorentzian(analytical_power_spectrum)
 
-    solution_params, perr, chi_squared = _fit_power_spectra(
-        model,
-        power_spectrum.frequency,
-        power_spectrum.power,
-        power_spectrum.num_points_per_block,
-        initial_params=np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values]),
-        lower_bounds=np.array([0.0, 0.0, *model._filter.lower_bounds()]),
-        upper_bounds=np.array(
-            [np.inf, np.inf, *model._filter.upper_bounds(power_spectrum.sample_rate)]
-        ),
-        ftol=ftol,
-        max_function_evals=max_function_evals,
-        loss_function=loss_function,
-    )
+    def do_fit(spectrum):
+        return _fit_power_spectra(
+            model,
+            spectrum.frequency,
+            spectrum.power,
+            spectrum.num_points_per_block,
+            initial_params=np.array([anl_fit_res.fc, anl_fit_res.D, *model._filter.initial_values]),
+            lower_bounds=np.array([0.0, 0.0, *model._filter.lower_bounds()]),
+            upper_bounds=np.array(
+                [np.inf, np.inf, *model._filter.upper_bounds(spectrum.sample_rate)]
+            ),
+            ftol=ftol,
+            max_function_evals=max_function_evals,
+            loss_function=loss_function,
+        )
+
+    fit = do_fit(power_spectrum)
+    num_iter = 1
+
+    if corner_frequency_factor:
+        fit, power_spectrum, num_iter = _iterate_fit_range(
+            fit=fit,
+            fit_function=do_fit,
+            power_spectrum=power_spectrum,
+            corner_frequency_factors=(0.1, corner_frequency_factor),
+            max_iterations=10,
+            rtol=1e-3,
+        )
+        num_iter += 1  # Count the initial fit as well
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
-    n_degrees_of_freedom = power_spectrum.power.size - len(solution_params)
-    chi_squared_per_deg = chi_squared / n_degrees_of_freedom
-    backing = scipy.stats.chi2.sf(chi_squared, n_degrees_of_freedom) * 100
+    n_degrees_of_freedom = power_spectrum.power.size - len(fit.params)
+    chi_squared_per_deg = fit.chi_squared / n_degrees_of_freedom
+    backing = scipy.stats.chi2.sf(fit.chi_squared, n_degrees_of_freedom) * 100
 
     # Fitted power spectrum values.
     ps_model = power_spectrum.with_spectrum(
-        model(power_spectrum.frequency, *solution_params), power_spectrum.num_points_per_block
+        model(power_spectrum.frequency, *fit.params), power_spectrum.num_points_per_block
     )
 
     # When using theoretical weights for fitting, ref [5] mentions that the found value for D will
     # be biased by a factor (n+1)/n. Multiplying by n/(n+1) compensates for this.
     if bias_correction:
         bias_corr = power_spectrum.num_points_per_block / (power_spectrum.num_points_per_block + 1)
-        solution_params[1] *= bias_corr
-        perr[1] *= bias_corr
+        fit.params[1] *= bias_corr
+        fit.params_stderr[1] *= bias_corr
 
     return CalibrationResults(
         model=model,
@@ -331,18 +455,19 @@ def fit_power_spectrum(
         ps_model=ps_model,
         results={
             **model.calibration_results(
-                fc=solution_params[0],
-                diffusion_constant_volts=solution_params[1],
-                filter_params=solution_params[2:],
-                fc_err=perr[0],
-                diffusion_constant_volts_err=perr[1],
-                filter_params_err=perr[2:],
+                fc=fit.params[0],
+                diffusion_constant_volts=fit.params[1],
+                filter_params=fit.params[2:],
+                fc_err=fit.params_stderr[0],
+                diffusion_constant_volts_err=fit.params_stderr[1],
+                filter_params_err=fit.params_stderr[2:],
             ),
             "chi_squared_per_deg": CalibrationParameter(
                 "Chi squared per degree of freedom", chi_squared_per_deg, ""
             ),
             "backing": CalibrationParameter("Statistical backing", backing, "%"),
             "Kind": CalibrationParameter("Calibration type", "Full calibration", "-"),
+            "Number of iterations": CalibrationParameter("Number of fitting rounds", num_iter, ""),
         },
         params={
             **model.calibration_parameters(),
@@ -361,5 +486,5 @@ def fit_power_spectrum(
                 "Loss function used during minimization", loss_function, ""
             ),
         },
-        fitted_params=solution_params,
+        fitted_params=fit.params,
     )
