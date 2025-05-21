@@ -33,6 +33,7 @@ def calibrate_force(
     fixed_alpha=None,
     drag=None,
     driving_sample_rate=None,
+    corner_frequency_factor=None,
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
@@ -108,6 +109,9 @@ def calibrate_force(
     driving_sample_rate : float, optional
         Sample rate at which the driving frequency is sampled. This is only used for active
         calibration and when omitted the sample rate of the force data will be used (default: None).
+    corner_frequency_factor : float | None, optional
+        Use adaptive fitting ranges. This is a factor that is multiplied with the corner frequency
+        to determine the upper bound for the fitting range.
 
     Raises
     ------
@@ -239,4 +243,4 @@ def calibrate_force(
         excluded_ranges=excluded_ranges,
     )
 
-    return fit_power_spectrum(ps, model)
+    return fit_power_spectrum(ps, model, corner_frequency_factor=corner_frequency_factor)
