@@ -32,6 +32,7 @@ def calibrate_force(
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
+    corner_frequency_factor=None,
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
@@ -104,6 +105,9 @@ def calibrate_force(
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
         Fix diode relaxation factor to particular value.
+    corner_frequency_factor : float | None, optional
+        Use adaptive fitting ranges. This is a factor that is multiplied with the corner frequency
+        to determine the upper bound for the fitting range.
 
     Raises
     ------
@@ -233,4 +237,4 @@ def calibrate_force(
         excluded_ranges=excluded_ranges,
     )
 
-    return fit_power_spectrum(ps, model)
+    return fit_power_spectrum(ps, model, corner_frequency_factor=corner_frequency_factor)
