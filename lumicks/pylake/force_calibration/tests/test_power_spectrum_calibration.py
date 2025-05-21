@@ -242,7 +242,19 @@ def test_noise_floor(reference_calibration_result):
     bad_calibration = psc.fit_power_spectrum(
         power_spectrum=bad_spectrum, model=model_fixed_diode, loss_function="gaussian"
     )
-    good_calibration = psc.fit_power_spectrum(
+    with pytest.warns(
+        RuntimeWarning,
+        match="Fitting with adaptive fitting ranges may be unreliable when fitting the "
+        "parasitic filtering parameters",
+    ):
+        warned = psc.fit_power_spectrum(
+            power_spectrum=bad_spectrum,
+            model=model,
+            loss_function="gaussian",
+            corner_frequency_factor=4,
+        )
+
+    good_fit = psc.fit_power_spectrum(
         power_spectrum=bad_spectrum,
         model=model_fixed_diode,
         loss_function="gaussian",
@@ -258,7 +270,8 @@ def test_noise_floor(reference_calibration_result):
 
     # Results with the mitigation should be within 5% of true
     for name, expected_result in results.items():
-        np.testing.assert_allclose(good_calibration[name].value, expected_result, rtol=5e-2)
+        np.testing.assert_allclose(good_fit[name].value, expected_result, rtol=5e-2)
+        np.testing.assert_allclose(warned[name].value, expected_result, rtol=3e-1)  # oof tolerance
         with pytest.raises(AssertionError):
             np.testing.assert_allclose(bad_calibration[name].value, expected_result, rtol=5e-2)
 

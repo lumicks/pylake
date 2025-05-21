@@ -396,6 +396,17 @@ def fit_power_spectrum(
     fit = do_fit(power_spectrum)
 
     if corner_frequency_factor:
+        # Are we fitting a diode
+        if len(model._filter.lower_bounds()):
+            warnings.warn(
+                RuntimeWarning(
+                    "Fitting with adaptive fitting ranges may be unreliable when fitting the "
+                    "parasitic filtering parameters! The parameters which describe the "
+                    "parasitic filtering by the diode may be inestimable from the data which can "
+                    "result in unreliable calibration factors!"
+                )
+            )
+
         fit, power_spectrum = _iterate_fit_range(
             fit=fit,
             fit_function=do_fit,
