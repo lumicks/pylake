@@ -112,6 +112,7 @@ def test_good_fit_integration(
     np.testing.assert_allclose(ps_calibration["D"].value, diffusion_constant, rtol=1e-4, atol=0)
     np.testing.assert_allclose(ps_calibration["alpha"].value, alpha, rtol=1e-4)
     np.testing.assert_allclose(ps_calibration["f_diode"].value, f_diode, rtol=1e-4)
+    np.testing.assert_allclose(ps_calibration["Number of iterations"].value, 1, rtol=1e-4)
 
     np.testing.assert_allclose(ps_calibration["fc"].value, ps_calibration.corner_frequency)
     np.testing.assert_allclose(ps_calibration["D"].value, ps_calibration.diffusion_constant_volts)
@@ -274,6 +275,10 @@ def test_noise_floor(reference_calibration_result):
         np.testing.assert_allclose(warned[name].value, expected_result, rtol=3e-1)  # oof tolerance
         with pytest.raises(AssertionError):
             np.testing.assert_allclose(bad_calibration[name].value, expected_result, rtol=5e-2)
+
+    np.testing.assert_allclose(good_fit["Number of iterations"].value, 2)
+    np.testing.assert_allclose(bad_calibration["Number of iterations"].value, 1)
+    np.testing.assert_allclose(warned["Number of iterations"].value, 3)
 
 
 def test_applied_at(reference_calibration_result):

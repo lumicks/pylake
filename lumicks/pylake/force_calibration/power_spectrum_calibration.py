@@ -231,7 +231,7 @@ def _iterate_fit_range(
     corner_frequencies = list()
     fitted_power_spectrum = power_spectrum
     proposed_frequency = fit.corner_frequency
-    for _ in range(max_iterations):
+    for num_iter in range(max_iterations):
         new_bounds = [
             min(bnd, factor * proposed_frequency)
             for bnd, factor in zip(power_spectrum._fit_range, corner_frequency_factors)
@@ -247,7 +247,7 @@ def _iterate_fit_range(
         fit_new = fit_function(fitted_power_spectrum)
 
         if abs(fit.corner_frequency - fit_new.corner_frequency) < rtol * fit_new.corner_frequency:
-            return fit_new, fitted_power_spectrum
+            return fit_new, fitted_power_spectrum, num_iter
         else:
             if fit_new.corner_frequency in corner_frequencies:
                 # If we have already seen this exact corner frequency before, it doesn't make sense
@@ -264,7 +264,7 @@ def _iterate_fit_range(
             RuntimeWarning,
         )
 
-    return fit, fitted_power_spectrum
+    return fit, fitted_power_spectrum, num_iter
 
 
 def fit_power_spectrum(
@@ -394,6 +394,7 @@ def fit_power_spectrum(
         )
 
     fit = do_fit(power_spectrum)
+    num_iter = 1
 
     if corner_frequency_factor:
         # Are we fitting a diode
@@ -407,7 +408,7 @@ def fit_power_spectrum(
                 )
             )
 
-        fit, power_spectrum = _iterate_fit_range(
+        fit, power_spectrum, num_iter = _iterate_fit_range(
             fit=fit,
             fit_function=do_fit,
             power_spectrum=power_spectrum,
@@ -415,6 +416,7 @@ def fit_power_spectrum(
             max_iterations=10,
             rtol=1e-3,
         )
+        num_iter += 1  # Count the initial fit as well
 
     # Calculate goodness-of-fit, in terms of the statistical backing (see ref. 1).
     n_degrees_of_freedom = power_spectrum.power.size - len(fit.params)
@@ -451,6 +453,7 @@ def fit_power_spectrum(
             ),
             "backing": CalibrationParameter("Statistical backing", backing, "%"),
             "Kind": CalibrationParameter("Calibration type", "Full calibration", "-"),
+            "Number of iterations": CalibrationParameter("Number of fitting rounds", num_iter, ""),
         },
         params={
             **model.calibration_parameters(),
