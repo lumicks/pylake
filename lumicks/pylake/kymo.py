@@ -535,11 +535,15 @@ class Kymo(ConfocalImage):
         xlim_kymo = axes[0].get_xlim()
 
         # plot data channels
+        scan_start_ts = self.line_timestamp_ranges(include_dead_time=True)[0][0]
         for idx, (ax, channel) in enumerate(zip(axes[1:], channels)):
             plt.sca(ax)
             plot_args = kwargs if not colors else kwargs | {"color": colors[idx]}
-            # Cropping the channel to the kymograph time range leads to better axis limits
-            channel[self.start : self.stop + 1].plot(**plot_args)
+            # Cropping the channel to the kymograph time range leads to better axis limits.
+            # The kymograph defines timestamp zero at the middle of the first line.
+            channel[self.start : self.stop + 1].plot(
+                start=scan_start_ts + 1e9 * self.line_time_seconds / 2, **plot_args
+            )
             ax.set_xlim(xlim_kymo)
 
             if title_vertical:

@@ -76,6 +76,14 @@ def test_plotting_with_channels(kymo_h5_file):
     ranges = kymo.line_timestamp_ranges()
     starts = np.vstack(ranges)[:, 0]
     ranges_sec = (starts - starts[0]) * 1e-9
+
+    # We average the force trace over the kymograph lines _without_ the dead time. That means that
+    # we get a tiny temporal shift that we need to consider when plotting the force trace. This
+    # shift arises from the dead time of the confocal scan line.
+    sample_time = kymo.infowave.timestamps[1] - kymo.infowave.timestamps[0]
+    correction = (linetime - 1e-9 * (ranges[0][1] - ranges[0][0] - sample_time)) / 2
+    ranges_sec -= correction
+
     force_over_kymolines = f.force2x.downsampled_over(ranges)
 
     def plot_with_force():
@@ -108,7 +116,7 @@ def test_plotting_with_channels(kymo_h5_file):
         np.testing.assert_allclose(np.sort(plt.ylim()), [10, 30])
 
         np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), ranges_sec)
-        np.testing.assert_allclose(plt.xlim(), [-(linetime / 2), ranges_sec[-1] + (linetime / 2)])
+        np.testing.assert_allclose(plt.xlim(), [-(linetime / 2), kymo.duration - (linetime / 2)])
 
 
 def test_plotting_with_channels_no_downsampling(kymo_h5_file):
