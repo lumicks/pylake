@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.3 | t.b.d.
+
+#### Bug fixes
+
+* Fixed a bug in `Kymo.plot_with_channels()` that would not correctly align the timeline channels if the channel is sparsely sampled (such as is the case for diagnostic channels). Prior to the fix, it assumed that slicing the channel with the kymograph start and stop time results in the origin being at time zero, but this may not be the case if the channel is sparsely sampled and the first point is much later.
+
 ## v1.6.2 | 2025-05-06
 
 #### Bug fixes
