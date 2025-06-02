@@ -246,6 +246,7 @@ class Kymo(ConfocalImage):
         else:
             return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
 
+    @method_cache("line_timestamp_ranges")
     def line_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each line in the kymo.
 
@@ -414,6 +415,16 @@ class Kymo(ConfocalImage):
 
         return image_handle
 
+    @method_cache("_first_line_start")
+    def _first_line_start(self):
+        """Returns the timestamp of the first sample contributing to the kymograph image"""
+        infowave = self.infowave  # Slice it only once
+        if infowave:
+            return infowave.timestamps[np.argmax(infowave.data > 0)]
+        else:
+            # Fallback for kymographs without an infowave, e.g. kymographs from arrays
+            return self.line_timestamp_ranges(include_dead_time=True)[0][0]
+
     def plot_with_channels(
         self,
         channels,
@@ -535,7 +546,7 @@ class Kymo(ConfocalImage):
         xlim_kymo = axes[0].get_xlim()
 
         # plot data channels
-        scan_start_ts = self.line_timestamp_ranges(include_dead_time=True)[0][0]
+        scan_start_ts = self._first_line_start()
         for idx, (ax, channel) in enumerate(zip(axes[1:], channels)):
             plt.sca(ax)
             plot_args = kwargs if not colors else kwargs | {"color": colors[idx]}
