@@ -2,7 +2,6 @@ import itertools
 
 import numpy as np
 import pytest
-import matplotlib.pyplot as plt
 
 from lumicks.pylake.kymo import _kymo_from_array
 
@@ -54,6 +53,7 @@ def test_from_array(test_kymo, crop):
         kymo.line_timestamp_ranges(include_dead_time=True),
         arr_kymo.line_timestamp_ranges(include_dead_time=True),
     )
+    np.testing.assert_equal(kymo._first_line_start(), kymo.line_timestamp_ranges()[0][0])
 
     np.testing.assert_equal(kymo.pixelsize_um, arr_kymo.pixelsize_um)
     np.testing.assert_equal(kymo.pixelsize, arr_kymo.pixelsize)
@@ -190,19 +190,19 @@ def test_color_format(test_kymo):
     with pytest.raises(
         ValueError, match="Invalid color format 'rgp'. Only 'r', 'g', and 'b' are valid components."
     ):
-        arr_kymo = make_kymo_from_array(kymo, image, "rgp")
+        make_kymo_from_array(kymo, image, "rgp")
 
     with pytest.raises(
         ValueError, match="Color format 'r' specifies 1 channel for a 3 channel image."
     ):
-        arr_kymo = make_kymo_from_array(kymo, image, "r")
+        make_kymo_from_array(kymo, image, "r")
 
     with pytest.raises(
         ValueError, match="Color format 'rb' specifies 2 channels for a 3 channel image."
     ):
-        arr_kymo = make_kymo_from_array(kymo, image, "rb")
+        make_kymo_from_array(kymo, image, "rb")
 
     with pytest.raises(
         ValueError, match="Color format 'rgb' specifies 3 channels for a 2 channel image."
     ):
-        arr_kymo = make_kymo_from_array(kymo, image[:, :, :2], "rgb")
+        make_kymo_from_array(kymo, image[:, :, :2], "rgb")
