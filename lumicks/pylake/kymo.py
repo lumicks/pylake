@@ -246,6 +246,7 @@ class Kymo(ConfocalImage):
         else:
             return (self.timestamps[1, 0] - self.timestamps[0, 0]) / 1e9
 
+    @method_cache("line_timestamp_ranges")
     def line_timestamp_ranges(self, *, include_dead_time=False):
         """Get start and stop timestamp of each line in the kymo.
 
