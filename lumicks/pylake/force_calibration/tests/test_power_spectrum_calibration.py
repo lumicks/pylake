@@ -259,6 +259,7 @@ def test_result_plot(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
     ps_calibration.plot()
     ps_calibration.plot(show_excluded=True)
+    ps_calibration.plot(data_range=(100, 200))
 
 
 def test_result_plot_active_fail(reference_calibration_result):
