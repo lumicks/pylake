@@ -329,6 +329,7 @@ def test_plot_item(active_ref_data):
     item = ForceCalibrationItem(ref_active, voltage=voltage, driving=driving)
     item.plot()
     item.plot_spectrum_residual()
+    item.plot(data_range=(100, 5000))
 
 
 def test_recalibrate_item(active_ref_data):

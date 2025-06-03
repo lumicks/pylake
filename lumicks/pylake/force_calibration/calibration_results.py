@@ -110,7 +110,7 @@ class CalibrationResults(CalibrationPropertiesMixin):
         """Number of fitted samples (-)."""
         return self.ps_data.total_sampled_used
 
-    def plot(self, show_excluded=False, show_active_peak=False):
+    def plot(self, show_excluded=False, show_active_peak=False, data_range=None):
         """Plot the fitted spectrum
 
         Parameters
@@ -119,6 +119,9 @@ class CalibrationResults(CalibrationPropertiesMixin):
             Show fitting regions excluded from the fit
         show_active_peak : bool
             Show active calibration peak when available
+        data_range : (float, float)
+            Optional frequency range to plot the calibration data for. If not specified, the
+            fitted frequency range is plotted.
 
         Raises
         ------
@@ -134,7 +137,8 @@ class CalibrationResults(CalibrationPropertiesMixin):
                 "calibration results."
             )
 
-        self.ps_data.plot(label="Data", show_excluded=show_excluded)
+        ps_data = self.ps_data if data_range is None else self.ps_data.with_range(*data_range)
+        ps_data.plot(label="Data", show_excluded=show_excluded)
         self.ps_model.plot(label="Model")
 
         if show_active_peak:
