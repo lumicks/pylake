@@ -4,6 +4,7 @@
 
 * Added confocal API endpoints [`axis_units`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.axis_units), [`axis_names`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.axis_names), [`axis_labels`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.axis_labels) to get the units, names and labels of the axes of a confocal scan in human-readable form.
 * Added feature to adaptively determine the fitting range when fitting power spectra using [`calibrate_force()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibrate_force.html#lumicks.pylake.calibrate_force) and [`fit_power_spectrum()`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.fit_power_spectrum.html). Provide the parameter `corner_frequency_factor` to use this feature. When provided, the fitting range will be iteratively determined based on the corner frequency of the power spectrum.
+* Added the optional argument `data_range` to [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot) to plot a custom frequency range for the data. This helps put the fitted part of the power spectrum in context.
 
 ## v1.7.0 | t.b.d.
 

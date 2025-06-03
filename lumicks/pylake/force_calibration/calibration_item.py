@@ -168,9 +168,28 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
                 "manually. See the pylake tutorial on force calibration for more information."
             )
 
-    def plot(self):
+    def plot(self, show_excluded=False, show_active_peak=False, data_range=None):
+        """Plot the fitted spectrum
+
+        Parameters
+        ----------
+        show_excluded : bool
+            Show fitting regions excluded from the fit
+        show_active_peak : bool
+            Show active calibration peak when available
+        data_range : (float, float)
+            Optional frequency range to plot the calibration data for. If not specified, the
+            fitted frequency range is plotted.
+
+        Raises
+        ------
+        ValueError
+            If specifying `show_active_peak=True` for a passive calibration.
+        """
         self._check_has_data()
-        self.recalibrate_with().plot()
+        self.recalibrate_with().plot(
+            show_excluded=show_excluded, show_active_peak=show_active_peak, data_range=data_range
+        )
 
     def plot_spectrum_residual(self):
         """Plot the residuals of the fitted spectrum.
