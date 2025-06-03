@@ -256,6 +256,18 @@ def test_in_range_twice():
     assert subset3._fit_range == (200, 300)
 
 
+def test_with_range():
+    ps = PowerSpectrum(np.arange(0, 10000, 1), np.arange(0, 10000, 1), 1000, 10)
+    ps2 = ps.with_range(100, 5000)
+    np.testing.assert_allclose(ps._fit_range, (0, 9999), atol=1e-16)  # No side effects
+    np.testing.assert_allclose(ps2._fit_range, (100, 5000), atol=1e-16)
+
+    # Making it bigger is also fine
+    ps3 = ps2.with_range(100, 8000)
+    np.testing.assert_allclose(ps2._fit_range, (100, 5000), atol=1e-16)
+    np.testing.assert_allclose(ps3._fit_range, (100, 8000), atol=1e-16)
+
+
 def test_plot():
     ps = PowerSpectrum.from_data(np.sin(2.0 * np.pi * 100 / 78125 * np.arange(100)), 78125)
     ps.plot()
