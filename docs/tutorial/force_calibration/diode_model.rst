@@ -73,7 +73,7 @@ We can see that this updated the fixed diode parameters.
 
     Each sensor has its own diode characteristic.
     If you are calibrating multiple traps with pre-calibrated diodes, you will need to provide
-    the correct diode parameters for each trap.
+    the correct diode parameters for each trap. Each sensor has their own diode calibration values!
 
 We can calibrate with these parameters directly by unpacking this dictionary into the :meth:`~lumicks.pylake.calibrate_force` function::
 
@@ -86,13 +86,32 @@ We can calibrate with these parameters directly by unpacking this dictionary int
 
 Unfortunately, in this case, we also have a noise floor to contend with, so we should restrict the fitting range as well
 (for more information about this, see the section on :ref:`noise floors<noise_floor>`).
-In this case, we restrict the upper bound of the fitting range to approximately four times the corner frequency::
+
+To automatically determine a reasonable fit range, we can pass the extra parameter `corner_frequency_factor` to `calibrate_force`.
+This will iterative fit the power spectrum and constrain the fitted part of the spectrum to a region around the corner frequency given up to a fraction of the corner frequency.
+An empirically determined reasonable value to use here is `4`::
+
+    calibration = lk.calibrate_force(volts.data, **updated_params, corner_frequency_factor=4)
+    calibration.plot(data_range=(5, 23000))
+    plt.title(f"Stiffness = {calibration.stiffness:.2f}");
+
+.. image:: figures/adaptive_ranges.png
+
+In this case, we also passed a custom `data_range` to show more of the original power spectral data.
+
+.. note::
+
+    Automatic fitting ranges can only be used in conjunction with a calibrated diode.
+    The reason for this is that this method will trim those parts of the power spectrum that are needed for estimating the diode parameters when the corner frequency is low.
+
+We can also restrict the upper bound of the fitting range manually to approximately four times the corner frequency::
 
     volts = f.force1x / f.force1x.calibration[0].force_sensitivity
 
     updated_params = updated_params | {"fit_range": [100, 2300]}
     calibration = lk.calibrate_force(volts.data, **updated_params)
-    calibration.plot()
+    calibration.plot(data_range=(5, 23000))
+    plt.title(f"Stiffness = {calibration.stiffness:.2f}");
 
 .. image:: figures/diode_cal_good_fit.png
 
