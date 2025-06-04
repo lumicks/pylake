@@ -76,6 +76,14 @@ def test_plotting_with_channels(kymo_h5_file):
     ranges = kymo.line_timestamp_ranges()
     starts = np.vstack(ranges)[:, 0]
     ranges_sec = (starts - starts[0]) * 1e-9
+
+    # We average the force trace over the kymograph lines _without_ the dead time. That means that
+    # we get a tiny temporal shift that we need to consider when plotting the force trace. This
+    # shift arises from the dead time of the confocal scan line.
+    sample_time = kymo.infowave.timestamps[1] - kymo.infowave.timestamps[0]
+    dead_time = 1e-9 * (ranges[1][0] - ranges[0][-1] + sample_time)
+    ranges_sec -= dead_time / 2
+
     force_over_kymolines = f.force2x.downsampled_over(ranges)
 
     def plot_with_force():
@@ -108,7 +116,36 @@ def test_plotting_with_channels(kymo_h5_file):
         np.testing.assert_allclose(np.sort(plt.ylim()), [10, 30])
 
         np.testing.assert_allclose(plt.gca().lines[0].get_xdata(), ranges_sec)
-        np.testing.assert_allclose(plt.xlim(), [-(linetime / 2), ranges_sec[-1] + (linetime / 2)])
+        np.testing.assert_allclose(plt.xlim(), [-(linetime / 2), kymo.duration - (linetime / 2)])
+
+
+def test_channel_alignment(kymo_h5_file):
+    from lumicks.pylake.channel import Slice, Continuous
+
+    f = lk.File.from_h5py(kymo_h5_file)
+    kymo = f.kymos["tester"]
+    slc = Slice(Continuous(np.arange(0, 100 * 78125, 1), start=kymo.start, dt=int(1e9 / 78125)))
+    inc_dead = slc.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=True))
+    exc_dead = slc.downsampled_over(kymo.line_timestamp_ranges(include_dead_time=False))
+
+    def grab_data(axis: plt.Axes):
+        return axis.lines[0].get_xdata(), axis.lines[0].get_ydata()
+
+    kymo.plot_with_channels(
+        [inc_dead, exc_dead],
+        color_channel="red",
+        labels=["inc", "exc"],
+        titles=["kymo_title", "plot1", "plot2"],
+        colors=["red", [1.0, 0.0, 0.1]],
+    )
+
+    axes = plt.gcf().get_axes()
+
+    # Given that the function is linear, it shouldn't matter if we use the data with or without
+    # dead time. Their linear fit should be the same.
+    np.testing.assert_allclose(
+        np.polyfit(*grab_data(axes[1]), deg=1), np.polyfit(*grab_data(axes[2]), deg=1)
+    )
 
 
 def test_plotting_with_channels_no_downsampling(kymo_h5_file):
