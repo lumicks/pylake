@@ -223,3 +223,55 @@ def test_partial_pixel():
 
     np.testing.assert_allclose(kymo_with_wave([1, 1, 1, 1, 2]).pixel_time_seconds, 5)
     np.testing.assert_allclose(kymo_with_wave([1, 1, 1, 1, 2]).line_time_seconds, 10)
+
+
+def test_kymo_line_timestamp_ranges(test_kymo):
+    ref_inc = [
+        (23125000000, 30625000000),
+        (30625000000, 38125000000),
+        (38125000000, 45625000000),
+        (45625000000, 53125000000),
+        (53125000000, 60625000000),
+        (60625000000, 68125000000),
+        (68125000000, 75625000000),
+        (75625000000, 83125000000),
+        (83125000000, 90625000000),
+        (90625000000, 98125000000),
+    ]
+
+    ref_exc = [
+        (23125000000, 24375000000),
+        (30625000000, 31875000000),
+        (38125000000, 39375000000),
+        (45625000000, 46875000000),
+        (53125000000, 54375000000),
+        (60625000000, 61875000000),
+        (68125000000, 69375000000),
+        (75625000000, 76875000000),
+        (83125000000, 84375000000),
+        (90625000000, 91875000000),
+    ]
+
+    kymo, _ = test_kymo
+    np.testing.assert_equal(kymo.line_timestamp_ranges(include_dead_time=True), ref_inc)
+    np.testing.assert_equal(kymo.line_timestamp_ranges(include_dead_time=False), ref_exc)
+    np.testing.assert_equal(kymo._first_line_start(), ref_inc[0][0])
+
+    kymo_start = kymo["10.6s":]
+    np.testing.assert_equal(kymo_start.line_timestamp_ranges(include_dead_time=True), ref_inc[1:])
+    np.testing.assert_equal(kymo_start.line_timestamp_ranges(include_dead_time=False), ref_exc[1:])
+    np.testing.assert_equal(kymo_start._first_line_start(), ref_inc[1][0])
+
+    kymo_start = kymo["10.7s":]
+    np.testing.assert_equal(kymo_start.line_timestamp_ranges(include_dead_time=True), ref_inc[2:])
+    np.testing.assert_equal(kymo_start.line_timestamp_ranges(include_dead_time=False), ref_exc[2:])
+    np.testing.assert_equal(kymo_start._first_line_start(), ref_inc[2][0])
+
+    kymo_ds = kymo.downsampled_by(7.5)
+    np.testing.assert_equal(kymo_ds._first_line_start(), ref_inc[0][0])
+
+    kymo_ds2 = kymo["5s":].downsampled_by(7.5)
+    np.testing.assert_equal(kymo_ds2._first_line_start(), ref_inc[1][0])
+
+    kymo_ds2 = kymo["10.7s":].downsampled_by(7.5)
+    np.testing.assert_equal(kymo_ds2._first_line_start(), ref_inc[2][0])
