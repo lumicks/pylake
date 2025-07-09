@@ -46,6 +46,12 @@ def response_peak_ideal(corner_frequency, driving_frequency, driving_amplitude):
     return driving_amplitude**2 / (2 * (1 + (corner_frequency / driving_frequency) ** 2))
 
 
+def _generate_sine(max_time, frequency, sample_rate):
+    num_points = 2 * (sample_rate * max_time // 2)  # Has to be multiple of two for FFT
+    time = np.arange(num_points) / sample_rate
+    return np.sin(2.0 * np.pi * frequency * time), num_points
+
+
 def generate_active_calibration_test_data(
     duration,
     sample_rate,
@@ -60,6 +66,7 @@ def generate_active_calibration_test_data(
     rho_sample=None,
     rho_bead=1060.0,
     distance_to_surface=None,
+    driving_sample_rate=None,
 ):
     """Generate test data to test active calibration.
 
@@ -98,6 +105,8 @@ def generate_active_calibration_test_data(
     distance_to_surface : float, optional
         Distance from bead center to the surface. Only used when using hydrodynamically correct
         model. None uses the approximation valid for deep in bulk.
+    driving_sample_rate : float, optional
+        Sample rate for the driving input (default: None).
     """
     import scipy.constants
 
@@ -139,13 +148,17 @@ def generate_active_calibration_test_data(
     p_response_m_squared = response_peak(fc, driving_frequency, driving_amplitude * 1e-9)
     p_response_volts = np.sqrt(p_response_m_squared) / pos_response_m_volt
 
-    num_points = 2 * (sample_rate * duration // 2)  # Has to be multiple of two for FFT
-    time = np.arange(num_points) / sample_rate
-    driving_sine = np.sin(2.0 * np.pi * driving_frequency * time)
-    nano_stage = driving_amplitude * 1e-9 * driving_sine
+    driving_sine, num_points = _generate_sine(duration, driving_frequency, sample_rate)
 
     # Center to peak amplitude is given by sqrt(2) * RMS Voltage
     psd_component = np.sqrt(2) * p_response_volts * driving_sine
+
+    nano_sine = (
+        driving_sine
+        if driving_sample_rate is None
+        else _generate_sine(duration, driving_frequency, driving_sample_rate)[0]
+    )
+    nano_stage = driving_amplitude * 1e-9 * nano_sine
 
     return (
         power_model_to_time_series(sample_rate, num_points, filtered_power_spectrum)

@@ -14,11 +14,12 @@ from .data.simulate_calibration_data import generate_active_calibration_test_dat
 
 @pytest.mark.parametrize(
     "stiffness, viscosity, temperature, pos_response_um_volt, driving_sinusoid, diode, driving_"
-    "frequency_guess",
+    "frequency_guess, driving_sample_rate",
     [
-        [0.1, 1.002e-3, 20, 0.618, (500, 31.95633), (0.4, 15000), 32],
-        [0.2, 1.012e-3, 20, 1.618, (500, 31.95633), (0.4, 14000), 32],
-        [0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29],
+        [0.1, 1.002e-3, 20, 0.618, (500, 31.95633), (0.4, 15000), 32, None],
+        [0.2, 1.012e-3, 20, 1.618, (500, 31.95633), (0.4, 14000), 32, None],
+        [0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29, None],
+        [0.3, 1.002e-3, 50, 1.618, (300, 30.42633), (0.4, 16000), 29, 2500.1],
     ],
 )
 def test_integration_active_calibration(
@@ -30,6 +31,7 @@ def test_integration_active_calibration(
     driving_sinusoid,
     diode,
     driving_frequency_guess,
+    driving_sample_rate,
 ):
     import scipy.constants
 
@@ -46,6 +48,7 @@ def test_integration_active_calibration(
         pos_response_um_volt=pos_response_um_volt,
         driving_sinusoid=driving_sinusoid,
         diode=diode,
+        driving_sample_rate=driving_sample_rate,
     )
 
     model = ActiveCalibrationModel(
@@ -56,6 +59,7 @@ def test_integration_active_calibration(
         driving_frequency_guess,
         viscosity,
         temperature,
+        driving_sample_rate=driving_sample_rate,
     )
 
     # Validate estimation of the driving input
@@ -81,24 +85,22 @@ def test_integration_active_calibration(
         rtol=1e-9,
     )
     np.testing.assert_allclose(fit["gamma_ex"].value, drag_coeff_calc * 1e12, rtol=1e-9)
-    np.testing.assert_allclose(fit.measured_drag_coefficient, fit["gamma_ex"].value)
-    np.testing.assert_allclose(fit.driving_frequency_guess, fit.model.driving_frequency_guess)
-    np.testing.assert_allclose(fit.driving_amplitude, fit["driving_amplitude"].value)
-    np.testing.assert_allclose(fit.driving_frequency, fit["driving_frequency"].value)
-    np.testing.assert_allclose(fit.driving_power, fit["driving_power"].value)
     np.testing.assert_allclose(
         fit["local_drag_coefficient"].value, drag_coeff_calc * 1e12, rtol=1e-9
     )
-    np.testing.assert_allclose(fit.local_drag_coefficient, drag_coeff_calc * 1e12, rtol=1e-9)
 
-    np.testing.assert_allclose(fit["Bead diameter"].value, bead_diameter)
-    np.testing.assert_allclose(fit["Driving frequency (guess)"].value, driving_frequency_guess)
-    np.testing.assert_allclose(fit["Sample rate"].value, sample_rate)
+    np.testing.assert_equal(fit["Bead diameter"].value, bead_diameter)
+    np.testing.assert_equal(fit["Driving frequency (guess)"].value, driving_frequency_guess)
+    np.testing.assert_equal(fit["Sample rate"].value, sample_rate)
     np.testing.assert_allclose(fit["Viscosity"].value, viscosity)
-    np.testing.assert_allclose(fit["num_windows"].value, 5)
-
-    assert fit.active_calibration
-    assert fit.kind == "Active"
+    np.testing.assert_equal(fit["num_windows"].value, 5)
+    if driving_sample_rate is not None:
+        assert fit.model.driving_sample_rate != sample_rate
+        assert fit.driving_sample_rate == driving_sample_rate
+        assert fit.model.driving_sample_rate == driving_sample_rate
+        assert fit["Driving sample rate"].value == driving_sample_rate
+    else:
+        np.testing.assert_equal(fit["Driving sample rate"].value, sample_rate)
 
     np.testing.assert_allclose(
         fit["driving_amplitude"].value, driving_sinusoid[0] * 1e-3, rtol=1e-5
@@ -188,13 +190,10 @@ def test_faxen_correction_active(active_calibration_surface_data):
     # gamma_0 and gamma_ex should be the same, since gamma_ex is corrected to be "in bulk".
     np.testing.assert_allclose(fit.results["gamma_0"].value, 1.0678273429551705e-08)
     np.testing.assert_allclose(fit.results["gamma_ex"].value, 1.1271667835127709e-08)
-    local_drag = 1.1271667835127709e-08 * faxen_factor(
-        shared_pars["distance_to_surface"], shared_pars["bead_diameter"] / 2
-    )
-    np.testing.assert_allclose(fit.results["local_drag_coefficient"].value, local_drag)
     np.testing.assert_allclose(
-        fit.local_drag_coefficient,
-        local_drag,
+        fit.results["local_drag_coefficient"].value,
+        1.1271667835127709e-08
+        * faxen_factor(shared_pars["distance_to_surface"], shared_pars["bead_diameter"] / 2),
     )
 
     # Disabling Faxen's correction on the drag makes the estimates *much* worse

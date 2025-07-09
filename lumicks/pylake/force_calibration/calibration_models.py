@@ -837,6 +837,9 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         Density of the bead [kg/m**3]. Only used when using hydrodynamically correct model.
     fast_sensor : bool
         Fast sensor? Fast sensors do not have the diode effect included in the model.
+    driving_sample_rate : float, optional
+        Sample rate at which the driving frequency is sampled. When omitted the sample rate of
+        the force data will be used (default: None).
 
     Attributes
     ----------
@@ -909,6 +912,7 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             driving_frequency_guess=37,  # Have to provide a guess for the frequency
             hydrodynamically_correct=True,  # Big bead, so use hydrodynamic model
             distance_to_surface=10,  # Experiment performed 10 microns from surface
+            driving_sample_rate=f["Nanostage position"]["X"].sample_rate,
         )
 
         print(model.driving_frequency)  # Verify correct frequency determination
@@ -935,6 +939,10 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         rho_sample=None,
         rho_bead=1060.0,
         fast_sensor=False,
+        *,
+        # TODO: In the future, we may want to extract the driving input analysis from the active
+        #       calibration model and take the sub-analysis as an argument rather than the raw data.
+        driving_sample_rate=None,
     ):
         super().__init__(
             bead_diameter,
@@ -949,12 +957,15 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
         )
         self.driving_frequency_guess = driving_frequency_guess
         self.sample_rate = sample_rate
+        self.driving_sample_rate = (
+            sample_rate if driving_sample_rate is None else driving_sample_rate
+        )
         self.num_windows = num_windows  # TODO: misnamed parameter
         self._measured_drag_fieldname = "gamma_ex"
 
         # Estimate driving input and response
         amplitude_um, self.driving_frequency, amplitude_um_std = estimate_driving_input_parameters(
-            sample_rate, driving_data, driving_frequency_guess
+            self.driving_sample_rate, driving_data, driving_frequency_guess
         )
         self.driving_amplitude = amplitude_um * 1e-6
         self._driving_amplitude_err = amplitude_um_std * 1e-6
@@ -997,6 +1008,11 @@ class ActiveCalibrationModel(PassiveCalibrationModel):
             "points_per_block_driving_power": CalibrationParameter(
                 "Points per block for driving power estimation",
                 self.output_power.ps.num_points_per_block,
+                "",
+            ),
+            "Driving sample rate": CalibrationParameter(
+                "Sample rate for the driving frequency",
+                self.driving_sample_rate,
                 "",
             ),
         }

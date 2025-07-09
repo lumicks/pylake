@@ -7,6 +7,7 @@
 * Added [`PowerSpectrum.compress()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.html#lumicks.pylake.force_calibration.power_spectrum.PowerSpectrum.compress#) to discard high frequency spectral data for a downsampled spectrum to conserve memory.
 * Added [`DwelltimeModel.err_amplitudes`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.err_amplitudes) and [`DwelltimeModel.err_lifetimes`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.DwelltimeModel.html#lumicks.pylake.DwelltimeModel.err_lifetimes) to get asymptotic standard error estimates for the amplitudes and lifetimes. See the [`tutorial`](https://lumicks-pylake.readthedocs.io/en/latest/tutorial/population_dynamics.html#standard-errors) for more information.
 * Added the optional argument `with_stderr` to [`DwelltimeProfiles.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.population.dwelltime.DwelltimeProfiles.html#lumicks.pylake.population.dwelltime.DwelltimeProfiles.plot) to plot quadratic approximation based on the asymptotic standard errors.
+* Added `driving_sample_rate` parameter to `calibrate_force()` and `ActiveCalibrationModel` to specify the sample rate of the driving signal in active calibration.
 
 #### Improvements
 
