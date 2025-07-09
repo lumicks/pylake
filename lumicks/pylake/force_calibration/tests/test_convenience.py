@@ -10,7 +10,7 @@ from lumicks.pylake.force_calibration.calibration_models import (
 )
 
 
-def test_passive_force_calibration_active(reference_models):
+def test_passive_force_calibration(reference_models):
     """This test tests merely whether values were handed to the low level API correctly, not whether
     the calibration results are correct."""
     data, f_sample = reference_models.lorentzian_td(4000, 1, 0.4, 14000, 78125)
@@ -50,11 +50,13 @@ def test_passive_force_calibration_active(reference_models):
     assert fit.ps_data.frequency.max() < 8e3  # verify that the bounds were passed
 
 
-def test_active_force_calibration_active(reference_models):
+@pytest.mark.parametrize("driving_sample_rate", [None, 68000])
+def test_active_force_calibration(reference_models, driving_sample_rate):
     """This test tests merely whether values were handed to the low level API correctly, not whether
     the calibration results are correct."""
     data, f_sample = reference_models.lorentzian_td(4000, 1, 0.4, 14000, 78125)
-    oscillation = np.sin(77 * 2 * np.pi * np.arange(data.size) / 78125)
+    ref_driving_sample_rate = driving_sample_rate if driving_sample_rate is not None else 78125
+    oscillation = np.sin(77 * 2 * np.pi * np.arange(data.size) / ref_driving_sample_rate)
 
     # We need a driving peak in the power spectrum, otherwise we obtain a negative value for the
     # peak power which leads to a downstream warning.
@@ -77,6 +79,7 @@ def test_active_force_calibration_active(reference_models):
         fit_range=(1e1, 8e3),
         num_points_per_block=64,
         excluded_ranges=[[0, 100]],
+        driving_sample_rate=driving_sample_rate,
     )
     params = {
         "Bead diameter": 2,
@@ -95,6 +98,8 @@ def test_active_force_calibration_active(reference_models):
     assert "f_diode" not in fit.results  # fast sensor
     assert fit.ps_data.frequency.min() > 100  # verify that the exclusion range was passed
     assert fit.ps_data.frequency.max() < 8e3  # verify that the bounds were passed
+    assert fit.model.driving_sample_rate == ref_driving_sample_rate
+    assert fit["Driving sample rate"].value == ref_driving_sample_rate
 
 
 def test_invalid_options_calibration():

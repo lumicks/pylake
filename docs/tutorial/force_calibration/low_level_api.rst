@@ -148,7 +148,8 @@ Pylake will find an accurate estimate of the driving frequency based on this ini
         driving_data.sample_rate,
         bead_diameter,
         driving_frequency_guess=38,
-        distance_to_surface=distance_to_surface
+        distance_to_surface=distance_to_surface,
+        driving_sample_rate=driving_data.sample_rate,
     )
 
 The rest of the procedure is the same::
