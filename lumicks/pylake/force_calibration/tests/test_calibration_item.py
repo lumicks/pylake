@@ -1,4 +1,5 @@
 import pickle
+from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -144,6 +145,7 @@ def test_passive_item(compare_to_reference_dict, reference_data, calibration_dat
     assert item.fit_range == (100.0, 23000.0)
     assert item.num_points_per_block == 2000
     assert item.sample_rate == 78125
+    assert item.driving_sample_rate is None
     assert item.number_of_samples == 781250
     assert not item.active_calibration
     assert not item.fast_sensor
@@ -203,6 +205,7 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     assert item.fit_range == (100.0, 23000.0)
     assert item.num_points_per_block == 200
     assert item.sample_rate == 78125
+    assert item.driving_sample_rate is None
     assert item.active_calibration  # It is an active item!
     assert not item.fast_sensor
     assert item.start == 1713785826919398000
@@ -236,6 +239,12 @@ def test_active_item_fixed_diode(compare_to_reference_dict, calibration_data):
     dummy_voltage, nano = calibration_data
     calculate_power_spectrum(dummy_voltage, **item.power_spectrum_params())
     calibrate_force(dummy_voltage, driving_data=nano, **item.calibration_params())
+
+    compare_to_reference_dict(
+        {"str": str(item), "repr": repr(item), "repr_html": item._repr_html_()},
+        test_name="text_representations_active",
+    )
+
     assert str(item)
 
 
@@ -280,6 +289,7 @@ def test_non_full(compare_to_reference_dict):
     assert not item.stiffness
     assert not item.displacement_sensitivity
     assert item.force_sensitivity == 1.0
+    assert item.driving_sample_rate is None
     assert item.start == 1714391268938540100
     assert item.stop == 1714391268938540200
     assert item.offset is None
@@ -338,6 +348,31 @@ def test_recalibrate_item(active_ref_data):
     )
     np.testing.assert_allclose(recalibrated.stiffness, 0.498051, rtol=1e-4)
     assert not recalibrated.fitted_diode
+
+
+def test_active_item_nanostage_rate(compare_to_reference_dict, calibration_data, active_ref_data):
+    active_with_nano_rate = deepcopy(ref_active)
+    ds_factor = 25
+    nano_rate = 78125.0 / ds_factor
+    volts, nano = active_ref_data
+    nano_downsampled = nano.downsampled_by(ds_factor)
+
+    active_with_nano_rate["Driving sample rate (Hz)"] = nano_rate
+    item = ForceCalibrationItem(active_with_nano_rate, voltage=volts, driving=nano_downsampled)
+
+    recalibrated = calibrate_force(
+        volts.data, driving_data=nano_downsampled.data, **item.calibration_params()
+    )
+    recalibrated_with = item.recalibrate_with()
+
+    assert item.calibration_params()["driving_sample_rate"] == nano_rate
+    np.testing.assert_allclose(recalibrated.stiffness, 0.521374, rtol=1e-4)
+    np.testing.assert_allclose(recalibrated.stiffness, recalibrated_with.stiffness)
+
+    compare_to_reference_dict(
+        {"str": str(item), "repr": repr(item), "repr_html": item._repr_html_()},
+        test_name="text_representations_active_nano_rate",
+    )
 
 
 def test_force_calibration_handling():
