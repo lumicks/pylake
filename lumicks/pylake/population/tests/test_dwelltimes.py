@@ -1,4 +1,6 @@
 import re
+from dataclasses import dataclass
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -101,14 +103,28 @@ def test_invalid_multi_dwelltime_parameters():
             DwelltimeModel(data, discretization_timestep=dt, min_observation_time=min_obs)
 
 
-def test_optim_options(exponential_data):
-    dataset = exponential_data["dataset_1exp"]
+@pytest.mark.parametrize(
+    "model_args, scipy_args",
+    [
+        ({"tol": 1e-1}, {"ftol": 1e-1}),
+        ({"max_iter": 2}, {"maxiter": 2}),
+    ],
+)
+def test_optim_options(exponential_data, monkeypatch, model_args, scipy_args):
+    @dataclass
+    class MockResult:
+        x: np.ndarray
+        fun: float
 
-    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, tol=1e-1)
-    np.testing.assert_allclose(fit.lifetimes, [1.442235], rtol=1e-5)
+    with monkeypatch.context() as m:
+        dataset = exponential_data["dataset_1exp"]
 
-    fit = DwelltimeModel(dataset["data"], 1, **dataset["parameters"].observation_limits, max_iter=2)
-    np.testing.assert_allclose(fit.lifetimes, [1.382336], rtol=1e-5)
+        minimize = Mock(return_value=MockResult(np.array([5]), 5))
+        m.setattr("scipy.optimize.minimize", minimize)
+        _ = DwelltimeModel(
+            dataset["data"], 1, **dataset["parameters"].observation_limits, **model_args
+        )
+        assert minimize.call_args.kwargs["options"] == scipy_args
 
 
 def test_fit_parameters(exponential_data):
