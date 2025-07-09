@@ -220,6 +220,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             "fast_sensor": self.fast_sensor,
             "axial": bool(self.data.get("Axial calibration")),
             "hydrodynamically_correct": self.hydrodynamically_correct,
+            "driving_sample_rate": self.driving_sample_rate,
         }
 
         return {key: value for key, value in params.items() if value is not None}
@@ -280,7 +281,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
 
     @property
     def _fit_range(self):
-        """Returns the spectral fit range used for the calibration"""
+        """Return the spectral fit range used for the calibration"""
         if "Fit range (min.) (Hz)" in self.data:
             return (
                 self.data["Fit range (min.) (Hz)"],
@@ -296,9 +297,18 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
 
     @property
     def sample_rate(self):
-        """Returns the data sample rate"""
+        """Return the data sample rate"""
         if "Sample rate (Hz)" in self.data:
             return int(self.data["Sample rate (Hz)"])
+
+    @property
+    def driving_sample_rate(self) -> float | None:
+        """Return the data sample rate of the driving input (if applicable)"""
+        if (
+            self.active_calibration
+            and (rate := self.data.get("Driving sample rate (Hz)")) is not None
+        ):
+            return float(rate)
 
     @property
     def number_of_samples(self):
