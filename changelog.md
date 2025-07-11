@@ -16,6 +16,10 @@
 * `KymoTrackGroup.ensemble_diffusion("cve")` now raises a descriptive `ValueError` when invoked on a `KymoTrackGroup` which doesn't have any tracks available which can be used to estimate a diffusion constant.
 * Added option to save TIFFs bigger than 4 GB using `bigtiff=True`.
 
+#### Bug fixes
+
+* Fixed a bug in `Kymo.plot_with_channels()` that would not correctly align the timeline channels in some cases. Prior to the fix, it assumed that slicing the channel with the kymograph start and stop time results in the origin being at time zero, but this may not be the case if the channel is sparsely sampled and the first point is much later (such as is the case for diagnostic channels).
+
 ## v1.6.2 | 2025-05-06
 
 #### Bug fixes
