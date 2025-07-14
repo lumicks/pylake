@@ -175,6 +175,7 @@ def test_bootstrap_multi(min_obs, max_obs, ref_ci, time_step):
 
 
 @pytest.mark.parametrize("num_components", [1, 2])
+@pytest.mark.filterwarnings("ignore:Values in x were outside bounds")
 def test_bootstrap_parallel(monkeypatch, exponential_data, num_components):
     import multiprocessing.dummy
 
