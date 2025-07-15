@@ -1,0 +1,54 @@
+Pylake 1.7.0
+============
+
+.. only:: html
+
+Here is an overview of features that were released in Pylake `v1.7.0`.
+
+Calculating effective on-rates from a kymograph
+-----------------------------------------------
+
+We’ve introduced a new example analysis workflow for calculating the effective on-rate, :math:`k'_{on}` (the inverse of the time between binding events as shown in the figure below), for proteins binding to a target site.
+This workflow guides users through measuring the intervals between binding events of fluorescently labeled proteins on a kymograph, making it possible to determine effective on-rates and analyze binding dynamics.
+For more information, refer to the examples :ref:`examples<kon>` section.
+
+.. image:: kon_whatsnew.png
+
+Improved force calibration
+--------------------------
+
+Pylake `v1.7.0` comes with several improvements to the force calibration workflow, making it easier to work with force calibration data.
+Force calibration items now have properties containing the raw calibration data :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.voltage`, :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.driving` and :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.sum_voltage`.
+
+.. note::
+
+    The properties :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.voltage`, :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.driving` and :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.sum_voltage` are only available if the raw data was exported in Bluelake 2.7.0 or newer with this functionality enabled.
+
+Previously, the voltage had to be computed manually to recalibrate the force.
+Now, recalibrating a force with a single calibration setting overridden becomes a simple three lines::
+
+    calibration = file.force1x.calibration[0]
+    recalibrated = calibration.recalibrate_with(hydrodynamically_correct=True)
+    recalibrated_force1x = file.force1x.recalibrate_force(recalibrated)
+
+For more information, please refer to the updated :ref:`tutorial<force_calibration_tutorial>`.
+
+Faster bootstraps
+-----------------
+
+Calculating confidence intervals for dwelltime models using bootstrapping can be very time consuming, especially for large datasets.
+To speed up the process, we have added the option to calculate bootstraps in parallel.
+This can be done by setting the `num_processes` parameter in the :meth:`~lumicks.pylake.DwelltimeModel.calculate_bootstrap()` method.
+
+Bigger TIF files
+----------------
+
+Added the option to save TIFF files bigger than 4 GB with :meth:`~lumicks.pylake.ImageStack.export_tiff()`.
+
+Other changes
+-------------
+
+In addition, this release contains several other bug-fixes and improvements.
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!
