@@ -367,6 +367,18 @@ These likely are the result of poorly fit or numerical unstable models.
     and :attr:`~lumicks.pylake.population.dwelltime.DwelltimeBootstrap.lifetime_distributions` which return the data as a `numpy` array with
     shape `[# components, # bootstrap samples]`.
 
+Speeding up bootstraps
+^^^^^^^^^^^^^^^^^^^^^^
+
+Models with a larger number of components typically require more bootstrap samples to adequately characterize their uncertainty histograms. Consequently, the bootstrapping process can become quite time consuming.
+To accelerate this process, you can use the `num_processes` argument in the :meth:`~lumicks.pylake.DwelltimeModel.calculate_bootstrap` method::
+
+    import psutil
+
+    # A good number of processes to choose is the number of physical cores in the system
+    cpu_count = psutil.cpu_count(logical=False)
+    bootstrap_parallel = dwell_1.calculate_bootstrap(iterations=100, num_processes=cpu_count)
+
 .. _pop_confidence_intervals:
 
 Profile Likelihood based Confidence intervals
