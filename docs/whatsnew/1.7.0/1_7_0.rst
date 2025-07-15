@@ -1,0 +1,47 @@
+Pylake 1.7.0
+============
+
+.. only:: html
+
+Here is an overview of features that were released in Pylake `v1.6.0`.
+
+Improved force calibration
+--------------------------
+
+Recalibrating a force channel has been made significantly easier.
+In Pylake v1.7.0, we can easily recalibrate a force slice using a force calibration item::
+
+  recalibrated_force1x = f.force1x.recalibrate_force(new_calibration)
+
+Force calibration items now have properties containing the raw calibration data in the properties `voltage`, `driving` and `sum_voltage`.
+With both these changes, recalibrating a force with a setting overridden becomes a simple three lines::
+
+    calibration = file.force1x.calibration[0]
+    recalibrated = calibration.recalibrate_with(hydrodynamically_correct=True)
+    recalibrated_force1x = file.force1x.recalibrate_force(recalibrated)
+
+.. note::
+
+    The properties `voltage`, `driving` and `sum_voltage` are only available if the raw data was exported in Bluelake 2.7.0 or newer with this functionality enabled.
+
+For more information, please refer to the updated tutorial: :ref:`tutorial<force_calibration_tutorial>`.
+
+Faster bootstraps
+-----------------
+
+Calculating bootstraps for dwelltime models can be very time consuming, especially for large datasets.
+To speed up the process, we have added the option to calculate bootstraps in parallel.
+This can be done by setting the `num_processes` parameter in the `DwelltimeModel.calculate_bootstrap()` method.
+
+Bigger TIF files
+----------------
+
+Added the option to save TIF files bigger than 4 GB.
+
+Other changes
+-------------
+
+In addition, this release contains several other bug-fixes and improvements.
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!
