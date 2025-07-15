@@ -32,6 +32,7 @@ def calibrate_force(
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
+    driving_sample_rate=None,
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
@@ -104,6 +105,9 @@ def calibrate_force(
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
         Fix diode relaxation factor to particular value.
+    driving_sample_rate : float, optional
+        Sample rate at which the driving frequency is sampled. This is only used for active
+        calibration and when omitted the sample rate of the force data will be used (default: None).
 
     Raises
     ------
@@ -178,7 +182,8 @@ def calibrate_force(
             distance_to_surface=7,
             driving_data=driving_data.data,
             driving_frequency_guess=37,
-            active_calibration=True
+            active_calibration=True,
+            driving_sample_rate=driving_data.sample_rate,
         )
     """
     if active_calibration:
@@ -213,6 +218,7 @@ def calibrate_force(
             force_voltage_data,
             sample_rate,
             driving_frequency_guess=driving_frequency_guess,
+            driving_sample_rate=driving_sample_rate,
             **model_params,
         )
         if active_calibration

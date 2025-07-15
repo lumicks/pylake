@@ -212,6 +212,7 @@ We define a calibration helper function to make our code more succinct::
             hydrodynamically_correct=True,  # The hydrodynamically correct provides more accurate calibration
             active_calibration=True if nano else False,
             excluded_ranges=excluded_ranges,
+            driving_sample_rate=nano.sample_rate if nano else None,
         )
 
 Most systems have a few exclusion ranges defined to reject narrow noise peaks.

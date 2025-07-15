@@ -100,6 +100,12 @@ class CalibrationResults(CalibrationPropertiesMixin):
         return self.ps_data.sample_rate
 
     @property
+    def driving_sample_rate(self) -> float | None:
+        """Return the data sample rate of the driving input (if applicable)"""
+        if self.active_calibration:
+            return self.model.driving_sample_rate
+
+    @property
     def number_of_samples(self):
         """Number of fitted samples (-)."""
         return self.ps_data.total_sampled_used

@@ -61,6 +61,7 @@ Pylake will find an accurate estimate of the driving frequency based on this ini
         distance_to_surface=distance_to_surface,
         num_points_per_block=200,
         active_calibration=True,
+        driving_sample_rate=driving_data.sample_rate,
     )
 
 We can check the determined driving frequency with::

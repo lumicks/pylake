@@ -47,6 +47,7 @@ class CalibrationPropertiesMixin:
             "excluded_ranges",
             "sample_rate",
             "number_of_samples",
+            *(["driving_sample_rate"] if self.driving_sample_rate is not None else []),
         ]  # omitted: fit_tolerance, max_iterations
 
     @property
@@ -547,6 +548,11 @@ class CalibrationPropertiesMixin:
     def sample_rate(self):
         """Acquisition sample rate (Hz)."""
         raise NotImplementedError("This property is not defined for this item")
+
+    @property
+    def driving_sample_rate(self):
+        """Sample rate used for the driving signal (Hz)."""
+        raise NotImplementedError("The driving sample rate is not defined for this item")
 
     @property
     def number_of_samples(self):

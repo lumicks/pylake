@@ -13,7 +13,8 @@
       0.4,
       15000
     ],
-    "driving_frequency_guess": 32
+    "driving_frequency_guess": 32,
+    "driving_sample_rate": null
   },
   "result": {
     "driving_power": 0.0001248796485662186,
