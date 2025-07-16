@@ -32,6 +32,7 @@ def calibrate_force(
     fixed_diode=None,
     fixed_alpha=None,
     drag=None,
+    corner_frequency_factor=None,
 ) -> CalibrationResults:
     """Determine force calibration factors.
 
@@ -104,6 +105,9 @@ def calibrate_force(
         Fix diode frequency to a particular frequency.
     fixed_alpha : float, optional
         Fix diode relaxation factor to particular value.
+    corner_frequency_factor : float | None, optional
+        Use adaptive fitting ranges. This is a factor that is multiplied with the corner frequency
+        to determine the upper bound for the fitting range.
 
     Raises
     ------
@@ -150,15 +154,16 @@ def calibrate_force(
         force_slice = f.force1x
 
         # Decalibrate existing data
-        volts = force_slice / force_slice.calibration[0]["Response (pN/V)"]
+        calibration_item = force_slice.calibration[0]
+        volts = force_slice / calibration_item["Response (pN/V)"]
 
         # Determine calibration factors using the viscosity of water at T=25 C.
-        lk.calibrate_force(
+        new_calibration = lk.calibrate_force(
             volts.data, bead_diameter=0.58, temperature=25, sample_rate=volts.sample_rate
         )
 
         # Determine calibration factors using the hydrodynamically correct model
-        lk.calibrate_force(
+        new_calibration = lk.calibrate_force(
             volts.data,
             bead_diameter=4.89,
             temperature=25,
@@ -169,7 +174,7 @@ def calibrate_force(
         # Determine calibration factors using the hydrodynamically correct model with active
         # calibration at a distance of 7 micron from the surface
         driving_data = f["Nanostage position"]["X"]
-        lk.calibrate_force(
+        new_calibration = lk.calibrate_force(
             volts.data,
             bead_diameter=4.89,
             temperature=25,
@@ -180,6 +185,31 @@ def calibrate_force(
             driving_frequency_guess=37,
             active_calibration=True
         )
+
+        # Determine calibration factors using a calibrated diode and automatic fitting ranges
+
+        # Grab the diode calibration model for this trap
+        diode_calibration_model = calibration_item.diode_calibration
+
+        # Look up the diode parameters at a particular power
+        diode_params = diode_calibration_model(f["Diagnostics"]["Trap power 1"])
+
+        new_calibration = lk.calibrate_force(
+            volts.data,
+            bead_diameter=4.89,
+            temperature=25,
+            sample_rate=volts.sample_rate,
+            hydrodynamically_correct=True,
+            num_points_per_block=200,  # Lower than default blocking for lower powers
+            corner_frequency_factor=4,  # Automatic fitting ranges
+            **diode_params,  # Unpack fixed (pre-characterized) diode parameters
+        )
+
+        # Inspect the fit
+        new_calibration.plot()
+
+        # Recalibrate force channel with this calibration
+        f.force1x.recalibrate_force(new_calibration)
     """
     if active_calibration:
         if axial:
@@ -233,4 +263,4 @@ def calibrate_force(
         excluded_ranges=excluded_ranges,
     )
 
-    return fit_power_spectrum(ps, model)
+    return fit_power_spectrum(ps, model, corner_frequency_factor=corner_frequency_factor)

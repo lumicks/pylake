@@ -144,7 +144,9 @@ Note how the spectrum flattens out at high frequencies and the model is unable t
   :nbattach:
 
 **As a rule of thumb, an upper bound of approximately four times the corner frequency is usually a safe margin.**
+
 The fitting bounds can be specified by providing a `fit_range` to any of the calibration functions.
+When a calibrated diode is being used, they can also be determined automatically by specifying `corner_frequency_factor=4` to any of the fitting functions.
 
 Frequency exclusion ranges
 """"""""""""""""""""""""""

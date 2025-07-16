@@ -425,6 +425,13 @@ class PowerSpectrum:
 
         return ir
 
+    def with_range(self, frequency_min, frequency_max) -> "PowerSpectrum":
+        """Returns part of the power spectrum within a given frequency range."""
+        ir = copy(self)
+        ir._fit_range = (frequency_min, frequency_max)
+
+        return ir
+
     def num_samples(self) -> int:
         return self.frequency.size
 
