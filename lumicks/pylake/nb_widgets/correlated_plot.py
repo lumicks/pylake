@@ -21,7 +21,7 @@ def plot_correlated(
 
     Parameters
     ----------
-    channel_slice : pylake.channel.Slice
+    channel_slice : pylake.channel.Slice | List[pylake.channel.Slice]
         Data slice that we with to downsample.
     frame_timestamps : list of tuple
         List of tuples with start and stop timestamps of each frame.
@@ -52,85 +52,115 @@ def plot_correlated(
     """
     import matplotlib.pyplot as plt
 
-    processed_channel = (
-        channel_slice.downsampled_over(frame_timestamps, where="left", reduce=reduce)
-        if downsample_to_frames
-        else channel_slice[frame_timestamps[0][0] : frame_timestamps[-1][-1]]
-    )
+    channel_slices = channel_slice if isinstance(channel_slice, list) else [channel_slice]
 
-    if len(processed_channel) < 2:
-        raise ValueError("Channel slice must contain at least two data points.")
+    def downsample_and_validate_dset(dset):
+        dset = (
+            dset.downsampled_over(frame_timestamps, where="left", reduce=reduce)
+            if downsample_to_frames
+            else dset[frame_timestamps[0][0] : frame_timestamps[-1][-1]]
+        )
 
-    if len(processed_channel.timestamps) < len(frame_timestamps):
-        warnings.warn("Only subset of time range available for selected channel")
+        if len(dset) < 2:
+            raise ValueError("Channel slice must contain at least two data points.")
+
+        if len(dset.timestamps) < len(frame_timestamps):
+            warnings.warn("Only subset of time range available for selected channel")
+
+        return dset
+
+    processed_dsets = [downsample_and_validate_dset(dset) for dset in channel_slices]
 
     plot_data = get_plot_data(frame)
     aspect_ratio = plot_data.shape[0] / np.max([plot_data.shape])
 
     aspect_ratio = max(0.2, aspect_ratio)
     if vertical:
-        fig, (ax_img, ax_channel) = plt.subplots(2, 1)  # different axis order is on purpose
-    else:
-        fig, (ax_channel, ax_img) = plt.subplots(
+        num_plots = 1 + len(processed_dsets)
+        fig, axes = plt.subplots(
+            num_plots,
             1,
-            2,
-            figsize=figure_scale * plt.figaspect(aspect_ratio / (aspect_ratio + 1)),
-            gridspec_kw={"width_ratios": [1, 1 / aspect_ratio]},
+            figsize=figure_scale * plt.figaspect(num_plots * aspect_ratio) * num_plots / 1.5,
+            gridspec_kw={"width_ratios": [1]},
         )
+        ax_img = axes[0]
+        ax_channels = axes[1:]
+    else:
+        fig, axes = plt.subplots(
+            1,
+            1 + len(processed_dsets),
+            figsize=figure_scale
+            * plt.figaspect(aspect_ratio / (len(processed_dsets) * aspect_ratio + 1)),
+            gridspec_kw={"width_ratios": [1] * len(processed_dsets) + [1 / aspect_ratio]},
+        )
+        ax_channels = axes[:-1]
+        ax_img = axes[-1]
 
-    t0 = processed_channel.timestamps[0]
-    t, y = processed_channel.seconds, processed_channel.data
+    t_start = np.min([dset.timestamps[0] for dset in processed_dsets])
+    t_stop = np.max([dset.timestamps[-1] for dset in processed_dsets])
 
-    # We explicitly append the last frame time to make sure that it still shows up
+    # Find the frame time of the last frame that we still want to plot
     last_dt = (
         np.diff(
             [
                 frame_range
                 for frame_range in frame_timestamps
-                if frame_range[0] >= channel_slice.start and frame_range[1] <= channel_slice.stop
+                if frame_range[0] >= t_start and frame_range[0] <= t_stop
             ][-1]
         )
         if downsample_to_frames
-        else (processed_channel.timestamps[-1] - processed_channel.timestamps[-2])
+        else (processed_dsets[0].timestamps[-1] - processed_dsets[0].timestamps[-2])
     )
-    t = np.hstack((t, t[-1] + last_dt * 1e-9))
-    y = np.hstack((y, y[-1]))
+
+    def extract_timeseries(processed_channel):
+        t, y = (processed_channel.timestamps - t_start) / 1e9, processed_channel.data
+        return np.hstack((t, t[-1] + last_dt * 1e-9)), np.hstack((y, y[-1]))
 
     # We want a constant line from the start of the first frame, to the end. So we plot up to
     # the second point.
-    ax_channel.step(t, y, where="post")
-    ax_img.tick_params(
-        axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
-    )
+    for dset, ax_channel in zip(processed_dsets, ax_channels):
+        t, y = extract_timeseries(dset)
+        ax_channel.step(t, y, where="post")
+        ax_img.tick_params(
+            axis="both", which="both", bottom=False, left=False, labelbottom=False, labelleft=False
+        )
+
+        ax_channel.set_xlabel("Time [s]")
+        ax_channel.set_ylabel(dset.labels["y"])
+        ax_channel.set_title(dset.labels["title"])
+        ax_channel.set_xlim([0, (t_stop - t_start + last_dt) / 1e9])
+
     image_object = ax_img.imshow(plot_data, cmap=colormap)
     if post_update:
         post_update(image_object, plot_data)
     ax_img.set_title(title_factory(frame))
 
     # Make sure the y-axis limits stay fixed when we add our little indicator rectangle
-    y1, y2 = ax_channel.get_ylim()
-    ax_channel.set_ylim(y1, y2)
+    for ax_channel in ax_channels:
+        y1, y2 = ax_channel.get_ylim()
+        ax_channel.set_ylim(y1, y2)
 
     def update_position(start, stop):
-        return ax_channel.fill_between(
-            (np.array([start, stop]) - t0) / 1e9,
-            y1,
-            y2,
-            alpha=0.7,
-            color="r",
-        )
+        return [
+            ax.fill_between(
+                (np.array([start, stop]) - t_start) / 1e9,
+                ax.get_ylim()[0],
+                ax.get_ylim()[1],
+                alpha=0.7,
+                color="r",
+            )
+            for ax in ax_channels
+        ]
 
     poly = update_position(*frame_timestamps[frame])
 
-    ax_channel.set_xlabel("Time [s]")
-    ax_channel.set_ylabel(processed_channel.labels["y"])
-    ax_channel.set_title(processed_channel.labels["title"])
-    ax_channel.set_xlim([np.min(t), np.max(t)])
-
     if vertical:
         # Make sure we don't get a really elongated time plot
-        x_lims, y_lims = ax_channel.get_xlim(), ax_channel.get_ylim()
-        ax_channel.set_aspect(aspect_ratio * abs((x_lims[1] - x_lims[0]) / (y_lims[1] - y_lims[0])))
+        for ax_channel in ax_channels:
+            x_lims, y_lims = ax_channel.get_xlim(), ax_channel.get_ylim()
+            ax_channel.set_aspect(
+                aspect_ratio * abs((x_lims[1] - x_lims[0]) / (y_lims[1] - y_lims[0]))
+            )
 
     # For clicking, we want the region between the start of this frame and the start of the next
     # rather than the actual frame ranges.
@@ -140,7 +170,8 @@ def plot_correlated(
     def update_frame(img_idx):
         nonlocal poly
         ax_img.set_title(title_factory(img_idx))
-        poly.remove()
+        for p in poly:
+            p.remove()
         img_data = get_plot_data(img_idx)
         image_object.set_data(img_data)
 
@@ -155,8 +186,8 @@ def plot_correlated(
             fig.canvas.draw()
 
     def select_frame(event):
-        if not event.canvas.widgetlock.locked() and event.inaxes == ax_channel:
-            time = event.xdata * 1e9 + t0
+        if not event.canvas.widgetlock.locked() and any(event.inaxes == ax for ax in ax_channels):
+            time = event.xdata * 1e9 + t_start
             for img_idx, (start, stop) in enumerate(frame_change_ranges):
                 if start <= time < stop:
                     update_frame(img_idx)
