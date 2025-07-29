@@ -11,22 +11,22 @@ Rate of binding
 Determine the rate of binding
 -----------------------------
 
-In this Notebook, we will determine the time between binding events for a fluorescently labeled protein binding to DNA. 
-The protein binds and unbinds to target sites on DNA and the result is recorded as a kymograph.  
+In this Notebook, we will determine the time between binding events for a fluorescently labeled protein binding to DNA.
+The protein binds and unbinds to target sites on DNA and the result is recorded as a kymograph.
 We track the binding events, and then determine the time intervals *between* the binding events:
 
 .. image:: kon.png
 
 These time intervals tell you how long it takes for a protein to bind to an empy target site.
 
-The time between binding events, :math:`\tau_{on}` relates to the on rate of protein, :math:`k_{on}`, as :math:`\tau_{on}=1/ (k_{on}[P])` . 
+The time between binding events, :math:`\tau_{on}` relates to the on rate of protein, :math:`k_{on}`, as :math:`\tau_{on}=1/ (k_{on}[P])` .
 The binding rate :math:`k_{on}` relates to the dissociation constant as.
 
 .. math::
 
     K_{D} = \frac{k_{off}}{k_{on}}
 
-For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}` . 
+For this example, we don't know the protein concentration and can therefore not determine :math:`k_{on}` .
 We will determine the time between binding events and refer to the inverse of that, as the *effective binding rate*, :math:`k'_{on} = k_{on}[P]` .
 Further, we assume that the *bleaching time* for the dye is much longer than the time between binding, such that we can ignore the effect of bleaching.
 
@@ -42,7 +42,7 @@ Load and plot the kymograph::
 
     file1 = lk.File("test_data/kymo1.h5")
     _, kymo1 = file1.kymos.popitem()
-    
+
     plt.figure()
     kymo1.plot("g", aspect = 5, adjustment=lk.ColorAdjustment([0], [5]))
 
@@ -103,23 +103,23 @@ Below, we use the above coordinates to select the corresponding region from the 
 We check that non of the events overlap in time (as we cannot compute kon for overlapping events) and proceed to compute the time intervals between events::
 
     def check_any_overlap(tracks):
-    # Iterate over tracked binding events to check for overlap
-    for i in range(len(tracks)):
-        for j in range(i + 1, len(tracks)):
-            if check_range_overlap(tracks[i], tracks[j]):
-                raise Exception("Two or more binding events overlap in time! Remove the overlapping events before continuing the analysis.")
+        # Iterate over tracked binding events to check for overlap
+        for i in range(len(tracks)):
+            for j in range(i + 1, len(tracks)):
+                if check_range_overlap(tracks[i], tracks[j]):
+                    raise Exception("Two or more binding events overlap in time! Remove the overlapping events before continuing the analysis.")
 
     def check_range_overlap(track1, track2):
         # Find the minimum and maximum values in each array
         min1, max1 = np.min(track1.seconds), np.max(track1.seconds)
         min2, max2 = np.min(track2.seconds), np.max(track2.seconds)
-        
+
         # Check if the ranges overlap
         if (min1 <= max2 and min1 >= min2) or (min2 <= max1 and min2 >= min1):
             return True
         else:
             return False
-    
+
     def time_intervals(tracks):
         """Compute the time intervals between all tracks in a given selection"""
         intervals =  [tracks[x+1].seconds[0]-tracks[x].seconds[-1] for x in range(len(tracks)-1)]
@@ -148,11 +148,11 @@ The time intervals between binding are typically exponentially distributed. The 
 
     P(t) = k'_{on}e^{-k'_{on}t} = \frac{1}{\tau_{on}} e^{-t/\tau_{on}}
 
-Below, we fit an exponential function to the distribution of time intervals using Pylake. The parameter `discretization_timestep` accounts for the discrete nature of the data: all time intervals are a multiple of the kymo line time. 
-For this dataset, we could ignore this parameter, because the average time interval is much larger than the kymo line time. When the observed time intervals are close to the kymo line time, it is important to include this parameter for a good fit. 
+Below, we fit an exponential function to the distribution of time intervals using Pylake. The parameter `discretization_timestep` accounts for the discrete nature of the data: all time intervals are a multiple of the kymo line time.
+For this dataset, we could ignore this parameter, because the average time interval is much larger than the kymo line time. When the observed time intervals are close to the kymo line time, it is important to include this parameter for a good fit.
 We cannot observe time intervals smaller than the line time, which is accounted for by adding the parameter `min_observation_time`. ::
 
-    single_exponential_fit = lk.DwelltimeModel(np.array(intervals_total), n_components=1, , discretization_timestep = kymo1.line_time_seconds, min_observation_time = kymo1.line_time_seconds)
+    single_exponential_fit = lk.DwelltimeModel(np.array(intervals_total), n_components=1, discretization_timestep=kymo1.line_time_seconds, min_observation_time=kymo1.line_time_seconds)
 
     plt.figure()
     single_exponential_fit.hist()
@@ -177,8 +177,8 @@ Conclusion and Outlook
 
 The average time between binding events is 35 seconds with a 95% confidence interval of (24,50).
 
-As mentioned in the introduction, the obtained time depends on the protein concentration. 
+As mentioned in the introduction, the obtained time depends on the protein concentration.
 Since we don't know the protein concentration, this value can only be compared to measurements with the same protein concentration in the flow cell.
-If you would like to compute the dissociation constant and compare to bulk experiments, the concentration has to be determined [1]_. 
+If you would like to compute the dissociation constant and compare to bulk experiments, the concentration has to be determined [1]_.
 
 .. [1] Schaich *et al*, Single-molecule analysis of DNA-binding proteins from nuclear extracts (SMADNE), NAR (2023)
