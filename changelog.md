@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.1 | tbd
+
+#### Bug fixes
+
+- Fixed a bug that could affect calibrations returned by [Slice.calibration](https://lumicks-pylake.readthedocs.io/en/v1.7.0/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.calibration) with a stop time of `0` (01/01/1970). This bug could affect mocked force and calibration data, but it should not affect real data.
+
 ## v1.7.0 | 2025-07-29
 
 #### New features
