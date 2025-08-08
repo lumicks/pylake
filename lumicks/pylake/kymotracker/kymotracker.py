@@ -3,12 +3,12 @@ from itertools import chain
 
 import numpy as np
 
-from ..kymo import PositionUnit
 from .kymotrack import KymoTrack, KymoTrackGroup
 from .detail.peakfinding import find_kymograph_peaks, refine_peak_based_on_moment
 from .detail.gaussian_mle import gaussian_mle_1d, overlapping_pixels
 from .detail.trace_line_2d import detect_lines, points_to_line_segments
 from .detail.scoring_functions import kymo_score
+from ..detail.pixel_calibration import PositionUnit
 from .detail.localization_models import GaussianLocalizationModel
 
 __all__ = [

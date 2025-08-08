@@ -3,7 +3,8 @@ import itertools
 import numpy as np
 import pytest
 
-from lumicks.pylake.kymo import PositionUnit, _kymo_from_array
+from lumicks.pylake.kymo import _kymo_from_array
+from lumicks.pylake.detail.pixel_calibration import PositionUnit
 
 timestamp_err_msg = (
     "Per-pixel timestamps are not implemented. "

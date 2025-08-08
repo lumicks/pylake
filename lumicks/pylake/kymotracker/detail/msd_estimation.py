@@ -5,7 +5,7 @@ from dataclasses import field, dataclass
 import numpy as np
 import numpy.typing as npt
 
-from ...kymo import PositionUnit
+from ...detail.pixel_calibration import PositionUnit
 
 
 @dataclass(frozen=True)
