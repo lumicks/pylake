@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from lumicks.pylake.kymo import PositionUnit, PositionCalibration
+from lumicks.pylake.detail.pixel_calibration import PositionUnit, PositionCalibration
 
 
 def test_calibrate_to_kbp(test_kymo):
