@@ -92,16 +92,7 @@ class Kymo(ConfocalImage):
         self._position_offset = position_offset
         self._contiguous = True
         self._motion_blur_constant = 0
-
-        self._calibration = (
-            calibration
-            if calibration is not None
-            else (
-                PositionCalibration()
-                if self.pixelsize_um[0] is None
-                else PositionCalibration(PositionUnit.um, self.pixelsize_um[0])
-            )
-        )
+        self._calibration_src = calibration
 
     @property
     def contiguous(self):
@@ -161,7 +152,6 @@ class Kymo(ConfocalImage):
     def __copy__(self):
         kymo_copy = super().__copy__()
         kymo_copy._position_offset = self._position_offset
-        kymo_copy._calibration = self._calibration
 
         # Copy the default factories
         kymo_copy._line_time_factory = self._line_time_factory
@@ -335,6 +325,14 @@ class Kymo(ConfocalImage):
         list corresponds to the number of scan axes."""
         return [self._calibration.pixelsize]
 
+    @property
+    def axis_units(self):
+        return "s", self._calibration.unit.label
+
+    @property
+    def axis_names(self):
+        return "time", "position"
+
     def plot(
         self,
         channel="rgb",
@@ -408,8 +406,9 @@ class Kymo(ConfocalImage):
             axes=axes,
             **{**default_kwargs, **kwargs},
         )
-        axes.set_xlabel("time (s)")
-        axes.set_ylabel(f"position ({self._calibration.unit.label})")
+        axes.set_xlabel(self.axis_labels[0])
+        axes.set_ylabel(self.axis_labels[1])
+
         if show_title:
             axes.set_title(self.name)
 
@@ -995,7 +994,7 @@ class Kymo(ConfocalImage):
         result._line_time_factory = line_time_factory
         result._pixelsize_factory = pixelsize_factory
         result._pixelcount_factory = pixelcount_factory
-        result._calibration = self._calibration.downsample(position_factor)
+        result._calibration_src = self._calibration.downsample(position_factor)
         result._contiguous = time_factor == 1 and self.contiguous
         result._motion_blur_constant = None
         return result
@@ -1037,7 +1036,7 @@ class Kymo(ConfocalImage):
         pixel_origin = start / self.pixelsize_um[0] if start is not None else 0.0
 
         result = copy(self)
-        result._calibration = PositionCalibration(
+        result._calibration_src = PositionCalibration(
             PositionUnit.kbp, kbp_per_pixel, origin=pixel_origin
         )
         result._image_factory = self._image_factory

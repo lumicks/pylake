@@ -7,6 +7,7 @@ import numpy as np
 from numpy import typing as npt
 
 from lumicks.pylake.channel import Slice, empty_slice
+from lumicks.pylake.detail.pixel_calibration import PositionUnit, PositionCalibration
 
 from .image import reconstruct_image, reconstruct_image_sum
 from .mixin import PhotonCounts, ExcitationLaserPower
@@ -321,6 +322,40 @@ class BaseScan(PhotonCounts, ExcitationLaserPower):
 
 
 class ConfocalImage(BaseScan, TiffExport):
+    def __init__(self, name, file, start, stop, metadata):
+        super().__init__(name, file, start, stop, metadata)
+        self._calibration_src = None
+
+    @property
+    def _calibration(self):
+        """Fetch the pixel calibration on this image"""
+        if self._calibration_src is None:
+            self._calibration_src = (
+                PositionCalibration()
+                if self.pixelsize_um[0] is None
+                else PositionCalibration(PositionUnit.um, self.pixelsize_um[0])
+            )
+
+        return self._calibration_src
+
+    @property
+    def axis_units(self):
+        raise NotImplementedError(f"This has not been implemented for {self.__class__.__name__}.")
+
+    @property
+    def axis_names(self):
+        raise NotImplementedError(f"This has not been implemented for {self.__class__.__name__}.")
+
+    @property
+    def axis_labels(self):
+        """Return axis labels of the scan in the order of the reconstruction shape."""
+        return tuple(f"{name} ({unit})" for name, unit in zip(self.axis_names, self.axis_units))
+
+    def __copy__(self):
+        copy = super().__copy__()
+        copy._calibration_src = self._calibration
+        return copy
+
     def _to_spatial(self, data):
         """Implements any necessary post-processing actions after image reconstruction from infowave"""
         raise NotImplementedError

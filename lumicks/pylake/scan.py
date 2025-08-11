@@ -419,6 +419,16 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         else:
             return data
 
+    @property
+    def axis_names(self):
+        """Return axis labels of the scan in the order of the reconstruction shape."""
+        return tuple(ax.axis_label.lower() for ax in self._metadata.ordered_axes)
+
+    @property
+    def axis_units(self):
+        """Return axis units of the scan in the order of the reconstruction shape."""
+        return tuple(self._calibration.unit.label for _ in self._metadata.ordered_axes)
+
     def plot(
         self,
         channel="rgb",
@@ -469,7 +479,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
         if show_axes is False:
             axes.set_axis_off()
 
-        positional_unit = r"μm"
+        positional_unit = self._calibration.unit.label
         if scale_bar and not image_handle:
             scale_bar._attach_scale_bar(axes, 1.0, 1.0, positional_unit, positional_unit)
 
@@ -492,9 +502,8 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
             axes=axes,
             **{**default_kwargs, **kwargs},
         )
-        scan_axes = self._metadata.ordered_axes
-        axes.set_xlabel(rf"{scan_axes[0].axis_label.lower()} ({positional_unit})")
-        axes.set_ylabel(rf"{scan_axes[1].axis_label.lower()} ({positional_unit})")
+        axes.set_xlabel(self.axis_labels[0])
+        axes.set_ylabel(self.axis_labels[1])
         if show_title:
             axes.set_title(make_image_title(self, frame))
 

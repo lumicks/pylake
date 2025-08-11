@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.8.0 | t.b.d.
+
+* Added confocal API endpoints [`axis_units`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.axis_units), [`axis_names`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.axis_names), [`axis_labels`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.scan.Scan.html#lumicks.pylake.scan.Scan.axis_labels) to get the units, names and labels of the axes of a confocal scan in human-readable form.
+
 ## v1.7.0 | t.b.d.
 
 #### New features
