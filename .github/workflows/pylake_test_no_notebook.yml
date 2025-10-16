@@ -1,6 +1,11 @@
 name: no notebook deps
 
-on: [push]
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+      - release/**
 
 env:
   JUPYTER_PLATFORM_DIRS: "1"
