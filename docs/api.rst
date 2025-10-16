@@ -29,6 +29,7 @@ If you are just looking to get started, read the :doc:`/tutorial/index` first.
     :template: function.rst
 
     download_from_doi
+    channel.match_sample_rates
 
 Force calibration
 -----------------

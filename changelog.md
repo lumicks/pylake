@@ -6,6 +6,7 @@
 * Added feature to adaptively determine the fitting range when fitting power spectra using [`calibrate_force()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.calibrate_force.html#lumicks.pylake.calibrate_force) and [`fit_power_spectrum()`](https://lumicks-pylake.readthedocs.io/en/stable/_api/lumicks.pylake.fit_power_spectrum.html). Provide the parameter `corner_frequency_factor` to use this feature. When provided, the fitting range will be iteratively determined based on the corner frequency of the power spectrum.
 * Added the optional argument `data_range` to [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot) to plot a custom frequency range for the data. This helps put the fitted part of the power spectrum in context.
 * Added the optional argument `where="left"` to [`Slice.donwsampled_by()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.downsampled_by) to downsample by a factor while keeping the original timestamps. The default remains `"center"`.
+* Added [`match_sample_rates()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.match_sample_rates.html#lumicks.pylake.channel.match_sample_rates) to match sample rates across multiple slices by downsampling to the lowest rate.
 
 ## v1.7.0 | 2025-07-29
 

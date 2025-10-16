@@ -1100,3 +1100,43 @@ def channel_class(dset):
             raise IndexError("Direct access to this field is not supported.")
     else:
         return TimeSeries
+
+
+def match_sample_rates(slices: list[Slice], where="center"):
+    """Match sample rates across multiple slices by downsampling to the lowest rate.
+
+    Parameters
+    ----------
+    slices : list of Slice
+        List of slices to match sample rates for
+    downsampling_factor : int, optional
+        Additional downsampling factor to apply to all slices
+
+    Returns
+    -------
+    list of Slice
+        List of downsampled slices with matching sample rates
+
+    Raises
+    ------
+    ValueError
+        If sample rates are not integer multiples of the minimum sample rate
+    """
+    if not slices:
+        return []
+
+    sample_rates = [s.sample_rate for s in slices]
+    min_sample_rate = min(sample_rates)
+
+    def integer_sample_rate(sample_rate, min_sample_rate):
+        sr = sample_rate / min_sample_rate
+        if not sr.is_integer():
+            raise ValueError(f"Sample rates {sample_rates} must be integer multiples of each other")
+        return int(sr)
+
+    downsampling_factors = [integer_sample_rate(sr, min_sample_rate) for sr in sample_rates]
+
+    return [
+        slice_obj.downsampled_by(df, where=where)
+        for slice_obj, df in zip(slices, downsampling_factors)
+    ]
