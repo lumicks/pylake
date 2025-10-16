@@ -1109,3 +1109,73 @@ def test_recalibrate_force_multi(items, ref_forces):
     )
     slc_recal = slc.recalibrate_force(make_calibration_result(10))
     np.testing.assert_equal(slc_recal.data, np.array(ref_forces))
+
+
+def test_match_sample_rates():
+    # Test with empty list
+    assert channel._match_sample_rates([]) == []
+
+    # Test with single slice
+    s1 = channel.Slice(channel.Continuous([1, 2, 3, 4], start=with_offset(0), dt=10))
+    result = channel._match_sample_rates([s1])
+    assert len(result) == 1
+    np.testing.assert_allclose(result[0].data, s1.data)
+    np.testing.assert_equal(result[0].timestamps, s1.timestamps)
+
+    # Test with same sample rates - should return unchanged
+    s2 = channel.Slice(channel.Continuous([5, 6, 7, 8], start=with_offset(0), dt=10))
+    result = channel._match_sample_rates([s1, s2])
+    assert len(result) == 2
+    np.testing.assert_allclose(result[0].data, s1.data)
+    np.testing.assert_allclose(result[1].data, s2.data)
+    np.testing.assert_equal(result[0].timestamps, s1.timestamps)
+    np.testing.assert_equal(result[1].timestamps, s2.timestamps)
+
+    s3 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5, 6, 7, 8], start=with_offset(0), dt=5))
+    s4 = channel.Slice(channel.Continuous([10, 20], start=with_offset(0), dt=20))
+
+    result = channel._match_sample_rates([s1, s3, s4])
+    assert len(result) == 3
+
+    expected_sample_rate = 1e9 / 20
+    for r in result:
+        assert r.sample_rate == expected_sample_rate
+
+    np.testing.assert_allclose(result[0].data, [1.5, 3.5])
+    np.testing.assert_allclose(result[1].data, [2.5, 6.5])
+    np.testing.assert_allclose(result[2].data, [10, 20])
+
+    s5 = channel.Slice(channel.Continuous(np.arange(1, 20), start=with_offset(0), dt=12800))
+    s6 = channel.Slice(channel.Continuous([10, 20], start=with_offset(0), dt=12800 * 19))
+    result = channel._match_sample_rates([s5, s6])
+    assert len(result) == 2
+
+    expected_sample_rate = 1e9 / (12800 * 19)
+    for r in result:
+        assert r.sample_rate == expected_sample_rate
+
+    np.testing.assert_allclose(result[0].data, [10.0])
+    np.testing.assert_allclose(result[1].data, [10, 20])
+
+
+def test_match_sample_rates_where():
+    s1 = channel.Slice(channel.Continuous([1, 2, 3, 4], start=with_offset(0), dt=10))
+    s2 = channel.Slice(channel.Continuous([1, 2, 3, 4, 5, 6, 7, 8], start=with_offset(0), dt=5))
+
+    result_center = channel._match_sample_rates([s1, s2], where="center")
+    result_left = channel._match_sample_rates([s1, s2], where="left")
+
+    # Data should be the same, but timestamps different
+    np.testing.assert_allclose(result_center[0].data, result_left[0].data)
+    np.testing.assert_allclose(result_center[1].data, result_left[1].data)
+
+    np.testing.assert_allclose(result_center[0].timestamps, result_left[0].timestamps)
+    assert not np.array_equal(result_center[1].timestamps, result_left[1].timestamps)
+
+
+def test_match_sample_rates_non_integer_multiples():
+    s1 = channel.Slice(channel.Continuous([1, 2, 3], start=with_offset(0), dt=10))
+    s2 = channel.Slice(channel.Continuous([1, 2, 3], start=with_offset(0), dt=7))
+
+    with pytest.raises(ValueError, match="Sample rates .* must be integer multiples of each other"):
+        channel._match_sample_rates([s1, s2])

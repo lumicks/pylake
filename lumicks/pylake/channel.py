@@ -1100,3 +1100,55 @@ def channel_class(dset):
             raise IndexError("Direct access to this field is not supported.")
     else:
         return TimeSeries
+
+
+def _match_sample_rates(slices: list[Slice], where="center"):
+    """Match sample rates across multiple slices by downsampling to the lowest rate.
+
+    Parameters
+    ----------
+    slices : list of Slice
+        List of slices to match sample rates for
+
+    where : str
+        Where to put the final time point.
+        - "center" : The new time points are set to
+            `(timestamps_subset[0] + timestamps_subset[-1]) / 2`, where `timestamps_subset` are
+            the timestamps corresponding to the samples being downsampled over.
+        - "left" : Time points are set to the starting timestamp of the downsampled data.
+
+    Returns
+    -------
+    list of Slice
+        List of downsampled slices with matching sample rates
+
+    Raises
+    ------
+    ValueError
+        If sample rates are not integer multiples of the minimum sample rate
+    """
+    if not slices:
+        return []
+
+    for s in slices:
+        if len(s._timesteps) > 1:
+            raise ValueError(
+                f"Cannot resample data with non-equidistant sampling, got {1e9 / s._timesteps}."
+            )
+
+    timesteps = [s._timesteps[0] for s in slices]
+    max_timesteps = max(timesteps)
+
+    def integer_sample_rate(timesteps, max_timestep):
+        if max_timestep % timesteps != 0:
+            raise ValueError(
+                f"Sample rates {1e9 / timesteps} must be integer multiples of each other"
+            )
+        return max_timestep // timesteps
+
+    downsampling_factors = [integer_sample_rate(ts, max_timesteps) for ts in timesteps]
+
+    return [
+        slice_obj.downsampled_by(df, where=where)
+        for slice_obj, df in zip(slices, downsampling_factors)
+    ]
