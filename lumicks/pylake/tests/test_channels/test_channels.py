@@ -504,6 +504,21 @@ def test_downsampling():
     np.testing.assert_equal(s3.timestamps, with_offset([10]))
     assert s3.sample_rate == sample_rate / 3
 
+    s2_left = s.downsampled_by(2, where="left")
+    np.testing.assert_allclose(s2_left.data, [14.5, 16.5])
+    np.testing.assert_equal(s2_left.timestamps, with_offset([0, 20]))
+    assert s2_left.sample_rate == sample_rate / 2
+
+    s4_left = s.downsampled_by(4, where="left")
+    np.testing.assert_allclose(s4_left.data, [15.5])
+    np.testing.assert_equal(s4_left.timestamps, with_offset([0]))
+    assert s4_left.sample_rate == sample_rate / 4
+
+    s3_left = s.downsampled_by(3, where="left")
+    np.testing.assert_allclose(s3_left.data, [15])
+    np.testing.assert_equal(s3_left.timestamps, with_offset([0]))
+    assert s3_left.sample_rate == sample_rate / 3
+
     s22 = s2.downsampled_by(2)
     np.testing.assert_allclose(s22.data, 15.5)
     np.testing.assert_equal(s22.timestamps, with_offset([15]))
