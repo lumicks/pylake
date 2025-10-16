@@ -1,6 +1,11 @@
 name: pytest
 
-on: [push]
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+      - release/**
 
 env:
   # See: https://github.com/jupyter/jupyter_core/pull/292#issuecomment-1258284246
