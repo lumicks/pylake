@@ -7,6 +7,7 @@
 * Added the optional argument `data_range` to [`CalibrationResults.plot()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.html#lumicks.pylake.force_calibration.power_spectrum_calibration.CalibrationResults.plot) to plot a custom frequency range for the data. This helps put the fitted part of the power spectrum in context.
 * Bump `tabulate` dependency to allow versions up to `<0.11`.
 * Added the optional argument `where="left"` to [`Slice.donwsampled_by()`](https://lumicks-pylake.readthedocs.io/en/latest/_api/lumicks.pylake.channel.Slice.html#lumicks.pylake.channel.Slice.downsampled_by) to downsample by a factor while keeping the original timestamps. The default remains `"center"`.
+* Allow [piezo tracking](https://lumicks-pylake.readthedocs.io/en/latest/api.html#piezo-tracking) to work with force and trap position data with different sampling rates by downsampling the higher rate data to the lower one. The sampling are required to be integer multiple of each other to avoid any interpolation.
 
 ## v1.7.0 | 2025-07-29
 

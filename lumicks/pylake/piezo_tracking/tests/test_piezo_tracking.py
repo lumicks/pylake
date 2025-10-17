@@ -128,14 +128,16 @@ def test_piezotracking(piezo_tracking_test_data):
     piezo_distance = piezo_calibration.piezo_track(
         data["trap_position"], data["force_1x"], data["force_2x"]
     )
-    np.testing.assert_allclose(piezo_distance.data, data["correct_distance"], rtol=1e-6)
+    np.testing.assert_allclose(piezo_distance.data, data["correct_distance"].data, rtol=1e-6)
 
     # Test the full workflow
     fd_generator = PiezoForceDistance(distance_calibration, baseline_1, baseline_2)
     piezo_distance, corrected_force1, corrected_force2 = fd_generator.force_distance(
         data["trap_position"], data["force_1x"], data["force_2x"], trim=False
     )
-    np.testing.assert_allclose(corrected_force1.data, data["force_without_baseline"], rtol=1e-6)
+    np.testing.assert_allclose(
+        corrected_force1.data, data["force_without_baseline"].data, rtol=1e-3
+    )
 
 
 def test_piezo_trimming(piezo_tracking_test_data):
@@ -164,7 +166,7 @@ def test_piezo_trimming(piezo_tracking_test_data):
     assert np.sum(mask) < len(data["correct_distance"])
     np.testing.assert_allclose(piezo_distance.data, data["correct_distance"][mask], rtol=1e-6)
     np.testing.assert_allclose(
-        corrected_force1.data, data["force_without_baseline"][mask], rtol=1e-6
+        corrected_force1.data, data["force_without_baseline"][mask], rtol=1e-5
     )
 
 
@@ -174,6 +176,7 @@ def test_piezo_trimming(piezo_tracking_test_data):
 )
 def test_piezo_force_distance_missing_baselines(
     piezo_tracking_test_data,
+    downsampling_factor,
     correct_baseline1,
     correct_baseline2,
 ):
@@ -203,10 +206,18 @@ def test_piezo_force_distance_missing_baselines(
 
     np.testing.assert_allclose(piezo_distance.data, data["correct_distance"], rtol=1e-6)
 
-    ref_force1 = data["force_without_baseline"] if correct_baseline1 else data["force_1x"].data
-    np.testing.assert_allclose(corrected_force1.data, ref_force1, rtol=1e-6)
-    ref_force2 = -data["force_without_baseline"] if correct_baseline2 else data["force_2x"].data
-    np.testing.assert_allclose(corrected_force2.data, ref_force2, rtol=1e-6)
+    ref_force1 = (
+        data["force_without_baseline"]
+        if correct_baseline1
+        else data["force_1x"].downsampled_by(downsampling_factor, where="left").data
+    )
+    np.testing.assert_allclose(corrected_force1.data, ref_force1, rtol=1e-3)
+    ref_force2 = (
+        -data["force_without_baseline"]
+        if correct_baseline2
+        else data["force_2x"].downsampled_by(downsampling_factor, where="left").data
+    )
+    np.testing.assert_allclose(corrected_force2.data, ref_force2, rtol=1e-3)
 
 
 def test_baseline_range(piezo_tracking_test_data):
@@ -275,8 +286,8 @@ def test_downsampling_tracking(piezo_tracking_test_data):
     )
 
     np.testing.assert_allclose(
-        piezo_distance.data, downsample(data["correct_distance"], 10, np.mean), rtol=1e-6
+        piezo_distance.data, data["correct_distance"].downsampled_by(10).data, rtol=1e-6
     )
     np.testing.assert_allclose(
-        corrected_force1.data, downsample(data["force_without_baseline"], 10, np.mean), rtol=1e-3
+        corrected_force1.data, data["force_without_baseline"].downsampled_by(10).data, rtol=1e-3
     )

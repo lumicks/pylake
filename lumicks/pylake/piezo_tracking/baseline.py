@@ -1,6 +1,6 @@
 import numpy as np
 
-from lumicks.pylake.channel import Slice, Continuous
+from lumicks.pylake.channel import Slice, Continuous, _match_sample_rates
 
 __all__ = ["ForceBaseLine"]
 
@@ -21,8 +21,8 @@ class ForceBaseLine:
             Force data
         """
         self._model = model
-        self._trap_data = trap_data
-        self._force = force
+        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
+        self._trap_data, self._force = _match_sample_rates([trap_data, force], where="left")
 
     def valid_range(self):
         """Returns valid range of the baseline
@@ -42,6 +42,8 @@ class ForceBaseLine:
         trap_position : Slice
             Trap position data (needs to be the same time range as the force data).
         """
+        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
+        trap_position, force = _match_sample_rates([trap_position, force], where="left")
 
         if not np.array_equal(force.timestamps, trap_position.timestamps):
             raise RuntimeError("Provided force and trap position timestamps should match")
@@ -110,6 +112,9 @@ class ForceBaseLine:
         downsampling_factor : int
             Factor by which to downsample before baseline determination
         """
+        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
+        trap_position, force = _match_sample_rates([trap_position, force], where="left")
+
         if not np.array_equal(force.timestamps, trap_position.timestamps):
             raise RuntimeError("Provided force and trap position timestamps should match")
 
