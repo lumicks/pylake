@@ -477,7 +477,7 @@ class Slice:
         new_ranges = [(t1, t2) for t1, t2 in zip(t[:-1], t[1:])]
         return self.downsampled_over(new_ranges, reduce=reduce, where=where)
 
-    def downsampled_by(self, factor, reduce=np.mean):
+    def downsampled_by(self, factor, reduce=np.mean, where="center"):
         """Return a copy of this slice which is downsampled by `factor`
 
         Parameters
@@ -488,8 +488,15 @@ class Slice:
             The :mod:`numpy` function which is going to reduce multiple samples into one. The
             default is :func:`np.mean <numpy.mean>`, but :func:`np.sum <numpy.sum>` could also be
             appropriate for some cases, e.g. photon counts.
+        where : str
+            Where to put the final time point.
+
+            - "center" : The new time points are set to
+              `(timestamps_subset[0] + timestamps_subset[-1]) / 2`, where `timestamps_subset` are
+              the timestamps corresponding to the samples being downsampled over.
+            - "left" : Time points are set to the starting timestamp of the downsampled data.
         """
-        return self._with_data_source(self._src.downsampled_by(factor, reduce))
+        return self._with_data_source(self._src.downsampled_by(factor, reduce, where))
 
     def downsampled_like(self, other_slice, reduce=np.mean):
         """Downsample high frequency data analogously to a low frequency channel in the same way
@@ -829,10 +836,10 @@ class Continuous:
         stop_idx = to_index(stop)
         return self.__class__(self.data[start_idx:stop_idx], start, self.dt)
 
-    def downsampled_by(self, factor, reduce):
+    def downsampled_by(self, factor, reduce, where="center"):
         return self.__class__(
             downsample(self.data, factor, reduce),
-            start=self.start + self.dt * (factor - 1) // 2,
+            start=self.start + self.dt * (factor - 1) // 2 if where == "center" else self.start,
             dt=self.dt * factor,
         )
 
@@ -971,7 +978,7 @@ class TimeSeries:
         idx = np.logical_and(start <= self.timestamps, self.timestamps < stop)
         return self.__class__(self.data[idx], self.timestamps[idx])
 
-    def downsampled_by(self, factor, reduce):
+    def downsampled_by(self, factor, reduce, where="center"):
         raise NotImplementedError("Downsampling is currently not available for time series data")
 
 
@@ -1031,7 +1038,7 @@ class TimeTags:
         idx = np.logical_and(start <= self.data, self.data < stop)
         return self.__class__(self.data[idx], min(start, stop), max(start, stop))
 
-    def downsampled_by(self, factor, reduce):
+    def downsampled_by(self, factor, reduce, where="center"):
         raise NotImplementedError("Downsampling is not available for time tag data")
 
 
@@ -1093,3 +1100,43 @@ def channel_class(dset):
             raise IndexError("Direct access to this field is not supported.")
     else:
         return TimeSeries
+
+
+def match_sample_rates(slices: list[Slice], where="center"):
+    """Match sample rates across multiple slices by downsampling to the lowest rate.
+
+    Parameters
+    ----------
+    slices : list of Slice
+        List of slices to match sample rates for
+    downsampling_factor : int, optional
+        Additional downsampling factor to apply to all slices
+
+    Returns
+    -------
+    list of Slice
+        List of downsampled slices with matching sample rates
+
+    Raises
+    ------
+    ValueError
+        If sample rates are not integer multiples of the minimum sample rate
+    """
+    if not slices:
+        return []
+
+    sample_rates = [s.sample_rate for s in slices]
+    min_sample_rate = min(sample_rates)
+
+    def integer_sample_rate(sample_rate, min_sample_rate):
+        sr = sample_rate / min_sample_rate
+        if not sr.is_integer():
+            raise ValueError(f"Sample rates {sample_rates} must be integer multiples of each other")
+        return int(sr)
+
+    downsampling_factors = [integer_sample_rate(sr, min_sample_rate) for sr in sample_rates]
+
+    return [
+        slice_obj.downsampled_by(df, where=where)
+        for slice_obj, df in zip(slices, downsampling_factors)
+    ]

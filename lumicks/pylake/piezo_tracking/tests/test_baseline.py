@@ -9,22 +9,22 @@ from lumicks.pylake.piezo_tracking.baseline import ForceBaseLine
 def test_baseline(poly_baseline_data):
     trap, force = poly_baseline_data
     baseline = ForceBaseLine.polynomial_baseline(trap, force, degree=2)
-    np.testing.assert_allclose(baseline.valid_range(), [12.95, 13.35])
+    np.testing.assert_allclose(baseline.valid_range(), [12.95, 13.349], atol=1e-3)
     np.testing.assert_allclose(
-        baseline.correct_data(force, trap).data, np.zeros(force.data.shape), atol=1e-6
+        baseline.correct_data(force, trap).data, np.zeros(trap.data.shape), atol=1e-6
     )
 
 
-def test_baseline_downsampled(poly_baseline_data):
+def test_baseline_downsampled(poly_baseline_data, downsampling_factor):
     trap, force = poly_baseline_data
 
     baseline = ForceBaseLine.polynomial_baseline(trap, force, degree=2, downsampling_factor=500)
-    np.testing.assert_allclose(baseline.valid_range(), [12.95, 13.349626])
+    np.testing.assert_allclose(baseline.valid_range(), [12.95, 13.349], atol=1e-3)
     np.testing.assert_allclose(
-        baseline.correct_data(force, trap).data, np.zeros(force.data.shape), atol=1e-4
+        baseline.correct_data(force, trap).data, np.zeros(trap.data.shape), atol=1e-4
     )
     np.testing.assert_allclose(baseline._trap_data, trap.downsampled_by(500))
-    np.testing.assert_allclose(baseline._force, force.downsampled_by(500))
+    np.testing.assert_allclose(baseline._force, force.downsampled_by(500 * downsampling_factor))
 
 
 def test_baseline_plots(poly_baseline_data):

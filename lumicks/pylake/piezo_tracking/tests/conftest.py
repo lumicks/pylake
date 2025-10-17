@@ -10,34 +10,47 @@ def reference_baseline():
     return np.poly1d([22.58134638112967, -601.6397764983628, 4007.686647006411])
 
 
+@pytest.fixture(params=[78125, 100000])
+def sample_rate(request):
+    return request.param
+
+
+@pytest.fixture(params=[1, 5])
+def downsampling_factor(request):
+    return request.param
+
+
 @pytest.fixture()
-def poly_baseline_data():
+def poly_baseline_data(downsampling_factor, sample_rate):
     baseline_model = reference_baseline()
 
     # Baseline correction should be able to deal with non-equidistant arbitrarily sorted points
     # with duplicates.
     trap_position_baseline = np.hstack(
         (
-            np.arange(13.35, 12.95, -0.0000025),
+            # Without the 1e-6 we get 160001 samples which isn't divisible by 5 and leads to a
+            # difference when comparing to the downsampled variant because then we downsample
+            # over a discontinuity.
+            np.arange(13.35, 12.95 + 1e-6, -0.0000025),
             np.arange(13.35, 13.25, -0.0000005),
             np.ones(100000) * 12.95,
         )
     )
 
     trap = Slice(
-        Continuous(trap_position_baseline, 1573123558595351600, int(1e9 / 78125)),
+        Continuous(trap_position_baseline, 1573123558595351600, int(1e9 / sample_rate)),
         labels={"title": "Trap position", "y": "y"},
     )
     force = Slice(
         Continuous(
             baseline_model(trap_position_baseline),
             1573123558595351600,
-            int(1e9 / 78125),
+            int(1e9 / sample_rate),
         ),
         labels={"title": "force", "y": "Force (pN)"},
     )
 
-    return trap, force
+    return trap.downsampled_by(downsampling_factor, where="left"), force
 
 
 @pytest.fixture()
@@ -55,13 +68,13 @@ def camera_calibration_data(poly_baseline_data):
 
 
 @pytest.fixture()
-def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
+def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data, downsampling_factor):
     baseline = reference_baseline()
     baseline_trap_position, baseline_force = poly_baseline_data
     camera_dist, trap2_ref = camera_calibration_data
 
     # Tether experiment data
-    sample_rate = 78
+    sample_rate = 150
     dt = int(1e9 / sample_rate)
     tether_length_um = np.hstack(
         (np.arange(0.65, 0.7, 0.08 / sample_rate), np.arange(0.7, 0.785, 0.02 / sample_rate))
@@ -114,10 +127,18 @@ def piezo_tracking_test_data(poly_baseline_data, camera_calibration_data):
     force_1x = Slice(Continuous(force_pn, 0, dt), calibration=calibration)
     force_2x = Slice(Continuous(-force_pn, 0, dt), calibration=calibration)
 
+    trap_position = trap_position.downsampled_by(downsampling_factor, where="left")
+    correct_distance = Slice(Continuous(tether_length_um, 0, dt)).downsampled_by(
+        downsampling_factor, where="left"
+    )
+    force_without_baseline = Slice(Continuous(wlc_force, 0, dt)).downsampled_by(
+        downsampling_factor, where="left"
+    )
+
     return {
-        "correct_distance": tether_length_um,
+        "correct_distance": correct_distance,
         "trap_position": trap_position,
-        "force_without_baseline": wlc_force,
+        "force_without_baseline": force_without_baseline,
         "force_1x": force_1x,
         "force_2x": force_2x,
         "baseline_trap_position": baseline_trap_position,
