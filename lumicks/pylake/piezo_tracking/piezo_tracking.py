@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 
-from ..channel import Slice
+from ..channel import Slice, _match_sample_rates
 from .baseline import ForceBaseLine
 
 __all__ = ["DistanceCalibration", "PiezoTrackingCalibration", "PiezoForceDistance"]
@@ -134,6 +134,11 @@ class PiezoTrackingCalibration:
         downsampling_factor : Optional[int]
             Downsampling factor.
         """
+        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
+        trap_position, force1, force2 = _match_sample_rates(
+            [trap_position, force1, force2], where="left"
+        )
+
         if downsampling_factor:
             trap_position, force1, force2 = (
                 x.downsampled_by(downsampling_factor) for x in (trap_position, force1, force2)
@@ -213,6 +218,11 @@ class PiezoForceDistance:
         downsampling_factor : Optional[int]
             Downsampling factor.
         """
+        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
+        trap_position, force1, force2 = _match_sample_rates(
+            [trap_position, force1, force2], where="left"
+        )
+
         piezo_distance = self.piezo_calibration.piezo_track(
             trap_position, force1, force2, downsampling_factor
         )
