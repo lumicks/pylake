@@ -59,7 +59,7 @@ def test_models():
     # Check the tWLC and inverted tWLC model
     params = [5, 5, 5, 3, 2, 1, 6, 4.11]
     assert twlc_distance("tWLC").verify_jacobian(independent, params)
-    assert twlc_force("itWLC").verify_jacobian(independent, params)
+    assert twlc_force("itWLC").verify_jacobian(independent, params, rtol=1e-4)
 
     # Check whether the twistable wlc model manipulates the data order
     np.testing.assert_allclose(

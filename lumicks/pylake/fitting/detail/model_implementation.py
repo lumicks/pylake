@@ -725,7 +725,7 @@ def twlc_solve_force(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
             "Persistence length, contour length, stretch modulus and kT must be bigger than 0"
         )
 
-    f_min = 0
+    f_min = 1e-6
     f_max = (-g0 + np.sqrt(St * C)) / g1  # Above this force the model loses its validity
 
     return invert_function_interpolation(
@@ -735,6 +735,8 @@ def twlc_solve_force(d, Lp, Lc, St, C, g0, g1, Fc, kT=4.11):
         f_max,
         lambda f_trial: twlc_distance(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
         lambda f_trial: twlc_distance_derivative(f_trial, Lp, Lc, St, C, g0, g1, Fc, kT),
+        dx=1e-2,
+        rootfinding=True,
     )
 
 
