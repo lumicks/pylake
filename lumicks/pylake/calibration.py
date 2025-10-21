@@ -12,7 +12,8 @@ def _filter_calibration(items, start, stop):
         return []
 
     def timestamp(x):
-        return x.stop if x.stop else x.applied_at  # Pylake items do not have a start and stop (yet)
+        # Pylake items do not have a start and stop (yet)
+        return x.stop if x.stop is not None else x.applied_at
 
     items = sorted(items, key=timestamp)
 
