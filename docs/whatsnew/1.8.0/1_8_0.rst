@@ -1,0 +1,34 @@
+Pylake 1.8.0
+============
+
+.. only:: html
+
+Here is an overview of features that were released in Pylake `v1.8.0`.
+
+Automatic fitting ranges
+------------------------
+
+When fitting force calibration spectra, it is important to exclude regions of the power spectrum with a poor signal-to-noise ratio.
+For systems that have a force sensor with a factory calibrated frequency response, we can now automatically select an appropriate fit range by passing the extra parameter :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.corner_frequency_factor` to :func:`~lumicks.pylake.calibrate_force()`.
+
+This parameter sets the fitting range from 0.1 times below to :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.corner_frequency_factor` times above the corner frequency.
+This approach helps exclude regions of the spectrum that may be affected by low power or other artifacts during fitting::
+
+    calibration = lk.calibrate_force(volts.data, **calibration_params, corner_frequency_factor=4)
+    calibration.plot(data_range=(5, 23000))
+    plt.title(f"Stiffness = {calibration.stiffness:.2f}");
+
+.. image:: adaptive_ranges.png
+
+Note that the final fitting range is always constrained by the user-defined initial fit range.
+
+For fits obtained with Bluelake using automatic fitting ranges, the user defined initial fitting ranges and used corner frequency factor can be found in :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.initial_fit_range` and :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.corner_frequency_factor`, while the iteratively determined fitting range can be found in :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.fit_range`.
+
+For more information, please refer to the updated :ref:`tutorial<diode_tutorial>`.
+
+Other changes
+-------------
+
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!

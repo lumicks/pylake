@@ -8,6 +8,7 @@ For a full list of new features and changes, please refer to the :doc:`changelog
     :caption: Contents
     :maxdepth: 1
 
+    1.8.0/1_8_0
     1.7.0/1_7_0
     1.6.0/1_6_0
     1.5.0/1_5_0
