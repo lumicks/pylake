@@ -1,0 +1,28 @@
+Pylake 1.8.0
+============
+
+.. only:: html
+
+Here is an overview of features that were released in Pylake `v1.8.0`.
+
+Automatic fitting ranges
+------------------------
+
+When fitting force calibration spectra, it is important to exclude regions of the power spectrum that have a bad signal to noise ratio.
+To automatically determine a reasonable fit range, we can pass the extra parameter `corner_frequency_factor` to `calibrate_force`.
+This will iterative fit the power spectrum and constrain the fitted part of the spectrum to a region around the corner frequency given up to a fraction of the corner frequency::
+
+    calibration = lk.calibrate_force(volts.data, **updated_params, corner_frequency_factor=4)
+    calibration.plot(data_range=(5, 23000))
+    plt.title(f"Stiffness = {calibration.stiffness:.2f}");
+
+.. image:: adaptive_ranges.png
+
+For more information, please refer to the updated :ref:`tutorial<force_calibration_tutorial>`.
+
+Other changes
+-------------
+
+For a full list of all the changes, please refer to the full :doc:`changelog</changelog>`.
+
+Happy Pylake-ing!
