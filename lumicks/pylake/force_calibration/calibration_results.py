@@ -75,9 +75,23 @@ class CalibrationResults(CalibrationPropertiesMixin):
         return f"{self.__class__.__name__}({properties})"
 
     @property
-    def _fit_range(self):
+    def _fit_range(self) -> tuple[float, float]:
         """Fitted range"""
         return self.ps_data._fit_range
+
+    @property
+    def _initial_fit_range(self) -> tuple[float, float] | None:
+        """Initial fit range"""
+        keys = ("Initial fit range (min.)", "Initial fit range (max.)")
+        if any(k in self.params for k in keys):
+            if all(k in self.params for k in keys):
+                return tuple(self.params[k].value for k in keys)
+            else:
+                raise RuntimeError(
+                    "Found only part of the initial fit range keys in calibration data"
+                )
+        else:
+            return self._fit_range
 
     @property
     def _excluded_ranges(self):

@@ -348,6 +348,8 @@ def test_recalibrate_item(active_ref_data):
         distance_to_surface=1.5,
     )
     np.testing.assert_allclose(recalibrated.stiffness, 0.498051, rtol=1e-4)
+    np.testing.assert_allclose(recalibrated.fit_range, (100, 23000), rtol=1e-4)
+    np.testing.assert_allclose(recalibrated.initial_fit_range, (100, 23000), rtol=1e-4)
     assert not recalibrated.fitted_diode
 
 
