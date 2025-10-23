@@ -97,6 +97,8 @@ An empirically determined reasonable value to use here is `4`::
 
 .. image:: figures/adaptive_ranges.png
 
+Note that if adaptive fitting ranges were used in `Bluelake`, then the user defined initial fitting ranges and used corner frequency factor can be found in :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.initial_fit_range` and :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.corner_frequency_factor`, while the used fitting range can be found in :attr:`~lumicks.pylake.calibration.ForceCalibrationItem.fit_range`.
+
 In this case, we also passed a custom `data_range` to show more of the original power spectral data.
 
 .. note::
