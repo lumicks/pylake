@@ -378,6 +378,29 @@ def test_active_item_nanostage_rate(compare_to_reference_dict, calibration_data,
     )
 
 
+def test_adaptive_fitting_ranges(compare_to_reference_dict, active_ref_data):
+    """Test case for Bluelake items that have adaptive fitting ranges"""
+    adaptive_fit_ranges = deepcopy(ref_passive_fixed_diode_with_height)
+    adaptive_fit_ranges["Corner frequency factor"] = 4.0
+    adaptive_fit_ranges["Fit range (min.) (Hz)"] = 100.0
+    adaptive_fit_ranges["Fit range (max.) (Hz)"] = 30000.0
+    adaptive_fit_ranges["Adaptive fit range (min.) (Hz)"] = 100.0
+    adaptive_fit_ranges["Adaptive fit range (max.) (Hz)"] = 27446.2431
+    volts, _ = active_ref_data
+    item = ForceCalibrationItem(adaptive_fit_ranges, voltage=volts, sum_voltage=volts)
+    recalibrated_with = item.recalibrate_with()
+
+    assert item.calibration_params()["corner_frequency_factor"] == 4.0
+    assert item.calibration_params()["fit_range"] == (100, 30000)
+    np.testing.assert_allclose(recalibrated_with.stiffness, 0.36163, rtol=1e-4)
+
+    for it in (item, recalibrated_with):
+        assert it.initial_fit_range == (100, 30000)  # User defined fit range
+        np.testing.assert_allclose(it.corner_frequency_factor, 4)
+        # Iteratively determined fit range
+        np.testing.assert_allclose(it.fit_range, (100, 27446.2430933), rtol=1e-4)
+
+
 def test_force_calibration_handling():
     def timestamp(time):
         return 1714391268938540100 + int(1e9) * time
@@ -459,3 +482,24 @@ def test_no_diode_model():
     item = ForceCalibrationItem(ref_active)
     assert item.trap_power is None
     assert item.diode_calibration is None
+
+
+def test_partial_item():
+    """Test case for Bluelake items that have adaptive fitting ranges"""
+    no_range = deepcopy(ref_passive_fixed_diode_with_height)
+    only_lb = deepcopy(ref_passive_fixed_diode_with_height)
+    only_lb["Adaptive fit range (min.) (Hz)"] = 10.0
+    only_ub = deepcopy(ref_passive_fixed_diode_with_height)
+    only_ub["Adaptive fit range (max.) (Hz)"] = 2300.0
+    both = deepcopy(ref_passive_fixed_diode_with_height)
+    both["Adaptive fit range (min.) (Hz)"] = 10.0
+    both["Adaptive fit range (max.) (Hz)"] = 2300.0
+
+    for item in (only_lb, only_ub):
+        with pytest.raises(
+            RuntimeError, match="Found only part of the adaptive fit range keys in calibration data"
+        ):
+            ForceCalibrationItem(item).fit_range
+
+    assert ForceCalibrationItem(both).fit_range == (10.0, 2300.0)
+    assert ForceCalibrationItem(no_range).fit_range == (100, 23000.0)
