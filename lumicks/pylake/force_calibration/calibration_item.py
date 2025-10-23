@@ -299,8 +299,19 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         ]
 
     @property
-    def _fit_range(self):
-        """Return the spectral fit range used for the calibration"""
+    def _fit_range(self) -> tuple[float, float] | None:
+        """Return the actual spectral fit range used for the calibration"""
+        if "Adaptive fit range (min.) (Hz)" in self.data:
+            return (
+                self.data["Adaptive fit range (min.) (Hz)"],
+                self.data["Adaptive fit range (max.) (Hz)"],
+            )
+        else:
+            return self._initial_fit_range
+
+    @property
+    def _initial_fit_range(self) -> tuple[float, float] | None:
+        """Return the spectral fit range entered by the user for the calibration"""
         if "Fit range (min.) (Hz)" in self.data:
             return (
                 self.data["Fit range (min.) (Hz)"],

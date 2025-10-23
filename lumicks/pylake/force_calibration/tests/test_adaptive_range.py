@@ -61,20 +61,33 @@ def test_fit_range_max_iter(max_iter):
 
 def test_noise_floor(reference_calibration_result):
     ps_calibration, model, reference_spectrum = reference_calibration_result
+    results = {
+        "D": 0.0018512505734895896,
+        "Rd": 7.253677199344564,
+        "Rf": 1243.966729922322,
+        "kappa": 0.17149463585651784,
+    }
+
+    user_defined_range = (200.997427, 22800.708151)
+
+    # Prepare spectrum with a high noise floor
     bad_spectrum = reference_spectrum.power.copy()
     bad_spectrum += 1e-3 * bad_spectrum[1]  # Add offset
     bad_spectrum = reference_spectrum.with_spectrum(
         bad_spectrum, num_points_per_block=reference_spectrum.num_points_per_block
     )
 
+    # Model with a fixed diode
     model_fixed_diode = deepcopy(model)
     model_fixed_diode._filter = FixedDiodeModel(
         diode_frequency=ps_calibration.diode_frequency,
         diode_alpha=ps_calibration.diode_relaxation_factor,
     )
+
     bad_calibration = psc.fit_power_spectrum(
         power_spectrum=bad_spectrum, model=model_fixed_diode, loss_function="gaussian"
     )
+
     with pytest.raises(
         ValueError,
         match="Fitting with adaptive fitting is unreliable when fitting the parasitic filtering "
@@ -94,13 +107,6 @@ def test_noise_floor(reference_calibration_result):
         corner_frequency_factor=4,
     )
 
-    results = {
-        "D": 0.0018512505734895896,
-        "Rd": 7.253677199344564,
-        "Rf": 1243.966729922322,
-        "kappa": 0.17149463585651784,
-    }
-
     # Results with the mitigation should be within 5% of true
     for name, expected_result in results.items():
         np.testing.assert_allclose(good_fit[name].value, expected_result, rtol=5e-2)
@@ -109,5 +115,9 @@ def test_noise_floor(reference_calibration_result):
 
     np.testing.assert_allclose(good_fit["Number of iterations"].value, 2)
     np.testing.assert_allclose(good_fit.fit_range, (67.863593, 2714.54372), rtol=1e-3)
+    np.testing.assert_allclose(good_fit.initial_fit_range, user_defined_range, rtol=1e-4)
+    np.testing.assert_allclose(good_fit.corner_frequency_factor, 4.0, rtol=1e-7)
     np.testing.assert_allclose(bad_calibration["Number of iterations"].value, 1)
-    np.testing.assert_allclose(bad_calibration.fit_range, (200.997427, 22800.708151), rtol=1e-3)
+    np.testing.assert_allclose(bad_calibration.fit_range, user_defined_range, rtol=1e-3)
+    np.testing.assert_allclose(bad_calibration.initial_fit_range, user_defined_range, rtol=1e-3)
+    assert bad_calibration.corner_frequency_factor is None

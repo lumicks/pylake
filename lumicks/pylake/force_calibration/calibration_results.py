@@ -75,9 +75,20 @@ class CalibrationResults(CalibrationPropertiesMixin):
         return f"{self.__class__.__name__}({properties})"
 
     @property
-    def _fit_range(self):
+    def _fit_range(self) -> tuple[float, float]:
         """Fitted range"""
         return self.ps_data._fit_range
+
+    @property
+    def _initial_fit_range(self) -> tuple[float, float] | None:
+        """Initial fit range"""
+        if "Initial fit range (min.)" not in self.params:
+            return self._fit_range
+
+        return (
+            self.params["Initial fit range (min.)"].value,
+            self.params["Initial fit range (max.)"].value,
+        )
 
     @property
     def _excluded_ranges(self):
