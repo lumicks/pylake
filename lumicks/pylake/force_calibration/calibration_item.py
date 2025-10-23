@@ -144,7 +144,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             "num_points_per_block": self.num_points_per_block,
             "sample_rate": self.sample_rate,
             "excluded_ranges": self.excluded_ranges,
-            "fit_range": self.fit_range,
+            "fit_range": self.initial_fit_range,
         }
 
     def __getitem__(self, item):
@@ -280,6 +280,11 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             self.power_spectrum_params()
             | self._model_params()
             | {"active_calibration": self.active_calibration}
+            | (
+                {"corner_frequency_factor": self.corner_frequency_factor}
+                if self.corner_frequency_factor
+                else {}
+            )
         )
 
     @property
