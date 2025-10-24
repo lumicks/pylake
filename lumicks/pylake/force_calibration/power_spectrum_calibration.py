@@ -418,10 +418,22 @@ def fit_power_spectrum(
             loss_function=loss_function,
         )
 
+    iteration_parameters = {}
     fit = do_fit(power_spectrum)
     num_iter = 1
 
     if corner_frequency_factor:
+        iteration_parameters = {
+            f"Initial fit range ({which}.)": CalibrationParameter(
+                f"Initial fit range ({which}.)", value, "Hz"
+            )
+            for which, value in zip(("min", "max"), power_spectrum._fit_range)
+        } | {
+            "Corner frequency factor": CalibrationParameter(
+                "Corner frequency factor", corner_frequency_factor, "-"
+            ),
+        }
+
         fit, power_spectrum, num_iter = _iterate_fit_range(
             fit=fit,
             fit_function=do_fit,
@@ -485,6 +497,7 @@ def fit_power_spectrum(
             "Loss function": CalibrationParameter(
                 "Loss function used during minimization", loss_function, ""
             ),
+            **iteration_parameters,  # Parameters belonging to adaptive fitting ranges
         },
         fitted_params=fit.params,
     )

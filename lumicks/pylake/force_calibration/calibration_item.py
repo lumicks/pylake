@@ -144,7 +144,7 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             "num_points_per_block": self.num_points_per_block,
             "sample_rate": self.sample_rate,
             "excluded_ranges": self.excluded_ranges,
-            "fit_range": self.fit_range,
+            "fit_range": self.initial_fit_range,
         }
 
     def __getitem__(self, item):
@@ -280,6 +280,11 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
             self.power_spectrum_params()
             | self._model_params()
             | {"active_calibration": self.active_calibration}
+            | (
+                {"corner_frequency_factor": self.corner_frequency_factor}
+                if self.corner_frequency_factor
+                else {}
+            )
         )
 
     @property
@@ -299,8 +304,19 @@ class ForceCalibrationItem(UserDict, CalibrationPropertiesMixin):
         ]
 
     @property
-    def _fit_range(self):
-        """Return the spectral fit range used for the calibration"""
+    def _fit_range(self) -> tuple[float, float] | None:
+        """Return the actual spectral fit range used for the calibration"""
+        if "Adaptive fit range (min.) (Hz)" in self.data:
+            return (
+                self.data["Adaptive fit range (min.) (Hz)"],
+                self.data["Adaptive fit range (max.) (Hz)"],
+            )
+        else:
+            return self._initial_fit_range
+
+    @property
+    def _initial_fit_range(self) -> tuple[float, float] | None:
+        """Return the spectral fit range entered by the user for the calibration"""
         if "Fit range (min.) (Hz)" in self.data:
             return (
                 self.data["Fit range (min.) (Hz)"],

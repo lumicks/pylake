@@ -532,9 +532,33 @@ class CalibrationPropertiesMixin:
         return self._fitted_diode
 
     @property
-    def fit_range(self):
-        """Spectral frequency range used for calibration (Hz)"""
+    def fit_range(self) -> tuple[float, float] | None:
+        """Spectral frequency range used for calibration (Hz)
+
+        When fitting power spectra, an initial frequency range is selected to perform the fit on.
+        This initial range may be adapted during fitting to exclude lower SNR points. This property
+        returns the final frequency range in Hertz.
+        """
         return self._fit_range
+
+    @property
+    def initial_fit_range(self) -> tuple[float, float] | None:
+        """Initial spectral frequency range used for calibration (Hz)
+
+        When fitting power spectra, an initial frequency range is selected to perform the fit on.
+        This initial range may be adapted during fitting to exclude lower SNR points. This property
+        returns the initial frequency range in Hertz."""
+        return self._initial_fit_range
+
+    @property
+    def corner_frequency_factor(self) -> float | None:
+        """Corner frequency factor (-)
+
+        When fitting power spectra, the initial fitting range may be adapted to exclude low SNR
+        points. This is done via a heuristic that excludes all frequencies above
+        `corner_frequency_factor` times the corner frequency. This reduces the effect of the
+        noise floor as well as slightly biased diode calibrations at lower trap powers."""
+        return self._get_parameter("Corner frequency factor", "Corner frequency factor")
 
     @property
     def excluded_ranges(self):
