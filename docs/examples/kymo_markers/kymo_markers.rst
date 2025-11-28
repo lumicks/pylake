@@ -51,8 +51,8 @@ Markers and target sites
 
 Provide the binding coordinates in kilo basepairs of the red markers and the two expected target sites for the green protein, on lambda DNA::
 
-    marker1 = 33.786  # The location of the markers in kbp
-    marker2 = 44.826
+    marker1_kbp = 33.786  # The location of the markers in kbp
+    marker2_kbp = 44.826
     dna_kbp = 48.502  # length of DNA in kbp
     target_sites = [18.084, 30.533]  # Target binding sites
 
@@ -105,7 +105,7 @@ Functions for conversion to basepairs and vice versa
 The following functions use the peak coordinates to convert from micron to base pairs, or vice versa.
 The functions also check whether kymograph has to be flipped::
 
-    def um_to_kbp(coord, maxx, peak1, peak2, coord1 =  marker1, coord2 = marker2):
+    def um_to_kbp(coord, maxx, peak1, peak2, coord1 =  marker1_kbp, coord2 = marker2_kbp ):
         """Convert coordinates along the kymo in micron to kbp
     
         Parameters
@@ -118,7 +118,7 @@ The functions also check whether kymograph has to be flipped::
         coord1: coordinate of first reference dye in kbp
         coord2: coordinate of second reference dye in kbp
         
-        Typical use: um_to_kbp(coord, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1], coord1 =  marker1, coord2 = marker2)
+        Typical use: um_to_kbp(coord, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1], coord1 =  marker1_kbp, coord2 = marker2_kbp)
         
         returns:
         coordinate x converted to kbp
@@ -134,7 +134,7 @@ The functions also check whether kymograph has to be flipped::
         return a*coord + b + c
 
 
-    def kbp_to_um(coord_kbp, maxx, peak1, peak2, coord1 =  marker1, coord2 = marker2 ):
+    def kbp_to_um(coord_kbp, maxx, peak1, peak2, coord1 =  marker1_kbp, coord2 = marker2_kbp ):
         """Conver coordinates along the kymo in micron to kbp
         
         Parameters
@@ -169,7 +169,7 @@ The target sites (with kbp coordinates) are plotted as vertical lines.::
 
     profile = np.mean(kymo_calibration.get_image('green'),axis=1)/np.max(np.mean(kymo_calibration.get_image("green"),axis=1))
     um_coords = np.arange(len(profile))*kymo_calibration.pixelsize_um
-    kbp_coords = um_to_kbp(um_coords, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1], coord1 =  marker1, coord2 = marker2)
+    kbp_coords = um_to_kbp(um_coords, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1], coord1 =  marker1_kbp, coord2 = marker2_kbp)
 
     plt.figure()
     plt.plot(kbp_coords, profile, "lightgreen")
@@ -192,8 +192,8 @@ Below, the coordinates of the markers and target sites are provided in base pair
     kymo_calibration.plot(channel='rgb', aspect = 1, adjustment=lk.ColorAdjustment([0], [8]))
     for i in target_sites:
         plt.hlines(kbp_to_um(i, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1]), xmin = 0, xmax=maxt, color = "yellow", linestyle = "dashed", linewidth = 0.5)
-    plt.hlines(kbp_to_um(marker1, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1]), xmin = 0, xmax=maxt, color = "white", linestyle = "dashed", linewidth = 0.5)
-    plt.hlines(kbp_to_um(marker2, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1]), xmin = 0, xmax=maxt, color = "white", linestyle = "dashed", linewidth = 0.5)
+    plt.hlines(kbp_to_um(marker1_kbp, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1]), xmin = 0, xmax=maxt, color = "white", linestyle = "dashed", linewidth = 0.5)
+    plt.hlines(kbp_to_um(marker2_kbp, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1]), xmin = 0, xmax=maxt, color = "white", linestyle = "dashed", linewidth = 0.5)
 
 .. image:: kymo_target_sites.png
 
