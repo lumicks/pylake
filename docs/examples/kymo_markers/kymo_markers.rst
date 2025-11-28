@@ -105,59 +105,59 @@ Functions for conversion to basepairs and vice versa
 The following functions use the peak coordinates to convert from micron to base pairs, or vice versa.
 The functions also check whether kymograph has to be flipped::
 
-    def um_to_kbp(coord, maxx, peak1, peak2, coord1 =  marker1_kbp, coord2 = marker2_kbp ):
+    def um_to_kbp(coord_um, maxx_um, peak1_um, peak2_um, coord1_kbp =  marker1_kbp, coord2_kbp = marker2_kbp ):
         """Convert coordinates along the kymo in micron to kbp
     
         Parameters
         -----------
-        coord: coordinate in um to be converted
-        maxx: Max x-coordinate assuming that the coordinates are from one bead ege to the next. 
+        coord_um: coordinate in um to be converted
+        maxx_um: Max x-coordinate assuming that the coordinates are from one bead ege to the next. 
         This value is used to determine whether the coordinates have to be flipped
-        peak1: coordinate of first peak um
-        peak2: coordinate of second peak in um
-        coord1: coordinate of first reference dye in kbp
-        coord2: coordinate of second reference dye in kbp
+        peak1_um: coordinate of first peak um
+        peak2_um: coordinate of second peak in um
+        coord1_kbp: coordinate of first reference dye in kbp
+        coord2_kbp: coordinate of second reference dye in kbp
         
-        Typical use: um_to_kbp(coord, maxx = np.max(x), peak1 = peaks_x[0], peak2 = peaks_x[1], coord1 =  marker1_kbp, coord2 = marker2_kbp)
+        Typical use: um_to_kbp(coord_um, maxx_um = np.max(x), peak1_um = peaks_x[0], peak2_um = peaks_x[1], coord1_kbp =  marker1_kbp, coord2_kbp = marker2_kbp)
         
         returns:
         coordinate x converted to kbp
         """
-        if maxx - peak1 - peak2 < 0:
-            a = (coord2 - coord1)/(peak2 - peak1)
-            b = coord1 - a*peak1
+        if maxx_um - peak1_um - peak2_um < 0:
+            a = (coord2_kbp - coord1_kbp)/(peak2_um - peak1_um)
+            b = coord1_kbp - a*peak1_um
             c = 0
         else: # Flip coordinates if peaks are in the top half of the kymo
-            a = -(coord2 - coord1)/(peak2 - peak1)
-            b = coord1 - a*peak1 
-            c = coord2 - coord1
-        return a*coord + b + c
+            a = -(coord2_kbp - coord1_kbp)/(peak2_um - peak1_um)
+            b = coord1_kbp - a*peak1_um
+            c = coord2_kbp - coord1_kbp
+        return a*coord_um + b + c
 
 
-    def kbp_to_um(coord_kbp, maxx, peak1, peak2, coord1 =  marker1_kbp, coord2 = marker2_kbp ):
+    def kbp_to_um(coord_kbp, maxx_um, peak1_um, peak2_um, coord1_kbp =  marker1_kbp, coord2_kbp = marker2_kbp ):
         """Conver coordinates along the kymo in micron to kbp
         
         Parameters
         -----------
         coord_kbp: coordinate in kbp to be converted
-        maxx: Max x-coordinate assuming that the coordinates are from one bead ege to the next. 
+        maxx_um: Max x-coordinate assuming that the coordinates are from one bead ege to the next. 
         This value is used to determine whether the coordinates have to be flipped
-        peak1: coordinate of first peak um
-        peak2: coordinate of second peak in um
-        coord1: coordinate of first reference dye in kbp
-        coord2: coordinate of second reference dye in kbp
+        peak1_um: coordinate of first peak um
+        peak2_um: coordinate of second peak in um
+        coord1_kbp: coordinate of first reference dye in kbp
+        coord2_kbp: coordinate of second reference dye in kbp
         
         returns:
         coordinate x converted to kbp
         """
-        if maxx - peak1 - peak2 < 0:
-            a = (coord2 - coord1)/(peak2 - peak1)
-            b = coord1 - a*peak1
+        if maxx_um - peak1_um - peak2_um < 0:
+            a = (coord2_kbp - coord1_kbp)/(peak2_um - peak1_um)
+            b = coord1_kbp - a*peak1_um
             c = 0
         else: # Flip coordinates if peaks are in the top half of the kymo
-            a = -(coord2 - coord1)/(peak2 - peak1)
-            b = coord1 - a*peak1
-            c = peak2 - peak1
+            a = -(coord2_kbp - coord1_kbp)/(peak2_um - peak1_um)
+            b = coord1_kbp - a*peak1_um
+            c = coord2_kbp - coord1_kbp
         return (coord_kbp - b)/a + c
 
 Green profile with base pair coordinates
