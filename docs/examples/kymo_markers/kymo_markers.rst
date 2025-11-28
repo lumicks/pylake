@@ -11,7 +11,7 @@ Kymograph with markers
 Convert kymograph coordinates to basepairs using markers
 --------------------------------------------------------
 
-In this notebook we use two red markers with known coordinates on a kymograph to convert coordinates from micrometers to base pair.
+In this notebook we use two red markers with known coordinates on a kymograph to convert coordinates from micrometers to base pairs.
 The workflow is as follows:
 
 - Determine the location of the red markers using a peak detection algorithm on the red channel 
@@ -70,10 +70,10 @@ Compute the average red profile for the selected area of the kymograph::
 
     kymo_calibration = kymo["10s":"35s"].crop_by_distance(top_bead_edge, bottom_bead_edge) 
     profile_red = np.mean(kymo_calibration.get_image("red"), axis=1)/np.max(np.mean(kymo_calibration.get_image('red'), axis=1))
-    x = np.arange(len(profile_red))*kymo_calibration.pixelsize_um
+    x_um = np.arange(len(profile_red))*kymo_calibration.pixelsize_um
 
     plt.figure()
-    plt.plot(x,profile_red, 'r')
+    plt.plot(x_um, profile_red, 'r')
     plt.title("Red profile")
     plt.xlabel("Position (um)")
     plt.ylabel("Normalized intensity (a.u.)")
@@ -85,11 +85,11 @@ The two highest peaks correspond to the locations of the markers. Use a peak fin
 
     indexes = peakutils.indexes(profile_red, thres=0.4, min_dist=30)
     print(indexes) 
-    peaks_x = peakutils.interpolate(x, profile_red, ind=indexes, width = 2)
+    peaks_x = peakutils.interpolate(x_um, profile_red, ind=indexes, width = 2)
     print(peaks_x)
 
     plt.figure()
-    plt.plot(x,profile_red, 'r')
+    plt.plot(x_um, profile_red, 'r')
     plt.vlines(peaks_x, ymin=0, ymax = 1)
     plt.title("Identified peaks")
     plt.xlabel("Position (um)")
