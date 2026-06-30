@@ -162,18 +162,19 @@ class VideoExport:
             Color channel(s) to use "red", "green", "blue" or "rgb".
         file_name : str
             File name to export to.
-        start_frame : int
-            First frame in exported video (starts at zero).
-        stop_frame : int
-            Stop frame in exported video. Note that this frame is no longer included.
-        fps : int
-            Frame rate.
-        adjustment : lk.ColorAdjustment
-            Color adjustments to apply to the output image.
-        scale_bar : lk.ScaleBar
-            Scale bar to add to the figure.
-        channel_slice : lk.Slice, optional
-            When specified, we export a video correlated to channel data
+        start_frame : int | None, optional
+            First frame in exported video (default: None). Frames start at zero.
+        stop_frame : int | None, optional
+            Stop frame in exported video. Note that this frame is no longer
+            included (default: None).
+        fps : int, optional
+            Frame rate (default: 15).
+        adjustment : lk.ColorAdjustment, optional
+            Color adjustments to apply to the output image (default: no_adjustment).
+        scale_bar : lk.ScaleBar | None, optional
+            Scale bar to add to the figure (default: None).
+        channel_slice : lk.Slice | None, optional
+            When specified, we export a video correlated to channel data (default: None).
         vertical : bool, optional
             Render with the plots vertically aligned (default: True).
         downsample_to_frames : bool, optional
@@ -237,7 +238,7 @@ class VideoExport:
             raise RuntimeError("You need either ffmpeg or pillow installed to export videos.")
 
         start_frame = start_frame if start_frame is not None else 0
-        stop_frame = stop_frame if stop_frame is not None else self.num_frames
+        stop_frame = stop_frame if stop_frame is not None else int(self.num_frames)
 
         shared_args = {"channel": channel, "adjustment": adjustment}
         if channel_slice:
