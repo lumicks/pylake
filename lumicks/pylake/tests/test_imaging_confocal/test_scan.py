@@ -1,3 +1,5 @@
+from copy import copy
+
 import numpy as np
 import pytest
 
@@ -36,6 +38,15 @@ def test_scan_attrs(test_scans, test_scans_multiframe):
             ),
         )
         np.testing.assert_equal(scan.frame_timestamp_ranges(), ref.timestamps.timestamp_ranges)
+
+
+def test_scan_timing_read_only(test_scans):
+    for original, _ in test_scans.values():
+        scan = copy(original)
+        expected = scan.pixel_time_seconds
+        with pytest.raises(AttributeError):
+            scan.pixel_time_seconds = -1
+        assert scan.pixel_time_seconds == expected
 
 
 def test_missing_channels(test_scan_missing_channels):

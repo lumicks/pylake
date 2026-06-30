@@ -2,6 +2,7 @@ import io
 import math
 import numbers
 import contextlib
+from functools import wraps
 
 import numpy as np
 import cachetools
@@ -10,8 +11,8 @@ import cachetools
 def method_cache(name):
     """A small convenience decorator to incorporate some really basic instance method memoization
 
-    Note: When used on properties, this one should be included _after_ the @property decorator.
-    Data will be stored in the `_cache` variable of the instance.
+    When used on properties, include this decorator below ``@property``.
+    Data is stored in the instance's ``_cache`` dictionary.
 
     Parameters
     ----------
@@ -43,21 +44,24 @@ def method_cache(name):
         test._cache
         # test._cache will now show {('example_property',): 10, ('example_method', 'hi'): 5}
     """
-    if int(cachetools.__version__.split(".")[0]) < 5:
 
-        def key(*args, **kwargs):
-            return cachetools.keys.hashkey(name, *args, **kwargs)
+    def decorate(method):
+        @wraps(method)
+        def wrapped(self, *args, **kwargs):
+            key = cachetools.keys.hashkey(name, *args, **kwargs)
+            cache = self._cache
+            try:
+                return cache[key]
+            except KeyError:
+                pass
 
-    else:
-        # cachetools>=5.0.0 started passing self as first argument. We don't want to bump the
-        # reference count by including a reference to the object we're about to store the cache
-        # into, so we explicitly drop the first argument. Note that for the default key, they
-        # do the same in the package, but we can't use the default key, since it doesn't hash
-        # in the method name.
-        def key(_, *args, **kwargs):
-            return cachetools.keys.hashkey(name, *args, **kwargs)
+            result = method(self, *args, **kwargs)
+            cache[key] = result
+            return result
 
-    return cachetools.cachedmethod(lambda self: self._cache, key=key)
+        return wrapped
+
+    return decorate
 
 
 def use_docstring_from(copy_func):
