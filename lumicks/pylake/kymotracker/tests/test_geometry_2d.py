@@ -58,11 +58,11 @@ def test_eigen_2d():
                 )
                 idx = np_eigen_values.argsort()
                 np_eigen_values.sort()
-                eig1[x, y] = np_eigen_values[0]
-                eig2[x, y] = np_eigen_values[1]
+                eig1[x, y] = np.real(np_eigen_values[0])  # We know these are real
+                eig2[x, y] = np.real(np_eigen_values[1])
 
-                ex[x, y] = np_eigen_vectors[0, idx[0]]
-                ey[x, y] = np_eigen_vectors[1, idx[0]]
+                ex[x, y] = np.real(np_eigen_vectors[0, idx[0]])
+                ey[x, y] = np.real(np_eigen_vectors[1, idx[0]])
 
         return np.stack((eig1, eig2), axis=len(eig1.shape)), ex, ey
 
@@ -199,6 +199,9 @@ def test_candidates():
         direction = np.array([-np.sin(normal_angle), np.cos(normal_angle)])
         direction = np.sign(np.round(direction))
 
+        dir_options = np.sort([np.max(np.abs(direction - option)) for option in options])
         np.testing.assert_allclose(
-            np.sort([np.max(np.abs(direction - option)) for option in options]), [0, 1, 1]
-        ), f"Failed for normal angle {normal_angle} / direction {direction} => {options}"
+            dir_options,
+            [0, 1, 1],
+            err_msg=f"Failed for normal angle {normal_angle} / direction {direction} => {options}",
+        )
