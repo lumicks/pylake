@@ -70,6 +70,31 @@ def test_damaged_kymo(truncated_kymo):
     np.testing.assert_allclose(kymo.get_image("red"), ref.image[:, 1:, 0])
 
 
+@pytest.mark.parametrize("warm_cache", [False, True])
+def test_damaged_kymo_invalidates_timing(warm_cache):
+    kymo = generate_kymo("truncated", np.ones((4, 2)), samples_per_pixel=5, line_padding=3, dt=1000)
+    photon = kymo._file.red_photon_count
+    kymo._file.red_photon_count = photon[photon.start + 1000 :]
+    if warm_cache:
+        assert kymo.line_time_seconds == pytest.approx(26e-6)
+        assert kymo.pixel_time_seconds == pytest.approx(5e-6)
+
+    with pytest.warns(RuntimeWarning, match="Omitting the truncated first line"):
+        assert kymo.get_image("red").shape == (4, 1)
+
+    assert kymo.line_time_seconds == pytest.approx(20e-6)
+    assert kymo.pixel_time_seconds == pytest.approx(5e-6)
+
+
+@pytest.mark.parametrize("attribute", ["pixel_time_seconds", "line_time_seconds"])
+def test_kymo_timing_read_only(test_kymo, attribute):
+    kymo = copy.copy(test_kymo[0])
+    expected = getattr(kymo, attribute)
+    with pytest.raises(AttributeError):
+        setattr(kymo, attribute, -1)
+    assert getattr(kymo, attribute) == expected
+
+
 def test_line_timestamp_ranges(test_kymo):
     kymo, ref = test_kymo
 
