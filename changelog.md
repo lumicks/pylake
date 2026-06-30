@@ -5,6 +5,7 @@
 #### Bug fixes
 
 - Fixed timestamp mismatches in [piezo tracking](https://lumicks-pylake.readthedocs.io/en/latest/api.html#piezo-tracking) and force-baseline fitting/correction by cropping native force and trap-position channels to their shared time range before matching sample rates. Only complete averaging blocks are retained. Incompatible sampling grids now raise an informative error suggesting native channels instead of manually downsampled data.
+- Fixed potential complex-to-real casting warnings in the kymotracker geometry tests by explicitly taking the real parts of reference eigenvalues and eigenvectors for real symmetric matrices. Also corrected assertion failure messages in the candidate-direction test. These are test-only changes. The geometry implementation and tracking results are unchanged.
 
 ## v1.8.0 | 2025-10-30
 
