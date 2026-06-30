@@ -110,6 +110,15 @@ def configure_warnings():
         "ignore", category=DeprecationWarning, message=r".*Widget.(\w*) is deprecated.*"
     )
 
+    # Tifffile triggers a numpy deprecationwarning about changing the shape of a numpy array.
+    # It has been fixed upstream, see: https://github.com/cgohlke/tifffile/issues/324, but the
+    # older version of python is keeping us with the older version of tifffile for now.
+    warnings.filterwarnings(
+        "ignore",
+        category=DeprecationWarning,
+        message=r".*Setting the shape on a NumPy array has been deprecated.*",
+    )
+
     # h5py triggers a numpy DeprecationWarning when accessing empty datasets (such as our json
     # fields). Here they pass a None shape argument where () is expected by numpy. This will likely
     # be fixed in next h5py release, see the following PR on h5py:
