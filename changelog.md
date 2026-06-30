@@ -4,6 +4,7 @@
 
 #### Bug fixes
 
+- Fixed caching of scan and kymograph timing properties with recent `cachetools` versions, where using `cachedmethod` beneath `@property` could raise `TypeError: Decorating class methods is not supported`. The fix preserves read-only access and invalidation when the instance cache is cleared.
 - Fixed timestamp mismatches in [piezo tracking](https://lumicks-pylake.readthedocs.io/en/latest/api.html#piezo-tracking) and force-baseline fitting/correction by cropping native force and trap-position channels to their shared time range before matching sample rates. Only complete averaging blocks are retained. Incompatible sampling grids now raise an informative error suggesting native channels instead of manually downsampled data.
 - Fixed potential complex-to-real casting warnings in the kymotracker geometry tests by explicitly taking the real parts of reference eigenvalues and eigenvectors for real symmetric matrices. Also corrected assertion failure messages in the candidate-direction test. These are test-only changes. The geometry implementation and tracking results are unchanged.
 - Ensured video export uses a Python integer for the default stop-frame index, improving compatibility when the frame count is a NumPy integer. This silences some warnings that pop up during testing.

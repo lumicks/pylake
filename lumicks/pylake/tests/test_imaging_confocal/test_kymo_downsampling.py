@@ -68,6 +68,7 @@ def test_downsampled_kymo_position(downsampling_kymo, downsampled_results):
         ]
     )
 
+    parent_pixel_time = kymo.pixel_time_seconds
     kymo_ds = kymo.downsampled_by(position_factor=factor)
 
     assert kymo_ds.name == "downsampler"
@@ -84,8 +85,8 @@ def test_downsampled_kymo_position(downsampling_kymo, downsampled_results):
 
     # We lost one line while downsampling
     np.testing.assert_allclose(kymo_ds.size_um[0], kymo.size_um[0] - kymo.pixelsize_um[0])
-
-    np.testing.assert_allclose(kymo_ds.pixel_time_seconds, kymo.pixel_time_seconds * 2)
+    np.testing.assert_allclose(kymo.pixel_time_seconds, parent_pixel_time)
+    np.testing.assert_allclose(kymo_ds.pixel_time_seconds, parent_pixel_time * factor)
 
 
 def test_downsampled_kymo_both_axes(downsampling_kymo, downsampled_results):

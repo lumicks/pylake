@@ -319,15 +319,17 @@ def test_cache_method():
             call()
             return argument
 
-    test = Test()
-    assert len(test._cache) == 0
-    assert test.example_property == 10
-    assert len(test._cache) == 1
-    assert calls == 1
-    assert test.example_property == 10
-    assert calls == 1
-    assert len(test._cache) == 1
+        @method_cache("other_method")
+        def other_method(self, argument=5):
+            call()
+            return -argument
 
+    test = Test()
+    assert test.example_property == 10
+    assert test.example_property == 10
+    assert calls == 1
+    with pytest.raises(AttributeError):
+        test.example_property = 20
     assert test.example_method() == 5
     assert calls == 2
     assert len(test._cache) == 2
@@ -340,6 +342,64 @@ def test_cache_method():
     assert test.example_method(6) == 6
     assert calls == 3
     assert len(test._cache) == 3
+    assert test.other_method(6) == -6
+    assert test.other_method(6) == -6
+    assert calls == 4
+    assert test.example_method(argument=7) == 7
+    assert test.example_method(argument=7) == 7
+    assert calls == 5
+    assert Test().example_property == 10
+    assert calls == 6
+    assert Test.example_method.__name__ == "example_method"
+
+
+@pytest.mark.parametrize("replace_cache", [False, True])
+def test_cache_method_invalidation(replace_cache):
+    class Test:
+        def __init__(self):
+            self._cache = {}
+            self.calls = 0
+
+        @property
+        @method_cache("value")
+        def value(self):
+            self.calls += 1
+            return self.calls
+
+        @method_cache("method")
+        def method(self):
+            self.calls += 1
+            return self.calls
+
+    test = Test()
+    assert test.value == test.value == 1
+    assert test.method() == test.method() == 2
+    if replace_cache:
+        test._cache = {}
+    else:
+        test._cache.clear()
+    assert test.value == test.value == 3
+    assert test.method() == test.method() == 4
+
+
+@pytest.mark.parametrize("exception", [KeyError, ValueError])
+def test_cache_method_exceptions(exception):
+    class Test:
+        def __init__(self):
+            self._cache = {}
+            self.calls = 0
+
+        @method_cache("method")
+        def method(self):
+            self.calls += 1
+            raise exception("calculation failed")
+
+    test = Test()
+    for _ in range(2):
+        with pytest.raises(exception, match="calculation failed"):
+            test.method()
+    assert test.calls == 2
+    assert test._cache == {}
 
 
 class NonConvertible:
