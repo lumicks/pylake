@@ -308,38 +308,24 @@ def test_cache_method():
         def __init__(self):
             self._cache = {}
 
-        @property
-        @method_cache("example_property")
-        def example_property(self):
-            call()
-            return 10
-
         @method_cache("example_method")
         def example_method(self, argument=5):
             call()
             return argument
 
     test = Test()
-    assert len(test._cache) == 0
-    assert test.example_property == 10
-    assert len(test._cache) == 1
-    assert calls == 1
-    assert test.example_property == 10
+    assert test.example_method() == 5
     assert calls == 1
     assert len(test._cache) == 1
-
     assert test.example_method() == 5
-    assert calls == 2
-    assert len(test._cache) == 2
-    assert test.example_method() == 5
+    assert calls == 1
+    assert len(test._cache) == 1
+    assert test.example_method(6) == 6
     assert calls == 2
     assert len(test._cache) == 2
     assert test.example_method(6) == 6
-    assert calls == 3
-    assert len(test._cache) == 3
-    assert test.example_method(6) == 6
-    assert calls == 3
-    assert len(test._cache) == 3
+    assert calls == 2
+    assert len(test._cache) == 2
 
 
 class NonConvertible:

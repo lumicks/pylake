@@ -1,3 +1,4 @@
+import functools
 from copy import copy
 from itertools import zip_longest
 
@@ -7,7 +8,6 @@ from .adjustments import colormaps, no_adjustment
 from .detail.image import make_image_title, reconstruct_num_frames, first_pixel_sample_indices
 from .detail.confocal import ConfocalImage
 from .detail.plotting import get_axes, show_image
-from .detail.utilities import method_cache
 from .detail.imaging_mixins import FrameIndex, VideoExport
 
 
@@ -206,8 +206,7 @@ class Scan(ConfocalImage, VideoExport, FrameIndex):
 
         return new_scan
 
-    @property
-    @method_cache("pixel_time_seconds")
+    @functools.cached_property
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
         if self._has_default_factories():

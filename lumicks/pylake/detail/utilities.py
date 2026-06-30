@@ -10,8 +10,7 @@ import cachetools
 def method_cache(name):
     """A small convenience decorator to incorporate some really basic instance method memoization
 
-    Note: When used on properties, this one should be included _after_ the @property decorator.
-    Data will be stored in the `_cache` variable of the instance.
+    Note: This one cannot be used for properties. For properties use functools.cached_property
 
     Parameters
     ----------
@@ -26,11 +25,6 @@ def method_cache(name):
             def __init__(self):
                 self._cache = {}
                 ...
-
-            @property
-            @method_cache("example_property")
-            def example_property(self):
-                return 10
 
             @method_cache("example_method")
             def example_method(self, arguments):

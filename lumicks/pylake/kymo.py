@@ -1,4 +1,5 @@
 import warnings
+import functools
 from copy import copy
 
 import numpy as np
@@ -225,8 +226,7 @@ class Kymo(ConfocalImage):
 
         return sliced_kymo
 
-    @property
-    @method_cache("pixel_time_seconds")
+    @functools.cached_property
     def pixel_time_seconds(self):
         """Pixel dwell time in seconds"""
         if self._has_default_factories():
@@ -299,8 +299,7 @@ class Kymo(ConfocalImage):
         else:
             return shape
 
-    @property
-    @method_cache("line_time_seconds")
+    @functools.cached_property
     def line_time_seconds(self):
         """Line time in seconds
 
