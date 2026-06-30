@@ -119,6 +119,7 @@ class CalibrationPropertiesMixin:
             ),
             tablefmt=tablefmt,
             headers=("Property", "Description", "Value"),
+            colalign=["left", "left", "left"],
         )
 
     def _repr_html_(self):

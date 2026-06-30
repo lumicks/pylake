@@ -316,27 +316,27 @@ def test_repr(reference_calibration_result):
         """\
         Property                          Description                                         Value
         --------------------------------  --------------------------------------------------  ----------------
-        stiffness                         Trap stiffness (pN/nm)                                  0.1715
-        displacement_sensitivity          Displacement sensitivity (µm/V)                         7.2537
-        force_sensitivity                 Force sensitivity (pN/V)                             1244
-        diffusion_constant                Fitted diffusion constant (µm²/s)                       0.097405
-        corner_frequency                  Estimated corner frequency (Hz)                       656.87
-        diffusion_constant_volts          Fitted diffusion constant (V²/s)                        0.0018513
-        diode_relaxation_factor           Diode relaxation factor (-)                             0.50061
-        diode_frequency                   Diode filtering frequency (Hz).                      7936.5
-        theoretical_bulk_drag             Expected bulk drag coefficient (kg/s)                   4.1552e-08
-        backing                           Statistical backing (%)                                30.57
-        chi_squared_per_degree            Chi squared per degree of freedom                       1.0638
-        stiffness_std_err                 Stiffness error (pN/nm)                                 0.0084141
-        displacement_sensitivity_std_err  Displacement sensitivity std error (µm/V)               0.12597
-        corner_frequency_std_err          Corner frequency std error (Hz)                        32.228
-        diffusion_volts_std_err           Diffusion constant std error (V²/s)                     6.4297e-05
-        diode_relaxation_factor_std_err   Relaxation factor std error (-)                         0.013141
-        diode_frequency_std_err           Diode frequency std error (-)                         561.72
-        bead_diameter                     Bead diameter (microns)                                 4.4
-        temperature                       Temperature (C)                                        20
-        viscosity                         Viscosity of the medium (Pa s)                          0.001002
-        fitted_diode                      Diode parameters were fitted                         True
+        stiffness                         Trap stiffness (pN/nm)                              0.1715
+        displacement_sensitivity          Displacement sensitivity (µm/V)                     7.2537
+        force_sensitivity                 Force sensitivity (pN/V)                            1244
+        diffusion_constant                Fitted diffusion constant (µm²/s)                   0.097405
+        corner_frequency                  Estimated corner frequency (Hz)                     656.87
+        diffusion_constant_volts          Fitted diffusion constant (V²/s)                    0.0018513
+        diode_relaxation_factor           Diode relaxation factor (-)                         0.50061
+        diode_frequency                   Diode filtering frequency (Hz).                     7936.5
+        theoretical_bulk_drag             Expected bulk drag coefficient (kg/s)               4.1552e-08
+        backing                           Statistical backing (%)                             30.57
+        chi_squared_per_degree            Chi squared per degree of freedom                   1.0638
+        stiffness_std_err                 Stiffness error (pN/nm)                             0.0084141
+        displacement_sensitivity_std_err  Displacement sensitivity std error (µm/V)           0.12597
+        corner_frequency_std_err          Corner frequency std error (Hz)                     32.228
+        diffusion_volts_std_err           Diffusion constant std error (V²/s)                 6.4297e-05
+        diode_relaxation_factor_std_err   Relaxation factor std error (-)                     0.013141
+        diode_frequency_std_err           Diode frequency std error (-)                       561.72
+        bead_diameter                     Bead diameter (microns)                             4.4
+        temperature                       Temperature (C)                                     20
+        viscosity                         Viscosity of the medium (Pa s)                      0.001002
+        fitted_diode                      Diode parameters were fitted                        True
         hydrodynamically_correct          Hydrodynamically correct model.                     False
         fit_range                         Spectral frequency range used for calibration (Hz)  (100.0, 23000.0)
         excluded_ranges                   Frequency exclusion ranges (Hz)                     []
