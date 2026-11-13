@@ -5,6 +5,45 @@ from lumicks.pylake.channel import Slice, Continuous, _match_sample_rates
 __all__ = ["ForceBaseLine"]
 
 
+def _match_piezo_channels(channels):
+    """Crop native channels to complete shared samples and match their sample rates."""
+    message = "No complete overlapping samples in the provided channels."
+    if not channels or any(len(channel) == 0 for channel in channels):
+        raise ValueError(message)
+
+    start = max(channel.start for channel in channels)
+    stop = min(channel.stop for channel in channels)
+    channels = [channel[start:stop] for channel in channels]
+    if any(len(channel) == 0 for channel in channels):
+        raise ValueError(message)
+
+    # Slicing can advance the slower channel to its next sample.
+    #
+    # Consider the following example:
+    # Position:  0          50          100          150
+    # Force:        10 20 30 40 50 60 … 100 …
+    #
+    # First start = max(...) gives 10
+    # Second gives the desired 50 after which downsampling is safe.
+    start = max(channel.start for channel in channels)
+    channels = _match_sample_rates([channel[start:stop] for channel in channels], where="left")
+    stop = min(channel.stop for channel in channels)
+    channels = [channel[:stop] for channel in channels]
+    if any(len(channel) == 0 for channel in channels):
+        raise ValueError(message)
+    if any(
+        not np.array_equal(channel.timestamps, channels[0].timestamps) for channel in channels[1:]
+    ):
+        raise RuntimeError(
+            "Provided force and trap position timestamps should match. "
+            "Their sampling grids remain incompatible after cropping and rate matching. "
+            "This can happen when channels were manually downsampled with centered timestamps. "
+            "Pass the native trap-position and high-frequency force channels without manual "
+            "downsampling; piezo tracking matches their sample rates automatically."
+        )
+    return channels
+
+
 class ForceBaseLine:
     """A force baseline as a function of trap position"""
 
@@ -21,8 +60,7 @@ class ForceBaseLine:
             Force data
         """
         self._model = model
-        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
-        self._trap_data, self._force = _match_sample_rates([trap_data, force], where="left")
+        self._trap_data, self._force = _match_piezo_channels([trap_data, force])
 
     def valid_range(self):
         """Returns valid range of the baseline
@@ -40,13 +78,9 @@ class ForceBaseLine:
         force : Slice
             Force data.
         trap_position : Slice
-            Trap position data (needs to be the same time range as the force data).
+            Trap position data. Only complete samples in the shared time range are used.
         """
-        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
-        trap_position, force = _match_sample_rates([trap_position, force], where="left")
-
-        if not np.array_equal(force.timestamps, trap_position.timestamps):
-            raise RuntimeError("Provided force and trap position timestamps should match")
+        trap_position, force = _match_piezo_channels([trap_position, force])
 
         return Slice(
             Continuous(
@@ -99,7 +133,10 @@ class ForceBaseLine:
 
     @classmethod
     def polynomial_baseline(cls, trap_position, force, degree=7, downsampling_factor=None):
-        """Generate a polynomial baseline from data
+        """Generate a polynomial baseline from data in the shared time range.
+
+        Native channels are cropped and force is averaged to match the position
+        sample rate. Prior manual downsampling is not required.
 
         Parameters
         ----------
@@ -112,11 +149,7 @@ class ForceBaseLine:
         downsampling_factor : int
             Factor by which to downsample before baseline determination
         """
-        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
-        trap_position, force = _match_sample_rates([trap_position, force], where="left")
-
-        if not np.array_equal(force.timestamps, trap_position.timestamps):
-            raise RuntimeError("Provided force and trap position timestamps should match")
+        trap_position, force = _match_piezo_channels([trap_position, force])
 
         if downsampling_factor:
             trap_position, force = (

@@ -1,7 +1,13 @@
+from inspect import signature
+
 import numpy as np
 import tabulate
 
-tabulate.PRESERVE_WHITESPACE = True
+if "preserve_whitespace" in signature(tabulate.tabulate).parameters:
+    _TABULATE_KWARGS = {"preserve_whitespace": True}
+else:
+    tabulate.PRESERVE_WHITESPACE = True
+    _TABULATE_KWARGS = {}
 
 
 class CalibrationPropertiesMixin:
@@ -119,6 +125,7 @@ class CalibrationPropertiesMixin:
             ),
             tablefmt=tablefmt,
             headers=("Property", "Description", "Value"),
+            **_TABULATE_KWARGS,
         )
 
     def _repr_html_(self):
