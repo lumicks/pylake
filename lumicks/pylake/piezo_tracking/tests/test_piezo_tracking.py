@@ -291,3 +291,43 @@ def test_downsampling_tracking(piezo_tracking_test_data):
     np.testing.assert_allclose(
         corrected_force1.data, data["force_without_baseline"].downsampled_by(10).data, rtol=1e-3
     )
+
+
+def test_piezo_matches_channel_ranges(piezo_tracking_test_data):
+    data = piezo_tracking_test_data
+    position, force1, force2 = (data[key] for key in ("trap_position", "force_1x", "force_2x"))
+    force_dt = force1.timestamps[1] - force1.timestamps[0]
+    position_dt = position.timestamps[1] - position.timestamps[0]
+    force1 = force1[force1.start + force_dt :]
+    force2 = force2[: force2.stop - force_dt]
+    start = position.start + position_dt
+    stop = position.start + position_dt * (
+        (min(position.stop, force1.stop, force2.stop) - position.start) // position_dt
+    )
+
+    distance_calibration = DistanceCalibration(data["baseline_trap_position"], data["camera_dist"])
+    baseline1, baseline2 = (
+        ForceBaseLine.polynomial_baseline(
+            data["baseline_trap_position"], sign * data["baseline_force"], degree=2
+        )
+        for sign in (1, -1)
+    )
+    tracker = PiezoTrackingCalibration(distance_calibration)
+    distance = tracker.piezo_track(position, force1, force2)
+    expected = data["correct_distance"][start:stop]
+    np.testing.assert_array_equal(distance.timestamps, expected.timestamps)
+    np.testing.assert_allclose(distance.data, expected.data, rtol=1e-6)
+
+    generator = PiezoForceDistance(distance_calibration, baseline1, baseline2)
+    distance, corrected1, corrected2 = generator.force_distance(
+        position, force1, force2, trim=False
+    )
+    for channel in (distance, corrected1, corrected2):
+        np.testing.assert_array_equal(channel.timestamps, expected.timestamps)
+    np.testing.assert_allclose(distance.data, expected.data, rtol=1e-6)
+    np.testing.assert_allclose(
+        corrected1.data, data["force_without_baseline"][start:stop].data, rtol=1e-3
+    )
+    np.testing.assert_allclose(
+        corrected2.data, -data["force_without_baseline"][start:stop].data, rtol=1e-3
+    )

@@ -43,6 +43,10 @@ Let's load this dataset and perform the distance calibration by invoking::
 
 This class performs a polynomial regression between the trap position and bead tracking distance.
 Note that this bead-to-bead distance already has the bead radius subtracted, therefore it reflects the surface-to-surface distance.
+
+For baseline fitting and piezo tracking, pass the native trap-position and high-frequency force channels directly.
+Pylake crops them to their shared time range and averages faster channels to the slowest sample rate before applying any requested additional downsampling.
+
 We can plot what this curve looks like by invoking :meth:`~lumicks.pylake.DistanceCalibration.plot` on it::
 
     plt.figure()

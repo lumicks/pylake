@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.8.1 | t.b.d.
+
+#### Bug fixes
+
+- Fixed timestamp mismatches in [piezo tracking](https://lumicks-pylake.readthedocs.io/en/latest/api.html#piezo-tracking) and force-baseline fitting/correction by cropping native force and trap-position channels to their shared time range before matching sample rates. Only complete averaging blocks are retained. Incompatible sampling grids now raise an informative error suggesting native channels instead of manually downsampled data.
+
 ## v1.8.0 | 2025-10-30
 
 #### New features
