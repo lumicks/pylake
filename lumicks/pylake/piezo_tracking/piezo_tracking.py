@@ -2,8 +2,8 @@ import warnings
 
 import numpy as np
 
-from ..channel import Slice, _match_sample_rates
-from .baseline import ForceBaseLine
+from ..channel import Slice
+from .baseline import ForceBaseLine, _match_piezo_channels
 
 __all__ = ["DistanceCalibration", "PiezoTrackingCalibration", "PiezoForceDistance"]
 
@@ -123,6 +123,9 @@ class PiezoTrackingCalibration:
     def piezo_track(self, trap_position, force1, force2, downsampling_factor=None):
         """Obtain piezo distance and baseline corrected forces
 
+        Native channels are cropped to their shared time range before matching
+        sample rates. Only complete averaging blocks are retained.
+
         Parameters
         ----------
         trap_position : Slice
@@ -134,10 +137,7 @@ class PiezoTrackingCalibration:
         downsampling_factor : Optional[int]
             Downsampling factor.
         """
-        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
-        trap_position, force1, force2 = _match_sample_rates(
-            [trap_position, force1, force2], where="left"
-        )
+        trap_position, force1, force2 = _match_piezo_channels([trap_position, force1, force2])
 
         if downsampling_factor:
             trap_position, force1, force2 = (
@@ -205,6 +205,9 @@ class PiezoForceDistance:
     def force_distance(self, trap_position, force1, force2, trim=True, downsampling_factor=None):
         """Obtain piezo distance and baseline corrected forces
 
+        Native channels are cropped to their shared time range before matching
+        sample rates. Only complete averaging blocks are retained.
+
         Parameters
         ----------
         trap_position : Slice
@@ -218,10 +221,7 @@ class PiezoForceDistance:
         downsampling_factor : Optional[int]
             Downsampling factor.
         """
-        # Ensure force and position have the same sample rate, downsample to the left to keep timestamps aligned.
-        trap_position, force1, force2 = _match_sample_rates(
-            [trap_position, force1, force2], where="left"
-        )
+        trap_position, force1, force2 = _match_piezo_channels([trap_position, force1, force2])
 
         piezo_distance = self.piezo_calibration.piezo_track(
             trap_position, force1, force2, downsampling_factor
